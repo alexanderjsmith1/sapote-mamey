@@ -1,4 +1,4 @@
-"""Local gene names for the grey genes of a gap-rescue locus map (card 018c0f08_452_gene_local_names).
+"""Local gene names for the grey genes of a gap-rescue locus map (card 452_gene_local_names).
 
 The step that named region genes by DIAMOND against Swiss-Prot and MIBiG was a loose script with fixed paths, keyed by
 locus tag only. It is now tools/gene_local_names.py: inputs on the command line, a protein_sha256 on every row so the map

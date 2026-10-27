@@ -359,22 +359,12 @@ RULES = [
     ("docs/user_guides/sapote_kernel_guide.md",
      re.compile(r"Sapote\u2013Mamey v\d+(?:\.\d+)*[a-z]* \u00b7 Engine \d+(?:\.\d+)*[a-z]*"),
      f"Sapote\u2013Mamey v{BUNDLE} \u00b7 Engine {ENGINE}"),
-    # operational_reference embeds the stamp inside example tier-zip filenames (…-CODE-<stamp>.zip).
-    ("docs/user_guides/operational_reference.md",
-     re.compile(r"(sapote-mamey-v\d+(?:\.\d+)*[a-z]*-CODE-)\d+v\d+[a-z]*"),
-     rf"\g<1>{STAMP}"),
+    # operational_reference is a pointer page; its body moved to docs/history/retired_458/user_guides/.
+    # Only the pointer's "Bundle v… · Engine …" header is synced. The four rules for the old body
+    # (tier-zip filename stamp and version, the --check example line, the cut-time footers) went with it.
     ("docs/user_guides/operational_reference.md",
      re.compile(r"Bundle v\d+(?:\.\d+)*[a-z]* · Engine \d+(?:\.\d+)*[a-z]*"),
      f"Bundle v{BUNDLE} · Engine {ENGINE}"),
-    ("docs/user_guides/operational_reference.md",
-     re.compile(r"(sapote-mamey-v)\d+(?:\.\d+)*[a-z]*(-CODE-\d+v\d+[a-z]*)"),
-     rf"\g<1>{BUNDLE}\g<2>"),
-    ("docs/user_guides/operational_reference.md",
-     re.compile(r"(sync_version.py --check # → engine )\d+(?:\.\d+)*[a-z]*(, bundle )\d+(?:\.\d+)*[a-z]*"),
-     rf"\g<1>{ENGINE}\g<2>{BUNDLE}"),
-    ("docs/user_guides/operational_reference.md",
-     re.compile(r"(Version synchronized at cut time · Bundle v)\d+(?:\.\d+)*[a-z]*"),
-     rf"\g<1>{BUNDLE}"),
     # v9.7.432 (stale version-of-record finding): the five docs/reference volumes state a "Version of record"
     # (engine + bundle) that nothing owned, so it shipped one or two cuts behind in .430 and .431.
     # Anchor both halves; the pattern is pinned to that exact line so dated historical notes elsewhere
@@ -383,8 +373,9 @@ RULES = [
        re.compile(r"(\*\*Version of record:\*\* Mamey engine v)\d+(?:\.\d+)*[a-z]*( · bundle v)\d+(?:\.\d+)*[a-z]*"),
        rf"\g<1>{ENGINE}\g<2>{BUNDLE}")
       for name in ("01_Math_Reference_VolI.md", "02_Math_Reference_VolII.md", "03_Plumbing_Reference.md")],
-    # 00_README.md and 10_Math_Reference_GeneralAudience.md state a dated re-grounding note instead of
-    # a version-of-record line; dated notes are history and stay as written.
+    # 00_README.md states a dated re-grounding note instead of a version-of-record line; dated notes
+    # are history and stay as written. 10_Math_Reference_GeneralAudience.md is a pointer page with no
+    # version line; its retired body is in docs/history/retired_458/reference/.
     # v9.7.199 (F5, anchor-the-rotting-fields): docs/TIER_NOTE_CODE.md restates bundle/engine/build in its H1
     # title + three body lines. Its own text says "regenerate at cut time," but nothing owned it, so it
     # drifted — stale v9.7.144b, then shipped v9.7.197 inside the v9.7.198 cut. The make_public_tier.sh

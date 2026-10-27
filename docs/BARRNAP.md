@@ -6,8 +6,8 @@ The shipped `tools/marker_candidate_search.py` prints a Barrnap-based rRNA plan;
 
 ## Version and environment check
 
-Use the selected executable's `barrnap --version` and `barrnap --help`, and the [upstream installation instructions](https://github.com/tseemann/barrnap). Record executable/version, environment, database path/version/hash, input hash and selected model in the work order. No install, database download or Barrnap run was performed here.
+Use the selected executable's `barrnap --version` and `barrnap --help`, and the [upstream installation instructions](https://github.com/tseemann/barrnap). Record executable/version, environment, database path/version/hash, input hash and selected model in the work order.
 
-The upstream executable lists kingdoms `bac`, `arc`, `fun`; older guidance here used `euk`. Match flags and dependencies to the actual installed release; do not paste historical flags into another version. See [upstream executable source](https://github.com/tseemann/barrnap/blob/master/bin/barrnap). This source snapshot is not proof of which version is installed locally.
+The upstream executable lists kingdoms `bac`, `arc`, `fun`; older guidance here used `euk`. Match flags and dependencies to the actual installed release; do not paste historical flags into another version. See [upstream executable source](https://github.com/tseemann/barrnap/blob/master/bin/barrnap).
 
 Choose a fresh working destination and retain source evidence in place. GFF annotations and extracted marker sequences are different artifacts: bind each output to the exact assembly, sequence/coordinates, executable and database. A planned command, missing database or empty/failed output is not an admitted marker or negative biological result. Follow the selected tree workflow's separate reference, alignment and acceptance gates.

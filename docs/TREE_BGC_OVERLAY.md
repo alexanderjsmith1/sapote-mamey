@@ -106,6 +106,4 @@ Canonical IQ-TREE Newick with quoted labels is accepted. Comments or extended an
 refused so unsupported Newick cannot be misrendered. Any later PDF compilation must preserve the SVG
 as vector artwork or pass the native-pixel fallback gate, then verify physical-width text legibility.
 
-This renderer is candidate engineering only. A green render does not sign off the tree, reconcile
-MLSA with core-genome topology, accept annotations scientifically, select a product, or authorize a
-release.
+A successful render does not sign off the tree or reconcile MLSA with core-genome topology.

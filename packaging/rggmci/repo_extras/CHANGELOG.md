@@ -1,14 +1,16 @@
-# Changelog template provenance
-
-This retained file is repository-extra source, not the current bundle's release changelog or proof of an installed standalone release. The literal `{version}` placeholder is replaced by `make_repo_candidate.py:94–103` using the generated package provenance; the plain standalone builder does not copy repo_extras. The template package version is `1.0.0rc3` and is independent of Sapote-Mamey's bundle/engine version. Source: template `pyproject.toml:5–13`; `build_rggmci_package.py:188–193`.
-
-Historical rc1/rc2 behavior and testing claims below are preserved as change records, not newly verified runtime/scientific results. The generated small MIBiG/engine-parity tests do not establish all database, platform or biological claims. Installed package identity must be checked against its own provenance and available source/receipts; installation, model builds, engine probes and tests need their own execution records. See the neighboring [contribution boundary](CONTRIBUTING.md) and the generated source tree's `docs/OUTPUT_GUIDE.md` (retained bundle template: `packaging/rggmci/templates/docs/OUTPUT_GUIDE.md`).
-
-## Retained changelog template — unchanged below
-
 # Changelog
 
 ## {version}
+Built from Sapote-Mamey 9.7.457 (engine 1.9.177). Scores, ranks and confidence labels are unchanged: on the bundled example every pair keeps its confidence, and only the junction label below changes.
+- **Junction evidence label.** `junction_evidence_state` is `SEQUENCE_COMPLEXITY_CLEAR` only when every truncated contig end was read and is complex. An end that could not be read, or holds N or another non-ACGT base, gives `SEQUENCE_COMPLEXITY_UNRESOLVED`. A pair with no truncated end is `NOT_APPLICABLE`; it was `SEQUENCE_COMPLEXITY_CLEAR` before. On the bundled example, 5 pairs change from CLEAR to NOT_APPLICABLE.
+- **Contig ends.** An end window holding N or another non-ACGT base is `AMBIGUOUS_TERMINUS`. `/contig_edge` is read from the region feature itself, not from the first match in the file.
+- **One read of each archive.** An antiSMASH ZIP is read from one recorded copy (`archive_snapshot.py`, `source_context.py`). A ZIP that changes while it is prepared is refused (`RGGMCI_INPUT_CHANGED_DURING_PREPARATION`).
+- **Gene context on pairs.** When the archive's CDS annotations allow it, pairs carry `a_functional_roles`, `b_functional_roles`, `a_core_fraction`, `b_core_fraction`, `modular_continuation` and `functional_rescue_class` (`_feature_records.py`, `_functional_profiles.py`, `_gene_context.py`). They describe the pair and never change a score. The bundled example has none.
+- **Outputs.** `--out`, `--pairs` and `--out-dir` must be new files or a new or empty directory, and every input and output is checked before any work starts. A batch also writes a related-locus table and the three completion tables per genome. New options: `--registry-from`, `--label`, `--residue-work-dir`, `--completion-work-dir`.
+- **Built-in GenBank reader.** Without Biopython, a record with no sequence and no numeric LOCUS length is an error, as it is with Biopython.
+- **BLASTp layer exit code.** It returns 0 even when some queries are unmapped. Check `NOT_IN_RESULTS` and the unmapped list before treating a run as complete.
+- Changed lifted modules: `_parsers.py`, `core.py`, `cli.py`, `ref_completion.py`, `reader.py`, `blastp.py`, `residue_tiling.py`, `ziputil.py`, `_gbk_shim.py`, `groups.py`, `_blastp_io.py`, `__init__.py`.
+## 1.0.0rc3
 
 - `rggmci build-mibig-db --help` names the command `rggmci build-mibig-db`. It said `ref_completion`.
 - A package test now runs `rggmci build-mibig-db` on a small made-up MIBiG GenBank file, without DIAMOND, so CI

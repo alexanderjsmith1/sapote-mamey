@@ -20,7 +20,7 @@ antiSMASH outputs can be very large because full JSON files may contain sequence
 
 ## Which release ZIP exists now
 
-Releases cut the **CODE tier only** ([cut protocol](../CUT_PROTOCOL.md), "Releases cut the CODE tier only", since v9.7.444):
+Releases cut the **CODE tier only** ([cut protocol](../CUT_PROTOCOL.md)):
 `sapote-mamey-v<version>-CODE-<build>.zip`, with its own leak audit, derivation check and checksums. Use it to
 run the pipeline or read the code. The authorized maintainer controls sealing and publication of a cut.
 
@@ -34,7 +34,7 @@ and applicable private guards or nonpublic profile tiers can refuse a public req
 whenever disclosure matters.
 
 ### Historical: the multi-tier set (retired)
-Until v9.7.444, releases also cut CODE-analysis-free, SID/cohort-public, MERGED-PRIVATE and public tiers, plus a
+Earlier releases also cut CODE-analysis-free, SID/cohort-public, MERGED-PRIVATE and public tiers, plus a
 DO-FIRST patch kit. That tooling stays in the bundle, disabled: the tier branches refuse to run unless
 `SAPOTE_ENABLE_DISABLED_TIERS=1` is set. Do not use those tiers for sharing. The old "share strain context from
 SID-public" rule is withdrawn.

@@ -12,13 +12,13 @@ Historical Release 1 / Release 2 wording describes design stages; it is not a cu
 
 ## Key files
 
-- `CELL_STATUS_CODE_GLOSSARY.md` - controlled terms used in provenance and worklist tables.
-- `ANTISMASH_INPUT_WORKFLOW.md` - what Mamey can read from antiSMASH outputs.
-- `PROTEIN_FASTA_WORKFLOW.md` - how protein FASTA relates to assembled FASTA and antiSMASH/annotation outputs.
-- `HMMER_DATA_WORKFLOW.md` - how to generate HMMER `domtblout` evidence.
-- `DIAMOND_DATA_WORKFLOW.md` - how to generate scalable BLASTP-like homolog tables.
-- `MANUAL_BLASTP_SPOTCHECK_WORKFLOW.md` - when NCBI BLASTP is appropriate.
-- `BIGSCAPE_TROUBLESHOOTING.md` - cohort-run setup, reference loading, family labels, and figure problems.
+- [CELL_STATUS_CODE_GLOSSARY.md](CELL_STATUS_CODE_GLOSSARY.md) - controlled terms used in provenance and worklist tables.
+- [ANTISMASH_INPUT_WORKFLOW.md](ANTISMASH_INPUT_WORKFLOW.md) - what Mamey can read from antiSMASH outputs.
+- [PROTEIN_FASTA_WORKFLOW.md](PROTEIN_FASTA_WORKFLOW.md) - how protein FASTA relates to assembled FASTA and antiSMASH/annotation outputs.
+- [HMMER_DATA_WORKFLOW.md](HMMER_DATA_WORKFLOW.md) - how to generate HMMER `domtblout` evidence.
+- [DIAMOND_DATA_WORKFLOW.md](DIAMOND_DATA_WORKFLOW.md) - how to generate scalable BLASTP-like homolog tables.
+- [MANUAL_BLASTP_SPOTCHECK_WORKFLOW.md](MANUAL_BLASTP_SPOTCHECK_WORKFLOW.md) - when NCBI BLASTP is appropriate.
+- [BIGSCAPE_TROUBLESHOOTING.md](BIGSCAPE_TROUBLESHOOTING.md) - cohort-run setup, reference loading, family labels, and figure problems.
 
 ## Rule
 
@@ -28,4 +28,4 @@ Package `Troubleshooting/` files are generated from `mamey/cell_provenance.py` l
 
 ## Single-region accession antiSMASH ZIPs
 
-For one-accession / one-region antiSMASH outputs such as `KY089035.1.zip`, see `SINGLE_REGION_ACCESSION_INPUTS.md`. These are valid raw antiSMASH intake targets after `inspect`, but they are not full genomes or sealed Mamey packages.
+For one-accession / one-region antiSMASH outputs such as `KY089035.1.zip`, see `SINGLE_REGION_ACCESSION_INPUTS.md`. These are raw antiSMASH intake candidates rather than full genomes or sealed Mamey packages. `inspect` previews filenames and markers; reconcile their actual records and identity before extraction instead of treating its success as parse validation.

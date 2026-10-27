@@ -557,11 +557,11 @@ def sha256(path: Path) -> str:
 # v9.7.199 REPRO-FINGERPRINT: checksums_sha256.txt cannot be compared across runs/chats —
 # it tracks the date-stamped master workbook, timestamped receipts, and (excludes but is
 # adjacent to) re-rendered figures, so two identical runs produce different checksum files.
-# The determinism fingerprint hashes ONLY the deterministic, score-bearing outputs, so the
-# same strain on the same bundle yields the SAME fingerprint in any chat. A mismatch is a
-# real divergence to investigate, not run-to-run noise. Whitelist entries are matched by
-# filename suffix (the per-strain prefix varies); missing files hash as "MISSING" rather than
-# aborting, so the fingerprint is defined even on a partial package.
+# The fingerprint compares selected output bytes after CRLF normalization. Equal strain/bundle
+# labels alone do not determine it; selected normalized bytes and component availability must
+# match. The first sorted match for each whitelist suffix is used. Missing components encode
+# "MISSING", so a partial package still has a fingerprint. This is not whole-package integrity,
+# source/configuration equivalence, completeness or scientific validation.
 DETERMINISM_WHITELIST = (
     "_2_inventory.csv",
     "_2b_bgc_crosswalk.csv",
@@ -575,13 +575,15 @@ DETERMINISM_WHITELIST = (
 
 
 def repro_fingerprint(package_dir: str | Path) -> dict:
-    """Stable, cross-run/cross-chat determinism fingerprint over the score-bearing outputs.
+    """Fingerprint over selected normalized package-output bytes and missing-component states.
 
     Returns {"fingerprint": <sha256 hex>, "components": {suffix: <sha256 head16 | "MISSING">},
     "whitelist": [...]}. Line endings are normalized to \\n so a fingerprint computed on a
     Windows-checkout package matches a Linux one. Intended for `mamey fingerprint` compare and
     for the manifest's repro_fingerprint field. This is NOT a substitute for checksums_sha256.txt
-    (whole-package integrity); it answers a different question: 'did two runs agree on the science?'
+    (whole-package integrity). Compare identical selected normalized bytes and component availability;
+    equal strain/bundle labels alone are insufficient. It does not verify source/configuration
+    equivalence, package completeness or scientific truth.
     """
     root = Path(package_dir)
     _package_files_fail_closed(root)
@@ -614,10 +616,10 @@ def write_repro_fingerprint(package_dir: str | Path) -> dict:
 def fingerprint_command(args) -> int:
     """`mamey fingerprint <package> [--compare <package_or_hex>] [--json]`.
 
-    Emits the determinism fingerprint of a sealed package. With --compare, diffs it against
-    another package (path) or a raw fingerprint hex, returning exit 0 on match, 1 on divergence
-    (per-component diff printed). This is the cross-chat reproducibility check: same strain +
-    same bundle should yield the same fingerprint in any chat.
+    Emits the selected-output fingerprint, including explicit missing-component states. With
+    --compare, diffs it against another package (path) or a raw fingerprint hex, returning exit
+    0 on match, 1 on divergence (per-component diff printed). A match compares the selected
+    normalized output bytes and availability states, not complete source identity or scientific validity.
     """
     fp = repro_fingerprint(args.package)
     if getattr(args, "compare", None):

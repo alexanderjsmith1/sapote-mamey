@@ -175,9 +175,10 @@ All 5 command stages returned zero. The package contains 606 files, approximatel
 ## Reproduce or continue
 
 Use the [Master Walkthrough](MASTER_WALKTHROUGH.md) and its expanded offline-output settings.
-The accompanying review kit includes run scripts and exact receipts, the candidate patches,
-validation logs and inventories. Set paths and recreate a compatible environment on another
-machine; do not copy a virtual environment. Individual Complete_Package ZIPs remain in the run
+Reproduction requires the separately retained review kit: run scripts, exact receipts, candidate
+code/patches, validation logs and inventories. Locate and hash-bind that kit and the recorded
+input ZIPs before attempting reproduction; the software bundle does not supply the complete
+panel evidence. Recreate a compatible environment rather than copying a virtual environment. Individual Complete_Package ZIPs remain in the run
 folders and are indexed by the review record. The software patch ZIP intentionally does not
 duplicate those large biological outputs.
 

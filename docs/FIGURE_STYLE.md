@@ -1,6 +1,6 @@
 # Sapote-Mamey Figure Style Rule
 
-**Figures are data; interpretation lives in the caption.** A Sapote-Mamey figure must be regenerable-free for any wording change — because annotation tweaks should never cost a figure rebuild (a real concern for users on metered Claude plans, where regenerating a plot to move one label burns credits).
+**Figures are data; interpretation lives in the caption.** Keep interpretive prose in an editable companion caption so revising it does not require redrawing unchanged plot geometry. Rebuild any presentation that embeds changed text, inspect it, and renew its manifest/receipt bindings.
 
 ## A figure MAY contain
 - Data (bars, points, lines, histograms), axes, axis labels, units.
@@ -17,7 +17,7 @@
   Scientific limitations belong in ordinary caption prose and machine receipts, not as a visual track.
 
 ## Where the interpretation goes instead
-1. **The figure caption** (a `*_Captions.md` alongside the figures) — every callout, arrow target, and "note that X" belongs here. Free to edit, no regeneration.
+1. **The figure caption** (the figure's `_CAPTION.md` file, as in [house rule 2](FIGURE_HOUSE_RULES.md#rules-for-every-figure)) — every callout, arrow target, and "note that X" belongs here. Editing the separate caption does not require redrawing unchanged plot geometry. If the caption is embedded in a band or compiled document, rebuild and inspect that presentation; any changed caption also needs a new manifest/receipt binding.
 2. **User-driven overlays** — the user adds arrows, circles, and callouts in PowerPoint / BioRender / Illustrator for a specific talk or panel, where they control placement and it doesn't touch the source figure.
 
 ## Fail before rendering meaningless output
@@ -82,7 +82,7 @@ selected benchmark identifiers independently.
 ## Genus-aware comparison presets
 
 Within-genus comparison is the default for strain-level interpretation. Cross-genus figures
-must be stratified, matched, modelled, or display genus composition. A renderer may expose
+must be stratified, matched, modeled, or display genus composition. A renderer may expose
 additional genera as independent selectable options, but must not silently pool them into the
 default roster. Presets are explicit inputs and receipts, not a hardcoded project cohort.
 
@@ -91,14 +91,14 @@ default roster. Presets are explicit inputs and receipts, not a hardcoded projec
 Blurred plot text in a compiled PDF is a major output defect. Publication artwork is validated at
 its declared physical size before document rendering:
 
-- `SINGLE_COLUMN` is 3.5 inches wide and `DOUBLE_COLUMN` is 7.2 inches wide;
-- the smallest plot label, tick, support label, or annotation is at least 8 pt in both profiles;
-- SVG is preferred and must contain live text plus vector geometry, with no embedded raster image;
-- a PNG fallback must provide at least 300 native pixels per embedded inch. Metadata DPI does not
-  rescue a thumbnail, and upscaling a screen PNG is refused;
-- a PDF-derived screenshot is review evidence only and is never source artwork;
-- caption text may not exceed 1.25 times the smallest plot text size; and
-- document compilation preserves suitable vectors. A high-resolution raster fallback is allowed
+- `SINGLE_COLUMN` is 3.5 inches wide and `DOUBLE_COLUMN` is 7.2 inches wide.
+- The smallest plot label, tick, support label, or annotation is at least 8 pt in both profiles.
+- SVG is preferred and must contain live text plus vector geometry, with no embedded raster image.
+- A PNG fallback must provide at least 300 native pixels per embedded inch. Metadata DPI does not
+  rescue a thumbnail, and upscaling a screen PNG is refused.
+- A PDF-derived screenshot is review evidence only and is never source artwork.
+- Caption text may not exceed 1.25 times the smallest plot text size.
+- Document compilation preserves suitable vectors. A high-resolution raster fallback is allowed
   only when vector conversion is unavailable and the native-pixel gate passes.
 
 Standalone PNG inspection does not establish compiled-document legibility. The compilation receipt
@@ -128,9 +128,9 @@ F10 is a visualization of selected raw domain-token occurrences carried through
 `deep_data.domain_hits`; it is not a regulator-gene caller. Its traveling caption/method record must
 name the displayed raw tokens, identify the upstream antiSMASH GBK `aSDomain`/`PFAM_domain`
 annotation types, and define one counted observation as one retained domain-hit occurrence assigned
-to a BGC overlap. It must disclose the upstream deduplication boundary: whole-record GBKs are
-preferred, region-file copies are excluded when those whole-record files exist, identical feature
-keys are deduplicated, distinct loci remain distinct, and an upstream feature may be represented in
+to a BGC overlap. It must disclose the upstream deduplication boundary. Whole-record GBKs are
+preferred, and region-file copies are excluded when those whole-record files exist. Identical feature
+keys are deduplicated, and distinct loci remain distinct. An upstream feature may be represented in
 more than one per-BGC row when BGC intervals overlap. Any friendly family label is a display aid
 chosen by Sapote-Mamey, not an independently validated functional call. `LysR_substrate` is a
 substrate-binding-domain token and alone does not establish a complete LysR regulator or regulatory
@@ -146,13 +146,13 @@ Pfam domains.” Until a domain adapter binds feature type, accession, annotatio
 feature identity, and BGC-overlap assignment, F11 emits a typed hold instead of artwork.
 
 After that contract is supplied, the traveling methods must state the exact input files and hashes,
-antiSMASH and Mamey versions, observation and deduplication unit, cohort/exclusion denominator,
-top-row ranking rule, matrix transformation, distance and linkage, raw/positive ranges and zeros,
-and the descriptive-only interpretation ceiling. Publication artwork must independently pass the
+antiSMASH and Mamey versions, and the observation and deduplication unit. They must also state the
+cohort/exclusion denominator, top-row ranking rule, matrix transformation, distance and linkage,
+raw/positive ranges and zeros, and the descriptive-only interpretation ceiling. Publication artwork must independently pass the
 declared-width vector/live-text, minimum 8 pt, and no-raster-embedding gates.
 
 ## Why
-A clean figure + a separate caption is reusable across every context (paper, slide, poster) and lets anyone re-label without touching the plot code. Baking callouts into the PNG couples the figure to one narrative and forces a rebuild for every rewording. When `tools/build_figures.py` is added, it must follow this rule — emit clean figures and a captions file, never overlaid callouts.
+A clean figure + a separate caption is reusable across every context (paper, slide, poster) and lets anyone re-label without touching the plot code. Baking callouts into the PNG couples the figure to one narrative and forces a rebuild for every rewording. `tools/build_figures.py` must follow this rule — emit clean figures and a captions file, never overlaid callouts.
 
 ## Policy requirement versus renderer coverage
 
@@ -162,4 +162,4 @@ Verify the specific producer's implementation and receipt rather than treating a
 
 Arrows encoding strand, gene order or a defined graph relation are data geometry; they are distinct from interpretive callouts pointing at selected observations. Use a caption to define that visual grammar. The prohibitions above do not silently exclude lossless locus-map arrows.
 
-Source examples: `mamey/figure_save.py:63–142`; `mamey/bigscape_figures.py:205–247`; `tools/bgc_figures.py:43–58`; `tools/build_normalization_matrix.py:136–148`.
+Source examples: `mamey/figure_save.py`, `mamey/bigscape_figures.py`, `tools/bgc_figures.py`, `tools/build_normalization_matrix.py`.

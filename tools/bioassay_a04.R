@@ -71,7 +71,7 @@ p <- ggplot(d,aes(x,y,fill=genus))+
   scale_shape_manual(values=shapes,name=if(is.null(prof$group_axis_label))"Source" else prof$group_axis_label)+scale_fill_manual(values=pal,labels=genlab,name="Genus (16S rRNA)")+
   scale_x_continuous(limits=c(min(-5,d$x-4),max(112,d$x+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   scale_y_continuous(limits=c(min(-5,d$y-4),max(112,d$y+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
-  labs(x=paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix),y=paste("Best inhibition of MRSA,",suffix))+house()+
+  labs(x=sp_md(paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix)),y=paste("Best inhibition of MRSA,",suffix))+house()+
   guides(fill=guide_legend(ncol=if (TPT > 8) 2 else 3,byrow=TRUE,order=1,override.aes=list(shape=21)),shape=guide_legend(nrow=1,order=2))   # larger text: two legend columns fit the width
 # a04_legend_compact (card 472; owner, 21 Oct, Moss Fig. S10b: "Try to get the Genus and Source group keys to take up 1 line
 # each"): with this many genera or fewer, the genus key is one line with its title on the left, like the source key; with
@@ -87,8 +87,8 @@ if (!is.null(prof$a04_legend_compact)) {
 if(!isTRUE(prof$a04_source_shape))p<-p+guides(shape="none")
 if (TPT != 8) p <- p + theme(text=element_text(size=TPT),axis.text=element_text(size=TPT),
                              axis.text.x.bottom=element_markdown(size=TPT),axis.text.y.left=element_markdown(size=TPT),   # house() sets these by name
-                             axis.title=element_text(size=TPT,colour=TITLE_COL),axis.title.x=element_text(size=TPT,colour=TITLE_COL),
-                             axis.title.y=element_text(size=TPT,colour=TITLE_COL),
+                             axis.title=element_markdown(size=TPT,colour=TITLE_COL),axis.title.x=element_markdown(size=TPT,colour=TITLE_COL),
+                             axis.title.y=element_markdown(size=TPT,colour=TITLE_COL),
                              legend.text=element_markdown(size=TPT),legend.title=element_text(size=TPT))
 if (!is.null(lcol)) {
   seg <- geom_segment(data=lcol,aes(x=x,y=y,xend=lx-1.2,yend=ly),inherit.aes=FALSE,colour="#6B7483",linewidth=.25)

@@ -113,6 +113,13 @@ if (has("rank") && ncol(df) >= 6) {
     ggplot2::expand_limits(x = max(df$.count, na.rm = TRUE) * 1.18) +
     ggplot2::labs(x = count_col, y = NULL, title = title, caption = caption) +
     sapote_theme()
+  # Reserve physical space for the widest trained x tick label. The default
+  # 5.5 pt margin can clip the centered outer tick. Use an 8 pt character-width
+  # upper bound, without opening a graphics device to measure text.
+  tick_labels <- ggplot2::ggplot_build(p)$layout$panel_params[[1L]]$x$get_labels()
+  tick_half_width <- max(nchar(tick_labels), na.rm = TRUE) * 8 / 2
+  p <- p + ggplot2::theme(plot.margin = ggplot2::margin(
+    t = 5.5, r = max(5.5, tick_half_width + 3), b = 5.5, l = 5.5, unit = "pt"))
   height <- sapote_height_in(nrow(df))
 
 } else if (has("AB_auto", "AF_auto")) {

@@ -9,8 +9,7 @@ All figures inherit `FIGURE_CONVENTIONS.md` (no arrows on data points). This is 
 | 1 | `fig_class_prevalence_bar` | class_prevalence.csv | Shared backbone vs accessory chemistry across the strain set. | Bracket the accessory tail where the ecological story lives. |
 | 2 | `fig_class_by_strain_heatmap` | class_by_strain.csv | Class × strain matrix — which strains carry which chemistry. | Group columns by host/habitat with a slide bracket. |
 | 3 | `fig_core_ecological_signal_bar` | class_prevalence.csv (ectoine/siderophore/metallophore) | Near-core osmolyte + iron-acquisition layer; presence/absence, not assay. | — |
-| 4 | `fig_tfbs_coupling_heatmap` | TFBS data (F2_Regulatory_TFBS / gene tfbs) | Regulatory-motif signal per regulator × strain (presence/strength, not expression). | Spotlight a regulator row tied to the ecological hypothesis. |
-| 5 | `fig_other_class_decomposition_recurrent` | other_breakdown.csv (≥2 strains) | Recurrent finer categories within "other" — real shared chemistry, not the inflated catch-all. | — |
+| 4 | `fig_tfbs_coupling_heatmap` | bound wide TFBS_Motifs sheet or separately populated schema-bound motif mapping; native gene tfbs={} is a placeholder | Regulatory-motif signal per regulator × strain (presence/strength, not expression). | Spotlight a regulator row tied to the ecological hypothesis. |
 
 **Claim-safety:** ecological statements are presence/absence over conserved classes and motif signals —
 never functional assays. Habitat-exclusive claims are retired (hglE-KS is collection-specific, prevalent-not-exclusive).

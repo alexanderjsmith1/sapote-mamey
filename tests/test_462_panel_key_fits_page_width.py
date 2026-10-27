@@ -1,4 +1,4 @@
-"""Card 018c0f08_462_panel_key_fits_page_width: the shared gene-class key of gap_rescue_panel_figure.py stays inside a
+"""Card 462_panel_key_fits_page_width: the shared gene-class key of gap_rescue_panel_figure.py stays inside a
 6.5 in page (it ran off the right edge with long labels such as "biosynthetic core" and "class unclear"), and a single
 map can be drawn as a figure of its own without a panel letter (--no-letter). Synthetic blank maps; no DIAMOND."""
 import importlib.util

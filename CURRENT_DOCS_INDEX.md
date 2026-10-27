@@ -1,14 +1,28 @@
-# Current Docs Index — v9.7.457 · engine 1.9.177 · build 20261023v97457a
+# Current Docs Index — v9.7.458 · engine 1.9.177 · build 20261026v97458a
 
-Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
-For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
-For figures and concise evidence-backed writing, use [Evidence to report](docs/EVIDENCE_TO_REPORT.md).
-For the primary figure deliverable workflow, use [Make and review figures](docs/FIGURES_START_HERE.md): choose the figure roster, retain plotted data and captions, and review the actual outputs.
-The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced command reference. [AGENTS](AGENTS.md) is the canonical portable coding-assistant contract. Its
-generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
-or receive it through their supported instruction mechanism.
+Each listed entry starts with its status. The status is `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted page may be current or historical; check its banner and the [maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md).
 
-Each listed entry starts with its status: `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted document has no current-navigation declaration. Check its explicit lifecycle, owning source and the maintenance inventory; unlisted status alone does not establish that it is historical or safe to follow.
+## Start with what you have
+
+- `current` **Choose your starting file:** [Start with your file](docs/READER_START_HERE.md)
+  distinguishes software, antiSMASH input and a saved result.
+- `current` **Prepare inputs and the environment:** [Inputs and setup](docs/reader/02_INPUTS_AND_SETUP.md)
+  identifies the program, input and output locations and the prerequisites for your selected task.
+- `current` **Extract one supplied antiSMASH ZIP:** [Your first extraction](docs/reader/01_FIRST_RUN.md)
+  gives the compact recipe and separate package/workbook checks. The
+  [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) remains the longer reference for assistant requests and options.
+- `current` **Read an existing Complete_Package ZIP:** [Read one saved package](docs/reader/03_READ_RESULTS.md)
+  starts with saved evidence before considering a rerun; [Reading your results](docs/READING_YOUR_RESULTS.md)
+  explains the fields in more detail.
+- `current` **Recover an incomplete attempt:** [Recovery and limits](docs/reader/04_RECOVERY_AND_LIMITS.md)
+  preserves the attempt and routes by symptom.
+- **Another task:** use [Choose a task](docs/USER_TASK_ROUTER.md) to find its inputs and owning guide.
+
+Use the [Quick Guide](docs/GUIDE/02_Quick_Guide.md) as a compact command reference after choosing
+your route. For a figure handoff, start with [Make and review figures](docs/FIGURES_START_HERE.md),
+then use [Evidence to report](docs/EVIDENCE_TO_REPORT.md) for captions and short findings/Methods facts.
+[AGENTS](AGENTS.md) is the shared coding-assistant contract; generated `CLAUDE.md` supports Claude discovery.
+Other assistants need AGENTS through their supported instruction mechanism.
 
 - `current` [Data home](docs/DATA_HOME.md): where results live, the inbox route into the Strain Master, how to find data before making any, and the self-check.
 - `current` [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
@@ -65,19 +79,20 @@ Each listed entry starts with its status: `current` (follow it for new work), `r
 - `current` [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
 - `current` [Mode B evidence availability and writing](docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md): pre-authoring inventory, typed binding/freshness states, planner limits and the independently reviewed finished-card evidence matrix.
 - `current` [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
+- `current` [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.
 - `reference` [Mode B exemplar reader guide](docs/reference/modeb_exemplars/README.md): historical class sketches and a 48-section format reference. Use the example register to identify their scope; their locus-specific evidence and old pass labels do not validate a current 50-section finished card.
 - `current` [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
 - `current` [antiSMASH strictness and pooling](docs/ANTISMASH_PROFILE.md): recorded profile evidence, mismatch states and the selected-package pooling guard.
-- `current` [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
+- `current` [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorized batch at a time.
 - `current` [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
 - `current` [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
-- `current` [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file: complete region inventory and gene tables; selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix; protein PCoA panels per strain.
+- `current` [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file. Each deck has the complete region inventory and gene tables. Selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix. The deck also has protein PCoA panels per strain.
 - `current` [Local 16S database](docs/LOCAL_16S_DATABASE.md): build the NCBI 16S type-strain BLAST database fully or for chosen genera, the optional SQLite store, and the shared lookup every 16S tool uses.
-- `current` [Isolate neighbourhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
+- `current` [Isolate neighborhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
 - `current` [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
 - `current` [Figure house rules](docs/FIGURE_HOUSE_RULES.md): the rules every figure meets (format, caption and methods, page wording, material labels, provenance) and what checks each one.
-- `current` [Figure rendering](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):
+- `current` [Aggregate evidence-coverage figures](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):
   actual input contracts, output sidecars and renderer-specific limits.
 - `current` [Bioassay Figure Factory](docs/BIOASSAY_FIGURE_FACTORY.md): typed plate, material, replicate,
   target, time-point, control, exclusion, and R-rendering contract.
@@ -125,12 +140,12 @@ Use these guides for specialized tools, commands and input/output contracts.
 - `current` [Locus map v8](docs/LOCUS_MAP_V8.md)
 - `current` [FA6 — Mode B card exporter (modeb-export)](docs/MODEB_EXPORT_HOOK.md)
 - `current` [Mode B gene-first exploration](docs/MODEB_GENE_FIRST_EXPLORATION.md)
-- `reference` [RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
+- `reference` [Ratified Mode B status vocabulary](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
 - `current` [NPBDetect non-admissible prediction guard](docs/NPBDETECT_ADAPTER_GUARD.md): local NPBDetect model IDs permit only OUT_OF_DOMAIN/FAILED with null AB/AF probabilities and HOLD; preserved upstream audit notes do not grant admission.
 - `current` [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
 - `current` [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
 - `reference` [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
-- `current` [TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
+- `current` [EPA-ng placement and phylogeny troubleshooting](docs/PHYLO_TROUBLESHOOTING.md)
 - `current` [PKS ketosynthase-tree option guide](docs/PKS_KS_TREE_OPTIONS.md)
 - `current` [Portable evidence-workspace interface](docs/PORTABLE_EVIDENCE_WORKSPACE.md)
 - `current` [Portable strain privacy and evidence registry](docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md)
@@ -145,7 +160,8 @@ Use these guides for specialized tools, commands and input/output contracts.
 - `current` [Sapote-Mamey report theme](docs/SAPOTE_REPORT_THEME.md)
 - `current` [scope_cluster — scope an over-merged antiSMASH region to its true protocluster](docs/SCOPE_CLUSTER.md)
 - `current` [Screening exploration with ggplot2](docs/SCREENING_EXPLORATION_R.md)
-- `current` [Strain BiG-SCAPE report + figure-label convention (v9.7.293)](docs/STRAIN_BIGSCAPE_REPORT.md)
+- `current` [Standalone delivery audit](docs/STANDALONE_DELIVERY_AUDIT.md): checks that an HTML/SVG delivery folder or ZIP matches its file-and-hash list and loads nothing from outside it.
+- `current` [Strain BiG-SCAPE report and figure labels](docs/STRAIN_BIGSCAPE_REPORT.md)
 - `current` [Strain-level BGC logic reports](docs/STRAIN_LEVEL_BGC_LOGIC.md)
 - `current` [Token-light Sapote document factory](docs/TOKEN_LIGHT_DOCUMENT_FACTORY.md)
 - `current` [Read only tool database inspection](docs/TOOL_DATABASE_INSPECTION.md)
@@ -157,26 +173,24 @@ Use these guides for specialized tools, commands and input/output contracts.
 ## Reference, development and history
 
 [Guide navigation](docs/GUIDE/00_README.md) distinguishes the operational guides from the dated
-Encyclopedia and newsletter. A current bundle stamp identifies packaging; it does not prove that
-every scientific statement or historical experiment was revalidated for that cut.
+Encyclopedia and newsletter.
 
 [Version-specific reference notes](docs/reference/06_CURRENT_SOURCE_SCOPE.md) explain equations, rule differences and figure limitations.
-[Engine reference](docs/reference/00_README.md) and [Encyclopedia currency](wiki/Encyclopedia-Currency.md)
+[Engine reference](docs/reference/00_README.md) and [Encyclopedia currency](docs/history/wiki_encyclopedia/Encyclopedia-Currency.md)
 record reference scope. Consult current code and named schemas for numerical behavior.
 [Methods technical appendix](docs/reference/METHODS_TECHNICAL_APPENDIX.md) records release-sensitive
 parameters and failure-state semantics. The developer-facing
 [implementation source map](docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) is regression-tested
 against current implementation and test paths.
-[Figure repair records](docs/figure_factory/README.md), `docs/working/`, `docs/release_planning/`,
-and `docs/patch_notes/` are engineering records, not an alternative user setup sequence.
+[Figure repair records](docs/figure_factory/README.md) and `docs/patch_notes/` are engineering records, not an alternative user setup sequence.
 
 [History](docs/history/README.md) and the [changelog](CHANGELOG.md) preserve dated decisions. The changelog is the
 complete per-cut record. [RELEASES_LOG](RELEASES_LOG.md) is a partial build-stamp table (see its header). Historical commands, counts, results and proposed features in those records
 are not current operating instructions. `docs/QUICK_GUIDE.md` is superseded by the Quick Guide above;
-`docs/user_guides/comprehensive_glossary.md` and `sapote_mamey_wheel_glossary.md` are retained snapshots.
-`docs/user_guides/` now holds `operational_reference.md`, `tools_reference.md`, `sapote_kernel_guide.md`,
-`development_issues_compendium.md`, the two math references, and those two retained glossary snapshots;
-the former cross-chat documentation protocol is archived under `docs/history/`.
+`docs/user_guides/comprehensive_glossary.md` and `sapote_mamey_wheel_glossary.md` now point to their
+history copies in `docs/history/retired_458/user_guides/`.
+`docs/user_guides/` also contains tool and mathematical references alongside the human
+entry guides linked below. The former cross-chat documentation protocol is archived under `docs/history/`.
 
 ## Maintaining this index
 
@@ -189,8 +203,6 @@ do not turn a version-stamp update into a claim of a full content review.
 - `current` [Find the right document](docs/DOCUMENTATION_MAP.md)
 - `current` [Troubleshooting](docs/COMMON_MISTAKES.md)
 - `current` [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
-
-- `current` [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.
 
 ## Diagnostic screening
 
@@ -206,4 +218,4 @@ do not turn a version-stamp update into a claim of a full content review.
 - `current` [Read locus maps, tables and protein PCoA comparisons](docs/LOCUS_AND_PCOA_TOOLS.md).
 - `current` [Choose the next command](docs/user_guides/CHOOSE_NEXT_COMMAND.md).
 
-[BiG-SCAPE class reading limits](docs/BIGSCAPE_CLASS_READING_GUIDE.md) accompany the generated vocabulary.
+The [BiG-SCAPE cohort network guide](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md) gives the class reading limits that accompany the generated vocabulary.

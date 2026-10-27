@@ -1,26 +1,30 @@
-# RUN A STRAIN DIAGNOSIS — ChatGPT prompt
+# Run a strain diagnosis
 *Paste this with the Sapote–Mamey bundle + one or more antiSMASH ZIP(s). This is the normal
 "diagnose a strain" path — no defect-hunting, no auditing.*
 
 ---
 
-You have the Sapote–Mamey v9.7.457 bundle and one or more antiSMASH genome-mining ZIP(s).
+You have the Sapote–Mamey v9.7.458 bundle and one or more antiSMASH genome-mining ZIP(s).
 Use this template only for an explicitly authorized diagnosis run, not merely because files
 were attached. Bind the selected strain inputs and follow `AGENTS.md` and
 `docs/ASSISTANT_GOVERNANCE.md`; this template does not grant network, external messaging, release
 or experiment authority. Run the selected pipeline and requested diagnosis deliverables.
 
 1. **Mamey extraction (deterministic):** run Mamey on each uploaded antiSMASH ZIP. Process every
-   strain; append into one cumulative master workbook (key rows by Strain + BGC_ID; do not replace
-   prior strains). Run the ten canonical scans: KCB sweep, RG-GMCI, FLBR, CCTT, CGAD, UMED, EFLS,
+   strain; update a cumulative master workbook only when that update is requested and its schema
+   is admitted. Reconcile full strain/node-or-contig/region/BGC identity and source-package hash;
+   Strain + BGC_ID alone cannot distinguish changed inputs or alias order. Preserve prior strains. Run the ten canonical scans: KCB sweep, RG-GMCI, FLBR, CCTT, CGAD, UMED, EFLS,
    resistance, bldA/TTA, TFBS.
 
 2. **Read the evidence before judging:** for class calls, read
    `[StrainID]_AntiSMASH_Evidence_Parse.json` → `gbk_pfam_hits` (per-locus HMM hits). NRPS
    substrate / active-site / RiPP-core / t2pks-class detail are now carried into the package by the
    evidence-conservation layer — read them from the parse's `nrps_pks_consensus`,
-   `active_site_pairings`, `ripp_cores`, and `product_class_predictions` arrays (bounded/full
-   json-evidence runs). Only fall back to the raw antiSMASH GBKs if a specific array is empty.
+   `active_site_pairings`, `ripp_cores`, and `product_class_predictions` arrays when requested and
+   actually extracted. Inspect `record_extraction` availability/errors and exact source-record/locus
+   binding even when an array is nonempty. Reconcile missing, conflicting or unsupported entries
+   against their raw record JSON and/or GBK; an empty array is not the only reason to inspect raw
+   evidence. The requested JSON mode does not establish completed coverage.
 
 3. **Sapote interpretation:** strain-priority ranking, BGC-priority ranking, top antibacterial +
    antifungal leads (separate), full Mode B for HIGH BGCs, candidate cards for MEDIUM, ecology

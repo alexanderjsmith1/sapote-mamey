@@ -29,8 +29,10 @@ Generic PKS, NRPS, polyketide, or hybrid assembly-line evidence receives additio
 
 - Full-contig generic assembly-line call: -12;
 - Edge generic assembly-line call: -6;
-- fewer than four dominant-reference genes: -6;
-- dominant-reference hit fraction below 0.15: -4.
+- fewer than four dominant-reference genes: -6, only when `reference_evidence_state` is `REFERENCE_EVALUATED`;
+- dominant-reference hit fraction below 0.15: -4, only in that evaluated state with a positive CDS denominator.
+
+A missing/nonpositive denominator leaves the emitted fraction unavailable (`None` internally), not zero. An unevaluated reference channel records its state instead of these sparse-reference penalties. Preserve that state separately from the score; no-reference availability and an evaluated sparse comparison are different evidence.
 
 The final score is clamped to 0-100. These modifiers create a strain-level review order; they are not probabilities or a replacement for the definitive biological-evidence score.
 
@@ -67,6 +69,6 @@ HIGH pair grouping uses the input confidence text beginning with `HIGH` and a pr
 
 Dense SVGs can suppress `other` labels without a shown/total suppression counter. These maps are not automatically compliant with the [locus-map review contract](LOCUS_MAP_REVIEW_CONTRACT.md). The SVG may be a gene-order schematic when any coordinates are missing; this is not evidence of genomic spacing or linkage. Keep the full protein table, verify the expected gene roster and label visibility, and inspect final reader-size maps before acceptance.
 
-Use a fresh output folder, separately record input-package and emitted artifact hashes, and diagnose a failed build before reusing any receipt. Source owners: `tools/strain_level_bgc_logic.py:58–62,133–169,178–192,198–229,268–307,375–377`.
+Use a fresh output folder, separately record input-package and emitted artifact hashes, and diagnose a failed build before reusing any receipt.
 
-The cross-strain Markdown currently prints “42 package-backed AS strains” literally. It is not calculated from the input roster. Reconcile and correct that denominator in a separately bound reviewed copy, retaining the actual distinct strain/locus census. Source: `tools/strain_level_bgc_logic.py:323,327`.
+The cross-strain Markdown counts the package-backed strains in your input, and the index HTML intro counts its complete-identity loci. The page title still assumes AS strains.

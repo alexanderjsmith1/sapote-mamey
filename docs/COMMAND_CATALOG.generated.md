@@ -1,8 +1,8 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.457 · engine 1.9.177. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.458 · engine 1.9.177. Do not edit by hand; `--check` fails the build when stale.*
 
-Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
+Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Descriptions below come from parser help. Outputs include extraction records, validation results, reports and evidence-routing artifacts; a catalog entry is not proof of execution, complete evidence or scientific acceptance.
 
 ## Recommended front doors
 
@@ -23,7 +23,7 @@ _Deterministic extraction — the only step that creates a package._
 | `doctor` | Pre-flight environment check: Python, deps, write permissions, bundle integrity |
 | `capabilities` | Search full docstrings for existing internal tools before writing a new one |
 | `resume` | One-read session-resume briefing for a sealed package (strain context + judgment progress + what's next) |
-| `fingerprint` | Determinism fingerprint of a sealed package (score-bearing outputs only) — same strain+bundle yields the same value in any chat |
+| `fingerprint` | Compute a fingerprint over selected package outputs (missing components stay explicit); --compare diffs it against another package or hex. Not whole-package integrity, completeness or scientific validation |
 | `handoff` | Pack a sealed package + region GBKs into one portable zip so another chat can do the full workflow (incl. online BLASTp) without the raw antiSMASH ZIP |
 | `explain` | Human-readable summary of an existing result package |
 | `release-qa` | Run release QA gates: Legacy Feature Matrix + Dual-LLM Handoff Receipt |
@@ -135,7 +135,7 @@ _Aggregation across sealed packages._
 | `assembly-line` | Predicted PKS/NRPS assembly line per BGC from the native _domains.csv |
 | `discover` (alias: `discovery`) | Orient in a workspace: list packages, coverage, and next actions |
 | `explore` | question-driven genome exploration (divergence / co-capture / lead board) |
-| `compare` | Compare two antiSMASH result sets gene by gene and retain ClusterBlast, SubClusterBlast, and KnownClusterBlast comparator evidence |
+| `compare` | Compare translated CDS from two antiSMASH inputs and write query best-hit rows; optionally calculate ANI when both genome FASTAs are supplied |
 | `activity-leads` | Emit per-strain top-N antibacterial and antifungal routing boards from sealed triage packages (non-scoring; claim-safe). |
 | `activity-lead-genes` | Bind per-package gene rows to an activity-leads CSV and select up to five genes that explain each source class label. |
 | `cddr-pks` | Build a CDDR-PKS deep-dive report from an existing directed study, or run Directed PKS first from source/spec |

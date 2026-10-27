@@ -23,7 +23,7 @@ evidence remain separate; candidate membership is unverified. See
 ## Current archived-source profile
 
 The supplied original source archive now verifies a local GenBank entry point and
-exact TSV headers. See [archived local contract](RIPPER_ARCHIVED_LOCAL_CONTRACT.md)
+exact TSV headers. See [archived local contract](history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md)
 for the pinned revision, verified hashes, single-record/query restriction, first-hit
 selection, startup FTP side effect, dependency/license holds and strict optional
 main/distant import profile. These findings supersede the earlier retrieval holds

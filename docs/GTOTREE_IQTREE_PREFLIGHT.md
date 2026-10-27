@@ -1,12 +1,11 @@
 # GToTree / IQ-TREE preflight contract
 
 `tools/plan_gtotree_iqtree.py` is a planning and reconciliation tool. It never starts a phylogeny and
-never downloads references. It exists so Claude, Codex, and a human operator can exchange the same
-bounded, checksum-backed plan before approving resource use.
+never downloads references. It writes one checksummed plan that a person approves before any CPU is used.
 
 ## Supported local interface
 
-The integration was verified on 2026-08-02 against:
+The planner was written against:
 
 - GToTree 1.8.16 (`GToTree -v`, `GToTree -h`), where `-n` defaulted to 2 HMM-search CPUs, `-M`
   to 5 MUSCLE threads, and `-j` to one concurrent job. 1.8.16 is now refused: 1.8.19 is the production
@@ -16,22 +15,23 @@ The integration was verified on 2026-08-02 against:
 
 The planner checks the installed help for the exact options it will use. A missing option creates `HOLD_TOOL_INTERFACE_REVIEW`; it does not silently run a guessed command.
 IQ-TREE is resolved from an explicit path first, otherwise `iqtree3`, `iqtree2`, then `iqtree`.
-The accepted-version list alone does not establish compatibility: the .447 planner
-requires the v1 `-n <int>` help token and always emits `-n`, whereas the execution
-runner's v2 branch omits it. Hold a v2 plan for source/interface reconciliation if
-that help token or emitted option is unsupported; do not bypass a HOLD by renaming it PASS.
+The planner and runner share `tools/_gtotree_versions.py`: v1 probes `-h` and emits `-n`; v2 probes
+`-s` and omits `-n`. A v2 run also needs its reviewed runtime profile.
+See [companion run contracts](COMPANION_RUN_CONTRACTS.md).
 
 ## Canonical tool chain
 
-The four previously staged patch families are reconciled in this order:
+The tools run in this order:
 
 1. `rank_clusterblast_phylo_candidates.py` creates an assembly-candidate ledger from the raw
    ClusterBlast channel. It neither downloads nor asserts organism identity.
 2. A curator resolves eligible nucleotide accessions to versioned GCA/GCF assemblies and supplies
    any type-strain or outgroup status. Network retrieval remains a separately approved action.
 3. `build_phylo_panel.py` selects and stages exactly 20, 40 (default), 60, or another explicit size
-   through 60, retains selected distinct-content focal queries, enforces one outgroup and at most three linked references
-   per query, and writes `panel_selected.tsv` plus `panel_receipt.json`.
+   through 60, retains selected distinct-content focal queries, enforces one outgroup, and admits up to three linked
+   references plus up to two type anchors per query, with at most four comparators per query in all. It writes
+   `panel_selected.tsv` plus `panel_receipt.json`. `select_panel` in `tools/build_phylo_panel.py` admits the
+   anchors, and `read_prepared_panel` in `tools/plan_gtotree_iqtree.py` re-checks both caps.
 4. `plan_gtotree_iqtree.py plan --prepared-panel ...` revalidates that staged panel, freezes the HMM
    set and tool/resource interface, and creates the immutable approval handoff.
 
@@ -75,12 +75,8 @@ traceable to the kept assembly. A duplicate focal query places the run on
 `HOLD_DUPLICATE_QUERY_REVIEW` because sample mix-up or contamination must be reconciled rather than
 silently collapsed. Identical 16S alone is not an assembly duplicate.
 
-That duplicate-query HOLD applies to duplicates observed by the planner. The
-upstream `build_phylo_panel.py` selector already collapses equal-content QUERY
-rows and records them in `panel_candidates.tsv`; prepared-panel ingress reads
-`panel_selected.tsv`, not those excluded candidate rows. Review that upstream
-ledger explicitly. A prepared plan cannot prove every original isolate remains
-represented or that a duplicate-query identity hold was resolved.
+The panel builder already collapses equal-content queries before this step; see
+[panel selection](GTOTREE_PANEL_SELECTION.md#exact-content-duplicate-guard).
 
 ## Immutable plan layout
 
@@ -111,14 +107,17 @@ and profile count, resolved binaries, observed versions/help contract, and core 
 ## Approval boundary
 
 Show the user the manifest summary and use matching existing approval, or obtain
-explicit approval when the operation is not already authorized. The generated
-`COMMAND.sh` only **comments** that `RUN_STATE` must record APPROVED; it does not read
-that file or enforce an executable authorization check. The planner has no approve
-subcommand. Preserve the approval evidence in the run handoff/state and independently
-verify it before execution; do not equate a generated script with authorized compute.
-Reference downloads require a separate network approval. The generated command intentionally contains
+explicit approval when the operation is not already authorized. The direct legacy
+`COMMAND.sh` recipe only **comments** that `RUN_STATE` must record APPROVED; that recipe
+does not read the state file. The governed 2.0.0 recipe instead delegates to
+`run_planned_tree.py --plan-dir ...`, requires an explicit `--approved` argument and fresh
+runtime probe directory, and checks `approved=true` plus the matching run ID and bound
+inputs/mapping/tool/resource/HMM data. The planner has no approve subcommand. Preserve
+the actual user approval in the handoff/state; a flag or script does not grant authority.
+Reference downloads require a separate network approval. The direct recipe intentionally contains
 `<DISCOVERED_ALIGNMENT_PATH>` for IQ-TREE: GToTree must exit zero and its real alignment must be
-discovered and hashed before the IQ-TREE command can be completed.
+discovered and hashed before that command can be completed. The governed runner has its own
+alignment discovery and completion checks; it does not use that manual placeholder.
 
 After GToTree, use `discover`. It derives the retained taxon count from the unique
 `Genomes_summary_info.tsv`, inventories all observed files, excludes individual-marker alignments from

@@ -1,15 +1,16 @@
 # Public release — user guide
 
-Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
-untouched and report the hold; the diagnostic refuses an occupied probe location.
+To install this CODE archive, follow [INSTALL](INSTALL.md). To check its recorded release and validation
+evidence, use [Release records](RELEASE_RECORDS_GUIDE.md). This page explains which assets you need to
+supply and how to prepare a selected workflow for local or offline use.
 
 > **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
 
-This supporting guide describes public-release setup and network behavior. Start at [README](../README.md). It covers what the release contains
-(code and small governed data; the Pfam HMM is operator-provisioned, not bundled), how the pipeline uses the network, and how to run it in a sensitive
-or air-gapped environment with confidence. For the step-by-step setup see `docs/INSTALL.md`; for the HMM's
-provenance and an optional rebuild recipe see `docs/PUBLIC_RELEASE_DATA.md`.
+Suite logs and archive seal or owner receipts are external evidence. The manifest's recorded status does
+not validate later source edits or make a new release decision.
+
+The archive contains code and small governed data. The curated Pfam HMM is operator-provisioned;
+use [Public release data](PUBLIC_RELEASE_DATA.md) for its provenance and optional rebuild recipe.
 
 ## 1. What this release is
 
@@ -22,10 +23,22 @@ evidence state does not establish that an HMM scan ran.
 ## 2. Setup in brief
 
 Follow [INSTALL](INSTALL.md) using **Python 3.12 or newer** and an isolated environment.
-Install the core with `python -m pip install -e .`; optional extras include `figures`, `documents`,
-and `bio`, or `all` for the declared combined extras (including slides/render/documents in this source). Run `python mamey_run.py start` and `python mamey_run.py doctor`
-from the bundle root, then follow the [Quick Guide](GUIDE/02_Quick_Guide.md).
-Offline wheels must match the selected Python ABI, operating system, and architecture.
+Install the core with `python -m pip install -e .`; choose only the optional extras your task needs:
+`figures`, `documents`, `bio`, or `all` for the declared combined set (including slides and render support).
+Offline wheels must match the selected Python ABI, operating system and architecture.
+
+In an editable working installation, read the [doctor write-probe boundary](INSTALL.md#doctor-scope-and-write-probe)
+and leave an occupied `runs/_doctor_probe` untouched. If you have not already completed INSTALL diagnostics in this installation, run
+orientation and then the diagnostic once from the bundle root:
+
+```bash
+python -B mamey_run.py start --no-doctor
+python mamey_run.py doctor
+```
+
+Plain `start` already invokes `doctor`. Read the diagnostic result, then follow the
+[first-analysis walkthrough](MASTER_WALKTHROUGH.md), or use the [Quick Guide](GUIDE/02_Quick_Guide.md)
+for command and evidence-budget choices.
 
 ## 3. Inputs and external assets
 
@@ -51,7 +64,7 @@ use an environment-level network restriction when a zero-network guarantee is re
 
 To run with zero network access:
 
-1. Provision the exact local inputs, dependencies, external binaries and reference data needed by the selected workflow before the offline run. For operator-provisioned scanner models, follow [the source-bound data guide](PUBLIC_RELEASE_DATA.md) and [scanner manifest limits](reference/SCANNER_PFAM_MANIFEST.md). A filename/doctor path check does not verify the model bytes, membership or scan execution. `SM_HMM_DB` wins when its path exists; directory discovery then checks `MAMEY_HMM_DIR`, `$MAMEY_DATA_ROOT/hmm` and source/add-on locations (`mamey/wheelhouse.py:60–126`).
+1. Provision the exact local inputs, dependencies, external binaries and reference data needed by the selected workflow before the offline run. For operator-provisioned scanner models, follow [the source-bound data guide](PUBLIC_RELEASE_DATA.md) and [scanner manifest limits](reference/SCANNER_PFAM_MANIFEST.md). A filename/doctor path check does not verify the model bytes, membership or scan execution. `SM_HMM_DB` wins when its path exists; directory discovery then checks `MAMEY_HMM_DIR`, `$MAMEY_DATA_ROOT/hmm` and source/add-on locations (`mamey/wheelhouse.py`).
 2. Retain the selected antiSMASH result ZIP and version/options provenance. Saved `--fullhmmer` annotations and a regex fallback are separate evidence paths; neither proves a local scanner HMM run or fills a missing custom HMMER domtblout channel.
 3. Bring in already saved BLASTP results with their query/run/database binding and use the [stored-result ingestion protocol](ONLINE_BLASTP_PROTOCOL.md). Saved evidence ingestion is separate from authorizing or performing online searches.
 4. Select commands documented to use local inputs and enforce the required environment-level network restriction. Review invoked companions, dependency provisioning and configurations separately; local availability does not guarantee every possible workflow in the bundle is offline or complete.
@@ -63,9 +76,9 @@ yourself, on your terms, ahead of time.
 
 | Missing capability | Source-backed consequence | Recovery |
 | --- | --- | --- |
-| Operator-provisioned scanner HMM | Discovery may have no model path; a regex-path result does not establish HMM scanning. Custom-marker HMMER evidence can remain `NEEDS_HMMER_DOMTBLOUT` independently of scanner discovery (`mamey/wheelhouse.py:60–126`; `mamey/cell_provenance.py:117–145`). | Bind the exact model source/receipt for the selected owner; preserve each evidence channel's missingness. |
-| SVG converter | Compiled-report publication artwork tries vector conversion, then a resolution-bound raster fallback. If neither works it raises `FIGURE_VECTOR_EMBED_UNAVAILABLE`; missing/escaping artwork also raises (`mamey/compile_report.py:950–1045`). It does not silently drop required SVG artwork and claim success. | Use the selected renderer's local converter prerequisites and retain the error/receipt. |
-| Figure dependencies | Behavior depends on the owner: some tools have hard imports; BiG-SCAPE network output returns `SKIPPED_NO_DEPS` when networkx/matplotlib imports fail (`mamey/bigscape_figures.py:88–95`). | Follow [external-tool prerequisites](EXTERNAL_TOOL_INVENTORY.md) and inspect each required output/status; skipped is not completed. |
-| Primary PDF renderer or fallback toolchain | `tools/md_to_pdf.sh:25–49` tries ReportLab, then requires pandoc and xelatex; missing fallback tools exits 2. Later artwork/render errors can also fail. | Preserve canonical Markdown and render diagnostics; install/provisioning and rendered-page review are separate authorized work. |
+| Operator-provisioned scanner HMM | Discovery may have no model path; a regex-path result does not establish HMM scanning. Custom-marker HMMER evidence can remain `NEEDS_HMMER_DOMTBLOUT` independently of scanner discovery (`mamey/wheelhouse.py`; `mamey/cell_provenance.py`). | Bind the exact model source/receipt for the selected owner; preserve each evidence channel's missingness. |
+| SVG converter | For an SVG reference, the compiled-PDF artwork stage tries vector conversion, then a publication-resolution raster fallback. Conversion failure, missing artwork or an escaping path returns `FIGURE_QUALITY_REFUSED` through the PDF reader. A requested PDF failure exits nonzero while the written Markdown remains available (`mamey/compile_report.py`). | Read the PDF diagnostic, provision the selected converter if needed, and retain the Markdown and failed-render evidence before retrying. |
+| Figure dependencies | BiG-SCAPE network output returns `SKIPPED_NO_DEPS` when its networkx/matplotlib import block fails; other figure owners have their own dependency behavior (`mamey/bigscape_figures.py`). | Follow [external-tool prerequisites](EXTERNAL_TOOL_INVENTORY.md) and inspect each required output/status; skipped is not completed. |
+| Primary PDF renderer or fallback toolchain | `tools/md_to_pdf.sh` tries the primary renderer, then requires pandoc and xelatex after a primary failure; a missing fallback tool exits 2. The fallback also prepares local resources, writes preflight sidecars and can fail during rendering. | Keep the canonical Markdown and diagnostics. Check both the requested PDF and any fallback sidecars; provisioning and rendered-page review remain separate work. |
 
-No global completion guarantee follows from a fallback. Check required files, per-output states, bound inputs and current acceptance holds; report incomplete deliverables explicitly. See [installation](INSTALL.md), [result reading](READING_YOUR_RESULTS.md) and [deliverable contract](DELIVERABLE_CONTRACT.md). This documentation patch performs no installation, network workflow, render, cut or release.
+No global completion guarantee follows from a fallback. Check required files, per-output states, bound inputs and current acceptance holds; report incomplete deliverables explicitly. See [installation](INSTALL.md), [result reading](READING_YOUR_RESULTS.md) and [deliverable contract](DELIVERABLE_CONTRACT.md).

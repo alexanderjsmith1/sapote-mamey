@@ -6,6 +6,8 @@ used by programs. Downloading a tool from a website does not make its analysis a
 service. You do not need all of them for a first antiSMASH extraction.
 
 The integration descriptions are grounded in this bundle's code and its referenced protocols.
+The local registry requires a successful unambiguous numeric-version probe and separately reports version-policy match and review requirements. Web/manual services remain unprobed; Python probes use the current interpreter. None establishes database/model readiness or prior study execution (`mamey/companion_tools.py`). The standalone descriptions below are orientation; changing external interfaces, service rules, licenses and biological performance are not independently verified here.
+
 For command-specific input, mutation, resource and completion boundaries, read
 [companion run contracts](COMPANION_RUN_CONTRACTS.md). The general tool descriptions below
 do not establish that a particular local command provisioned assets or completed analysis.
@@ -163,15 +165,9 @@ The executable and the Python binding named diamond4py are different installatio
 installing an unrelated Python package with a similar name does not establish either route.
 As with BLAST, alignment evidence must be interpreted with lengths and coverage.
 
-**In Sapote–Mamey.** The current `compare` implementation can detect the DIAMOND executable or
-a working compiled binding, then use fallback backends if needed. This corrects the recovered
-historical guide, which said the executable could not help `compare`. Selection and per-row
-backend receipts matter more than a remembered installation failure on one Mac. The comparison
-is directional evidence, not an automatic statement that both proteomes are equivalent.
+**In Sapote–Mamey.** The `compare` selector recognizes `diamond` on PATH or an importable `diamond4py.Diamond`; neither is a completed alignment or successful version probe. When DIAMOND is not selected, it tries a one-pair pyswrd smoke operation, then a Biopython import. A selected pyswrd runtime failure can fall back to Biopython. A selected DIAMOND failure can instead return an empty hit dictionary without trying the other aligners (`mamey/compare.py`; `mamey/diamond_align.py`). The directional comparison concerns extracted CDS translations from selected archives, not necessarily complete genome proteomes or equivalent biological content.
 
-**Keep/check.** Inspect the summary backend and row-level backend, warnings and input
-translations. The current integration has a documented zero-hit/failure-reporting limitation;
-confirm execution before interpreting an empty result. See [DIAMOND status](../sapote_addons/DIAMOND_STATUS.md)
+**Keep/check.** Inspect the summary selector, actual row backend, warnings and input translations. These fields are not hash-bound execution receipts and can disagree after fallback. The wrapper discards DIAMOND failure reasons and returned provenance, can label an empty result a real zero-hit search, and can publish an all-`no_hit` table with exit0 (`mamey/compare.py`). Preserve external command/log/input/output evidence before accepting a measured no-hit result. Biopython length skips and caught pair errors further limit coverage; the per-query skip note is not carried into the final CSV note. See [DIAMOND status](../sapote_addons/DIAMOND_STATUS.md)
 and [offline comparison](../sapote_addons/README_OFFLINE_ANALYSIS.md).
 
 ### HMMER — profile-based protein-domain search
@@ -222,9 +218,7 @@ membership. A family is not a chemical identification, and a singleton is not pr
 
 **In Sapote–Mamey.** The `bigscape` command stages region GenBank inputs and invokes the
 external tool through `deliverable_tools/bigscape_run.py`. Pfam and the external executable
-must be supplied appropriately. A dry run helps inspect staging before computation. The
-workflow can attempt matrix and clinker-related widgets after the family computation;
-success at the compute stage does not prove those later views succeeded.
+must be supplied appropriately. A dry run stages GBKs, creates/reuses output/work directories, writes `source_staging_receipt.json` and can replace a space-free Pfam link before stopping short of clustering. It is not read-only planning (`deliverable_tools/bigscape_run.py`). Use fresh external destinations and bind the staged roster. The default runner requests four CPUs and has no subprocess timeout. After a nonzero clustering exit it can still select the newest recursively discovered `.db`, run optional widgets and let the standalone CLI exit0 because a DB exists. Require selected-run completion, exact database/input provenance and the requested widget roster independently; an old DB or successful wrapper exit cannot establish a current completed analysis.
 
 **Keep/check.** Retain exact region identities, cohort membership, tool/database versions,
 cutoffs, reference provenance, logs and the resulting database. Family identifiers belong to

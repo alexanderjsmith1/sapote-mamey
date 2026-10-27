@@ -6,7 +6,7 @@ This SOP describes the recommended BLASTP workflow for validating biosynthetic g
 
 The goal is not to identify a final compound from sequence alone. The goal is to generate defensible evidence for BGC class calls, gene-function annotations, conserved-neighborhood hypotheses, and follow-up prioritization.
 
-Live submission is a separate authorized action that sends query sequence and headers to an external service. A local PRIVATE/PUBLIC release tag does not by itself authorize disclosure. For current channel admission, provenance and mutation boundaries, read [the BLASTP protocol](../ONLINE_BLASTP_PROTOCOL.md). Numeric batch suggestions below are operator heuristics, not hard guarantees or enforced limits of every exporter.
+Live submission is a separate authorized action that sends query sequence and headers to an external service. A local PRIVATE/PUBLIC release tag does not by itself authorize disclosure. For current channel admission, provenance and mutation boundaries, read [the BLASTP protocol](../ONLINE_BLASTP_PROTOCOL.md).
 
 ## Principle
 
@@ -16,9 +16,16 @@ Large all-protein BLASTP submissions produce oversized outputs, increase timeout
 
 ## Recommended batch size
 
-Use up to approximately 30 proteins per BLASTP submission.
+The 30-protein mixes and top-10 setting below are for manual NCBI web searches. Tool defaults differ:
 
-Two standard modes are recommended.
+- `bgc-blastp-panel`: 20 proteins per file, a 30-protein first pass and 2 genes per BGC.
+- `blastp-online`: 10 proteins per submission (hard cap 30), 3 hits per query; databases `nr`, `refseq_protein` or `swissprot`.
+- `modeb-blastp`: 3 proteins per file.
+- ClusteredNR has its own workflow.
+
+Record the database, counts and hit settings you actually used.
+
+Two manual modes are described below.
 
 ### Breadth mode
 
@@ -109,7 +116,7 @@ Generic function evidence is valuable but should not be treated as equivalent to
 
 Private local evidence may retain raw strain labels with authorized custody. Sending those labels or their associated sequences to a remote service requires authorization for that disclosure; calling a run private does not keep remote submissions local.
 
-Public-safe BLASTP exports should use sanitized query headers such as `PUBLIC-FIXTURE-001|BGC...` rather than raw AS-series or private SID labels. Any public workbook or public report derived from BLASTP outputs must be scanned for private strain IDs before release.
+Use the exact strain's approved disclosure scope and applicable private guards rather than inferring permission from an AS/SID prefix. Where authorized pseudonyms are required, retain a governed alias/query-hash map separately. The exporter's token cleaning does not anonymize strain labels, and a sanitized header does not authorize disclosure of its sequence. Do not label real query sequences as synthetic fixtures. Check public workbooks and reports for private identifiers or other disclosures outside the approved scope before release.
 
 ## Claim boundary
 
@@ -121,5 +128,5 @@ Do not claim compound identity from BLASTP alone.
 2. FASTA export should support fallback 10–15 protein batches.
 3. Giant NRPS/PKS proteins should be flagged.
 4. BLASTP is optional evidence, not mandatory for every run.
-5. Headers must preserve strain, BGC, gene, role, product, and KCB context.
+5. Retain stable query/gene and complete strain, contig/node, region and BGC locators compatible with the selected parser. Current iterative-panel headers include strain, BGC, slot, role, gene, node, region, coordinates, amino-acid length and selection reason. Preserve product and KCB context in bound manifest/source records rather than assuming those fields are emitted in the header.
 6. Headers must avoid breaking NCBI and Sapote/Mamey parser behavior.

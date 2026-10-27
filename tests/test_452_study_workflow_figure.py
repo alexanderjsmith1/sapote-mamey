@@ -1,4 +1,4 @@
-"""tools/study_workflow_figure.py (card 018c0f08_452_study_workflow_figure): study-design chevrons from an explicit
+"""tools/study_workflow_figure.py (card 452_study_workflow_figure): study-design chevrons from an explicit
 stage table; 8 pt labels on a page exactly the print width; refusals. Synthetic images only."""
 import json
 from pathlib import Path

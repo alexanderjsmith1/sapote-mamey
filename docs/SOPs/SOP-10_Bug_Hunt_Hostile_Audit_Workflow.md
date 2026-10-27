@@ -2,9 +2,11 @@
 
 ## Purpose
 
-This SOP defines the pre-cut Bug Hunt process.
-
-Bug Hunt is not a vague review. It is an adversarial pass that tries to break the system before a release candidate is cut.
+Use this SOP to turn a pre-cut behavior review into supported findings and a cut recommendation.
+Start with the selected SOP and trace its implementing command or code path before choosing a check.
+For a codebase-wide pattern sweep, follow the [Bug Hunt protocol](../../debugging_modules/BUG_HUNT_PROTOCOL.md).
+For a per-file Inspector/Defender review, use the [Bunny Hop protocol](../../debugging_modules/BUNNY_HOP_AUDIT_GAME.md).
+Keep the reviewed scope and verification mode with each finding.
 
 ## Inputs
 
@@ -41,7 +43,7 @@ For each SOP:
 | LOW | polish, wording, non-critical warning | can defer |
 | CHECK | skipped or unresolved evidence | explain before cut |
 
-## Standing Bug Hunt targets (categories, established v9.7.142)
+## Standing bug-hunt targets
 
 1. BGC BLASTP FASTA export.
 2. BLASTP result parser.
@@ -49,7 +51,7 @@ For each SOP:
 4. Comma-bearing query titles.
 5. Giant NRPS/PKS follow-up labels.
 6. Single-region accession inputs.
-7. C5/C7 optional deliverables.
+7. Selected [deliverable outputs](../DELIVERABLE_CONTRACT.md) and [strain privacy handling](../PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) — the historical C5/C7 categories.
 8. Public/private redaction.
 9. Claim boundary language.
 10. Release packaging parity.
@@ -61,6 +63,8 @@ Use:
 ```text
 BUG_ID:
 SOP:
+Baseline: exact source path, bundle/engine version and SHA-256
+Reviewed scope and exclusions:
 Path:
 Expected:
 Observed:

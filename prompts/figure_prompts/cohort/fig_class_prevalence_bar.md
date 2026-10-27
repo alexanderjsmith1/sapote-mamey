@@ -19,11 +19,11 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
 > Product-class prevalence across the cohort (n = <admitted_isolate_n> isolates), banded by how many isolates carry each class. Universal classes are non-discriminating.
 
@@ -31,5 +31,7 @@ Fill every placeholder from the admitted plotted inputs and retain their provena
 - Shade the universal-class rows with a slide rectangle if you want to flag them as excluded.
 
 ## Build note
-Reproducible from the tidy export (`tools/export_figure_ready.py`) following the
-`tools/plot_examples.py` pattern. Keep the slug and column names stable so decks don't break.
+The exporter supplies these fields/bands. `tools/plot_examples.py` draws the
+top 16 classes as `fig2_class_prevalence.png` with its own palette; it does not
+emit this recipe slug, SVG/PDF companions or a figure receipt. Use the approved
+route and retain its actual artifacts, source bindings and visual review.

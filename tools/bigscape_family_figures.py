@@ -19,6 +19,13 @@ from __future__ import annotations
 import argparse, collections, csv, glob, os, re, shutil, sqlite3, subprocess, sys, time
 from pathlib import Path
 
+
+def _open_db_ro(path):
+    """Open a BiG-SCAPE database read-only. A plain connect on a mistyped path created an empty file."""
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"not an existing BiG-SCAPE database: {path}")
+    return sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
+
 try:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run outside an editable install
@@ -36,7 +43,7 @@ TOOL = os.path.join(HERE, "render_gcf_synteny_tree.py")
 
 
 def family_table(db, cutoff):
-    con = sqlite3.connect(db)
+    con = _open_db_ro(db)
     fam = collections.defaultdict(list)
     for fid, rid, path, prod in con.execute(
             "select f.id, r.id, g.path, r.product from family f join bgc_record_family bf on bf.family_id=f.id "
@@ -47,7 +54,7 @@ def family_table(db, cutoff):
 
 
 def strain_records(db, strain):
-    con = sqlite3.connect(db)
+    con = _open_db_ro(db)
     rows = [(rid, os.path.basename(p), prod or "") for rid, p, prod in con.execute(
         "select r.id, g.path, r.product from bgc_record r join gbk g on g.id=r.gbk_id where r.record_type='region'")
             if os.path.basename(p).startswith(strain + "_")]
@@ -121,6 +128,7 @@ def job_private(a, log):
                       "identity_holds": res["holds"], "figure": os.path.relpath(str(stem) + ".pdf", a.out), "status": "OK"})
         log(f"private GCF{fid}: {res['drawn']} rows, {res['links']} links, {res['holds']} holds, {time.time()-t0:.0f}s")
     write_tsv(root / "INDEX.tsv", index, ["family_id", "members", "query_strains", "products", "links", "identity_holds", "figure", "status"])
+    return sum(1 for r in index if str(r.get("status", "")).startswith("FAILED"))
 
 
 def job_focus(a, log):
@@ -128,6 +136,7 @@ def job_focus(a, log):
     fam_fb = family_table(a.db, a.fallback_cutoff) if a.fallback_cutoff else {}
     r2f_main = {rid: fid for fid, ms in fam_main.items() for rid, _b, _p in ms}
     r2f_fb = {rid: fid for fid, ms in fam_fb.items() for rid, _b, _p in ms}
+    failed = 0
     for strain in a.focus:
         sroot = Path(a.out) / "strain_focus" / strain; sroot.mkdir(parents=True, exist_ok=True)
         recs = strain_records(a.db, strain); per_bgc = []; todo = {}
@@ -162,6 +171,8 @@ def job_focus(a, log):
         write_tsv(sroot / "BGC_TO_FAMILY_FIGURE.tsv", per_bgc, ["record_id", "file", "product", "family_main", "family_fallback", "figure"])
         write_tsv(sroot / "FAMILY_FIGURES_INDEX.tsv", findex, ["family_id", "cutoff", "members", "drawn", "strain_records", "products", "links", "identity_holds", "figure", "status"])
         log(f"{strain}: {len(recs)} regions, {sum(1 for r in per_bgc if r['figure'] and not r['figure'].startswith('singleton'))} with a family figure, {len(findex)} families")
+        failed += sum(1 for r in findex if str(r.get("status", "")).startswith("FAILED"))
+    return failed
 
 
 def main(argv=None):
@@ -181,9 +192,13 @@ def main(argv=None):
         line = f"{time.strftime('%H:%M:%S')} {msg}"; emit(line, flush=True)
         if logf: logf.write(line + "\n"); logf.flush()
     log(f"db={a.db} identity files={len(a.identity)} tool={TOOL}")
-    if a.private_tsv: job_private(a, log)
-    if a.focus: job_focus(a, log)
+    failed = 0
+    if a.private_tsv: failed += job_private(a, log)
+    if a.focus: failed += job_focus(a, log)
     log("done")
+    if failed:   # the INDEX rows say FAILED; the exit code must too
+        sys.stderr.write(f"bigscape_family_figures: {failed} family figure(s) FAILED; see the INDEX files\n")
+        return 1
     return 0
 
 

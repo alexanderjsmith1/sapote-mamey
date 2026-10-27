@@ -17,7 +17,7 @@ Sapote/Mamey prioritizes BGCs and supports hypotheses. It does not identify comp
 | resistance/transporters | ecological or self-protection context | activity claim |
 | literature | plausibility / precedent | activity in this strain |
 | LC-MS/MS | metabolite evidence | gene function unless linked |
-| purified compound | compound identity/activity | genome-wide mechanism |
+| Purified compound with separately established structure and assay evidence | That compound's identity and measured activity under the recorded conditions | BGC attribution or genome-wide mechanism without linkage evidence |
 
 ## Acceptable language
 
@@ -68,8 +68,8 @@ BLASTP alone may not support:
 
 ## Preserve the evidence state and its subject
 
-Every individual locus needs strain / full contig / region / BGC alias copied from one bound source. Sequence similarity, an annotation title, a template and a structural pass establish different things. Report observations, inference, alternatives and unresolved provenance separately. Do not let an appealing class name stand in for the underlying query, reference and denominator.
+Cite every BGC as strain / full node-or-contig / region / alias, copied from one source record. Sequence similarity, an annotation title, a template and a structural pass establish different things. Report observations, inference, alternatives and unresolved provenance separately. Do not let an appealing class name stand in for the underlying query, reference and denominator.
 
-For RG-GMCI, the implementation's claim ceiling is candidate linkage, not proof of physical linkage or product identity (`mamey/rggmci.py:1491`). For BLASTp, missing rows in an observed-hit summary are not tested negatives (`mamey/blastp_followup.py:459–497`). Qualify conclusions by admitted input/result scope; unsubmitted, unbound, skipped and completed no-hit states cannot be interchanged.
+For RG-GMCI, the implementation's claim ceiling is candidate linkage, not proof of physical linkage or product identity. For BLASTp, missing rows in an observed-hit summary are not tested negatives. Qualify conclusions by admitted input/result scope; unsubmitted, unbound, skipped and completed no-hit states cannot be interchanged.
 
-A mechanical deliverable-suite pass validates reported manifest text and count fields, not artifact existence, citation accuracy or biological conclusions (`tools/check_deliverable_suite.py:25–79`). A `PASS` validator result likewise has scoped gates and may retain unevaluated provenance (`mamey/validate.py:1003–1045`). Final scientific/adoption authority remains with the project owner. See [the deliverable contract](../DELIVERABLE_CONTRACT.md) and [the shared claim guards](../../prompts/reuse/_SHARED_GUARD_BLOCK.md).
+A mechanical deliverable-suite pass checks reported manifest text and count fields. It checks that artifact files exist only when you pass `--artifact-root`, and it never checks citations or biological conclusions. A `PASS` validator result likewise has scoped gates and may retain unevaluated provenance. Final scientific/adoption authority remains with the project owner. See [the deliverable contract](../DELIVERABLE_CONTRACT.md) and [the shared claim guards](../../prompts/reuse/_SHARED_GUARD_BLOCK.md).

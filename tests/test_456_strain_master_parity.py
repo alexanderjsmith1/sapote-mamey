@@ -1,4 +1,4 @@
-"""v9.7.456 card 018c0f08_456_strain_master_parity: the bundle's Strain Master catches up with
+"""v9.7.456 card 456_strain_master_parity: the bundle's Strain Master catches up with
 the first master's inbox (import-tree, record-replace, duplicate-id rules) and self-check
 (byte-copied README sections, copies match their sources), and says "Strain Master".
 

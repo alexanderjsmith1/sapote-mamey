@@ -1,4 +1,4 @@
-"""tools/protein_pcoa_render.py --label-low-identity (card 018c0f08_455_pcoa_label_low_identity_ruling75, ruling 75):
+"""tools/protein_pcoa_render.py --label-low-identity (card 455_pcoa_label_low_identity_ruling75, ruling 75):
 only proteins below --label-below are labelled, one label per region, lowest identity first, at most --label-max per
 panel, with the region's text and no count; without the option the distance rule is unchanged. Synthetic strains only.
 The grid caption part of the card is not tested here: the .454 renderer has no grid mode (see REBASE_454.md)."""

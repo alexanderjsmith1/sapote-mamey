@@ -1,61 +1,146 @@
-# Companion provisioning and retrieval controls in the unsealed .447 candidate
+# Companion setup, scanner HMMs, protein input and BLASTp checkpoints
 
-## Completion is scoped to the operation
+This page covers four setup and retrieval tasks that sit beside the main pipeline:
 
-A lane `run` exit 0 means its bounded loop ended normally, not that every query completed. Its final log may include failures and saved in-flight RIDs (`tools/blastp_crawl/nr_rid_runner.py:840–850`). Read ledger states and admission/generation receipts. `query_unbound`, `retrieval_unverified`, `unsure` and `submit_failed_parked` remain holds, not completed no-hit observations. Do not edit a hold merely to obtain a green count.
+1. installing the optional Python companions;
+2. building the scanner Pfam HMM subset;
+3. what the protein-space extractor accepts;
+4. how the BLASTp RID runner tracks, retries and saves searches.
 
-Rebuild processes only `fetched` rows and requires their admission binding before publishing (`:860–882`). It can return 0 with zero groups when none are fetched; success does not clear held or unsubmitted work. Admission checks database, raw/query hashes, exact header roster, result-file roster and generation hashes (`:536–559`). Run reclassifies unbound fetched rows as `query_unbound` (`:602–628`). The `fetched` label alone is insufficient.
+None of these steps interprets biology.
 
-Current local ingestion routes have distinct writes. `blastp-followup` writes review side artifacts. `ingest-blastp` requires `--master`, `--strain`, `--hit-table`, accepts optional `--xml` and `--package`, and can write workbook/package evidence. Its source defaults to NCBI web-BLASTp; EBI input needs explicit `--source` (`mamey/cli.py:6911–6929`). See [the follow-up reader guide](BLASTP_FOLLOWUP_v9.7.142.md) and [the current protocol](ONLINE_BLASTP_PROTOCOL.md).
+<a id="companion-installation"></a>
+## 1. Install the optional companions
 
-This page documents proposed engineering controls. It supplies no biological or activity interpretation.
+Activate a virtual environment before these installation commands.
 
-## Companion installation
+```bash
+python -m pip install -e '.[addons]'                         # online, through your pip index
+bash bundle_support/install_sapote_addons.sh /path/to/wheels  # offline, from local wheels
+bash bundle_support/install_sapote_addons.sh --online         # offline first, index for missing wheels
+```
 
-Activate a virtual environment. The lean checkout has no guaranteed wheel pool. `pip install -e '.[addons]'` installs the Python comparison/science dependencies through the configured pip index. This is an online provisioning action; it does not install companion executables or external databases.
+The `addons` extra installs Python comparison and scanner dependencies. It installs no external programs and no
+databases. The add-on script stays offline unless you pass `--online`, which allows the pip index for
+wheels it cannot find locally. Invalid core installation failures still fail. Its separate figure/analysis group is best-effort and can remain unavailable while core verification succeeds. The script checks selected core imports, not every installed dependency; data files, HMMs and external programs need their own checks.
 
-`bash bundle_support/install_sapote_addons.sh /path/to/wheels` remains offline. Add `--online` to explicitly permit an index fallback for missing wheel resolution, including a checkout without wheels. Other installation failures remain failures. The script verifies imports only; external data, HMMs and executable availability require separate checks.
+Before `doctor`, read its [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe) and use an editable working install. An occupied `runs/_doctor_probe` is refused; leave it intact.
 
-`mamey doctor` distinguishes an available Rscript from an admitted R package. Optional R renderer integration tests use the same bounded `requireNamespace` probe and skip with an unverified reason when required packages cannot be admitted. A skipped renderer integration is not a successful render.
+`python mamey_run.py doctor` reports whether `Rscript` is present and, separately, whether each R
+package loads. A package that loads is not a figure that rendered. In the test suite, the shared
+`require_r_packages` fixture skips a test when a package is `UNAVAILABLE` and fails it when the probe
+is `UNVERIFIED`.
 
-## Scanner subset provisioning
+<a id="scanner-subset-provisioning"></a>
+## 2. Build the scanner Pfam HMM subset
 
-The bundled `bundle_support/scanner_pfam_35_accessions.txt` and `scanner_pfam_148_accessions.txt` contain exact versioned accessions verified against actual historical model headers and corresponding manifests. `scanner_accession_source_pins.json` records those source hashes. These selector files contain no model payloads.
+The bundle ships accession lists, not models:
 
-An operator with HMMER (`hmmfetch`, `hmmpress`) and a local Pfam source can provision a new-source subset:
+- `bundle_support/scanner_pfam_35_accessions.txt` and `scanner_pfam_148_accessions.txt` list exact,
+  versioned Pfam selectors.
+- `bundle_support/scanner_accession_source_pins.json` records the hashes of those historical sources.
 
-```sh
+With HMMER (`hmmfetch`, `hmmpress`) and a local `Pfam-A.hmm`, build a subset:
+
+```bash
 python tools/build_scanner_hmm.py --source /path/to/Pfam-A.hmm --preset 148 --out /path/to/scanner_pfam_150.hmm
 ```
 
-Use `--preset 35` for the smaller selector list, or `--accessions /path/to/selectors.txt` for an explicit list; those switches are mutually exclusive. Selector files may have blank/comment lines, but the effective selectors must be nonempty, unique `PF` accessions. The syntax accepts an optional version; admission then requires each `hmmfetch` response to contain exactly one matching ACC string and one model terminator. Use the intended exact versioned selectors: a versionless request that returns a versioned ACC is refused rather than silently substituted.
+- Choose one of `--preset 35`, `--preset 148` or `--accessions /path/to/list.txt`.
+- An accession list may contain blank and `#` lines. The rest must be unique `PF` accessions, with or
+  without a version. Each `hmmfetch` result must hold exactly one matching `ACC` line and one model.
+  Asking for an unversioned accession and getting a versioned one is refused, not substituted.
+- A preset reads the bundled list as it is now. The builder hashes that list but does not compare it
+  with the source pins or check the model count. Check the list, hash and count yourself. The name
+  `scanner_pfam_150.hmm` is a naming convention, not a 150-model count.
+- After the build, set `SM_HMM_DB` to the new file.
 
-Presets select the current bundled text file. The builder hashes the file it consumes but does not consult `scanner_accession_source_pins.json`, compare its hash/count to the historical preset pin or enforce that a modified preset still has 35/148 models. Check the selected list/hash/count against the intended source pin independently; the output filename `scanner_pfam_150.hmm` is a naming convention, not a validated 150-model census.
+**Outputs.** The builder writes six files: the HMM, its four `hmmpress` indexes (`.h3f`, `.h3i`,
+`.h3m`, `.h3p`) and `<out>.build_receipt.json` with status `COMPLETE_NEW_SOURCE_BUILD`. It prints no
+success message, so read the receipt. The receipt hashes the source, the list, the selectors and the
+five HMM/index artifacts. A successful `hmmpress` exit and the four files' existence are its index check; it does not prove nonempty, valid indexes or a successful scanner run. The receipt does not hash itself and does not record HMMER versions or native logs; record
+those yourself.
 
-The builder requires fresh HMM, four index and receipt paths and copies fetched stdout unchanged into the subset. A zero-return `hmmpress` call plus existence of all four index files is its index admission check; it does not independently test nonempty/valid indices or run a scanner. The build receipt records source/list hashes, exact selectors and output HMM/index hashes. Set `SM_HMM_DB` only after reviewing the actual roster/receipt and separately required scanner compatibility. This builds a source-bound artifact, not historical HMM reconstruction, a completed scan or scientific acceptance.
+<a id="scanner-build-publication-and-recovery"></a>
+**Failures.** Use a new output name, outside the bundle and away from source files. The builder
+refuses any existing target, including a broken symlink. It stages files in a temporary folder and
+publishes them one by one. If publishing fails normally it removes what it published, but a crash can
+leave a partial set, and a retry then refuses. Keep the partial attempt, fix the cause and rerun with
+a new name. `hmmfetch` and `hmmpress` have no timeout, and their error output is not saved. A failed
+build is a setup problem, not evidence that a Pfam family is absent.
 
-### Scanner build publication and recovery
+<a id="protein-input-admission"></a>
+## 3. Protein input for `protein_pcoa_ordinate.py extract`
 
-Use a fresh output basename outside source evidence and the code bundle. The builder creates its parent, stages in a temporary sibling directory, and publishes the HMM, four indices and `<out>.build_receipt.json` through separate no-replace hard links. An existing target, including a dangling symlink, is refused; a concurrent target claimant also makes that link fail. Ordinary caught publication failures unlink this invocation's already-published paths, but the set is not crash-atomic. A process interruption or cleanup failure can leave a partial target set or stage, which a retry refuses. Preserve the partial attempt/diagnostics and use a fresh basename after resolving the cause; do not delete source models or claim completion from a lone HMM/index file.
+```bash
+python tools/protein_pcoa_ordinate.py extract --kit /path/to/new_kit \
+  --input isolate=/path/to/strainA.zip --input reference=/path/to/region_gbk_folder \
+  [--assembly-table /path/to/assemblies.tsv]
+```
 
-The CLI emits no success JSON on stdout; read the saved receipt and verify the full six-file roster. Receipt hashes cover the five HMM/index artifacts, not the receipt itself; it also lacks builder/binary hashes, HMMER versions and saved native logs. Capture the invocation/exit status and retain those additional bindings separately. Native commands have no timeout. Their failure output is captured internally but not saved in a diagnostic receipt/log; the CLI can show only the called-process summary after the temporary stage is removed. An error is a provisioning hold, not absent Pfam capacity. `COMPLETE_NEW_SOURCE_BUILD` records this build operation alone.
+`--input` can be repeated and requires `SOURCE=PATH`, with `SOURCE` one of `isolate`, `reference`, `SID` or `MIBiG`; the path is a ZIP or folder. Reference and SID inputs retain their `reference_held`/`SID_held` source classes. For an assembly table, the `input` column is the path alone, without the `SOURCE=` prefix.
 
-## Protein input admission
+- **Accepted files.** In ZIPs and folders alike: `*.region*.gbk`, and names that start with `BGC` and
+  end with `.gbk`. Whole-genome GenBank files go to the rejected-file list.
+- **Symlinks.** Each linked folder is read once. Loops and file aliases are recorded. Broken links,
+  repeated ZIP member names and read errors stop the run.
+- **Receipt.** `EXTRACT_RECEIPT.json` lists admitted, rejected and duplicate files. Metadata records the
+  source digest, record, region, locus identity and how the assembly was identified.
+- **Duplicates.** Identical bytes under the same source class, assembly binding, record ID and region filename are kept once. Different
+  bytes under the same identity are refused. Identical proteins at different loci stay separate.
+- **Assemblies.** Without `--assembly-table`, the assembly field is just the source record ID. Two
+  independent genomes with identical names and bytes need the table. Its columns are `input` (the ZIP
+  or folder path) and `assembly`. Give independent samples different values and alternate copies of
+  the same source the same value. Blank or repeated rows are refused. The table hash goes in the
+  receipt.
+- **Use a new kit folder.** FASTA names are checked before writing, but the metadata tables and
+  `EXTRACT_RECEIPT.json` are not. A failed run can leave partial files; keep them and start fresh.
 
-`protein_pcoa_ordinate.py extract` applies the same region/reference filename admission to ZIPs and extracted directories: `*.region*.gbk` or names beginning `BGC` and ending `.gbk`. Full-genome GBKs outside that policy appear in the rejected-file ledger. Directory symlinks are traversed once by resolved directory identity; loops and file aliases are recorded, and dangling aliases, repeated admitted ZIP member names and traversal errors fail closed. The extractor reports followed symlink folders and discovered file counts.
+<a id="completion-is-scoped-to-the-operation"></a>
+<a id="rid-retrieval-and-checkpoints"></a>
+## 4. BLASTp RID runner (`tools/blastp_crawl/nr_rid_runner.py`)
 
-The extract receipt records admitted, rejected and duplicate source material. Metadata adds a source digest, source record, region, locus identity and assembly binding type. Without an explicit assembly table, the assembly field is a `SOURCE_RECORD_ID` namespace, not an inferred biological assembly. Exact copies with the same source class/record/region binding are deduplicated; differing bytes under that binding are refused. Independent loci remain distinct even if their protein sequences are identical.
+The runner submits query batches to NCBI BLAST, polls them by request ID (RID) and saves results. Its
+subcommands are `run`, `status`, `rebuild` and `coverage`. It needs a `curl` that supports
+`--fail-with-body`; an older `curl` fails visibly.
 
-Independent assemblies sharing otherwise identical identifiers and bytes require `--assembly-table /path/to/assemblies.tsv`, with `input` (the supplied ZIP or directory path) and `assembly` columns. Use distinct assembly values for independently sampled material; use the same value for alternative transports of the same source. Blank/repeated bindings are refused. The table digest is included in the receipt. Archive display labels retain their existing naming convention; the bound population identities and counts are transport independent.
+**Row states.** A query row is only a completed result when it is fetched and admitted. These states
+are holds, not "no hit" results: `query_unbound`, `retrieval_unverified`, `unsure`,
+`submit_failed_parked`. Do not edit a hold to make a count look complete.
 
-## RID retrieval and checkpoints
+- `run` exits 0 when its loop ends, not when every query finished. Its last log lines can list failures
+  and RIDs still in flight. Read the ledger states.
+- Each new submission is tied to the query file hash, the exact FASTA header list and the database.
+- A returned XML result must be complete and match the submitted header list. Malformed, HTTP-error,
+  partial, repeated-query or wrong-query results never count as an empty search. A valid search with
+  no hits is accepted without resubmitting.
+- An unreadable result retries the same RID. After three saved downloads that cannot be read, the row
+  becomes `unsure` and leaves the in-flight set. The count survives a restart. Network errors are not
+  counted. Raw responses are kept.
+- A row older than `--max-wait` (default 129,600 s, 36 h) becomes `unsure`. `unsure` rows are not
+  resubmitted automatically. A service `UNKNOWN` reply instead marks the row `expired`, which a later
+  run will resubmit. Check the old RID before restarting.
+- Unknown legacy bindings, database mismatches, missing or changed queries and old completions without
+  receipts become `query_unbound`. They are never resubmitted automatically.
+- `rebuild` publishes only `fetched` rows that pass the admission check (database, raw and query
+  hashes, header list, result-file list and generation hashes). It can exit 0 with nothing rebuilt.
+  `run` reclassifies a fetched row without that binding as `query_unbound`.
 
-The RID runner binds new submissions to the query file digest, exact header roster and requested database. A returned XML Search must have a complete supported structure and exactly the submitted roster; malformed, HTTP-error, partial, repeated-query or wrong-query responses cannot become completed empty evidence. Valid completed no-hit searches are admitted without resubmission. Raw attempts (including returned transport-error bodies), their digests, and per-query admission states are retained. Unverified retrievals retry the existing RID rather than creating another submission.
+**Packet coverage.** Each `_result_generation.json` records `genes_done`, `genes_expected` and `complete`. Completion is true only for a nonempty expected gene roster whose members are all done, including completed no-hit genes. A partial packet can grow as another query batch returns. Treat `complete` as necessary coverage of the recorded roster, alongside current query bindings and admission/generation hashes; it is not scientific acceptance.
 
-Unknown legacy bindings, database mismatches, missing queries, changed queries, and legacy completion without admission receipts are operator holds (`query_unbound`). They are not silently resubmitted or certified by coverage. Expiry still identifies the RID's own row and marks it `unsure`. The runner does not manufacture a missing historical query binding.
+**Saving and locking.** A POSIX `flock` gives one process ownership of a lane; systems without `flock`
+refuse. The PID file is advisory. Ledgers and raw checkpoints are written atomically. Each top-10 and
+top-1 result pair carries a generation receipt; read the two files together with that receipt. An
+interrupted publication is recovered under lane ownership: it accepts an already fully published, hash-matching generation or restores the preserved predecessor. Two filenames do not give readers a simultaneous multi-file replacement; consumers must use the generation receipt. Locks are never taken over automatically. If recovery
+fails, keep the pending transaction and its journal for diagnosis.
 
-The transport requires a curl supporting `--fail-with-body`; an older curl fails visibly and leaves retrieval unverified.
+**Importing results.** `blastp-followup` writes review files beside your outputs. `ingest-blastp`
+writes into the workbook and, with `--package`, the package:
 
-A POSIX flock provides exclusive lane ownership before a run or rebuild; platforms without that facility refuse ownership. The PID remains advisory and is removed only by its owner. Ledger and raw checkpoints use unique staged atomic replacements. Each top10/top1 pair carries a generation receipt; a pending result transaction is recovered under lane ownership before subsequent writes. Ordinary interrupted publication restores the previous pair; recovery accepts a fully published receipt-bound generation or restores its preserved predecessor. Result files must be read with their generation receipt, since two ordinary filenames cannot provide a simultaneous multi-file filesystem replacement. External consumers that ignore the receipt are outside this consistency guarantee.
+```bash
+python mamey_run.py ingest-blastp --master <workbook.xlsx> --strain <ID> --hit-table <hits.csv> \
+  [--xml <alignment.xml>] [--package <package>] [--source "EBI (uniprotkb_bacteria)"]
+```
 
-No lock is stolen automatically. Preserve a pending transaction and its journal after a recovery failure for operator diagnosis. Rebuild validates receipts and queries before publishing each result group. A query hash mismatch or unbound old completion requires explicit operator reconciliation, rather than an automatic migration. These controls concern local files and retrieval status; they do not assert scientific readiness.
+`--source` defaults to NCBI web-BLASTp; pass it for EBI results. See
+[BLASTp follow-up](BLASTP_FOLLOWUP_v9.7.142.md) and the [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md).

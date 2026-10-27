@@ -83,12 +83,6 @@ scratch is retained with an explicit failure for diagnosis. Identity checks refu
 replaced directory or symlink. This is protection against ordinary ownership mistakes,
 not a general hostile concurrent filesystem sandbox.
 
-The computational `_run_pipeline` API keeps its positional signature and adds only
-optional internal workspace/copy arguments. Direct callers remain responsible for
-external monitoring; the public CLI is the governed entry point. The internal worker
-entry consumes this coordinator's fresh hash-bound request; it is not a separate
-user-facing native-launch bypass.
-
 Receipts retain local operator paths and byte provenance. They are local diagnostics,
 not public distribution authority or a portable public artifact. The terminal receipt
 records historical worker and promoted output roots so relocated output hashes can be

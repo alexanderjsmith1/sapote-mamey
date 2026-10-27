@@ -15,16 +15,16 @@
 | Trigger phrase / condition | Route | Module / output |
 |---|---|---|
 | `CHATGPT_EXECUTION_SLICE_LOADED` or new assistant session | Start at `AGENTS.md` and `docs/USER_TASK_ROUTER.md`; use dated execution slices only within their stated historical scope | Selected task and evidence route |
-| `MAMEY_COMPLETE` or `MAMEY_COMPLETE_WITH_ISSUES` detected | `MAMEY_COMPLETE_HANDOFF_REQUIRED`: present code-backed outputs, then offer/produce prompt-backed set | Post-complete handback block |
-| `ANALYSIS_COMPLETE` after Sapote judgment | `ANALYSIS_COMPLETE_DELIVERABLE_OFFER`: auto-produce or explicitly offer the full prompt-backed set | Deliverable offer/production |
-| `locus_maps/` present or `LOCUS_MAP_PRESENTATION_REQUIRED` | List and present every locus-map SVG/PNG; do not bury maps in the package | Locus-map handback |
+| `MAMEY_COMPLETE` or `MAMEY_COMPLETE_WITH_ISSUES` detected | `MAMEY_COMPLETE_HANDOFF_REQUIRED`: present the requested extraction outputs, their checks and unresolved issues; use the handback inventory below to account for produced/deferred files | Requested package handback |
+| `ANALYSIS_COMPLETE` after Sapote judgment | `ANALYSIS_COMPLETE_DELIVERABLE_OFFER`: deliver the selected interpretation and evidence; offer a follow-up only when it helps the user's question | Selected deliverable and bounded next action |
+| `locus_maps/` present or `LOCUS_MAP_PRESENTATION_REQUIRED` | Link the requested locus maps with their source identities and review state; account for omitted/deferred maps in the handback | Selected locus-map handback |
 | "full Mode B", legacy section-count phrases, "FULL ANALYSIS MODE" | `FULL_MODEB_REQUEST_DETECTED`: bind the selected current profile in `MODEB_PROFILE_MATRIX.md` and `MODE_B_USER_WALKTHROUGH.md`; a legacy phrase does not select the old contract automatically | Named-profile Mode B card |
 | "offline Mode B", `OFFLINE_EVIDENCE_ALLOWED` | Author only within the selected profile’s evidence/availability rules; record absent channels in that profile’s designated slots | Scoped card or evidence hold |
 | "fragmented PKS", "RG-GMCI", "wise PKS" | `WISE_PKS_QUEUE_DETECTED`: `wise_fragmented_pks.py` + `blastp_batch_emitter.py` | FASTA batches + ledger |
 | "cross-strain GCF", "cohort GCF", "BiG-SCAPE", "gene cluster families" | `COHORT_GCF_DETECTED`: read `LLM_COMPANION_TOOL_PROTOCOL.md`, resume/current-run check → manifest → preflight → cluster → exact-run QA → portable export. Cohort-only runs cannot emit KNOWN/NOVEL; ingest is separately authorized. | Additive GCF atlas (SOP-17) |
 | "GToTree", "phylogenomics", "IQ-TREE", "MLSA" | `PHYLOGENOMICS_DETECTED`: read `LLM_COMPANION_TOOL_PROTOCOL.md` + `phylogenomics.md`; recover whole assemblies, cap references, de-replicate, show size/usage, obtain user approval, then use the actual reviewed resource budget. Historical one-core/≤4 advice is not an automatic hardware limit or a new approval request when the operation is already authorized. | Alignment/tree/ANI companion package |
 | "make a PDF", `PDF_DELIVERABLE_REQUESTED` | narrative PDF + source MD + evidence CSV + manifest | PDF deliverable |
-| "locus map", `--locus-map` flag | `mamey/figures/locus_map.py` | SVG file |
+| "locus map", `--locus-maps` run setting | Inspect existing maps first, then follow [Make and review figures](FIGURES_START_HERE.md) for the selected `locus-maps` rendering route and its working-package boundary | Requested maps with source data and review record |
 | "cross-strain comparison", `CROSS_STRAIN_COMPARISON_REQUESTED` | Separate comparative report; never replaces Mode B card | Comparison report |
 | "integrated table as companion", `INTEGRATED_TABLE_AS_COMPANION` | Emit table alongside card; table never substitutes for card | Table + card |
 | "claim ceiling required", `CLAIM_CEILING_REQUIRED` | §19 + §20 receipts; suppress per-gene claim repetition | Mode B card |
@@ -89,7 +89,7 @@ Keep the actual verifier exit/receipt and named profile separate from those hist
 | `FULL_MODEB_REQUEST_DETECTED` | Bind the selected current profile and its own titles/required sections; full30/full20 facades remain historical contracts | Current profile-specific verifier; keep legacy checks separately scoped |
 | `INTEGRATED_TABLE_AS_COMPANION` | Emit table; never substitute for card | `modeb_full20.py` test 3 |
 | `CLAIM_CEILING_REQUIRED` | §19 + §20 receipts; suppress per-gene claim repetition | style gate |
-| `OFFLINE_EVIDENCE_ALLOWED` | BLASTP absence does not block Mode B | §16 gap note |
+| `OFFLINE_EVIDENCE_ALLOWED` | Record offline evidence availability under the selected profile; check its draft/finished requirements before proceeding | [Evidence availability and writing](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md#5-writing-and-promotion-gates) |
 | `INTERPRETIVE_FLOOR_CHECK` | Pre-§19 internal check: expand §5/§9/§11/§12 if thin before writing verdict | execution slice |
 | `WISE_PKS_QUEUE_DETECTED` | Use `wise_fragmented_pks.py` stable ledger/Q-ID batching | ledger |
 | `CROSS_STRAIN_COMPARISON_REQUESTED` | Separate comparative report; never replaces Mode B | comparison module |
@@ -100,12 +100,13 @@ Keep the actual verifier exit/receipt and named profile separate from those hist
 ## 5. Advisory routing conflict guards (historical §16 wording)
 
 ### OFFLINE_EVIDENCE_ALLOWED vs WISE_PKS_QUEUE_DETECTED (PATCH-CF-006)
-These two triggers must not cross-fire:
-- `OFFLINE_EVIDENCE_ALLOWED`: BLASTP failed/unavailable → proceed with Mode B; document gap in §16.
-- `WISE_PKS_QUEUE_DETECTED`: BLASTP pending/batching → queue workflow; emit FASTA batches.
+First check [evidence readiness](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md#5-writing-and-promotion-gates) for the selected profile. Record unavailable, pending and available-but-uningested BLASTp separately; offline operation alone does not settle whether a finished card is supportable.
 
-**Guard:** `OFFLINE_EVIDENCE_ALLOWED` suppresses `WISE_PKS_QUEUE_DETECTED` auto-trigger.  
-If both could fire, default to `OFFLINE_EVIDENCE_ALLOWED` and note the queue status in §16.
+- `OFFLINE_EVIDENCE_ALLOWED`: retain the justified limitation in the selected profile's evidence matrix and claim ceiling; use a draft or hold when finished requirements remain unmet.
+- `WISE_PKS_QUEUE_DETECTED`: retain a pending batch's ledger and actual state. Create FASTA batches only within the selected work.
+
+**Guard:** `OFFLINE_EVIDENCE_ALLOWED` suppresses `WISE_PKS_QUEUE_DETECTED` auto-trigger.
+That historical routing guard prevents an automatic queue launch; it does not waive selected-profile evidence requirements. Record queue status in the work ledger and use the current profile's designated evidence section.
 
 ### Slim-kernel legacy conflict
 File presence does not select a controller. Read the current user request, `AGENTS.md` and the task router; the slim kernel and dated execution slice are historical/reference inputs. Abbreviated treatment, Interior-first sorting, or POOR-tier edge suppression from legacy docs is overridden.

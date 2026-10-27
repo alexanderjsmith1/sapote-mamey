@@ -19,7 +19,7 @@ A domain tree asks about relatedness among homologous biosynthetic machinery dom
 | each domain | `domain_class`, `locus_tag`, `domain_id`, `translation`, `node`, `region` | missing/invalid translation is not alignment-ready |
 | alignment admission | complete `strain / full node-or-contig / region / BGC alias`, locus tag, domain ID, subtype/family, sequence SHA-256, source locator/hash | raw extractor rows lack the BGC alias and therefore require an exact inventory/module join before alignment |
 
-The portable alignment-preparation owner is `tools/prepare_biosynthetic_tree_inputs.py`. Its sequence ledger supplies the BGC alias and source-row binding, but not all four identity components. No consumer may infer an alias from node order, region order, or a filename.
+The raw GBK extractor also shortens filename node names to `NODE_<digits>` and defaults a missing region token to `region001`. These fields are parsing outputs, not verified full locus identity; recover and verify the complete node/contig and region from bound source records before admitting a tip.
 
 ## Current retry and output boundaries
 
@@ -72,7 +72,7 @@ an empty successful export and a failed attempt must remain distinct.
 
 ## Current preparation identity boundary
 
-The .447 `tools/prepare_biosynthetic_tree_inputs.py` checks a strain-local BGC alias
+`tools/prepare_biosynthetic_tree_inputs.py` checks a strain-local BGC alias
 against the supplied inventory and records source file/row, locus, sequence digest
 and its generated tip token. Its inventory reader retains products by `bgc_id`;
 the emitted sequence ledger and FASTA tip do **not** carry the full contig/node and

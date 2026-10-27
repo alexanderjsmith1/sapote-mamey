@@ -15,7 +15,7 @@ branch lengths or support values between trees.
 
 | Figure component | Exact binding |
 |---|---|
-| Organismal tree tip | Bound strain and genome assembly identity |
+| Organismal tree tip | Strain and genome assembly identity |
 | Biosynthetic tip | `strain / full node-or-contig / region / BGC alias`, plus locus tag and domain ID |
 | Link between panels | Exact source-record join from each biosynthetic tip to its strain/genome tip |
 
@@ -23,7 +23,7 @@ A genome can legitimately link to multiple biosynthetic tips. Carry the full
 four-part locus identity in the crosswalk and display; do not teach a bare
 BGC-alias label as if it were globally unique.
 
-The link key retains the full four-part BGC identity plus locus/domain. Link color may encode BGC class or family, while
+Link color may encode BGC class or family, while
 line style can encode AS, SID, or reference provenance.
 
 ## Interpretation ladder
@@ -41,10 +41,9 @@ paralogy, gene order, flanking mobility, composition, and assembly boundaries.
 
 ## CPU policy
 
-- one alignment/tree pipeline uses one core;
-- at most four independent pipelines may run concurrently;
-- GToTree 1.8: `-j 1 -n 1 -M 1` per tree; the v2 runner omits `-n`.
-  Verify the installed interface and the planner compatibility hold in
+- at most 4 threads per job, one heavy job at a time;
+- GToTree 1.8: `-j 1 -n 1 -M 1` per tree; the shared planner/runner command builder omits `-n` for v2.
+  Verify the installed interface and the selected governed plan's input, approval and native-resource bindings in
   [companion run contracts](COMPANION_RUN_CONTRACTS.md);
 - MAFFT: `--thread 1`;
 - IQ-TREE: `-T 1 --mem 2G`;

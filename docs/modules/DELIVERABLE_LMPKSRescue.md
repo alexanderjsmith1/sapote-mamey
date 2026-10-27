@@ -2,7 +2,7 @@
 
 > **Filing.** `docs/modules/DELIVERABLE_LMPKSRescue.md`.
 > **Extends / references:** `mamey/source_scans.py` + `mamey/antismash_evidence.py` (KS-subtype + reductive-loop + AT-substrate extraction — the live evidence), `mamey/models.py` (KS-domain fields), `prompts/reuse/SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md` (standalone rescue prompt), `DELIVERABLE_WetLabMatrix.md` (where the LMPKS bonus is applied — §33.3 LMPKS table), kernel MODULE 3 (§31 architecture). **Do not restate the WL bonus table — point to it.**
-> **Precedence.** Parent monolith wins. This module owns the rescue *grades and report format*; the *domain extraction* it consumes is owned by Mamey code and must not be re-derived by hand.
+> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. Source code owns extracted fields; rescue grades and report rules here are inherited judgment policy. The listed WL adjustments are historical/proposed: the current standalone writer records LMPKS as not run and does not apply this rescue table. Do not change saved scores or scientific predicates from this module.
 > **Status:** `CODE_BACKED` (fragment detection / KS inventory) **+ `PROMPT_BACKED`** (module reconstruction narrative, grade assignment, split-pathway hypothesis). This is the one genuinely hybrid module.
 > **One-line purpose.** Rescue large modular type-I PKS, macrolide, polyene, trans-AT, and linear-polyketide pathways that antiSMASH labels and KCB scores miss, undercall, or split across contigs — and grade each so the Wet-Lab Matrix can route it.
 
@@ -32,7 +32,7 @@ Runs **alongside the KCB sweep**, not after — auto-fire on any §2 trigger. Pe
 
 | Field | Feeds | Skip-not-fake |
 |---|---|---|
-| `gbk_pfam_hits` KS subtypes (mod_KS/hyb_KS/tra_KS/ene_KS/itr_KS), PKS_AT/KR/DH/ER, ACP, docking, TE/Abhydrolase | the domain signature library (§42.3) + module string | a missing reductive domain is shown absent, not inferred present |
+| `gbk_pfam_hits` KS subtypes (mod_KS/hyb_KS/tra_KS/ene_KS/itr_KS), PKS_AT/KR/DH/ER, ACP, docking, TE/Abhydrolase | the domain signature library (§42.3) + module string | preserve unavailable/unrun/unbound domain evidence separately from a completed in-scope assessment with no retained observation; never infer missing domains present |
 | `nrps_pks_consensus` AT substrate (mal/mmal/mxmal) — **requires `--json-evidence bounded/full`** | AT-pattern call (§42.5) | if JSON off, AT substrate = `unscanned`, not guessed |
 | `active_site_pairings` (AT specificity, KR L/D config, TE serine) | module completeness + stereochem | — |
 | `_4A_RGGMCI_ranked_pairs.csv` | split-pathway grouping (§42.7) | linkage = homology hypothesis, never asserted nucleotide join |
@@ -94,8 +94,8 @@ Highest-applicable only; LMPKS bonuses do not stack with each other.
 - [ ] trans-AT criteria checked for AT-missing PKS; polyene criteria for DH-rich.
 - [ ] Exactly one grade per triggered BGC/fragment set; null result page if no trigger.
 - [ ] Long-read recommendation updated where fragment accumulation/split evidence exists.
-- [ ] Contig-ID locators; no compound named without chemistry; affiliation = .
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
+- [ ] Contig-ID locators; no compound named without chemistry.
+- [ ] Hand back the result, its evidence and open holds.
 
 ---
 
@@ -112,7 +112,7 @@ Highest-applicable only; LMPKS bonuses do not stack with each other.
 
 ## 7. Worked next-paths closer (SID-XXX)
 
-> LMPKS run: genome-wide KS accumulation flags the 017/035/072 NRPS-PKS megaset (`LMPKS_FRAGMENT_SET`, ≥3 contigs → long-read Priority 1). BGC036/038/056 = malonyl-specific reducing modules (036 all-L KR ×3). No clean LMPKS-A; megaset graded LMPKS-C pending long read. Next paths:
+> LMPKS run: genome-wide KS accumulation flags the SID-XXX / <contig> / region<NNN> / BGC017, BGC035 and BGC072 NRPS-PKS megaset (`LMPKS_FRAGMENT_SET`, ≥3 contigs → long-read Priority 1). SID-XXX / <contig> / region<NNN> / BGC036, BGC038 and BGC056 = malonyl-specific reducing modules (036 all-L KR ×3). No clean LMPKS-A; megaset graded LMPKS-C pending long read. Next paths:
 > 1. Reconstruct the 036/056 split module string with the JSON active-site calls now available.
 > 2. Apply the resulting LMPKS-C +1 seq-priority adjustment in the Wet-Lab Matrix.
 > 3. Run trans-AT protocol on any AT-missing module in the megaset.

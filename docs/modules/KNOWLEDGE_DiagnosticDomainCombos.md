@@ -1,16 +1,19 @@
 # KNOWLEDGE — Diagnostic Domain Combinations (DDC)
 
-> **Filing.** `docs/modules/KNOWLEDGE_DiagnosticDomainCombos.md`.
-> **Extends / references:** `antismash_evidence.py` (GBK `sec_met_domain` Pfam/TIGRFAM extraction — the live source of domain hits), `mamey/sapote_cassettes.py` + `mamey/mamey_markers.py` (the *descriptive* registry of markers/cassettes), `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 5 (§34 Hallucination-Trap) and MODULE 6 (§43 CCTT). **Do not restate the registry — point to it.**
-> **Precedence.** Parent monolith wins. Where this table and a registry `Cassette` disagree, the registry's stable IDs win on naming; this table wins on *combination logic* until the Release-2 HMM backend makes the registry authoritative.
-> **Status:** `PROMPT_BACKED` (Sapote applies this lookup to Mamey's already-extracted domains). **Activation note:** the registry's Pfam profiles are *not scanned* in the current pipeline (regex + GBK Pfam only); a pyhmmer/HMMER backend would make these combinations `CODE_BACKED` — see §6.
-> **One-line purpose.** Turn a list of extracted domains into a defensible compound-class call, using the fixed "combination → assignment" table that v7.5.2 §8 carried and the v9 kernel never surfaced.
+Use this page when a product label leaves a class question unresolved. Start with the selected
+region's extracted domain rows, then compare the historical lookup below with their gene tags,
+scores and source coverage. Keep **strain / full node-or-contig / region / BGC alias** with the note.
+
+The lookup is a prompt interpretation aid, not an executable classifier. `mamey/antismash_evidence.py`
+owns extraction; `mamey/source_scans.py` and `mamey/scoring.py` own their implemented triggers and
+ranking rules. Marker/cassette registry entries provide vocabulary; their presence does not
+establish that a scan ran or that a proposed class is correct.
 
 ---
 
 ## 1. Why this exists / who reads it
 
-A single domain rarely names a class; a *combination* often does. Mamey extracts admitted domains and also runs source-scan/CCTT and scoring rules; this table remains a prompt interpretation aid. Extraction coverage depends on the admitted source/channel, and descriptive registry profiles are not evidence that their HMM scan ran. This module is the judgment table the Sapote layer applies. It is read whenever a BGC's class call needs to rise above the bare antiSMASH product label (every Mode B §1/§4, every lead-board verdict).
+A single domain rarely names a class; a combination often does. Mamey extracts the domains; this table is how a reader turns them into a class call. Apply it whenever a class call must go beyond the antiSMASH label (every Mode B §1/§4, every lead-board verdict).
 
 **Skip-not-fake.** A combination is asserted only when *all* its required domains are present in Mamey's extraction at the stated tier. A partial match is reported as "partial — N of M diagnostic domains present," never rounded up to the class call.
 
@@ -20,13 +23,13 @@ A single domain rarely names a class; a *combination* often does. Mamey extracts
 
 | Field (Mamey package) | Feeds |
 |---|---|
-| `AntiSMASH_Evidence_Parse.json → gbk_pfam_hits[].{domain_name, pfam_acc, bitscore, locus_tag, tier1_diagnostic}` | the domain set per region |
+| `[strain]_AntiSMASH_Evidence_Parse.json → gbk_pfam_hits[region_key][]` | Read each row's `domain_name`, `pfam_acc`, `bitscore`, `locus_tag` and `tier1_diagnostic`; the outer object is keyed by region, not a flat hit list |
 | `manifest.json → bgcs[].products` | the antiSMASH label this table refines or contradicts |
 | `_4_triage_board.csv → CCTT_triggers` | cross-check against the cryptic-class trigger flags |
 
 ---
 
-## 2a. Combination → assignment table (PORTABLE COPY; authority: registry once HMM-backed)
+## 2a. Historical combination lookup: candidate assignments to review
 
 | Domains present (all required) | Assignment | Claim ceiling |
 |---|---|---|
@@ -44,33 +47,35 @@ A single domain rarely names a class; a *combination* often does. Mamey extracts
 | CDPS (single gene) | Cyclodipeptide synthase / diketopiperazine | class-level |
 | Trp_halogenase / Flavin halogenase | Halogenated scaffold | tailoring flag, not a standalone class |
 
-The last five rows extend §8 with combinations the SID-XXX run proved diagnostic; they are folded in here so the table reflects current practice.
+Use the rows to frame a class hypothesis, then cite the actual domain records and the scientific source supporting the mapping. The earlier cohort example is not a complete source-bound locus record and does not establish diagnostic accuracy for a new input.
 
 ---
 
-## 4. Outputs & contract surface
+## 3. Outputs & contract surface
 
 This module emits no file; it governs the **class-call cell** wherever a BGC is interpreted (Mode B §1/§4, lead board, Fermentation Card target). Each applied assignment must cite the domains and bitscores behind it (e.g. `enediyne — ene_KS 830.8 + TIGR03604 + YcaO`) so the call is auditable against `gbk_pfam_hits`.
 
 ---
 
-## 6. Tool / knowledge inventory
+## 4. Tool / knowledge inventory
 
 | Piece | Owner |
 |---|---|
-| Live domain extraction | `mamey/antismash_evidence.py` (regex + GBK Pfam) |
+| Saved upstream domain extraction | `mamey/antismash_evidence.py`: GBK `sec_met_domain` rows plus selected antiSMASH JSON TIGRFAM records merged into the region-keyed hit object |
 | Marker/cassette vocabulary (descriptive) | `mamey/sapote_cassettes.py`, `mamey/mamey_markers.py` |
 | Combination → class logic | **this module** (portable copy) |
-| Future scanning backend | A proposed HMMER/DIAMOND or pyhmmer adapter requires its named local dependencies, admitted reference data and separate implementation verification. |
+| Optional HMM evidence | `run --hmm-scan` already calls `mamey/registry_detector.py::run_hmm_scan` and writes `[strain]_HMM_Scan.json`. Inspect its per-region status and bound source; `HMM_SCAN_UNAVAILABLE` is not a no-hit result. This route does not make the lookup table an automatic classifier. |
 | Cross-check triggers | kernel MODULE 5 (§34), MODULE 6 (§43 CCTT) |
 
 ---
 
-## 7. Worked next-paths closer (SID-XXX)
+## 5. Turn one lookup into a review note
 
-> Applied DDC to SID-XXX: BGC047 → enediyne (ene_KS 830.8 + TIGR03604 + YcaO; [E-signal]), BGC012 → thioamitide (TfuA+YcaO), BGC063 → phosphonate (PepM; 31P-NMR gate), BGC007/024/032/041 → CDPS/DKP, BGC003/019/042 → NAPAA (current registry neutral). Next paths:
-> 1. Feed these class calls into the Mode B §1 tables for the top leads.
-> 2. Activate the §8 HMM backend with a targeted pyhmmer profile set (enediyne/PepM/TfuA-YcaO/CDPS).
-> 3. Cross-check each call against its §34 Hallucination-Trap row.
-> 4. Add any new diagnostic combination this strain reveals back into this table.
-> 5. Bank a second strain to test the enediyne+phosphonate co-occurrence.
+Copy the complete locus identity from one bound source record. Record the required domains,
+the observed rows and scores, and which required components remain unobserved or unavailable.
+For a partial match, retain the observed fraction rather than assigning the full class.
+Then state the candidate interpretation and the source that would support or challenge it.
+
+For an authored card, continue with [the Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md)
+and its selected profile. The older redacted cohort examples lack complete locators and cannot
+be reused as current locus evidence.

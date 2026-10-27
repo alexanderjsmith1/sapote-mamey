@@ -1,7 +1,9 @@
 # Figure Factory preflight and methods
 
-Use the [aggregate rendering guide](../docs/FIGURE_FACTORY_NEXT.md) for the current configuration,
-commands and output files. This page explains what to verify before using a figure. Different
+Choose a route in [Figures start here](../docs/FIGURES_START_HERE.md). Use the
+[aggregate coverage guide](../docs/FIGURE_FACTORY_NEXT.md) specifically when you
+have prepared metrics and a cohort manifest. This page explains what to verify
+before using a figure. Different
 renderers have different input and refusal contracts; the name Figure Factory does not make them
 interchangeable.
 
@@ -15,7 +17,8 @@ interchangeable.
 | Repair specifications | Describe intended changes and unresolved bindings. A specification or registry entry is not evidence that a renderer or input exists. |
 
 Run commands from the extracted bundle root through `python mamey_run.py`.
-Automatic run/cohort output requires a discoverable configuration; see the rendering guide for
+The automatic aggregate-coverage hook requires a discoverable configuration; this
+condition does not apply to every run/cohort figure producer. See the aggregate guide for
 search order and the automatic output-directory replacement policy. Manual aggregate rendering
 requires a new output directory.
 
@@ -50,9 +53,12 @@ the scientific canvas. Preserve data-specific caveats that materially affect int
 ## Outputs and restyling
 
 The aggregate renderer exports matching `figure_factory_next_data.tsv` and
-`figure_factory_next_data.csv`. The shipped `tools/figure_factory_next_ggplot.R` renders the CSV
-with ggplot2; use the invocation in the aggregate guide. Tree and other figure families have their
-own sidecars and R tools. Verify each family's actual output rather than assuming one universal CSV.
+`figure_factory_next_data.csv`. For an R view, read [R figure workflows](../docs/R_FIGURE_WORKFLOWS.md)
+and the `tools/figure_factory_next_ggplot.R` argument contract. The R script reads
+the CSV without verifying the Python receipt hashes or issuing replacement
+bindings; keep its own source/arguments/output hashes and inspect the new artwork.
+Tree and other figure families have separate sidecars and R tools; verify the
+actual output roster rather than assuming one universal CSV.
 
 The [deliverable menu](../docs/DELIVERABLE_MENU.md) remains a generated capability index.
 [Repair specifications and binding records](../docs/figure_factory/README.md) are development material.

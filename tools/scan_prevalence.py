@@ -4,25 +4,28 @@ transporter/chitinase/...). Reads gene.groups_json hits; emits the SAME ranking-
 domain_prevalence so tools/domain_prevalence_widget.py renders it unchanged. Portable; read-only inputs.
 Class-level; absent annotation != absent biology; similarity != function; judgment deferred."""
 from __future__ import annotations
-import argparse, sqlite3, json, csv, os, sys, time, collections, hashlib
+import argparse, sqlite3, json, csv, os, sys, time, collections, hashlib, re
 def sha256(p):
     h=hashlib.sha256()
     with open(p,'rb') as f:
         for b in iter(lambda:f.read(1<<16),b''): h.update(b)
     return h.hexdigest()
 def ro(p): return sqlite3.connect(f"file:{p}?mode=ro",uri=True)
+_WORD=re.compile(r"[a-z]+")
 def classify(src):
-    s=(src or "").lower()
-    if "wasp" in s and "bee or wasp" not in s: return "wasp"
+    # whole words: "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee
+    s=(src or "").lower(); w=_WORD.findall(s)
     if "bee or wasp" in s: return "bee_or_wasp"
-    if any(t in s for t in ("bombus","apis","apidae","andrena","bee")): return "bee"
-    if "ant" in s or "atta" in s: return "ant"
-    if "moss" in s: return "moss"
-    if "mushroom" in s or "fung" in s: return "fungus_assoc"
+    if any(x in ("wasp","wasps") or x.endswith("wasp") for x in w): return "wasp"
+    if any(x in ("bombus","apis","apidae","andrena") or x.endswith(("bee","bees"))
+           or (x.startswith("bee") and not x.startswith(("beet","beech","beef"))) for x in w): return "bee"
+    if any(x in ("ant","ants","atta") for x in w): return "ant"
+    if any(x.startswith("moss") for x in w): return "moss"
+    if any(x.startswith(("mushroom","fung")) for x in w): return "fungus_assoc"
     return "other" if s.strip() else "unknown"
 def build(a):
     t0=time.time(); os.makedirs(a.out,exist_ok=True); db=ro(a.scan_db)
-    strains=sorted(r[0] for r in db.execute("select strain from source"))
+    strains=sorted(r[0] for r in db.execute("select distinct strain from source"))
     exclude=set(a.exclude or []); strains=[s for s in strains if s not in exclude]
     locus_strain=dict(db.execute("select locus_key,strain from locus"))
     prot={(lk,tag):psha for lk,tag,psha in db.execute("select locus_key,locus_tag,protein_sha256 from gene")}
@@ -83,6 +86,9 @@ def main(argv=None):
         import subprocess
         w=os.path.join(os.path.dirname(os.path.abspath(__file__)),"domain_prevalence_widget.py")
         r=subprocess.run([sys.executable,w,a.out],capture_output=True,text=True)
-        print("  widget + figures written" if r.returncode==0 else f"WARN widget: {r.stderr[:200]}")
+        if r.returncode!=0:
+            sys.stderr.write(f"FAIL: widget step failed (tables were written): {r.stderr[:200]}\n")
+            return 3   # --widget was asked for and not delivered
+        print("  widget + figures written")
     return 0
 if __name__=="__main__": raise SystemExit(main())

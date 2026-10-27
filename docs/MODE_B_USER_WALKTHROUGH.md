@@ -1,67 +1,88 @@
-# From extraction to an authored Mode B card
+# Write and review one Mode B card
 
-Start with a validated Mamey package and one source-bound identity: **strain / full node-or-contig / region / BGC alias**. A complete extraction, ranked table or emitted template is not an authored scientific interpretation. This walkthrough is bound to .447 / engine 1.9.172; use the selected bundle's launcher from its root.
+To turn a validated Mamey package into an authored card, choose a profile, prepare the evidence, author the emitted template, verify the saved text, then save it for review. Start with one locus before scaling to a batch. Run the examples from the selected bundle root with its compatible Python environment.
 
-## Choose the profile before writing
+## 1. Choose the profile
 
-Use the [profile matrix](MODEB_PROFILE_MATRIX.md). The native emitter and verifier accept two named command contracts in .447:
+For a new card, use `full48` unless the work order selects `current50_v2`. Use the same explicit `--contract` for emission and verification.
 
-| Command contract | Card profile | Scope |
+| Choose | Profile | What changes for the author |
 |---|---|---|
-| `full48` | `FINISHED_FULL48_CURRENT_EVIDENCE` | Default 48-section current-evidence profile |
-| `current50_v2` | `FINISHED_FULL50_CURRENT50_V2` | Opt-in 50-section profile, with GECCO in §22, rescued-contig evidence in §26, literature relevance in §48–§49 and the evidence matrix last at §50 |
+| `full48` (native default) | `FINISHED_FULL48_CURRENT_EVIDENCE` | Author §1–§48 in order; the named-match gene evidence table is in §4. |
+| `current50_v2` (opt-in) | `FINISHED_FULL50_CURRENT50_V2` | Author §1–§50 in order; GECCO is §22, rescued-contig evidence §26, literature with relevance §48–§49, and the data evidence table is last at §50. No appendices follow §50. |
 
-Select the requested profile explicitly and carry the same contract through template emission and verification. The [current50 v2 guide](MODEB_CURRENT50_V2_CONTRACT.md) explains its independent roster checks and scientific limits. The machine definitions are `mamey/data/mode_b/modeb_full30_corrective_contract.json` (historical filename, current full48 schema) and `mamey/data/mode_b/modeb_current50_v2_contract.json`. Preserve their pinned bytes; the emitted titles and selected machine contract govern coverage.
+The [profile matrix](MODEB_PROFILE_MATRIX.md) explains legacy names. The `full30` filename still owns the full48 machine definition; the separate current50 v1 reference does not select a current50 v2 card. Use the emitted titles and selected machine contract, rather than copying a section map from an old card.
 
-The frozen [current50 v1 reference](MODEB_50_SECTION_CONTRACT_CANDIDATE.md) and its [four-consumer usage contract](MODEB_FULL50_CONTRACT_USAGE.md) remain separate reference objects. They are not the current50 v2 card profile. Older 20/30-section instructions and the former .429/.430 migration notes are history, not completion requirements for a new .447 card. Do not use a copied section map from another profile.
+## 2. Prepare the evidence and review folder
 
-## Prepare a bounded review
+Bind the validated package and one complete identity from a single source record: **strain / full node-or-contig / region / BGC alias**. Copy `<alias>` below from that package; it is only a local command selector. Keep all four components in the card and source mapping. Resolve missing or conflicting identity components before authoring the affected locus.
 
-Use a fresh external review folder. Replace paths and `<alias>` with the local selector copied from your bound package; keep all four identity components in the authored file. Inspect available evidence, missing channels and source provenance before selecting a locus.
+Create a fresh external review folder. Keep the source paths and SHA-256 values, package/version receipts, selected contract/hash, available channels and unresolved gaps there. The [authoring preflight](MODE_B_AUTHORING_PREFLIGHT.md) explains which gaps permit a draft and which prevent a finished-profile claim.
+
+If you still need to select a lead, prepare the top-lead table:
 
 ```bash
 python mamey_run.py mode-b --package '/path/to/working-package' --top-n 1 --outdir '/path/to/review/mode_b'
 ```
 
-This prepares native top-lead output, not a finished card. Supply a working copy: the .447 CLI can refresh its package integrity files even with an external output folder. Keep the original sealed package and source hashes; see [post-seal boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447). `--top-n` is cumulative: 3 covers ranks 1–3. It does not select only the third lead. Review output files rather than inferring completion from the command name.
+Inspect that output to select the locus; it is not an authored card. `--top-n` is cumulative: 3 covers ranks 1–3, rather than only rank 3. Use a working package when the sealed original must stay unchanged: this command can refresh package integrity files even with external output. See [post-seal boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447).
 
-## Emit, author, then verify
+## 3. Emit and author the selected template
 
-The example selects current50 v2. Use `--contract full48` in both commands if that is the requested profile.
+This example uses the default full48 profile. For current50 v2, replace `full48` with `current50_v2` here **and in verification**.
 
 ```bash
-python mamey_run.py emit-modeb-template --package '/path/to/package' --bgc '<alias>' \
-  --contract current50_v2 --out '/path/to/review/template.md'
+python mamey_run.py emit-modeb-template --package '/path/to/working-package' --bgc '<alias>' \
+  --contract full48 --out '/path/to/review/template.md'
 ```
 
-Supply applicable cross-source inputs with `--cohort-dir`, `--reference-dir`, `--strain-metadata` and `--bigscape-regions-dir`; the strain metadata is read as supplied. The source-argument helper also serves `modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py`. Missing source fields remain holds. A flag's existence does not establish that its input was available or admitted.
+Supply applicable admitted cross-source inputs using `--cohort-dir`, `--reference-dir`, `--strain-metadata` and `--bigscape-regions-dir`; metadata is read as supplied. Missing fields remain holds, rather than facts inferred from a flag. These source arguments also serve `modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py`.
 
-Imported cohort prefill is unavailable: `modeb-round --from-precompute <dir>` reports `COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE` and exits nonzero before writing new templates or a round worklist. Omit `--from-precompute` for the supported package-backed route. The flag does not validate imported facts against the selected assembly. This restriction is separate from the cross-source `--cohort-dir` option above. Retain prior templates and their source records; the new hold does not validate earlier imported prefill.
+For `modeb-round`, omit `--from-precompute`: imported cohort prefill is held as `COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE`, with a nonzero exit before new templates or a round worklist are written. This is separate from `--cohort-dir`. Retain earlier templates and source records; the restriction does not validate their imported facts.
 
-Author the saved template from admitted evidence. Preserve exact titles, channel separation, full identities, alternatives and per-claim sources. Do not fill missing evidence with plausible prose. Save the authored card separately from the template, then verify that actual file:
+Read the emission findings before writing. The emitter refuses when ingestable BLASTp exists on disk but has not been ingested; resolve the evidence state through the [authoring preflight](MODE_B_AUTHORING_PREFLIGHT.md), rather than treating emission as a search or a waiver as evidence.
+
+Save your authored text separately as `authored-card.md`. Under every exact emitted title:
+
+- Explain the locus-specific finding and its source, the inference it supports, and the alternatives or limitation that change the interpretation. Tables support this explanation rather than replace it.
+- Keep the complete gene denominator and channel-separated named matches. Do not merge nr, ClusteredNR and Swiss-Prot results or turn comparator similarity into compound identity.
+- Replace prompts with substantive text or a reasoned disposition under the selected contract. Missing evidence is not a tested negative or a reason to omit a section. Current50 v2 requires precise evidence limitations rather than generic deferrals.
+- Preserve the section-accountability rows, all 14 supporting-stream dispositions and reconciliation of earlier content required by the selected contract. Character counts describe progress; they do not demonstrate sufficient evidence.
+
+Use the [data availability and writing contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md), [interpretive floor](MODEB_INTERPRETIVE_FLOOR_v97146.md) and [claim-safety audit](MODE_B_CARD_CLAIM_SAFETY_AUDIT.md) in that profile's scope. The [worked full48 reference](reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md) illustrates its historical format; read its [scope limits](reference/modeb_exemplars/README.md) before reuse. It is not a finished current50 v2 example.
+
+## 4. Verify the authored file
+
+For a full48 finished-card check, include the active declaration `**Document state:** FINISHED_FULL48_CURRENT_EVIDENCE` in the saved authored card. `--contract full48` alone does not activate its publication checks. This declaration selects the stricter check; it does not establish scientific acceptance. For current50 v2, preserve its emitted canonical identity/contract/profile header as the first line of the authored file.
+
+Pass the actual authored file as the first positional argument, with the same package, alias and contract used for authoring:
 
 ```bash
 python mamey_run.py verify-modeb '/path/to/review/authored-card.md' \
-  --package '/path/to/package' --bgc '<alias>' --contract current50_v2 \
-  --summary-only --report-json '/path/to/review/card-verification.json'
+  --package '/path/to/working-package' --bgc '<alias>' --contract full48 \
+  --summary-only --report-json '/path/to/review/card-verification-attempt-01.json'
 ```
 
-The verifier requires the authored file as its first positional argument. Keep the JSON receipt and nonzero-exit findings. It does not perform online literature or protein searches. Do not force a finished pass or weaken depth simply to remove errors.
+Read the findings, warnings and coverage status as well as the exit code. Keep failed attempts and use a fresh receipt filename on retry; an existing JSON receipt is replaced. Do not add `--force` or weaken depth just to remove a failure. The [profile matrix](MODEB_PROFILE_MATRIX.md#read-the-verification-result) explains the different gate paths and overrides.
 
-For an expanded-locus work order, follow [Expanded locus](MODEB_EXPANDED_LOCUS.md) and add `--require-expanded-locus` to the current50 v2 verification command. Supply repeated `--rescue-tsv` files only when the work order admits that context; [gap-rescue reader](MODEB_GAP_RESCUE_READER.md) explains that existence checks do not grant BGC membership.
+For a selected expanded-locus work order, follow [Expanded locus](MODEB_EXPANDED_LOCUS.md) and add `--require-expanded-locus` to **current50 v2** verification. Supply repeated `--rescue-tsv` files only when the work order admits that context; the [gap-rescue reader](MODEB_GAP_RESCUE_READER.md) explains why existence checks do not grant BGC membership.
 
-## What a pass proves
+Verification does not search literature or proteins. Full48 finished tokens activate their publication checks; current50 v2 has its own checks and does not apply full48 semantic gates to different section numbers. A structural/depth pass does not establish the truth of every biological claim, physical linkage, compound identity or production.
 
-Inspect the exact selected contract and gate receipt. A card-only current50 v2 check cannot certify the package's gene roster; supply the matching package and alias. A structural/depth pass does not verify every biological section, literature claim, physical linkage, compound identity or production. The current50 v2 route does not apply the full48 semantic publication gates to its different section numbers. Independent source/content review and owner scientific acceptance remain separate.
+## 5. Save the card and its review evidence
+
+Keep the template, authored card, source mapping, selected contract/hash, input receipts, verification JSON, exact command/options and checkpoint together. Bind the saved card, package evidence and verifier version/source separately: the verification JSON does not contain their complete hashes or option record. Reverify after card or source changes.
+
+If the work order also requests package persistence, use the [`ingest-receipts` command route](INGEST_AND_PRINCIPLES_WHITEPAPER.md#from-package-to-a-recorded-mode-b-card) with the admitted writable package. See [persistence behavior](modules/MODE_B_WRITE.md) for the underlying store. This is a separate package mutation; a register row marked COMPLETE or a legacy FULL quality tier is not a current-profile verification pass. Preserve prior authored material and inspect the actual saved bytes before handoff.
+
+The ingest structure gate checks each card against the contract it was authored to. It reads the `contract:` marker that `emit-modeb-template` writes into the card header, so a current50 v2 card is checked against the §1–§50 titles. A card with no marker is checked against full48 unless you pass `--contract current50_v2`, which means the same as on `verify-modeb`. The ingest report names the contract it used. A card that fails its own contract, or whose header names a different contract than `--contract`, is refused: `--card` exits 3 and records nothing. `--force-structure` records it with a structure override (exit 4). Ingest runs the structure and evidence-table checks only. It does not repeat the depth, claim-safety and current50 v2 literature checks of `verify-modeb`, so verify first. Keep the verified card and its verification receipt in the review folder either way.
+
+## 6. Review the evidence and decide what is ready
+
+Give the reviewer the exact saved card, source mapping, selected contract, verification findings and unresolved holds. Check the claims against their sources and the full gene roster. A card-only current50 v2 check cannot certify that roster; the verification needs matching package and alias context. Independent content review and owner scientific acceptance remain separate from the mechanical result.
+
+For an update, retain the earlier review and create a versioned revision. Reconcile identity/source changes before continuing the affected claim; an alias alone cannot rebind a locus across runs.
 
 A useful request:
 
-> Author one Mode B card for [full four-part identity] using [full48 or current50_v2], the validated package at [path] and admitted evidence at [paths]. Emit the selected template, author from the evidence, then verify the saved card with the same contract. Keep missing channels and alternatives explicit. Save the source mapping, verification receipt and unresolved scientific holds under [review folder].
-
-## Recover and resume
-
-Keep the template, authored card, source mapping, selected contract hash, input receipts, verification JSON and checkpoint together. Use [authoring preflight](MODE_B_AUTHORING_PREFLIGHT.md) to distinguish a permissible draft from a finished-profile hold. Reconcile a source or identity mismatch before continuing the affected claim. A failed check is not permission to edit sealed evidence or reduce requirements.
-
-The [worked full48 reference card](reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md) has [explicit scope limits](reference/modeb_exemplars/README.md); it is not a finished current50 v2 example. For updated evidence, retain the prior review and create a versioned update. A BGC alias alone cannot rebind a locus across runs.
-
-For deeper writing guidance, use the [data availability contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md), [interpretive floor](MODEB_INTERPRETIVE_FLOOR_v97146.md) and [claim-safety audit](MODE_B_CARD_CLAIM_SAFETY_AUDIT.md) in the selected profile's scope. Their requirements are not evidence or release approval.
+> Author one Mode B card for [strain / full node-or-contig / region / BGC alias] using [full48 or current50_v2], the validated package at [path] and admitted evidence at [paths]. Emit the selected template, author from the evidence, then verify the saved card with the same contract. Save the source mapping, verification receipt and unresolved holds under [review folder], ready for independent review.

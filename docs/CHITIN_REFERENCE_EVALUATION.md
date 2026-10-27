@@ -3,16 +3,13 @@
 **Module:** `mamey/chitin_reference_eval.py` (library) + `tools/chitin_reference_eval.py`
 (operator front door) + `tests/test_chitin_reference_eval_v97405.py`.
 
-Formalises the per-strain whole-genome chitin reference evaluation workroom (Codex, *August 21
-Codex/PER_STRAIN_CHITIN_REFERENCE_EVALUATION_2026-08-21/*) into the bundle. State names, the
-architecture-profile logic, and the reference-quality tiers are carried over from that workroom's
-own `working/*.py` scripts; the input surface is generalised from that workroom's 46-strain
-hardcoded census to any sealed package's CGAD scan output paired with an operator-supplied
-reference registry.
+Brings the per-strain whole-genome chitin evaluation into the bundle. State names, architecture logic and
+reference-quality tiers come from the original evaluation scripts. It works on any sealed package's CGAD
+counts plus a reference registry you supply.
 
 ## Scope — read this before wiring anything to this module
 
-Two decisions from the source workroom's decision ledger govern this module and are unchanged
+Two decisions from the source workroom's decision ledger govern this module. They are unchanged
 here (`DECISION_AND_HOLD_LEDGER.tsv`, both `ACTIVE`, "superseded only by owner"):
 
 - **CHD-001** — the strain is the biological unit of evaluation. A cohort table is navigation and
@@ -26,7 +23,7 @@ change would make it feed triage, that is a scope change requiring an owner ruli
 
 ## Claim ceiling
 
-Every evaluation carries `claim_ceiling` (workroom `CHH-002`, `ACTIVE`):
+Every evaluation carries `claim_ceiling` (workroom `CHH-002`, `ACTIVE`). Its text is:
 
 > encoded domain capacity only — not enzyme activity, expression, chitin utilization, antifungal
 > phenotype, ecological adaptation, novelty, or BGC causality
@@ -40,8 +37,8 @@ capacity is not activity, is not expression, is not a phenotype, and is not a BG
 
 The CGAD chitin/glycan scan already runs inside every gold-mode Mamey pipeline
 (`mamey/source_scans.py` → `CHITINASE_PATTERNS` = `GH18`, `GH19`, `AA10_LPMO`, `CBM_CHITIN`,
-`GlcNAc`) and its counts land in a sealed package's `manifest.json` at
-`source_scans.chitinase.counts` — the same field `mamey/cli.py` itself reads to derive
+`GlcNAc`). Its counts land in a sealed package's `manifest.json` at
+`source_scans.chitinase.counts`. That is the same field `mamey/cli.py` itself reads to derive
 `cgad_active` for the lead-tier gate. `tools/chitin_reference_eval.py --package <dir>` reads this
 by default; `--cgad-json <path>` accepts any JSON file/object with a `counts` dict directly
 (useful for a strain evaluated outside a full package, or for testing).
@@ -75,7 +72,8 @@ context exclusion):
 | `CHITINASE_FAMILY_CAPACITY_WITHOUT_SUPPORTING_ARMS` | endo present, no CBM/LPMO support |
 | `NON_ENDOCHITINASE_CHITIN_CONTEXT` | no endo, core total > 2 |
 | `MINIMAL_MEASURED_CHITIN_DOMAIN_CAPACITY` | no endo, core total ≤ 2 (and > 0, or GlcNAc alone) |
-| `ABSENT_NO_MEASURED_CHITIN_DOMAINS` | core total = 0 **and** GlcNAc = 0 |
+| `ABSENT_NO_MEASURED_CHITIN_DOMAINS` | core total = 0 **and** GlcNAc = 0, with all five family keys supplied; interpretation still requires independently admitted scan coverage |
+| `CHITIN_SCAN_INCOMPLETE_NOT_ABSENCE` | no family counts are positive and at least one of the five known family keys is missing; missing counts are recorded in `missing_families`, not treated as observed absence |
 
 **Reference-quality states** (per-strain, from its taxon-matched reference panel; thresholds
 unchanged from the workroom's `reference_quality()`):
@@ -118,8 +116,8 @@ refusal (bad input, unreadable package, malformed registry, missing CGAD scan) i
 
 ## What this module deliberately does not do
 
-- It does not run `fastANI` (or any subprocess) itself — ANI values are registry input, not
-  computed here, so the bundle never needs network/DB access to produce an evaluation and never
+- It does not run `fastANI` (or any subprocess) itself. ANI values are registry input, not
+  computed here. This means the bundle never needs network/DB access to produce an evaluation and never
   needs to redistribute reference genomes.
 - It does not touch triage, scoring, or any `TriageRecord` — per CHD-002 above.
 - It does not render a Markdown report — this cut ships the typed data and receipt only, matching
@@ -128,19 +126,17 @@ refusal (bad input, unreadable package, malformed registry, missing CGAD scan) i
 
 ## Provenance
 
-Vocabulary, thresholds, and claim-ceiling text are carried over from the source workroom's
-the Codex workroom script `build_per_strain_chitin_evaluations` (2026-08-21; `architecture()`, `reference_quality()`) rather
-than reinvented. See that workroom's `PER_STRAIN_CHITIN_EVALUATION_INDEX__2026-08-21.md` and
-`SAVE_STATE.md` for the original 46-strain / 81-reference evidence run this module generalises.
+Vocabulary, thresholds and the claim-ceiling text come from the original evaluation scripts
+(`architecture()`, `reference_quality()`). That run covered 46 strains and 81 references.
 
 ## Current validation and reference-selection limits
 
-Package mode reads manifest fields but does not verify sealing, scan coverage, whole-genome completeness or source hashes (`tools/chitin_reference_eval.py:52–96,140–173`). An all-zero/empty count dictionary can yield `ABSENT_NO_MEASURED_CHITIN_DOMAINS` because missing known family keys become zero. Values are `int()`-coerced (including truncatable floats and booleans); unknown family keys are ignored. Admit a complete, source-bound scan independently before interpreting an “absent” or “measured” label (`mamey/chitin_reference_eval.py:161–203`). The five-family total is saved annotation capacity, not a protein/gene count or biochemical measurement.
+Package mode reads manifest fields but does not verify sealing, scan coverage, whole-genome completeness or source hashes (`tools/chitin_reference_eval.py`). Missing known family keys default to zero only for arithmetic and are retained in `missing_families`. An empty or all-zero profile with any missing family receives `CHITIN_SCAN_INCOMPLETE_NOT_ABSENCE`; explicit zeros for all five known keys permit `ABSENT_NO_MEASURED_CHITIN_DOMAINS`. With positive supplied counts, a capacity state can still coexist with missing families: inspect both fields. The current owner refuses boolean counts, nonintegral floats and negative values; integral floats and integer-convertible strings are accepted, and unknown keys are ignored. Admit a complete, source-bound scan independently before interpreting an “absent” or “measured” label (`mamey/chitin_reference_eval.py`). `domains_total` sums four core families; GlcNAc remains separate context. These are saved annotation counts, not independent protein/gene counts or biochemical measurements.
 
-Registry matching is exact and case-sensitive on taxon/genus or supplied aliases. No taxonomy resolver, duplicate-reference rejection, required source-path/hash validation or hash verification runs automatically. Missing reference identity/path/hash fields become `NR`; declared hashes simply pass through. `verify_reference_hash` is an optional separate file reader, returning `None` when uncheckable; its result is not called or included by the evaluator. Do not infer verified reference bytes from a reference-panel row. Retain the registry's own hash and the separately checked source hashes in the owner record (`:224–253,294–313`).
+Registry matching is exact and case-sensitive on taxon/genus or supplied aliases. No taxonomy resolver, duplicate-reference rejection, required source-path/hash validation or hash verification runs automatically. Missing reference identity/path/hash fields become `NR`; declared hashes simply pass through. `verify_reference_hash` is an optional separate file reader, returning `None` when uncheckable; its result is not called or included by the evaluator. Do not infer verified reference bytes from a reference-panel row. Retain the registry's own hash and the separately checked source hashes in the owner record.
 
-Optional numeric ANI/aligned-fraction values are parsed without finite/range checks. Reject nonfinite/out-of-range ANI/fractions upstream. Row state uses aligned fraction **0.2**, while the high-quality thresholds use **0.5**. Quality and `top_reference` select the **maximum ANI among all scored rows**, not the best row that passes 0.5. A highest-ANI row below the fraction cutoff can therefore prevent a high-quality state even where another row qualifies. `DISTANT_AVAILABLE_TAXON_MATCHED_REFERENCE_CONTEXT` can reflect inadequate/missing fraction rather than biologically distant ANI. Preserve the full panel and separate reason; these state names do not establish taxonomy (`:206–269,283–290`).
+Optional numeric ANI/aligned-fraction values are parsed without finite/range checks. Reject nonfinite/out-of-range ANI/fractions upstream. Row state uses aligned fraction **0.2**, while the high-quality thresholds use **0.5**. Quality and `top_reference` select the **maximum ANI among all scored rows**, not the best row that passes 0.5. A highest-ANI row below the fraction cutoff can therefore prevent a high-quality state even where another row qualifies. `DISTANT_AVAILABLE_TAXON_MATCHED_REFERENCE_CONTEXT` can reflect inadequate/missing fraction rather than biologically distant ANI. Preserve the full panel and separate reason; these state names do not establish taxonomy.
 
-The emitted evaluation is typed data, not an independently hash-bound receipt: it does not hash the source counts/manifest, registry, code, parameters, outputs or itself. Optional JSON/TSV files are each written through atomic helpers after stdout; the pair is not one transaction and can replace existing destinations. Normal typed refusals return1; numeric parsing and output errors outside those catch classes can raise exceptions. Use unused external destinations, verify process status and every expected file, retain partial attempts, and record actual input/output/code hashes separately. Use the original decision and run receipts for historical workroom decisions and 46-strain/81-reference counts; keep current scientific adoption separately recorded.
+The emitted evaluation is typed data, not an independently hash-bound receipt: it does not hash the source counts/manifest, registry, code, parameters, outputs or itself. Optional JSON/TSV files are each written through atomic helpers after stdout; the pair is not one transaction and can replace existing destinations. Normal typed refusals return 1; numeric parsing and output errors outside those catch classes can raise exceptions. Use unused external destinations, verify process status and every expected file, retain partial attempts, and record actual input/output/code hashes separately. Use the original decision and run receipts for historical workroom decisions and 46-strain/81-reference counts; keep current scientific adoption separately recorded.
 
 This remains a strain/whole-genome context lane. If any separate report mentions a BGC, retain strain / full node-or-contig / region / BGC alias; no chitin state assigns causality to that locus. Typed bioactivity examples are shape fixtures, not measured evidence: see [the metadata validator boundary](BIOACTIVITY_METADATA_CONTRACT.md).

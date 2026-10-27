@@ -3,7 +3,7 @@
 This candidate extends the optional adapter. Default preflight launches nothing.
 A fully supplied, explicitly parent-reviewed native discovery profile can execute
 only with --execute-native. See [native discovery](RIPPER_NATIVE_DISCOVERY.md)
-for its exact contract. No native RiPPER was launched during development.
+for its exact contract. Earlier lifecycle-only tests launched no native RiPPER; the later recorded fabricated native attempt is described in that guide. Its scoped result is separate from those earlier software tests.
 The archive profile remains pinned to original revision
 `e90b3e6e74ddee99685183ca421323737012a991`. Lane05's local adaptation is a
 separate **review-only** source profile, not original upstream bytes or a release.
@@ -69,7 +69,7 @@ archived `profile_id` and `source_revision`, `files` mapping exact role to
 SHA256, and `limits` containing all four fields:
 
 - `wall_seconds`: positive finite, at most 3600;
-- `rss_bytes`: positive integer, at most 1 GiB;
+- `rss_bytes`: positive integer, at most 1 GiB for synthetic stubs or 2 GiB for the separately admitted `adapted_local05` native route;
 - `disk_bytes`: positive integer, at most 256 MiB;
 - `poll_seconds`: finite, 0.01 through 0.25.
 

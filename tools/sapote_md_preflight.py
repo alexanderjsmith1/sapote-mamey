@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import argparse
 import re
+import os
+import tempfile
 from pathlib import Path
 from typing import List, Tuple
 
@@ -99,6 +101,29 @@ def preflight_markdown(src: str, *, profile: str = "boss", max_cols: int = 6, ma
     return text, appendix, findings
 
 
+def _same_path(left: Path, right: Path) -> bool:
+    if left.resolve() == right.resolve():
+        return True
+    try:
+        return left.samefile(right)
+    except FileNotFoundError:
+        return False
+
+
+def _publish_new_appendix(path: Path, text: str) -> None:
+    """Publish a completed sibling without replacing any existing leaf."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=f".{path.name}.", suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(text)
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("input_md")
@@ -112,9 +137,28 @@ def main(argv: list[str] | None = None) -> int:
     src = Path(ns.input_md).read_text(encoding="utf-8")
     text, appendix, findings = preflight_markdown(src, profile=ns.profile, max_cols=ns.max_cols, max_line=ns.max_line)
     forbidden = any(f["type"] == "forbidden_render_string" for f in findings)
+    routed = any(f["type"] == "wide_table_routed" for f in findings)
+    appendix_path = ns.appendix_md
+    automatic = routed and not appendix_path
+    if automatic:
+        out = Path(ns.output_md)
+        destination = out.with_name(out.stem + ".appendix.md")
+        if ns.qa_json and _same_path(destination, Path(ns.qa_json)):
+            _sys.stderr.write("automatic appendix and QA destinations must be distinct\n")
+            return 2
+        try:
+            _publish_new_appendix(destination, appendix)
+        except OSError as exc:
+            _sys.stderr.write(f"cannot create automatic appendix {destination}: {exc}; choose --appendix-md explicitly\n")
+            return 2
+        # Check actual identity too, including a newly introduced QA alias.
+        if ns.qa_json and _same_path(destination, Path(ns.qa_json)):
+            _sys.stderr.write("QA destination aliases the published automatic appendix\n")
+            return 2
+        _sys.stderr.write(f"wide tables routed out of {out.name}; written to {destination}\n")
     atomic_write_text(ns.output_md, text)
-    if ns.appendix_md:
-        atomic_write_text(ns.appendix_md, appendix)
+    if appendix_path:
+        atomic_write_text(appendix_path, appendix)
     if ns.qa_json:
         atomic_dump_json({"status": "FAIL" if forbidden else "PASS", "findings": findings},
                          ns.qa_json, indent=2)

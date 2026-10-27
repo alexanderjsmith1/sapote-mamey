@@ -19,7 +19,7 @@ dead-code detection, and targeted reads of high-risk functions.
 | Unit | One file at a time | Whole codebase |
 | Method | Adversarial (Inspector vs Defender) | Pattern sweep + targeted reads |
 | Finds | Design issues, claim-safety gaps, completeness | Crash bugs, data loss, dead code, leaks |
-| Output | Per-file verdicts + patch card | Categorized bug list + verified fixes |
+| Output | Per-file verdicts + patch card | Supported findings, candidate fixes and scoped verification |
 
 ---
 
@@ -36,19 +36,19 @@ dead-code detection, and targeted reads of high-risk functions.
 
 Run every grep pattern in the **Pattern Library** below. For each hit, classify as:
 
-- **BUG** — will crash, lose data, or produce wrong output under reachable conditions
-- **LEAK** — file-handle, resource, or evidence leak; won't crash but degrades
-- **SMELL** — style issue, inconsistency, or maintenance hazard; no runtime effect
-- **FALSE POSITIVE** — pattern matched but the code is correct
+- **BUG** — will crash, lose data, or produce wrong output under reachable conditions.
+- **LEAK** — file-handle, resource, or evidence leak; won't crash but degrades.
+- **SMELL** — style issue, inconsistency, or maintenance hazard; no runtime effect.
+- **FALSE POSITIVE** — pattern matched but the code is correct.
 
 Record hit counts per pattern. Don't fix anything yet — just inventory.
 
 ### Phase 2 — Targeted Reads (bounded by the session scope)
 
-1. **Largest functions** — any function >200 lines
-2. **New/changed files** — diff against the previous version
-3. **Wiring check** — verify every new module is actually imported and called
-4. **Operator precedence** — any `if A and B if C else D` pattern
+1. **Largest functions** — any function >200 lines.
+2. **New/changed files** — diff against the previous version.
+3. **Wiring check** — verify every new module is actually imported and called.
+4. **Operator precedence** — any `if A and B if C else D` pattern.
 
 ### Phase 3 — Propose, fix and verify
 
@@ -62,9 +62,9 @@ Write the Bug Hunt report using the output format below.
 
 ## Pattern Library
 
-These historical grep recipes are triage aids. Prefer `rg` for current searches; record the actual query, paths and exclusions. They can miss multiline forms, aliases, dynamic imports, methods and nested definitions, and can match comments or harmless uses. S4 only searches `mamey`; D1 inspects three named modules; D2 only matches column-zero `def` lines. None is an exhaustive AST/call-graph analysis. Follow each hit to source and consumer before classifying it. A missing match is not proof of absence.
+These grep recipes are quick triage, not a full analysis. Prefer `rg` and record each query. They miss multiline code and aliases, and they match comments. S4 searches only `mamey/`, D1 checks three named modules, and D2 matches only top-level `def` lines. Follow every hit to its caller before classifying it. No match is not proof of absence.
 
-The privacy query below locates candidate identifiers only. A strain prefix and the historical numeric exclusions do not establish public/private status; assess the current user-selected profile and source metadata. The sweep does not prove public-tier contents.
+The privacy query below locates candidate identifiers only. Decide public or private status from the selected privacy profile, not from the prefix.
 
 ### Data Safety
 
@@ -151,8 +151,8 @@ grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | 
 
 | Level | Meaning | Fix when |
 |-------|---------|----------|
-| **P0** | Crashes on reachable path, or loses/corrupts data | This session — block the cut |
-| **P1** | File-handle leak, evidence loss, or claim-safety violation in core | This session or next cut |
+| **P0** | Crashes on reachable path, or loses/corrupts data | Now — block the cut |
+| **P1** | File-handle leak, evidence loss, or claim-safety violation in core | Now or next cut |
 | **P2** | Same issues in tools layer, dead code in production, missing encoding | Next cut |
 | **P3** | Style, redundant code, documentation drift | Sweep when convenient |
 
@@ -201,6 +201,4 @@ grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | 
 
 ## Completion record
 
-Report reviewed versus unreviewed scope, supported findings and solutions, exact candidate files, meaningful checks, unresolved holds and the next bounded action. A sweep result is not release approval, scientific acceptance or permission to send the report to another chat.
-
-*Bug Hunt Protocol — current operational boundaries reconciled against the v9.7.447 source.*
+Report reviewed versus unreviewed scope, supported findings and solutions, exact candidate files, meaningful checks, unresolved holds and the next bounded action. A sweep result is not release approval, scientific acceptance or permission to send the report on.

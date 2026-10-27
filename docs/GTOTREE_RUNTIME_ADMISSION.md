@@ -1,11 +1,8 @@
-# Experimental GToTree v2 software resource admission
+# GToTree v2 runtime admission (experimental)
 
-Released GToTree **1.8.19** is the current workflow priority. This document records
-experimental source-bound admission for the unreleased v2 rewrite, not a released
-production workflow. Further native v2 work is deferred; retained source/receipts
-and interface admission do not establish study use or release readiness.
+Most readers do not need this page: the workflow uses GToTree 1.8.19 (see [GToTree workflow](GTOTREE_WORKFLOW.md)). This page covers the experimental route for the unreleased v2 rewrite, whose native runs are deferred.
 
-Default unverified v2 remains held. The existing v1.8.19 CLI contract remains unchanged. A version banner cannot authorize the fixed-two HMM profile. An exact policy-pinned logical manifest and a fresh watched software-only import/version/help probe provide an in-process typed result shared by planner, runner and execution-packet gate. JSON receipts cannot provide that result.
+GToTree v2 hard-codes two HMM-search workers per genome, so a v2 plan is held until a reviewed software profile shows how many CPUs it really uses. A version banner or a JSON claim is not enough. The planner, the runner and the execution gate share one in-process probe result.
 
 The supplied `tools/gtotree_runtime_profile.json` binds one reviewed editable installation. Its logical roots are `environment` and `editable_source`; the caller supplies the actual roots. There are no workstation paths in this profile. Exact finder/startup bytes can nevertheless bind an installation's original location: relocation that changes those bytes requires independent review and a new policy-approved profile. Arbitrary manifests or a JSON CPU claim are refused. The approval covers software resource behavior only, and does not clear model, input, taxonomy, panel, biological, license or native-run approval requirements.
 

@@ -46,7 +46,7 @@ REF = re.compile(r'examples/[A-Za-z0-9_./-]+\.(?:md|zip|xlsx|csv|tsv|txt|json|py
 HIST = re.compile(r"(CHANGELOG\.md$|BUNDLE_PATCH_NOTES_|RELEASE_NOTES_|PATCH_NOTES_)")
 # Meta-docs that *describe* the dangling refs (the audit ledger) must not count as committing them,
 # or the baseline could never be tightened to zero once the real docs are fixed.
-META_SKIP = {"docs/EXAMPLES_REFERENCE_LEDGER.md"}
+META_SKIP = {"EXAMPLES_REFERENCE_LEDGER.md"}  # matched against the file name; the ledger now lives in docs/history/retired_458/
 
 # --- tools/module-name scope (new, v9.7.213-audit) --------------------------------------------
 TOOL_REF = re.compile(r"`([A-Za-z0-9_\-/\.]+\.(?:py|sh))`")
@@ -66,7 +66,7 @@ TOOLS_PLACEHOLDER = {"file.py", "main.py", "run.py", "manifest.py", "parsing.py"
 # deliberately NOT shipped as tree files. Each entry needs a one-line reason; add here, don't
 # silently suppress.
 TOOLS_ALLOW = {
-    "build_factsheet.py": "per-session glue script, created on demand — docs/runbooks/AutoPipeline_antiSMASH_to_Compendium.md:9",
+    "build_factsheet.py": "per-session glue script, created on demand — docs/history/retired_458/runbooks/AutoPipeline_antiSMASH_to_Compendium.md",
     "build_handoff.py": "per-session glue script, created on demand — same runbook",
     "sapote_completeness_audit.py": "per-session glue script — docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md §15.11 says upload/create at session start",
     "sapote_excel_generator.py": "per-session glue script — same convention",

@@ -1,39 +1,45 @@
-# Engine Reference Documentation
+# Methods reference: start here
 
-## Current reference entry and scope
+These pages explain how the Mamey engine counts, scores and links BGCs, formula by formula.
+Read them to write a Methods section or to check where a number comes from.
+To run the program, use the [user guide](../GUIDE/00_README.md) and the [tools reference](../user_guides/tools_reference.md) instead.
+The [metadata reader guide](../BUNDLE_METADATA_READERS.md) explains the package records.
 
-Read [current source scope and known limits](06_CURRENT_SOURCE_SCOPE.md) before applying these methods
-references. The original dated track description remains below as history. The technical VolI/VolII/plumbing
-version-of-record lines are synchronized by `tools/sync_version.py:376–386`; a current version stamp is
-not a full source/mathematical/scientific review, and the dated index/general-audience dates do not auto-update.
-Source citations name implementation owners, not proof every formula or consumer was re-verified this session.
+Read [current source scope](06_CURRENT_SOURCE_SCOPE.md) first. It lists where the older volumes no longer match the code.
+If a reference and the code disagree, record the discrepancy and check the owning source.
+An implemented formula can still need scientific review.
 
-Use the [current human guide](../GUIDE/00_README.md), [profile matrix](../MODEB_PROFILE_MATRIX.md),
-[tools reference](../user_guides/tools_reference.md) and [metadata reader guide](../BUNDLE_METADATA_READERS.md)
-for present operations and exact-source contracts. Existing large references stay in place with path/SHA-256;
-do not duplicate packages, datasets, assets or large source volumes merely to read these references.
-Archived public-release instructions below remain reference; select the current authorized workflow and source-compatible cut protocol before acting.
+## Technical track (cites the source module for each formula)
 
+| Page | Covers |
+|---|---|
+| [01_Math_Reference_VolI.md](01_Math_Reference_VolI.md) | Edge status, corrected count, assembly tiers, AB/AF/novelty scores, lead tiers, guards, RG-GMCI, coverage |
+| [02_Math_Reference_VolII.md](02_Math_Reference_VolII.md) | CCTT triggers, architecture-first calls, KCB/RiQ extraction, compound class, rescue and concordance, Mode B enrichment |
+| [05_VolII_ClusterG_Figure_System.md](05_VolII_ClusterG_Figure_System.md) | The figure system (Volume II, Cluster G) |
+| [03_Plumbing_Reference.md](03_Plumbing_Reference.md) | CLI, workbook, figures, packaging, stores, parse layer |
+| [04_RGGMCI_ClusterBlast_Utilization.md](04_RGGMCI_ClusterBlast_Utilization.md) | Why RG-GMCI reads cross-genome ClusterBlast, not only KnownClusterBlast |
+| [METHODS_TECHNICAL_APPENDIX.md](METHODS_TECHNICAL_APPENDIX.md) | Parameters to report in a Methods section |
+| [SCANNER_PFAM_MANIFEST.md](SCANNER_PFAM_MANIFEST.md) | The optional Pfam HMM scanner selectors and how to build the HMM file |
 
+## Plain-language track
 
-Two tracks, re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 (originally compiled at v9.7.319 / 1.9.110):
+- [10_Math_Reference_GeneralAudience.md](10_Math_Reference_GeneralAudience.md) covers Volumes I and II without code citations.
+  Use the technical track to locate exact constants, then check the owning source before quoting them.
 
-## Technical track (source-cited — every formula → `module.py:symbol`)
-- **01_Math_Reference_VolI.md** — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, floors/guards, RG-GMCI, completeness.
-- **02_Math_Reference_VolII.md** — subsystems: CCTT triggers (A), architecture-first (B), KCB/RiQ (C), compound class (D), rescue/concordance (E), enrichment (F).
-- **03_Plumbing_Reference.md** — CLI, workbook, figures, packaging, stores, parse layer.
-- **04_RGGMCI_ClusterBlast_Utilization.md** — source-verified clarification that RG-GMCI uses cross-genome ClusterBlast, not only KnownClusterBlast.
-- **05_VolII_ClusterG_Figure_System.md** — the figure system (Cluster G), completing Vol II.
+## Authoring aids
 
-## General-audience track (prose, no code citations — for readers who want the logic, not the line numbers)
-- **10_Math_Reference_GeneralAudience.md** — the full Vol I + Vol II (Clusters A–G) in plain language, including the figure system.
+- [Layperson guide exemplar](../../examples/layperson_guide_exemplar.md): plain-English guide format. The older style notes are retired to [history](../history/retired_458/reference/layperson_authoring_guidance.md).
+- [modeb_exemplars/README.md](modeb_exemplars/README.md): example Mode B cards and which profile each one fits.
 
-## Authoring guidance
-- **layperson_authoring_guidance.md** — plain-English authoring guidance for the `guide` / `compile-report` layperson slots, distilled from the May-27 AS-XXX/AS-XXX prose: the structural arc, a reusable claim-safe analogy library, and the specific moves that made those guides readable — ported without the pre-gate overclaiming (every "makes/produces/kills" rewritten to capacity language).
+## Two rules that apply to every number here
 
-Both tracks describe the same engine (Mamey v1.9.164 / bundle v9.7.429; originally compiled at v1.9.110 / v9.7.319). Core formulas are unchanged since 1.9.110; the CCTT trigger table was expanded from 14→18 families at 1.9.99 (v9.7.119). The technical track is the
-verification reference; the general-audience track is the explainer. Where they touch the same
-formula they agree; the technical track is authoritative on exact constants.
+- Scores order BGCs for review. They are not evidence that a strain produces a compound.
+- KnownClusterBlast and MIBiG matches are similarity, not compound identity.
 
-## Public release
-- **../PUBLIC_RELEASE_GUIDE.md** — the public (GitHub) release user guide: what ships (code and small governed data; the curated Pfam HMM is operator-provisioned, not bundled), the tool's runtime network behavior (offline by default; only the optional online BLASTp touches the network), and air-gapped operation. Step-by-step setup in ../../docs/INSTALL.md; provenance and optional HMM rebuild in ../PUBLIC_RELEASE_DATA.md.
+## Version
+
+`tools/sync_version.py` updates the "Version of record" line in Volume I, Volume II and the plumbing reference at each cut.
+A matching version line does not mean every formula was re-checked at that cut.
+The general-audience page carries its own dated note, which does not update.
+
+For what ships in a public release and how the tool behaves offline, see the [public release guide](../PUBLIC_RELEASE_GUIDE.md) and [public release data](../PUBLIC_RELEASE_DATA.md).

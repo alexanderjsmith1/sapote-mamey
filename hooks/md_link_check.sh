@@ -21,8 +21,18 @@ case "$fp" in
   *.md) : ;;
   *) exit 0 ;;
 esac
-[ -f "$fp" ] && [ -f "$CHK" ] || exit 0
-out="$("$PY" "$CHK" --quiet-if-clean "$fp" 2>/dev/null)"
+[ -f "$fp" ] || exit 0
+# Fall back to the bundle's own lowercase tools/ copy (next to this hook, then under ROOT): a missing
+# workspace Tools/ copy used to skip the check silently, so "no warning" could mean "never checked".
+for alt in "$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)/tools/check_md_links.py" "$ROOT/tools/check_md_links.py"; do
+  [ -f "$CHK" ] || CHK="$alt"
+done
+[ -f "$CHK" ] || exit 0
+out="$("$PY" "$CHK" --quiet-if-clean "$fp" 2>/dev/null)"; rc=$?
+if [ -z "$out" ] && [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+  echo "⚠ MD-LINK: the link checker failed (exit $rc); links in this .md were NOT checked." >&2
+  exit 2
+fi
 if [ -n "$out" ]; then
   echo "⚠ MD-LINK: broken/un-encoded file link(s) in the .md just written —" >&2
   echo "$out" | sed 's/^/  /' >&2

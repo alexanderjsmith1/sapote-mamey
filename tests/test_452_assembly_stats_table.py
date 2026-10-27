@@ -1,4 +1,4 @@
-"""Tests for tools/assembly_stats_table.py (card 018c0f08_452_assembly_stats_table)."""
+"""Tests for tools/assembly_stats_table.py (card 452_assembly_stats_table)."""
 import importlib.util, io, sys, zipfile
 from pathlib import Path
 

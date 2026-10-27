@@ -1,4 +1,4 @@
-"""Bioassay theme profile key axis_title_ink (card 018c0f08_452_bioassay_axis_title_ink): axis titles in ink instead of
+"""Bioassay theme profile key axis_title_ink (card 452_bioassay_axis_title_ink): axis titles in ink instead of
 the sealed theme's grey when the layout asks; unchanged otherwise. Synthetic data, read from the SVG."""
 import pytest
 import shutil

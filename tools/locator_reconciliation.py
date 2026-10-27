@@ -200,7 +200,7 @@ def _parse_header_region(card_text: str) -> str | None:
 # this "the top-of-card metadata banner the chat must preserve". _RE_CARD_HEADER only matches the
 # paren-form convention (`BGCnnn (NODE_x · regionY)`) that filed cards use by established
 # authoring convention (every shipped exemplar under docs/reference/modeb_exemplars/, and the
-# citation convention documented in docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md, use the paren
+# citation convention documented in docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md, use the paren
 # form) — but if a card is ever filed with the raw emitted scaffold header intact, the paren-form
 # regex cannot match it at all, and reconcile_heading_only returned UNPARSEABLE (a BLOCKING FAIL
 # in mamey/seal_package.py::_gate_locator) even when the node/region in that header are 100%

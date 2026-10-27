@@ -85,8 +85,9 @@ sample is auditable.
 - Is a meaningful regression guard (pins a specific behavior), not noise.
 
 **Docs (`.md`)**
-- Current: version tags match the engine; no claims that contradict present code behavior
-  (spot-check one concrete claim against the source).
+- Identify lifecycle first. Current maintained claims and generator-owned version surfaces should match
+  their selected source; spot-check a concrete claim against that source. Historical examples retain
+  their original producing versions and receipts rather than being restamped to today's engine.
 - No dangling references: files/paths it points to exist.
 - Anti-AI prose style: no em-dashes, sentence-case headings, no puffery.
 - Accuracy over polish — would it mislead a user? That's the bar.

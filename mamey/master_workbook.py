@@ -690,7 +690,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
                 "length_kb": _len_kb, "boundary": _bgc.edge_status,
                 "products": "; ".join(_bgc.products[:4])[:80],
                 "kcb_top": (_bgc.kcb_top or "")[:80],
-                "kcb_score": _bgc.kcb_cumulative or "",
+                "kcb_score": "" if _bgc.kcb_cumulative is None else _bgc.kcb_cumulative,
                 "long_read_status": "not_assessed",
                 "notes": "Deterministic extraction; confirm with long-read assembly or PCR",
             })

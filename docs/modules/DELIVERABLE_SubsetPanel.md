@@ -5,10 +5,10 @@
 > **Extends / references:** `FIGURE_STYLE.md` (data-only figures), `FIGURE_REPRODUCIBILITY` (CSV + `--replot`),
 > `DELIVERABLE_INSTRUCTION_TEMPLATE.md` (tier palette + locus-label format), `GENERIC_PROMPT_LIBRARY.md` (G2, G6).
 > Do not restate those rules here — they are inherited.
-> **Precedence.** `DELIVERABLE_CONTRACT.md` wins over this module; the active parent monolith wins over everything.
+> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. Use the selected figure contracts and actual source; the monolith is a design/history reference.
 > **Status:** `CODE_BACKED` — `tools/build_subset_panel.py` produces the artifact.
 > **One-line purpose.** A grouped figure of every locus matching a product tag (or strain set), so a cross-cohort
-> chemical theme reads at a glance — closing DLV-008 and making G2/G6 deterministic.
+> chemical theme reads at a glance.
 
 ## 1. When it is offered (Deliverable Offer Protocol)
 Offered whenever a user asks to *see* or *compare* "all the `{PRODUCT_TAG}` clusters", a habitat/cohort slice, or a
@@ -21,7 +21,7 @@ user need not know the tool exists: build the panel and hand it back, or offer i
 |---|---|---|
 | `bgc_data.json` (products, length_kb, edge_status, closest_kcb_product, closest_mibig) | locus rows + tier | always |
 | `strains.json` (organism) | genus lane grouping | lane axis |
-| `modeb_verdicts.csv` (status) | verdict + Confirmed tier | tier colouring |
+| `modeb_verdicts.csv` (status) | verdict + Confirmed tier | tier coloring |
 | `tfbs_coupling.json` (per-BGC SARP coupling) | SARP y/n column | SARP annotation (per-BGC, not strain-level) |
 
 **Skip-not-fake:** a field absent for a locus is left blank/`[EG]` and labelled, never invented; a verdict that
@@ -33,15 +33,15 @@ set (canonical, per `KNOWLEDGE_Evidence_Axes`), not the strain-level `SARP_BTAD_
 # product-tag panel (G2)
 python tools/build_subset_panel.py --banked-dir merged_cohort --tag {PRODUCT_TAG} --out-dir figures
 # strain-set panel (G6 subset)
-python tools/build_subset_panel.py --banked-dir merged_cohort --strain-set {SID####,SID####} --out-dir figures
+python tools/build_subset_panel.py --banked-dir merged_cohort --strain-set "<exact-ID-1>,<exact-ID-2>" --out-dir <fresh-figure-root>
 # reproduce from the banked CSV
 python tools/build_subset_panel.py --replot --csv figures/subset_{label}_loci.csv --out-dir figures
 ```
 Reproducibility: `--replot` re-renders from the emitted `subset_{label}_loci.csv` with no recompute. Single source
-of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (shared logic with `generate_bgc_atlas.py`).
+of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (a separate copy of the atlas function in `generate_bgc_atlas.py`; the two differ, because this one also treats a missing `closest_mibig` as dark).
 
 ## 4. Outputs & manifest surface
-- `fig_subset_{label}[_PRIVATE].png` — the panel (lanes = genera, chips = loci, colour = confidence tier).
+- `fig_subset_{label}[_PRIVATE].png` — the panel (lanes = genera, chips = loci, color = confidence tier).
 - `subset_{label}_loci.csv` — the locus table (sid, region, genus, class, kcb, kb, edge, sarp, verdict, tier);
   this CSV is the stable, citable artifact and the `--replot` source. `_PRIVATE` suffix is set automatically when
   any AS strain is in the subset.
@@ -53,17 +53,16 @@ of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (shared lo
 - [ ] Claim-safety caption: shared thread = `{TAG}` machinery / E-signal, **not one compound**; KCB anchors `~`.
 - [ ] Every locus row carries strain / region / class / ~KCB anchor / edge-status / SARP / verdict.
 - [ ] Tier palette + legend match `DELIVERABLE_INSTRUCTION_TEMPLATE.md`.
-- [ ] Affiliation ; no retired codenames.
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
+- [ ] No retired codenames.
+- [ ] Hand back the result, its evidence and open holds.
 
 ## 6. Tool / knowledge inventory
 | Piece | Owner |
 |---|---|
 | filter + join + CSV + plot | `tools/build_subset_panel.py` |
-| tier assignment logic | `tier_of()` in `build_subset_panel.py` (mirrors `generate_bgc_atlas.py`) |
+| tier assignment logic | `tier_of()` in `build_subset_panel.py` (a separate copy of the one in `generate_bgc_atlas.py`; the two differ) |
 | tier palette + locus label | `deliverables/DELIVERABLE_INSTRUCTION_TEMPLATE.md` |
 | invoking prompts | `deliverables/GENERIC_PROMPT_LIBRARY.md` G2, G6 |
-| board row | `deliverables/HIVE_Board.csv` HB-008 / DLV-008 |
 
 ## 7. Next-paths closer (worked example)
 ```
@@ -74,6 +73,3 @@ of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (shared lo
 5. Re-run on merged_cohort to include AS strains (output auto-marked PRIVATE).
 ```
 
----
-*Validated this cycle: `--tag nrp-metallophore` (51 loci / 5 genera), `--tag phenazine` (7 loci), strain-set and
-`--replot` paths all produce figure + CSV.*

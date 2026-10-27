@@ -1,6 +1,6 @@
 # Domain-level Mode B
 
-*Module added in v9.7.89. Post-seal, non-blocking domain evidence review.*
+Optional, after validation. It never changes scores or blocks the package.
 
 ## What it does
 
@@ -13,35 +13,37 @@ review. It separates three things that AB/AF score and product label alone confl
 3. **Claim ceiling** — the safest thing that may be said from domain evidence, always
    architecture/family-level capacity language, never product identity.
 
-Every domain is mapped to a controlled role category, per-BGC burden is computed, and a
-safe/unsafe claim pair with a ceiling is assigned.
+Retained domain observations are mapped to controlled role categories, per-BGC burden is computed, and a safe/unsafe claim pair with a ceiling is assigned. This is not a census of every domain in the source genome. Top-N selection uses eligible triage rows ranked by AB+AF; missing/partial triage or source coverage is not repaired into a full inventory.
 
 ## How to run
 
 ```bash
 # full per-domain detail from the antiSMASH source zip
-python -m mamey domain-level --package COMPLETE_PACKAGE --source-antismash STRAIN.zip --top-n 10 --emit-figures
+python mamey_run.py domain-level --package COMPLETE_PACKAGE --source-antismash STRAIN.zip --top-n 10 --emit-figures
 
 # or limited mode from the sealed gene context alone (domain names only)
-python -m mamey domain-level --package COMPLETE_PACKAGE --top-n 10
+python mamey_run.py domain-level --package COMPLETE_PACKAGE --top-n 10
 
 # Mode B cards that consume the domain evidence
-python -m mamey mode-b --package COMPLETE_PACKAGE --top-n 10 --with-domain-level
+python mamey_run.py mode-b --package COMPLETE_PACKAGE --top-n 10 --with-domain-level
 
 # figures only
-python -m mamey render-figures --package COMPLETE_PACKAGE --figure-set domain-level
+python mamey_run.py render-figures --package COMPLETE_PACKAGE --figure-set domain-level
 ```
+
+Run it on a working copy if the sealed package must stay unchanged; see [post-seal readers](../POSTSEAL_READERS.md).
 
 ## Two input paths
 
 - **Full (`--source-antismash`)** — re-parses the antiSMASH zip via `extract_domain_features`,
   giving every domain's name, description, and e-value.
-- **Limited (sealed package only)** — falls back to the v9.7.88 sealed gene context
+- **Limited (sealed package only)** — falls back to the package's gene context
   (`<strain>_gene_context.jsonl`), which carries domain **names** but not descriptions or
   e-values. Clearly marked with `MODE_B_LIMITED_DOMAIN_CONTEXT.md`.
 
-If neither is available, a `DOMAIN_LEVEL_SKIPPED_NO_GBK.md` receipt is written and the core
-package stays valid.
+When neither route yields retained domain context, the helper writes `DOMAIN_LEVEL_SKIPPED_NO_GBK.md` and a SKIPPED receipt. A failed source parse can fall back to gene context; an empty source result also falls back. Read the actual `mode`, warnings and per-locus coverage. `full_source`/`FULL` identifies the source route, not a complete-source extraction certificate.
+
+The receipt initializes `core_package_valid=true`; it does not run package validation. This field and normal command completion cannot establish that an input was valid or sealed. Preserve and read the independent package validator and integrity evidence.
 
 ## Outputs (`package/domain_level/`)
 
@@ -55,6 +57,10 @@ package stays valid.
 | `domain_level_receipt.json` | inputs, mode, counts, taxonomy/claim-safety versions |
 | `OPEN_ME_FIRST_Domain_Level_ModeB.md` | front-facing summary |
 
+Use `domain-level --out <fresh-external-directory>` when the package must remain unchanged. The default writes under the supplied package; existing fixed output names are reused. Tables, optional extensions and receipt are published separately, so failure can leave partial output or a previous receipt. Retain prior evidence and inspect the current artifact roster before a retry.
+
+The CLI can return zero for SKIPPED enrichment or failed optional figure rendering. Its receipt records counts and rule versions, not a complete source/output hash binding; preserve exact package/archive, code, configuration and output hashes separately. A rendered file is not visual QA. No enrichment receipt establishes scientific acceptance.
+
 ## Rule files (versioned, auditable)
 
 - `mamey/data/domain_level/domain_role_taxonomy.v1.json` — domain-name -> role mapping.
@@ -67,7 +73,7 @@ drift is auditable.
 ## Limitations
 
 - Role assignment is by domain-name substring; opaque identifiers (bare TIGRxxxxx, DUF families)
-  fall to `Unknown/repeat/accessory` — honestly, not silently.
+  fall to `Unknown/repeat/accessory`.
 - Limited mode has no e-values or descriptions; the burden counts still hold, but the per-domain
   detail columns are blank.
 - This is **annotate-only and post-seal**: it never changes scores and never blocks the package

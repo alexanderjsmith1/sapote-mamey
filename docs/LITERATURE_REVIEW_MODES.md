@@ -1,6 +1,6 @@
 # Formal Literature Review Modes
 
-These are normative review-depth labels, not executable modes or automatically enforced completion states. No local parser switches retrieval depth from FLR/VLR text. A label must be backed by the recorded reviewed sources, passages, scope, date and unresolved fields; it does not itself establish publication readiness.
+These are labels for how deep a literature review went. No tool changes behavior on them. Back each label with the sources, passages, scope and date you recorded.
 
 ## FLR -- Focused Literature Review
 

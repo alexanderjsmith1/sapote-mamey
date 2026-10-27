@@ -11,7 +11,9 @@ def test_core_pages_present_v97401():
     for page in ("Home.md", "_Sidebar.md", "Quick-Guide.md", "User-Manual.md", "Glossary.md",
                  "Claim-Safety.md", "Versioning.md"):
         assert (WIKI / page).is_file(), f"wiki/{page} missing"
-    assert len(list(WIKI.glob("*.md"))) >= 30
+    # v9.7.458: the 14 Encyclopedia volume pages were retired to docs/history/wiki_encyclopedia/
+    # by owner decision; the floor is the remaining page count, so any further loss still fails.
+    assert len(list(WIKI.glob("*.md"))) >= 27
 
 
 def test_sidebar_version_stamped_and_current_v97401():

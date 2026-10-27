@@ -138,7 +138,8 @@ def write_wise_batches(records: Iterable[RankedProteinRecord], outdir: str | Pat
         residues=sum(r.residues for r in b)
         qid=f"BLASTP_Q{start_q+i-1:03d}_{_safe(prefix)}_{target_label}_ranks{min(ranks)}_{max(ranks)}"
         fname=f"{qid}.fasta.txt"
-        status="ready_to_run" if i<=n_emit else "deferred_pending"
+        over_cap = residues > hard_cap   # a lone oversized sequence: NCBI web BLASTP refuses it
+        status=("hold_over_web_cap" if over_cap else "ready_to_run") if i<=n_emit else "deferred_pending"
         if i<=n_emit:
             text=""
             for r in b:
@@ -149,7 +150,7 @@ def write_wise_batches(records: Iterable[RankedProteinRecord], outdir: str | Pat
             (fasta_dir/fname).write_text(text, encoding="utf-8")
         batch_rows.append({"queue_id":qid,"file":f"fasta/{fname}" if i<=n_emit else "DEFERRED_NOT_EMITTED","sequence_count":len(b),"residue_count":residues,"rank_range":f"{min(ranks)}-{max(ranks)}","under_100k":residues<=hard_cap,"status":status})
         for r in b:
-            ledger_rows.append({"rank":r.rank,"queue_id":qid,"emitted_file":fname if i<=n_emit else "DEFERRED_NOT_EMITTED","status":"pending" if i<=n_emit else "deferred_pending","strain":r.strain,"region":r.region,"locus":r.locus,"residues":r.residues,"warning":r.warning})
+            ledger_rows.append({"rank":r.rank,"queue_id":qid,"emitted_file":fname if i<=n_emit else "DEFERRED_NOT_EMITTED","status":("hold_over_web_cap" if over_cap else "pending") if i<=n_emit else "deferred_pending","strain":r.strain,"region":r.region,"locus":r.locus,"residues":r.residues,"warning":r.warning})
     _write_csv(out/"ACTIVE_AND_DEFERRED_QUEUE_FILES.csv", batch_rows)
     _write_csv(out/"STABLE_QUEUE_LEDGER.csv", ledger_rows)
     guide = ["# Wise fragmented PKS BLASTP queue", "", f"Target residues per batch: {target_residues}; hard cap: {hard_cap}.", "", "Run only the ready_to_run files first. Upload results before broad prospecting.", "", "Completed ranks must be marked complete and never rerun. Failed ranks remain pending and are carried forward with new Q IDs.", ""]

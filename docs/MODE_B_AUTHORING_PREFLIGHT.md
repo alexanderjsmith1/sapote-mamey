@@ -13,11 +13,7 @@ The checklist below governs **readiness and promotion**. A draft may start after
 it may not be called finished until Steps 1–2 hold for the selected profile. Remote search requirements do not by
 themselves authorize submitting sequences.
 
-## Original checklist (readiness and promotion)
-
-*New doc (v9.7.321 candidate). Referenced from `skills/sapote-mamey/SKILL.md`. Exists because multiple
-chats have authored Mode B cards without reading the class exemplar, without running BLASTp, or without
-requesting the data from the operator. The gates check the output; this checklist governs the workflow.*
+## Checklist for readiness and promotion
 
 ## The failure this stops
 
@@ -28,20 +24,22 @@ finished card; it is a skeleton with prose. The steps below are ordered, and man
 ## Step 0 — Read the class exemplar (before writing anything)
 
 - [ ] Identify the BGC's product class (antiSMASH `product` labels).
-- [ ] Open `docs/reference/modeb_exemplars/<class>_exemplar.md` for the closest class
-      (`nrps`, `nrps_pks_hybrid`, `t1pks`, `t2pks`, `terpene`, `siderophore`, `ripp`; check
-      `modeb_exemplars/README.md` for slot status). If no exemplar exists for the class, use the nearest
-      and hold to `docs/modules/MODE_B_DEPTH_POLICY.md`.
-- [ ] Note the depth bar: the exemplar's §4 is an **evidence grid**
-      with each match's actual database/channel and transport, plus locus, protein length,
-      antiSMASH domains, identity and reconciliation, with **●** core markers and a prose
-      walkthrough. Use the selected profile's current table contract; do not relabel EBI/UniProt
-      matches as nr or merge nr, ClusteredNR and Swiss-Prot evidence.
+- [ ] Read the [exemplar reader guide](reference/modeb_exemplars/README.md), then the closest class sketch
+      (`nrps`, `nrps_pks_hybrid`, `t1pks`, `t2pks`, `terpene`, `siderophore`, `ripp`). If the class has no
+      exemplar, use the nearest for writing register and consult `docs/modules/MODE_B_DEPTH_POLICY.md`.
+      The class sketches are legacy teaching examples, not complete full48/current50 v2 templates;
+      their old FULL/OK labels do not establish current-profile completion.
+- [ ] Learn how the sketch connects its gene evidence to prose, but build the new card from the selected
+      emitted template. Use that profile's complete-roster, channel-separated table requirements rather
+      than copying a legacy nr-only grid. Preserve protein lengths, actual database/channel and transport,
+      named matches and reconciliation; do not relabel EBI/UniProt as nr or merge nr, ClusteredNR and Swiss-Prot.
 
-## Step 1 — Get the per-gene BLASTp (before §4 is promoted; a draft records the typed gap)
+## Step 1 — Prepare per-gene evidence before promotion
 
-The §4 reconciliation must rest on REAL per-gene BLASTp of the target BGC's **rule-based-biosynthetic
-cores** — never panel-only, never Pfam-only.
+Start with the target BGC's **rule-based biosynthetic cores** and their real per-gene BLASTp evidence,
+keeping unavailable channels as typed draft gaps. The finished-card evidence table is §4 in full48 and
+§50 in current50 v2. It must account for the complete canonical gene roster with the selected profile's
+separate channel pairs; a selected-core table, panel summary or Pfam-only explanation does not complete it.
 
 - [ ] List the BGC's rule-based cores (the `biosynthetic (rule-based-clusters)` CDS in the package
       `cds_table` / region GBK).
@@ -56,8 +54,9 @@ cores** — never panel-only, never Pfam-only.
       `strain / full node-or-contig / region / BGC alias` and source-bound region GBKs you need,
       or the exact cores to BLASTp — and record the gap in §4 / §16 as an explicit request. Do NOT fill
       the gap with Pfam prose and present the card as done.
-- [ ] Reconcile every hit as CONFIRM / REFINE / OVERTURN against the antiSMASH call; tag provenance
-      (store-backed vs reconstructed; gbk_verified is the highest-confidence tag).
+- [ ] Reconcile every hit as CONFIRM / REFINE / OVERTURN against the antiSMASH call. Retain the actual
+      source provenance and its query/sequence, exact-locus, channel and receipt bindings. A provenance
+      label alone does not establish those bindings.
 
 Escalation triggers (large modular proteins, repeated comparator hits, split/composite BGCs) are in
 `docs/MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md`.
@@ -75,17 +74,22 @@ Escalation triggers (large modular proteins, repeated comparator hits, split/com
       as universal native 50-section producer/verifier support.
 - [ ] Bind every individual locus as `strain / full node-or-contig / region / BGC alias` from one
       selected source record. Hold missing/conflicting fields; do not shorten or reconstruct them.
-- [ ] Claim language: "capacity consistent with," never "produces"; KCB/BLASTp = similarity not identity;
-      bioactivity extract-level only. Keep certainty copulas away from KCB compound names
-      (`identity_overclaim` fires on "class is robust/known(<compound>)", "<compound>-like product").
+- [ ] Frame source-derived locus claims as "capacity consistent with" rather than measured production;
+      KCB/BLASTp similarity does not identify a product, and extract bioactivity does not establish a locus phenotype.
+      Inspect identity-overclaim findings in context: the linter uses production/copula patterns, compound-name
+      context and capacity/negation guards. A clean heuristic result does not substantiate a compound claim.
 
 ## Step 3 — Run the selected mechanical gates and retain their actual outputs
 
-- [ ] From the bundle root, use `python mamey_run.py verify-modeb <authored-card.md>
-      --package <pkg> --bgc <BGC>` for default full48. For current50 v2, use
-      `python mamey_run.py verify-modeb <authored-card.md> --package <pkg> --bgc <BGC>
-      --contract current50_v2`. Carry the same contract used by `emit-modeb-template`; retain the
-      actual findings and exit status. This is mechanical verification, not scientific acceptance.
+- [ ] Before a full48 finished-card check, include the active declaration
+      `**Document state:** FINISHED_FULL48_CURRENT_EVIDENCE` in the saved authored file; `--contract full48`
+      alone does not activate publication checks. For current50 v2, preserve the emitted canonical
+      identity/contract/profile header as the first line. These declarations select checks rather than certify evidence.
+- [ ] From the bundle root, run `python mamey_run.py verify-modeb <authored-card.md>
+      --package <pkg> --bgc <BGC> --contract full48`; for current50 v2 substitute `--contract current50_v2`.
+      Use the same contract as `emit-modeb-template`, and retain actual findings and exit status.
+      See the [walkthrough](MODE_B_USER_WALKTHROUGH.md) for saving verification receipts and source bindings.
+      This is mechanical verification, not scientific acceptance.
 - [ ] Run `python mamey_run.py claim-safety <authored-card.md> --package <pkg> --card-id <BGC>
       --mode warn` and inspect the finding counts: warn mode exits 0 even when findings exist.
 - [ ] If using the additional library depth checker, call
@@ -113,4 +117,4 @@ persistent receipt. The additive library depth check does not replace the select
 path. The availability planner’s CURRENT/promotion label is an aggregate indicator, not sequence/admission
 or complete-channel verification; review the actual source rows and profile requirements.
 
-Ordinary default structure lint recognizes 48 sections but has optional and conditional §31–§48 extensions. Optional omissions are permitted; conditional omissions depend on actual applicability context, with warning-first handling when context is unknown. Declare and verify the intended finished profile and its source-bound review path explicitly; do not infer all-48 substantive acceptance from the default command’s exit zero alone.
+Default structure lint treats §31–§48 as optional or conditional, so its exit 0 does not mean all 48 sections are complete. Verify against the finished profile you selected.

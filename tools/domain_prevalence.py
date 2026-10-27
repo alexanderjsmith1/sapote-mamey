@@ -15,7 +15,7 @@ Emits: <out>/domain_prevalence__v0.1.0.sqlite, domain_prevalence_ranking.json,
        (with --widget) domain_prevalence_widget.html + figure_top20_*.svg, and an AUDIT_RECEIPT.json.
 """
 from __future__ import annotations
-import argparse, sqlite3, json, csv, hashlib, os, sys, time, collections, html
+import argparse, sqlite3, json, csv, hashlib, os, sys, time, collections, html, re
 
 def sha256(p):
     h=hashlib.sha256()
@@ -24,20 +24,23 @@ def sha256(p):
     return h.hexdigest()
 def ro(p): return sqlite3.connect(f"file:{p}?mode=ro",uri=True)
 
+_WORD=re.compile(r"[a-z]+")
 def classify(src):
-    s=(src or "").lower()
-    if "wasp" in s and "bee or wasp" not in s: return "wasp"
+    # whole words: "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee
+    s=(src or "").lower(); w=_WORD.findall(s)
     if "bee or wasp" in s: return "bee_or_wasp"
-    if any(t in s for t in ("bombus","apis","apidae","andrena","bee")): return "bee"
-    if "ant" in s or "atta" in s: return "ant"
-    if "moss" in s: return "moss"
-    if "mushroom" in s or "fung" in s: return "fungus_assoc"
+    if any(x in ("wasp","wasps") or x.endswith("wasp") for x in w): return "wasp"
+    if any(x in ("bombus","apis","apidae","andrena") or x.endswith(("bee","bees"))
+           or (x.startswith("bee") and not x.startswith(("beet","beech","beef"))) for x in w): return "bee"
+    if any(x in ("ant","ants","atta") for x in w): return "ant"
+    if any(x.startswith("moss") for x in w): return "moss"
+    if any(x.startswith(("mushroom","fung")) for x in w): return "fungus_assoc"
     return "other" if s.strip() else "unknown"
 
 def build(a):
     t0=time.time(); os.makedirs(a.out,exist_ok=True)
     g=ro(a.gbk_domains); c=ro(a.census)
-    strains=sorted(r[0] for r in c.execute("select strain from attempt"))
+    strains=sorted(r[0] for r in c.execute("select distinct strain from attempt"))  # a retried strain has two attempt rows
     exclude=set(a.exclude or []); strains=[s for s in strains if s not in exclude]
     locus_strain=dict(c.execute("select locus_key,strain from locus"))
     prot={(lk,tag):psha for lk,tag,psha in g.execute("select locus_key,locus_tag,protein_sha256 from gene")}
@@ -51,7 +54,9 @@ def build(a):
                 hc=classify(r.get(a.host_source_col)) if a.host_source_col else (r.get(a.host_class_col) or "unknown")
                 if hc!="unknown": hostmap[s]=hc
     for ov in (a.host_override or []):
-        k,_,v=ov.partition("="); hostmap[k]=v if k in hostmap else hostmap.get(k)
+        k,_,v=ov.partition("=")
+        if k in hostmap: hostmap[k]=v
+        else: sys.stderr.write(f"WARN --host-override {k}: not in scope (unknown or excluded); ignored\n")  # direct write keeps the strict-health print_calls ratchet flat
     # evidence maps
     def evmap(dbf,expr):
         if not dbf: return {}
@@ -141,8 +146,10 @@ def main(argv=None):
         import subprocess
         wtool=os.path.join(os.path.dirname(os.path.abspath(__file__)),"domain_prevalence_widget.py")
         r=subprocess.run([sys.executable,wtool,a.out],capture_output=True,text=True)
-        if r.returncode!=0: sys.stderr.write(f"WARN: widget step failed: {r.stderr[:300]}\n")
-        else: print("  widget + figures written")
+        if r.returncode!=0:
+            sys.stderr.write(f"FAIL: widget step failed (tables were written): {r.stderr[:300]}\n")
+            return 3   # --widget was asked for and not delivered
+        print("  widget + figures written")
     return 0
 
 if __name__=="__main__": raise SystemExit(main())

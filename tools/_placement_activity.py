@@ -16,7 +16,14 @@ ALIASES = {
 POOLED = '*Candida*'
 # .452: pooled Candida state = the strongest state recorded for any Candida reading of that strain. A positive anywhere
 # gives a positive; then a tested negative; then not tested; then blank. States are never converted into one another.
-POOL_ORDER = ('active (≥80%)', '+', 'tested, inactive', '−', 'n.t.', '')
+# The three-state labels (--activity-states three) rank inside the same order: a state of either mode sorts by strength.
+POOL_ORDER = ('strong (≥80%)', '+', 'moderate (50–79%)', 'tested, below 80%', 'tested, below 50%', '−', 'n.t.', '')
+
+# Numeric readings are classed by --activity-states. 'two' (default): 80% or more is strong, everything else is tested,
+# below 80%. 'three': strong 80% or more, moderate 50-79%, tested below 50% ("active" means 50% or more).
+# The labels are palette values (tools/phylo_display_palette.tsv) and legend text.
+STATES = {'two': ('strong (≥80%)', 'tested, below 80%'),
+          'three': ('strong (≥80%)', 'moderate (50–79%)', 'tested, below 50%')}
 
 
 def pool_candida(result, labels):
@@ -45,7 +52,9 @@ def profile(layout='', path=None):
     return result
 
 
-def state(value):
+def state(value, states='two'):
+    if states not in STATES:
+        raise ValueError('ACTIVITY_STATES_UNKNOWN: ' + str(states))
     text = value.strip()
     if text in ('', '+', '−', 'n.t.'):
         return text
@@ -60,10 +69,12 @@ def state(value):
         raise ValueError('ACTIVITY_STATE_INVALID: ' + text) from None
     if not math.isfinite(number):
         raise ValueError('ACTIVITY_PERCENT_INVALID')
-    return 'active (≥80%)' if number >= 80 else 'tested, inactive'
+    if states == 'three':
+        return STATES['three'][0] if number >= 80 else STATES['three'][1] if number >= 50 else STATES['three'][2]
+    return STATES['two'][0] if number >= 80 else STATES['two'][1]
 
 
-def load(path, material='Crude extract', pool=False):
+def load(path, material='Crude extract', pool=False, states='two'):
     with Path(path).open(newline='', encoding='utf-8-sig') as handle:
         first = handle.readline(); handle.seek(0)
         reader = csv.DictReader(handle, delimiter='\t' if '\t' in first else ',')
@@ -83,7 +94,7 @@ def load(path, material='Crude extract', pool=False):
             if not sid or (sid,label) in recorded:
                 raise ValueError('ACTIVITY_DUPLICATE_OR_EMPTY_STRAIN')
             recorded.add((sid,label)); present.add(label)
-            result.setdefault(sid,{})[label] = state(row['best_pct'])
+            result.setdefault(sid,{})[label] = state(row['best_pct'], states)
     else:
         columns = {}
         for label,aliases in ALIASES.items():
@@ -97,7 +108,7 @@ def load(path, material='Crude extract', pool=False):
         for row in rows:
             sid=row['strain'].strip()
             if not sid or sid in result:raise ValueError('ACTIVITY_DUPLICATE_OR_EMPTY_STRAIN')
-            result[sid]={label:state(row[column]) for label,column in columns.items()}
+            result[sid]={label:state(row[column], states) for label,column in columns.items()}
     labels=[label for label in (*LABELS,'MRSA') if label in present]
     if not set(LABELS[:2]) <= present:
         raise ValueError('SPLIT_CANDIDA_SPECIES_REQUIRED')

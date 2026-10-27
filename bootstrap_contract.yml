@@ -148,7 +148,7 @@ known_gotchas:
   applies_to: mode-b CLI batching
   show_in_initiation: false
   detail: 'mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches,
-    run cumulative tiers and de-duplicate by BGC id until rank slicing exists.'
+    run cumulative tiers on the same package and de-duplicate by BGC id within that package until rank slicing exists; across packages, match on the full strain / contig / region / BGC alias identity.'
 - id: timing_breakdown_partial_runs
   status: active
   severity: low
@@ -183,7 +183,7 @@ known_gotchas:
   severity: medium
   applies_to: Mode B BGC workups
   show_in_initiation: false
-  detail: Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labelled
+  detail: Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labeled
     proteins; repeated external-strain hits should trigger comparator next-step guidance rather than identity
     claims.
 response_policy:

@@ -1,8 +1,6 @@
 # PASTE THIS AT THE START of any Mode B / BGC review or report task
 
-*(For a plain Claude/ChatGPT chat holding Sapote-Mamey cards — no hooks or CLI run there, so this
-prompt is the enforcement. Paste it before you ask for any cross-strain read, lead shortlist, or AF/AB
-report. A short RE-CHECK version to paste before the chat ships is at the bottom.)*
+*(For a plain Claude/ChatGPT chat holding Sapote-Mamey cards. This is a manual review instruction, not an automatic enforcement mechanism or proof that every identity is correct. Use it before requesting a cross-strain read, lead shortlist or AF/AB report, then inspect the actual output. A short RE-CHECK version is at the bottom.)*
 
 ---
 

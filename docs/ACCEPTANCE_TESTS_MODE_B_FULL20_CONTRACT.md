@@ -17,6 +17,12 @@ whole-profile scientific acceptance. Evaluate present tests against the selected
 source bytes and actual retained results. A heading-only PASS expectation below does not certify substantive
 interpretation, verified data, profile completeness or owner acceptance.
 
+The present facade matches each numbered title after punctuation/case normalization; it does not
+enforce their physical order in the document. Its §4 prose heuristic fires only when at least three
+table lines accompany fewer than 35 non-table words. It does not generally reject empty sections
+or validate their unavailability reasons. The retained order/prose expectations below therefore
+exceed this facade's actual checks (`mamey/validators/modeb_full20.py`).
+
 <!-- Historical source text follows. -->
 
 > **Historical (superseded).** This document describes the retired §1–§20 count. It is not a current completion definition or acceptance specification. For the current profiles see `MODEB_PROFILE_MATRIX.md`.

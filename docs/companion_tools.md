@@ -83,6 +83,7 @@ saved experimental receipts do not establish study-version use or production rea
 - Design: a shipped five-protein-locus MLSA screen plus separately prepared 16S
   context, then a selected 138-SCG Actinobacteria tree; at most three references per
   focal genome; normally 40 and no more than 60 total genomes without a new preflight.
+- Publication trees use at most four references. The panel sizes above are for analysis trees.
 - Serial controls: the GToTree 1.8.19 command fragment is
   `GToTree -j 1 -n 1 -M 1 -N`, final IQ-TREE `-T 1`. Shared planner/runner policy
   omits `-n` for 2.0.x and checks detailed help with `-s`. Interface admission is

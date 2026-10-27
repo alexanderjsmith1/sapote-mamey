@@ -12,7 +12,7 @@ valid admission rule.
 
 ## Refreshable report selection and recovery
 
-For the current refreshable exact-identity report, read [selection/publication contracts](reference/06_CURRENT_SOURCE_SCOPE.md#refreshable-exact-identity-report-selection-and-publication-routes). The portable and native module entries use different configuration and publication-recovery contracts. An omitted locus selector can select every region for the strain; a bound draft, logical-source resolution or source snapshot PASS is not scientific completion. Keep partial-build and completed-publication recovery states separate. Read [profile/channel/Mode B admission](reference/06_CURRENT_SOURCE_SCOPE.md#refreshable-report-evidence-admission-profiles-channels-and-mode-b) before reusing currentness labels or an empty missing-evidence queue.
+For the refreshable exact-identity report, see [selection and publication](reference/06_CURRENT_SOURCE_SCOPE.md#refreshable-exact-identity-report-selection-and-publication-routes) and [evidence admission](reference/06_CURRENT_SOURCE_SCOPE.md#refreshable-report-evidence-admission-profiles-channels-and-mode-b). An omitted locus selector can select every region for the strain.
 
 ## Recommended user project
 
@@ -45,9 +45,10 @@ separate logical roots.
 }
 ```
 
-Root precedence is explicit CLI override, then `SAPOTE_EVIDENCE_ROOT_<ROOT_ID_UPPERCASE>`, then the configured path. Runtime overrides must be absolute and name a root already declared in the configuration; they cannot silently add an undeclared collection. Relative configured roots are anchored to the configuration file. A portable project can
-therefore move as one directory. Machine-specific absolute paths can instead
-be supplied at runtime:
+Root precedence is explicit CLI override, then `SAPOTE_EVIDENCE_ROOT_<ROOT_ID_UPPERCASE>`, then the configured path. Runtime overrides must be absolute and name a root already declared in the configuration; they cannot silently add an undeclared collection. Relative configured roots are anchored to the configuration file. When moving a
+project, preserve those relative relationships: the example's ../evidence roots
+are siblings of the project, so moving the project directory alone does not move
+that evidence. Machine-specific absolute paths can instead be supplied at runtime:
 
 ```bash
 python mamey_run.py build-bgc-drafts \
@@ -56,6 +57,13 @@ python mamey_run.py build-bgc-drafts \
   --program-spec program-specs/five-strain-l0.json \
   --evidence-root blastp=/data/current-blastp
 ```
+
+Before running that command, prepare all three named JSON inputs. The program
+spec must bind the source-discovery catalog and decisions by source ID, declare
+the required collection types, and select an output root and relative path whose
+destination does not already exist. The command reads those inputs; it does not
+create them. If discovery admission fails, resolve the catalog/decision finding
+before retrying the report build.
 
 The draft workflow uses logical locators in reader reports; do not infer that every diagnostic/log or arbitrary source metadata row is automatically redacted. Review output policy before a public export. Reports cite logical
 source identifiers, hashes, byte counts, assembly hashes, and exact
@@ -96,14 +104,16 @@ region/region-key agreement with the base report index, verifies every indexed
 base-report byte, and emits only an overlay plus a module-state delta. Target
 tables containing source-reported coverage above 100 percent hard-fail unless
 the numeric value is explicitly quarantined and excluded from the usable
-coverage field. Immediately before atomic publication, the builder rehashes
-the base controls, all indexed base reports, the frozen target ledger, every
-target artifact, and the review manifest again.
+coverage field. Immediately before publication, the builder rechecks the base controls,
+indexed base reports, frozen target ledger and target artifacts. It also rereads
+the review manifest, verifies its listed artifact hashes and sizes, and compares
+its digest with the expected one. A manifest changed during the build is refused
+before publication. Keep the review manifest unchanged during the build.
 
 The overlay includes `INDEX.md` and `REVIEW_INDEX.tsv`. They link each exact
 node/contig-plus-region locator to both its immutable base draft and its
 proposal reconciliation, while keeping the source-scoped BGC alias secondary.
-The command does not mutate or duplicate the base 100-report tree and does not
+The command does not mutate or duplicate the indexed base-report tree and does not
 convert reviewer synthesis into accepted biology.
 
 Internal report specifications may bind preliminary comparator tables without
@@ -122,7 +132,7 @@ Each `source_id` must resolve through the hash-bound source manifest. These
 formats are preliminary internal evidence and are rejected from a `PUBLIC`
 build until a separate admitted-evidence export exists.
 
-Keeping outputs outside the application bundle requires review of each workflow's output path and writes. A passing bundle-write-default static check is limited by its selected source scope and matching rules; it does not establish that every write has a guard or that the guard runs before the write. See [maintenance check scope](CATALOG_MAINTENANCE.md#bundle-write-default-static-check) before using that result as portability evidence.
+Check each workflow's output path. The bundle-write check does not prove every write is guarded; see [maintenance check scope](CATALOG_MAINTENANCE.md#bundle-write-default-static-check).
 
 ## Stable organization rules
 
@@ -158,6 +168,13 @@ and disposition. Then choose one of three actions per collection:
   original source and hash.
 - `QUARANTINE_OR_SUPERSEDE`: retain it as historical evidence but exclude it
   from automatic report consumption.
+
+Those labels describe workspace organization choices. The source-discovery gate
+uses decision-table columns `collection_id`, `decision`, `reason` and
+`evidence_receipt`, with decision values `CONSUME`, `REJECT_WITH_REASON` or
+`SUPERSEDED_WITH_RECEIPT`. Record the evidence-use decision separately; a receipted
+copy or reference-in-place choice does not itself admit a collection. Resolve the
+gate's reported missing decisions or parallel-generation finding before building.
 
 Do not reorganize by recency alone, do not silently merge same-named folders,
 and do not move large collections before a pre/post hash receipt exists.

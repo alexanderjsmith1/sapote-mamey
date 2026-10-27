@@ -13,14 +13,14 @@ The gene-table companion is a separate PowerPoint produced by the same build, no
 
 ### Source boundary: builder, assets and historical tags
 
-The selected `tools/strain_slides.py` includes `structure_gallery()` and calls it during `build()`; it also includes the yellow reference-match-band caption. The October 4 v2n example is historical provenance, not a requirement to apply an older candidate patch to this source. Bind the selected builder and compatible reference-structure assets explicitly. The gallery reads `chemical_structures_json` when supplied, otherwise `<assets>/chemical_structures/STRUCTURE_ASSETS.json`; missing assets can yield no gallery, and mismatched strain assets are skipped. Retain the receipt's `structure_gallery` slide/entry/drawn counts and inspect the actual deck. Reference chemistry does not establish production by the strain. These source-inspected capabilities do not constitute a completed or reviewed deck build.
+The selected `tools/strain_slides.py` includes `structure_gallery()` and calls it during `build()`; it also includes the yellow reference-match-band caption. Bind the selected builder and compatible reference-structure assets explicitly. The gallery reads `chemical_structures_json` when supplied, otherwise `<assets>/chemical_structures/STRUCTURE_ASSETS.json`; missing assets can yield no gallery, and mismatched strain assets are skipped. Retain the receipt's `structure_gallery` slide/entry/drawn counts and inspect the actual deck. Reference chemistry does not establish production by the strain.
 
 ## Quick start
 ```bash
 python tools/strain_slides.py template > XS-001_sources.json     # fill in the paths you have
 python tools/strain_slides.py build --sources XS-001_sources.json --out decks/ --tag v1
 ```
-From this selected bundle root, in the compatible activated environment, install the optional dependencies with `python -m pip install '.[slides]'`. Run the tool by its bundle path; no `strain-slides` console command is registered. See [installation](INSTALL.md) for core setup. These are source-checked examples, not a claim that your input was built or reviewed.
+From this selected bundle root, in the compatible activated environment, install the optional dependencies with `python -m pip install '.[slides]'`. Run the tool by its bundle path; no `strain-slides` console command is registered. See [installation](INSTALL.md) for core setup.
 
 ## The sources file
 The sources file names the input channels. Supply absolute paths, including paths inside nested figure/tree entries and BLASTp glob patterns. The resolver handles existing top-level string paths relative to the sources file's folder; it does not recursively resolve nested lists/dictionaries. BLASTp patterns expand through the supplied glob list. Do not depend on the shell's working directory for nested paths.
@@ -46,35 +46,38 @@ Keep absent channels explicit. Blank gene-table cells mean no record in that sou
 
 Reconcile the inventory with the source gene roster before claiming complete coverage. Duplicate inventory `BGC_ID` rows collapse to the last row. The companion iterates inventory IDs only: an inventory region with no matching gene rows produces no gene-table page, while gene rows whose `bgc_id` is absent from the inventory are not rendered. “Complete” therefore means the admitted inventory and matching supplied gene rows were independently reconciled; the builder does not perform that completeness check. Keep full `strain / full node-or-contig / region / BGC alias` and per-region expected/observed gene counts in that reconciliation.
 
-Some optional omissions do not fail the build. Missing tree/family/extra image files are skipped, unmatched BLASTp globs yield no hits, and unreadable stored BLASTp CSVs can be skipped. The stored-hit merge keeps the first rank-1 row for a gene in supplied-glob order and reverse filename order, except that a later organism-bearing row can replace one without an organism; it does not compare percent identities or establish the latest search. Supply a reviewed nonoverlapping result roster and compare requested versus included channels rather than interpreting blanks as absence.
+Some optional omissions do not fail the build. Missing tree/family/extra image files are skipped, unmatched BLASTp globs yield no hits, and unreadable stored BLASTp CSVs can be skipped. The stored-hit merge keeps the first rank-1 row for a gene in supplied-glob order and reverse filename order, except that a later organism-bearing row can replace one without an organism. It does not compare percent identities or establish the latest search. Supply a reviewed nonoverlapping result roster and compare requested versus included channels rather than interpreting blanks as absence.
 
 ## What the deck shows
 1. **Overview, trees, landscape.** Only the tree panels listed are shown; the tool never builds a tree.
 2. **Region tables.** Every region in one row: type, contig edge, KnownClusterBlast, gap rescue, RG-GMCI, BiG-SCAPE, GECCO.
-3. **Dedicated slides for selected regions**, strongest evidence first. Ectoine-only and NAPAA-only regions (including mixtures of just those labels), and terpene-only regions whose best KnownClusterBlast reference label contains geosmin, are omitted from dedicated slides unless the tool retains qualifying split-link evidence: an accepted RG-GMCI signal or a SUPPORTED gap-rescue find on a different contig. This is a display-selection rule using source labels, not a compound assignment. Omitted regions retain inventory rows and complete gene-table coverage; the build receipt records `no_region_slide` reasons.
+3. **Dedicated slides for selected regions**, strongest evidence first. Ectoine-only and NAPAA-only regions (including mixtures of just those labels), and terpene-only regions whose best KnownClusterBlast reference label contains geosmin, are omitted from dedicated slides unless the tool retains qualifying split-link evidence. That evidence is an accepted RG-GMCI signal or a SUPPORTED gap-rescue find on a different contig. This is a display-selection rule using source labels, not a compound assignment. Omitted regions retain inventory rows and complete gene-table coverage; the build receipt records `no_region_slide` reasons.
    - **The map** is the gap-rescue map from `tools/gap_directed_rescue.py`, its two rows lined up on the majority of matched genes. Each contig is turned by its strand evidence (most matched genes on the strand opposite their reference genes means reversed), and the contigs run left to right in the order their matches fall on the reference. The tool saves the renderer's own record of the contigs' order and which it drew reversed (`map_layout.json`).
-   - **The gene strip** below follows that record, so the two pictures run the same way. Genes matched to the MIBiG reference sit in a gold band. Bars above the genes are GECCO's per-gene probability (dashed line at 0.8). Core genes, matched genes, and genes GECCO scores 0.8 or more carry their domain name, thinned so neighbouring labels
+   - **The gene strip** below follows that record, so the two pictures run the same way. Genes matched to the MIBiG reference sit in a gold band. Bars above the genes are GECCO's per-gene probability (dashed line at 0.8). Core genes, matched genes, and genes GECCO scores 0.8 or more carry their domain name, thinned so neighboring labels
      never overlap (matched genes first). A panel where GECCO scores every gene below 0.1 says so in its bar area. GECCO calls
-     few saccharide-only regions in any setting (32 of 731 in the 43 decks; looser domain filters did not change this on
-     the strain where it was tested), so the region's GECCO line says a low score there is not evidence against it.
+     few saccharide-only regions in any setting, so the region's GECCO line says a low score there is not evidence against it.
    - **Partner contigs.** For a gap rescue, the strip draws every partner contig the map drew that holds a find the
      partner checks rate SUPPORTED, with "//" between contigs, in the map's left-to-right order (the core is not always
      first). Each partner is cut to its found genes ± 2.5 kb
      and has its own GECCO bars and orientation. A paralog-family or single-gene find beside a supported one on
      the same contig is kept with it; a contig with no supported find is not drawn, on the map or the strip.
      At most two partner panels are drawn, most SUPPORTED finds first; the rest are counted under the strip. Only found
-     genes are labelled: by the reference gene name, or the found gene's first Pfam name + "-like" when the reference
+     genes are labeled: by the reference gene name, or the found gene's first Pfam name + "-like" when the reference
      names it only by an accession. A bare accession is never printed, on the strip or in the text.
    - **When a partner holds more of the reference.** If a partner region holds more found reference genes than this
-     region (at least 3), the slide says so first ("More of the reference lies elsewhere") and points to that region's
-     slide; its strip panel is marked "more reference genes" and this region is drawn as "this region", not "core".
+     region (at least 3), the slide says so first ("More of the reference lies elsewhere"). It then points to that
+     region's slide. Its strip panel is marked "more reference genes" and this region is drawn as "this region", not "core".
    - **Split-cluster signal.** A region linked by RG-GMCI (HIGH or MODERATE), or holding a SUPPORTED gap-rescue find, is
-     named with two layers: per-gene KnownClusterBlast (both regions hit mostly different genes of one MIBiG cluster in
-     both top threes) and the RG-GMCI scorecard's intact-relative position (`rggmci_scorecard_tsv`: do the two loci lie
+     named with two layers. The first is per-gene KnownClusterBlast (both regions hit mostly different genes of one MIBiG
+     cluster in both top threes). The second is the RG-GMCI scorecard's intact-relative position (`rggmci_scorecard_tsv`: do the two loci lie
      together in the best public relative). It is shown when position is CONSISTENT, or when KCB is complementary and
      position does not contradict; "Two layers agree" or "One layer; a candidate". Position APART_CLOSE or CONFLICT sets
-     it aside. A draft or distant relative (APART_WEAK) or none (NOT_READ) cannot decide. The two-proof check's second
-     proof is a shared KS clade, which a cluster without a KS can never pass, so these layers are printed beside it.
+     it aside. A draft or distant relative (APART_WEAK) or none (NOT_READ) cannot decide. These displayed layers
+      remain separate from the saved two-proof verdict. Inspect its `rule_policy` and `second_proof_channel`:
+      the current default `class_routed_v1` retains KS-clade evidence for KS-bearing pairs and uses the
+      class-core-completion route for eligible non-KS pairs. The legacy `ks_clade_v2` route remains selectable;
+      a saved result must be interpreted under its recorded policy. Neither display agreement nor a two-proof
+      label establishes physical continuity or a completed pathway.
    - **Assembled across contigs.** The reference genes found, grouped by step (core, halogenation, glycosylation,
      methylation, sugar supply, regulation, transport), each with its gene, identity and verdict mark. A step comes from the
      reference's product line, or else the found gene's Pfam names. When a gene's best KnownClusterBlast match is another
@@ -84,7 +87,7 @@ Some optional omissions do not fail the build. Missing tree/family/extra image f
      proteins, with a short legend. The text flows on to a "continued" slide when it does not fit beside it. When the
      BGC is in more than two sets, a full PCoA slide follows: every set where this BGC's proteins have a point, most
      first, up to six panels, including CARD resistance-gene families when the kit has
-     them (`RES_SETS.tsv`). The BGC's proteins, and its SUPPORTED partner-contig genes, are large stars labelled by locus
+     them (`RES_SETS.tsv`). The BGC's proteins, and its SUPPORTED partner-contig genes, are large stars labeled by locus
      tag and filled by identity to their best reference/MIBiG match; the strain's other proteins are pale red.
    - **The evidence lines** name each channel separately. The gap-rescue partners are drawn on the map. An RG-GMCI link is not drawn; its line gives the two-proof verdict and how many references complement each other. A HIGH link that the two-proof check rates WEAK is called "two similar loci, not one split cluster", and it does not raise the region's rank.
 4. **GECCO-only candidates.** These are GECCO clusters that overlap no antiSMASH region, matched on `NODE_n_length_L` because GECCO rewrites contig names. A gene with a core enzyme domain is red.

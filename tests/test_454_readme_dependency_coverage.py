@@ -40,6 +40,7 @@ ALLOWED = {
         "false", "head", "tail", "wc", "date", "uname", "which", "nice", "ps", "kill", "tee", "xargs", "touch", "ln",
         "dirname", "basename", "mktemp", "realpath", "readlink", "stat", "du", "df", "id", "cut", "tr", "printf",
         "pwd", "cd", "sleep", "pgrep", "patch", "open", "getconf", "sw_vers", "diff", "cmp", "file", "osascript")},
+    "fonts.googleapis.com": "matched only so tools/protein_space_standalone.py can strip Google Fonts links; nothing is fetched",
     "sandbox-exec": "macOS base system sandbox; the release import check documents its macOS-only backend",
     "pytest": "test runner; named in the [test] extra and CONTRIBUTING",
     "build": "test extra; packaging smoke only",

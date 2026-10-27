@@ -1,4 +1,4 @@
-"""nearest_type_strain_map.py layout (card 018c0f08_452_nearest_type_map_compact_legend): page height from the tip
+"""nearest_type_strain_map.py layout (card 452_nearest_type_map_compact_legend): page height from the tip
 count, genera without a palette colour pooled as one 'Other genera' legend entry (named in RUN_INFO), italic genus
 names in the legend, 8 pt. Synthetic five-tip and forty-tip trees."""
 import json

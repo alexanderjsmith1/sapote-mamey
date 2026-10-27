@@ -1,12 +1,11 @@
 # Choosing a Sapote-Mamey example
 
-Examples are format aids and test fixtures. They do not prove current observations, grant execution permission, or replace the selected command/profile contract. Start with [the user task router](../docs/USER_TASK_ROUTER.md) and [the current documentation index](../CURRENT_DOCS_INDEX.md).
+These are format templates and renderer test fixtures, not results. Start with [the user task router](../docs/USER_TASK_ROUTER.md) and [the current documentation index](../CURRENT_DOCS_INDEX.md).
 
 | Path | Intended use | Limit |
 |---|---|---|
 | [Layperson guide](layperson_guide_exemplar.md) | Plain-language evidence and uncertainty structure | Fill only source-backed fields. |
 | [Bench guide](bench_guide_exemplar.md) | Evidence-scope and material-lineage format | No preselected experimental conditions; requires admitted evidence. |
-| [Fermentation card](fermentation_card_exemplar.md) | Planning-card format | A template is not a validated experimental instruction or result. |
 | [Citation library](citation_library_exemplar.md) | Citation-entry format | Historical worked citations are illustrative; verify actual sources and exact locus bindings before reuse. |
 | `document_rendering/` | Document-layout fixtures used by renderer tests | Synthetic/incomplete cards; a rendering pass is not scientific or current-profile validation. |
 | `token_light_documents/pilot_project/templates/` | Reusable document-factory bodies | Templates have placeholders and synthetic holds. Use the project builder; do not treat them as finished analysis. |

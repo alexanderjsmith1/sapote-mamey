@@ -10,7 +10,7 @@ This is a sequence-similarity aid. It does not identify a compound, prove biosyn
 
 ## Inputs
 
-The two required inputs are valid antiSMASH ZIPs containing GenBank records with translated CDS features:
+The documented route uses two antiSMASH ZIPs containing GenBank records with translated CDS features. The shared reader also accepts bare `.gbk`/`.gb`/`.gbff` files; accepting one is not proof of equivalent archive scope or coordinate provenance (`mamey/parsers.py`). For ZIPs it prefers non-region GBKs when any exist, otherwise reads region files with declared offsets. Compound CDS locations use the longest part for representative coordinates, unparseable locations are skipped, and CDS records are deduplicated by contig/start/end/strand/locus before translations are selected. Reconcile this retained universe with the intended input roster.
 
 - `--strain-a`: query ZIP. The parser's retained translated CDS features become queries; this is not proof of a complete assembly-wide proteome.
 - `--strain-b`: reference ZIP. Its retained translated CDS features form the comparison set.
@@ -22,7 +22,7 @@ Two optional whole-genome nucleotide FASTAs enable an ANI calculation:
 - `--genome-a`: strain-A assembly FASTA.
 - `--genome-b`: strain-B assembly FASTA.
 
-Supply both genome FASTAs or ANI is not attempted. When ANI succeeds, the summary records ANI, aligned fraction, backend, and a claim-safe species-boundary interpretation. The current code labels ANI strictly between 94% and 96% as boundary/indeterminate; exactly 94% is labelled distinct and exactly 96% same species. These are code-level routing labels, not taxonomic acceptance. ANI is rounded before the call. An omitted ANI field can mean it was not requested, a dependency was absent, there were no matches, or parsing/execution failed; preserve warnings and record that disposition separately.
+Supply both genome FASTAs or ANI is not attempted. When ANI succeeds, the summary records ANI, aligned fraction, backend, and a claim-safe species-boundary interpretation. The current code labels ANI strictly between 94% and 96% as boundary/indeterminate; exactly 94% is labeled distinct and exactly 96% same species. These are code-level routing labels, not taxonomic acceptance. ANI is rounded before the call. An omitted ANI field can mean it was not requested, a dependency was absent, there were no matches, or parsing/execution failed; preserve warnings and record that disposition separately.
 
 ## Check and install dependencies
 
@@ -33,7 +33,7 @@ python mamey_run.py doctor
 python mamey_run.py compare --help
 ```
 
-The lean CODE bundle contains the installer but not the wheel collection. Attach a complete set of platform-compatible add-on wheels, activate the Python environment that should receive them, and pass the wheel location explicitly:
+The lean CODE bundle contains the installer and three bootstrap wheels (`packaging`, `setuptools`, `wheel`), not the complete add-on wheel collection. Attach a complete set of platform-compatible add-on wheels, activate the Python environment that should receive them, and pass the wheel location explicitly:
 
 ```bash
 bash bundle_support/install_sapote_addons.sh /path/to/addon-wheels
@@ -45,7 +45,7 @@ The installer defaults to offline resolution with `--no-index`. It pools wheels 
 
 Core packages are required; figure packages are a separate best-effort group. Explicit `--online` permits a pip-index fallback only when wheels are absent or resolution reports a missing matching distribution. It changes the network/write scope and is not an automatic repair for any install failure. Partial prior package changes are not rolled back. The script's six required import checks and optional figure checks establish importability only, not complete backend execution, model/database availability or scientific validation. Temporary pooled wheels and error logs are removed when it exits; retain terminal diagnostics in the approved workspace if recovery needs them.
 
-DIAMOND and external data/binaries are not provisioned by this script. See [DIAMOND status](DIAMOND_STATUS.md), [installation](../docs/INSTALL.md) and [bundle-support roles](../bundle_support/README.md). Source: `bundle_support/install_sapote_addons.sh:32–69,76–122,126–175`.
+DIAMOND and external data/binaries are not provisioned by this script. See [DIAMOND status](DIAMOND_STATUS.md), [installation](../docs/INSTALL.md) and [bundle-support roles](../bundle_support/README.md). Source: `bundle_support/install_sapote_addons.sh`.
 
 ## Run a comparison
 
@@ -103,4 +103,4 @@ Query keys use the locus tag (or an enumerated `cds_N` fallback) without contig/
 
 Invalid thread count returns 2 before output creation. Missing/non-ZIP inputs, no translated CDS or no backend return 1; completed comparison returns 0 even when ANI is absent or every protein row is `no_hit`. Other filesystem/parser/backend failures may propagate. Zero-hit output can also conceal a failed DIAMOND route, as detailed in [DIAMOND status](DIAMOND_STATUS.md). Inspect warnings and per-row backend instead of treating status 0 as successful evidence for every requested layer.
 
-Source: `mamey/compare.py:111–123,209–227,343–404,407–525`; retained CDS extraction `mamey/parsers.py:872–923`. No comparison/ANI or installer was executed for this documentation audit. For CPU and memory notes, see [comparison resource control](../docs/COMPARE_RESOURCE_CONTROL.md).
+Source: `mamey/compare.py`, with CDS extraction and region offsets in `mamey/parsers.py`. For CPU and memory notes, see [comparison resource control](../docs/COMPARE_RESOURCE_CONTROL.md).

@@ -111,7 +111,7 @@ Record exact run, cutoff, class, family ID, and member count. Never merge family
 
 ### RG-GMCI
 
-Report candidate partners and confidence, but set linkage to `NOT_LINKED_ACROSS_CONTIGS` unless current sequence mapping plus compatible architecture/synteny demonstrates continuity.
+Report candidate partners and confidence, but retain `NOT_LINKED_ACROSS_CONTIGS` unless independently bound evidence establishes physical linkage. Sequence similarity, compatible architecture and reference-relative synteny support a candidate relationship; they do not by themselves demonstrate continuity between separate assembly contigs.
 
 ### Strain-level capture
 
@@ -123,7 +123,7 @@ Use only independently auditable sources. Taxonomy can weight comparators but ca
 
 ### Ecology and activity
 
-Keep collection source and host context separate from ecological function. Keep strain/extract activity separate from a BGC unless fractionation or genetic evidence links the phenotype.
+Keep collection source and host context separate from ecological function. Keep strain/extract activity separate from a BGC unless governed, independently reviewed evidence establishes the locus link. Fractionation alone does not establish chemical identity or BGC causation; preserve material identity, measured assay scope and genetic/linkage evidence separately.
 
 ## Source-path rules
 
@@ -173,7 +173,7 @@ and `## Executive verdict` are unnumbered; the remaining required headings use a
 A plain numbered contents list alone will not satisfy its heading regexes.
 
 The checker reads metadata as lines such as `- **Expected proteins:** <integer>`, counts unique backticked
-`ctg<digits>_<digits>` tags and checks the declared D+N+U arithmetic. Other locus-tag families need a separately
+`ctg<digits>_<digits>` tags and checks declared D+N+U arithmetic. Integers are read from the first run of digits, and a missing U counts as zero, so write every count explicitly. Other locus-tag families need a separately
 reviewed mapping/check; do not rename real genes to game this regex. It checks channel/comparison name
 presence, selected claim patterns and ledger fields by priority rank. Optional source existence checks
 recognize a limited set of backticked /Users or /home paths and check the archive path before `::`; they

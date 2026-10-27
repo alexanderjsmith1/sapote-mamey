@@ -1,26 +1,25 @@
 # Sapote-Mamey
 
-Before any `doctor` example below, read the [write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
-untouched and report the hold; the diagnostic refuses an occupied probe location.
-
 Sapote-Mamey is a Python-based analysis pipeline for actinomycete genomes, developed with assistance from large language models (LLMs). It was developed using genomes from common actinomycete genera, including Streptomyces, Micromonospora and Actinomadura.
 
-Sapote-Mamey is under continuous development and can help users run research tools and interpret their outputs. Its development has involved providing antiSMASH results (downloaded ZIP files) to LLMs and using those results to refine the analysis and reporting workflows.
+Sapote-Mamey is under continuous development and can help users run research tools and interpret their outputs. Its development has involved providing antiSMASH results (downloaded ZIP files; antiSMASH is a program that finds biosynthetic gene clusters in genomes) to LLMs and using those results to refine the analysis and reporting workflows.
 
 The analysis pipeline primarily works to interpret antiSMASH results into a user-friendly narrative and allows integration of other bioinformatics tools and other data streams provided by the user. The LLM environment gives the user flexibility to explore the antiSMASH output and other data however they choose. This dynamic interaction allows the potential to take the analysis in any direction. 
 
-Common applications include helping the user understand which biosynthetic gene clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closer look. It is built around actinomycete genomes and a user's genome can be compared with reference genomes. The options to do this include downloading related reference genomes and running antiSMASH on them, and a user can ask the LLM for assistance. The user or LLM can find related genomes based on phylogeny (16S blast results), related genomes obtained by clusterblast and knownclusterblast matches, or searching the genus name in NCBI Nucleotide database and ranking by size to find the appropriately sized assemblies (approximately 5 to 11 mb depending on the genus). A score is a reason to inspect a region, not a measurement of antimicrobial activity.
+Common applications include helping the user understand which biosynthetic gene clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closer look. It is built around actinomycete genomes and a user's genome can be compared with reference genomes. The options to do this include downloading related reference genomes and running antiSMASH on them, and a user can ask the LLM for assistance. The user or LLM can find related genomes based on phylogeny (16S BLAST results), related genomes obtained by clusterblast and knownclusterblast matches, or searching the genus name in NCBI Nucleotide database and ranking by size to find the appropriately sized assemblies (approximately 5 to 12 Mb depending on the genus). A score is a reason to inspect a region, not a measurement of antimicrobial activity.
 
 Sapote Mamey has two main components. Mamey is the executable BGC-analysis module: extraction, evidence checks, tables
 and analysis tools. Sapote is the interpretation and writing workflow: it takes those results into gene-by-gene
-Mode B cards and reports. A generated table or template starts that review; it does not write
+[Mode B](docs/GLOSSARY.md#14-mode-b) cards and reports. A generated table or template starts that review; it does not write
 the interpretation for you.
 
 From one antiSMASH result ZIP you can examine the genes and their reference matches, deepen
-uncertain calls with BLASTp, and compare strains. Optional companion workflows add BiG-SCAPE
+uncertain calls with BLASTp (a protein similarity search), and compare strains. Optional companion workflows add BiG-SCAPE
 gene-cluster families, independently predicted GECCO evidence, and phylogenetic trees to the same evidence review and figure workflow.
-You do not need every optional workflow to get a useful result. Mode B cards have optional sections designed to integrate these additional data streams.
+You do not need every optional workflow to get a useful result. Mode B cards have sections for these extra data streams. A finished card fills each section or says why the evidence is missing.
+
+For one short route from your input file to a checked result, see
+[Start with your file](docs/READER_START_HERE.md). It covers a new extraction and reading a saved results package.
 
 For a one-page map of the program's parts, inputs, and outputs, see
 [What Sapote-Mamey offers](docs/PRODUCT_MAP.md).
@@ -50,7 +49,7 @@ installation. Paste the repository link
 [github.com/alexanderjsmith1/sapote-mamey](https://github.com/alexanderjsmith1/sapote-mamey)
 into a new ChatGPT or Claude.ai conversation, state the analysis you want, and attach one or more
 antiSMASH result ZIPs. For phylogeny, attach the sequence input you actually have, such as 16S
-FASTA, an assembled genome FASTA or GenBank file, and the matching sample metadata. Raw sequencing
+(ribosomal RNA marker gene) FASTA, an assembled genome FASTA or GenBank file, and the matching sample metadata. Raw sequencing
 reads first need an appropriate assembly and quality-control route.
 
 Ask the assistant to read `AGENTS.md`, this `README.md`, and
@@ -69,12 +68,12 @@ Browser interfaces differ in file-size limits, runtimes, network access, and ses
 They can inspect inputs, interpret existing evidence, and prepare reports when those capabilities are
 available. The deterministic Mamey engine, external phylogeny programs, large databases, and long
 runs may still require a local Claude Code or Codex session, or a terminal environment. Download
-the generated reports and receipts; a chat response alone is not a validated or sealed Mamey package.
+the generated reports and receipts; a chat response alone is not a validated or sealed Mamey package (see [sealed package](docs/GLOSSARY.md#evidence-identity-portability-and-authority-vocabulary)).
 
 **Start with the file you have:**
 
-- An **antiSMASH result ZIP** → [Your first Sapote–Mamey analysis](docs/MASTER_WALKTHROUGH.md). It has a route for working through an assistant and a terminal route.
-- A **Complete_Package ZIP** from an earlier run → [Read your results](docs/READING_YOUR_RESULTS.md).
+- An **antiSMASH result ZIP** → [Your first extraction](docs/reader/01_FIRST_RUN.md). To have an assistant run it, use [the walkthrough request](docs/MASTER_WALKTHROUGH.md#route-a-ask-your-assistant-to-run-it).
+- A **Complete_Package ZIP** from an earlier run → [Read one saved package](docs/reader/03_READ_RESULTS.md).
 - A **code ZIP** → [Install](#install) below.
 
 **Status.** The program and documentation are under active development. This build has known
@@ -89,8 +88,8 @@ The program was occasionally tested with other bacterial orders, and several bas
 |---|---|---|
 | What biosynthetic regions and genes are present? | Inspect and run an antiSMASH ZIP | Region inventory, assembly/boundary context, source scans, comparator evidence, triage board, workbook, and validated package |
 | What do these proteins most closely resemble? | Export translated proteins for manual BLASTp, run an online search, or import saved results | Per-gene homology evidence to compare with antiSMASH annotations, domain architecture, and reference-cluster matches |
-| Is a pathway split across contigs? | Review the extraction's RG-GMCI fragment-linkage evidence | Candidate links supported by reference geometry, complementary gene coverage, and contig-boundary evidence, with contradictory or insufficient evidence retained |
-| Which clusters belong to related families? | Run the integrated BiG-SCAPE companion on region GBKs | Run-specific gene-cluster families in SQLite and, when available, matrix and gene-comparison widgets |
+| Is a pathway split across contigs? | Review the extraction's [RG-GMCI](docs/GLOSSARY.md#7-rg-gmci-and-the-rescue-layer) fragment-linkage evidence | Candidate links supported by reference geometry, complementary gene coverage, and contig-boundary evidence, with contradictory or insufficient evidence retained |
+| Which clusters belong to related families? | Run the integrated BiG-SCAPE companion on region GBKs (GenBank files) | Run-specific gene-cluster families in SQLite and, when available, matrix and gene-comparison widgets |
 | How do biosynthetic features vary across a tree? | Route 16S sequences or build a genome tree, then supply matched annotation tracks | Trees with metadata or strain-level heatmap overlays, plus the data and methods needed to reproduce them |
 | What does the combined evidence suggest? | Author and verify a Mode B card | A traceable gene-by-gene interpretation incorporating available protein, domain, cluster-family, and comparative evidence |
 
@@ -98,9 +97,11 @@ The program was occasionally tested with other bacterial orders, and several bas
 
 ## Beyond extraction
 
-**Optional class-evidence commands.** `gecco-crosscheck --package <package> --zip <source.zip>` runs an externally installed GECCO 0.11 adapter with the source CDS calls. `export-metabolomics --package <package> --source-zip <source.zip>` stages broad class hypotheses and exact region GBKs for operator MS review. `two-proof-rescue --package <package> --policy nonks_position_v1 --scorecard <scorecard.tsv>` enables the named alternative position rule; the default KS rule remains unchanged. All three write fresh external sibling outputs with source/policy receipts. See the [class-evidence command guide](docs/COMPANION_CLASS_EVIDENCE.md) for inputs, claim ceilings and operating choices.
+**Optional class-evidence commands.** `gecco-crosscheck --package <package> --zip <source.zip>` runs an externally installed GECCO 0.11 adapter with the source CDS (protein-coding sequence) calls. `export-metabolomics --package <package> --source-zip <source.zip>` stages broad class hypotheses and exact region GBKs for operator MS review. `two-proof-rescue --package <package> --policy nonks_position_v1 --scorecard <scorecard.tsv>` selects the named alternative position rule. The default policy is `class_routed_v1`; `ks_clade_v2` remains an explicit policy choice. All three write fresh external sibling outputs with source/policy receipts. See the [class-evidence command guide](docs/COMPANION_CLASS_EVIDENCE.md) for inputs, claim ceilings and operating choices.
 
-**Independent GECCO evidence.** GECCO is an optional, externally installed BGC caller;
+**Independent GECCO evidence.** GECCO is an optional, externally installed BGC caller.
+Before checking for it, read the [doctor write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe):
+the check writes under `runs/_doctor_probe/` in the program folder.
 `python mamey_run.py doctor --companions` reports whether its executable is detected.
 Detection is not a GECCO run or validation of its outputs. Keep its input assembly,
 sequence bindings, tool/model version and run receipt with the results. The shipped
@@ -122,11 +123,11 @@ coverage before submission; `auto-blastp` is a resumable scheduler that defaults
 Live scheduling requires `--submit --confirm-public-sequence-upload`; the acknowledgement states
 that the selected sequences may be disclosed to NCBI. Import saved hit tables with
 `ingest-blastp`. Before you revise a functional call, compare hit identity, alignment coverage,
-protein length, domains and neighbouring genes. Keep each search database and its provenance
+protein length, domains and neighboring genes. Keep each search database and its provenance
 with the result. See the [protein-search walkthrough](docs/GUIDE/02_Quick_Guide.md#protein-search-and-result-import).
 
-**Fragmented pathways.** Poor assemblies need more than an edge flag. The built-in RG-GMCI pass
-compares fragments against shared ClusterBlast/KnownClusterBlast references, checks where their
+**Fragmented pathways.** Poor assemblies need more than an [edge flag](docs/GLOSSARY.md#4-edge-status). The built-in RG-GMCI pass
+compares fragments against shared ClusterBlast/KnownClusterBlast references (antiSMASH's matches to public and known clusters), checks where their
 hits fall, and tests whether they cover complementary parts of the reference pathway. Boundary and
 terminus evidence add context; paralogous overlap and promiscuous links can weaken or reject a
 proposed rescue. "Rescue" here means recovering an interpretable candidate pathway relationship.
@@ -135,10 +136,7 @@ It does not join contigs or reconstruct missing sequence. See
 
 **External reader outputs.** For sealed inputs, report compilation, compound-family
 reports, assembly-line reports and lead pages use sibling `post_seal/<command>/`
-folders. Compiled reports retain a source snapshot and byte-bound receipt, but
-.447 pre-validation can refresh the supplied package’s mutable status receipt
-before that binding. Use an identified working copy when preserving every
-original byte, and fresh output paths when retaining earlier reports. See
+folders. Compiled reports retain a source snapshot and byte-bound receipt. The current compile-report reader detects sealed inputs and validates the original with status-receipt writes disabled; pre-seal working-package validation can still write its mutable receipt. Use fresh output paths when retaining earlier reports, and check each other reader's own mutation/output scope. See
 [post-seal readers and portable PDF routes](docs/POSTSEAL_READERS.md).
 
 **Cluster families.** `bigscape` stages region GBKs, runs an externally installed BiG-SCAPE 2.x,
@@ -149,9 +147,9 @@ and cutoff; read it alongside assembly fragmentation and protein evidence. See
 
 **Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
 placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo-mlsa` can plan or stage an
-optional five-locus MLSA screen from it. Review assembly completeness separately.
+optional five-locus MLSA (multilocus sequence analysis) screen from it. Review assembly completeness separately.
 Local reference genomes and external companion tools are needed to run the screen. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow,
-with optional ANI inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
+with optional ANI (average nucleotide identity) inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
 Mode B, assembly or bioassay tracks. Each track needs an explicit tip-to-strain mapping and its own data;
 nothing is inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
 
@@ -171,13 +169,16 @@ of material, target, time point and experiments. See the
 ### Python and dependencies
 
 You need **Python 3.12 or newer**. Run these from the extracted directory that contains
-`pyproject.toml` and `mamey_run.py`:
+`pyproject.toml` and `mamey_run.py`. Use a writable working installation. Before
+running `doctor`, read its [write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
+If `runs/_doctor_probe` already exists, move it out of `runs/` (keep it; do not delete it)
+before you run doctor. Then run:
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
-python mamey_run.py start
+python -B mamey_run.py start --no-doctor
 python mamey_run.py doctor
 ```
 
@@ -262,19 +263,19 @@ distribution you use.
 | [Google Chrome or Chromium](https://www.chromium.org/getting-involved/download-chromium/), headless | Printing HTML locus reading pages, clinker views and class heatmaps to PDF or PNG | See upstream terms for the browser you install |
 | [wkhtmltopdf](https://wkhtmltopdf.org/) | One optional HTML-to-PDF fallback for briefs and chat exports | See upstream |
 | [Graphviz](https://graphviz.org/download/) (`dot`) | Drawing workflow and cause-map diagrams | See upstream |
-| [IQ-TREE 3](https://iqtree.github.io/) (`iqtree3`) | Recognised alongside IQ-TREE 2 for genome-marker trees | See upstream |
+| [IQ-TREE 3](https://iqtree.github.io/) (`iqtree3`) | Recognized alongside IQ-TREE 2 for genome-marker trees | See upstream |
 | [CheckM2](https://github.com/chklovski/CheckM2) | Optional genome completeness and contamination checks in planned tree runs and clade decontamination | See upstream |
-| [DeepBGC](https://github.com/Merck/deepbgc) | Optional companion BGC caller in the companion-tool registry; one activity adapter uses its Pfam random-forest model | MIT (installed package metadata) |
+| [DeepBGC](https://github.com/Merck/deepbgc) | Optional companion BGC caller, not run by the core workflow; its Pfam random-forest activity interface is declared only and is not operational | MIT (installed package metadata) |
 | [BiG-SLiCE](https://github.com/medema-group/bigslice) | Optional queries against a BiG-SLiCE database (`tools/bigslice_query.py`) | See upstream |
 | [cblaster](https://github.com/gamcil/cblaster) | Optional homologous gene-cluster search, registered as a companion tool | See upstream |
-| [RiPPER](https://github.com/streptomyces/ripper) | Optional, experimental RiPP discovery adapter (`tools/ripper_*`); nothing runs without explicit opt-in | See upstream |
+| [RiPPER](https://github.com/streptomyces/ripper) | Optional, experimental RiPP (ribosomally synthesized and post-translationally modified peptide) discovery adapter (`tools/ripper_*`); nothing runs without explicit opt-in | See upstream |
 | [TriMap](https://github.com/eamid/trimap) | Optional alternative embedding for protein-space figures | Apache-2.0 (installed package metadata) |
 | [SPAdes](https://github.com/ablab/spades) | Not run by the bundle; contig names in SPAdes style (`NODE_…_length_…`) are parsed from assemblies made upstream | See upstream |
 | [Swift](https://www.swift.org/install/) (`swiftc`, macOS) | Optional on-device text recognition in `tools/figure_render_qc.py` | Apache-2.0 for the Swift toolchain; see upstream |
 | [curl](https://curl.se/) | Web requests in the BLASTp crawl tools and the NCBI 16S search helper | curl license (MIT-style) |
 | [pyGenomeViz](https://github.com/moshi4/pyGenomeViz) | Optional scriptable BGC locus figures (SVG/PDF), registered as a companion tool | See upstream |
 | [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) | On request only: genome taxonomy against GTDB; needs the ~100 GB GTDB reference database and network access to fetch it | See upstream |
-| [CORASON](https://github.com/nselem/corason) | Optional query-centred conserved-gene-core locus comparison; the registry pins a reviewed source and never installs or runs it | See upstream |
+| [CORASON](https://github.com/nselem/corason) | Optional query-centered conserved-gene-core locus comparison; the registry pins a reviewed source and never installs or runs it | See upstream |
 | [NPLinker](https://nplinker.github.io/nplinker/latest/) | Optional linking of genome-side families with your own MS observations; links need separate review | See upstream |
 | [PRISM](https://prism.adapsyn.com/) | Optional class-level genome interpretation through its web service; no product prediction is adopted | See upstream terms |
 | [GNPS / MASST](https://ccms-ucsd.github.io/GNPSDocumentation/toolindex/) | Optional MS/MS networking and similarity that you run; Mamey submits nothing | See upstream terms |
@@ -343,7 +344,7 @@ download these databases or install the external binaries. Run
 ## Quickstart
 
 Replace the example paths and metadata with values you have verified from your input. Run from
-the bundle root. The package path below assumes `--strain EXAMPLE` and `--outdir runs/`.
+the bundle root. The package path below assumes `--strain EXAMPLE` and that output root.
 
 ```bash
 python mamey_run.py inspect path/to/antismash_result.zip
@@ -351,30 +352,34 @@ python mamey_run.py run --strain EXAMPLE \
   --input-zip path/to/antismash_result.zip \
   --taxonomy 'Genus sp.' --source 'recorded isolation source' \
   --mode gold --json-evidence bounded --brief none --locus-maps off \
-  --reference-completion off --require-workbook --outdir runs/
-python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
-python mamey_run.py explain runs/EXAMPLE/package
+  --reference-completion off --require-workbook --outdir /path/to/project/runs
+python mamey_run.py validate /path/to/project/runs/EXAMPLE/package --workbook-strict
+python mamey_run.py explain /path/to/project/runs/EXAMPLE/package
 ```
 
-This first run requests tables and a workbook, defers the brief and locus maps, and turns
+`--mode gold` is the default analysis mode. This first run requests tables and a workbook, defers the brief and locus maps, and turns
 reference-completion searches off. `--require-workbook` fails the run if workbook production
 fails; `--workbook-strict` makes missing or invalid workbook content fail validation. Optional
 searches and figures are separate follow-on work.
 
 Before you interpret anything, read the run status, the issue log and the output paths.
 Validation checks package structure and the encoded evidence gates. It does not establish
-biological identity, production, activity, or owner acceptance.
+biological identity, production or activity.
 
-If your session has a time limit, add `--capped-session` to `run`. It forces `--brief none` and
-`--json-evidence off`, requires the workbook, and turns off automatic locus maps unless you
-enable them. If you want bounded JSON evidence instead, leave out `--capped-session`, use
-`--json-evidence bounded`, and give it enough runtime. The old `--chatgpt-safe` spelling still
+`--capped-session` reduces work so a run is more likely to finish in a short session. It is
+not a timeout. It forces `--brief none` and `--json-evidence off`, requires the workbook, and
+turns off automatic locus maps unless you enable them. For bounded JSON evidence, leave it out,
+use `--json-evidence bounded` and allow enough runtime. The old `--chatgpt-safe` spelling still
 works only as a deprecated alias for `--capped-session`.
 
-Once the package validates, render the deferred figures (needs the figure dependencies):
+To render the deferred figures, first identify a working copy of the validated package
+and keep the original ZIP and hashes. This command can refresh package integrity records;
+an external image destination does not make it read-only. Follow the
+[post-seal write boundaries](docs/POSTSEAL_READERS.md#commands-that-write-into-the-package)
+and use the working copy’s actual path (figure dependencies required):
 
 ```bash
-python mamey_run.py render-all-figures --package runs/EXAMPLE/package
+python mamey_run.py render-all-figures --package path/to/working-copy/package
 ```
 
 The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review, cohort work and the move
@@ -393,9 +398,7 @@ material for Sapote judgment; it is not a finished authored card.
 
 ## Using with an AI assistant
 
-[AGENTS.md](AGENTS.md) is the portable operating contract for coding assistants. Have the
-assistant run `python mamey_run.py start` from the extracted bundle to confirm the current
-version and workflow. `CLAUDE.md` is a byte-identical copy of AGENTS.md for assistants that look
+[AGENTS.md](AGENTS.md) is the portable operating contract for coding assistants. For an authorized execution task, `python mamey_run.py start` reports the loaded version and workflow. For inspection or document review, read the files and bind the source without installing or running the reviewed code. `CLAUDE.md` is a byte-identical copy of AGENTS.md for assistants that look
 for that filename; it defines no separate startup path, and other assistants are not assumed to
 find it. Point ChatGPT, Gemini, or any other assistant at `AGENTS.md`, or supply it through that
 product's instruction mechanism. `skills/sapote-mamey/SKILL.md` holds the detailed Mode B and
@@ -423,7 +426,7 @@ preserve source attribution.
 
 ## Scientific integrity
 
-The interpretive layer is bound by claim-safety rules enforced in code (`tools/claim_safety_linter.py`, `mamey/claim_safety_gate.py`, and the Mode B structure gate): biosynthetic *capacity* is never reported as confirmed *production*; KCB/BLASTp similarity is never rendered as identity; bioactivity is extract-level, never per-BGC; and no observation is stated that isn't tied to a real result.
+Report the exact metric and evidence scope: sequence identity is an alignment measurement, while KnownClusterBlast (KCB) scores and reference matches do not establish compound identity. A BGC prediction alone does not demonstrate production or activity; stronger attribution requires experimental evidence specifically linked to that locus. The linter, package claim-safety gate and Mode B structure gate provide scoped heuristic checks, not universal enforcement or scientific certification. Retain findings and source review for each claim.
 
 ## Citation
 
@@ -440,7 +443,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.457 / engine 1.9.177 · build 20261023v97457a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.458 / engine 1.9.177 · build 20261026v97458a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

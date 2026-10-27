@@ -36,7 +36,7 @@ glab<-vapply(groups,function(g) if (nchar(g)>14) paste(strwrap(g,width=14),colla
 # groups that are genus names (an explicit list from the layout profile or --italic-groups) are set in italics
 ital<-readLines(a[10]);glab<-ifelse(groups %in% ital,paste0("<i>",glab,"</i>"),glab)
 xlab<-setNames(paste0(glab,"<br><span style='color:",SUB,"'>n = ",nh[groups],"</span>"),groups)
-leg<-setNames(ifelse(grepl("^No 16S",genera),genera,paste0("<i>",genera,"</i>")),genera)
+leg<-setNames(ifelse(grepl("^No 16S",genera)|grepl("aceae( bacterium)?$",genera),genera,paste0("<i>",genera,"</i>")),genera)
 p<-ggplot(d,aes(x=group,y=n,fill=genus))+
  geom_col(width=0.72,colour="white",linewidth=0.12,position=position_stack(reverse=TRUE))+
  scale_fill_manual(values=PAL,breaks=genera,labels=leg,name=a[9],guide=guide_legend(ncol=2))+

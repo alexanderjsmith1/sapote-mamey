@@ -1,6 +1,10 @@
 # Screening exploration with ggplot2
 
-This optional renderer turns admitted CSV tables into exploratory screening and biosynthetic-annotation figures. It does not select source databases, resolve cohort identities, assign activities to genes, or modify a sealed analysis package. Use a separate output directory.
+Use this optional renderer when you already have screening data or biosynthetic-annotation
+summaries in the CSV schemas listed under **Input tables**. Prepare only the tables
+for the views you want, run the command below into a new output directory, then
+inspect the images and their separate `_caption.txt` files. The renderer consumes
+those tables; source selection, cohort identity and admission stay upstream.
 
 Requirements: R with ggplot2 and patchwork. The standard R PDF device creates vector PDFs without Cairo or X11. PNGs use the installed R bitmap device. No network calls or package installation occur.
 
@@ -8,7 +12,13 @@ Requirements: R with ggplot2 and patchwork. The standard R PDF device creates ve
 Rscript tools/render_screening_exploration.R path/to/admitted_tables path/to/new_figures
 ```
 
-Existing figure names are refused unless `--overwrite` is supplied explicitly. Each available supported table triggers its figure. A concentration table can contain multiple source-labelled populations; each receives separate full-range and zoomed PNG/PDF pairs. No supported tables is an error.
+Each available supported table triggers its view. Without `--score-0-100`, each
+distinct concentration `dataset` produces full-range and `_zoom` PNG/PDF pairs;
+organisms appear as facets within them. With `--score-0-100`, each dataset instead
+produces one `_scored` PNG/PDF pair, and `concentration_scored_data.csv` records raw
+and scored values. Each view also has a separate caption file. Existing figure
+names are refused unless `--overwrite` is supplied explicitly. No supported tables
+is an error.
 
 ## Output and validation limits
 
@@ -44,17 +54,29 @@ Use `--score-0-100` only when the assay scoring convention calls for it. Values 
 
 ## Mandatory standalone delivery
 
-A preview is not a complete figure delivery. Every delivered figure must have its caption, plotted data, source receipt, editable R code, dependency versions and reproduction instructions. Run the companion packager for each final figure; it fails when a required companion is absent or empty. Put only that figure's source tables in the input data directory.
+A preview is not a complete figure delivery. Every delivered figure must have its
+caption, plotted data, source receipt, editable R code, dependency versions and
+reproduction instructions. Run the companion packager for each final figure;
+it refuses a missing or empty required companion. Supply the generated caption
+and your separately prepared source receipt. Put only that figure's source tables
+in the input data directory. For the overlap view:
 
 ```sh
-python tools/package_screening_figure.py --figure-dir figures --figure-stem 01_screening_overlap --data-dir overlap_inputs --caption caption.txt --receipt receipt.json --renderer tools/render_screening_exploration.R --session-info figures/R_SESSION.txt --out standalone/overlap
+python tools/package_screening_figure.py --figure-dir figures --figure-stem 01_screening_overlap --data-dir overlap_inputs --caption figures/01_screening_overlap_caption.txt --receipt receipt.json --renderer tools/render_screening_exploration.R --session-info figures/R_SESSION.txt --out standalone/overlap
 ```
 
 The packager requires nonempty named files, at least one top-level CSV and a receipt that parses as JSON. It does not validate receipt schema, source identities/hashes, caption methods, PNG/PDF validity or a successful reproduction. A syntactically valid empty receipt object is not source admission. It copies every top-level CSV from `--data-dir`; use a minimal, dedicated directory with only this figure's required tables, including context when used. It also copies the renderer's adjacent `sapote_figure_theme.R`. Existing packet/ZIP destinations are refused, but writes after directory creation are sequential and can leave a partial packet.
 
 The manifest hashes copied packet files; it does not automatically reopen their source locators or verify the manifest itself against a trusted external pin. Preserve upstream admission evidence in place, inspect the generated packet/manifest and run an authorized reproduction in a fresh destination before calling it portable in the selected environment. Reproduction creates its own outputs; it is not performed by packaging. Extra input tables can regenerate additional figures, so supplying only the intended input set matters.
 
-For scored concentration figures, also supply `--score-0-100` to the packager. The output folder and ZIP contain the figure, data, caption, receipt, `render.R`, `reproduce.R`, instructions, session record and checksums. Extract the ZIP and run `Rscript reproduce.R` from any working directory. No original source path is required at runtime.
+For scored concentration figures, also supply `--score-0-100` to the packager.
+The output folder and ZIP contain the figure, data, caption, receipt, `render.R`,
+`reproduce.R`, shared theme, instructions, session record and checksums. After
+extracting the ZIP, run `Rscript /path/to/extracted/packet/reproduce.R` from any
+working directory, replacing the path with the actual extracted packet path.
+The runner uses the packet's data and scripts and writes `reproduced/` beside
+them. R, ggplot2 and patchwork must already be available; original source paths
+are not read by the runner.
 
 ## Bundle integration boundaries
 

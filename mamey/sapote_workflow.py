@@ -411,8 +411,10 @@ def run(pkg, deliv, strict=False):
         results[sid] = {"title": title, "mandatory": mand, "predecessor": pred,
                         "status": status, "receipt": receipt, "gate": hint}
         order.append(sid)
+    # N/A counts as complete here, as it does for predecessors above: W10 (session close) is behavioral,
+    # always N/A, and counting it incomplete made --strict fail on every package.
     ctx["mandatory_incomplete"] = [s for s in order
-                                   if results[s]["mandatory"] and results[s]["status"] != PASS]
+                                   if results[s]["mandatory"] and results[s]["status"] not in (PASS, NA)]
     ctx["passed"] = [s for s in order if results[s]["status"] == PASS]
     return ctx, results, order
 

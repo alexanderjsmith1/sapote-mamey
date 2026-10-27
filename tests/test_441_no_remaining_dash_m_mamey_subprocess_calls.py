@@ -82,7 +82,7 @@ def test_callers_use_bundle_pinned_runner(tool, runner_literal):
     assert runner_literal in src, f"{tool} should reference {runner_literal}"
 
 
-def test_intake_harness_already_fixed_by_88fdad06():
+def test_intake_harness_uses_current_bundle_entrypoint():
     src = (ROOT / "tools/intake_harness.py").read_text()
     assert 'mamey_run.py' in src or "-m" not in src[src.index("run_monitored"):], (
         "intake_harness.py should use mamey_run.py ( fix)"

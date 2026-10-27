@@ -1,18 +1,16 @@
 # Extended Citation Library — Format Exemplar (Path A)
 
-**Historical v9.7.96 format example; current task and evidence admission rules apply.**
+**Historical v9.7.96 format example; current task and evidence admission rules apply.** The three-bucket vocabulary retained below is historical. Current digest labels are Verified / Partial / Policy / GenBank, with the definitions in [the citation-review protocol](../docs/BERT_MODE_PROTOCOL.md). Preserve the citation store’s separate binding/adoption states; do not map an illustrative VERIFIED heading to SOURCE_VERIFIED or OWNER_ACCEPTED.
 
 The example's VERIFIED labels are illustrative, not a current verification receipt. Before reuse, confirm each cited statement against its actual source. Replace every historical strain/alias shorthand with `strain / full node-or-contig / region / BGC alias` copied from a bound record. If the node/region binding is unavailable, retain an identity hold rather than reconstructing it.
-**[EXAMPLE: entries below are illustrative of the FORMAT. Every real entry must be Bert-Mode verified against PubMed/DOI this session — see `docs/BERT_MODE_PROTOCOL.md`.]**
+**[EXAMPLE: entries below are illustrative of the FORMAT. Check every real entry against PubMed or its DOI before use — see `docs/BERT_MODE_PROTOCOL.md`.]**
 Source reference: Extended BGC Guide Path A, Actinomycetes Project, May 2026.
 
 ---
 
 ## Purpose
 
-The citation library is the deliverable that turns a strain's MIBiG hits and
-compound-class predictions into a verified, manuscript-ready bibliography. One
-entry per compound family present in the dataset. It complements the Layer B
+A citation library organizes reviewed reference literature beside the dataset's comparator or class hypotheses. One entry may cover a named reference family, but a similarity anchor does not establish that family's chemistry in the query strain. Bibliographic identity, claim support and applicability need separate recorded review before manuscript use. It complements the Layer B
 literature section (§4.8) and supplies the "Key references" blocks that bench
 guides cite.
 
@@ -51,7 +49,7 @@ Mechanism / biosynthetic logic:
   verbatim quote from the source.]
 
 Verified references:
-  [Primary — BGC characterisation]
+  [Primary — BGC characterization]
   [Full author list] ([year]). [Title]. [Journal] [vol(issue):pages].
   DOI: https://doi.org/[doi] | PMID: [pmid] | PMCID: [pmcid] |
   PubMed: https://pubmed.ncbi.nlm.nih.gov/[pmid]/ |
@@ -101,7 +99,7 @@ Verified references:
   peptides. J Am Chem Soc 141(20):8228–8238.
   DOI: https://doi.org/10.1021/jacs.9b01519 | PMID: 31059252 |
   Evidence: Experimental — RODEO 2.0 mapping; freyrasin and thermocellin
-  characterised; class named and defined.
+  characterized; class named and defined.
 
 PNAS-style formatted citation:
   Clark KA, Bushin LB, Seyedsayamdost MR (2019) Bioinformatic mapping of radical
@@ -133,6 +131,6 @@ When a dataset has many families, build in priority tiers rather than all at onc
 ## Closing compliance note (mandatory)
 
 End every citation library with the Bert Mode compliance note (see
-`docs/BERT_MODE_PROTOCOL.md`) stating what was verified this session versus
+`docs/BERT_MODE_PROTOCOL.md`) stating what was verified versus
 transcribed, and listing any Unverified leads with the exact search needed to
 close them.

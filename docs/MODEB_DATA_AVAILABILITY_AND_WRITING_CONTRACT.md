@@ -1,6 +1,6 @@
 # Mode B data-availability and writing contract
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+Run the examples from the bundle root with `python mamey_run.py`.
 
 
 **Status:** normative pre-authoring contract.  
@@ -72,13 +72,13 @@ The command writes fixed filenames under `--out`. Existing destinations are acce
 
 The draft-eligibility check applies to the supplied inventory. It does not independently compare assembly/sequence hashes, verify source-manifest authority or establish biological correctness/completeness. Those source bindings remain separate required checks.
 
-The normative promotion requirements below exceed the scanner’s implemented indicator. Its promotion_gate checks only blastp_per_gene binding at alias-or-better and an aggregate CURRENT flag. The aggregate selects the strongest binding but treats any observation marked CURRENT as current, even a weaker/unbound row; record counts sum all observations, not only admitted rows. It does not establish every admitted record’s freshness, sequence equality, all-channel readiness, complete roster or finished-profile acceptance. Apply the independent selected-profile checks before promotion.
+The scanner's `promotion_gate` checks less than this contract requires. It checks only that `blastp_per_gene` is bound at alias level or better and marked CURRENT. Apply the selected profile's checks before promotion.
 
 Promotion remains held while required evidence is `AVAILABLE_UNINGESTED`, `NEAR_READY_ACTIVE_RUN`, `PRACTICALLY_ATTAINABLE`, stale, or freshness-unverified. An absent or `OBSERVED_UNBOUND` row may remain as a reasoned terminal limitation only after readiness is adjudicated as `STRUCTURALLY_UNAVAILABLE` or `NOT_APPLICABLE`, the selected profile's matrix and roster checks pass, and independent content review accepts the claim ceiling. Such a row supplies no bound protein/function evidence. This preserves the ratified separation between document state and evidence state; it does not waive evidence requirements. A filename or modification time does not establish freshness; admitted search evidence must explicitly state `CURRENT` in a normalized evidence index after provenance review.
 
 ### Finished-current-evidence BLASTp matrix (default §4; current50 v2 §50)
 
-The default full48 and its legacy `FINISHED_CURRENT_EVIDENCE` alias use §4. A selected `FINISHED_FULL50_CURRENT50_V2` card uses §50; keep the same complete roster and channel separation there. The selected evidence section must contain a subsection titled exactly:
+The default full48 and its legacy `FINISHED_CURRENT_EVIDENCE` alias use §4. A selected `FINISHED_FULL50_CURRENT50_V2` card uses §50; keep the same complete roster and channel separation there. The selected evidence section must contain the subsection `#### Complete named-match, channel-separated table`. The older heading below is still accepted:
 
 `#### Complete channel-separated BLASTp matrix`
 

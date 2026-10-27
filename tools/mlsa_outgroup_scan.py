@@ -108,7 +108,7 @@ def bipartitions(root, restrict=None):
     """Set of non-trivial bipartitions as frozensets of the SMALLER side, restricted
     to `restrict` tips if given. Trivial (size 0/1 or all) splits are dropped. Pure."""
     all_tips = set(root.leaves())
-    keep = (all_tips & set(restrict)) if restrict else all_tips
+    keep = (all_tips & set(restrict)) if restrict is not None else all_tips
     parts = set()
 
     def collect(n):
@@ -185,8 +185,15 @@ def main(argv=None):
     if args.build:
         if not args.ingroup_dir or not args.outgroup:
             ap.error("--build needs --ingroup-dir and at least one --outgroup")
+        tags = [os.path.splitext(os.path.basename(path))[0] for path in args.outgroup]
+        if len(set(tags)) != len(tags):
+            sys.stderr.write("DUPLICATE_OUTGROUP_LABEL: outgroup filenames need distinct output labels\n")
+            return 1
         os.makedirs(args.workdir, exist_ok=True)
         built = _run_builds(args.ingroup_dir, args.outgroup, args.workdir, args.threads)
+        if len(built) != len(args.outgroup):
+            sys.stdout.write(f"  verdict: INSUFFICIENT — {len(built)} of {len(args.outgroup)} requested outgroup builds produced trees\n")
+            return 1
         tree_files = list(built.values())
         labels = list(built.keys())
     else:
@@ -196,26 +203,37 @@ def main(argv=None):
         labels = [os.path.basename(os.path.dirname(t)) or os.path.basename(t)
                   for t in tree_files]
 
+    identities = [(stat.st_dev, stat.st_ino) for stat in (os.stat(tf) for tf in tree_files)]
+    if len(set(identities)) != len(identities):
+        sys.stderr.write("DUPLICATE_TREE_INPUT: give distinct tree files\n")
+        return 1
+    if len(set(labels)) != len(labels):
+        labels = [f"{index + 1}:{label}" for index, label in enumerate(labels)]
     texts = {lab: open(tf).read() for lab, tf in zip(labels, tree_files)}
     emit("=== MLSA outgroup-stability scan (ingroup RF; 0 = identical topology) ===")
     labs = list(texts)
     worst = 0
+    unmeasured_pairs = 0
     for i in range(len(labs)):
         for j in range(i + 1, len(labs)):
             rf, nsh, mx = rf_distance(texts[labs[i]], texts[labs[j]])
             norm = (rf / mx) if mx else 0.0
             worst = max(worst, norm)
+            unmeasured_pairs += int(mx == 0)
             flag = "  <-- ingroup moves" if rf else ""
             emit(f"  {labs[i]} vs {labs[j]}: RF={rf} / max {mx} "
-                  f"(normalised {norm:.2f}, {nsh} shared ingroup tips){flag}")
-    if not any(i < j for i in range(len(labs)) for j in range(len(labs)) if i < j):
-        emit("  (need >=2 trees to compare)")
-    else:
-        verdict = ("STABLE — ingroup topology is robust to outgroup choice"
-                   if worst == 0 else
-                   f"CHECK — ingroup shifts with outgroup (max normalised RF {worst:.2f}); "
-                   "report deep splits cautiously")
-        emit(f"  verdict: {verdict}")
+                  f"(normalized {norm:.2f}, {nsh} shared ingroup tips){flag}")
+    if len(labs) < 2:
+        emit("  verdict: INSUFFICIENT — need >=2 trees to compare")
+        return 1
+    if unmeasured_pairs:
+        sys.stdout.write(f"  verdict: INSUFFICIENT — {unmeasured_pairs} pair(s) have no comparable ingroup splits\n")
+        return 1
+    verdict = ("STABLE — ingroup topology is robust to outgroup choice"
+               if worst == 0 else
+               f"CHECK — ingroup shifts with outgroup (max normalized RF {worst:.2f}); "
+               "report deep splits cautiously")
+    emit(f"  verdict: {verdict}")
     return 0
 
 

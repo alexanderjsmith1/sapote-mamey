@@ -57,6 +57,9 @@ def main(argv=None) -> int:
     total = len(declared_files) + len(declared_globs)
     emit(f"LICENSE-DOCS: {total} grant(s) declared "
           f"({len(declared_files)} file(s), {len(declared_globs)} dir-glob(s)), {len(missing)} absent")
+    if total == 0:   # a grant file whose lines no pattern recognizes is not a pass
+        sys.stdout.write("check_license_docs: FAIL — no grants recognized in LICENSE-DOCS.txt\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return 1
     if missing:
         emit("check_license_docs: FAIL — granted but not shipped:")
         for m in missing:

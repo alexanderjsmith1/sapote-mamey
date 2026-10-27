@@ -1,3 +1,5 @@
+> Historical release notes. Current release status: [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
+
 # Sapote–Mamey v9.7.22 — release notes (builds -i … -p)
 
 Engine `mamey 1.9.30`. Four tiers: CODE, CODE-analysis-free, SID-public (public; AS-### free) and

@@ -1,15 +1,33 @@
 # Data home: where results live, how they get there, how to find them
 
-Every result a paper or report relies on lives in one folder: the user's **Strain Master**.
-The bundle ships the commands that create it, fill it, check it and read it.
-Any person or assistant follows the same route, so everyone finds the same file.
+Use a **Strain Master** to keep the records and results behind a paper together,
+with source paths and SHA-256 values. Large raw inputs can stay in configured raw
+stores. Working analyses stay in working folders until their results are submitted.
+
+To find an existing input, start with [the lookup steps](#looking-for-data-before-making-any).
+To set up a master, use [Starting a master](#starting-a-master). To add a finished
+result, follow [the inbox route](#the-one-way-in); copying it directly into a data
+folder bypasses that record.
+
+## Looking for data before making any
+
+1. The area README, then `LAYOUT.md`.
+2. For an existing master, replace the placeholders in `python mamey_run.py strain-master where --master "<path to the existing master>" --type "<folder or kind>" --strain "<ID>"`. Omit `--master` only when `SAPOTE_STRAIN_MASTER` already names that master. The result reports the folder, its README rows, the rows naming the strain, the registered tables that mention it, and unregistered files with its ID.
+3. When no registered record matches, `where` lists what it finds in the configured raw stores; it does not pick those files for analysis. `strain_data_home` prefers master-registered inputs, then recognized legacy homes. For legacy antiSMASH results it prefers raw results, then canonical flavored results, then a package copy. Two canonical ZIPs with different bytes and no named flavor are ambiguous; byte-identical copies resolve.
+4. The asset registry, before any download.
+5. Only then create or fetch something new, and submit the result.
+
+## Starting a master
+
+- New: `python mamey_run.py strain-master init --master <empty folder> --name "<name>" [--raw-store <path>]`. It writes the layout, a README in every folder, `LAYOUT.md`, `CHANGELOG.md`, the inbox ledger and the settings.
+- Existing: `python mamey_run.py strain-master adopt --master <folder>` writes only `strain_master.json`. Preview first with `check --master <folder> --layout <draft LAYOUT.md> --config <draft settings>`, then write the master's own `LAYOUT.md`.
 
 ## The homes
 
 | Home | What belongs there | Who writes |
 |---|---|---|
 | The bundle | Code, docs and shipped reference seeds. Never study data. Post-seal output never goes inside a sealed bundle. | Release owner, at a cut |
-| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after a different chat's `verify` |
+| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after `verify` by a different id (`--chat`) |
 | Record homes | The tables where records are edited (strain metadata, hosts, exclusions, rulings). The master holds copies of them. | An accepted record edit through the inbox, with a backup and a CHANGELOG line |
 | Raw stores | Large raw inputs filed once and never edited: antiSMASH ZIPs of record, genome FASTA, sealed packages too large to copy. Named in the master's settings. | Intake, once |
 | Asset registry | Machine-level tool assets: HMM sets, BLAST and MIBiG databases, conda environments. Not study data. | Whoever installs the asset |
@@ -20,7 +38,7 @@ Any person or assistant follows the same route, so everyone finds the same file.
 1. **One home per fact.** Each field has one authoritative table, its record. Every other table that shows it is built from the record by a script and never edited by hand.
 2. **The master holds copies, never edits.** Records are edited at their home, then the copy is submitted again.
 3. **A fixed layout.** The top level is `00 Inbox` and `01 Strains` to `07 Papers`. Each area allows only the subfolders in the master's `LAYOUT.md`. The check fails on anything else.
-4. **One way in.** A result is submitted to `00 Inbox/`. A different chat verifies it against a fixed checklist. Only then is it applied, which writes its README line and a CHANGELOG line. Every step is booked in `00 Inbox/INBOX_LEDGER.tsv`.
+4. **One way in.** A result is submitted to `00 Inbox/`. Someone with a different `--chat` id verifies it against a fixed checklist. Only then is it applied, which writes its README line and a CHANGELOG line. Every step is booked in `00 Inbox/INBOX_LEDGER.tsv`.
 5. **One way to look.** Read the area README, then `LAYOUT.md`, or run `strain-master where`. The bundle's resolver reads the same layout.
 6. **Check every round.** Run `strain-master check` after every import and before anything is handed over, and report its RESULT line.
 
@@ -45,7 +63,7 @@ Root files: `00 README.md`, `LAYOUT.md`, `CHANGELOG.md`, `strain_master.json`. A
 
 | Output | Folder | Rule |
 |---|---|---|
-| antiSMASH result ZIP | `04 Gene clusters/antiSMASH` (kind `antismash_zip`) | Named `<strain>.zip`. A genome's identity is the SHA-256 of this ZIP. Flavored results go in `strict/`, `relaxed/` or `loose/`. Too large to copy: leave it in a raw store. |
+| antiSMASH result ZIP | `04 Gene clusters/antiSMASH` (kind `antismash_zip`) | Named `<strain>.zip`. The ZIP SHA-256 identifies these archive bytes; retain assembly accession/version bindings separately. Flavored results go in `strict/`, `relaxed/` or `loose/`. Too large to copy: leave it in a raw store. |
 | Sealed package | `04 Gene clusters/Mamey packages` (kind `mamey_package`) | The Complete_Package ZIP exactly as sealed. Never extract or edit inside. |
 | Mode B card | `04 Gene clusters/Mode B cards` (kind `modeb_card`) | The authored card and its `verify-modeb` result, both submitted. |
 | BLASTp evidence | `04 Gene clusters/BLASTp evidence` (kind `blastp_evidence`) | Raw Hit Table CSV or XML2 as downloaded, before any summary. |
@@ -53,7 +71,7 @@ Root files: `00 README.md`, `LAYOUT.md`, `CHANGELOG.md`, `strain_master.json`. A
 | Tree | `05 Trees/<tree name>` | Only a complete build: `.iqtree`, `.log` with "Total wall-clock time", `.contree`, `.treefile`. |
 | Figure | `06 Figures/<figure family>` | Render, plotted data and caption, from a sealed route. |
 
-A kind name can stand in for the folder in `--folder`. A master's settings may move any kind.
+A kind name can stand in for the folder in `--target` or a submission manifest's `folder` column. A master's settings may move any kind.
 
 ## Naming
 
@@ -64,6 +82,7 @@ A kind name can stand in for the folder in `--folder`. A master's settings may m
 ## The one way in
 
 ```bash
+# Replace placeholders with the existing master path.
 export SAPOTE_STRAIN_MASTER="<path to the master>"     # or pass --master every time
 python mamey_run.py strain-master submit --chat <your id> --topic "ANI tables" --target "03 Genomes/ANI" \
   --summary "values behind the ANI figure" --check "26 genomes, 3 rows each" \
@@ -79,7 +98,7 @@ Files bound for different folders go in one submission with `--manifest <tsv>` (
 
 The verifier's checklist:
 
-1. The files match their sources by SHA-256. Run by `verify`.
+1. The staged files match their submitted SHA-256 values. `verify` also compares each original source when it is still available; otherwise that source comparison remains unverified.
 2. The stated counts reproduce from the source files, by recount.
 3. Every strain, contig, region and alias is copied from one source record.
 4. No value contradicts a record or a ruling. A contradiction stops the submission until the owner rules.
@@ -106,7 +125,7 @@ python mamey_run.py strain-master submit --kind import-tree --chat <your id> --t
 - `submit` walks the folder. It leaves out hidden names, `~$` lock files, `*.bak*` backups, symlinks and every folder named by `--exclude`. Each file is staged under `00 Inbox/<id>/tree/` with a MANIFEST.tsv row. An empty tree is refused. A `Superseded/` folder inside the tree is refused; leave it out with `--exclude Superseded`.
 - `apply` places each file through `store` into `<target>/<tree-dest>/<its subfolder>`. Folders deeper than the area subfolder are free under the layout. Each new folder gets a README and a line in its parent's README.
 - A file already in the target with different bytes is refused, and nothing is applied, unless the submission was made with `--replace`. The old copy then moves to `Superseded/` beside it, as `store` does. A file already there with the same bytes is left as it is.
-- `apply` checks the whole write plan before it writes anything: every destination, the folders on the way to it, every README that gets a row and every `Superseded/` path. A symlink anywhere below the master root, or a path that resolves outside it, is refused with `OUTSIDE_ROOT`. A refusal leaves the master and the staged files as they were, so the same submission can be applied once the cause is fixed.
+- `apply` checks the whole write plan before it writes anything: every destination, the folders on the way to it, every README that gets a row and every `Superseded/` path. A symlink anywhere below the master root, or a path that resolves outside it, is refused with `OUTSIDE_ROOT`. A preflight refusal leaves the master and staged files unchanged. Subsequent writes are sequential; after an I/O failure, inspect partial destinations and bookkeeping before retrying.
 - `--link` stages and stores hard links instead of copies, for large trees on the same volume. Across volumes it is refused (`LINK_ACROSS_VOLUMES`). The submission holds a `LINKED` marker. The README still records each SHA-256 and origin. Edit neither copy.
 - A folder in the tree that carries its own `README.md` keeps it as a byte copy, never appended to. That folder's files are listed in the parent folder's README under a section ``### `<name>/` (its own README.md is a byte copy; listing added by inbox <id>)``. The tree's own top-level `README.md` needs `--tree-dest`, so it never replaces the target folder's README.
 - A folder's own rows and new-folder lines always go above its first byte-copy section, so the check reads them as the folder's own.
@@ -118,23 +137,15 @@ python mamey_run.py strain-master submit --kind import-tree --chat <your id> --t
 - A replaced copy moves to `Superseded/<date>_<name>` in the same folder, with a row under "`Superseded/` holds earlier copies".
 - The original stays where it was. Its path is recorded relative to the folder that holds the master when it lies there.
 
-## Looking for data before making any
-
-1. The area README, then `LAYOUT.md`.
-2. `python mamey_run.py strain-master where --type <folder or kind> --strain <ID>`: the folder, its README rows, the rows naming the strain, the registered tables that mention it, and unregistered files with its ID.
-3. When the master holds nothing for the strain, `where` reports what each raw store holds. `mamey/strain_data_home.py` looks in the master first and then the legacy homes. For antiSMASH it prefers a raw result, then the flavored canonical home, and only then a package, and it says which (`antismash_source_kind`). Two different flavors give no answer until a flavor is named.
-4. The asset registry, before any download.
-5. Only then create or fetch something new, and submit the result.
-
 ## The self-check
 
 `python mamey_run.py strain-master check` reads only. It checks:
 
 1. no junk files (FAIL);
-2. the top level and area subfolders against `LAYOUT.md` (FAIL). `LAYOUT.md` may be a table of entries (as `init` writes it, which also checks root files) or a list of allowed folders;
+2. the top level and area subfolders against `LAYOUT.md` (FAIL). `LAYOUT.md` may be a table of entries (as `init` writes it, which also checks root files and warns on an allowed folder missing on disk) or a list of allowed folders;
 3. every file and folder is named in a README (WARN);
 4. every README with a `| File | SHA-256 |` table lists exactly the files on disk, with matching SHA-256 (FAIL);
-5. each CHANGELOG entry still matches its file, so a copy changed by hand is caught (FAIL);
+5. the latest recognized CHANGELOG digest for each logged path matches its current file (FAIL); a missing CHANGELOG is WARN;
 6. inbox bookkeeping: every submission has a ledger row, no one verified their own, nothing ACCEPTED waits a day or more, each row's folder is where its status says (FAIL);
 7. every path in backticks in a README exists (WARN);
 8. copies match their sources: a README row whose original file still exists has its SHA-256 (WARN, because a source may move on; re-import the copy through the inbox).
@@ -153,7 +164,7 @@ Study-specific checks (paper numbers against the data, figure renders) stay in t
 |---|---|
 | `schema` | `sapote.strain-master.v1` |
 | `name` | Display name |
-| `raw_stores` | Raw-data homes searched when the master holds nothing for a strain; relative to the master or absolute |
+| `raw_stores` | Raw-data roots inspected by `where` when no matching registered record is found; relative to the master or absolute. Discovery uses recognized layouts. Returned paths must be bound explicitly for the selected analysis. |
 | `folders` | Output kind to folder; overrides the table above |
 | `checksum_readmes` | Which READMEs the checksum check reads (glob patterns; default all) |
 | `coverage_exempt` | Regular expressions for generated folders the README-coverage check skips |
@@ -162,11 +173,6 @@ Study-specific checks (paper numbers against the data, figure renders) stay in t
 | `package_homes` | Folders holding sealed packages; the resolver searches them when `SAPOTE_STRAIN_MASTER` names this master |
 
 The root comes from `--master` or `SAPOTE_STRAIN_MASTER`. The bundle source names no path, so a public release carries none.
-
-## Starting a master
-
-- New: `python mamey_run.py strain-master init --master <empty folder> --name "<name>" [--raw-store <path>]`. It writes the layout, a README in every folder, `LAYOUT.md`, `CHANGELOG.md`, the inbox ledger and the settings.
-- Existing: `python mamey_run.py strain-master adopt --master <folder>` writes only `strain_master.json`. Preview first with `check --layout <draft LAYOUT.md> --config <draft settings>`, then write the master's own `LAYOUT.md`.
 
 ## Which records belong in the master
 

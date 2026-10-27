@@ -1,53 +1,70 @@
 # Interactive widget deliverables
 
-The named builder is `render-widgets`. It reads a package directory, a run directory containing `package/manifest.json`, or a ZIP with the required package manifest and writes a separate reader bundle. Choose a reviewed source with its validation and integrity evidence; the renderer itself does not require proof that it is sealed or scientifically accepted.
-
-From the bundle root, this is a command template; substitute reviewed absolute paths:
+`render-widgets` turns an existing package into a set of linked, offline HTML pages for browsing. It reads a package folder, a run folder that contains `package/manifest.json`, or a Complete_Package ZIP.
 
 ```bash
 python3 mamey_run.py render-widgets --package /ABSOLUTE/PATH/TO/Complete_Package.zip --outdir /ABSOLUTE/PATH/TO/widgets
 ```
 
-Without `--outdir`, output is `<source-name>_widgets` beside the source (ZIP extension omitted). Explicit output resolves symlinks and is rejected when it equals or lies beneath the resolved package directory. For a run-directory input, the protected root is its `package/` directory. The default does not imply permission to overwrite an existing reader deliverable.
+Without `--outdir`, output goes to `<source-name>_widgets` beside the source (the `.zip` is dropped from the name). The output folder may not be the package folder or inside it; symlinks are resolved first. For a run folder, the protected folder is its `package/`. Use a new, dedicated output folder.
 
-## Views and files
+## Open the reader
 
-Open `OPEN_WIDGETS.html`. The seven view pages are:
+1. Read `WIDGET_MANIFEST.json`. Check the source path, the artifact bindings and the row counts.
+2. Open `OPEN_WIDGETS.html` and pick a view.
+3. If a view is empty, check `widget_data.json` and the source table before deciding the evidence is absent.
 
 | File | View |
 |---|---|
-| `priority.html` | BGC priority, tier/boundary filters and routing scores |
-| `domains.html` | Domain architecture/counts |
+| `priority.html` | BGC priority, tier and boundary filters, routing scores |
+| `domains.html` | Domain architecture and counts |
 | `evidence.html` | CCTT and KCB evidence and guards |
 | `genes.html` | Gene-level evidence overview |
-| `rggmci.html` | Candidate relationships, with no physical-linkage claim |
-| `completeness.html` | Missing worklist and package/gate/claim states |
-| `gene.html` | Individual gene evidence reader using the separate package-native roster model |
+| `rggmci.html` | Candidate RG-GMCI pairs; no physical-linkage claim |
+| `completeness.html` | Missing-evidence worklist; package, gate and claim states |
+| `gene.html` | One gene at a time, from the package-native gene roster |
 
-The two gene pages are not equivalent evidence-admission reports. `genes.html` uses the current gene-by-gene CSV with positive amino-acid lengths; duplicate `(bgc_id, locus_tag)` keys are quarantined. BLASTp rows require the current strain/BGC/locus and matching positive amino-acid length. Inspect `widget_data.json` → `gene_evidence_receipt`, including duplicate and admitted/held counts. `WIDGET_MANIFEST.json` → `counts.gene_rows` counts this model only.
+Other outputs: `widget_data.json`, `PUBLICATION_HANDOFF.md`, `publication_metadata.json`, `README.md`, `WIDGET_MANIFEST.json` and `SHA256SUMS.txt`. The pages embed their data and need no server, network or external JavaScript.
 
-`gene.html` instead uses `gene_roster`, built from inventory, `locus_maps/*_locus_data.csv` and channel stores. Its gene membership can include channel-only rows, and its first selected channel row has different precedence from `genes.html`; it does not enforce that page's current-strain/amino-acid-length admission. Legacy online nr/clustered-nr labels are accepted interchangeably by this roster reader. Reconcile full `strain / full node-or-contig / region / BGC alias`, current gene membership and actual channel provenance before reusing either display. A populated legacy roster is not proof that a corresponding exact-current hit was admitted. Missing roster geometry/channels can yield an empty individual-gene view while the gene overview contains rows.
+## The two gene pages use different rules
 
-Additional files include `widget_data.json`, `PUBLICATION_HANDOFF.md`, `publication_metadata.json`, `README.md`, `WIDGET_MANIFEST.json` and `SHA256SUMS.txt`. The HTML embeds its data and requires no external JavaScript, server or network. Browser display and export denominators differ: the priority table renders at most 250 filtered rows; the RG-GMCI chart displays 25 filtered pairs and its table at most 500. Their filtered CSV buttons export the full filtered arrays. A label saying rows are “shown” can therefore exceed the visible table. Record filter settings, visible/chart limits and actual exported row count; do not infer whole-roster coverage from a screenshot. Exports are browser-created files separate from the renderer's output/checksum manifest, so retain their own hashes and provenance. SVG/CSV export and displayed scientific content still require browser and reader review before publication. Inspect the actual generated pages and preserve the browser-review record.
+- `genes.html` uses the current gene-by-gene CSV. Rows need a positive amino-acid length. Duplicate `(bgc_id, locus_tag)` keys are set aside. BLASTp rows must match the current strain, BGC, locus and length. `widget_data.json` → `gene_evidence_receipt` gives the admitted, held and duplicate counts. `WIDGET_MANIFEST.json` → `counts.gene_rows` counts this page only.
+- `gene.html` uses `gene_roster`, built from the inventory, `locus_maps/*_locus_data.csv` and the channel stores. It can include genes that appear only in a channel, and it does not apply the strain and length checks above. The first selected channel row wins;
+tagged overlay rows take precedence over TOP10-store rows. Overlay rows need a matching channel tag; untagged rows are skipped. `nr` and `clustered_nr` stay separate. The page shows nr, Swiss-Prot, MIBiG and ClusterBlast; the roster also carries clustered-nr and EBI fields, visible in `widget_data.json`.
 
-## Input, status and integrity scope
+The two pages can disagree. `gene.html` can be empty when roster geometry is missing while `genes.html` has rows. Before reusing either, confirm the full `strain / full node-or-contig / region / BGC alias`, gene membership and channel source.
 
-`manifest.json` is required. Most evidence tables/status files are optional; absent inputs can leave empty views while rendering succeeds. Missing evidence is not a biological zero or a completed search. Duplicate matching artifacts, invalid JSON objects, malformed CSV headers or row widths fail rather than silently selecting a source. Inspect `source.artifacts`, row counts, source status and the missing worklist. The missing worklist is a supplied package table, not a newly computed check of every evidence category. The priority model iterates the triage table when it has rows, otherwise the inventory; a partial nonempty triage table is not automatically completed from the inventory. Its displayed rank is a newly sorted/renumbered `1..N` navigation rank, not an unchanged package rank. Compare the actual triage/inventory roster and preserve source ranks separately.
+## What the pages show and what they leave out
 
-Some absent numeric cells are represented by display defaults: blank AB/AF/novelty/length cells and blank domain counts can become zero. That zero is not a measured value or evidence of biological absence. Check the raw source and `domain_coverage` in `widget_data.json` before interpreting or exporting these defaults; retain typed missingness in downstream evidence.
+- **Display limits.** The priority table shows at most 250 filtered rows. The RG-GMCI chart shows the top 25 filtered pairs and its table at most 500. The "Export filtered CSV" buttons export every filtered row, so the "shown" count can exceed what is on screen. Record your filters and the exported row count.
+- **Exports are yours to track.** Browser-made SVG and CSV files are not in the renderer's manifest or checksums. Hash them yourself.
+- **Blank numbers become zero.** Blank AB, AF, novelty, length and domain-count cells display as 0. That 0 is not a measurement. Check the raw table and `domain_coverage` in `widget_data.json`.
+- **Ranks are renumbered.** The priority view uses the triage table when it has rows, otherwise the inventory, and renumbers ranks 1..N. A partial triage table is not filled in from the inventory. Keep the package's own ranks separately.
+- **Missing inputs are allowed.** Only `manifest.json` is required. Absent tables give empty views, not zeros. Duplicate matching artifacts, invalid JSON, or malformed CSV headers or rows stop the render.
+- **The worklist is copied, not computed.** The missing-evidence worklist is a table from the package, not a fresh check of every category.
 
-The renderer snapshots all files beneath the selected package root, or the complete ZIP bytes, and checks that snapshot before completion. Its reported `source.fingerprint` is a separate SHA256 aggregation of the **consumed artifact names and hashes**, not the whole ZIP's SHA256 and not a release-validation result. Record the source path and independently retained package/ZIP hash alongside it.
+## Status and integrity
 
-Widget `PASS` means the render completed with equal consumed-artifact fingerprints and passed the source snapshot check. It does not prove every evidence layer exists, validate the extraction package, upgrade Mode B judgment, or establish biological, figure or publication acceptance. The command returns 0 for widget `PASS`, 1 for a caught missing/invalid source or a non-PASS manifest; other filesystem exceptions may propagate. Read receipts rather than relying only on exit status.
+The renderer snapshots every file under the package root, or the whole ZIP, and checks that snapshot before it finishes. `source.fingerprint` is a SHA-256 over the names and hashes of the files it consumed. It is not the ZIP's own hash. Record the source path and the package or ZIP hash alongside it.
 
-## Reuse and interruption recovery
+Widget `PASS` means the render finished and the source did not change during it. It does not show that every evidence layer exists or that the package is valid. It does not change Mode B judgment and is not figure or publication approval.
 
-The output directory can already exist. Known output files are replaced atomically one file at a time; before writing, the renderer removes old `WIDGET_MANIFEST.json` and `SHA256SUMS.txt`. A failed refresh may leave partial new pages and old untracked files. Once marker invalidation has occurred, a failure in the guarded writing block removes completion markers but does not restore the prior bundle or clean unrelated files. Source/model validation and page preparation occur before that invalidation; an early failed refresh can leave the previous successful bundle and its completion markers intact. Verify the receipt's source fingerprint/artifact bindings and the current invocation's status. Existing markers alone do not prove the new attempt completed. The final output manifest includes all top-level files already present, except its two completion markers; checksum output includes the manifest. Consequently, use a dedicated output directory, review preexisting files, and preserve the accepted prior deliverable before a governed refresh. Do not treat surviving HTML alone as completed output.
+Exit codes: 0 for `PASS`; 1 for a missing or invalid source or a non-`PASS` manifest. Other filesystem errors can surface as exceptions. Read the manifest, not only the exit code.
 
-After interruption, inspect the error and source identity in place. Retain partial output as unaccepted evidence until reviewed; use an explicitly selected clean reader-output directory for a new attempt when authorized. Never repair a source package by deleting or moving its evidence to satisfy this reader.
+## Re-running into an existing folder
+
+The output folder may already exist. Before writing, the renderer deletes the old `WIDGET_MANIFEST.json` and `SHA256SUMS.txt`, then replaces known files one at a time.
+
+- If a refresh fails partway, new and old pages can be mixed and the two completion files are absent. Old unrelated files are not cleaned up.
+- If it fails before writing starts, the previous output and its completion files stay intact.
+- The new manifest lists every top-level file already present, including leftovers. The checksum file includes the manifest.
+
+So: use a dedicated folder, look at what is already there, and keep a copy of any accepted earlier output before refreshing. HTML on disk alone does not mean the latest run finished.
+
+After an interruption, check the error and the source in place. Keep partial output until it is reviewed, and start again in a clean folder. Never delete or move package evidence to make the reader run.
 
 ## Publication handoff
 
-The handoff provides captions/methods templates, SVG/CSV export guidance, citation status and claim ceilings. Unresolved dataset and biological citations remain `citation_needed`; Sapote-Mamey attribution is operator supplied. The included antiSMASH citation label is renderer metadata, not confirmation of the selected input's version. Check the exact source/tool version and citations before sharing.
+`PUBLICATION_HANDOFF.md` gives caption and methods templates, SVG/CSV export guidance, citation status and claim limits. Dataset and biological citations stay `citation_needed` until filled. Sapote-Mamey attribution is `operator_supplied`. The antiSMASH citation it prints is a fixed label, not a check of the input's antiSMASH version. Confirm the real tool versions and citations, and review the pages in a browser, before sharing.
 
-Source owners: `mamey/widget_deliverable.py:190–238,244–331,691–712,1148–1238`; CLI flags `mamey/cli.py:6405–6418`. See [artifact maps and menu limits](ARTIFACT_MAP_LIMITS.md) and [the deliverable contract](DELIVERABLE_CONTRACT.md).
+See [artifact maps and menu limits](ARTIFACT_MAP_LIMITS.md) and [the deliverable contract](DELIVERABLE_CONTRACT.md). The code lives in `mamey/widget_deliverable.py` and `mamey/roster_v2.py`; the CLI entry is `render-widgets` in `mamey/cli.py`.

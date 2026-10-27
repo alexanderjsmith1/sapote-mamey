@@ -1,6 +1,6 @@
 # Mode B gene-first v2 candidate contract
 
-Status: engineering candidate only; judgment deferred.
+Developer API only; no command is registered. For the command-line review, use [`modeb-gene-first`](MODEB_GENE_FIRST_EXPLORATION.md).
 
 This candidate turns a compact, content-addressed evidence stage into a fast review surface. It does not run similarity searches, domain searches, cassette detectors, rendering, or workspace discovery. It does not generate a governed long-form card or make a scientific acceptance decision.
 

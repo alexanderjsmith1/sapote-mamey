@@ -133,7 +133,7 @@ Treat these as questions, not proof that a design is good or defective:
 
 ---
 
-## Notes for the Auditing Chat
+## Notes for the auditor
 
 - Adopt the audit role requested by the user; the game does not assign a model identity or authorize additional agents.
 - **Claim-safe language always.** Even in audit notes: "BGC" not "compound," "biosynthetic capacity" not "produces."
@@ -152,8 +152,7 @@ Once you have this intro in your markdown, begin:
 ## Game 1 — [optional theme, e.g., "Core Extraction Layer"]
 
 [Roll for files]
-[Pick 2–3]
-[Audit each]
+[Audit every sampled file]
 [Write consensus]
 [Update summary]
 ```
@@ -162,4 +161,3 @@ Good luck. Keep rolling until you have a solid patch card or run out of time.
 
 ---
 *Bunny Hop Audit Game — Protocol v1.0 | Sapote–Mamey Pipeline*
-*Originated: June 2026 analysis session.*

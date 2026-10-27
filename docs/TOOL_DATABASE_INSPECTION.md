@@ -46,7 +46,7 @@ Follow `next_offset` for the selected view. `total_records` and `omitted_records
 
 ### Python-only history view
 
-The Python API additionally accepts `view="history"` for BLASTP adapters, while this build's CLI --view choices are only genes/searches/hits/hsps. History collects recorded searches per selected gene and one lowest retained source-rank representative per search. That representative is not a cross-search best comparator. It can hold when per-gene history exceeds its fixed retained-search budget or the total response budget. Do not request --view history through the current CLI; use its supported paginated views or an authorized API caller.
+The Python API additionally accepts `view="history"` for BLASTP adapters, while the CLI's `--view` choices are only genes, searches, hits and hsps. History collects recorded searches per selected gene and one lowest retained source-rank representative per search. That representative is not a cross-search best comparator. It can hold when per-gene history exceeds its fixed retained-search budget or the total response budget. Do not request --view history through the current CLI; use its supported paginated views or an authorized API caller.
 
 ## Query and response
 

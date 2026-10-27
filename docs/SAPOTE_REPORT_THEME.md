@@ -20,11 +20,13 @@ from production, and missing evidence from biological absence.
 
 ## Semantic presentation helpers
 
-Renderers may use `section_role()` and `section_accent()` to keep the same visual
-logic across formats: identity sections use navy, evidence sections use teal,
-interpretation sections use gold, and safety/hold sections use muted neutral
-styling. `status_badge()` always emits a text label as well as colors, so a PDF
-or DOCX remains understandable when printed or viewed by a color-blind reader.
+`section_role()` and `section_accent()` return presentation values for a renderer
+to consume: identity sections use navy, evidence sections use teal, interpretation
+sections use gold, and safety/hold sections use muted neutral styling.
+`status_badge()` returns `label`, `fill` and `foreground` values; it does not draw
+a badge or export a document. Have the chosen renderer display the label with the
+colors, then inspect the actual PDF or DOCX so the status remains readable without
+color.
 
 `format_locus_identity()` is the single display helper for the required order:
 strain / full node-or-contig / region / BGC alias. It rejects blank/whitespace string fields after conversion; it does not validate locus provenance, component grammar or source agreement.

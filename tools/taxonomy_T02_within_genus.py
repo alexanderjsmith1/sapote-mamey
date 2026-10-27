@@ -54,13 +54,13 @@ paldata <- read.delim(a[3], stringsAsFactors=FALSE); pal <- setNames(paldata$col
 layout <- a[4]; out <- a[5]; dpi <- as.numeric(a[6]); xmin <- as.numeric(a[9])
 d$genus <- factor(d$genus, levels = paldata$genus)
 iso <- read.delim(a[10], stringsAsFactors=FALSE)
-lab <- setNames(paste0("<i>", iso$genus, "</i> (", iso$isolates, " isolates, ", format(iso$pairs, big.mark = ","), " pairs)"), iso$genus)
+lab <- setNames(paste0(ifelse(grepl("aceae( bacterium)?$", iso$genus), iso$genus, paste0("<i>", iso$genus, "</i>")), " (", iso$isolates, " isolates, ", format(iso$pairs, big.mark = ","), " pairs)"), iso$genus)
 br <- function(l) { s <- seq(ceiling(xmin), 100, by = if (100 - xmin > 5) 2 else 1); s }
 AX <- theme(axis.title = element_text(colour = PUB_INK), panel.grid.major.x = element_blank(),
             axis.title.y = element_text(margin = margin(r = 4)), axis.title.x = element_text(margin = margin(t = 4)),
             plot.margin = margin(3, 6, 3, 3))
 if (layout == "facets") {
-  strip <- setNames(paste0("<i>", iso$genus, "</i><br>", iso$isolates, " isolates, ", format(iso$pairs, big.mark = ","), " pairs"), iso$genus)
+  strip <- setNames(paste0(ifelse(grepl("aceae( bacterium)?$", iso$genus), iso$genus, paste0("<i>", iso$genus, "</i>")), "<br>", iso$isolates, " isolates, ", format(iso$pairs, big.mark = ","), " pairs"), iso$genus)
   p <- ggplot(d, aes(x = percent_identity, fill = genus)) +
     geom_histogram(binwidth = 0.25, boundary = 100, closed = "right", colour = "white", linewidth = 0.1) +
     facet_wrap(~ genus, ncol = 2, scales = "free_y", labeller = labeller(genus = strip)) +

@@ -93,3 +93,4 @@ paper_reference_audit	WIRED	Offline DOCX citation/reference/callout key checker;
 synthetic_id_registry_guard	WIRED	Explicit registry/list/guard admission: release_cut.sh -> make_public_tier.sh -> verify_export_registry.py; pytest tests/test_synthetic_id_registry_guard.py.
 verify_export_registry	WIRED	Explicit bound registry preflight invoked by tools/make_public_tier.sh; selection forwarded from release_cut.sh; existing export-preflight regression tests.
 identifier_source_roles	WIRED	shared source/staged test-role audit; make_public_tier.sh and exact source-role controls
+standalone_delivery_audit	WIRED	read-only static HTML/SVG/CSS delivery audit exercised by tests/test_standalone_delivery_audit.py; exit 0 = PASS_STATIC_CONTRACT, never ship approval

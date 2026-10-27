@@ -6,83 +6,22 @@
 
 Input is `bgc_data.json` under `--banked-dir` (default `cohort`). Pure-saccharide omission policy applies before local classification, so `--include-saccharide` cannot necessarily restore rows already omitted. Family labels are derived for grouping; one primary class follows a preference list, with a fallback to the first available class. Hybrids do not contribute their full length to every component class. Each retained row's saved `length_kb` is summed; missing/falsey length contributes zero, not a verified zero-length BGC. Rows/overlaps/duplicates are not merged or deduplicated as genomic interval unions. No calculation establishes the “true length” of a split pathway.
 
-Columns are the **top eight** classes by summed retained content. Strains are ordered by saved contig count; missing/falsey contig count sorts as zero, while plotted fragmentation uses `log10(max(contigs,1))`. The stacked figure/CSV show selected classes, while whole-cohort total correlations and workbook `total_kb` use all retained classes. Those different denominators must be named (`tools/build_size_profile.py:64–110,118–123,128–155`). Fewer than three observations or a zero-variance series returns correlation zero, not a measured null association (`:86–89`).
+Columns are the **top eight** classes by summed retained content. Strains are ordered by saved contig count; missing/falsey contig count sorts as zero, while plotted fragmentation uses `log10(max(contigs,1))`. The stacked figure/CSV show selected classes, while whole-cohort total correlations and workbook `total_kb` use all retained classes. Those different denominators must be named (`tools/build_size_profile.py`). Fewer than three observations or a zero-variance series returns correlation zero, not a measured null association. The separate plotted trend line still calls `numpy.polyfit` without a matching small/constant-cohort refusal, so that correlation fallback does not guarantee a successful figure for degenerate cohorts.
 
 ## Outputs and recovery
 
-Outputs are three 160-dpi PNGs (`fig_bgc_size_by_type.png`, `fig_count_vs_size_fragmentation.png`, `fig_strain_class_size_heatmap.png`) and `fig_bgc_size_by_type_data.csv`. When a supplied workbook exists, `Size_By_Type` is replaced and that workbook is saved; a missing supplied workbook is silently not updated. Input reading uses the bank reader guard, but no source/code/config/output hash receipt is emitted. PNGs are direct writes; CSV and workbook use their respective atomic helpers, not an all-output transaction. Use a new external output and a separately authorized candidate workbook; inventory and hash actual inputs/outputs.
+Outputs go to `--out-dir` (default `figures`): three 160-dpi PNGs (`fig_bgc_size_by_type.png`, `fig_count_vs_size_fragmentation.png`, `fig_strain_class_size_heatmap.png`) and `fig_bgc_size_by_type_data.csv`. When a supplied workbook exists, `Size_By_Type` is replaced and that workbook is saved; a missing supplied workbook is silently not updated. Input reading uses the bank reader guard, but no source/code/config/output hash receipt is emitted. PNGs are direct writes; CSV and workbook use their respective atomic helpers, not an all-output transaction. Use a new external output and a separately authorized candidate workbook; inventory and hash actual inputs/outputs.
 
-`--replot` restores rounded size columns from the CSV but initializes an **empty count table**. Its count panels are not reproduced from the original run. The source itself prints “count panels need full data.” Preserve the original full-data outputs and hashes; do not replace them with a replot and call the count/size comparison reproduced. Bank guard still applies even for replot (`:168–189`).
+`--replot` restores rounded size columns from the CSV but initializes an **empty count table**. Its count panels are not reproduced from the original run. The source itself prints “count panels need full data.” Preserve the original full-data outputs and hashes; do not replace them with a replot and call the count/size comparison reproduced. Bank guard still applies even for replot.
 
 The count-versus-size panel is titled “BGC count and BGC size (kb) by class: correlation with assembly fragmentation”. It describes what is plotted; the earlier title, “opposite biases bracket the truth”, was withdrawn because counts and kb cannot bound one quantity. Full individual-locus discussion requires strain / full node-or-contig / region / BGC alias; this summary does not supply that mapping.
 
 ## Unit label and supplied tables
 
-`--unit` sets the unit in every axis label and panel title (default `kb`, so the default figures are unchanged).
+`--unit` changes the relevant size-axis labels and unit-bearing panel text; it does not convert numbers or rewrite every title. In bank/replot mode the values remain saved nucleotide kb, and CSV/workbook columns retain their kb convention. Keep `kb` for those values. In supplied-table mode, choose both a label matching the measured quantity and the intended scale: the defaults combine `core_aa_total` with a `kb` label, which would mislabel amino-acid totals unless explicitly corrected (`tools/build_size_profile.py`).
 
-`--table PATH` draws a supplied long TSV instead of reading a banked cohort. It needs the columns `strain`, `bgc_class` and a numeric value column (`--value-column`, default `core_aa_total`), and optionally `genus`. It draws one stacked bar per strain by class, in the order the strains first appear, with classes ordered PKS, NRPS, RiPP, Terpene, Other and then any others. The figure is `--print-width` inches wide (default 6.5), has 8 pt text and no title, and writes `fig_size_by_class_table.png`, `.svg` and `_data.tsv`. `--value-scale` multiplies the values (for example 0.001 to plot thousands). A missing column, a non-numeric value, or a negative or non-finite value is refused. The values and their meaning come from the table; the figure does not compute them.
+`--table PATH` draws a supplied long TSV instead of reading a banked cohort. It needs the columns `strain`, `bgc_class` and a numeric value column (`--value-column`, default `core_aa_total`), and optionally `genus`. It draws one stacked bar per strain by class, in the order the strains first appear, with classes ordered PKS, NRPS, RiPP, Terpene, Other and then any others. The figure is `--print-width` inches wide (default 6.5), has 8 pt text and no title, and writes `fig_size_by_class_table.png`, `.svg` and `_data.tsv`. `--value-scale` multiplies the values (for example 0.001 to plot thousands). A missing required value column, a non-numeric raw value, or a negative or non-finite raw value is refused. The scale factor and scaled totals are not checked by that predicate: a negative/non-finite scale or floating-point overflow can produce invalid plotted values. Verify a finite, appropriate scale and inspect scaled totals before invoking the renderer. Repeated strain/class rows are summed; this is not row deduplication or an interval union. Blank or inconsistent identity/class fields are not independently bound, and the first genus value wins for a strain. The values and their meaning come from the table; the figure does not compute or validate the underlying measurement.
 
-## Historical cohort narrative, retained for provenance
+## Historical cohort note
 
-The following original text contains redacted strain labels, point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained verbatim as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current user guidance is the source-scoped contract above.
-
-````text
-# BGC size-by-type — a fragmentation-robust alternative to BGC count
-
-Instead of counting BGCs per class (which inflates with fragmentation because a split megasynthase is counted
-several times), we sum the **total nucleotide content (kb) of each strain's BGCs by type**. A cluster split
-across three contigs still contributes roughly its true length, so size is far less sensitive to the
-count-inflation artefact.
-
-## Result: count and size bias in opposite directions and bracket the truth
-
-Whole-genome correlation with fragmentation (log10 contig count):
-
-| metric | r vs fragmentation | bias |
-|---|---|---|
-| BGC **count** | **+0.39** | inflates — split clusters over-counted |
-| total BGC **size (kb)** | **−0.55** | deflates — clusters truncated at contig edges lose nucleotides |
-
-Neither is perfectly neutral: count over-counts in fragmented genomes, size under-counts (edge truncation).
-Because the two biases run in opposite directions, **the true value is bracketed between them.** (Restricting
-to "complete" clusters does not cleanly fix this — antiSMASH's `Full-contig` status means the region fills its
-contig, which in fragmented genomes is itself a fragment, not a complete cluster: 61% of BGC content is
-`Full-contig` in highly fragmented strains vs 1% in contiguous ones. So there is no free fragmentation-neutral
-single metric here.)
-
-## Why size is the better default anyway: the leaders become trustworthy
-
-Switching count → size moves class leadership off fragmented artefacts and onto well-assembled genomes:
-
-| class | leader by COUNT (contigs) | leader by SIZE (contigs) | change |
-|---|---|---|---|
-| NRPS | SID-XXX (1305) | **SID-XXX, 947 kb (453)** | artefact → a real Class-A lead strain |
-| Terpene | SID-XXX (1108) | **SID-XXX, 315 kb (4 contigs)** | fragmented → near-complete genome |
-| RiPP | SID-XXX (1646) | **SID-XXX, 262 kb (1 contig)** | fragmented → complete genome |
-| Siderophore | SID-XXX (1902) | **SID-XXX, 122 kb (1 contig)** | fragmented → complete genome |
-| T1PKS | SID-XXX (1108) | SID-XXX, 1186 kb (1108) | same — genuinely T1PKS-rich, not just split |
-| T2PKS | SID-XXX (34) | SID-XXX, 208 kb (34) | same — already fragmentation-robust |
-
-The size leaders for terpene, RiPP and siderophore are 1–4-contig assemblies — so their leadership is real
-biology, not an assembly artefact. T1PKS staying on SID-XXX even by size shows that strain truly carries
-exceptional T1PKS content (the 89-cluster count was not *only* fragmentation). T2PKS is unchanged because, as
-shown earlier, its count was already fragmentation-independent.
-
-## Recommendation
-- **Report per-strain class profiles by SIZE (kb), not count** — `fig_bgc_size_by_type.png` is the
-  fragmentation-aware version of the earlier per-strain class heatmap.
-- Treat size as a **conservative (slightly downward-biased) lower frame** and count as the **upper frame**; for
-  a specific cross-strain claim, the safest comparisons are among well-assembled genomes, or read the
-  count/size pair together.
-- The residual antiSMASH-annotation bias the original idea flagged is real (region boundaries + edge
-  truncation), so size is "better, not perfect" — but it is the right default for biosynthetic *capacity*.
-
-## Figures (reproducible from fig_bgc_size_by_type_data.csv)
-- `fig_bgc_size_by_type.png` — per-strain total BGC size (kb) stacked by type (saccharide-omitted), strains
-  ordered by contiguity.
-- `fig_count_vs_size_fragmentation.png` — (left) per-class count(+) vs size(−) fragmentation correlation;
-  (right) whole-genome count vs size against fragmentation.
-
-All values candidate-level; KCB anchors are similarity, not identification.
-
-````
+The original cohort note, whose bracketing claim was withdrawn, is in [history](history/BGC_size_by_type_original_note.md).

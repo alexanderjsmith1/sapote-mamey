@@ -36,7 +36,7 @@ These are the most relevant files for Mode B behavior in this cut.
 | 4 | `docs/modules/MODE_B_WRITE.md` | Persistence protocol and full card contract history. Defines the §1–§10 card, §9/§10 gate, §11–§20 enrichment floor, write-back, claim-safety placement, and workbook/judgment persistence. |
 | 5 | `docs/modules/MODE_B_BATCH_RUN.md` | Batch execution protocol for full Mode B. Defines rank-ordered batches, default batch size guidance, quality gates, resume behavior, compile gate, and fragment exceptions. |
 | 6 | `docs/modules/DOMAIN_LEVEL_MODE_B.md` | Domain-level Mode B add-on. Defines architecture confidence, domain-burden evidence, claim ceiling, safe/unsafe claim pairs, and `--with-domain-level` usage. |
-| 7 | `docs/PER_MODE_ARTIFACT_SET.md` | Explains which artifacts exist in smoke / standard / gold. Important because Mode B cards are on-demand, while gene context is core and `deep_data.json` / `gene_data.json` are gold-only. |
+| 7 | `docs/PER_MODE_ARTIFACT_SET.md` | Retains the historical smoke/standard/gold table and explains current optional/failure boundaries. Gold is the only analysis mode; cards are on demand, and a mode label does not certify deep-data or other enrichment presence/completeness. |
 | 8 | `docs/PER_BGC_PAGE_LAYOUT_SPEC.md` | Layout contract for compiled reports: locus map + class line + Mode B card must stay together as one BGC page-unit. |
 | 9 | `docs/DELIVERABLE_CONTRACT.md` | Broader deliverable contract. Read for report packaging, per-BGC accounting, and compiled output expectations. |
 
@@ -87,7 +87,7 @@ The bundle previously contained overlapping Mode B depth language. This patch re
 | `mamey/mode_b_quality_gate.py` and `tests/test_mode_b_quality_gate.py` | Existing depth/character/fragment gate. Keep as additive quality gate, not the definition of Full Mode B. |
 | `mamey/validators/modeb_full20.py` | Legacy facade: the historical §1–§20 named-section inventory. Not the completeness definition (see the resolved policy below and `docs/MODEB_PROFILE_MATRIX.md`). |
 
-**Resolved policy:** The default Full Mode B profile uses the exact §1–§48 contract in `mamey/data/mode_b/modeb_full30_corrective_contract.json` (`modeb_corrective_full48_v1`). The older class exemplars and §1–§30 documentation remain historical calibration until upgraded. `mamey/validators/modeb_full20.py` is a legacy facade, not the current completeness definition.
+**Resolved policy:** The default Full Mode B profile uses the exact §1–§48 contract in `mamey/data/mode_b/modeb_full30_corrective_contract.json` (`modeb_corrective_full48_v1`). The older class exemplars remain historical calibration until upgraded. The generated titles and base-schema contract retain full30/30-section filenames but are derived from the selected JSON; their historical filenames are not a separate thirty-section limit. `mamey/validators/modeb_full20.py` is a legacy facade, not the current completeness definition.
 
 **Profiles:** `docs/MODEB_PROFILE_MATRIX.md` lists every profile with its producer and verifier. The opt-in 50-section card (`--contract current50_v2`) is a separate finished profile, not a replacement for the default.
 

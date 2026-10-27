@@ -1,16 +1,13 @@
 # Gene evidence disagreement review candidate
 
+A local browser view for reviewing where evidence channels (census, nr, ClusteredNR, Swiss-Prot, domains, MIBiG) disagree about a gene. Nothing is adjudicated; every cue needs a person.
+
 Run `python tools/evidence_disagreements.py --selection selection.json` from a
 patched extracted bundle, using Python 3.12 or newer. The private server binds
 only loopback, default port 8767. Use `--port` to change it. `--audit new.json`
 writes a deterministic bounded source-review receipt; existing outputs are refused.
 
-Selection schema is `mamey.disagreement-selection/1`. Required fields are an
-explicit `population` label, `contract` with relative `path` and SHA-256, and
-`sources` entries named `census`, `nr`, `ClusteredNR`, `SwissProt`, `domain`, and
-`MIBiG`. Every source requires configurable `root`, contained relative `manifest`
-and `manifest_sha256`. Relative roots resolve from the selection directory.
-Use only frozen source manifests supported by the shared reader session.
+Selection schema is `mamey.disagreement-selection/1`. Required fields are an explicit `population` label, a `contract` with `path` and SHA-256, and `sources` entries named `census`, `nr`, `ClusteredNR`, `SwissProt`, `domain`, and `MIBiG`. Relative contract paths resolve from the selection directory; the contract loader also accepts absolute paths and does not apply the source-manifest containment rule to that path. Every source requires configurable `root`, contained relative `manifest` and `manifest_sha256`. Relative source roots resolve from the selection directory. Use frozen manifests supported by the shared reader session.
 
 The view conserves census gene occurrences, including overlap, and verifies the
 selected channels' census dependency hashes. Missing expanded boundary genes
@@ -34,8 +31,8 @@ or scientific/release acceptance.
 
 ## Service, audit and portable-output limits
 
-`mamey/evidence_disagreements.html` is an API client served by this tool, not a standalone data export. Browser search and retained-hit/reference pagination use25-row pages. The surface has no download exporter, correction writer or evidence-index acceptance route. Missing/binding-hold and recorded-no-hit cues remain distinct; a filter yielding no rows is not biological absence. See [HTML evidence views](HTML_EVIDENCE_VIEWS.md).
+`mamey/evidence_disagreements.html` is an API client served by this tool, not a standalone data export. Browser search and retained-hit/reference pagination use 25-row pages. The surface has no download exporter, correction writer or evidence-index acceptance route. Missing/binding-hold and recorded-no-hit cues remain distinct; a filter yielding no rows is not biological absence. See [HTML template readers](HTML_TEMPLATE_READERS.md).
 
-The audit selects up to five distinct available records using source-state predicates; it does not refuse when fewer are available. Its `five_records` key is a historical name, not proof that all five source-state cases were audited. `SOURCE_BOUND_ENGINEERING_REVIEW_ONLY` is a bounded mechanical snapshot, not complete-population review, cross-channel adjudication or section acceptance. Source stability hashes are rechecked before writing the audit (`mamey/evidence_disagreements.py:206–218`).
+The audit selects up to five distinct available records using source-state predicates; it does not refuse when fewer are available. Its `five_records` key is a historical name, not proof that all five source-state cases were audited. `SOURCE_BOUND_ENGINEERING_REVIEW_ONLY` is a bounded mechanical snapshot, not complete-population review, cross-channel adjudication or section acceptance. Source stability hashes are rechecked before writing the audit.
 
-The output existence precheck is followed by direct `write_text`, not exclusive/atomic creation; no parent directory is created and a failure can leave partial bytes. The saved audit includes source/session receipts and selected records, but does not bind the selection-file hash, builder/template hashes or its own output hash. Record these in an external receipt and use a fresh candidate path. A successful startup, API response or zero exit from audit mode does not prove scientific acceptance. Serving checks source stamps on requests, while full digest checking is explicit at audit completion; frozen inputs and trusted local source dependencies remain prerequisites (`57–92,206–245`).
+The output existence precheck is followed by direct `write_text`, not exclusive/atomic creation; no parent directory is created and a failure can leave partial bytes. The saved audit includes source/session receipts and selected records, but does not bind the selection-file hash, builder/template hashes or its own output hash. Record these in an external receipt and use a fresh candidate path. A successful startup, API response or zero exit from audit mode does not prove scientific acceptance. Serving checks source stamps on requests, while full digest checking is explicit at audit completion; frozen inputs and trusted local source dependencies remain prerequisites.

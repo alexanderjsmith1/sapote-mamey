@@ -4,7 +4,8 @@
 block. This page covers what happens **before** it — how a lane packages a change so the composer
 can fold it safely. That step had no written rules, and the gap produced real defects.
 
-Every rule below is here because it was **measured breaking something**, not because it sounds tidy.
+The retained .412 incidents explain why these composition rules were written. Their counts
+are dated observations; check the intended current baseline and the actual verification record.
 
 ---
 
@@ -76,6 +77,8 @@ YOURLANE_412_short_description/
 and what you checked. A card arrived in `.412` with a diff and a test but no card, and it was one
 half of a collision that could not be adjudicated without knowing its intent.
 
+A cut owner's local review cards use a different layout: `README.md` plus `card.diff`. That layout is for the cut owner's own stack. Lanes handed to the cut keep `PATCH_CARD.md`, which `tools/check_patch_lane.py` checks.
+
 A card states, briefly:
 - the **base** it was authored against (the sealed bundle name and engine version),
 - the **defect** and how it was reproduced,
@@ -97,8 +100,7 @@ card had 12+2, the other 12+1, neither was a superset — so **either apply orde
 the 15-test union existed in neither file. The diffs themselves were path-disjoint and perfectly
 safe; only the test drops collided.
 
-**Do:** ship test changes as a diff too. Two diffs against one file conflict **loudly**, which is
-what you want. If you know a sibling card touches the same file, coordinate and ship one merged file.
+**Do:** ship test changes as diffs too. Overlapping context can produce an explicit refusal, while disjoint hunks in one file can apply cleanly; a clean application does not establish semantic compatibility. If a sibling card touches the same file, review both intents and their combined result, then ship coordinated diffs (or one combined diff) with checked base and candidate hashes.
 
 ### 2. Build artifacts in the payload
 
@@ -112,10 +114,12 @@ find . -name '*.pyc' -o -name '__pycache__' -o -name '.DS_Store'   # before you 
 
 ### 3. Spending ratchet headroom without noticing
 
-`repo_health.py --strict` ratchets `print_calls`, `silent_swallow` and `injected_print`. These are
-meant to move **downward**. A new tool that adds an `except Exception: pass` or a handful of `print()`
-pushes them up, and `STRICT_HEALTH_WAIVER.json` stops covering a metric **the moment its count drifts
-above the signed `observed`**.
+`repo_health.py --strict` checks ratcheted `print_calls`, `silent_swallow` and `injected_print`
+counts. A waiver can cover a strict WARN only with its required owner/reason/count fields
+and a current count no higher than `observed`. A recorded `ceiling_at_signing` (or fallback
+`ceiling`) must also match the enforced ceiling; changing that ceiling invalidates coverage
+even when the count is below `observed`. Hard FAILs are never waived. Read the actual result
+and waiver details before handoff.
 
 In `.412` a new figure tool took `silent_swallow` from 148 to 149 — exactly the signed ceiling. It
 passed, but the next `except: pass` added anywhere in the tree would expire the waiver and hand a
@@ -132,7 +136,7 @@ python tools/repo_health.py --strict
 
 ## Before you hand off — the short checklist
 
-1. `patch -p1 --fuzz=0 --dry-run` against the **sealed** base: clean.
+1. Check the declared sealed-base hashes, then use `patch -p1 -V none --fuzz=0 --batch --forward --dry-run`; preserve offsets, warnings and exit status.
 2. Apply in an isolated copy, verify candidate hashes, then reverse dry-run against that patched copy; a reverse check against pristine input is not the same test.
 3. Run verification appropriate to the change. A regression test intended to reproduce a defect should fail before/pass after; existing invariants can correctly pass on both trees. Markdown-only fixes can use source/command/link checks rather than inventing executable tests.
 4. No `.pyc` / `__pycache__` / `.DS_Store` in the folder.

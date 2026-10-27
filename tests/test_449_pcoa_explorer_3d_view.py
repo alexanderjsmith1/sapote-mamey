@@ -1,4 +1,4 @@
-"""Card 6275a90d_449_pcoa_explorer_3d_view: the rotatable 3D view, point labels, the genus filter, cohort colours and the
+"""Card 449_pcoa_explorer_3d_view: the rotatable 3D view, point labels, the genus filter, cohort colours and the
 identity code of tools/pcoa_bgc_explorer.py and its page template.
 
 The page logic that matters for correctness (projection, identity code, labels, genus filter) sits in one DOM-free block of

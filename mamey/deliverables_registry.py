@@ -155,18 +155,11 @@ def render_menu(registry: dict[str, Any] | None = None) -> str:
         "",
         "> " + registry["global_claim_ceiling"],
         "",
-        "## Availability language",
+        "Read the questions below and choose the outcome that answers yours. Copy its **Ask for** "
+        "wording, supply its required inputs, then check the delivery class and claim ceiling. "
+        "The delivery-class key follows the offerings.",
         "",
     ]
-    for name, description in registry["delivery_classes"].items():
-        lines.append(f"- **{name}** — {description}")
-    lines.extend([
-        "",
-        "Run `python mamey_run.py deliverables availability ...` for a local, read-only "
-        "preflight. It checks local presence, not source admission, gate success or completed authorship. "
-        "A listed external workflow is never authorization to contact it.",
-        "",
-    ])
     by_group: dict[str, list[dict[str, Any]]] = {}
     for item in registry["deliverables"]:
         by_group.setdefault(item["group"], []).append(item)
@@ -190,7 +183,15 @@ def render_menu(registry: dict[str, Any] | None = None) -> str:
                 f"- **Claim ceiling:** {item['claim_ceiling']}",
                 "",
             ])
+    lines.extend(["## Availability language", ""])
+    for name, description in registry["delivery_classes"].items():
+        lines.append(f"- **{name}** — {description}")
     lines.extend([
+        "",
+        "Run `python mamey_run.py deliverables availability ...` for a local, read-only "
+        "preflight. It checks local presence, not source admission, gate success or completed authorship. "
+        "A listed external workflow is never authorization to contact it.",
+        "",
         "## How to order safely",
         "",
         "For a single locus, always provide the complete identity in this order:",
@@ -213,8 +214,8 @@ def render_legacy_pointer() -> str:
     return "\n".join([
         "# Sapote-Mamey Deliverable Menu — compatibility pointer",
         "",
-        "The version-pinned filename is retained so historical links keep working. The current, "
-        "registry-generated menu is [`DELIVERABLE_MENU.md`](DELIVERABLE_MENU.md).",
+        "Choose the output you need in the [current deliverable menu](DELIVERABLE_MENU.md). "
+        "This older address remains available for existing links.",
         "",
         f"Current bundle: Sapote-Mamey v{BUNDLE_VERSION}; engine: Mamey {__version__}.",
         "",

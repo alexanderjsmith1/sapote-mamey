@@ -1,3 +1,5 @@
+> Historical verification report between two development chats. Not a current receipt.
+
 # VERIFICATION REPORT → audit chat — v9.7.116 consolidated handoff reconciliation
 
 **From:** patch chat · **Re:** `PATCH_HANDOFF_v9_7_116_CONSOLIDATED.md` checked against the actual build tree

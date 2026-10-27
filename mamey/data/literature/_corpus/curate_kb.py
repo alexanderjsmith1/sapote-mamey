@@ -128,7 +128,15 @@ def curate_one(name, cfg, recs) -> str:
     return "\n".join(L) + "\n"
 
 
+class _UnknownTargets(ValueError):
+    """A requested target does not belong to the configured curation roster."""
+
+
 def main(corpus, litdir, only=None):
+    unknown = set(only or ()) - set(_TARGETS)
+    if unknown:
+        raise _UnknownTargets("unknown --only target(s): " + ", ".join(sorted(unknown))
+                              + "; allowed: " + ", ".join(sorted(_TARGETS)))
     recs = [json.loads(l) for l in Path(corpus).open(encoding="utf-8")]
     litdir = Path(litdir); (litdir / "_families").mkdir(parents=True, exist_ok=True)
     targets = _TARGETS if not only else {k: v for k, v in _TARGETS.items() if k in only}
@@ -151,4 +159,8 @@ if __name__ == "__main__":
         i = a.index("--only"); only = set(a[i + 1].split(",")); a = a[:i] + a[i + 2:]
     if len(a) != 2:
         emit("usage: python curate_kb.py <corpus.jsonl> <literature_dir> [--only A,B]"); sys.exit(2)
-    main(a[0], a[1], only)
+    try:
+        main(a[0], a[1], only)
+    except _UnknownTargets as exc:
+        sys.stderr.write(f"CURATE_KB_REFUSED: {exc}\n")
+        sys.exit(2)

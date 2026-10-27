@@ -8,7 +8,7 @@ The motivating failure (v9.7.150, BGC033 case):
     no code-level structure check existed — only "file is non-empty."
 
     The team had already documented this exact recurrence mode in
-    `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md:521` — "A chat that
+    `docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` (§13.1) — "A chat that
     reads the contract but doesn't reach the §9 and §16 overrides in the
     619-line execution slice will conclude §1–§20 is the complete spec."
 

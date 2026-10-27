@@ -22,7 +22,7 @@ schemas. They cannot determine that each mechanistic statement is true. Preserve
 missingness, contradictory observations and claim ceilings; expand only where admitted evidence supports it.
 Verify the original example citation and supporting passage before reusing its claim.
 
-<!-- Historical source text follows. -->
+## Historical v9.7.146 rubric and examples
 *Minimum interpretive requirements per section. These are floors, not ceilings.*  
 *Before drafting §19, verify each floor is met. Expand thin sections first.*
 

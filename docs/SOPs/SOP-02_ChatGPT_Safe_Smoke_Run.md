@@ -4,36 +4,27 @@ Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md
 Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
 untouched and report the hold; the diagnostic refuses an occupied probe location.
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+Run the commands below from the bundle root, the folder that holds `mamey_run.py`.
 
-
-> **v9.7.374 correction:** this SOP originally described a "smoke mode" first-run path. `--mode
-> smoke` was **removed at v9.7.161** (`python mamey_run.py run --mode` now accepts only `{standard,gold}`, and
-> `standard` is a deprecated alias of `gold` since v9.7.92) and the forced smoke-first gate for
-> capped sessions was itself removed at **v9.7.160** ("capped sessions run gold DIRECTLY (the old
-> forced smoke-first FATAL is gone)" — `cli.py:3037`). Gold is the only analysis mode; the
-> wall-clock/output-budget behavior this SOP is actually protecting used to live behind `smoke` and
-> now lives behind `--capped-session` (alias `--chatgpt-safe`) on a direct gold run. See
-> `docs/BUNDLE_CAPABILITIES.md`'s "capped ChatGPT/Claude sessions" line for the current authoritative
-> command.
 
 ## Purpose
 
-This SOP defines the safest first run path for ChatGPT/Claude capped sessions.
+Use this SOP when you run gold inside an assistant session or tool that has a time limit.
 
 ## Principle
 
-In a capped ChatGPT/Claude session, `--capped-session` should be the default modifier for unknown
-or large antiSMASH ZIPs — it runs the same gold-mode extraction directly but suppresses the
-wall-clock-expensive figure/brief work so the session doesn't time out. There is no separate
-"smoke" mode to run first; gold is the only analysis mode.
+Under a tool time limit, add `--capped-session` for unknown or large antiSMASH ZIPs. It runs the
+same gold extraction with JSON evidence off, no brief, no automatic locus maps and a required
+workbook. It does not set a time limit and does not turn off reference completion by itself.
 
 ## Required first commands
 
 ```bash
 python mamey_run.py doctor
 python mamey_run.py inspect <input.zip>
-python mamey_run.py run --input-zip <input.zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py run --strain <bound-ID> --input-zip <input.zip> \
+  --taxonomy "<bound taxonomy or explicit unknown>" --source "<bound source or explicit unknown>" \
+  --outdir <fresh-run-root> --mode gold --capped-session --reference-completion off
 python mamey_run.py validate <package_dir> --workbook-strict
 ```
 
@@ -44,7 +35,7 @@ python mamey_run.py validate <package_dir> --workbook-strict
 - automatic figure/brief generation, while authored BGC judgment remains a later task,
 - excessive JSON evidence,
 - oversized output,
-- ChatGPT/Claude tool timeout,
+- tool timeouts,
 - too many regions or BGCs,
 - missing optional deliverables (suppressed on purpose, not silently dropped — re-populate with
   the workflows in [figure start here](../FIGURES_START_HERE.md) post-seal). Rendering can refresh package integrity or populate package data; use an authorized working copy when preserving sealed bytes.
@@ -63,7 +54,7 @@ A capped-session run should produce:
 
 ## Timeout-after-output rule
 
-If the ChatGPT/Claude wrapper times out after Mamey reports manifest/checksum writing:
+If the session or tool times out after Mamey reports writing the manifest and checksums:
 
 1. Check whether the Mamey process is still running.
 2. Validate the package.

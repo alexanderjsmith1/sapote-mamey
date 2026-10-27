@@ -4,7 +4,7 @@ d$target <- factor(d$target,levels=unique(d$target))
 d$material <- factor(d$material,levels=c("Crude extract","Fraction","HPLC fraction"),labels=c("Crude extracts","Fractions","HPLC fractions"))
 d$block <- factor(d$block,levels=c("Human pathogen panel","Foulbrood"))
 d$txt <- ifelse(!is.na(d$pct)&d$pct>=55,"white",PUB_INK)
-tl <- function(x) {x <- sub("Foulbrood ","P. larvae\n",x); sub("Candida ","C. ",x)}
+tl <- function(x) {x <- sub("Foulbrood ","P. larvae\n",x); sp_md(sub("Candida ","C. ",x))}
 p <- ggplot(d,aes(target,group))+geom_tile(aes(fill=pct),colour="white",linewidth=.5)+
   geom_text(aes(label=label,colour=txt),size=PT,family=PUB_FONT)+scale_colour_identity()+
   facet_grid(material~block,scales="free_x",space="free_x",switch="y")+

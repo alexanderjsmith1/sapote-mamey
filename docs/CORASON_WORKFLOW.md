@@ -1,5 +1,13 @@
 # CORASON — optional public-input locus comparison
 
+**In short.**
+
+- `tools/corason_adapter.py` is optional and off by default. It plans (`plan`), runs (`run`) and reads back (`read`) a CORASON comparison of a locus against public genomes.
+- Core Mamey extraction, scores, packages and the stored-antiSMASH figures never call it.
+- It installs and downloads nothing. CORASON, its dependencies and models stay outside the bundle, and the adapter refuses until you have reviewed and recorded them.
+- Everything it writes is PRIVATE, even when the inputs are public.
+- Most readers do not need this page. The rest is the exact admission, resource and output contract.
+
 This external companion is off by default. `tools/corason_adapter.py` provides
 `plan`, `run`, and `read`; core Mamey extraction, scores, sealed packages and the
 stored-antiSMASH-only figure lane do not invoke it. Public source provenance does
@@ -9,8 +17,8 @@ requires its own reviewed fields, identity, provenance and disclosure scope.
 The initial method profile is original nselem/corason commit
 `aa70dddebafb210445794fd24b1c6b2e4177c58c` (AGPL-3.0), not myCORASON/Corason3.
 Internal POD `0.01` is not a release. Source, dependencies and models remain
-external; the adapter installs, downloads and vendors none of them. Current M5
-availability/runtime compatibility is unverified. The inert registry marker reports this optional runtime as not probed/present;
+external; the adapter installs, downloads and vendors none of them. On any given
+computer, availability and runtime compatibility are unverified until probed. The inert registry marker reports this optional runtime as not probed/present;
 it does not establish runtime readiness.
 
 ## Separate admission records
@@ -100,8 +108,8 @@ The observer also refuses an explicit BLAST thread request
 above that total. Review other tool defaults; do not invent `--threads`, force a
 small resource claim, or assume a watcher enforces CPU affinity.
 
-Execution is serial, foreground, nice15 where available, observed RSS limit
-3.8GB, total timeout1800s per whole run/read worker, and minimum free disk2GB
+Execution is serial, foreground, `nice -n 15` where available, observed RSS limit
+3.8 GB, total timeout 1800 s per whole run/read worker, and minimum free disk 2 GB
 on both receipt and native-work roots. One outer watched Python worker includes
 staging, Biopython allocation, conversion, tool probes, native analysis and Python
 readback. Native children and probes inherit its process group; there are no nested
@@ -170,8 +178,8 @@ from ls/input order. Zero exit with a dropped/swapped gene is failure.
 
 Analysis calls original corason.pl in --conda/explicit RAST mode with checked
 reference org and full selected numeric list. It supplies source defaults
-explicitly: e_value1E-15, bitscore0, cluster_radio10, e_cluster1E-3, e_core1E-3,
-rescale85000. These are compatibility defaults, not optimized biological choices.
+explicitly: e_value 1E-15, bitscore 0, cluster_radio 10, e_cluster 1E-3, e_core 1E-3,
+rescale 85000. These are compatibility defaults, not optimized biological choices.
 Automatic --gbk mode's grep-based reference binding is bypassed in favor of the
 verified conversion checkpoint. --conda selects relative helper/output semantics;
 it is not an installation claim.

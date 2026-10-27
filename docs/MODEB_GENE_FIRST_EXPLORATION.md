@@ -39,7 +39,7 @@ The `--out` root must already exist. The command creates one child directory and
 - `<complete-identity>__SapoteMamey_v<version>__MODEB_GENE_FIRST_EXPLORATION.md` — concise, claim-capped synthesis and exactly one next analysis.
 - `<complete-identity>__SapoteMamey_v<version>__important_genes.tsv` — deterministic review order with the complete identity on every row.
 - `<complete-identity>__SapoteMamey_v<version>__evidence_channels.tsv` — channel-separated availability; missing is a workflow gap, not biological absence.
-- `<complete-identity>__SapoteMamey_v<version>__exploration_receipt.json` — content-addressed input and output receipt recording both the producing and source-package bundle versions.
+- `<complete-identity>__SapoteMamey_v<version>__exploration_receipt.json` — identity/version-named receipt recording input/output hashes and both the producing and source-package bundle versions. Its own bytes require an external hash binding.
 
 The gene order is an inspection order based on an explicit role category, then bound gene-channel count, coordinates, and locus tag. It is not a biological-importance score. Outputs remain engineering exploration artifacts pending separate scientific review.
 
@@ -96,22 +96,14 @@ No search, extraction, literature retrieval or phylogenetic work is performed.
 
 ## Input-admission and write boundaries
 
-An already governed/sealed package is a required source selection, not a state this command certifies.
-The command binds the requested identity to manifest data and materializes/hashes safe source-scan
-aliases; it does not rerun whole-package sealing/checksum validation. Without the optional database
-bridge, --gene-table may be an external file. Its rows are checked for the target alias, contig, unique
-non-placeholder tags and positive lengths; they are not independently compared with the full sealed
-canonical sequence/CDS roster. The receipt currently labels even an external gene-table basename as
-package://, so retain its actual supplied path and SHA-256 in the task source register.
+The package must already be sealed; this command does not re-check its seal.
 
-External-index BOUND is a declared state with locator/hash syntax and known-gene/identity checks.
-The index’s own bytes are hashed, but the referenced source is not opened, rehashed or reconciled to
-an external query/job receipt by this path. Such rows require independent source admission before
-scientific use. Package/domain observations and selected frozen-database observations have their own
-binding paths; keep those origins distinct. Locator syntax is not a source resolver.
+An external `--gene-table` is checked for alias, contig, unique tags and positive lengths only. It is
+not compared with the sealed CDS roster. The receipt labels it `package://` even when it is not, so
+record its real path and SHA-256.
 
-The child output directory must be new; the root must already exist. Each output is written separately
-before the final receipt. Failure after directory creation can leave a partial set that a retry refuses;
-there is no all-output rollback or arbitrary concurrent-writer guarantee. Use the single owned candidate
-and record a failure/hold rather than copying the source package or proliferating packets to hide it.
-The receipt’s named outputs exclude the receipt itself. No named channel status is finished-card acceptance.
+Evidence-index `BOUND` rows are checked for locator and hash syntax, known genes and identity. The
+index file is hashed, but the sources it points to are not opened.
+
+The output folder must be new, and its parent must exist. A failure can leave a partial set that a
+retry refuses. The receipt does not list itself among its outputs.

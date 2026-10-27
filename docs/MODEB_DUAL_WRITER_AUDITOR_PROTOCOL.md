@@ -10,12 +10,14 @@ PATCH_CARD.md for the review notes and the FINISHED_CURRENT_EVIDENCE trigger-tok
 
 ## Current implementation and profile boundary
 
-This retained 2026-08-20 protocol defines normative writer/auditor responsibilities, not an automatic
-role dispatcher or a universal runtime state machine. Its numbered writing inventory is the default
-full48 lineage. Select current50 v2 explicitly where applicable and bind its actual template/verifier;
-do not truncate a selected 50-section card to satisfy this historical list. The dated status progression
-below is a governance record; retain the current document/evidence states from the ratified status
-vocabulary alongside it rather than translating labels without a receipt.
+For a new card, choose the [profile](MODEB_PROFILE_MATRIX.md) and follow the
+[authoring walkthrough](MODE_B_USER_WALKTHROUGH.md). Use this retained 20 August 2026 protocol for
+writer/auditor responsibilities and predecessor retention. It is normative guidance, not an automatic
+role dispatcher or universal runtime state machine. Its numbered inventory is the full48 lineage;
+current50 v2 needs its own template/verifier and section map. Keep that card's 50 sections rather than
+truncating it to this list. The dated status ladder below remains a governance record; retain the
+current document/evidence states from the [ratified vocabulary](MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
+without translating labels or inferring approvals from filenames.
 
 `mamey/modeb_publication_gate.py` checks specified inline evidence-stream/history dispositions and
 section-specific structures; it does not independently enumerate all predecessor artifacts or audit
@@ -412,11 +414,12 @@ already contains the requested comparison.
 
 ### 11.4 Anti-padding rule
 
-Do not expand prose to meet a word or character target. The publication gate
-rejects the same evidence-free sentence repeated across three or more sections.
-Replace repeated conclusions with exact genes, measurements, source states,
-agreement/mismatch analysis or a typed evidence-absence state. A shorter dense
-card is preferable to a longer padded card.
+Do not expand prose to meet a word or character target. The full48 publication gate has a heuristic
+check for long generic sentences repeated across three or more sections, with exclusions for evidence
+markers and some document structures. It does not establish that all remaining prose is substantive,
+and the current50 v2 path does not invoke that full48 publication check. Replace repetition with exact
+genes, measurements, source states, agreement/mismatch analysis or a typed evidence-absence state.
+A shorter dense card is preferable to a longer padded card.
 
 ## 12. Writer deliverables
 
@@ -498,16 +501,17 @@ Do not silently edit another system's accepted source. Use additive versions and
 
 Do not scale based on one polished card. First pass two deliberately difficult pilots with zero unexplained omissions. Only then convert the contract into automation. Automated generation must still preserve one-card-at-a-time exact-locus ledgers and permit independent content audit.
 
-## 17. Immediate pilot
+## 17. Historical recovery pilot
 
-The current recovery pilot is:
+The retained 20 August 2026 record names this recovery pilot. Its counts and biological interpretations
+below remain historical claims requiring their original source evidence:
 
 `AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / BGC028`
 
 It demonstrates the required distinction between:
 
 - 90 exact-region CDS and one boundary-context CDS;
-- frozen display alias BGC028 and loose-package local alias BGC037;
+- frozen identity `AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / BGC028` and qualified local identity `AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / loose-package local alias BGC037`;
 - a bounded skyllamycin/WS9326-like subsystem and a broader multi-system region;
 - retained historical BLASTP measurements and current source-state limitations;
 - strain-level chitin capacity and zero exact-locus chitin intersection;

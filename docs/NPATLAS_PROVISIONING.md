@@ -1,7 +1,6 @@
 # NP Atlas provisioning (user-supplied, never redistributed)
 
-**Modules:** `mamey/npatlas_provision.py` (library) + `tools/npatlas_provision.py` (operator front
-door) + `tests/test_npatlas_provision_v97405.py` + `tests/test_npatlas_env_unification_v97405.py`.
+**Tool:** `tools/npatlas_provision.py` (library `mamey/npatlas_provision.py`).
 Structure rendering lives in `mamey/npatlas_structure.py::render_structure_svg`.
 
 Use a locally downloaded NP Atlas dataset for provisioning and structure display.
@@ -15,7 +14,7 @@ Check the terms for the dataset version you download before use. The provisionin
 consumes a user-supplied source and writes the requested subset locally; the bundle does
 not redistribute the NP Atlas dataset.
 
-## `npatlas provision` (NPA-03, NPA-04)
+## Provision a subset
 
 ```bash
 # Activate the bundle Python environment and run from the bundle root.
@@ -80,7 +79,7 @@ An empty clause list selects all emitted dictionary records. Repeated phylum/gen
 
 The resolver discovers two named files across the configured directory and fallback locations; setting `MAMEY_NPATLAS_DIR` prioritizes a directory rather than restricting loading to it. It combines readable files, uses the first record for each lowercased name and caches its index. Changing environment variables or replacing files in an already running process does not automatically refresh that cache; start a fresh process after changing provisioned references. The resolver does not automatically reopen provisioning receipts or verify their hashes. Record which files contributed, retain their hashes and inspect duplicate-name/source conflicts separately. Availability means a nonempty loaded index, not accepted identity, provenance or scientific completeness.
 
-## Structure rendering (NPA-03 — `mamey/npatlas_structure.py::render_structure_svg`)
+## Structure rendering
 
 Deterministic RDKit `MolDraw2D` SVG rendering of a **bound reference structure only** — not a
 predicted BGC product. Every result, whatever its state, carries the mandatory caption:

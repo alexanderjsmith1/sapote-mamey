@@ -31,7 +31,7 @@ The read-only record includes the original root path/hash, declared build
 context, exact archive path/hash, both final-suite and complete-import proofs,
 and explicit operator attestation. The external owner program must implement
 this interface, validate those record bytes, and retain its existing owner,
-identity, placement, seal and publication gates. The historical `.449` wrapper
+identity, placement, seal and publication gates. The older owner wrapper
 does not implement this interface and must not be passed unchanged. An external
 consumer needs separate owner review; this adapter grants no waiver or adoption.
 

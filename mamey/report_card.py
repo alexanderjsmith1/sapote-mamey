@@ -174,13 +174,13 @@ def _headline(bgc: dict, poly: dict | None) -> str:
 
 # ---- card rendering ------------------------------------------------------------------------------
 def _locator(bgc: dict) -> str:
-    node = (bgc.get("Contig") or "").split("_cov")[0]
+    node = bgc.get("Contig") or ""
     return f"{node} · {bgc.get('antiSMASH_Region', '')}".strip(" ·")
 
 
 def build_card(bgc: dict, poly: dict | None, modules: list[dict], strain: str, version: str,
                contig_region_count: int, rescues: list | None = None,
-               rescue_status=None) -> str:
+               rescue_status=None, module_scope: str | None = None) -> str:
     loc = _locator(bgc)
     b = _badges(bgc, poly)
     name, score = _kcb_named(bgc)
@@ -204,10 +204,19 @@ def build_card(bgc: dict, poly: dict | None, modules: list[dict], strain: str, v
         mr = "; ".join(f"{m['substrate']}({m['confidence'][:3]})" for m in modules[:14] if m.get("substrate"))
         nA = sum(1 for m in modules if m.get("domain_class") == "NRPS_A")
         nT = sum(1 for m in modules if m.get("domain_class") == "PKS_AT")
-        multi = f" *(contig has {contig_region_count} regions; module list is contig-scoped — per-region coord scoping pending)*" if contig_region_count > 1 else ""
+        if module_scope and module_scope.startswith("REGION_GENE_TABLE"):
+            multi = " *(gene-table region assignment)*"
+            if module_scope.endswith("UNRESOLVED"):
+                multi += " *(some module mapping unresolved; omitted rows are not negative evidence)*"
+        elif module_scope == "CONTIG_SINGLE_REGION":
+            multi = " *(single-region contig fallback)*"
+        else:
+            multi = f" *(contig has {contig_region_count} regions; module list is contig-scoped — per-region coord scoping pending)*" if contig_region_count > 1 else ""
         mod_line = f"{len(modules)} substrate-selecting modules ({nA} NRPS-A + {nT} PKS-AT): {mr}.{multi}"
     else:
-        mod_line = "no per-module substrate calls (non-NRPS/PKS, trans-AT, or unpredicted)."
+        mod_line = ("module mapping unresolved or no attributable source rows; this is not a biological no-call."
+                    if module_scope else
+                    "no per-module substrate calls (non-NRPS/PKS, trans-AT, or unpredicted).")
 
     # v9.7.343 surfacing patch: the engine's already-computed capacity verdict
     # (Arch_Capacity/Class_Conf + Diagnostic-Rescue). Class-level capacity, not identity.
@@ -332,12 +341,54 @@ def render_report_cards(package_dir: str, bgc_id: str | None = None, out: str | 
         reg = re.sub(r"\D", "", bgc.get("antiSMASH_Region", "") or "") or "1"
         return polymap.get((contig, str(int(reg))))
 
+    # Join modules to a BGC by its own genes. A locus-tag prefix (ctgN_) names the contig, not the region,
+    # so two regions on one node used to share each other's modules.
+    genes_by_bgc: dict = {}
+    tag_contigs: dict = {}
+    tri_contigs = {(row.get("BGC_ID") or row.get("bgc_id") or "").strip().upper():
+                   (row.get("Contig") or "").strip() for row in tri}
+    for g in _load(os.path.join(package_dir, f"{S}_gene_by_gene_all_bgcs.csv")):
+        if g.get("bgc_id") and g.get("locus_tag"):
+            bid, tag = g["bgc_id"].strip().upper(), g["locus_tag"].strip()
+            contig = (g.get("contig") or tri_contigs.get(bid) or "").strip()
+            genes_by_bgc.setdefault(bid, set()).add((contig, tag))
+            if contig:
+                tag_contigs.setdefault(tag, set()).add(contig)
+    known_records: dict = {}
+    for module in subs:
+        if module.get("record_id"):
+            known_records.setdefault(module.get("locus_tag", ""), set()).add(module["record_id"].strip())
+
     def _modules_for(bgc):
-        m = re.search(r"NODE_(\d+)", bgc.get("Contig", "") or "")
+        bid = (bgc.get("BGC_ID") or bgc.get("bgc_id") or "").strip().upper()
+        contig = (bgc.get("Contig") or "").strip()
+        if genes_by_bgc:
+            keys = genes_by_bgc.get(bid, set())
+            selected, unresolved = [], False
+            for module in subs:
+                tag = module.get("locus_tag", "")
+                if not contig or (contig, tag) not in keys:
+                    continue
+                record = (module.get("record_id") or "").strip()
+                if record:
+                    if record == contig:
+                        selected.append(module)
+                elif (tag_contigs.get(tag) == {contig}
+                      and known_records.get(tag, set()) <= {contig}):
+                    selected.append(module)
+                else:
+                    unresolved = True
+            scope = "REGION_GENE_TABLE_UNRESOLVED" if unresolved else "REGION_GENE_TABLE"
+            return selected, scope
+        # No gene table: a repeated-region contig cannot identify a module's BGC.
+        if sum(1 for t in tri if t.get("Contig") == contig) > 1:
+            return [], "UNRESOLVED_MULTIPLE_REGIONS"
+        m = re.search(r"NODE_(\d+)", contig)
         if not m:
-            return []
+            return [], "UNRESOLVED_RECORD_LINK"
         pref = f"ctg{m.group(1)}_"
-        return [x for x in subs if x.get("locus_tag", "").startswith(pref)]
+        return [x for x in subs if x.get("locus_tag", "").startswith(pref)
+                and (not x.get("record_id") or x["record_id"].strip() == contig)], "CONTIG_SINGLE_REGION"
 
     def _rank(r):
         try:
@@ -364,9 +415,11 @@ def render_report_cards(package_dir: str, bgc_id: str | None = None, out: str | 
         pr = _poly_for(b)
         rescue_read = _resc(b.get("BGC_ID") or b.get("bgc_id") or "")
         rescue_rows = getattr(rescue_read, "value", rescue_read)
-        cards.append(build_card(b, pr, _modules_for(b), S, version,
+        modules, module_scope = _modules_for(b)
+        cards.append(build_card(b, pr, modules, S, version,
                                 region_count.get(b.get("Contig"), 1),
-                                rescues=rescue_rows, rescue_status=rescue_read))
+                                rescues=rescue_rows, rescue_status=rescue_read,
+                                module_scope=module_scope))
     body = (f"# {S} — Per-BGC Report Cards (L0–L3)\n\n"
             f"*Auto-rendered L0–L1 from the sealed package ({version}); L2/L3 carry auto comparators + "
             f"authoring slots. Claim-safe: capacity-level, KCB = similarity, bioactivity extract-level.*\n\n"

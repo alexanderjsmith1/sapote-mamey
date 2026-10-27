@@ -30,7 +30,7 @@ g <- ggplot(pts, aes(x, y)) +
 if (!is.null(spec$source_style)) {   # M5_452_pcoa_source_style: reference-only figure, outlined points, shape by source, boxed legend
   ss <- spec$source_style
   pts <- pts[order(pts$layer != "mibig"), ]; g$data <- pts   # MIBiG drawn first, reference points on top
-  ol <- function(v) if (is.null(v)) "black" else v   # outline colours are options (card 018c0f08_452_pcoa_source_style_colour_options)
+  ol <- function(v) if (is.null(v)) "black" else v   # outline colours are options (card 452_pcoa_source_style_colour_options)
   g <- g + scale_colour_manual(values = c(ref = ol(ss$ref_outline), mibig = ol(ss$mibig_outline)), labels = labs, breaks = lv, name = NULL) +
     scale_fill_manual(values = c(ref = ss$ref_fill, mibig = ss$mibig_fill), labels = labs, breaks = lv, name = NULL) +
     scale_shape_manual(values = c(ref = 21, mibig = 24), labels = labs, breaks = lv, name = NULL) +

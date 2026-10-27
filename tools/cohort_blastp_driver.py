@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cohort_blastp_driver.py — drive BLASTp + overlay ingest across a scoped set of BGCs.
 
-v9.7.240. The companion to `docs/INSTRUCTIONS_cohort_wide_blastp.md`.
+v9.7.240. The companion to `docs/history/retired_458/INSTRUCTIONS_cohort_wide_blastp.md` (retired; current workflow: `docs/ONLINE_BLASTP_PROTOCOL.md`).
 
 Why this exists: until v9.7.239 nothing wrote `<package>/blastp_online/<BGC>_online_blastp.csv`, the file
 `authored_verify` and `genome_explore` read to prefer nr over ClusterBlast. A BLASTp round that skips

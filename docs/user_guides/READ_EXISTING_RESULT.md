@@ -9,7 +9,13 @@ Write one question before opening the ranked table. For example: which regions n
 
 ## Check what you received
 
-Find the Complete_Package ZIP and the strain/run identity. Keep the original archive. Extract a copy and open `OPEN_ME_FIRST.html`. Read the recorded statuses and `issue_log.md`, then the validation/evidence receipt in `gate_validation.json`. If the package has an older entry page, follow its linked underlying files rather than relying on the badge alone.
+Find the Complete_Package ZIP and the strain/run identity. Keep the original archive. Extract a copy and open `OPEN_ME_FIRST.html`. Check the strain/run, then follow the file that answers your question:
+
+- **What happened during extraction?** Read `issue_log.md` and the entry-page status details.
+- **What checks were saved?** Read `gate_validation.json`; `package_status.json` may hold a later, mutable status receipt.
+- **Which region should I inspect?** Open the workbook, then the matching inventory and triage rows.
+
+For an older entry page, follow the underlying files rather than relying on its badge alone.
 
 Four questions have separate answers:
 
@@ -28,7 +34,7 @@ For one selected row, record the observed value and where you found it, the inte
 
 ## Treat missing evidence precisely
 
-An unavailable input, an incomplete parse, a failed operation and a completed scan with no retained matches are different states. Keep the original state in your notes. Decide whether the gap affects your question before choosing more work.
+Read a zero together with its channel status. A completed scan with no retained matches says that the operation found none within its recorded inputs and limits. An unavailable input, an incomplete parse or a failed operation cannot answer that same question. Keep the recorded state in your note, then decide whether the gap changes your interpretation.
 
 If you need help, share the question, exact package/run identity, selected file or row, and the recorded issue. A manifest by itself does not transmit the evidence files it names. Review identifiers before sharing them.
 

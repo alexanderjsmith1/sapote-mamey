@@ -18,7 +18,7 @@ The diff modifies five GToTree Python files:
 - `gtotree/utils/misc/data_locations.py` adds a resolver that prefers current data-location environment names and falls back to the legacy names for NCBI assembly and GTDB data. It reports when a fallback is used.
 - `gtotree/utils/gtdb/get_gtdb_data.py`, `gtotree/utils/ncbi/get_ncbi_assembly_data.py` and `gtotree/utils/ncbi/handle_ncbi_tax_info.py` use that resolver instead of reading those environment variables directly.
 - `gtotree/utils/ncbi/get_ncbi_assembly_data.py` changes the missing-location fatal exit from status 0 to status 1.
-- The upstream input preflight module adds an input-format check before downstream work. Malformed FASTA input fails; the size diagnostic is warning-only and does not impose a hard minimum input size.
+- The upstream input preflight module adds an input-format check before downstream work. The added check rejects an existing readable input whose first line does not begin with `>` (and treats a read error as an unreadable-format result). It is not a complete FASTA alphabet, record or sequence-quality validator: the summarizer counts non-header line bytes and stops once the size cap is reached. The size diagnostic is warning-only and does not impose a hard minimum input size.
 
 ## Validation scope
 

@@ -95,8 +95,8 @@ def _container_path_audit_module():
 
 
 @pytest.mark.parametrize("relative_path,path", [
-    ("docs/RIPPER_ARCHIVED_LOCAL_CONTRACT.md", "/home/mnt/gbk/*.gbk"),
-    ("docs/RIPPER_ARCHIVED_LOCAL_CONTRACT.md", "/home/mnt/faa/query.faa"),
+    ("docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md", "/home/mnt/gbk/*.gbk"),
+    ("docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md", "/home/mnt/faa/query.faa"),
     ("docs/RIPPER_OPTIONAL_ADAPTER.md", "/home/mnt/te_accessions.txt"),
 ])
 def test_exact_documented_container_paths_are_not_personal(relative_path, path):
@@ -117,8 +117,8 @@ def test_exact_documented_container_paths_are_not_personal(relative_path, path):
 
 def test_documented_container_examples_pass_the_default_audit(tmp_path):
     tree = _valid_tree(tmp_path)
-    (tree / "docs").mkdir()
-    (tree / "docs" / "RIPPER_ARCHIVED_LOCAL_CONTRACT.md").write_text(
+    (tree / "docs" / "history" / "retired_458").mkdir(parents=True)
+    (tree / "docs" / "history" / "retired_458" / "RIPPER_ARCHIVED_LOCAL_CONTRACT.md").write_text(
         "fixed container `/home/mnt/gbk/*.gbk` and `/home/mnt/faa/query.faa`\n")
     (tree / "docs" / "RIPPER_OPTIONAL_ADAPTER.md").write_text(
         "container command `./ripper_run.sh /home/mnt/te_accessions.txt`\n")

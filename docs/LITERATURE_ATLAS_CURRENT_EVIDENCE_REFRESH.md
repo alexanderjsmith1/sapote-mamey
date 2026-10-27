@@ -2,7 +2,7 @@
 
 `tools/refresh_literature_atlas.py` updates a legacy per-strain literature atlas with current four-part locus identities and governed report-corpus availability. It preserves the earlier scientific prose as a dated historical layer.
 
-The tool preserves the legacy input root but is not a no-overwrite writer. It processes legacy ranked headings recognized by its regex, resolving each by strain plus local alias to exactly one `current_locus` row. It then copies that row’s four-part identity and joins owner/document records by exact identity. This lookup assumes the supplied store is already governed; it does not independently recheck current package manifests, owner-card bytes or every citation passage. Unrecognized headings and global duplicate/bijection coverage are not independently certified by this per-heading lookup.
+Choose a separate, fresh output folder. The tool refuses an output folder inside the legacy input, but it does not catch an output folder that contains the input or a symlinked subfolder, and it can overwrite files. It rewrites each ranked heading it recognizes by looking up strain plus local alias in the store's `current_locus` table and copying the four-part identity. It trusts the store; it does not recheck package manifests, card bytes or citations. Headings it does not recognize are left unchanged.
 
 The supplied SQLite evidence store must contain `metadata`, `current_locus`, `owner_record`, `locus_binding`, and `document`. Its `metadata.authority_ceiling` value is copied into every refreshed report. Database presence never establishes scientific acceptance, product identity, production, activity, or owner acceptance.
 

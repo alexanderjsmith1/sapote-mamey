@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # The bootstrap front door (what an assistant/operator is told to open first).
 SEED = ["AGENTS.md", "CLAUDE.md"]
 # Archival / historical surfaces: legitimately reference retired modes in a history context.
-_EXCL_DIR = ("docs/batches/", "docs/troubleshooting/", "docs/reference/", "docs/GUIDE/", "docs/archive/")
+_EXCL_DIR = ("docs/batches/", "docs/troubleshooting/", "docs/reference/", "docs/GUIDE/", "docs/archive/",
+             "docs/history/")  # v9.7.458: retired pages now move to docs/history/ with a banner
 _EXCL_NAME = ("CHANGELOG.md", "RELEASES_LOG.md", "ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md")
 _EXCL_VERSIONED = re.compile(r"v9\.7\.\d+|_v9_7_\d+")
 

@@ -16,6 +16,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 import csv
+import math
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter  # v9.7.409 export-injection: CSV formula-cell guard
 except ImportError:  # module loaded by file path without a parent package (tests do this)
@@ -233,6 +234,53 @@ def _looks_like_hit_table_header(row: list[str]) -> bool:
     return "qseqid" in low or "query id" in " ".join(low) or "query_id" in low
 
 
+
+
+
+def _headerless_metrics_shape(values: list[str]) -> bool:
+    """Check suffix field types/ranges for layout selection, not hit scoring.
+
+    Optional positives retain the parser's existing nullable handling. This is
+    not a proof of biological alignment consistency or identity-to-product.
+    """
+    try:
+        metrics = [float(value.strip()) for value in values[:10]]
+    except (TypeError, ValueError):
+        return False
+    if len(metrics) != 10 or not all(math.isfinite(x) for x in metrics):
+        return False
+    identity, length, mismatch, gaps, qs, qe, ss, se, evalue, bitscore = metrics
+    return (0 <= identity <= 100 and length >= 1 and length.is_integer()
+            and all(x >= 0 and x.is_integer() for x in (mismatch, gaps))
+            and all(x >= 1 and x.is_integer() for x in (qs, qe, ss, se))
+            and qs <= qe and ss <= se and evalue >= 0 and bitscore >= 0)
+
+
+def _split_headerless_hit_row(row: list[str]) -> list[str]:
+    """Recover a unique standard 10/11-metric suffix; do not guess ambiguous rows.
+
+    Numeric subject identifiers can extend the trailing numeric run. Select by
+    the standard field types rather than treating that identifier as identity.
+    Twelve fields have only the no-positives layout and keep prior permissive
+    non-core metric handling. Larger malformed/ambiguous layouts need a header.
+    """
+    if len(row) == 12:
+        return row + [""]
+    candidates = []
+    for count in (10, 11):
+        subject = len(row) - count - 1
+        if subject < 1 or not row[subject].strip():
+            continue
+        suffix = row[subject + 1:]
+        if _headerless_metrics_shape(suffix):
+            candidate = [",".join(row[:subject]), row[subject]] + suffix
+            candidates.append(candidate if count == 11 else candidate + [""])
+    if len(candidates) != 1:
+        raise ValueError("HIT_TABLE_LAYOUT_UNRESOLVED: ambiguous or malformed headerless metrics; "
+                         "supply a header-bearing table with the intended columns")
+    return candidates[0]
+
+
 def parse_hit_table_csv(path: str | Path) -> list[HitRecord]:
     """Parse NCBI BLASTP Hit Table CSV.
 
@@ -282,14 +330,16 @@ def parse_hit_table_csv(path: str | Path) -> list[HitRecord]:
             # FASTA headers may include KCB labels such as
             # "..., complete_genome | Type: T1PKS"; a normal csv.reader then
             # splits the query id into extra fields. The BLAST columns at the
-            # end are stable, so recover by treating the final 12 fields as
-            # subject_id + metrics and joining everything before them back into
-            # query_id. This preserves the first row and prevents false
-            # zero-identity/weak-hit calls.
-            if len(row) > 13:
-                vals = [",".join(row[:len(row) - 12])] + row[len(row) - 12:]
-            else:
-                vals = row[:13] if len(row) >= 13 else row[:12] + [""]
+            # end follow one of two standard suffix layouts. Resolve a unique
+            # layout, including numeric subject IDs, and refuse an unresolved
+            # multi-fragment row rather than manufacturing shifted metrics.
+            vals = _split_headerless_hit_row(row)
+        identity = _safe_float_or_none(vals[2])
+        bitscore = _safe_float_or_none(vals[11])
+        if (identity is None or bitscore is None
+                or not math.isfinite(identity) or not math.isfinite(bitscore)):
+            # Unreadable/non-finite required metrics are not measured hits or zeroes.
+            continue
         records.append(HitRecord(
             query_id=_text(vals[0]), subject_id=_text(vals[1]), pct_identity=_safe_float(vals[2]),
             align_len=_safe_int(vals[3]), mismatches=_safe_int(vals[4]), gap_opens=_safe_int(vals[5]),

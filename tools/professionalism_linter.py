@@ -86,11 +86,14 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     allf = {}
+    unreadable = 0
     for fp in a.files:
         try:
             txt = Path(fp).read_text(encoding="utf-8", errors="replace")
         except OSError as e:
-            emit(f"cannot read {fp}: {e}", file=sys.stderr); continue
+            unreadable += 1
+            sys.stderr.write(f"cannot read {fp}: {e}\n")
+            continue
         f = lint_professionalism(txt)
         if f: allf[fp] = f
     if a.json:
@@ -101,9 +104,13 @@ def main(argv=None):
             for l, r, m, t in f:
                 emit(f"{fp}:{l}: [{r}] {m}\n      {t}")
         n = sum(len(v) for v in allf.values())
-        emit(f"\n[professionalism] {n} advisory finding(s) in {len(allf)} file(s)."
-              if n else "[professionalism] clean.")
-    return 1 if allf else 0
+        if unreadable:
+            sys.stdout.write(f"[professionalism] incomplete: {unreadable} unreadable input(s); "
+                             f"{n} advisory finding(s) in readable inputs.\n")
+        else:
+            emit(f"\n[professionalism] {n} advisory finding(s) in {len(allf)} file(s)."
+                 if n else "[professionalism] clean.")
+    return 2 if unreadable else (1 if allf else 0)
 
 if __name__ == "__main__":
     raise SystemExit(main())

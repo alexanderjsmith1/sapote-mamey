@@ -1,16 +1,18 @@
-# Aggregate evidence coverage figure
+# Aggregate evidence coverage figures — advanced guide
 
-**Use this renderer when you already have a table of counted observations and a
-separate, checked list of which strains belong in the comparison.** It draws one
-horizontal bar for each cohort, genus, evidence channel, and metric. For example,
-it can show the fraction of declared proteins with a returned nr record beside
-the corresponding fraction for ClusteredNR. The two channels remain separate.
+Use this renderer to compare **counted observations with their declared
+denominators** across cohorts, genera and evidence channels. It draws one
+horizontal bar for each cohort, genus, evidence channel and metric. It does not
+search BLASTp databases or choose a cohort.
 
-This is one specialized Figure Factory route. It does **not** read raw BLASTp
-databases, discover strains, choose a manuscript cohort, or interpret BGCs for you.
-For figures directly from one Mamey package or a set of packages, start with
-[Figures start here](FIGURES_START_HERE.md). For figure-specific preflight and
-methods, see the [methods manual](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md).
+Start with two prepared inputs: a metrics table and a checked cohort manifest.
+For example, compare the share of declared proteins that returned an nr record
+with the share that returned a ClusteredNR record. Keep the two channels separate.
+
+If you have those tables, go to **Use your own data** below. To learn the file
+layout first, try the synthetic example. If you have a Mamey package, gene-map
+request or tree instead, choose its route in [Figures start here](FIGURES_START_HERE.md).
+Figure-specific preflight and methods are in the [methods manual](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md).
 
 ## Try it with invented data
 
@@ -23,9 +25,9 @@ python mamey_run.py figure-factory --config ./figure_demo/figure_factory_next.js
 
 Choose a new directory if `figure_demo` already exists. The first command copies
 two **synthetic** TSVs and writes a configuration with their SHA-256 hashes. The
-second makes both single-column and double-column SVG and PNG figures. Open
-`figure_demo/figure/figure_factory_next_double_column.png` and then read
-`figure_factory_next_caption_methods.md` in the same folder. The latter is the
+second makes single-column and double-column figures, each as SVG and PNG. Open
+`figure_demo/figure/figure_factory_next_double_column.png`. Then read
+`figure_factory_next_caption_methods.md` in the same folder. That file is the
 figure's generated methods and denominator record, not optional prose.
 
 In the demonstration, blue bars are invented bee and wasp study groups. Other
@@ -35,7 +37,7 @@ of returned records is not a validated hit or a compound assignment.
 
 ## Use your own data
 
-Make two tab-separated files and edit the generated `figure_factory_next.json`:
+If you do not yet have a configuration, run the first demonstration command above in a new directory. It stages inputs and a configuration without drawing a figure. Then edit that `figure_factory_next.json` to use your two tab-separated files:
 
 | File | Required columns | What it decides |
 | --- | --- | --- |
@@ -48,19 +50,20 @@ denominator. In particular, do not treat an error response or an unadmitted BLAS
 row as a biological no-hit. Put nr, ClusteredNR, and Swiss-Prot in distinct
 `channel` values if you have counted them separately.
 
-Update `external_data_root` to the absolute directory containing these files,
-change each `inputs[].logical_locator` to its path **within that root**, and
-replace each `inputs[].sha256` with the file's SHA-256. Set a new `output_dir`,
-a descriptive `title` and `figure_question`, and the real `source_release`
-and `software_versions`. In `comparison`, choose the default genera and any
-optional genera or identities deliberately. The example's names and counts are
-not a template for the user's cohort.
+Then edit the configuration:
+- Set `external_data_root` to the absolute folder that holds these files.
+- Set each `inputs[].logical_locator` to the file's path **within that root**.
+- Replace each `inputs[].sha256` with the file's SHA-256.
+- Set a new `output_dir`, a descriptive `title` and `figure_question`, and the real
+  `source_release` and `software_versions`.
+- In `comparison`, choose the default genera and any optional genera or identities on purpose.
 
-Run the same `mamey_run.py figure-factory --config ...` command. Changed hashes,
-an invalid identity join, unsupported cohort categories, bad denominators, and
-layout failures are errors to correct in the inputs or configuration. A manual
-render refuses an existing output directory so it cannot silently replace a
-figure you reviewed.
+The example's names and counts are not a template for your cohort.
+
+Run the same `mamey_run.py figure-factory --config ...` command. Fix these errors in
+the inputs or the configuration: changed hashes, an invalid identity join, unsupported
+cohort categories, bad denominators and layout failures. A manual render refuses an
+existing output folder, so it cannot quietly replace a figure you reviewed.
 
 ## Review before using a figure
 
@@ -74,31 +77,43 @@ that titles, labels, ratios and assembly markers are legible. Then check:
 4. `figure_factory_next_receipt.json`: input hashes, figure dimensions, raster
    resolution, and layout checks.
 
-Keep the methods text with the artwork when placing a figure in a manuscript.
-The current aggregate renderer writes it as a companion file; it does not print
-the complete methods paragraph beneath the plot automatically. Owner notes are
-stored separately from the scientific caption.
+The receipt status `PASS_PORTABLE_POLICY_RENDERER_CANDIDATE` means the renderer
+made a candidate and recorded its input and output hashes. It is not visual or
+scientific acceptance. Review the artwork, data and layout before use. Keep a
+separate record of the exact configuration hash and renderer version.
+
+Keep the methods text with the artwork when you place a figure in a manuscript.
+The renderer writes it as a companion file. It does not print the full methods
+paragraph under the plot. Owner notes go in a separate file
+(`figure_factory_next_owner_notes.json`), apart from the scientific caption.
 
 ## Where this fits
 
-The renderer accepts the `sapote.figure-factory-next.v2` configuration written by
-the demo script. A configured run can also discover `MAMEY_FIGURE_FACTORY_CONFIG`
-or `figure_factory_next_config.json` and write an automatic figure; absent
-configuration means `SKIPPED_NO_CONFIG`. Automatic output is separate from the
-sealed core package and may replace its designated `figure_factory` directory.
-Use the manual command above while learning or reviewing a specific manuscript
-figure.
+The renderer accepts the `sapote.figure-factory-next.v2` configuration that the
+demo script writes. A run can also find `MAMEY_FIGURE_FACTORY_CONFIG` or
+`figure_factory_next_config.json` and write a figure automatically. With no
+configuration, the status is `SKIPPED_NO_CONFIG`. Automatic output sits outside the
+sealed core package. It can replace its own `figure_factory` folder. Use the manual
+command above while you learn or review a specific manuscript figure.
 
-The same `figure-factory` command also accepts distinct phylogeny figure kinds;
-they have different inputs. The [Figure Factory index](figure_factory/README.md)
+The same `figure-factory` command also accepts phylogeny and bioassay figure kinds.
+They have different inputs. The [Figure Factory index](figure_factory/README.md)
 links the other figure guides and review tools.
 
-## Completion, automatic replacement, and recovery
+<details>
+<summary>Technical details: receipts, automatic replacement and recovery</summary>
 
-The aggregate producer's receipt status is `PASS_PORTABLE_POLICY_RENDERER_CANDIDATE`, with authority `ENGINEERING_CANDIDATE_ONLY_NOT_ACCEPTED_NOT_INTEGRATED_NOT_RELEASED`. It hashes the two input tables and emitted artifacts; it does not hash the configuration or renderer source. Keep a separate run record with the exact config hash, bundle/source version, interpreter, and selected profiles. Inspect each artifact and the intended embedded layout before accepting presentation quality.
 
-Automatic discovery uses the first existing config in this order: `MAMEY_FIGURE_FACTORY_CONFIG`, the source directory, then the target directory. A missing environment-config path falls through to later candidates. The automatic hook deletes `<target>/figure_factory` **before** validating input hashes and rendering its replacement, then returns `SKIPPED_<exception-type>` if building fails. Preserve the previous figure folder and its receipt before a rerun; use the manual new-directory route for a reviewable replacement. `SKIPPED_NO_CONFIG` means the feature was not invoked. Neither a successful surrounding run nor a figure count proves this channel completed.
+The aggregate receipt status is `PASS_PORTABLE_POLICY_RENDERER_CANDIDATE`, with authority `ENGINEERING_CANDIDATE_ONLY_NOT_ACCEPTED_NOT_INTEGRATED_NOT_RELEASED`. The receipt hashes the two input tables and the files it wrote. It does not hash the configuration or the renderer source. Keep a separate run record with the exact config hash, bundle or source version, interpreter and selected profiles. Inspect each file and the layout it will sit in before you accept how it looks.
 
-For R restyling, use [R figure workflows](R_FIGURE_WORKFLOWS.md): R does not verify the factory receipt or issue replacement receipt bindings. An R output needs its own renderer/input/output record and visual review.
+Automatic discovery uses the first config that exists, in this order: `MAMEY_FIGURE_FACTORY_CONFIG`, the source folder, then the target folder. If the environment path does not exist, the search moves on to the next candidate.
 
-Source owners: `mamey/figure_factory_next.py:455–472`; `mamey/cli.py:3017–3071`.
+The automatic hook deletes `<target>/figure_factory` **before** it checks input hashes and draws the replacement. If the build then fails, it returns `SKIPPED_<exception-type>`. Save the previous figure folder and its receipt before a rerun. For a replacement you can review, use the manual route with a new folder.
+
+`SKIPPED_NO_CONFIG` means the feature did not run. A successful surrounding run or a figure count does not prove this channel finished.
+
+For R restyling, use [R figure workflows](R_FIGURE_WORKFLOWS.md). R does not check the factory receipt or write a new receipt for its output. An R output needs its own renderer, input and output record, and a visual review.
+
+Source owners: `mamey/figure_factory_next.py`; `mamey/cli.py`.
+
+</details>

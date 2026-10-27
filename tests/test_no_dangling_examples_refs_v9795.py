@@ -1,7 +1,7 @@
 """v9.7.95 AUDIT (P-A6): no NEW dangling `examples/` reference may enter the live docs.
 
 `examples/` is empty, so every live-doc reference under it is currently a dead pointer. The full set
-is documented in docs/EXAMPLES_REFERENCE_LEDGER.md and is pending your restore-vs-rewrite decision. This
+is documented in docs/history/retired_458/EXAMPLES_REFERENCE_LEDGER.md and is pending your restore-vs-rewrite decision. This
 guard does not force that decision — it freezes the *known* set as a baseline and fails the moment a
 reference to a NEW (non-baselined) missing examples/ file appears. As you fix entries, the dangling set
 shrinks below the baseline (still green); remove fixed entries from DANGLING_BASELINE to tighten it.
@@ -16,7 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from check_dangling_refs import scan  # noqa: E402
 
-# Known-pending dangling examples/ targets as of v9.7.95 (see docs/EXAMPLES_REFERENCE_LEDGER.md).
+# Known-pending dangling examples/ targets as of v9.7.95 (see docs/history/retired_458/EXAMPLES_REFERENCE_LEDGER.md).
 # These are tracked, not accepted as correct — the ledger holds the restore/rewrite plan.
 DANGLING_BASELINE = frozenset()  # v9.7.97: all 8 restored from v9.7.72 CODE tier; guard now enforces zero
 

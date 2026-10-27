@@ -198,12 +198,13 @@ def main(argv=None):
 
     if args.out:
         if panel_rows is not None:
-            keep_labels = {r["label"] for r in kept}
+            # by row number, not label: two rows can share a candidate_id
+            keep_index = {r["index"] for r in kept}
             with open(args.out, 'w', newline='') as fh:
                 w = _SafeDictWriter(fh, fieldnames=panel_rows[0].keys(), delimiter='\t')
                 w.writeheader()
-                for row in panel_rows:
-                    if row.get("candidate_id") in keep_labels:
+                for i, row in enumerate(panel_rows, 1):
+                    if i in keep_index:
                         w.writerow(row)
             sys.stderr.write(f"wrote edited panel -> {args.out} ({len(kept)} rows)\n")
         else:

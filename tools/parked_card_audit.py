@@ -43,6 +43,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 _VER_RE = re.compile(r"v?9\.7\.(\d+)")
 _MARKER_RE = re.compile(r"^(FOLDED|RETIRED|SUPERSED)", re.I)
@@ -121,6 +122,19 @@ def _classify_patch(patch_path, tree, fold_threshold=0.6):
     """
     if os.path.getsize(patch_path) == 0:
         return "EMPTY"
+    root = Path(tree).resolve()
+    # Validate both diff headers before any target read or patch dry run: patch(1)
+    # can choose the old header too. /dev/null is a sentinel, never a file to read.
+    with open(patch_path, encoding="utf-8", errors="replace") as headers:
+        for line in headers:
+            if not line.startswith(("--- ", "+++ ")):
+                continue
+            raw = line[4:].strip().split("\t")[0]
+            if raw == "/dev/null":
+                continue
+            target = (root / re.sub(r"^[ab]/", "", raw)).resolve()
+            if not target.is_relative_to(root):
+                raise ValueError(f"PATCH_TARGET_OUTSIDE_TREE: {raw}")
     # (1) presence — but only over targets that BELONG to this tree. A MODIFY target whose file is
     # absent from the sealed tree means the card patches a DIFFERENT tree (e.g. the workspace
     # `Tools/` toolkit vs the engine `tools/`); that is OUT_OF_SCOPE for this audit, not a drifted
@@ -129,7 +143,9 @@ def _classify_patch(patch_path, tree, fold_threshold=0.6):
     ratios = []
     in_scope = 0
     for tgt, is_new, added in _parse_targets(patch_path):
-        abspath = os.path.join(tree, tgt)
+        if tgt == "/dev/null":
+            continue
+        abspath = str((root / tgt).resolve())
         if is_new:
             in_scope += 1
             ratios.append(1.0 if os.path.exists(abspath) else 0.0)
@@ -281,8 +297,12 @@ def main():
         pools.extend(sorted(glob.glob(p)) if any(c in p for c in "*?[") else [p])
     pools = [p for p in pools if os.path.isdir(p)]
 
-    rows, flagged = audit(pools, args.sealed_tree, cur, ttl=args.ttl,
-                          require_tests=not args.no_require_tests)
+    try:
+        rows, flagged = audit(pools, args.sealed_tree, cur, ttl=args.ttl,
+                              require_tests=not args.no_require_tests)
+    except ValueError as exc:
+        sys.stderr.write(f"parked_card_audit: REFUSED: {exc}\n")
+        return 2
     show = rows if args.all else flagged
     if show:
         print(f"=== parked_card_audit: current sealed=9.7.{cur}, TTL={args.ttl} ===")

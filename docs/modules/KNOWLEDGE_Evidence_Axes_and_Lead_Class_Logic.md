@@ -6,26 +6,27 @@ that scores leads, assigns confidence classes, or writes lead/figure captions. I
 where this module restates a number, the scoring code (`build_priority_leads.py` / `lead_board.py` /
 `scoring.py`) is the executable source of truth and wins on any drift.
 
-**Why this exists.** The lead figures (1a–2g) and the priority panel (C3) are only meaningful if every runner
-uses the **same five axes, the same weights, and the same class definitions**. This module is the portable copy
-of that logic so a fresh chat produces the same classes and the same captions.
+Use this page to explain a row in `Priority_Leads.csv` or `Priority_Scores_All.csv` produced by
+`tools/build_priority_leads.py`. Read the input fields, score and A/B/C rule together. This
+workbook-based composite is a separate view from the native triage board's AB/AF/novelty scores.
+The weights are tunable ranking choices, not calibrated probabilities or measured evidence independence.
 
-> **Precedence.** `DELIVERABLE_CONTRACT.md` wins; the active parent monolith wins over everything. This module is
-> the canonical class/score reference; `KNOWLEDGE_LeadTiers.md` inherits the class definitions from here (it adds
-> the precision-vs-recall framing and the chemistry-first recall view; it does not redefine the classes).
+Read [Lead tiers](KNOWLEDGE_LeadTiers.md) alongside this page for the separate current/proposed
+recall view. Use the selected writer and its bound input fields to resolve numeric differences;
+a historical cohort count or prose heading does not redefine the implemented class rule.
 
 ---
 
 ## 1. The five evidence axes
-Each axis is an independent, named line of support for a BGC lead. A lead carries an axis or it doesn't.
+Each row below describes an input to the composite. The writer checks stored values; it does not independently verify the biology, literature review or statistical independence of those inputs.
 
 | Axis | What it is | Role | Caption phrasing |
 |---|---|---|---|
-| **Mode B** | a Sapote deep-dive §1–§8 verdict: `CONFIRM` / `DOWNGRADE` / `DROP` | the judgment axis | "Mode B CONFIRM" — never "confirmed compound" |
-| **SARP** | a pathway-specific activator (ActII-ORF4 / RedD archetype) physically coupled to the BGC | strongest **regulator** axis | "SARP-coupled", "carries a pathway-specific activator" |
+| **Mode B** | Stored `ModeB_Status`: `CONFIRM` / `DOWNGRADE` / `DROP` | judgment input; the score does not verify the authored card | "recorded Mode B CONFIRM"; use [the current authoring profile](../MODE_B_USER_WALKTHROUGH.md), not the old §1–§8 scaffold |
+| **SARP** | Stored per-locus regulator-coupling evidence folded into `SARP_support` | +2 in this composite; candidate regulator context | "recorded SARP coupling"; regulatory effect is not demonstrated by this field |
 | **DasR** | GlcNAc/chitin-responsive global regulator (`dre` sites) | **ecology** axis; dominates Class C | "DasR/`dre`-linked" — a nutrient-sensing signal, not activity |
-| **KCB** | KnownClusterBlast / MIBiG similarity anchor | identity context; **absence = KCB-dark = novelty pool** | "KCB-anchored to X" = *similar to*, **not** "is X" |
-| **Tier-1** | a class-definitive CCTT / TIGRFAM marker, **edge-agnostic** | class identity that survives fragmentation | "Tier-1 marker present" — the marker beats fragmentation |
+| **KCB** | Stored `KCB_anchor` text | comparator context; check the upstream source and availability separately | "similar to the recorded reference"; missing evidence is not a completed no-hit or novelty result |
+| **Tier-1** | Stored `Tier` value equal to `1` | qualification from the selected lead-board producer; some rows can be KCB-only hypotheses | State the actual marker or qualification; eligibility at an edge does not establish pathway completeness |
 
 **AS verdict caveat.** Mode B verdicts on unpublished **AS** strains are currently tagged `[EG]` (generated
 offline, no live literature). They count for class assignment but must be upgraded to **Verified** (a "Verified
@@ -44,12 +45,18 @@ score =  +3.0  Mode B CONFIRM        (DOWNGRADE +0.5 ; DROP → lead excluded en
          +1.0  KCB anchor
          +1.0  Tier-1 marker
          +0.5  DasR
-         +0.2  each other regulator   (cap +4.0)
-         +0.15 each independent signal (n_signals, cap +6.0)
+         +0.2  each other regulator entry (at most 4 entries; maximum +0.8)
+         +0.15 each comma-separated signals entry (at most 6 entries; maximum +0.9)
 ```
-This is the `score` column in `Priority_Leads.csv` / `Priority_Scores_All.csv` and the y-axis of 1b, 2b, 2c, 2e,
-1g. The field is a **continuous gradient with no natural gap** (see 1b) — the class cutoffs below are
-definitional, not a valley in the data.
+This is the `score` column in `Priority_Leads.csv` and `Priority_Scores_All.csv`, rounded to two
+decimals. The shortlist sorts A before B before C, then by descending score within each class;
+the all-scores table sorts by score. A higher score alone therefore need not lead the shortlist.
+The A/B/C rules below do not use numeric cutoffs. Figure references and claims about the shape
+of an earlier score distribution are historical, not guaranteed properties of a new input.
+
+The KCB bonus accepts any nonempty anchor except `none` or `-`; a placeholder such as
+`UNRESOLVED` can still receive it. Check the underlying comparator evidence before describing
+that bonus as an observed match. Preserve the recorded input rather than silently recoding it.
 
 ---
 
@@ -60,26 +67,23 @@ definitional, not a valley in the data.
 | **B** | Mode B `CONFIRM` **OR** (SARP **∩** Tier-1) | one strong leg, not both of A's |
 | **C** | Tier-1 **∩** KCB **∩** (SARP **or** DasR), and **not** A/B | structural + identity + a regulator, ecology-weighted |
 
-Class A is the **intersection** of the two strongest axes — that is the whole reason it is small and high-trust.
-It is a **precision** tier, not a ranking of importance (see `KNOWLEDGE_LeadTiers.md` for the chemistry-first
-recall view that surfaces CONFIRMED-but-benched leads alongside it).
+Class A is the intersection of the stored CONFIRM and SARP inputs. This is a stricter selection
+rule, not a measured precision estimate or a ranking of biological importance. Compare the
+separate [recall view](KNOWLEDGE_LeadTiers.md) when selecting a question for review.
 
 ---
 
-## 4. The canonical Class-A count — **12 (6 SID + 6 AS)** — and the 17 reconciliation
-**Historical cohort receipt: 12 Class-A = 6 SID + 6 AS.** This is not a global constant for another cohort, version or input set; every figure/caption must use its own bound output and denominator. Full field at the time of this
-module: **247 leads → 12 A, 148 B, 87 C, 1,784 evaluated.**
+## 4. Read historical counts as a cohort receipt
 
-**Why not 17.** An earlier handoff estimate of "17 Class-A (6 SID + 11 AS)" assumed *all 11 banked AS Mode B
-CONFIRM verdicts* promote to A. They do not: **Class A = CONFIRM ∩ SARP**, and only **6** of those 11 AS BGCs
-also carry a SARP. The other **5** AS CONFIRMs are **Class B pending a SARP**. An older cross-set diagnostic said
-"6" because it predated the AS verdict banking entirely. **12 is the reconciled truth; 17 and the bare 6 are both
-retired.** (`HANDOFF_merged_cohort.md` and `deliverables/CrossSet_Diagnostic_AS_vs_SID.md` carry this note.)
+The earlier record reports **247 shortlisted leads: 12 A, 148 B and 87 C, from 1,784 evaluated**,
+with Class A split **6 SID + 6 AS**. Its correction from an earlier estimate of 17 applied the
+CONFIRM-and-SARP rule rather than treating every CONFIRM as Class A. These are historical
+reports, not expected counts for another cohort or independent validation of the named chemistry.
 
-The six AS Class-A BGCs: **AS-XXX/BGC040, AS-XXX/BGC059, AS-XXX/BGC046, AS-XXX/BGC055, AS-XXX/BGC017, AS-XXX/BGC016**
-(each `[EG]` — Verified-upgrade required before manuscript use). Cross-set theme worth a caption: **azoxy
-machinery reaches Class A in 3 loci across both cohorts** (AS-XXX/BGC017, AS-XXX/BGC046, SID-XXX/BGC037);
-halogenated aromatics in 4.
+Use your bound input roster and writer output to report current counts. The redacted examples
+in the older record lack full locus identities; recover the same-run inventory and review sources
+before using an individual case or an across-cohort theme. An `[EG]` or `Verified` label alone
+does not establish manuscript readiness.
 
 ---
 
@@ -91,10 +95,11 @@ Every Class-B lead is one axis short of A. Split by what it needs:
 | **SARP-only** | **122** | a Mode B CONFIRM | run a Verified Literature Deep Dive (Mode B) on the BGC |
 | **Mode-B-only** | **26** | a SARP | re-interrogate the locus / flanking regulators for a pathway-specific activator |
 
-This is exactly what **figure 1d** plots (split by cohort) and the rows that should be minted as literature
-**punch-card** tasks (`BGC_Class_Link` set to the BGC's class) so the verification track and the figures stay in
-lock-step. Closing a route promotes the lead to A — and updates 1a/1c/2a automatically on the next pipeline run,
-because nothing is hand-maintained.
+The route counts above belong to the historical cohort. For a current row, identify the missing
+stored input and the evidence needed to resolve it. A literature review alone does not update the
+workbook or prove SARP coupling. After admitted input fields are updated, the priority writer
+recomputes classes when explicitly run; it writes the workbook/CSV/Markdown outputs, not the
+historical figure set. Figure selection, rendering and review are separate tasks.
 
 ---
 
@@ -102,18 +107,16 @@ because nothing is hand-maintained.
 - **Leads are class-level hypotheses**, not identified compounds. "candidate", "consistent with", "lead" — never
   "produces" / "is".
 - **KCB similarity ≠ identity.** "anchored to / similar to MIBiG X", never "is X".
-- **Novelty = distance from characterized clusters**, a candidate signal; confirmation needs Mode B / wet-lab.
-  Interpret small/poorly-assembled genomes' novelty fractions with caution.
-- **Bioactivity metadata is optional and typed**; omission is `NOT_SUPPLIED` and does not imply a target or outcome.
-  strain-specific assay data takes priority over the default.
-- **Corrected BGC count = Interior + ½·Edge + ¼·Full-Contig.** Use the corrected count in cross-strain figures.
+- **Novelty scores are review signals under the recorded inputs and method.** Missing comparator evidence does not establish novelty. A Mode B verdict or score alone does not demonstrate a new compound.
+- **Bioactivity metadata is optional strain-level context.** Omission is `NOT_SUPPLIED` / `NOT_OBSERVED`, with no supplied assay or compound linkage. The metadata contract does not score leads or assign an observation to a locus.
+- **Boundary-weighted count = Interior + ½·Edge + ¼·Full-Contig.** Report it separately from raw regions and the boundary distribution, with comparable input processing. It is a heuristic statistic, not a recovered pathway fraction or a proven lower bound on distinct pathways.
 - **Locked exclusions:** `hglE-KS-PREV-001` (prevalent glycolipid domain; structural novelty stands, but no
   habitat-exclusive claim); **NAPAA** is neutral under the current rules registry (no blanket comparative/ecological exclusion; the old specific hypothesis remains retired);
   ubiquitous saccharide machinery is not ecologically informative.
 
 ---
 
-## 7. Quick map: axis → which figures show it
+## 7. Historical figure map for the recorded cohort
 - **Mode B** → 1a, 1c, C3 (and the score in every ranked panel)
 - **SARP** → 1a, 1c, 1d (routes), C3
 - **DasR** → 1a, C3 (ecology axis)

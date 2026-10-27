@@ -1,7 +1,7 @@
 # Companion run contracts for people and assistants
 
-Source scope: Sapote-Mamey v9.7.447 / build 20261003v97447a. This guide describes
-local code behavior. Use the current user request and existing matching authorization
+This guide
+describes local code behavior. Use the current user request and existing matching authorization
 before executing tools. Preserve immutable inputs and select fresh outputs outside the
 code bundle. External tool/database installation is separate from core installation.
 
@@ -17,7 +17,7 @@ code bundle. External tool/database installation is separate from core installat
 | `tools/plan_gtotree_iqtree.py plan ...` | prepared panel or manual panel TSV, HMM, toolchain paths | Probes binary version/help; stages source bytes and writes immutable plan/run directory | `RUN_MANIFEST.json`, `RUN_STATE.json`, `COMMAND.sh`, HOLD states and preflight summary |
 | `python mamey_run.py phylo-run ... --approved` | explicit genome list, HMM, outgroup and workdir | Executes GToTree/IQ-TREE, mandatory QC and optional requested fastANI; writes in workdir | `run_status.json`, process status, QC, alignment/tree/ANI files and logs |
 | `tools/plan_gtotree_iqtree.py discover --run-dir ...` | exact planner run/output directory | Reads and hashes observed outputs; optional `--receipt` creates a new receipt | Unique alignment candidate and retained denominator; this is not tree inference |
-| `tools/phylo_place.py report ...` | compatible jplace, reference package and metadata | Processes a graft, tables and optional graphics/caption | Actual artifacts and warnings; zero exit can coexist with missing/held graphics |
+| `tools/phylo_place.py report ...` | compatible jplace, reference package and metadata | Processes a graft, tables and optional graphics/caption | Actual attempt state and warnings; length or requested-metadata holds return 2, while optional diagnostic-figure/caption failures can coexist with zero |
 
 A name such as `plan`, `dry-run` or `report` does not establish a read-only operation.
 Keep paths printed by the selected command, rather than assuming every companion has
@@ -27,45 +27,49 @@ separate files and must be reconciled explicitly.
 ## Bind resource settings and approval
 
 For the default one-core genome run, specify `--threads 1 --parallel 1
---iqtree-threads 1` on `phylo-run`. The .447 CLI and runner otherwise default to
-four threads and two parallel GToTree jobs. Use a different budget only when it
+--iqtree-threads 1` on `phylo-run`. Otherwise `phylo-run` defaults to
+four threads and two parallel GToTree jobs, so up to eight threads at once. Use a different budget only when it
 matches the user's authorized plan. For a 16S preparation/placement run, bind the
 explicit `--threads` value and expected tree workload separately.
 
 The planner supports `--threads-per-tree` 1–4 within `--max-concurrent-cores` 1–4.
-It records resource accounting; it does not launch a dispatcher or police other
-processes. Its `COMMAND.sh` contains an approval comment but no code that reads
-`RUN_STATE.json` before launching GToTree. The runner's `--approved` and placement's
-`--approved-by` are operator affirmations, not authenticated approval records or
-automatic imports of the planner manifest. Match selected inputs, paths, resources
-and actual approval evidence before running.
+It records resource accounting; it does not launch a dispatcher or police unrelated
+processes. The legacy direct-command recipe carries an approval comment. The current
+governed 2.0.0 recipe instead delegates to `run_planned_tree.py --plan-dir`: that route
+requires explicit `--approved`, a matching `RUN_STATE.json` with `approved=true`, and
+bound runtime, input hashes/roster, labels, tools, HMM and resource settings. These
+checks verify supplied records, not the identity of a human approver. Placement's
+`--approved-by` remains a separate operator affirmation. Match actual authorization
+and the selected route's bindings before running.
 
 ## MLSA inputs, completion and recovery
 
-`build_mlsa.py` scans only immediate lowercase `*.fna` files. It resolves executables from `--bin-dir`, then `MAMEY_PHYLO_BIN` (or `PHYLO_BIN` when the former is unset), then PATH, but does not probe/validate their versions. Five seed files must exist. Use the documented positional input/output and supported `--threads`, `--bin-dir`, `--seeds-dir` spelling; this driver manually reads arguments rather than rejecting every unknown option. Its default thread string is `4`, forwarded to BLASTp and IQ-TREE. MUSCLE receives no thread option from this driver, so `--threads 1` is not a verified whole-pipeline CPU ceiling; bind the actual selected tools' behavior to the authorized resource budget.
+`build_mlsa.py` scans only immediate lowercase `*.fna` files. It resolves executables from `--bin-dir`, then `MAMEY_PHYLO_BIN` (or `PHYLO_BIN` when the former is unset), then PATH. Five seed files must exist. The public CLI now delegates to `tools/_mlsa_resources.py`, whose argparse interface rejects unknown options; the lower-level computational worker still reads its internal arguments manually. Supported controls include `--threads`, `--bin-dir`, `--seeds-dir`, `--native-work-root`, `--rss-limit-bytes`, `--min-free-disk-bytes`, `--timeout-seconds` and `--native-copy-limit-bytes`. Budgets must be finite and positive; byte budgets and threads must be integers. Default threads remain 4. The coordinator sets six native-thread environment variables to 1, binds source/seed/tool/interpreter hashes, admits resource estimates and watches the whole worker for RSS, disk and elapsed time. These controls do not establish a universal CPU ceiling or a successful biological workflow; inspect the actual resource receipt.
 
 The seed-selected CDS is the highest-bitscore returned BLAST subject, not a reciprocal/coverage-thresholded orthology decision. Inspect `loci_report.tsv` and original selection evidence before calling it an ortholog. A locus with no hits across the panel is omitted; a taxon with at least one retained locus is kept with gaps in its missing partitions; a taxon missing all loci disappears from the supermatrix. Compare intended genomes, per-locus HIT/NO_HIT rows, actual partition count and retained tip roster before describing the result as a five-locus/full-pool screen. `_OUTGROUP` in a filename is just part of the escaped taxon label here: this command neither enforces one outgroup nor passes an outgroup/rooting option to IQ-TREE.
 
-Output must be new or an existing empty nonsymlink directory; choose it outside source/code trees. Subdirectories/status/log and native outputs are written sequentially with no group rollback or resumable cache. Missing tools/seeds return 3; output/input-roster refusals return 4; caught pipeline failures record FAILED and return 6. Earlier setup/argument failures or interruption can leave no final status or an IN_PROGRESS/partial directory. Preserve it and captured diagnostics, resolve the cause, then use a fresh destination; do not reuse old native products as a completed retry.
+The output must be new or empty, with an existing parent, and must not overlap the genome, seed or code tree. The native-work root must also avoid protected inputs/output. Public preflight refusals normally return 4; parser/usage errors return 2. A monitored worker, completion or publication failure normally returns 6 and can leave diagnostics under `RESOURCE_ATTEMPT/<attempt-id>/`. Retain `REQUEST.json`, `RESOURCE.json`, `WORKER_COMPLETION.json`, terminal `SUCCEEDED.json`/`FAILED.json` and `worker.log` where produced. Some preflight failures occur before those artifacts exist. The lower-level worker has its own statuses, which are not the public wrapper's full exit contract. Preserve failed/partial attempts and use a fresh destination after diagnosis; output promotion is not a resumable multi-file transaction.
 
-Exit 0 with COMPLETE means invoked tools succeeded and selected checks passed. The final tree check is only existence/nonzero bytes; it does not parse leaf identity/support or enforce full-panel/five-locus coverage. No rendered figure or sign-off is produced. `taxon_map.tsv` retains input basenames, and status/log/selection files are not source/output hash manifests. Retain full genome/seed paths and hashes, binary/version bindings, arguments, partition/tip denominators and output hashes separately; tree review/taxonomy remain owner decisions.
+Public exit 0 requires a resource-admitted, monitored worker result, matching completion/output bindings, successful cleanup and promotion. The worker's final tree check remains existence/nonzero bytes; it does not parse leaf identity/support or enforce full-panel/five-locus coverage. No rendered figure or sign-off is produced. Keep the resource-attempt bindings alongside `taxon_map.tsv`, selection files and actual partitions/tips. Exact executable hashes are not tool-version validation, and mechanical completion is not orthology, taxonomy or scientific acceptance.
 
 ## Separate accepted versions from verified interfaces
 
-The shared version list accepts GToTree 1.8.19 and 2.0.x. That list is not a proof
-that every command builder supports both. The .447 planner checks for `-n <int>`
-and emits `-n` unconditionally; the runner's v2 branch deliberately omits `-n`.
-Hold a v2 planner route for source/interface reconciliation when its local help
-or command rejects that option. Do not clear a HOLD by changing its label.
-Preserve version, help and generated command evidence for the owning code repair.
+The shared version policy accepts GToTree 1.8.19 and 2.0.x. Both planner and
+runner use `tools/_gtotree_versions.py`: v1 requires/emits `-n`, while v2 omits it
+and probes detailed help with `-s`. This repairs the earlier planner/runner option
+mismatch. Version-family admission is still separate from source-specific resource
+admission: unverified v2 runtime profiles remain held, and the governed 2.0.0 route
+requires its exact runtime and plan bindings. Preserve the selected version, help,
+resource contract, generated command and receipt rather than treating a recognized
+version or a retired caveat as evidence of a completed run.
 
 ## Validate the requested outputs
 
 A prepared FASTA is not a completed tree. A tree file is not a reviewed figure,
-validated taxonomy or verified ANI result. `phylo_place.py report` may hold figures
-when branch lengths remain unverified, skip a failed caption, or omit an advisory
-sign-off helper while returning zero. Inspect every requested file and the warning
-stream before recording task completion.
+validated taxonomy or verified ANI result. `phylo_place.py report` returns 2 when
+branch-length admission or requested metadata-strip completion is held. A failed
+optional diagnostic render/caption or absent advisory sign-off helper need not
+block zero. Inspect `<group>_REPORT_ATTEMPT.json`, requested artifacts and warnings.
 
 For `phylo-run`, a requested fastANI stage must produce its current output and pass
 its execution checks; typed failures preserve core-tree artifacts and return nonzero.
@@ -76,7 +80,7 @@ placement within one reference panel automatically establishes a species name or
 ## Resolve scanner HMMs consistently
 
 The HMM doctor entry and scanner share `mamey.wheelhouse.resolve_hmm_database`.
-Resolution is an existing `SM_HMM_DB` file, then `MAMEY_HMM_DIR`, shared-root `hmm/`,
+Resolution first accepts an existing `SM_HMM_DB` path (this branch checks existence, not regular-file type), then `MAMEY_HMM_DIR`, shared-root `hmm/`,
 bundle-local 148 set, discovered add-on 148 set, then bundle-local 35 set. Directory
 tiers prefer `scanner_pfam_150.hmm` over `scanner_pfam.hmm`. The filename's count is a
 hint: validate actual content and record the selected hash. Provisioning does not
@@ -89,12 +93,9 @@ retrieval client. See [external assets](EXTERNAL_ASSETS_GUIDE.md) for acquisitio
 ## Source owners
 
 - [Autopilot](../tools/phylo_autopilot.py): classification, routing, reference preparation and dry-run boundary.
-- [MLSA builder](../tools/build_mlsa.py): five protein loci and executed companion pipeline.
+- [MLSA builder](../tools/build_mlsa.py) and [resource coordinator](../tools/_mlsa_resources.py): five protein loci, public admission/monitoring, completion bindings and companion pipeline.
 - [Planner](../tools/plan_gtotree_iqtree.py): immutable planner artifacts, resource accounting and generated commands.
 - [Genome runner](../tools/run_planned_tree.py): version-specific commands, native status, QC and requested ANI.
 - [CLI](../mamey/cli.py): public forwarding interface and resource defaults.
 - [Placement](../tools/phylo_place.py): reference inference, output containment, reporting and advisory/render behavior.
 - [Scanner resolver](../mamey/wheelhouse.py) and [external dataset resolver](../mamey/external_data.py): HMM provisioning.
-
-These descriptions are source-derived documentation checks, not execution validation
-of installed companion binaries or a full-suite pass.

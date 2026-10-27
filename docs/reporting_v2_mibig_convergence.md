@@ -1,8 +1,6 @@
 # Reporting v2 — per-gene MIBiG convergence & structured antiSMASH tables
 
-*Engine 1.9.114 (bundle v9.7.332), Codex **P_MPG + P_LWC**. This is the operator/authoring
-reference for the outputs that cut adds. **Read this before citing any of the new fields or
-tier labels in a Mode-B card, a manuscript, or a slide.***
+Read this before citing any convergence field or tier label in a Mode B card, manuscript or slide.
 
 ## What this is — and is not
 
@@ -33,7 +31,7 @@ Workbook sheets mirror these: `MIBiG_Per_Gene`, `MIBiG_Convergence`, `MIBiG_Prof
 
 ## The evidence-tier vocabulary (deterministic strata)
 
-Computed per BGC from its dominant convergence row. **Thresholds are test-locked at these exact values.**
+A tier is computed for each BGC × MIBiG comparator row; the profile then takes its dominant row under tier-first ordering. Class-mismatch precedence is per comparator, not a veto over positive tiers from other references. Preserve dominant/runner-up status with the displayed tier, as detailed below. **The declared thresholds below remain unchanged.**
 
 | tier | requires |
 |---|---|
@@ -64,7 +62,7 @@ substituted for recognizable-gene dominance.
 ## Backward compatibility
 
 The `reporting_v2_gate` fires **only** when the manifest declares
-`reporting_features.schema_version == sapote_reporting_features_v2`. Packages sealed before v9.7.332
+`reporting_features.schema_version == sapote_reporting_features_v2`. Packages without the v2 reporting schema
 return **`LEGACY_NOT_APPLICABLE`** and are not retroactively invalidated. Re-run a strain only to
 **obtain** the new tables — existing scoring/counting/triage are unchanged, so cross-strain
 comparability is preserved with no re-scoring.
@@ -79,12 +77,12 @@ live-run tiers as provisional.
 
 ## Current denominator, aggregation and missingness contracts
 
-`mamey/mibig_per_gene.py:101–178` maps knownclusterblast TXT files to contig+region, then stores rows under BGC alias. Duplicate context keys can overwrite; unmapped files are skipped. Versioned references are collapsed at the first dot for the query/reference key, and the highest BLAST-score subject row is retained for each query/reference pair. This is not reciprocal one-to-one gene matching. Keep source file, full reference version and full locus map separately. Per-file exceptions increment `parse_error_count`; overall status can still be `PASS` when other rows exist. `NULL_NO_MIBIG_GENE_HITS` conflates empty/unavailable/skipped/failed parsing unless source/error context is inspected. CLI catches module-level exceptions into `ERROR_<type>` with empty per-gene data (`mamey/cli.py:1831–1861`).
+`mamey/mibig_per_gene.py` maps knownclusterblast TXT files to contig+region, then stores rows under BGC alias. Duplicate context keys can overwrite; unmapped files are skipped. Versioned references are collapsed at the first dot for the query/reference key, and the highest BLAST-score subject row is retained for each query/reference pair. This is not reciprocal one-to-one gene matching. Keep source file, full reference version and full locus map separately. Per-file exceptions increment `parse_error_count`; overall status can still be `PASS` when other rows exist. `NULL_NO_MIBIG_GENE_HITS` conflates empty/unavailable/skipped/failed parsing unless source/error context is inspected. CLI catches module-level exceptions into `ERROR_<type>` with empty per-gene data (`mamey/cli.py`).
 
-The query denominator comes from the parsed query table **plus hit-derived fallback genes**, not a verified complete CDS roster. Trimmed/missing query tables can shrink the denominator and inflate fractions. In convergence, “recognizable” means hit-bearing query genes; in the BGC profile it applies the profile's minimum-identity rule. These two recognizable denominators are not interchangeable (`mibig_per_gene.py:126–140,181–244,267–303`). `KNOWN_ANCHORED` is an accession-pattern anchor plus profile fraction≥0.20, not compound identity or accepted reference biology. The dark-matter names are saved-annotation reporting labels, not novelty findings.
+The query denominator comes from the parsed query table **plus hit-derived fallback genes**, not a verified complete CDS roster. Trimmed/missing query tables can shrink the denominator and inflate fractions. In convergence, “recognizable” means hit-bearing query genes; in the BGC profile it applies the profile's minimum-identity rule. These two recognizable denominators are not interchangeable. `KNOWN_ANCHORED` is an accession-pattern anchor plus profile fraction≥0.20, not compound identity or accepted reference biology. The dark-matter names are saved-annotation reporting labels, not novelty findings.
 
-Raw coverage and capped interpretive coverage remain separate. Missing/non-numeric coverage is flagged, but helpers are not comprehensive finite-number admission guards; independently reject invalid values before interpreting tiers. Tier code uses capped interpretive median; raw median is for provenance (`:24–46,292–313,438–458`). A class-discordant reference receives CAUTION, but dominant sorting places that reference after positive tiers from **other references**: mismatch precedence is per reference, not a universal BGC veto. Dominant status and runner-up margin must travel with the tier; tier-first ordering can make a lower-density positive reference dominant over a larger mismatch (`:350–399`).
+Raw coverage and capped interpretive coverage remain separate. Missing/non-numeric coverage is flagged, but helpers are not comprehensive finite-number admission guards; independently reject invalid values before interpreting tiers. Tier code uses capped interpretive median; raw median is for provenance. A class-discordant reference receives CAUTION, but dominant sorting places that reference after positive tiers from **other references**: mismatch precedence is per reference, not a universal BGC veto. Dominant status and runner-up margin must travel with the tier; tier-first ordering can make a lower-density positive reference dominant over a larger mismatch.
 
-The reporting gate checks declared schema, files, row/header/count and workbook parity. It is not an exact source-byte/full-locus/biological validator. `LEGACY_NOT_APPLICABLE` applies to undeclared reporting schema, not a retroactive claim that legacy evidence is complete (`mamey/validate.py:83–118,737–750`). Package sealing/hash validation and current50 authoring verification are separate boundaries. Re-running an old package is a separately authorized new run, not an in-place upgrade or guarantee that all current extraction/scoring behavior equals .332.
+The reporting gate checks declared schema, files, row/header/count and workbook parity. It is not an exact source-byte/full-locus/biological validator. `LEGACY_NOT_APPLICABLE` applies to undeclared reporting schema, not a retroactive claim that legacy evidence is complete. Package sealing/hash validation and current50 authoring verification are separate boundaries. Re-running an old package is a separately authorized new run, not an in-place upgrade.
 
-The old 38-ZIP/1,507-BGC/45,767-row trial remains a self-reported historical scope. No runtime trial, test suite, import-graph proof, scientific adoption or current live-output validation was performed here. Freeze exact source ZIP/package/sidecar/code hashes and parameters before citing a convergence result; report uncertainty and denominator completeness alongside reference agreement. See [current ranker admission](DEFINITIVE_BGC_RANKER.md) for the additional limits of consuming these per-gene tables.
+The old 38-ZIP/1,507-BGC/45,767-row trial remains a self-reported historical scope. Freeze exact source ZIP/package/sidecar/code hashes and parameters before citing a convergence result; report uncertainty and denominator completeness alongside reference agreement. See [current ranker admission](DEFINITIVE_BGC_RANKER.md) for the additional limits of consuming these per-gene tables.

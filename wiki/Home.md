@@ -2,15 +2,16 @@
 
 **Claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters (BGCs).**
 
-*Current to bundle v9.7.457 · engine Mamey 1.9.177*
+*Current to bundle v9.7.458 · engine Mamey 1.9.177*
 
 Sapote–Mamey turns antiSMASH output into auditable, claim-safe biosynthetic evidence packages and
 interpretations. It is built in two layers, and the boundary between them is deliberate:
 
 - **Mamey** — the executable BGC-analysis module. A deterministic Python engine that extracts and
   records source-derived measurements and evidence states: BGC inventory, boundary tiers, KCB
-  triage, per-gene comparison evidence, and figures. Given the same admitted inputs and
-  configuration it produces the same outputs, and defers biological judgment.
+  triage, per-gene comparison evidence, and figures. Given the same inputs and settings it
+  applies the same extraction rules and defers biological judgment. Timestamps, software
+  versions and optional-stage results can still change output bytes.
 - **Sapote** — the governed post-extraction judgment workflow. It uses Mamey's sealed evidence
   packages to author gene-by-gene Mode B cards, ecological synthesis, and deliverables under hard
   claim-safety rules.
@@ -32,11 +33,12 @@ version-specific build profile.
 
 | Start | Page | What it gives you |
 |---|---|---|
-| **1** | **[Quick Guide](Quick-Guide.md)** | Installation, the run command, key flags, the deliverable menu. Start here. |
-| **2** | **[User Manual](User-Manual.md)** | The consolidated operating manual — install → running a strain → reading the output → configuration → engine internals. |
-| **3** | **[Concepts Q&A](Concepts-Q-and-A.md)** | The "why does it work this way" companion, in plain language. |
-| **4** | **[Encyclopedia](Encyclopedia.md)** | The deep reference — 13 volumes, engine internals through type-strain analyses. |
-| — | **[Glossary](Glossary.md)** | The single canonical source for every term. The Manual and Encyclopedia point here rather than redefining. |
+| **1** | **[Start with your file](../docs/READER_START_HERE.md)** | Pick the guide for the file you have: code, antiSMASH result or saved package. Start here. |
+| **2** | **[Quick Guide](Quick-Guide.md)** | Installation, the run command, key flags, the deliverable menu. |
+| **3** | **[User Manual](User-Manual.md)** | The consolidated operating manual — install → running a strain → reading the output → configuration → engine internals. |
+| **4** | **[Concepts Q&A](Concepts-Q-and-A.md)** | The "why does it work this way" companion, in plain language. |
+| **5** | **[Encyclopedia](Encyclopedia.md)** | The deep reference — 13 volumes, engine internals through type-strain analyses. |
+| — | **[Glossary](Glossary.md)** | The single canonical source for every term. Other pages point here rather than redefining terms. |
 | — | **[Common Mistakes](Common-Mistakes.md)** | Wrong ZIP type, stale antiSMASH, missing dependencies. Read this first when something goes wrong. |
 
 ## Installing
@@ -51,6 +53,8 @@ version-specific build profile.
 | Page | Covers |
 |---|---|
 | **[Phylogenetic Placement](Phylogenetic-Placement.md)** | Placing query sequences onto a fixed reference tree (MAFFT → RAxML-NG → EPA-ng → gappa), and how to read likelihood-weight ratios and pendant lengths. |
+| **[Make and review figures](../docs/FIGURES_START_HERE.md)** | Choose a route from existing package, plotted-data, gene-map or tree inputs; retain data, caption/methods and actual review evidence. |
+| **[Mode B](Mode-B.md)** | Choose a named authoring profile and distinguish native lead material, authored interpretation and verification. |
 
 ---
 
@@ -71,6 +75,6 @@ keeps "what the data says" from blurring into "what we think it means".
 
 ---
 
-## Licence
+## License
 
 Code is MIT; documentation is CC-BY-4.0. See the repository `LICENSE` and `LICENSE-DOCS.txt`.

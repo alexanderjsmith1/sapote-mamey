@@ -11,7 +11,7 @@ environment/path noise. Two subcommands, stdlib-only.
 
     # 2) REBASE-VERIFY a staged card onto that cut, subtracting base failures
     python tools/cut_audit.py rebase-verify --base <sealed_tree> --card <card_dir> \
-        [--full] [--python /path/to/python3] [--keep]
+        [--tests ...] [--python /path/to/python3] [--timeout SECONDS] [--keep]
 
 Two hard lessons this encodes:
   * COPY THE WHOLE TREE. A partial copy (e.g. excluding Wheelhouse/) makes tree-wide
@@ -114,8 +114,10 @@ def verify(args) -> int:
         want = None
         with open(args.sha256) as fh:
             for line in fh:
-                parts = line.split()
-                if parts and os.path.basename(args.zip) in line:
+                # exact filename field (sha256sum "<hash>  <name>", "*" = binary mode); a substring
+                # test took the hash of any listed name that merely contained this one
+                parts = line.rstrip("\n").split(None, 1)
+                if len(parts) == 2 and parts[1].strip().lstrip("*") == os.path.basename(args.zip):
                     want = parts[0]
                     break
         if want:

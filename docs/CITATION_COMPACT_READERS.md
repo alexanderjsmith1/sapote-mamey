@@ -1,6 +1,6 @@
 # Citation-compact report readers
 
-These are optional output-layer supplements selected by `--token-budget citation-compact`. Read the package triage and source evidence before interpreting a report. The owner is `mamey/citation_compact.py`; CLI phase admission is in `mamey/cli.py:1011–1043`. This guide describes the .447 source contract; it does not request emission into an existing package.
+These are optional output-layer supplements selected by `--token-budget citation-compact`. Read the package triage and source evidence before interpreting a report. The owner is `mamey/citation_compact.py`; CLI phase admission is in `mamey/cli.py`. This guide describes the current source contract; it does not request emission into an existing package.
 
 ## Inputs and identity
 
@@ -22,4 +22,4 @@ The QA file is serialized before its own path is appended to the returned output
 
 `PASS_STRUCTURE` means the producer found no priority-citation shape/status errors and no more than one exact global caveat. `citation_needed` is an accepted status; zero caveats also pass. The package validator accepts WARN, requires at least one compact Markdown report and checks ledger/work-order shape, selected QA entries, optional manifest tracking and checksum behavior. It does not prove all four reports are present, DOI correctness, source-to-lead mapping, complete locus identity, assay suitability or scientific acceptance. Keep structural status separate from reference review and user sign-off.
 
-Sources: `mamey/citation_compact.py:125–175,233–391,424–526`; `mamey/validate.py:245–430`; `mamey/cli.py:1011–1043`. Check retained citation fields and required caveats independently before accepting a compact package.
+Sources: `mamey/citation_compact.py`; `mamey/validate.py`; `mamey/cli.py`. Check retained citation fields and required caveats independently before accepting a compact package.

@@ -121,7 +121,7 @@ No contigs are joined; linkage needs long reads or PCR across the breaks.
 A giant modular type I PKS in a draft genome often breaks into many small contigs. Each piece hits the same
 reference clusters almost equally, so shared-reference homology, which RG-GMCI uses, cannot tell one pathway in many
 pieces from a web of similar clusters. RG-GMCI demotes such webs as hubs. A KS tree that includes a reference
-cluster's own module KS can tell them apart: pieces of one pathway sit one-to-one beside the reference's modules.
+cluster's own module KS can add candidate reference-module placement evidence. A one-to-one placement pattern does not establish that separate contigs belong to one pathway; retain architecture, synteny and linkage holds independently.
 
 ```bash
 python tools/ks_module_placement.py inputs --gbk-dir <one isolate's region GBKs> \
@@ -139,7 +139,8 @@ python tools/ks_module_placement.py place --tree placement_run/ks_tree.treefile 
     is reported.
   - `MODULE_FAMILY`: one reference KS but more isolate KS than that. It reads as a family of similar modules.
   - `AMBIGUOUS_MODULES`: several reference KS fit.
-  - `UNPLACED`: no supported split holds a reference KS.
+  - `UNPLACED`: no supported split holds a reference KS and no smaller missing/inadmissible-support candidate requires a hold.
+  - `SUPPORT_UNVERIFIED`: a reference-containing split smaller than the best supported candidate (or any such split when none is supported) has missing or inadmissible support, so placement is held. For slash-separated IQ-TREE labels, every component must be finite numeric and the last component is read as UFBoot in 0–100; malformed labels are not zero-support evidence.
 - Read the placements per contig. Consecutive KS of one contig should land on consecutive modules. A run in reverse
   is what a minus-strand contig gives when KS are numbered by position.
 - Choose references the pieces actually hit (KnownClusterBlast), and keep the tip count modest: a 265-tip tree with

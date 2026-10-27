@@ -123,7 +123,7 @@ def row_labels(genomes,italic_notes=()):
     for r in genomes:
         note=(r.get("row_note") or "").strip()
         shown=f"<i>{html.escape(note)}</i>" if note in italic_notes else html.escape(note)
-        out[r["strain"]]=f"<i>{html.escape(r['genus'])}</i>"+(f" ({shown})" if note else "")
+        g=html.escape(r['genus']); out[r["strain"]]=(g if r['genus'].endswith(("aceae", "aceae bacterium")) else f"<i>{g}</i>")+(f" ({shown})" if note else "")   # family names stay roman
     return out
 
 def prepare(args,genomes,roster,rows):

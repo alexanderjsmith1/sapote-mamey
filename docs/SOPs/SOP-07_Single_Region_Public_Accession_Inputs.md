@@ -1,6 +1,6 @@
 # SOP-07 — Single-Region Public Accession Inputs
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+Run the commands below from the bundle root, the folder that holds `mamey_run.py`.
 
 
 ## Purpose
@@ -9,7 +9,7 @@ This SOP defines how Sapote/Mamey should handle single-region antiSMASH ZIPs fro
 
 ## Example
 
-`KY089035.1.zip` is a single-region antiSMASH output for a public accession. It is not a full genome and not a sealed Mamey package. It is a valid raw antiSMASH intake target if `inspect` passes.
+`KY089035.1.zip` is the single-region public-accession example, rather than a full-genome export or sealed Mamey package. `inspect` only previews file names. Check the source record and its identity before you run it.
 
 ## Recognition pattern
 
@@ -26,7 +26,7 @@ Typical contents:
 
 ## Required behavior
 
-Mamey should classify this as:
+`inspect` classifies this as:
 
 ```text
 raw antiSMASH single-region accession run
@@ -46,11 +46,11 @@ and explain:
 python mamey_run.py inspect <accession_zip>
 ```
 
-If inspect passes, run gold mode directly — gold has been the only analysis mode since v9.7.161
-(`smoke` was removed; `standard` is a deprecated alias of `gold`):
+If `inspect` passes, run gold directly:
 
 ```bash
-python mamey_run.py run --strain auto --input-zip <accession_zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py run --strain auto --input-zip <accession_zip> \
+  --outdir <fresh-run-root> --mode gold --capped-session --reference-completion off
 ```
 
 `--strain auto` resolves the organism identity from the archive when available. If keeping the accession as the output label is intentional, use `--strain <accession> --allow-accession-strain-id` instead and record that decision. Public accession origin does not grant disclosure/release permission or determine every local privacy tag.

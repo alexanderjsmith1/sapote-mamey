@@ -581,7 +581,7 @@ SOURCE_FLAGS = (
     ("rescue_gene_adjudication_tsv", "--rescue-gene-adjudication-tsv",
      "Explicit gene-level adjudication TSV; overrides saved run rulings only after exact gene/location checks"),
     ("rescue_locus_inventory", "--rescue-locus-inventory",
-     "Sequence-bound whole-assembly CDS JSON; expands current50_v2 interpretation to supported-anchor neighbourhoods"),
+     "Sequence-bound whole-assembly CDS JSON; expands current50_v2 interpretation to supported-anchor neighborhoods"),
 )
 
 

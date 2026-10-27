@@ -1,4 +1,4 @@
-"""Product parking matches whole antiSMASH product names, not substrings (card 09AF774E_442).
+"""Product parking matches whole antiSMASH product names, not substrings (card v9.7.442).
 
 Product names are the real shapes seen in a BiG-SCAPE 2 database: hybrids joined with ".", and "-"/"_"
 inside single names (terpene-precursor, fatty_acid). Parking "terpene" must not hide "terpene-precursor".

@@ -1,6 +1,10 @@
 # _INDEX — figure-prompt library
 
-27 figure prompts across 5 categories, plus 4 deliverable-map recipes (31 prompt files total). Each figure maps to its exact data source; each map composes library figures into a named deliverable. Global rules in `FIGURE_CONVENTIONS.md`; usage in `HOW_TO_USE.md`.
+25 figure prompts across 5 categories, plus 4 deliverable-map recipes (29 prompt files total). Each figure maps to its exact data source; each map composes library figures into a named deliverable. Recipe conventions are in `FIGURE_CONVENTIONS.md`; usage is in `HOW_TO_USE.md`.
+These are specifications, not a command registry. Match each to the approved route
+in `docs/FIGURES_START_HERE.md`; a listed filename is not proof of implemented
+renderer coverage. `tools/plot_examples.py` supplies only three PNG examples
+with its own output names.
 
 | category | figure id | data source |
 |---|---|---|
@@ -11,8 +15,6 @@
 | cohort | `fig_class_prevalence_bar` | figure_ready/class_prevalence.csv |
 | cohort | `fig_class_by_strain_heatmap` | figure_ready/class_by_strain.csv |
 | cohort | `fig_class_composition_stacked` | figure_ready/class_by_strain.csv |
-| cohort | `fig_other_class_decomposition_all` | figure_ready/other_breakdown.csv |
-| cohort | `fig_other_class_decomposition_recurrent` | figure_ready/other_breakdown.csv |
 | cohort | `fig_edge_status_composition` | figure_ready/bgc_inventory.csv |
 | cohort | `fig_diagnostic_landscape_heatmap` | figure_ready/diagnostics_long.csv |
 | cohort | `fig_domain_burden_heatmap` | domain_level/domain_role_counts_by_bgc.csv |

@@ -7,7 +7,7 @@ untouched and report the hold; the diagnostic refuses an occupied probe location
 Run engine examples from the selected bundle directory containing `pyproject.toml` and `mamey_run.py`, using its compatible activated Python interpreter; bind external inputs separately.
 
 
-**Source scope:** reviewed against v9.7.447 · companion workflow (detected, not bundled).
+**Source scope:** companion workflow (detected, not bundled). The pruning, roster, outgroup-scan and advisory signoff clauses below match their current source owners. The remaining installation, runtime/interface, marker, inference and historical cohort claims require their own source/run evidence; this is not a completed native workflow validation.
 Historical cohort/version examples below are context, not proof of current installed assets.
 **Scope:** downstream of a sealed Mamey package. It **never blocks or alters a core run.**
 **Governance authority:** [`docs/phylogenomics.md`](phylogenomics.md) and, for the LLM contract,
@@ -146,12 +146,9 @@ python tools/prune_neighbors_from_tree.py  <out_dir>/tree.treefile  --k 3  --max
     --genomes-dir <genomes_dir>  --emit-panel-tsv panel_candidates.tsv
 ```
 
-For every query tip (`AS-####`/`AJS-####`) it keeps the **k nearest reference tips by patristic
-distance**, plus the outgroup, and writes `panel_candidates.tsv` in exactly the columns
-`build_phylo_panel.py` consumes (`candidate_id, role, source_path, selection_basis,
-related_query_ids`; references carry `selection_basis=nearest_neighbour_patristic_MLSA`). Queries and
-the outgroup are never dropped; if the set would exceed `--max-tips` (hard ceiling 60), the
-**farthest** references are trimmed first and reported. Then hand it to Codex:
+The pruner classifies query tips by its prefix regex (`AS-`/`AS_`, `AJS-`/`AJS_`, or `SID` followed by digits), and outgroups by an `OUTGROUP` substring; reconcile these inferred roles with the approved roster. Other query naming schemes can be treated as references. It selects up to **k nearest reference tips by patristic distance per recognized query**; equal distances retain tree-tip order. It emits `candidate_id, role, source_path, selection_basis, related_query_ids`, with `nearest_neighbour_patristic_MLSA` for reference rows (`tools/prune_neighbors_from_tree.py`).
+
+The CLI clamps a requested cap above 60, then trims references by descending minimum distance to any query. Queries and all inferred outgroups remain: if those fixed tips alone exceed the cap, the function can still emit an oversized panel. Missing or multiple outgroups do not enforce exactly-one admission here. Source paths can be constructed for absent genomes, and optional staging can warn and finish with fewer copied files. Inspect the roster, actual paths, counts and logs; the governed panel builder and compute gate remain separate. Then submit the selected panel for current review:
 
 ```bash
 python tools/build_phylo_panel.py panel_candidates.tsv staged_panel/ --panel-size <N>
@@ -179,8 +176,7 @@ python tools/phylo_roster.py --tree fam.treefile [--strain-table hosts.csv]   # 
 python tools/phylo_roster.py --panel panel.tsv --remove "30,31,36" --out panel_v2.tsv   # edit it
 ```
 
-Tips are numbered in tree-leaf order (the figure stacking order); removing a QUERY (an AS strain) is
-allowed but flagged loudly. Re-print after each edit so the numbers always match what you see.
+Tree tips are numbered in parsed leaf order; panel rows are numbered in file order. Numbering is relative to that exact input, not a durable identity or guaranteed later figure order. Explicit panel roles are used when present; tree role inference recognizes AS/AJS prefixes but not the pruner’s SID prefix. Query removal and out-of-range indices produce warnings, not refusal. Duplicate labels are not rejected; panel output filters by retained label, so a duplicate can preserve a row selected for removal (`tools/phylo_roster.py`). Reconcile unique identities and roles first, retain the source roster/hash, use a fresh output and inspect the saved rows. The tool directly overwrites a supplied output path and is not an atomic or source-protecting editor. Re-print after each edit.
 
 **Test the root (3× per family).** Because MLSA is cheap, build the same ingroup rooted on several
 candidate outgroups and check whether the ingroup topology is stable:
@@ -192,9 +188,9 @@ python tools/mlsa_outgroup_scan.py --build --ingroup-dir genomes_ingroup/ \
 python tools/mlsa_outgroup_scan.py --trees scan/mlsa_outA/tree.treefile scan/mlsa_outB/tree.treefile ...
 ```
 
-It reports the Robinson-Foulds distance between ingroup topologies (RF=0 = identical, root-robust). A
-non-zero RF means the deep splits move with outgroup choice — report them cautiously (a sign-off item).
-This never builds a heavy core-genome tree; it only orchestrates cheap MLSA runs.
+It reports the symmetric difference of nontrivial bipartitions on shared tips after removing names containing `OUTGROUP`. RF=0 means no difference among those retained splits; it does not test rooting, all original tips, branch lengths, support, orthology or biological panel adequacy (`tools/mlsa_outgroup_scan.py`). Record shared-tip counts, complete retained/excluded rosters and split denominators. The implementation does not enforce a minimum informative common roster; zero splits, unresolved trees or incomplete overlap cannot establish root robustness. A nonzero RF identifies a difference on the compared scope, not its biological cause.
+
+Build mode copies every immediate ingroup `.fna` for each outgroup into reusable work directories, runs MLSA serially and retains only zero-exit builds with an existing tree. Failures are logged while remaining comparisons can continue; the wrapper returns zero even when fewer than two trees remain. Repeated outgroup basenames or prebuilt parent-directory labels can overwrite dictionary entries. Use a fresh work root, estimate the aggregate copies before launch, unique labels and a declared expected build/roster count. Do not infer complete comparative success from the printed STABLE verdict or exit status. These are still external compute jobs within the authorized resource scope.
 
 ## 5. Tier 2 — approved core-genome backbone (cores committed here)
 
@@ -237,11 +233,9 @@ and investigate assembly quality, duplicates and reference provenance before ado
 python tools/signoff_check.py  <tree.treefile>          # advisory, always exits 0
 ```
 
-Objective checks: exactly one outgroup present, and not an ingroup genus mislabelled as one; no
-non-Actinomycetota **rogue** tip; no **MAG/unclassified-bin** tip; no contig **cruft**/duplicate/bare
-labels; no same-assembly **GCA+GCF twin**; internal-node **support** present; **thin** trees (n<12)
-flagged. Judgment items (outgroup *choice*, comparator provenance, host traceability, ANI-boundary
-honesty, draft-assembly caveats, claim-safety) are printed as reminders.
+The advisory checker uses label/text heuristics, not sequence, taxonomy or accession reconciliation. It requires some recognized outgroup; multiple automatic OUTGROUP-tagged names are flagged, while explicitly designated multi-tip outgroups are supported. An exact-one biological outgroup is not proved. Genus comparison uses label prefixes; rogue-taxon/MAG/cruft checks use finite regexes. Duplicate/bare labels, repeated numeric assembly-accession cores and digit-bearing internal labels are screened, not verified as true duplicate genomes or valid support values (`tools/signoff_check.py`). Missing branch-length syntax can escape its tip regex.
+
+Use repeated `--outgroup` values consistently with the selected hard tree gate when naming untagged outgroups. With no file argument the tool scans recent `.treefile` files only, excluding configured directory names; that is not an exhaustive tree inventory. No recent tree, an inspection error, detected issues and a clean advisory check can all return zero. Preserve output, actual file roster and unresolved checks. Outgroup choice, comparator provenance, host traceability, ANI interpretation and assembly caveats remain independent judgment items.
 
 ## 8. Overlay the tree with Sapote-Mamey BGC figures
 
@@ -258,7 +252,7 @@ is an **annotation track**: row position implies shared ancestry only, never che
   completion and redundancy per input for free (in `Genomes_summary_info.tsv`). Carry those numbers
   into the QA and the figure caption: a fragmented tip with, say, 62% SCG completeness should say so.
   It is the honest, per-tip fragmentation flag — its position may hold while its branch length does not.
-- **Make GToTree thread controls explicit** (`-n -M -j`) — defaults can exceed the core ceiling.
+- **Use the admitted version-specific GToTree thread controls** (`-n -M -j` for 1.8.19; v2 omits `-n` and needs its separately admitted phase-worker profile). A shared flag list or version/help pass alone does not establish the requested CPU bound.
 - **Restrict ModelFinder** on the protein core-genome matrix; pass **no** protein `-mset` on the
   nucleotide MLSA matrix.
 - **Spaces in paths break GToTree's HMM handling.** Work in a space-free dir; a symlinked

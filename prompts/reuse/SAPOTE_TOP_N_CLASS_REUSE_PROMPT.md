@@ -30,11 +30,10 @@ Sapote layer over sealed package(s). Do not re-run scans. First:
   claim ceiling. Rank by evidence weight (diagnostic-core present > label-only).
 - **Grouped-frequency block:** counts of the class across strains/habitats (feeds B2_Product_Class_Matrix
   / B8–B12 top-class sheets as applicable).
-- **Class-membership audit:** explicitly separate (a) diagnostic-core-confirmed members from
+- **Class-membership audit:** explicitly separate (a) diagnostic-supported candidates from
   (b) label-only candidates lacking a visible core — the latter flagged for HMMER/BLASTp, never ranked
   as if confirmed.
-- For cross-strain scope, also feed C1_DAPR_Antibacterial / C2_DAPR_Antifungal where the class is
-  bioactivity-relevant.
+- For cross-strain scope, propose any relevant C1/C2 deltas separately, with exact row/source bindings. Apply them only to an authorized candidate workbook after checking the current sheet contract. Reference-class relevance does not supply strain-level assay metadata.
 
 ## Non-negotiable rules
 - **Diagnostic-core-first:** the recurring failure is ranking a label-only BGC as a confirmed class
@@ -43,8 +42,8 @@ Sapote layer over sealed package(s). Do not re-run scans. First:
 - **Rare-class caveat:** for phosphonate/ranthipeptide/azole/enediyne, state that these are
   rare-class *enumerations* requiring orthogonal confirmation (e.g. ³¹P-NMR for phosphonate) before
   compound-class claims.
-- **Claim-safety + locator mandate** throughout; candidate language; PMID/DOI Bert-verified only.
-- **NAPAA** is registry-neutral and not intrinsically excluded from ranking; **hglE-KS/PREV-001** is informational and not a class downgrade. Bound cohort context may be reported, but marker prevalence and missing/zero KCB alone do not establish new chemistry, product identity or activity.
+- **Claim-safety + locator mandate** throughout; candidate language; PMID/DOI supported by a source-bound verification receipt with source, date and claim scope; retain valid prior verification.
+- **NAPAA** is registry-neutral and not intrinsically excluded from ranking; **hglE-KS/PREV-001** needs the selected scorer contract as well as registry status: the current own-product/no-CCTT fallback can still set a standing rule and apply the class-gated bottom tier. Do not describe that implemented result as universally informational (`mamey/scoring.py`). Bound cohort context may be reported, but marker prevalence and missing/zero KCB alone do not establish new chemistry, product identity or activity.
 
 ## Handback
 The ranked top-N table + grouped-frequency block + the confirmed-vs-label-only audit + relevant

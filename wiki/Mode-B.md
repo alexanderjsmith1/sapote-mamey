@@ -1,6 +1,7 @@
 # Mode B — the judgment-card system
 
-*Source of truth: `docs/MODE_B_DOCUMENT_INDEX.md` in the current bundle — Mode B's instructions are
+*Start with [the Mode B document index](../docs/MODE_B_DOCUMENT_INDEX.md) and
+[profile matrix](../docs/MODEB_PROFILE_MATRIX.md) in the selected bundle. Instructions are
 deliberately spread across contract docs, implementation files, and tests, and the index is the
 authoritative map. This page orients; it does not replace the contracts.*
 
@@ -19,13 +20,16 @@ Use an authorized working package copy when original package bytes must remain u
 The card format grew through ratified contracts (each with canonical section titles and
 validators): **§1–§10** core card with the §9/§10 gate → **§11–§20** enrichment floor →
 **§1–§30** corrective-protocol format → **§1–§48** full depth, gate-enforceable since v9.7.369
-("full48 gate binding"). Priority tier sets the depth floor; genuine fragments carry a documented
-exemption rather than fake depth. `mamey/mode_b_quality_gate.py` checks section presence, length
-floors, and enrichment blocks; `mamey/validators/modeb_full20.py` validates the corrective-protocol
-sections. The CLI defaults to `--contract full48`; opt-in `--contract current50_v2` must be selected
-consistently for emission and verification. Historical 10/20/30-section formats are not substitutes
-for that selected contract. Verify the actual authored Markdown file, for example
-`python mamey_run.py verify-modeb project/card.md --contract full48 --package project/package`.
+("full48 gate binding"). Legacy priority/fragment floors are additional lexical
+quality heuristics, not the selected finished-card definition. The full20 validator
+is a compatibility facade derived from the first twenty default titles; it does
+not verify a complete full48/current50 card. Native emission/verification defaults
+to `--contract full48`; select `--contract current50_v2` consistently for that
+opt-in profile. Verify the actual saved Markdown with the intended contract,
+package and package-scoped alias, for example
+`python mamey_run.py verify-modeb project/card.md --contract full48 --package project/package --bgc <package-scoped-alias>`.
+Retain exact card/source hashes and invocation separately; warnings and receipt
+PASS do not establish scientific review or complete source binding.
 A template or generated top-leads table is not a finished card. The full48 exemplar is the phosphonate reference card
 (`docs/reference/modeb_exemplars/`).
 
@@ -33,19 +37,28 @@ A template or generated top-leads table is not a finished card. The full48 exemp
 
 A card is written from the **per-CDS evidence** — gene functions, sec_met domains + E-values,
 smCOGs — never from the antiSMASH product label. Guards encode hard-won lessons:
-`mamey/mode_b/guards.py` catches huge modular proteins mislabelled as small enzymes;
-`mamey/mode_b/comparator_workflow.py` detects repeated comparator hits and stops different loci
-collapsing into one comparator's story; `mamey/mode_b/claim_safety.py` labels split/composite loci
-conservatively. Split fragments are only merged on gene-confirmed COMPLEMENTARY_SPLIT evidence
-(see [BLASTp-Novelty](BLASTp-Novelty.md)), never on an RG-GMCI score alone.
+`mamey/mode_b/guards.py` returns large-protein/domain-review warnings from
+length/title inputs. `mamey/mode_b/comparator_workflow.py` detects repeated
+comparator-label patterns and drafts next-step guidance; it does not prevent
+incorrect joins or verify comparator synteny. `mamey/mode_b/claim_safety.py`
+classifies caller-supplied evidence booleans, not independently established
+physical linkage. Keep proposed fragment relationships separate until the
+source evidence is adjudicated; an RG-GMCI score is not permission to merge loci
+(see [BLASTp-Novelty](BLASTp-Novelty.md)).
 
 ## Coverage honesty
 
-`--top-n` is not full-inventory coverage — coverage receipts state exactly which BGCs have cards
-and which do not, and `--strict-all` fails on missing cards rather than papering over them.
-Promotion of an anchored lead requires its per-gene BLASTp channel fresh (U = 0 uncovered anchor
-genes). Batch runs are rank-ordered with resume behavior and a compile gate
-(`docs/modules/MODE_B_BATCH_RUN.md`).
+For native `mode-b`, `--top-n` limits generated top-lead material. Its coverage
+receipt records emitted/missing aliases relative to the supplied inventory;
+`--strict-all` can return 2 after partial files have already been written. This
+is not an audit of every saved authored card or its selected finished profile.
+
+Source admission and promotion remain separate from gap-aware draft authoring.
+The standalone `tools/modeb_evidence_gate.py` lints promotion language and
+OBSERVATION / INFERENCE / ALTERNATIVE / FALSIFIER terms; freshness is inferred
+from text unless a caller supplies its boolean override. It does not independently
+compute per-gene coverage or prove U = 0. Use actual channel/roster receipts and
+[batch guidance](../docs/modules/MODE_B_BATCH_RUN.md), retaining evidence holds.
 
 ## Authoring hygiene
 
@@ -64,9 +77,9 @@ genes). Batch runs are rank-ordered with resume behavior and a compile gate
 ```
 sealed package ──▶ triage board (routing priors)
                         │
-                        └─▶ Mode B cards (per-BGC judgment, gate-checked)
-                                 │  requires: fresh per-gene BLASTp (U=0), quality gate PASS
-                                 └─▶ compiled report (locus map + class line + card = one page-unit)
+                         └─▶ selected-profile authoring (gap-aware draft or reviewed card)
+                                 │  evidence admission + actual saved-card verification
+                                 └─▶ separately selected compiled report + artifact/layout review
 ```
 
 *Claim-safety: a Mode B card is the most interpretive artifact Tier 1 ever hosts, which is why it

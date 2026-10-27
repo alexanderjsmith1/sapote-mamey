@@ -27,7 +27,7 @@ def validate_activity(rows):
   for col in ([item['column'] for item in spec] if spec else ('category','source')):
    v=(row.get(col) or '').strip()
    if (row.get('role') or '')=='query':
-    if ('activity',v) not in palette and not (spec and v in {'+','−','n.t.',''}):raise ValueError('ANNOTATION_ACTIVITY_UNSUPPORTED: '+tip+' '+col+'='+v)
+    if ('activity',v) not in palette and ('activity_3state',v) not in palette and not (spec and v in {'+','−','n.t.',''}):raise ValueError('ANNOTATION_ACTIVITY_UNSUPPORTED: '+tip+' '+col+'='+v)
    elif v:raise ValueError('ANNOTATION_ACTIVITY_ON_REFERENCE: '+tip)
  return {'status':'ANNOTATION_ACTIVITY_METADATA_VALIDATED','rows':len(seen),'ceiling':'Display consistency only; measured strain-level activity, not attributed to any locus.'}
 

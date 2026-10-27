@@ -1,6 +1,6 @@
 # DAPR Class → Activity Framework (Sapote scoring vocabulary)
 
-Owner-contributed vocabulary for DAPR (antibacterial / antifungal) judgment. The tables describe historical review associations; they are not an automatic product-to-activity acceptance function. **All calls are class-level hypotheses; optional typed strain-level bioactivity metadata is
+Vocabulary for DAPR (antibacterial / antifungal) judgment: which compound classes are usually linked with which activity. Use it to name a class-level hypothesis. It does not score a locus or show that a strain makes a compound. **All calls are class-level hypotheses; optional typed strain-level bioactivity metadata is
 the project default. Never an isolation or per-BGC activity claim.**
 
 > **Historical 18-strain verification statement (requires its original supporting evidence):** the class→activity associations used on the 18-strain
@@ -8,13 +8,15 @@ the project default. Never an isolation or per-BGC activity claim.**
 > formicamycin, surugamide, glycinocin), antifungal polyenes (filipin, candicidin, nystatin, linearmycin,
 > mediomycin) and the HSAF/PTM tetramate class. See `examples/judgment_18strain/Lit_Verification_DAPR_New_Leads.md` for the citation set.
 
-## Software boundary and retained association holds
+## What the tools do with this vocabulary
 
-Extraction-side `mamey/scoring.py:53–74` explicitly calls AB/AF weights routing priors, not final WL/DAPR scores. `tools/apply_dapr_boards.py:2–6,20–36` restores owner-authored CSV boards; it does not derive scientific judgment from banked JSON. Missing sheet/CSV skips that board and can still save successfully. `tools/build_dapr_rescue_sheets.py:83–88,159–176` populates `Activity_Ref` by the first framework substring match in KCB text; an unmapped row leaves an existing value untouched. Thus an old reference annotation can remain after upstream text changes. These tools mutate the specified workbook and do not provide a source-hash/adoption receipt.
+- `mamey/scoring.py` uses AB/AF weights as routing priors, not final DAPR scores.
+- `tools/apply_dapr_boards.py` restores owner-written CSV boards into a workbook. It does not derive judgment. A missing board is skipped; if no board applies, the workbook is not written and the tool exits 1.
+- `tools/build_dapr_rescue_sheets.py` fills `Activity_Ref` from the first framework name found in the KCB text. A row with no match keeps its old value, so check for stale references.
 
-Do not infer automated DAPR scoring, verified citations, or a fresh activity classification from board restoration or an `Activity_Ref` string. Retain the adopted board CSV and its owner provenance, full input/code/output hashes and any holds; inspect stale/unmapped reference fields before reuse. Use a separately authorized candidate workbook rather than an authoritative source. Current50 report/card approval is a separate gate.
+Both tools edit the workbook you name and write no receipt. Work on a copy.
 
-The named examples, marker clues, mechanistic vocabulary and historical literature-verification statements below are retained as **historical owner-reference content**, not newly checked biology. A table entry cannot authorize target selection or establish assay activity for a locus. Any current compound/activity claim requires its exact citation and comparator/evidence context to be independently admitted. Preserve strain / full node-or-contig / region / BGC alias wherever a locus is mentioned; a KCB product name or BGC alias is insufficient. Bind any current score, restored board or literature claim to its own source and acceptance record.
+The examples and literature notes below are retained reference content, not re-checked biology. Any compound or activity claim about a locus needs its own citation, and the locus is cited as strain / full node-or-contig / region / BGC alias.
 
 ## Antifungal buckets (highest-confidence first)
 | Bucket | Named examples | BGC / marker clue |

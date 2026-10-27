@@ -1,4 +1,4 @@
-"""tools/protein_pcoa_render.py --label-regions (card 018c0f08_455_pcoa_labels_by_region_alias): an outlier group is
+"""tools/protein_pcoa_render.py --label-regions (card 455_pcoa_labels_by_region_alias): an outlier group is
 labelled by its region alias (one region 'BGC013 x3', two 'BGC004, BGC013', three or more '3 loci x3'); without the
 option the strain label is unchanged. Synthetic strains only."""
 import contextlib

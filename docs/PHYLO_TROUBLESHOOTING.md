@@ -46,9 +46,7 @@ cause → fix/receipt. Use these notes to investigate a matching historical symp
 - **`phylo_postflight` P3 FAIL "no SH-aLRT/UFBoot — bootstrap did not finish" on a placement tree.** P3
   assumed an IQ-TREE genome tree. An EPA-ng graft has no tree-wide support by construction. → EGGPLANT_411
   patch D makes P3 placement-aware (reads per-query LWR + backbone Felsenstein bootstrap instead).
-- **`tree_sanity_check` is outgroup-aware only if you name the outgroup** — pass `--outgroup <substr>`
-  (e.g. `Actinocorallia`); a lowercase `outgroup_for_...` tip is not auto-recognized (it looks for uppercase
-  `OUTGROUP`).
+- **Outgroup recognition differs from this historical incident.** The selected `tree_sanity_check.py` recognizes a bounded `outgroup` token case-insensitively, including `outgroup_for_...`. Use repeatable `--outgroup` values for otherwise untagged outgroups; each value matches a bounded token or complete tip identity, not an arbitrary substring. Inspect the actual matched tips and keep the reviewed outgroup designation with the tree.
 
 ## placement_figure / ggtree
 - **Ref labels render at giant/inconsistent font.** The post-draw styler only set fontsize on texts it

@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import random
 import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mamey.logging_setup import get_logger
@@ -18,6 +19,22 @@ def seed_value(value):
     if not 0 <= number <= 4294967295:
         raise argparse.ArgumentTypeError("seed must be in [0, 4294967295]")
     return number
+
+def atomic_receipt(path, receipt):
+    """Preserve the valid reservation if serialization or replacement fails."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent,
+                                         prefix=path.name + ".", suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            json.dump(receipt, handle, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
@@ -32,17 +49,22 @@ def main(argv=None):
     if actual != str(args.hash_seed) and not args.allow_unseeded:
         log.error("Refusing: start Python with PYTHONHASHSEED=%s (observed %r)", args.hash_seed, actual)
         return 2
+    if args.hash_seed == 0 and sys.flags.hash_randomization != 0 and not args.allow_unseeded:
+        sys.stderr.write("Refusing: interpreter hashing is randomized despite the seed-0 environment assertion\n")
+        return 2
     arguments = args.arguments
     if arguments[:1] == ["--"]:
         arguments = arguments[1:]
     receipt = {"schema_version": 1, "hash_seed": actual,
-               "requested_hash_seed": args.hash_seed, "numpy_seed": args.numpy_seed,
+               "hash_randomization": sys.flags.hash_randomization, "requested_hash_seed": args.hash_seed, "numpy_seed": args.numpy_seed,
                "random_seed": args.random_seed, "allow_unseeded": args.allow_unseeded,
                "argv": arguments, "python": sys.version, "executable": sys.executable,
                "versions": {}, "status": "STARTING", "exit_code": None}
     # Exclusive reservation prevents accidentally replacing a prior run's receipt.
     with args.receipt.open("x", encoding="utf-8") as handle:
         json.dump(receipt, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
     code = 1
     try:
         import numpy
@@ -65,9 +87,7 @@ def main(argv=None):
         log.error("BiG-SCAPE launcher failed: %s", receipt["error"])
     finally:
         receipt.update(status="EXITED" if code == 0 else "FAILED", exit_code=code)
-        with args.receipt.open("w", encoding="utf-8") as handle:
-            json.dump(receipt, handle, indent=2)
-            handle.write("\n")
+        atomic_receipt(args.receipt, receipt)
     return code
 
 if __name__ == "__main__":

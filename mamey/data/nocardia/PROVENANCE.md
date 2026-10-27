@@ -1,10 +1,10 @@
-## Current reading boundary — v9.7.447
+## How the bundle uses this bank
 
-The historical provenance below is retained verbatim. Its “current engine 1.9.97” refers to the historical boundary, not this bundle's engine 1.9.172. The stored bank remains engine 1.9.96-pinned. Historical public/identity/comparability assertions and numerical receipts have not been independently reaccepted by this documentation audit.
+The historical provenance below is kept as written. The bank was built with engine 1.9.96 and is not rescored; its “current engine 1.9.97” means the engine of that time.
 
 `mamey/genus_reference.py` reads the stored CSVs; it does not recalculate prevalence or rescore. `assert_comparable_with(current_engine)` compares exact version strings when explicitly called. A source-wide search found no non-test call site outside its own definition/docstring, so its existence is not automatic enforcement across consumers. The prevalence reader trusts the CSV and does not prove engine robustness, current taxonomic/reference completeness or binding to a new cohort. `genus_core_classes` filters the residual other bucket but uses the stored `genus_core_7of7` flag; generalizing to another denominator requires a separately bound calculation.
 
-Reference evidence in place by path/hash, keep roster, annotation mode and engine scope explicit, and do not pool pinned capacity scores into a current-engine cohort without an accepted comparability record. Reading the historic bank does not authorize regenerating or replacing it. A release flag is stored metadata, not universal publication or redistribution clearance.
+Reference evidence in place by path/hash, keep roster, annotation mode and engine scope explicit, and do not pool pinned capacity scores into a current-engine cohort without an accepted comparability record. Reading the historic bank does not authorize regenerating or replacing it. A release flag is stored metadata, not universal publication or redistribution clearance. Also preserve the reader’s current selection policy: `load_nocardia_reference(comparative_only=True)` requires the exact string `comparative_eligible=True` and removes `saccharide` and `fatty_acid` through an unconditional defensive filter. Registry-read errors fall back to those exclusions; the registry’s lead-prioritization scope is not interpreted by this reader. This consumer policy is separate from the stored prevalence CSV and must not be silently described as a universal biological/comparative prohibition.
 
 # Nocardia genus reference bank — PROVENANCE
 

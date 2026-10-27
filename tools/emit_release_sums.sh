@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# emit_release_sums.sh -- emit SHA256SUMS.txt over the cut tier zips at the release root (PC-04).
-# Restores the bundle-root integrity file that v9.7.34 dropped. Run after cutting + zipping all four tiers.
+# emit_release_sums.sh — write and verify SHA256SUMS.txt for matching release ZIPs in one selected directory.
+# Matches sapote-mamey-v*.zip; no four-tier set is required. This checks listed file digests, not archive contents or release authority.
 # Usage: tools/emit_release_sums.sh <release_dir>   (default: .)
 set -euo pipefail
 ROOT="${1:-.}"

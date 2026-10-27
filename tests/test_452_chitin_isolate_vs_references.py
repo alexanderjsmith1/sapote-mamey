@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_chitin_isolate_vs_references_panel: the chitin-genes-vs-references panel (K01) as a bundle tool.
+"""Card 452_chitin_isolate_vs_references_panel: the chitin-genes-vs-references panel (K01) as a bundle tool.
 
 Synthetic census tables only (AS-971.. isolates, REF_* references).
 """

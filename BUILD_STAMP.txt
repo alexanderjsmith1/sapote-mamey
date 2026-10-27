@@ -1,5 +1,5 @@
-version=9.7.457
-build=20261023v97457a
+version=9.7.458
+build=20261026v97458a
 engine=1.9.177
-patch=Locus and protein-space pages.; Trees and bioassay figures.; GECCO.; Rarity and presence.; Manuscript revision kit.; Receipt verifiers.; BiG-SCAPE and R.; Min-text check.
+patch=User docs, rewritten for a reader opening the bundle cold.; Mode B ingest.; Strain Master.; Identity and metadata.; Figures.; Codex hardening cards R458_36 to R458_60.; Help text and smaller fixes.; CI.
 tier=code

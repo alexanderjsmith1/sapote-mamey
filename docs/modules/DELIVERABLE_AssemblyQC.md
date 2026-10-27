@@ -4,8 +4,8 @@
 > **Filing.** `docs/modules/DELIVERABLE_AssemblyQC.md`.
 > **Extends / references:** `DELIVERABLE_CONTRACT.md` (registers as a **gate**, not just a report),
 > `KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md` (corrected-count + lead classes it protects).
-> **Precedence.** `DELIVERABLE_CONTRACT.md` wins; the active monolith wins over everything.
-> **Status:** `CODE_BACKED` — `tools/assembly_qc_check.py`.
+> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. Use the selected contract and actual source for implementation; the monolith is a design/history reference.
+> **Tool:** `tools/assembly_qc_check.py` (run by hand; not launched by the engine).
 > **One-line purpose.** Flag mixed-culture / co-assembly strains and **hold their leads** before they reach the
 > Lead_Board, so inflated counts and spurious couplings never enter A/B promotion.
 
@@ -55,19 +55,17 @@ fragmentation**. Default (`size-anchored`):
 `--literal-or` applies the spec's exact `ANY of → FLAG`. **Validation:** on the SID reference cohort the
 literal-OR mode FLAGs **36/59 strains (incl. the Class-A leads)** purely on fragmentation — a false-positive
 cascade — while size-anchored FLAGs **0** (correct: no SID strain is a co-assembly). On a snapshot with the three
-co-assembly AS strains, size-anchored FLAGs **exactly AS-XXX / AS-XXX / AS-XXX** and passes a clean 8.5 Mb strain
+co-assembly AS strains, size-anchored FLAGs **exactly those three** and passes a clean 8.5 Mb strain
 — meeting the spec's acceptance criterion. **Use `--literal-or` only when genome_bp is present and isolates the
 offenders; otherwise the default is safer.**
 
 ## 6. Sapote-side companion rule
-When a strain is QC-FLAGGED, Sapote MUST NOT issue CONFIRM verdicts for its BGCs; record anchors in the round
+When a strain is QC-FLAGGED, do not issue CONFIRM verdicts for its BGCs; record anchors in the round
 synthesis under "leads HELD pending assembly QC" and recommend a per-contig taxonomy / CheckM screen.
 
-## 7. Next-paths closer
-```
+## 7. Follow-up
 1. Provide a Project_Memory_Snapshot.json with assembly.genome_bp so the FLAG can fire (banks-only = WARN-only).
 2. Add a genus typical-max table to enable the genus-aware 1.5x ceiling.
 3. After flagging, run per-contig taxonomy / CheckM on FLAG strains to confirm co-assembly before discarding.
 4. Re-bin a FLAG strain and re-run intake; rerun QC and inspect the fresh receipt before considering a hold cleared.
 5. Exclude FLAG strains from the next cross-set count figure (their raw counts are inflated).
-```

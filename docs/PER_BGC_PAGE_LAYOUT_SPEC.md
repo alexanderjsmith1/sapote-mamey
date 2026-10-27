@@ -10,7 +10,7 @@ This is a staged resolution of the obsolete page-count examples, not a claim of 
 
 The current `compile_report` assembler separately collects recursive image references in section 6 and registered COMPLETE card files in section 9. It attempts top-five locus maps but does not automatically implement this page-unit mandate or bind each image to a complete accepted card. PNG/SVG siblings can be duplicate references for one figure. The COMPLETE register itself is separate from current-profile verification. Do not label the assembled report co-location-compliant because the files exist. Use an explicit artifact-to-locus/card crosswalk and inspect the actual final pages, including overflow/continuations and every evidence layer.
 
-Source owners: `mamey/compile_report.py:522–560,594–609,791–819`; `mamey/judgment_store.py:679–704,727–788`; `mamey/locus_map_v8.py:869–909`. See [current profiles](MODEB_PROFILE_MATRIX.md), [locus-map review](LOCUS_MAP_REVIEW_CONTRACT.md) and [export boundary](MODEB_EXPORT_HOOK.md).
+See [current profiles](MODEB_PROFILE_MATRIX.md), [locus-map review](LOCUS_MAP_REVIEW_CONTRACT.md) and [export boundary](MODEB_EXPORT_HOOK.md).
 
 ## Historical specification — not current executable instructions
 

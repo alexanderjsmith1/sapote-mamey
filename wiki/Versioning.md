@@ -5,14 +5,15 @@ up is the single most common citation error, so learn the trio:
 
 | stream | where it lives | example | what it means |
 |---|---|---|---|
-| **Engine version** | `mamey/__init__.py::__version__` + `pyproject.toml [project].version` | `1.9.172` | the deterministic extraction code; gate/checkpoint rules tie to it |
-| **Bundle version** | `BUNDLE_VERSION` in `__init__.py`, mirrored in `pyproject.toml [tool.sapote]` | `9.7.447` | the public Sapote-Mamey release line users cite |
-| **Build stamp** | `BUILD_STAMP.txt` / `TAG` | `build=20261003v97447a` | the physical cut + patch notes |
+| **Engine version** | `mamey/__init__.py::__version__` + `pyproject.toml [project].version` | `1.9.NNN` | the deterministic extraction code; gate/checkpoint rules tie to it |
+| **Bundle version** | `BUNDLE_VERSION` in `__init__.py`, mirrored in `pyproject.toml [tool.sapote]` | `9.7.NNN` | the public Sapote-Mamey release line users cite |
+| **Build stamp** | `BUILD_STAMP.txt` / `TAG` | `build=YYYYMMDDv97NNNa` | the physical cut + patch notes |
 
 The engine bumps only when deterministic behavior changes; most cuts are bundle-only (docs, data,
-protocols, tools). Output package names embed both:
-`{strain}_SapoteMamey_v{BUNDLE}_engine{ENGINE}_Complete_Package.zip` — so a package is
-self-identifying even when found loose.
+protocols, tools). Current output package names embed both versions and the antiSMASH detection profile:
+`{strain}_SapoteMamey_v{BUNDLE}_engine{ENGINE}_{profile}_Complete_Package.zip`, where
+`profile` is `strict`, `relaxed`, `loose` or `unknown`. Use the actual emitted filename and
+producing manifest rather than reconstructing it; an older package retains its original name.
 
 ## Keeping them aligned
 
@@ -31,7 +32,7 @@ they justify the machinery:
 
 - Its header **froze at v9.7.136** while cuts advanced (caught at v9.7.335 — and three of the four
   filenames it pointed to did not exist).
-- It froze **again at v9.7.337 for 29 cuts** (caught 2026-08-15).
+- It froze **again at v9.7.337 for 29 cuts**.
 - A fix was *described* at .366 but not implemented — and the index froze a **third** time at
   v9.7.367, caught inside the sealed .370 bundle.
 - v9.7.371 landed the real ratchet: `sync_version.py` owns the header, `--check` fails on drift,

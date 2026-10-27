@@ -2,20 +2,38 @@
 
 ## Current owner and inference boundary
 
-The original v9.7.117 explanation and historical line pointers remain below. Current owning locations are
-`mamey/rggmci.py:748–760` for classification, `:811–829` for TXT selection, `:1036–1061` for subcluster
-exclusion and (db_kind,reference) pools, and `:1138–1142` for separate database counters. The current source
-still accepts both ClusterBlast and KnownClusterBlast while excluding SubClusterBlast from pairing.
-The classifier's fallback means unknown names passed to that helper return clusterblast; parser filename
-selection and validated records remain separate constraints, not proof any arbitrary file is genuine evidence.
+RG-GMCI uses both cross-genome `clusterblast` and characterized-reference
+`knownclusterblast` records. It keeps those channels separate and excludes
+`subclusterblast` from candidate pairing. To check which channel supports a saved
+candidate, read its canonical JSON:
 
-Cross-genome reference sharing/subject tiling supports a candidate fragmented-locus interpretation; it does
-not physically link contigs or establish one pathway or compound. Complete reference-genome assumptions,
-exact query/subject bindings and the final aggregation/gate receipt must be for the selected claim.
-Verify historical calibration, cryptic-cluster prevalence and complete-reference assumptions separately. Read [current source scope](06_CURRENT_SOURCE_SCOPE.md) and preserve every focal/
-partner strain / full node-or-contig / region / BGC alias. Bind actual pair results and source provenance before reuse.
+1. Check `reference_map_status`, `reference_parse_error_count`,
+   `reference_record_count` and `clusterblast_txt_file_count` before reading a
+   zero candidate count. A parse problem or unavailable reference evidence is not
+   a successful negative search.
+2. Read the pair's `db_kinds`, `clusterblast_refs` and `knownclusterblast_refs`
+   alongside the reference-level `evidence_rows`. Check
+   `rggmci_summary.evidence_rows_total` and `evidence_rows_not_exported` when
+   assessing how much reference evidence is retained in the JSON.
+3. Preserve both saved endpoints as strain / full node-or-contig / region / BGC
+   alias, together with the effective verdict and bound source records.
 
+The current owners are `_classify_db_kind`,
+`parse_clusterblast_reference_map` and `compute_rggmci` in `mamey/rggmci.py`.
+Classification by filename, successful parsing, and inclusion in a reference pool
+are separate steps. Unknown names passed directly to the classifier fall back to
+`clusterblast`; that fallback does not authenticate an arbitrary file.
 
+Reference sharing and subject tiling support a candidate fragmented-locus
+interpretation. They do not establish physical contig linkage, one pathway,
+compound identity or reference-genome completeness. Use the saved source bindings
+for those questions and [current source scope](06_CURRENT_SOURCE_SCOPE.md) for the
+version-specific software contract. The dated clarification below preserves why
+the KCB-only description was corrected; its scientific generalizations and line
+pointers are historical, not current validation.
+
+<details>
+<summary>Historical v9.7.117 clarification and source pointers</summary>
 
 **Status:** Correctness clarification · verified against `mamey/rggmci.py` @ bundle v9.7.117 · 2026-06-23
 **Why this exists:** An overview write-up described RG-GMCI's evidence as *KnownClusterBlast* only. That is incomplete. RG-GMCI consumes the cross-genome **ClusterBlast** data as a first-class evidence source. This note pins the exact source lines so the distinction is unambiguous and does not get lost again.
@@ -70,7 +88,16 @@ RG-GMCI's job is to recognize when assembly fragmentation has split one biosynth
 *Source-verified against `mamey/rggmci.py` (lines 368, 542–553, 614, 824, 832, 901–909) @ Mamey v1.9.98 / bundle v9.7.117. KCB = similarity, not identity; capacity-level language throughout.*
 
 
-## Shared invocation contract (`rggmci-shared-invocation-v2`)
+</details>
+
+<a id="shared-invocation-contract-rggmci-shared-invocation-v2"></a>
+## Shared invocation contract (`rggmci-shared-invocation-v3`)
+
+Read the saved JSON `schema` field before comparing runs. The shared owner
+sets it to `rggmci-shared-invocation-v3`; this version also retains archive-derived
+`functional_profiles`, `modular_profiles` and `functional_context` in the result.
+A shared source contract does not establish that a separately installed or
+published standalone distribution contains the same implementation.
 
 The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
 binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
@@ -88,7 +115,7 @@ members refuse common intake before a subset is reported. General source-reader 
 warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
 empty successful RGGMCI result.
 
-Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
 no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
 then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
 implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
@@ -101,10 +128,14 @@ Shared threads reach both existing completion and residue interfaces; legacy low
 retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
 is a distinct requested layer. No automatic database download is introduced.
 
-Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
-loci, candidate groups, summary, and three completion tables). Every row key is retained, including
-later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
-tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
+The canonical exporter defines eight per-input artifacts: JSON and seven TSVs
+(ranked pairs, related loci, candidate groups, summary, and three completion
+tables). In the standalone CLI, `--out-dir` writes that complete per-input set;
+`--out` and `--pairs` select only the single-input JSON and pair TSV destinations.
+Read the selected output roster before assuming that eight files were written.
+Every row key is retained, including later-row-only fields; nested evidence uses
+JSON cells with spreadsheet protection. Empty candidate tables have headers only.
+Empty completion tables retain their explicit tier row. JSON includes full
 region metadata and four-component endpoint identities: logical strain / full physical contig / region /
 BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
 effective resource fingerprints are shared; distribution/path/provenance presentation is confined to

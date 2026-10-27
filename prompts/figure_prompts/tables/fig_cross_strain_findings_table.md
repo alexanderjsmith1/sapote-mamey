@@ -19,13 +19,13 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Findings across isolates with explicit claim status, including the two standing findings that do not reproduce on this set.
+> Findings across isolates from the bound synthesis sheet with its explicit claim-status labels. Report any non-reproduction conclusion and count only when separately supported; export does not revalidate these findings.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Color-code claim_status consistently with the deck theme.

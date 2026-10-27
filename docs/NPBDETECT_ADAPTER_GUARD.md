@@ -1,4 +1,4 @@
-# NPBDetect — current admission rule in v9.7.447
+# NPBDetect predictions are not admissible
 
 **NPBDetect predictions are not admissible evidence in the optional activity channel.** In `mamey.activity_predictions`, any model ID whose lowercase form starts with `npbdetect` must use `OUT_OF_DOMAIN` or `FAILED`. `IN_DOMAIN` and `LIMITED` produce `NONADMISSIBLE_MODEL`. Both allowed hold states require null antibacterial/antifungal probabilities and `activity_call=HOLD`; a failed or out-of-domain model is not a biological negative or numeric zero.
 
@@ -13,7 +13,7 @@ The supplied upstream commit, graph, threshold and HC/ORG observations below are
 
 ## Preserved upstream adapter audit notes
 
-# NPBDetect optional-adapter guard
+### Upstream audit
 
 NPBDetect may be ingested only as an optional post-seal prediction channel. For the public v1.1.0
 artifacts audited at commit `073886bd4a3bbe88839a7afa6a1f3bef091be193`, record warning code

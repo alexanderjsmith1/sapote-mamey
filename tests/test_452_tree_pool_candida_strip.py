@@ -32,20 +32,20 @@ def test_pooled_column_takes_the_strongest_state_and_never_coerces(tmp_path):
     res, strips = act.load(_long(tmp_path), pool=True)
     assert [s["label"] for s in strips] == ["*Candida*", "MRSA"]
     c = {sid: row["*Candida*"] for sid, row in res.items()}
-    assert c["SYN-970"] == "active (≥80%)"          # one species active
-    assert c["SYN-971"] == "tested, inactive"       # both tested below 80
+    assert c["SYN-970"] == "strong (≥80%)"          # one species active
+    assert c["SYN-971"] == "tested, below 80%"       # both tested below 80
     assert c["SYN-972"] == "n.t."                    # not tested beats blank, never becomes negative
     assert c["SYN-973"] == "+"                       # a + in any species stays +
     assert c["SYN-974"] == ""                        # blank stays blank
-    assert c["SYN-975"] == "active (≥80%)"          # the species-not-recorded reading counts
-    assert res["SYN-971"]["MRSA"] == "active (≥80%)" and res["SYN-972"]["MRSA"] == "n.t."
+    assert c["SYN-975"] == "strong (≥80%)"          # the species-not-recorded reading counts
+    assert res["SYN-971"]["MRSA"] == "strong (≥80%)" and res["SYN-972"]["MRSA"] == "n.t."
     assert all("C. albicans" not in row for row in res.values())
 
 
 def test_without_pooling_the_species_strips_are_unchanged(tmp_path):
     res, strips = act.load(_long(tmp_path))
     assert [s["label"] for s in strips] == ["C. albicans", "C. auris", "C. albicans or C. auris (not recorded)", "MRSA"]
-    assert res["SYN-970"]["C. auris"] == "tested, inactive"
+    assert res["SYN-970"]["C. auris"] == "tested, below 80%"
 
 
 def test_the_attine_layout_pools_and_moss_does_not():

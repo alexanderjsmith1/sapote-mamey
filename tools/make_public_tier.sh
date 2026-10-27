@@ -360,7 +360,8 @@ fi
 # and any file whose NAME contains a term is dropped. A content safety-net parallel to the AS-ID scrub.
 if [ "$TIER" != "merged" ] && [ -f "$SRC/tools/release_denylist.txt" ]; then
   while IFS= read -r term; do
-    [ -z "$term" ] && continue
+    term="${term#"${term%%[![:space:]]*}"}"; term="${term%"${term##*[![:space:]]}"}"   # trim
+    case "$term" in ''|'#'*) continue ;; esac   # blank and comment lines are not terms
     esc=$(printf '%s' "$term" | sed -e 's/[][\/.^$*]/\\&/g')
     find "$STAGE" -type f \( -name '*.md' -o -name '*.csv' -o -name '*.py' -o -name '*.cff' -o -name '*.txt' -o -name '*.json' -o -name '*.sh' -o -name '*.yaml' -o -name '*.yml' -o -name '*.html' \) \
       -not -path '*/sapote_addons/wheels/*' -not -path '*/wheels/*' \
@@ -425,7 +426,8 @@ if [ "$TIER" != "merged" ]; then
   DENY="$SRC/tools/release_denylist.txt"   # terms live here, not as literals in this script; stripped from public tiers
   if [ -f "$DENY" ]; then
     while IFS= read -r term; do
-      [ -z "$term" ] && continue
+      term="${term#"${term%%[![:space:]]*}"}"; term="${term%"${term##*[![:space:]]}"}"   # trim
+      case "$term" in ''|'#'*) continue ;; esac   # blank and comment lines are not terms
       # one grep, no pipe: under pipefail, "grep -rIlF | grep -q ." turned SIGPIPE into "no leak" when the term was in many files
       if grep -rIqF "$term" "$STAGE" 2>/dev/null; then
         echo "LEAK: denylisted term present in $TIER tier (see tools/release_denylist.txt)" >&2; FAIL=1; fi

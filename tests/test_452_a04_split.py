@@ -36,10 +36,12 @@ def test_three_panels_printed(tmp_path):
     cli("A04",ROOT/"tools/bioassay_a04.R",args+["--out",str(out)])
     pdf=next(out.glob("*.pdf"));sizes=[];page=PdfReader(pdf).pages[0]
     text=page.extract_text(visitor_text=lambda t,cm,tm,font,size:sizes.append(size*math.hypot(tm[0]*cm[0]+tm[1]*cm[2],tm[0]*cm[1]+tm[1]*cm[3])) if t.strip() else None)
-    # 7.2 in = 518.4 pt, the double-column width (card 018c0f08_453_bioassay_print_width_and_centering). Linux cairo writes
+    # 7.2 in = 518.4 pt, the double-column width (card 453_bioassay_print_width_and_centering). Linux cairo writes
     # whole points (518), macOS writes 518.4; half a point either way is the same page.
     assert abs(float(page.mediabox.width)-518.4)<=0.5
-    assert all(t in text for t in ("C. albicans","C. auris","(not recorded)"))
+    # strip titles are rich text (species in italics), so each glyph is placed on its own and the extracted text has no spaces
+    flat="".join(text.split())
+    assert all(t in flat for t in ("C.albicans","C.auris","(notrecorded)"))
     code="import json,pdfplumber,sys;p=pdfplumber.open(sys.argv[1]).pages[0];print(json.dumps(p.chars))"
     chars=json.loads(subprocess.run([os.environ.get("PDF_CHECK_PYTHON",sys.executable),"-c",code,str(pdf)],check=True,capture_output=True,text=True).stdout)
     assert sizes and min(sizes)>=7.95

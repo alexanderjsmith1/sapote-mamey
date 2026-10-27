@@ -264,6 +264,18 @@ def render_directed(strains, anchors, cryptic, markers):
     return "\n".join(L)
 
 
+def check_paths(packages, gbk_dirs, out):
+    """Refuse an --out inside a package and a --gbk-dirs list that does not pair one-to-one with --packages."""
+    if gbk_dirs and len(gbk_dirs) != len(packages):   # an empty --gbk-dirs means none; use "" for a package without GBKs
+        raise SystemExit(f"--gbk-dirs pairs with --packages by position: give {len(packages)} folders "
+                         f"(one per package, in the same order), not {len(gbk_dirs)}")
+    out_real = os.path.realpath(out)
+    for pkg in packages:
+        pkg_real = os.path.realpath(pkg)
+        if out_real == pkg_real or out_real.startswith(pkg_real + os.sep):
+            raise SystemExit(f"--out must be outside the packages it reads; {out} is inside {pkg}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--packages", nargs="+", required=True)
@@ -272,6 +284,7 @@ def main():
     ap.add_argument("--directed", action="store_true",
                     help="emit the directed, intent-batched, primary-literature card")
     a = ap.parse_args()
+    check_paths(a.packages, a.gbk_dirs, a.out)
     strains, anchors, cryptic, markers = collect(a.packages, a.gbk_dirs)
     md = render_directed(strains, anchors, cryptic, markers) if a.directed else \
         render(strains, anchors, cryptic, markers)

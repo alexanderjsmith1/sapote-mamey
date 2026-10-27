@@ -1,13 +1,8 @@
 # Quarantine recovery support card — `<STRAIN> / <FULL_NODE_OR_CONTIG> / <REGION> / <BGC_ALIAS>`
 
 
-Manual support template; placeholders are not observations, QA results or approved prose. Bind all four
-identity fields from one source record and use them in the owned output filename. Select actual task,
-source package/profile, complete roster and scope before filling fields. This template is a companion
-review surface, not the native full48/current50 emitted card or its finished acceptance contract.
-Keep one owned candidate and source index; reference existing evidence by path/portable locator plus
-SHA-256 and line/member, without copying source packages/databases/report assets. Actual source/job,
-claim-safety, profile/content and owner review remain separate; no placeholder or tier label runs them.
+Placeholders are not results. Fill all four identity fields from one source record and use them in the file name.
+This is a companion review sheet, not the emitted full48/current50 Mode B card.
 
 ## Recovery disposition
 
@@ -159,6 +154,11 @@ Not defensible:
 - Protein denominator: expected `<E>`; audited `<E>`.
 - Direct-hit union/no-hit/unresolved: `<D>/<N>/<U>`.
 - Raw-query sequence checks: `<n/E>`.
+- Protein SHA-256 reconciliation: `<matched n/E; normalization rule; duplicate-protein count>`.
+- Duplicate-protein disambiguation: `<protein hash; minimal ordered-neighbor radius; corpus scope and path/hash/receipt, or NONE when no duplicate hashes occur>`.
+- Per-channel observed/admitted coverage and unbound/quarantined rows: `<counts and reasons>`.
+- Query and result-job receipts: `<channel/database; exact query/result/receipt paths and SHA-256; identity binding>`.
+- Retained QA outputs: `<support-screen stdout/JSON path and SHA-256; separate claim-safety result path/hash; independent reviewer findings>`.
 - NCBI nr, EBI, and local Swiss-Prot separated: `<PASS/FAIL>`.
 - Exact source paths verified: `<PASS/FAIL>`.
 - Visible public accession URLs: `<count>`.

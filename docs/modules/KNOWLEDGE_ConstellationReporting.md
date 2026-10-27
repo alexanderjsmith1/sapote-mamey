@@ -1,12 +1,14 @@
 # KNOWLEDGE — Constellation Reporting Fidelity
 
+> **Current scope:** Prompt/reporting guidance only. The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions; the monolith is a design/history reference and cannot override them. Named triggers and auto-delivery language do not execute tools or authorize additional work. The named cassette story is a historical reporting example with incomplete/scrubbed identity. Collective evidence supports review; this prose does not implement automatic ranking promotion or prove pathway completion.
+
 > **Filing.** `docs/modules/KNOWLEDGE_ConstellationReporting.md`.
 > **References:** `DELIVERABLE_ContigRescueReconstruction.md`, `DELIVERABLE_LMPKSRescue.md`, `KNOWLEDGE_JudgmentChecks.md`, `DELIVERABLE_CONTRACT.md`.
-> **Precedence.** `DELIVERABLE_CONTRACT.md` wins; the active monolith wins.
+> **Precedence.** [DELIVERABLE_CONTRACT.md](../DELIVERABLE_CONTRACT.md) and the code win over this page.
 > **Status:** `KNOWLEDGE` (a reporting guard; the per-gene extraction lives in Mamey).
 > **One-line purpose.** Stop the summarization layer from compressing a multi-gene diagnostic *constellation* down to its single highest-scoring member — the under-report failure mode the claim-safety machinery does not catch.
 
-## 1. The failure this prevents (AS-XXX NODE_105, 2026-06-02)
+## 1. The failure this prevents
 
 A real, correctly *detected* three-gene NDP-deoxysugar cassette (`ctg105_14/15/16`) sitting
 beside the halogenase (`ctg105_17`) was compressed in a compiled chapter to one line —
@@ -55,4 +57,3 @@ individual scores.
 - Would the report survive the bench question *"weren't there more genes there?"* — the exact
   question that caught the original failure?
 
-*Companion narrative: "When the Evidence Survived but the Report Didn't" (AS-XXX NODE_105).*

@@ -456,7 +456,7 @@ def _metrics(aligner, query: str, subject: str) -> dict:
     if len(query) > cap or len(subject) > cap:
         # v9.7.409 (DEEP_AUDIT2_resource_dos #1): refuse an over-long pair before .align() — the DP
         # matrix is O(len(query)*len(subject)) and a multi-MB sequence SIGKILLs uncatchably. Return
-        # a neutral, typed "skipped" metrics dict (comparison_state -> WEAK) instead of aligning.
+        # a typed "skipped" metrics dict (comparison_state -> ALIGNMENT_SKIPPED_UNMEASURED) instead of aligning.
         return {
             "identical_residues": 0, "blosum_positive_residues": 0,
             "alignment_columns_including_gaps": 0,
@@ -486,6 +486,8 @@ def _metrics(aligner, query: str, subject: str) -> dict:
 
 
 def _comparison_state(metrics: dict) -> str:
+    if metrics.get("alignment_skipped"):
+        return "ALIGNMENT_SKIPPED_UNMEASURED"   # not aligned: the zeros are placeholders, not a weak match
     if metrics["identity_pct"] >= 60 and metrics["query_coverage_pct"] >= 80 and metrics["subject_coverage_pct"] >= 80:
         return "STRONG_WHOLE_PROTEIN_FAMILY_NAVIGATION"
     if metrics["identity_pct"] >= 40 and metrics["query_coverage_pct"] >= 70 and metrics["subject_coverage_pct"] >= 70:

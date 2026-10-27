@@ -26,6 +26,9 @@ MATERIALS = ('Crude extract', 'Fraction', 'HPLC fraction')
 MATERIAL_STEM = {'Crude extract': 'crude', 'Fraction': 'fraction', 'HPLC fraction': 'hplc_fraction'}
 LAYOUTS = ROOT / 'mamey/data/bioassay_layouts.json'
 QUALITATIVE = ('+', '−')
+# read_on values of the best-value table (tools/bioassay_admitted_observations.py best-table)
+READ_ON = {'96-well': ('96-well',), '384-well': ('384-well',), 'both': ('96-well', '384-well')}
+UNRECORDED = 'not recorded'
 
 def layout_profile(layout, path=None):
     """The display rules for one collection layout, from the bundled profile file or a user-supplied one."""
@@ -51,6 +54,42 @@ def empty_cell_label(missing):
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def _platforms(row):
+    """Plate platform(s) behind one numeric best value, from the table's read_on column."""
+    return set(READ_ON.get((row.get('read_on') or '').strip(), (UNRECORDED,)))
+
+def platform_sentence(by_target, dose=None):
+    """Caption sentence naming the plate platforms behind the plotted values, target by target. Where an isolate was
+    read on both platforms the best-value table keeps the higher value (owner ruling, 22 Sep), so a mixed target says so."""
+    if not by_target:
+        return ''
+    at = f' at the bound {dose} µg/mL selection' if dose else ''
+    both = f'96-well plates and 384-well plates{at}; where an isolate was read on both, the higher value is used'
+    kinds = {'96': [], '384': [], 'mixed': [], 'none': []}
+    for t, p in by_target.items():
+        kinds['none' if UNRECORDED in p else '96' if p == {'96-well'} else '384' if p == {'384-well'} else 'mixed'].append(t)
+    used = [k for k in kinds if kinds[k]]
+    if used == ['96']:
+        return 'All plotted values are from 96-well plates. '
+    if used == ['384']:
+        return f'All plotted values are from 384-well plates{at}. '
+    if used == ['mixed']:
+        return f'Plotted values are from {both}. '
+    if used == ['none']:
+        return 'The input table does not record the plate platform. '
+    def names(ts):
+        return ts[0] if len(ts) == 1 else ', '.join(ts[:-1]) + ' and ' + ts[-1]
+    out = []
+    if kinds['96']:
+        out.append(f"{names(kinds['96'])} {'was' if len(kinds['96']) == 1 else 'were'} screened on 96-well plates only.")
+    if kinds['384']:
+        out.append(f"{names(kinds['384'])} {'was' if len(kinds['384']) == 1 else 'were'} screened on 384-well plates only{at}.")
+    if kinds['mixed']:
+        out.append(f"{names(kinds['mixed'])} values are from {both}.")
+    if kinds['none']:
+        out.append(f"The input table does not record the plate platform for {names(kinds['none'])}.")
+    return ' '.join(out) + ' '
 
 def read(path, required=()):
     with Path(path).open(encoding='utf-8-sig', newline='') as f:
@@ -115,7 +154,10 @@ def prepare(table, roster_path, aliases_path, kind, layout, material='Crude extr
     buckets = defaultdict(list)
     seen = set()
     raw_rows = []
-    for i,r in enumerate(read(table, ('strain','organism','material','best_pct')),2):
+    plat = defaultdict(set)   # (strain, material, target) -> platforms behind its numeric values
+    table_rows = read(table, ('strain','organism','material','best_pct'))
+    dose = next((k[len('best_384_'):] for k in (table_rows[0] if table_rows else {}) if k.startswith('best_384_')), None)
+    for i,r in enumerate(table_rows,2):
         key = (r['strain'],r['organism'],r['material'])
         if key in seen:
             raise ValueError(f'Duplicate canonical input key: {key}')
@@ -130,6 +172,8 @@ def prepare(table, roster_path, aliases_path, kind, layout, material='Crude extr
         raw_rows.append(dict(source_row=i, source_strain=r['strain'], strain=strain,
                              organism=r['organism'], material=r['material'], best_pct=r['best_pct']))
         buckets[(strain,r['material'],mapping[r['organism']])].append((value,r['best_pct'],r['strain'],r['organism']))
+        if value is not None:
+            plat[(strain,r['material'],mapping[r['organism']])] |= _platforms(r)
     pooled=[]
     for strain,meta in roster.items():
         if subset and meta['group'] != subset: continue
@@ -192,7 +236,20 @@ def prepare(table, roster_path, aliases_path, kind, layout, material='Crude extr
         # An HPLC-only grid leaves out groups with no HPLC fraction tested, instead of drawing an unlabeled row of n.t.
         tested = {r['group'] for r in plot if r['n_tested']}
         plot = [r for r in plot if r['group'] in tested]
-    return dict(plot=plot, pooled=pooled, raw=raw_rows, used=used_rows)
+    # platforms behind the plotted values only, per displayed target, for the caption
+    if kind in ('A03','A04'):
+        cells = [(r['strain'], material, t) for r in plot for t in (r.get('target', x_target), 'MRSA')]
+    elif kind == 'A01':
+        cells = [(r['strain'], r['material'], r['target']) for r in plot]
+    else:
+        shown = {(r['material'], r['target']) for r in plot if r['n_tested']}
+        cells = [(r['strain'], r['material'], r['target']) for r in numeric_rows if (r['material'], r['target']) in shown]
+    by_target = {}
+    for t in dict.fromkeys(mapping.values()):
+        p = set().union(*[plat[c] for c in cells if c[2] == t])
+        if p:
+            by_target[t] = p
+    return dict(plot=plot, pooled=pooled, raw=raw_rows, used=used_rows, platforms=by_target, dose_384=dose)
 
 def prepare_fractions(table, roster_path, aliases_path, layout, material='Fraction', layouts=None):
     """A07: one point per fraction (one fraction-plate well), best Candida (any species) against best MRSA.
@@ -200,8 +257,10 @@ def prepare_fractions(table, roster_path, aliases_path, layout, material='Fracti
     profile = layout_profile(layout, layouts)
     roster = {r['strain']: r for r in read(roster_path, ('strain', 'genus', 'group'))}
     aliases = json.loads(Path(aliases_path).read_text())
-    vals, raw_rows = defaultdict(dict), []
-    for i, r in enumerate(read(table, ('strain', 'fraction', 'organism', 'material', 'best_pct')), 2):
+    vals, raw_rows, plat = defaultdict(dict), [], defaultdict(set)
+    table_rows = read(table, ('strain', 'fraction', 'organism', 'material', 'best_pct'))
+    dose = next((k[len('best_384_'):] for k in (table_rows[0] if table_rows else {}) if k.startswith('best_384_')), None)
+    for i, r in enumerate(table_rows, 2):
         strain = aliases.get(r['strain'], r['strain'])
         if strain not in roster or r['material'] != material:
             continue
@@ -215,10 +274,13 @@ def prepare_fractions(table, roster_path, aliases_path, layout, material='Fracti
                              material=r['material'], best_pct=r['best_pct']))
         k = (strain, r['fraction'])
         vals[k][target] = max(v, vals[k].get(target, -1e9))
+        plat[(strain, r['fraction'], target)] |= _platforms(r)
     plot = [dict(strain=s, fraction=f, genus=roster[s]['genus'], group=roster[s]['group'], material=material,
                  x=v['Candida sp.'], y=v['MRSA']) for (s, f), v in sorted(vals.items()) if 'Candida sp.' in v and 'MRSA' in v]
     used = sorted({r['strain'] for r in plot})
-    return dict(plot=plot, pooled=[], raw=raw_rows, used=[dict(roster[s], source_strains=s) for s in used])
+    by_target = {t: set().union(*[plat[(r['strain'], r['fraction'], t)] for r in plot]) for t in ('Candida sp.', 'MRSA')} if plot else {}
+    return dict(plot=plot, pooled=[], raw=raw_rows, used=[dict(roster[s], source_strains=s) for s in used],
+                platforms=by_target, dose_384=dose)
 
 def cli(kind, r_script, argv=None):
     import argparse
@@ -260,7 +322,8 @@ def cli(kind, r_script, argv=None):
     inputs=[a.table,a.roster,a.aliases,a.lock,palette_path,Path(a.layout_config or LAYOUTS),Path(r_script),Path(__file__),ROOT/'tools/sapote_pub_layout.R',ROOT/'tools/bioassay_paper_theme.R',Path(__file__).parents[1]/'tools'/f'bioassay_{kind.lower()}.py']
     receipt=dict(kind=kind,layout=a.layout,material=a.material,status='PREPARED',inputs=[dict(path=str(x.resolve()),sha256=sha(x)) for x in inputs],
                  claim_scope='Single-replicate preliminary strain-level screening; no BGC attribution.',minimum_font_pt=8,
-                 material_colors={'Crude extract':'#C0973F','Fraction':'#7E5AA2','HPLC fraction':'#7E5AA2'},source_rows=len(result['raw']),plotted_rows=len(result['plot']))
+                 material_colors={'Crude extract':'#C0973F','Fraction':'#7E5AA2','HPLC fraction':'#7E5AA2'},source_rows=len(result['raw']),plotted_rows=len(result['plot']),
+                 plotted_platforms={t:sorted(p) for t,p in result['platforms'].items()})
     (a.out/'RUN_INFO.json').write_text(json.dumps(receipt,indent=2))
     pooled_a04 = kind == 'A04' and profile.get('a04_pool_candida')
     candida = ('Candida targets are shown separately: C. albicans, C. auris, and screens recorded only as Candida '
@@ -273,7 +336,7 @@ def cli(kind, r_script, argv=None):
               'nonzero': ' Labelled points: every isolate not at 0% inhibition of both targets.',
               'either': ' Labelled points: every isolate with at least 80% inhibition of either target.'}.get(profile.get('a04_point_labels'), '') if kind == 'A04' else ''
     per = 'Each point is one fraction (one fraction-plate well); ' if kind == 'A07' else ''
-    (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. ' + per + 'Best numeric inhibition per isolate and material; 384-well data use only the bound 120 µg/mL selection. ' + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
+    (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. ' + per + 'Best numeric inhibition per isolate and material. ' + platform_sentence(result['platforms'], result['dose_384']) + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
     if not a.prepare_only:
         render(a.out,r_script)
     return result

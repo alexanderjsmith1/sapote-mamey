@@ -10,20 +10,22 @@ prof <- cfg$profile   # collection display rules from mamey/data/bioassay_layout
 TITLE_COL <- if (isTRUE(prof$axis_title_ink)) PUB_INK else PUB_SUB   # axis_title_ink: plain ink axis titles
 house <- function() theme_pub(base=9) + theme(text=element_text(size=8),
   axis.text=element_text(size=8),axis.text.x.bottom=element_markdown(size=8),axis.text.y.left=element_markdown(size=8),
-  axis.title=element_text(size=8,colour=TITLE_COL),axis.title.x=element_text(size=8,colour=TITLE_COL),axis.title.y=element_text(size=8,colour=TITLE_COL),
-  strip.text=element_text(size=8),strip.text.x=element_text(size=8),strip.text.y=element_text(size=8),
+  axis.title=element_markdown(size=8,colour=TITLE_COL),axis.title.x=element_markdown(size=8,colour=TITLE_COL),axis.title.y=element_markdown(size=8,colour=TITLE_COL),
+  strip.text=element_markdown(size=8),strip.text.x=element_markdown(size=8),strip.text.y=element_markdown(size=8),
   legend.text=element_markdown(size=8),legend.title=element_text(size=8),legend.position="bottom",
   panel.grid.minor=element_blank(),plot.margin=margin(8,10,8,8),legend.box="vertical",
   legend.key.spacing.y=unit(4,"pt"),legend.key.spacing.x=unit(5,"pt"))
 
-genlab <- function(x) ifelse(x=="Unassigned",prof$unassigned_label,ifelse(x %in% c("Other genera",prof$plain_rows),x,paste0("<i>",x,"</i>")))
+# Species names in strip titles and axis titles are italic (Candida, C. albicans, C. auris, E. coli, P. larvae); plain strings in, markdown out.
+sp_md <- function(x) gsub("\\b(C\\. albicans|C\\. auris|E\\. coli|P\\. larvae)\\b","<i>\\1</i>",gsub("Candida","<i>Candida</i>",x))
+genlab <- function(x) ifelse(x=="Unassigned",prof$unassigned_label,ifelse(x %in% c("Other genera",prof$plain_rows) | grepl("aceae( bacterium)?$",x),x,paste0("<i>",x,"</i>")))
 PRINT_WIDTH_IN <- 7.2    # DOUBLE_COLUMN publication width (docs/FIGURE_STYLE.md, "Publication artwork gate")
 # A collection's print_width_in (bioassay_layouts.json) is the text column its paper places figures in, so 8 pt text
 # prints at 8 pt; a 7.2 in figure placed in a 6.0 in column printed its text near 6.7 pt (the owner, 19 Oct, ruling 155).
 if (!is.null(prof$print_width_in)) PRINT_WIDTH_IN <- as.numeric(prof$print_width_in)
 EDGE_IN <- 0.15          # white space kept on every side; equal left and right, so the content is centered
 .ink_margins <- function(file) {   # white space (inches at the probe resolution) around everything drawn
-  a <- png::readPNG(file); ink <- (a[,,1] < .92) | (a[,,2] < .92) | (a[,,3] < .92)
+  a <- png::readPNG(file); ink <- (a[,,1] < .995) | (a[,,2] < .995) | (a[,,3] < .995)   # any non-white pixel: the palest heat-map tile (#EEF3F8) is lighter than 0.92 and was left out
   cols <- which(colSums(ink) > 0); rows <- which(rowSums(ink) > 0)
   c(t=min(rows) - 1, r=ncol(a) - max(cols), b=nrow(a) - max(rows), l=min(cols) - 1)
 }

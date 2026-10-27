@@ -1,6 +1,8 @@
 # Prevalence over saved cohort annotations
 
-`tools/domain_prevalence.py` reads census/domain SQLite inputs and optional saved NR/ClusteredNR/Swiss-Prot states. `tools/scan_prevalence.py` reads one keyword-scan SQLite dataset. Both are downstream, read-only input consumers; they do not rebuild evidence, verify package sealing, or prove source cohort completeness. A rarity rank is a review queue, not chemical novelty, functional absence or host specificity.
+If you have saved cohort annotations, use this workflow to ask how often a domain or keyword group appears in those inputs. For an existing result, open `domain_prevalence_ranking.json` first. Read `scope.strains` and `strains_sorted` to see the recorded denominator, then inspect the selected row's `strains`, `loci` and `distinct_genes`. `strain_prevalence` is the row's strain count divided by that denominator, rounded to four decimal places. Read [Inputs, joins and denominator](#inputs-joins-and-denominator) before comparing datasets.
+
+`tools/domain_prevalence.py` consumes census/domain SQLite inputs and optional saved NR/ClusteredNR/Swiss-Prot states. `tools/scan_prevalence.py` consumes one keyword-scan SQLite dataset. Both read existing input evidence and write new summaries; they do not rebuild the evidence, verify package sealing or establish cohort completeness. Rarity order is a review queue, not chemical novelty, functional absence or host specificity.
 
 ## Inputs, joins and denominator
 

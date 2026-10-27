@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_t01_axis_starts_at_data: the 16S similarity histogram (T01) draws its axis from the data.
+"""Card 452_t01_axis_starts_at_data: the 16S similarity histogram (T01) draws its axis from the data.
 
 The printed axis was fixed at 95-100%. On corrected identities (lowest 97.94% in one cohort) three quarters of the
 panel was empty. The axis now starts one whole percent below the lowest value, never below the printed 94.75 bins;

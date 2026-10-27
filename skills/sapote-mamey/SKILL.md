@@ -48,7 +48,7 @@ This is the non-negotiable that everything else defers to. Before writing a sing
 - **No fabricated per-gene observations. Ever.** Every selected-profile per-gene BLASTp row (default §4; current50 v2 §50) must trace to a real result (the phantom-locus incident templated fake observations into 74+ cards — do not repeat it). If a value isn't in a real result, it doesn't go in the card.
 - **Retractions stated plainly.** If new evidence overturns a claim, retract it cleanly and move on — no hedging.
 
-The authored-card CLI uses tools/claim_safety_linter.py; package validation/sealing uses the separate mamey/claim_safety_gate.py. Their heuristic scopes differ. Run the selected check within the actual task, retain findings/exit mode and perform source/content review; a remembered or clean pattern result is not acceptance. See references/claim-safety.md.
+The explicit `mamey claim-safety` CLI calls `lint_claim_safety_report` from `tools/claim_safety_linter.py`; its default warn mode can return zero with findings, and saving CSV requires `--report`. The standalone `python tools/claim_safety_linter.py` entry point calls the different `lint_claim_safety` function and exits nonzero for findings. Package validation/sealing uses the separate `mamey/claim_safety_gate.py`, whose candidate selection is limited to `.md`/`.txt` files with selected narrative-name patterns. These checks do not automatically cover every authored artifact or every authoring/import route. Run the selected check within the actual task, retain findings, output and exit mode, and perform source/content review; a remembered or clean pattern result is not acceptance. See references/claim-safety.md.
 
 ## The workflow
 

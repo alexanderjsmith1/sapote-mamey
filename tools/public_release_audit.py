@@ -56,7 +56,7 @@ PERSONAL = re.compile(r"/Users/[^/]+/|/home/[^/]+/")
 # Exact fixed container paths quoted by the two RiPPER contract documents.
 # Other files, other paths, suffixes/traversal and adjacent personal paths remain findings.
 _DOCUMENTED_CONTAINER_PATHS = {
-    "docs/RIPPER_ARCHIVED_LOCAL_CONTRACT.md": (
+    "docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md": (
         "/home/mnt/gbk/*.gbk", "/home/mnt/faa/query.faa",
     ),
     "docs/RIPPER_OPTIONAL_ADAPTER.md": ("/home/mnt/te_accessions.txt",),
@@ -95,7 +95,8 @@ _ALLOW = {
 }
 # Binary/large suffixes we do not decode for content (existence still counts for path checks).
 _SKIP_SUFFIX = {".pyc", ".gz", ".zip", ".whl", ".png", ".svg", ".jpg", ".jpeg", ".pdf", ".ico", ".gzip",
-                ".xlsx", ".xls", ".docx", ".doc", ".pptx", ".ppt", ".odt", ".ods", ".bin", ".so", ".dylib"}
+                ".xlsx", ".xls", ".docx", ".doc", ".pptx", ".ppt", ".odt", ".ods", ".bin", ".so", ".dylib",
+                ".ttf", ".otf", ".woff", ".woff2"}  # v9.7.458: vendored viewer fonts are binary
 _CACHE_PARTS = {"__pycache__", ".pytest_cache"}
 _CACHE_FILENAMES = {".DS_Store"}
 

@@ -149,7 +149,7 @@ import os as _os
 
 # Agg refuses any single dimension above 2**16 px. Stay a safety margin below it.
 _AGG_HARD_MAX_EDGE_PX = 65_500
-_DEFAULT_MAX_FIGURE_EDGE_PX = 30_000   # browser/print-safe ceiling; ~100 MB RGBA at square worst case
+_DEFAULT_MAX_FIGURE_EDGE_PX = 30_000   # browser/print-safe ceiling; ~3.6 GB RGBA at square worst case (30,000^2 x 4 B)
 _DPI_FLOOR = 100                        # below this, publication labels are unreadable
 
 
@@ -183,9 +183,12 @@ def safe_savefig_dpi(fig, requested_dpi: int, *, dpi_floor: int = _DPI_FLOOR) ->
     """
     try:
         w_in, h_in = (float(x) for x in fig.get_size_inches())
-    except Exception:
-        # If we cannot measure the canvas, do not silently pass a possibly-huge figure through.
-        return int(requested_dpi)
+    except Exception as exc:
+        # If we cannot measure the canvas, do not silently pass a possibly-huge figure through
+        # (this used to return requested_dpi unchanged, the opposite of what this comment says).
+        raise FigureCanvasTooLargeError(
+            f"{FigureCanvasTooLargeError.code}: figure size could not be measured ({exc!r}); "
+            f"refusing to render at {requested_dpi} dpi without a pixel bound.") from exc
     longest_in = max(w_in, h_in, 0.01)
     ceiling = max_figure_edge_px()
     max_dpi = int(ceiling // longest_in)

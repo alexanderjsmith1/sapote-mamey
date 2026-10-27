@@ -8,7 +8,9 @@ Bind an existing database path, its SHA-256, source roster, exact completed run 
 
 The shipped `bigscape_family_verdicts.py`, `bigscape_family_figures.py` and `bigscape_clinker_html.py` use ordinary `sqlite3.connect(path)`, not a read-only connection. A misspelled nonexistent path can create an empty database before a query fails. Verify the database exists first and work from an authorized disposable copy when immutable originals must be preserved.
 
-Their family queries filter by cutoff but do not offer an exact completed-run ID selector. If the database contains multiple run memberships at the same cutoff, do not assume these readers isolate the intended run. Resolve a reviewed snapshot with the intended membership scope through the governed export workflow, or retain a scope hold. Do not silently join or collapse memberships across runs.
+The readers have different run contracts. `bigscape_family_verdicts.py` accepts `--run-id`; with a `family.run_id` column it defaults to the last sorted numeric run ID and refuses an explicit ID absent from that table. This selection does not verify that the run completed, bind its source roster or prove that the latest run is the intended one. Without that column, an explicit ID is refused and the unselected legacy query has no run filter (`:63–96,121–134`). Its placement denominator still includes every region record in the database, so a selected-run placed count can be subtracted from an all-database total. Reconcile that scope before calling any residual a singleton.
+
+`bigscape_family_figures.py` and `bigscape_clinker_html.py` have cutoff selectors but no run-ID option in their parsers; their cutoff membership queries can span runs (`bigscape_family_figures.py:38–55,167–175`; `bigscape_clinker_html.py:201–205,372–396`). Do not assume that a run-scoped verdict TSV makes every later focus/fallback query run-scoped. Resolve a reviewed snapshot with the intended membership through the governed export workflow, or retain a scope hold. Do not silently join or collapse memberships across runs.
 
 ## Select the intended namespace
 

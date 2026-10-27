@@ -2,11 +2,11 @@
 
 The native placement report can write its tables and diagnostic tree without metadata strips. Supplying report metadata requests the strip workflow; a requested but incomplete strip returns a nonzero status while preserving the tables and any partial attempt for inspection. There is no cross-file transaction or automatic biological interpretation.
 
-`report`, `all`, and autopilot `run-16s` share repeatable `--owner-table`, `--owner-table-original`, `--resolved`, `--reviewed`, and `--query-override` inputs. Each occurrence is one complete TSV path, including paths with spaces. `--query-prefix` retains the legacy owner-ID join for compatible tables; the native query/reference roles come from the exact admitted placement names. `--rscript` selects one executable, not a shell command. No renderer is invoked when report metadata is absent.
+`report`, `all`, and autopilot `run-16s` share repeatable `--owner-table`, `--owner-table-original`, `--resolved`, `--reviewed`, and `--query-override` inputs. Each occurrence is one complete TSV path, including paths with spaces. `--query-prefix` retains the legacy owner-ID join for compatible tables; the native query/reference roles come from the exact admitted placement names. `--rscript` selects one executable, not a shell command. No metadata-strip R renderer is invoked when report metadata is absent; the native diagnostic tree can still be drawn after numerical length admission.
 
 On `build-ref` and `all`, `--reference-metadata` remains the single reference-build identity table, with `tip`, `taxon`, and `role` columns. Autopilot forwards that scalar separately. On `report` only, the older repeatable `--reference-metadata` spelling remains an alias for `--resolved`. Use `--resolved` for report tables on every front door. An explicitly empty path refuses; an omitted option remains optional.
 
-For example, using already admitted inputs and separately prepared metadata:
+Example:
 
 ```sh
 python tools/phylo_place.py report --refpkg refpkg --jplace placement/epa_result.jplace \

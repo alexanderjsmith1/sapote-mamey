@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_bioassay_candida_split_and_label: A01 can draw C. albicans and C. auris as separate panels.
+"""Card 452_bioassay_candida_split_and_label: A01 can draw C. albicans and C. auris as separate panels.
 
 Owner, 12 Oct: split the two Candida species in the activity-by-genus figure. The layout profile key split_candida turns it on
 (the moss profile has it); a01_drop_targets leaves named panels out (a figure-side choice). The unassigned row label comes

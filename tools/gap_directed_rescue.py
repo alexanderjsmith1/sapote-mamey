@@ -578,10 +578,24 @@ def main(argv=None) -> int:
     ap.add_argument("--map-height", type=float, default=None,
                     help="canvas height in inches for the full map (default 6.2); larger values stretch the map "
                          "vertically at the same width, for crowded maps")
-    ap.add_argument("--print-width", choices=("double", "single", "page6.0", "page6.5", "landscape", "none"), default="double",
+    named_widths = ("double", "single", "page6.0", "page6.5", "landscape", "none")
+
+    def _print_width(value):
+        if value in named_widths:
+            return value
+        try:
+            inches = float(value)
+        except ValueError:
+            inches = None
+        if inches is None or not 3.0 <= inches <= 10.0:
+            raise argparse.ArgumentTypeError(f"use one of {', '.join(named_widths)} or inches from 3 to 10, not {value!r}")
+        return value
+
+    ap.add_argument("--print-width", type=_print_width, default="double",
                     help="draw the map at a journal column width with all text >= 8 pt: double = 7.2 in (default), "
-                         "single = 3.5 in, page6.0 / page6.5 = a 6.0 or 6.5 in text column; none = the 13.5 in screen "
-                         "layout of earlier maps, unchanged")
+                         "single = 3.5 in, page6.0 / page6.5 = a 6.0 or 6.5 in text column, landscape = 9.0 in, or a "
+                         "number of inches (3 to 10) to match the width the map is placed at; none = the 13.5 in "
+                         "screen layout of earlier maps, unchanged")
     ap.add_argument("--trim-kb", type=float, help="with --redraw: crop both rows to the matched genes plus this margin "
                     "(kb) on each side; the title and footnote say so. Default: no crop")
     ap.add_argument("--panel", action="store_true", help="with --redraw and a print width: draw the map as a panel of a "

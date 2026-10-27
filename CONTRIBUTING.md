@@ -20,26 +20,26 @@ Use [INSTALL](docs/INSTALL.md) for optional dependencies and compatible offline 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e '.[all]'
+python -m pip install -e '.[all,test]'
 python -m pytest -m public
 # Include all configured partitions only within the authorized test/network scope:
-python -m pytest tests/ -q --run-slow --run-network
+python -m pytest -q --run-slow --run-network
 ```
 
-`python -m pytest tests/ -q` alone is the default partition: explicitly marked slow/network tests
-are skipped by `tests/conftest.py`. Even the configured full partition may skip unavailable external
+`python -m pytest -q` runs the default partition over `tests`, `tools` and `deliverable_tools`; adding `tests/` narrows it to one folder. Slow and network tests
+are skipped by the root `conftest.py`. Even the configured full partition may skip unavailable external
 fixtures/tools; report counts, markers, input hashes and remaining skips rather than claiming live
 integration. The conftest deliberately binds test cohort fixtures and overrides MAMEY_OFFICIAL_DATA /
 MAMEY_DATA_ROOT for the suite; these tests do not validate the operator’s real registry.
 
 `bash bootstrap.sh` installs pytest and tries editable `.[all]`, then falls back to core if that
 fails. It uses PyPI by default; `--wheels <compatible-local-dir>` selects offline resolution. It
-prints external-tool installation advice but does not install those binaries. Its one version-sync
-smoke test is not the full suite or proof that all extras were installed. Run it from the source
-root, select the intended interpreter/venv, and inspect actual installed capabilities.
+prints external-tool installation advice but does not install those binaries. It runs one version-sync
+smoke test, not the full suite. Run it from the source root in the intended virtual environment,
+then check what actually installed.
 
-Keep declared version anchors synchronized through `tools/sync_version.py`; its mutation mode
-rewrites selected anchors/generated blocks. `--check` is not a full semantic or release audit.
+Keep declared version anchors synchronized through `tools/sync_version.py`; run it without flags to rewrite them,
+or with `--check` to report drift.
 Do not bump versions or regenerate acceptance evidence merely to prepare a documentation patch.
 Behavior changes need meaningful regression coverage; reversible prose/link edits need source and
 link verification rather than implementation-mirroring tests.

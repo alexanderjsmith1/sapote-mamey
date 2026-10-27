@@ -1,32 +1,21 @@
-# Mode B Card Claim-Safety Audit (reusable QA check)
-**Historical extraction-card audit, added 2026-06-10.** The original record reports 331 cards across six strains as clean under the checks below. This is not a current audit receipt or clearance for authored full48/current50 cards; the original cohort/denominator and limited scope remain historical.
+# Check claim language in an authored Mode B card
 
-## Purpose
-These checks screen the older minimal/template extraction cards. They do not establish absence of all claim-safety violations, and current authored judgment cards are not universally template-locked. Use the current claim-safety command plus selected-profile source/content review for those cards.
+For a current full48/current50 card, screen the actual saved prose, then review its claims against the
+sources and selected [profile](MODEB_PROFILE_MATRIX.md). From the selected bundle root:
 
-## Historical four-check recipe (limited to its extraction-card template)
-1. **No forbidden product-identity language.** Regex (case-insensitive): `\bproduces\b | \bsynthesizes\b | is an enediyne | confirmed enediyne | identical to (the )?compound | the strain makes` — EXCLUDING lines also containing claim-safe context (`candidate|predicted|putative|possible|does not|not a confirmed`). Expected: 0.
-2. **Disclaimer present in EVERY card.** Match ANY of these wordings (do NOT hardcode one strain's phrasing — this was a real audit bug): `does not claim purified product identity | not a confirmed product call | source-bounded | source-derived extraction card | not...confirmed product | upgrade...only with`. Expected: cards_with_disclaimer == total_cards.
-3. **No asserted PMID/DOI** (Bert mode): `PMID:?\s*[0-9]{6,} | doi.org/10. | 10.[0-9]{4,}/`. Expected: 0 (cards should not assert citations; that's the literature index's job, separately verified).
-4. **No template deviation** hiding a claim: lines after `## Interpretation` (or `Interpretation limit`) beyond the standard disclaimer block. Inspect any card flagged.
+```bash
+python mamey_run.py claim-safety <card.md> --package <pkg> --mode warn --json
+```
 
-## Note on disclaimer wording variants observed
-- philanthi/citrea-era: "...does not claim purified product identity."
-- venezuelae/gossypii/amethystogenes-era: "...not a confirmed product call and should be upgraded only with LC-MS/MS..."
-Both satisfy check 2. The audit MUST accept either.
+Retain the findings, compound-context messages and exit status. `--json` prints findings; it does not
+save a receipt. Add `--report <existing-review-folder>/claim-safety.csv` if a persistent CSV is needed;
+that report appends findings, so preserve which invocation produced each set of rows. Warn mode exits
+zero even when findings exist. Review any compound-context fallback or unavailable-evidence message.
 
-## Scope limit
-This audits the CARDS only (template-locked, low risk). It does NOT cover Layer A/B/C narrative or Technical Report prose (free-form, higher overclaim risk) — those need a separate read.
+This front door uses `tools/claim_safety_linter.py`, rather than the historical four-check recipe linked at the end.
+Current authored cards may contain source-bound citations; current50 v2 requires literature with
+relevance in §48–§49. The old no-PMID/DOI check does not apply to those sections. Inspect primary-source
+passage bindings: a citation pattern or disclaimer does not prove what the source says. Run the selected
+profile verification and independent content review described in the [walkthrough](MODE_B_USER_WALKTHROUGH.md).
 
-## Current authored-card boundary
-
-The no-PMID/DOI rule above belongs to that historical extraction-card template. Current authored cards
-may contain source-bound literature citations; citation presence alone is not an overclaim or a failed
-Bert review. Review the actual primary-source/passage bindings instead. The historical whole-line
-safe-word exclusion is a coarse screen and can miss an assertion elsewhere on the same line.
-
-The current `python mamey_run.py claim-safety <card.md> --package <pkg> --mode warn --json`
-front door uses `tools/claim_safety_linter.py`, not this four-check text as an executable rule set.
-Its findings/compound context and optional CSV output must be retained; warn exits zero with findings.
-Neither a clean heuristic output nor disclaimer presence independently establishes source truth,
-complete profile content, experimental linkage or scientific acceptance.
+The 2026 extraction-card recipe is in [history](history/MODE_B_CARD_CLAIM_SAFETY_AUDIT_2026.md).

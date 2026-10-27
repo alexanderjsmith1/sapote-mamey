@@ -3,10 +3,8 @@
 
 Sapote-Mamey grew 53 modules across v9.7.121->158 with zero consolidations until
 v9.7.155 (34 versions of pure accretion). This gate makes that pattern visible and
-bounded at cut time: a module added to mamey/ must be acknowledged, either by
-
-  (a) a CHANGELOG entry line naming it after `Consolidates:` or `Accretion-justified:`, or
-  (b) regenerating MODULE_MANIFEST.txt (`--write`) as a deliberate composing step.
+bounded at cut time: a module added to mamey/ must be acknowledged by a CHANGELOG
+entry line naming it after `Consolidates:` or `Accretion-justified:`.
 
 Fail-closed: the comparison baseline is the set of ``mamey/**/*.py`` paths recorded in
 the sealed bundle's SOURCE_CHECKSUMS_SHA256.txt. Updating the editable
@@ -18,7 +16,7 @@ one-in-one-out discipline as a mechanical check — it does not block adding mod
 blocks adding them *silently*.
 
 Usage:
-  python tools/check_module_accretion.py                 # check against manifest + CHANGELOG
+  python tools/check_module_accretion.py                 # check against sealed checksums + CHANGELOG
   python tools/check_module_accretion.py --write         # regenerate MODULE_MANIFEST.txt (cut step)
   python tools/check_module_accretion.py --json          # machine-readable report
 
@@ -209,9 +207,9 @@ def check(as_json: bool = False) -> int:
                   "Consolidates:/Accretion-justified: line in the newest CHANGELOG entry:")
             for m in unjustified:
                 emit(f"    - {m}")
-            emit("  Fix: add a 'Accretion-justified: <module.py> — <reason>' (or "
-                  "'Consolidates: ...') line to the newest CHANGELOG entry, OR run "
-                  "`tools/check_module_accretion.py --write` if this is a deliberate baseline update.")
+            sys.stdout.write("  Fix: add an 'Accretion-justified: <module.py> — <reason>' (or "
+                             "'Consolidates: ...') line to the newest CHANGELOG entry. "
+                             "Regenerating MODULE_MANIFEST.txt does not change the sealed checksum baseline.\n")
         if not unjustified and not unreadable and not baseline_error:
             emit("  accretion gate: PASS")
 

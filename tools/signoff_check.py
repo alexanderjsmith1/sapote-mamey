@@ -2,7 +2,7 @@
 """signoff_check.py — the "would a master's student sign off?" gate, mechanised.
 
 Folded into the Sapote-Mamey bundle (FA4, prototype) from the session tool
-`Tools/signoff_check.py`. ADVISORY ONLY: it never blocks and always exits 0.
+`Tools/signoff_check.py`. ADVISORY ONLY: inspection findings exit 0; invalid command syntax exits 2.
 It mechanises the OBJECTIVE items of the analysis sign-off gate (CLAUDE.md,
 "Analysis sign-off gate") so a human/Claude does not have to catch them by hand;
 the JUDGMENT items (outgroup *choice*, comparator provenance, host traceability)
@@ -23,7 +23,7 @@ Objective checks on a Newick tree:
 Usage:
   signoff_check.py [--minutes N] [--root DIR] [--quiet-if-clean] [FILE ...]
 With no FILE, scans --root (default: current working directory) for tree files
-modified in the last N minutes. Exit code is ALWAYS 0 (advisory).
+modified in the last N minutes. Inspection exits 0 (advisory); usage errors exit 2.
 """
 import sys, os, re, time, glob
 import sys as _sys
@@ -240,21 +240,21 @@ def check_tree(path, outgroup=None):
 
 
 def main():
-    args = sys.argv[1:]
-    minutes, root, quiet, files, outgroup = 90, ROOT_DEFAULT, False, [], None
-    i = 0
-    while i < len(args):
-        a = args[i]
-        if a == "--minutes": i += 1; minutes = float(args[i])
-        elif a == "--root": i += 1; root = args[i]
-        elif a == "--outgroup":
-            i += 1
-            # REPEATABLE (v9.7.407): accumulate, never overwrite — a second --outgroup used to
-            # silently discard the first, which is how the .406 parity break went unnoticed.
-            outgroup = (outgroup or []) + [args[i]]
-        elif a == "--quiet-if-clean": quiet = True
-        else: files.append(a)
-        i += 1
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Inspect tree files; inspection findings are advisory.")
+    parser.add_argument("--minutes", type=float, default=90,
+                        help="scan files modified within this many minutes (default: 90)")
+    parser.add_argument("--root", default=ROOT_DEFAULT,
+                        help="directory to scan when no files are supplied")
+    parser.add_argument("--outgroup", action="append",
+                        help="outgroup token or identity; repeatable or comma-separated")
+    parser.add_argument("--quiet-if-clean", action="store_true")
+    parser.add_argument("files", metavar="FILE", nargs="*")
+    args = parser.parse_args()
+    minutes, root = args.minutes, args.root
+    quiet, files, outgroup = args.quiet_if_clean, args.files, args.outgroup
 
     if not files:
         try:

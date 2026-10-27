@@ -1,15 +1,13 @@
 # fetch_reference_cluster — reference/cohort cluster GBKs, as a shared step
 
-The comparative tools (`clinker`, `cluster_gene_compare`, `bgc_reference_align`, `extract_cluster`)
-all consume GenBank files, but there was no first-class way to *obtain* a reference or cohort
-cluster as a GBK — the DB->CDS logic was embedded inside `bgc_reference_align` (returning internal
-dicts, not files). So every comparison against a MIBiG reference or a cohort member meant
-hand-reconstructing a GBK. This exposes that as a reusable step and improves on it:
+Writes a MIBiG reference, a cohort cluster or an NCBI record as a GenBank file, so `clinker`, `cluster_gene_compare`,
+`bgc_reference_align` and `extract_cluster` can compare it. What it adds:
 
-- **Annotated output.** The anchored BiG-SCAPE DB stores Pfam domains (`hsp`) next to every CDS
-  (`cds.aa_seq`), so the reconstructed GBK is written with `/gene` labels (Pfam short-names where
-  known, the accession otherwise — never blank). Those labels flow straight into clinker and
-  cluster_gene_compare's auto-labelling.
+- **Annotated output.** For a CDS with stored Pfam hits (`hsp`), the DB route uses the
+  highest-bitscore hit for a `/gene` display label: a known short name or the accession.
+  CDS without a stored hit retain their rebuilt locus tag and receive no inferred `/gene`
+  label. Pfam-derived display labels can feed clinker and cluster_gene_compare; they do
+  not establish gene function or mean every CDS was domain-annotated.
 
 ## Usage
 
@@ -70,7 +68,11 @@ cache-only path. It requires a complete versioned nucleotide accession, exactly
 one returned record with matching ID and translated CDS. Use only when the user's
 selected task already authorizes that retrieval. Local DB selection needs no
 network. Both output reconstruction paths require Biopython for feature/record
-creation; the read shim alone cannot supply this writer.
+creation; the read shim alone cannot supply this writer. Before publication, the
+staged GBK must round-trip as one record with the same translated-CDS strings
+(whitespace normalized), and those strings must use the downstream BLOSUM62 matrix
+alphabet. A missing translation or unsupported symbol refuses the reconstruction;
+the writer does not drop or rewrite that CDS merely to make the comparison fit.
 
 The demonstrated source-path substring and friendly output label are lookup/display
 values. For any project BGC used in interpretation, separately bind
@@ -84,11 +86,15 @@ do not promote a nickname into a full locus identity.
     cluster_gene_compare      GBKs -> gene-by-gene deliverable
 
 Between these two ingress tools, every kind of cluster — your strains (antiSMASH), external
-genomes (extract_cluster), and characterised/cohort references (fetch_reference_cluster) — becomes
+genomes (extract_cluster), and characterized/cohort references (fetch_reference_cluster) — becomes
 a comparable GBK without hand-reconstruction.
 
-## Validated
+## Historical reconstruction example
+
+The retained example below is not a new validation of the current archive. Recover
+the original database/code versions, input/output hashes and run receipt before
+reusing its counts or treating it as current reference-admission evidence.
 
 Reconstructed polyoxin (BGC0000877) from the real anchored DB: 39 CDS, 35 annotated
 (FMO_monooxygenase, carbamoyltransferase, MFS_transporter, ...). Capacity/architecture-level:
-a reconstructed reference is the characterised cluster's genes; comparison to it is homology.
+a reconstructed reference is the characterized cluster's genes; comparison to it is homology.

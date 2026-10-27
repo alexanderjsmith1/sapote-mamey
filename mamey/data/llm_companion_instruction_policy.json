@@ -15,7 +15,7 @@
       "Only a user-approved, source-preserving reconciliation"
     ],
     "docs/phylogenomics.md": [
-      "at most three related reference genomes",
+      "up to three linked reference genomes",
       "Surface 60 as the default",
       "maximum, with the actual user-selected count",
       "-j 1 -n 1 -M 1",
@@ -23,7 +23,7 @@
       "Do not start GToTree"
     ],
     "docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md": [
-      "Default one core",
+      "policy is one core",
       "cohort-only mode",
       "Portable join key"
     ],
@@ -36,15 +36,14 @@
   "routing_documents": {
     "AGENTS.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
     "docs/BUNDLE_CAPABILITIES.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
-    "docs/START_HERE.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+    "docs/START_HERE.md": "LLM_COMPANION_TOOL_PROTOCOL.md",
     "docs/TRIGGER_ROUTING.md": "PHYLOGENOMICS_DETECTED",
     "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md": "Companion-tool handoff override",
     "skills/sapote-mamey/SKILL.md": "Run/resume BiG-SCAPE safely",
     "CLAUDE.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md"
   },
   "historical_documents": {
-    "docs/AS_batch1_BiGSCAPE_run_guide.md": "HISTORICAL COHORT RECEIPT",
-    "docs/BIGSCAPE_MAMEY_INTEGRATION.md": "LEGACY IMPLEMENTATION NOTE"
+    "docs/BIGSCAPE_MAMEY_INTEGRATION.md": "Implementation scope:"
   },
   "forbidden_active_fragments": {
     "docs/BIGSCAPE_GCF_WORKFLOW.md": [

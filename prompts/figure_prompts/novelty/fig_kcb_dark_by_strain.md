@@ -19,11 +19,11 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
 > Reported KnownClusterBlast top-hit-text presence per isolate (n = <admitted_isolate_n> isolates); state admitted BGC/search denominators and missing or unbound coverage. Top-hit presence is similarity context, and exported zero is not proof of novel chemistry or a verified no-match search.
 
@@ -31,5 +31,5 @@ Fill every placeholder from the admitted plotted inputs and retain their provena
 - Discuss assembly/search-coverage associations only when supported by this set; do not retain a directional claim from the earlier no-top-hit metric.
 
 ## Build note
-Reproducible from the tidy export (`tools/export_figure_ready.py`) following the
-`tools/plot_examples.py` pattern. Keep the slug and column names stable so decks don't break.
+The exporter supplies the named CSV fields. `tools/plot_examples.py` does not draw
+this recipe; see [renderer choice](../HOW_TO_USE.md#renderer-choice).

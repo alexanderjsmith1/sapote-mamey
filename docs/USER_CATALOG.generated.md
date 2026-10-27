@@ -6,6 +6,7 @@
 Cassette families are the biosynthetic-machinery census surfaced in the workbook `Cassette_Registry` sheet. A cassette count is **capacity / signal, not product or activity**; bioactivity is extract-level; absence of a family is **not** a negative call. `siderophore_metallophore` and `transporter_resistance` are widespread and low-discrimination.
 
 ## release_macrocyclization  (MMC-001 — Release and macrocyclization cassette)
+*Tier:* TIER_3_CONTEXT_TAILORING
 
 **Detects (regex evidence):** thioesterase, \bte\b, cyclase, macrocycl, esterase, reductase release
 
@@ -16,6 +17,7 @@ Detects chain-release and macrocyclization machinery in modular assembly lines: 
 *Claim-safety:* Tier-3 context only: a release/TE token never defines a product class or proves cyclization. Treat as architecture support for an NRPS/PKS lead; confirm topology by LC-MS/MS and curated domain calls.
 
 ## glycosylation  (MMC-002 — Glycosylation cassette)
+*Tier:* TIER_3_CONTEXT_TAILORING
 
 **Detects (regex evidence):** glycosyltransferase, glycosyl, sugar, deoxysugar, gt\b
 
@@ -26,6 +28,7 @@ Detects sugar-tailoring machinery — glycosyltransferase, glycosyl, sugar, deox
 *Claim-safety:* Tier-3 context with the saccharide standing-downgrade in force: glycosyltransferase tokens are widespread and low-specificity. Do not infer a glycoside or a sugar identity without deeper annotation and LC-MS/MS.
 
 ## halogenation  (MMC-003 — Halogenation cassette)
+*Tier:* TIER_2_CLASS_SUPPORTING
 
 **Detects (regex evidence):** (?<!de)halogenase, fluorinase, chlorinase, brominase
 
@@ -36,6 +39,7 @@ Detects halogenating enzymes — halogenase (excluding dehalogenase), fluorinase
 *Claim-safety:* Tier-2 class-supporting: signals capacity for halogenation, not a specific halogenated product. Confirm by curated halogenase HMM/BLAST and by halogen isotope pattern in MS before any organohalogen claim.
 
 ## phosphonate  (MMC-004 — Phosphonate cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** (?<!carboxy)phosphonate(?!.*transporter)(?!.*utilization)(?!.*c-?p lyase)(?!.*phn[g-m]\b), pep mutase(?!\s*family), phosphoenolpyruvate mutase(?!\s*family), foma, fomb
 
@@ -46,6 +50,7 @@ Detects C-P-bond (phosphonate) biosynthesis and self-protection: phosphonate wor
 *Claim-safety:* Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The regex already vetoes C-P lyase / phn transporter / utilization false-positives; confirm by HMM/BLAST, ³¹P-NMR, and fractionation.
 
 ## nucleoside  (MMC-005 — Nucleoside cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** peptidyl[- ]nucleoside, nikkomycin, polyoxin, \bnikj\b, \bnikd\b, \bnikc\b, chitin synthase inhibit
 
@@ -56,6 +61,7 @@ Detects peptidyl-nucleoside antifungal biosynthesis — nikkomycin/polyoxin word
 *Claim-safety:* Tier-1 diagnostic restricted to the peptidyl-nucleoside class: a true call needs the diagnostic Nik/Pol enzymes, not nucleotide-metabolism wording. Confirm by HMM/BLAST and antifungal fractionation.
 
 ## aminoglycoside_aminocyclitol  (MMC-006 — Aminoglycoside/aminocyclitol cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** aminocyclitol, dois, btrc, 2-deoxy-scyllo-inosose
 
@@ -66,6 +72,7 @@ Detects aminocyclitol/aminoglycoside biosynthesis and self-protection: aminoglyc
 *Claim-safety:* Tier-1 diagnostic anchored on DOIS: the committed 2-deoxy-scyllo-inosose synthase step is the diagnostic, not the class name. Separate biosynthesis from resistance genes; confirm by HMM/BLAST and fractionation.
 
 ## tetronate_spirotetronate  (MMC-007 — Tetronate/spirotetronate cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** tetronate, spirotetronate, fkbh, (?<!acyl)glyceryl
 
@@ -76,6 +83,7 @@ Detects tetronate/spirotetronate polyketide building-block machinery: tetronate,
 *Claim-safety:* Tier-1 diagnostic but topology-gated: calling 'spiro' needs the Diels-Alderase/cyclization context, not just FkbH. Confirm by curated domain analysis and LC-MS/MS.
 
 ## thioamide_ycao  (MMC-008 — Thioamide/YcaO cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** thioamide, ycaO
 
@@ -86,6 +94,7 @@ Detects YcaO-dependent backbone thioamidation — thioamide and YcaO tokens — 
 *Claim-safety:* Tier-1 diagnostic but mechanism-ambiguous: distinguish thioamidating YcaO (needs TfuA / thioamide context) from TOMM cyclodehydratase YcaO before claiming thioamidation. Confirm by HMM/BLAST and MS mass-shift.
 
 ## lanthipeptide  (MMC-009 — Lanthipeptide cassette)
+*Tier:* TIER_2_CLASS_SUPPORTING
 
 **Detects (regex evidence):** lanthipeptide, lantibiotic, (?<![A-Za-z])lanc(?![A-Za-z]), (?<![A-Za-z])lanm(?![A-Za-z]), (?<![A-Za-z])lant(?![A-Za-z_]), (?<![A-Za-z])lanp(?![A-Za-z])
 
@@ -96,6 +105,7 @@ Detects lanthipeptide RiPP biosynthesis and maturation: lanthipeptide wording an
 *Claim-safety:* Tier-2 class-supporting: require precursor + class-defining synthetase (LanB/LanC or LanM) to call the class. The UMED maturation-gap is a corroborating, not defining, signal; confirm by HMM/BLAST and LC-MS/MS.
 
 ## lassopeptide  (MMC-010 — Lasso peptide cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** lassopeptide, lasso peptide
 
@@ -106,6 +116,7 @@ Detects lasso-peptide RiPPs — lassopeptide / 'lasso peptide' wording — laria
 *Claim-safety:* Tier-1 diagnostic at the class level only: the antiSMASH lasso label is reliable for class, but topology and activity remain capacity until shown by MS/NMR. Treat as a lasso-peptide capacity call.
 
 ## tomm_azole_ripp  (MMC-011 — TOMM/azole RiPP cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** azole, tomm, cyclodehydratase, dehydrogenase, ripp
 
@@ -116,6 +127,7 @@ Detects azol(in)e-containing RiPPs / thiazole-oxazole-modified microcins (TOMMs)
 *Claim-safety:* Tier-1 diagnostic but token-broad: require the YcaO cyclodehydratase + precursor to call a TOMM, and keep it separate from indolocarbazole (T43-IDC). Confirm by HMM/BLAST and LC-MS/MS heterocycle mass shifts.
 
 ## polyene_ptm_hsaf  (MMC-012 — Polyene/PTM/HSAF cassette)
+*Tier:* TIER_1_DIAGNOSTIC
 
 **Detects (regex evidence):** (?<!aryl)polyene, hsaf, maltophilin, tetramate, pks-nrps
 
@@ -126,6 +138,7 @@ Detects polycyclic tetramate macrolactam (PTM) / HSAF-type antifungals: polyene,
 *Claim-safety:* Tier-1 diagnostic gated on architecture: the diagnostic is the PTM hybrid PKS-NRPS, not the keyword. Confirm the hybrid architecture by domain analysis and antifungal fractionation before any HSAF/PTM class claim.
 
 ## siderophore_metallophore  (MMC-013 — Siderophore/metallophore cassette)
+*Tier:* TIER_2_CLASS_SUPPORTING
 
 **Detects (regex evidence):** siderophore, metallophore, nrp-metallophore, iron, ferric
 
@@ -136,6 +149,7 @@ Detects iron/metal-acquisition metabolites — siderophore, metallophore, NRP-me
 *Claim-safety:* Tier-2 class-supporting and deliberately low-weight: siderophore capacity is widespread across actinomycetes and ecologically low-discrimination, so down-weight it in comparative and novelty claims. Confirm by HMM/BLAST and CAS assay.
 
 ## transporter_resistance  (MMC-014 — Transporter/resistance cassette)
+*Tier:* TIER_5_OVERINTERPRETATION_RISK
 
 **Detects (regex evidence):** transporter, efflux, exporter, resistance, immunity
 
@@ -146,6 +160,7 @@ Detects export/efflux/self-resistance/immunity wording near BGCs — transporter
 *Claim-safety:* Tier-5 overinterpretation risk, inventory-only: never let this cassette drive a lead or support a self-resistance claim without class-specific, BGC-cognate evidence confirmed by curated HMM/BLAST.
 
 ## chitin_glycan_ecology  (MMC-015 — Chitin/glycan ecology cassette)
+*Tier:* TIER_2_CLASS_SUPPORTING
 
 **Detects (regex evidence):** chitinase, gh18, gh19, aa10, lpmo, glcnac, dasr
 
@@ -162,7 +177,7 @@ The ten first-pass scans plus the regulator and transporter context scans (each 
 - **KCB_sweep** — Known-cluster-blast similarity sweep -> RiQ novelty. KCB is a similarity signal, not a product identification.
 - **RG_GMCI** — Reference-genome-guided multi-cluster integration: detects split-cluster pairs across contig breaks.
 - **FLBR** — Fragment-linked biosynthetic rescue / LMPKS fragment set.
-- **CCTT** — T43 diagnostic class triggers (15 families) feeding AB/AF/novelty.
+- **CCTT** — T43 diagnostic class triggers (18 families) feeding AB/AF/novelty.
 - **CGAD** — Chitinase / glycan-active-domain ecology scan.
 - **UMED** — RiPP maturation-machinery scan (proteases / transporters / maturation gaps).
 - **EFLS** — Evidence-from-linkage scan: candidate co-localized pairs.

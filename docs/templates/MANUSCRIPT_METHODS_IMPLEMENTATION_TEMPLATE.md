@@ -1,7 +1,7 @@
 # Manuscript Methods implementation template
 
 **Template status:** prospective authoring aid; inclusion in the bundle does not assert that any study was run.  
-**Version template:** Sapote-Mamey v9.7.457 / Mamey v1.9.177  
+**Version template:** Sapote-Mamey v9.7.458 / Mamey v1.9.177  
 **Required substitutions:** replace every bracketed field and delete modules that were not used. Rewrite each retrospective sentence below to match actual execution; this template is not an execution receipt.
 
 ## Scope and reproducibility statement
@@ -28,9 +28,9 @@ If used, report FLBR, EFLS, and RG-GMCI separately. RG-GMCI deterministically ev
 
 For every scan used, report its registry/resource version, inputs, output unit, missingness, and applicable guards. CCTT, CGAD, UMED, resistance, bldA/TTA, TFBS, antibacterial, antifungal, and novelty outputs are deterministic screening or routing signals. Triage tiers and scores are expert-designed workflow policy, not probabilities, structures, products, or assay results. Preserve raw values and all downgrades or exclusions.
 
-Build the reported channel inventory from the final bound outputs, then reconcile it with the actual phase receipts. The current `source_scans` phase can end before RG-GMCI and per-gene/structured enrichments are filled. Its `END` row records BGC, preliminary EFLS-pair and TFBS-hit counts, not successful completion of every channel. Later enrichment can retain `ERROR_*` in its own output while the broader RG-GMCI phase still records `END`; its functional-profile status also defaults to `OK` when no explicit status field exists. Preserve the actual channel state and inspected row/identity scope instead of translating these aggregate/default labels into verified results (`mamey/cli.py:1577–1588, 1797–1902`).
+Build the reported channel inventory from the final bound outputs, then reconcile it with the actual phase receipts. The current `source_scans` phase can end before RG-GMCI and per-gene/structured enrichments are filled. Its `END` row records BGC, preliminary EFLS-pair and TFBS-hit counts, not successful completion of every channel. Later enrichment can retain `ERROR_*` in its own output while the broader RG-GMCI phase still records `END`; its functional-profile status also defaults to `OK` when no explicit status field exists. Preserve the actual channel state and inspected row/identity scope instead of translating these aggregate/default labels into verified results (`mamey/cli.py, 1797–1902`).
 
-For degradation reporting, retain the `degradation_events` receipt's total `n` separately from its `events` list, which stores only the first 50 collected details. Draining clears the process-local collector before the summary receipt is written; the collector is not an independent persistent event ledger. Its recording/draining and receipt writing are best-effort, so an absent event or receipt must remain an evidence gap rather than a demonstrated clean channel. Disclose any incomplete detail coverage and bind the saved receipts to the extraction being described (`mamey/cli.py:341–384, 1089–1098`; `mamey/degradation.py:18–38`).
+For degradation reporting, retain the `degradation_events` receipt's total `n` separately from its `events` list, which stores only the first 50 collected details. Draining clears the process-local collector before the summary receipt is written; the collector is not an independent persistent event ledger. Its recording/draining and receipt writing are best-effort, so an absent event or receipt must remain an evidence gap rather than a demonstrated clean channel. Disclose any incomplete detail coverage and bind the saved receipts to the extraction being described (`mamey/cli.py, 1089–1098`; `mamey/degradation.py`).
 
 ## Mode B and authored interpretation
 

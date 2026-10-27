@@ -81,9 +81,11 @@ The rich GenBank source-record parser requires optional Biopython. If it is unav
 
 Before MAFFT, reference inference, or EPA-ng placement, prepare a TSV roster and a
 FASTA with identical unique tip IDs, then run `tools/phylo_sequence_admission.py`.
-Every admitted record must carry its organism, expected genus, versioned accession,
-sequence hash, type status, isolation source, collapsed geography, sequence evidence,
-metadata evidence, biological sample ID, and explicit admission state. The gate
+The roster requires columns for organism, expected genus, accession, sequence hash,
+type status, isolation source, collapsed geography, sequence evidence, metadata evidence,
+biological sample ID and explicit admission state. A nonmissing biological sample ID
+is enforced for query rows; reference/outgroup sample cells can remain blank. Exact
+accession versions remain an operator requirement, as qualified below. The gate
 rejects short 16S fragments, cross-genus records, missing metadata, duplicate
 type-species representatives, and identical query sequences from the same biological
 sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are

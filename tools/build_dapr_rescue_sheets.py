@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""build_dapr_rescue_sheets.py — deterministic (Mamey-layer) regeneration of the schema-v1.2
-additions: the `Fragment_Rescue_Tiers` sheet (code D5) and the `Activity_Ref` column on the DAPR
-boards (C1/C2). Both are pure functions of workbook data + the locked framework citation map, so
-re-running reproduces them exactly. The Sapote judgment columns (Rank, AN_Score, WL_Score, Rationale)
-and the *selection* of DAPR board rows are NOT touched.
+"""build_dapr_rescue_sheets.py — rebuild D5 and refresh mapped Activity_Ref cells on C1/C2.
+Blank or unmapped KCB cells retain prior reference values; judgment columns and board-row
+selection are unchanged. These reference-context labels are not measured activity.
 
 Reads (from the master workbook):
   A2_Strain_Registry    -> strain, contigs, n50, assembly_tier
@@ -19,7 +17,7 @@ Reads (from the master workbook):
 
 Writes (in place):
   Fragment_Rescue_Tiers (D5) — rebuilt deterministically
-  C1_DAPR_Antibacterial / C2_DAPR_Antifungal — Activity_Ref refreshed from the framework map
+  C1_DAPR_Antibacterial / C2_DAPR_Antifungal — only mapped Activity_Ref cells refreshed; other values retained
 
 Usage: python tools/build_dapr_rescue_sheets.py <master_workbook.xlsx>
 Dependency-light: openpyxl + stdlib. Mirrors docs/DAPR_CLASS_FRAMEWORK.md.

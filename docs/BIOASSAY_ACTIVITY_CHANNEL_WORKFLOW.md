@@ -1,6 +1,10 @@
 # Bioassay context adapter workflow
 
-`tools/bioassay_to_activity_channel.py` translates a previously governed screening-evidence CSV into optional, strain-level `bioactivity_metadata_v1` context. It does not read raw plate data, reconstruct assays, validate physical replication, calculate new inhibition values, or attribute an extract phenotype to a BGC. Owner-reviewed source evidence and its unresolved assay holds remain authoritative.
+`tools/bioassay_to_activity_channel.py` translates a previously governed screening-evidence CSV into optional, strain-level `bioactivity_metadata_v1` context. It does not read raw plate data, reconstruct assays, validate physical replication, calculate new inhibition values, or attribute an extract phenotype to a BGC. The source evidence stays authoritative.
+
+```bash
+python tools/bioassay_to_activity_channel.py --recon <evidence.csv> --out <fresh-dir> [--strain AS-XXX] [--min-hit 50] [--validate <bundle-root>] [--af-dossier-csv <file>]
+```
 
 ## Input admission and missingness
 
@@ -14,8 +18,8 @@ The optional AF dossier groups target names by case-insensitive substring `candi
 
 Output is a new external directory containing per-strain objects and `MANIFEST.json`. The source CSV is hashed before and after reading; a changed input is refused. `receipt_locator` binds a sorted canonical serialization of selected rows, **not the raw CSV bytes**. The manifest records the raw source hash, threshold and output inventory, but lacks output-content hashes and adapter/validator code hashes. Retain those separately. Empty selection can still successfully publish a manifest with zero strains; exit zero does not prove a requested strain was found.
 
-`--validate <bundle-root>` loads that root's `mamey/bioactivity_metadata.py`. Use a trusted, hash-recorded source tree. This optional check is shape normalization, with the limitations in [the metadata contract](BIOACTIVITY_METADATA_CONTRACT.md); it is not scientific evidence approval. The adapter stages outputs and uses the shared publication helper's normal exception rollback; this is not a crash-atomic package transaction.
+`--validate <bundle-root>` loads that root's `mamey/bioactivity_metadata.py`. Use a trusted, hash-recorded source tree. This optional check normalizes the object and enforces the loaded validator's key, state/observation, production-scope, locator and linkage rules, with the limitations in [the metadata contract](BIOACTIVITY_METADATA_CONTRACT.md). It does not validate individual assay entries or verify a locator's evidence; it is not scientific evidence approval. The adapter stages outputs and uses the shared publication helper's normal exception rollback; this is not a crash-atomic package transaction.
 
 Passing an emitted object to a newly authorized `run --bioactivity-json` supplies typed context to that new run. It is not an in-place update of an existing sealed package. Preserve the original package and source evidence; maintain the sidecar context independently unless the owner has authorized a new run. Do not treat the adapter as required to refresh deterministic scoring. Capacity, activity, production and compound linkage remain separate evidence claims.
 
-Source: `tools/bioassay_to_activity_channel.py:34–149,152–232`; `mamey/bioactivity_metadata.py:63–87`.
+Source: `tools/bioassay_to_activity_channel.py`; `mamey/bioactivity_metadata.py`.

@@ -4,9 +4,7 @@
 **Source table:** `domain_level/domain_complexity_metrics_by_bgc.csv`.
 
 ## Purpose
-A stacked horizontal bar per top-lead BGC, splitting **biosynthetic-core** domains from
-**accessory/other** domains. Surfaces which leads have real assembly-line support versus
-accessory clutter — the architecture-confidence axis Mode B needs alongside AB/AF.
+A stacked horizontal bar per supplied complexity-table row, splitting annotated **biosynthetic-core** count from **accessory/other** (= Domain_total minus core). The renderer sorts all supplied rows by core count; it does not select top leads or independently verify assembly-line completeness. Check nonnegative source counts and retain a complete locus-identity crosswalk; shortened native labels are not complete identities.
 
 ## Layout rules
 1. One bar per BGC, node/contig-first label.

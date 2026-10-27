@@ -7,8 +7,8 @@ FASTA and evidence fields agree mechanically; it is not a taxonomic conclusion.
 """
 from __future__ import annotations
 
-import argparse, csv, hashlib, json, re
-from collections import defaultdict
+import argparse, csv, hashlib, json, re, sys
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROLES = {"query", "reference", "outgroup"}
@@ -135,8 +135,13 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
     duplicated_types = {k:v for k,v in species_types.items() if len(v) > 1}
     if duplicated_types:
         raise ValueError("DUPLICATE_TYPE_REPRESENTATIVE: " + json.dumps(duplicated_types, sort_keys=True))
-    same_sample = {s:[t for t,_ in vals] for s,vals in sample_seq.items()
-                   if len(vals) > 1 and len({h for _,h in vals}) == 1}
+    # any digest repeated within one sample, even when the sample also holds other sequences
+    same_sample = {}
+    for s, vals in sample_seq.items():
+        counts = Counter(h for _, h in vals)
+        dup = [t for t, h in vals if counts[h] > 1]
+        if dup:
+            same_sample[s] = dup
     if same_sample:
         raise ValueError("DUPLICATE_QUERY_SAME_SAMPLE_SEQUENCE: " + json.dumps(same_sample, sort_keys=True))
     exact = {h:[t for t,_,_ in vals] for h,vals in seq_groups.items() if len(vals) > 1}
@@ -152,13 +157,28 @@ def main(argv=None):
     p.add_argument("--min-length", type=int, default=900); p.add_argument("--max-length", type=int, default=2000)
     p.add_argument("--json")
     a=p.parse_args(argv)
+    if a.json and Path(a.json).exists():   # a receipt is evidence; never replace one silently
+        sys.stderr.write(f"ADMISSION_REFUSED: --json receipt already exists: {a.json}\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return 2
     with open(a.roster, newline="", encoding="utf-8-sig") as h:
         rows=list(csv.DictReader(h, delimiter="\t"))
-    result=validate(rows, read_fasta(Path(a.fasta)), molecule=a.molecule,
-                    min_length=a.min_length, max_length=a.max_length)
+    try:
+        result=validate(rows, read_fasta(Path(a.fasta)), molecule=a.molecule,
+                        min_length=a.min_length, max_length=a.max_length)
+        rc=0
+    except ValueError as e:   # a refusal is an outcome, not a crash: typed, receipted, exit 2
+        result={"status":"ADMISSION_FAIL", "reason":str(e), "rows":len(rows), "molecule":a.molecule}
+        sys.stderr.write(f"ADMISSION_FAIL: {e}\n")
+        rc=2
     text=json.dumps(result, indent=2, sort_keys=True)+"\n"
-    if a.json: Path(a.json).write_text(text, encoding="utf-8")
+    if a.json:
+        try:
+            with Path(a.json).open("x", encoding="utf-8") as receipt:
+                receipt.write(text)
+        except FileExistsError:
+            sys.stderr.write(f"ADMISSION_REFUSED: --json receipt already exists: {a.json}\n")
+            return 2
     print(text, end="")
-    return 0
+    return rc
 
 if __name__ == "__main__": raise SystemExit(main())

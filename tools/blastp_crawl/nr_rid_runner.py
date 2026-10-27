@@ -471,6 +471,21 @@ def write_results_grouped(rows: list[list]):
     for (s, b), g in groups.items():
         write_results(s, b, g)
 
+def expected_genes(strain: str, bgc: str) -> list[str]:
+    """Every query gene filed under this (strain, BGC) packet, from all query files' deflines."""
+    genes = set()
+    if not QUERIES.is_dir():
+        return []
+    for faa in QUERIES.rglob("*.faa"):
+        parts = faa.relative_to(QUERIES).parts
+        if len(parts) < 3:
+            continue
+        for title, _ in read_fasta(faa.read_text(errors="replace")):
+            if strain_bgc_of(title, parts[0], parts[1]) == (strain, bgc):
+                genes.add(gene_of(title))
+    return sorted(genes)
+
+
 def write_results(strain: str, bgc: str, rows: list[list], *, replace_genes=None, fresh=False):
     # MERGE by gene, don't clobber. A BGC can span several batch FASTAs (b01,b02,...),
     # each returning its own RID. Writing the per-BGC CSV per-batch with "w" would let the
@@ -493,8 +508,21 @@ def write_results(strain: str, bgc: str, rows: list[list], *, replace_genes=None
         stream = io.StringIO(newline="")
         writer = SafeWriter(stream); writer.writerow(OUT_COLS); writer.writerows(selected)
         payloads[target] = stream.getvalue().encode()
+    # A packet's CSV grows as each batch for it returns. Record which genes are in so far and which are
+    # expected, so a reader that hashes the packet can tell a finished packet from a partial one.
+    prior = []
+    gen_path = d / "_result_generation.json"
+    if gen_path.exists() and not fresh:
+        try:
+            prior = json.loads(gen_path.read_text()).get("genes_done", [])
+        except (ValueError, OSError):
+            prior = []
+    genes_done = sorted(set(prior) | new_genes | {row[2] for row in merged})
+    genes_expected = expected_genes(strain, bgc)
     receipt = dict(schema=1, generation=uuid.uuid4().hex,
-                   files={str(p.relative_to(BASE)): _sha(data) for p, data in payloads.items()})
+                   files={str(p.relative_to(BASE)): _sha(data) for p, data in payloads.items()},
+                   genes_done=genes_done, genes_expected=genes_expected,
+                   complete=bool(genes_expected) and set(genes_expected) <= set(genes_done))
     payloads[d / "_result_generation.json"] = json.dumps(receipt, sort_keys=True).encode()
     _publish_results(payloads)
 

@@ -1,4 +1,4 @@
-"""render_gcf_synteny_tree.py at a print width (card 018c0f08_452_gcf_tree_print_width_8pt): every text at least 8 pt on
+"""render_gcf_synteny_tree.py at a print width (card 452_gcf_tree_print_width_8pt): every text at least 8 pt on
 a page exactly the column wide, the legend listing only roles drawn, optional title; --print-width none keeps the old
 layout. Synthetic families from the .433 test helpers."""
 import importlib.util

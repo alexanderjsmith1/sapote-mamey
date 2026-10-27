@@ -42,6 +42,10 @@ Do not infer biological absence or silently rewrite the sealed package.
 
 ## G5 — Standing convention checks
 Resolve hglE-KS prevalence and NAPAA exclusions from the selected current registry/profile.
+Registry status alone is not the full scorer contract for hglE-KS. When no CCTT trigger fires, the
+hglE branch of `triage_bgcs` in `mamey/scoring.py` still sets `hglE-KS-PREV-001` from the product
+text and applies the bottom-tier policy. Record the actual scorer result; do not assume every hglE
+label is informational.
 Record cohort, rule version, and rationale; do not turn a historical cohort convention into a
 universal biological conclusion. Preserve inventory visibility for excluded records;
  corrected BGC count = Interior + 0.5×Edge + 0.25×FC;
@@ -54,11 +58,12 @@ non-blank `Misanchor_Flag` column, insert this block at the start of §8 (Compar
 
 ```
 > **⚠ KCB anchor note:** The KCB anchor compound carries a misanchor flag:
-> `{Misanchor_Flag value}`. The anchor compound's committed class-diagnostic enzyme was
-> not detected in this cluster's gene content. Cite the *class* the anchor belongs to —
-> not the anchor name — as the basis for comparator interpretation in §8.
+> `{Misanchor_Flag value}`. The flag can mean missing class support, a domain-count threshold or
+> another guard condition; it does not prove biological absence.
+> Name the anchor's *class* as the comparator, not the anchor compound, and call it similarity,
+> not identity, in §8 (or the selected profile's comparator section).
 ```
 
-Misanchor families: `aminoglycoside_anchor_no_DOIS` (no DOIS synthase); `polyene_anchor_<N_PKS_KS`
-(too few KS domains); `enediyne_anchor_no_ene_KS` (TIGR03828 absent); `glycopeptide_anchor_no_oxyabc`
-(no OxyA/B/C); `class_mismatch(...)` (anchor class incompatible with own products).
+Misanchor families: `aminoglycoside_anchor_no_DOIS` (no DOIS synthase); `polyene_anchor_<4_PKS_KS(ks=N)`
+(too few KS domains); `enediyne_anchor_no_ene_KS(similarity_only)` (no ene_KS) or
+`enediyne_anchor_is_PREV-001_hglE_artifact`; historical, not produced by the current engine: `glycopeptide_anchor_no_oxyabc`; `class_mismatch(...)` (anchor class incompatible with own products).

@@ -8,7 +8,7 @@
 **Actinomycetes Project** · Sapote judgment layer
 Purpose: citation-back the class→activity associations newly added to the DAPR boards (judgment pack §1–§2) before they harden into the bundle. Feeds `G1_Literature_Index`.
 
-> **Scope of what is verified.** Each entry verifies what the **named reference compound / class** does in the published literature. It does **not** assert that our BGC produces that compound — our calls remain KnownClusterBlast nearest-cluster, class-level hypotheses. The verification confirms the *if-this-class-then-this-activity* link the framework relies on.
+> **Historical verification assertions, not a current source-review receipt.** VERIFIED labels and the outcome below record claims made in the earlier judgment pack. This file supplies no full-text passage/review bindings that establish those claims here. Recheck each bibliographic identity, summarized mechanism and applicability against its actual source before reuse. Reported activity belongs to the named tested reference and conditions; it is not a guarantee for every member of a class or for a query locus with a similar KnownClusterBlast anchor.
 
 ## Verification table
 
@@ -38,7 +38,7 @@ Polyene mechanism (class-level): binding to ergosterol via the conjugated-double
 - **HSAF self-resistance / physiology caveat.** Besides antifungal activity, HSAF has a documented iron-chelating / oxidative-stress-modulating role in its producer. This does not weaken the antifungal call but is worth noting when interpreting any co-located resistance/iron genes.
 
 ## Tier outcome
-All new-lead associations — antibacterial (carbapenem MM4550, clavulanate, A54145, teicoplanin), the HSAF/PTM antifungal class, and the polyene board (filipin, candicidin, nystatin, linearmycin, mediomycin) — are **VERIFIED** against primary literature. No entries fell to Partial. The DAPR boards in the judgment pack §1–§2 are fully citation-backed and cleared to harden into the bundle.
+The earlier pack asserted that all listed associations were verified and cleared for bundling. That assertion is preserved as historical context, not a current verification, adoption or release decision. Each reference/claim still needs its source passage and applicability record, and each query locus needs an exact identity binding. Unresolved entries remain held; this example grants no integration or release authority.
 
 ## Claim-safety (carried)
-Class-level hypotheses only; KCB nearest cluster is a similarity anchor, not an identification. Bioactivity is the extract-level project default (MRSA + Candida); per-BGC activity requires fractionation. References verify compound-class activity, not production by our strains.
+KCB nearest cluster is a similarity anchor, not an identification. Activity cannot be assigned from a project default: bind the exact tested material, target, controls and source assay record, and keep missing observations unknown. Fractionation alone does not establish locus attribution; a locus-level activity claim requires a separately admitted experimental link. Reference literature does not establish production or activity in the query strain.

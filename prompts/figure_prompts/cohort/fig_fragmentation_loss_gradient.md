@@ -19,16 +19,16 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Loss of BGC count to fragmentation correction versus assembly contiguity (n = <admitted_isolate_n> isolates). Corrected count = Interior + 0.5·Edge + 0.25·full-contig. Loss approaches zero for closed genomes.
+> Raw-minus-boundary-weighted BGC count versus assembly N50 (n = <admitted_isolate_n> isolates). Weighted count = Interior + 0.5·Edge + 0.25·Full-contig; Unknown records remain in raw count only. This is a policy difference, not measured biological loss. Closed/circular status alone does not force a zero gap because Full-contig is assigned before the circular-origin exemption.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
-- Circle the closed-genome cluster (loss≈0, high N50) on the slide to anchor the "why assembly matters" point.
+- Highlight a closed-genome subset only when topology and the observed values are source-bound; do not infer closed status or zero gap from N50 alone.
 - Add a downstream trend arrow only if the talk needs it — keep it off the figure.
 
 ## Build note

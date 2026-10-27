@@ -2,9 +2,10 @@
 
 > Scope: these three wheels supply build-backend dependencies, not the full Mamey runtime, test or add-on environment. `bootstrap.sh` selects `${PYTHON:-python3}` and refuses Python below 3.12 before invoking pip. It resolves a caller-relative `--wheels` directory before changing to the directory containing the script, then anchors its editable installation and version-sync smoke test to that selected source. It installs pytest, tries `.[all]`, and falls back to core dependencies on failure. An offline invocation needs all requested compatible runtime/test/extras wheels in its selected pool; these three wheels alone cannot guarantee success. Default setup permits index access; `--wheels <directory>` adds `--no-index`. A successful fallback/smoke test does not establish optional capabilities, a complete fresh installation or full-suite validation.
 
-These pure-Python (`py3-none-any`, all-platform) build-backend wheels and their transitive
-dependencies let `pip install -e .`
-succeed under build isolation in a fresh no-network environment (Python 3.13 ships no setuptools).
+These pure-Python (`py3-none-any`, all-platform) wheels supply the declared
+build backend and wheel's `packaging` dependency. They cover that build-isolation
+step; a fresh offline `pip install -e .` also needs compatible wheels for the
+core runtime requirements, and requested extras need their own complete dependency sets.
 `bootstrap.sh` adds this directory to `--find-links` on every install so `pyproject`'s
 `requires = ["setuptools>=68", "wheel"]` and wheel's `packaging>=24.0` dependency resolve locally.
 

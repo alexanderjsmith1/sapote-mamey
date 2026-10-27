@@ -234,14 +234,25 @@ def main(argv=None) -> int:
 
     rows: list[dict] = []
     files = 0
+    missing: list[str] = []     # a mistyped scope walked nothing and reported a clean 0
+    unparsed: list[str] = []    # a syntax error was counted as a scanned, clean file
     for scope in a.scope:
         base = os.path.join(a.root, scope)
+        if not os.path.isdir(base):
+            missing.append(scope)
+            continue
         for dp, dn, fn in os.walk(base):
             dn[:] = [d for d in dn if d != "__pycache__"]
             for f in sorted(fn):
                 if f.endswith(".py"):
+                    path = os.path.join(dp, f)
+                    try:
+                        ast.parse(open(path, encoding="utf-8", errors="replace").read())
+                    except SyntaxError:
+                        unparsed.append(os.path.relpath(path, a.root))
+                        continue
                     files += 1
-                    rows.extend(scan_file(os.path.join(dp, f)))
+                    rows.extend(scan_file(path))
 
     order = ("REVIEW", "UNCLASSIFIED", "FAIL_OPEN", "DISPATCH", "EMPTY")
     counts = {c: sum(1 for r in rows if r["cls"] == c) for c in order}
@@ -261,11 +272,18 @@ def main(argv=None) -> int:
                  f"{'/'.join(a.scope)}/: " + ", ".join(f"{counts[c]} {c}" for c in order))
     lines.append("REVIEW is not a defect list — it is the set where an operator cannot tell "
                  "'nothing to report' from 'not looking'.")
+    if missing:
+        lines.append(f"NOT SCANNED: scope folder(s) not found under {a.root}: {', '.join(missing)}")
+    if unparsed:
+        lines.append(f"NOT SCANNED: {len(unparsed)} file(s) could not be parsed: {', '.join(unparsed)}")
     over = a.ceiling is not None and counts["REVIEW"] > a.ceiling
     if over:
         lines.append(f"FAIL: REVIEW count {counts['REVIEW']} exceeds ceiling {a.ceiling}")
+    incomplete = a.ceiling is not None and bool(missing or unparsed)
+    if incomplete:
+        lines.append("FAIL: the scan is incomplete, so the REVIEW count cannot be certified")
     emit("\n".join(lines))
-    return 1 if over else 0
+    return 1 if over or incomplete else 0
 
 
 if __name__ == "__main__":

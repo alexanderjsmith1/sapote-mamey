@@ -1,8 +1,10 @@
 # DELIVERABLE — Figure Suggestion (FIG)
 
+> **Current scope:** Prompt/reporting guidance only. The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions; the monolith is a design/history reference and cannot override them. Named triggers and auto-delivery language do not execute tools or authorize additional work. The worked figure list is historical illustration with incomplete/scrubbed identities, not a bound render work order.
+
 > **Filing.** `docs/modules/DELIVERABLE_FigureSuggestion.md`.
 > **Extends / references:** `tools/build_figures.py`, `tools/build_panel_figure.py`, `tools/build_overview_figures.py`, `tools/build_workflow_figure.py` (the figure *builders*), `FIGURE_STYLE.md` + `FIGURE_REPRODUCIBILITY.md` (style/repro rules — **do not restate**), `DELIVERABLE_CONTRACT.md`.
-> **Precedence.** Parent monolith wins; `FIGURE_STYLE.md`/`FIGURE_REPRODUCIBILITY.md` win on rendering. This module owns only the *recommendation logic* (which figures this strain warrants).
+> **Precedence.** [DELIVERABLE_CONTRACT.md](../DELIVERABLE_CONTRACT.md) and the code win over this page. `FIGURE_STYLE.md`/`FIGURE_REPRODUCIBILITY.md` win on rendering. This module owns only the *recommendation logic* (which figures this strain warrants).
 > **Status:** `PROMPT_BACKED` (Sapote recommends; the builder tools render). The split is deliberate — recommendation is judgment, rendering is code.
 > **One-line purpose.** Recommend the figures that would support a manuscript/talk for *this* strain, each with purpose, data source, visual form, manuscript placement, and a claim-safety note — closing the gap between "we have figure tools" and "which figures does this strain need."
 
@@ -65,7 +67,7 @@ A `Recommended Figures` section in the strain report (the recommendations) + any
 - [ ] Each recommendation has all six template fields, including the claim-safety note.
 - [ ] Only figures with existing data are recommended (skip-not-fake).
 - [ ] Rendered figures defer to `FIGURE_STYLE.md`/`FIGURE_REPRODUCIBILITY.md`; not restated here.
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
+- [ ] Hand back the result, its evidence and open holds.
 
 ---
 
@@ -81,7 +83,7 @@ A `Recommended Figures` section in the strain report (the recommendations) + any
 
 ## 7. Worked next-paths closer (SID-XXX)
 
-> Recommended figures: (1) Split-pathway schematic — 017/035/072 NRPS-PKS megaset (Supplement); (2) KCB/RiQ novelty scatter — 75 BGCs, mixed novelty (Results); (3) Wet-lab priority matrix — 12 leads (Results); (4) BGC architecture cartoon — BGC047 enediyne (Results), claim-safety: show domains, not a structure. Next paths:
+> Recommended figures: (1) Split-pathway schematic — SID-XXX / <contig> / region<NNN> / BGC017, BGC035 and BGC072 NRPS-PKS megaset (Supplement); (2) KCB/RiQ novelty scatter — 75 BGCs, mixed novelty (Results); (3) Wet-lab priority matrix — 12 leads (Results); (4) BGC architecture cartoon — SID-XXX / <contig> / region<NNN> / BGC047 enediyne (Results), claim-safety: show domains, not a structure. Next paths:
 > 1. Render figures 1–4 via `build_figures.py`.
 > 2. Add a missingness/assembly-caveat figure (POOR tier drives interpretation).
 > 3. Hold the enediyne cartoon to domain-level depiction only.

@@ -4,16 +4,18 @@ openpyxl>=3.1.2,<4.0      # Excel read/write — master workbook + all .xlsx I/O
 ijson>=3.2.0,<4.0         # streaming JSON parser; enables json_mode='bounded'
                           # (the documented default): RiQ scores, A-domain
                           # specificities, extended KCB data from antiSMASH JSON.
-                          # Falls back to TXT-only mode if absent.
+                          # The main evidence reader tries system then vendored ijson;
+                          # bounded-mode fallback is recorded if neither is available.
+                          # Other JSON readers have their own admission/fallback rules.
 PyYAML>=6.0,<7.0         # bootstrap_contract.yml generation/checks (tools/render_bootstrap_contract.py)
                           # and 3 bootstrap tests import it unconditionally; promoted to core so a
                           # plain install and the release-identity gate never fail on its absence.
 
 # Figure / plot tools (tools/build_*figure*.py, export_figure_ready.py,
 # render_dapr_boards.py, build_normalization_matrix.py, …):
-# REQUIRED if you generate any figures — FULL ANALYSIS MODE deliverables do.
-# These are HARD imports (no graceful fallback); the figure tools raise
-# ModuleNotFoundError without them.
+# Install the dependencies required by the selected figure route.
+# Import and missing-dependency behavior vary by tool; guarded optional
+# dependencies below do not all raise ModuleNotFoundError.
 pyshp                    # local collection-map Shapefile basemaps; import name: shapefile
 matplotlib>=3.7,<4.0
 numpy>=1.24,<3.0          # imported directly by build_figures.py and the cohort SVD figures
@@ -44,8 +46,8 @@ scikit-learn>=1.3,<2.0    # t-SNE companion layout (tools/protein_pcoa_ordinate.
 reportlab>=4.0,<5.0
 
 # ── Optional deliverable-renderer deps (declared; NOT required for extraction) ──────────────
-# Each degrades gracefully when absent: the affected tool emits a one-line, actionable skip
-# message (naming the exact install) and still writes the products that do not need the dep.
+# Missing-dependency behavior is tool specific: some retain independent products,
+# some skip a step, and some return failure. Check the selected tool and its exit status.
 # Wired in pyproject.toml extras — install with `pip install '.[documents]'` / `'.[render]'`.
 #   markdown   — HTML+PDF pass of tools/build_chat_export.py (absent -> HTML+PDF skipped, .md kept)
 # markdown>=3.4,<4.0        # [documents] extra
@@ -56,4 +58,5 @@ reportlab>=4.0,<5.0
 #   cairosvg   — SVG->PNG in tools/lab_office_render.py (absent -> PNG pass skipped, rc=1, no traceback)
 # cairosvg>=2.7,<3.0        # [render] extra
 # SYSTEM (not pip): pandoc — backs tools/md_to_docx.sh (the md->docx helper). Install via
-#   brew install pandoc / apt-get install pandoc. Absent -> docx export skips gracefully.
+#   brew install pandoc / apt-get install pandoc. The direct helper returns nonzero
+#   if pandoc is absent or conversion fails; it does not implement a graceful skip.

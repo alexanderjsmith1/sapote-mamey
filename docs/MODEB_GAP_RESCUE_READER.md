@@ -37,7 +37,7 @@ does not count as independent confirmation. The reader makes no claim of a
 complete pathway, exact product, production or antibacterial/antifungal activity.
 
 This output is an authoring scaffold. Authors integrate the reviewed result into
-the boundary, biosynthetic, accessory, final-judgement, GECCO, RG-GMCI and §50
+the boundary, biosynthetic, accessory, final-judgment, GECCO, RG-GMCI and §50
 gene evidence sections before verifying the saved authored card. A template is
 not a finished card. The approved current50_v2 requirements and headings are
 unchanged. Run the existing `verify-modeb --contract current50_v2` after authoring.
@@ -56,5 +56,6 @@ The reader does not compare these bytes against a previously sealed source-hash 
 alignment/job outputs or prove canonical assembly translation. An internally consistent edited run can
 receive new hashes; retain the original governed source receipt separately. An absent pair-review table
 is not a rejected pair ruling, and gene-level support never supplies the missing independent pair or
-physical-continuity evidence. A reader HOLD is visible scaffolding, not a measured negative or successful finished-card admission. Most reader exceptions become a HOLD result, but BOUND is not a guarantee that rendering can finish: `reference` and `split_gene_check` are read later by the renderer without being required during loading. An otherwise internally reconciled receipt missing either field can fail template generation rather than emit the usual rescue HOLD text. Preserve the saved source, captured diagnostic and any existing output; obtain a corrected, source-bound receipt from its owner and choose a fresh candidate output before retrying. Do not fill missing scientific fields by inference or treat an older template as the new invocation's output. Printed/emitted source receipts include resolved local paths; they are not an
-automatically sanitized distribution artifact. No source package/run copy is required for inspection.
+physical-continuity evidence. A reader HOLD is scaffolding, not a negative result.
+
+Most reader exceptions become a HOLD result, but BOUND is not a guarantee that rendering can finish: `reference` and `split_gene_check` are read later by the renderer without being required during loading. An otherwise internally reconciled receipt missing either field can fail template generation rather than emit the usual rescue HOLD text. Preserve the saved source, captured diagnostic and any existing output; obtain a corrected, source-bound receipt from its owner and choose a fresh candidate output before retrying. Do not fill missing scientific fields by inference or treat an older template as the new invocation's output. Receipts contain local paths; review them before sharing.

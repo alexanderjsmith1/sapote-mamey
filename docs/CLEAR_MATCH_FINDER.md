@@ -1,6 +1,6 @@
 # Clear Match Finder
 
-Clear Match Finder ranks every CDS and every BGC in one or more supplied Mamey package directories by how clearly the best MIBiG protein match separates from the next **distinct MIBiG cluster**.
+Clear Match Finder ranks supplied CDS rows and the BGC alias groups represented by those rows in one or more Mamey package directories, using separation between the best and next distinct MIBiG cluster. Inventory-only BGCs are not emitted; reconcile the CDS roster and complete locus identities before using a cohort denominator.
 
 ```bash
 python tools/clear_match_finder.py \
@@ -25,7 +25,7 @@ All thresholds are CLI options. Hits to multiple proteins from the same MIBiG cl
 
 Outputs:
 
-- `ALL_MIBIG_HITS_EXACT_IDENTITY.tsv`: every source hit with complete BGC identity;
+- `ALL_MIBIG_HITS_EXACT_IDENTITY.tsv`: source hits joined to supplied CDS rows, with complete displayed BGC identity; unmatched hit rows are omitted, and repeated CDS join keys can repeat emitted rows;
 - `ALL_GENE_TOP_VS_SECOND_MIBIG.tsv`: every CDS, including explicit no-hit rows;
 - `ALL_BGC_CLEAR_MATCH_RANK.tsv`: composite all-locus rank, clear-gene-count rank, and an interior-only rank;
 - `ALL_BGC_MATCHING_GENE_COUNT_RANK.tsv`: separate count and percentage ranks for genes with any MIBiG match and genes agreeing with the BGC's dominant top MIBiG cluster;
@@ -46,12 +46,12 @@ Clear Match Finder is a sequence-similarity prioritizer. A clear protein match d
 
 ## Admission and identity-join holds
 
-Here “package” means a directory with the expected files, not a package whose seal has been validated. `manifest.json` is required and hashed but its contents, declared strain, checksums and release state are not parsed. Required CDS/hit files must each have a unique suffix match; multiple optional inventories silently yield no inventory. Explicitly verify package seal/provenance and the optional inventory before interpreting rankings (`tools/clear_match_finder.py:92–118,157–166`).
+Here “package” means a directory with the expected files, not a package whose seal has been validated. `manifest.json` is required and hashed but its contents, declared strain, checksums and release state are not parsed. Required CDS/hit files must each have a unique suffix match; multiple optional inventories silently yield no inventory. Explicitly verify package seal/provenance and the optional inventory before interpreting rankings.
 
-Displayed identities require nonempty strain/contig/region/alias fields, but source-hit joins use only BGC alias plus query gene tag within a package. CDS and inventory groups use the alias alone. Duplicate aliases spanning distinct nodes/regions or reused gene tags can transfer hits and collapse locus summaries; the BGC output then displays its first CDS identity. Hold such inputs until alias-to-full-identity and tag parity are independently established. Aliases are supplied explicitly, but duplicate source mappings overwrite and multiple source strains can collapse to one display strain. Preserve the mapping file hash and original identity alongside the display identity; the current source-hash list does not include that alias file (`121–136,165–200`).
+Displayed identities require nonempty strain/contig/region/alias fields, but source-hit joins use only BGC alias plus query gene tag within a package. CDS and inventory groups use the alias alone. Duplicate aliases spanning distinct nodes/regions or reused gene tags can transfer hits and collapse locus summaries; the BGC output then displays its first CDS identity. Hold such inputs until alias-to-full-identity and tag parity are independently established. Aliases are supplied explicitly, but duplicate source mappings overwrite and multiple source strains can collapse to one display strain. Preserve the mapping file hash and original identity alongside the display identity; the current source-hash list does not include that alias file. Also require distinct display strain IDs to remain distinct after `safe_segment` filename normalization. Otherwise two strains can share a `PER_STRAIN` directory and later writes replace earlier tables; the tool does not refuse that collision.
 
 Top hits are selected first by bit score with subsequent identity/accession sorting, not simply maximum percent identity. Missing/malformed numeric values fall back to zero and interpreted coverage is capped at 100; nonfinite or invalid values need independent admission review. A missing hit row is “no MIBiG hit recorded,” not tested biological absence. Missing inventory boundary receives no boundary penalty and is not evidence of an interior locus.
 
 ## Completion, hashes and recovery
 
-Existing output directories are allowed and outputs overwrite sequentially. A failure can leave partial tables and an earlier COMPLETE receipt. The receipt hashes top-level files only, excludes itself and does not recurse into PER_STRAIN; unrelated/stale top-level files can be included. COMPLETE means the ranking writer reached its final step, not package validation or complete nested-output integrity. Use a fresh candidate destination and externally hash the receipt, alias mapping and every nested deliverable. Keep prior sources/evidence in place (`153–158,285–328`). An all-empty CDS input is explicitly refused before ranking, not a successful zero-locus report.
+Existing output directories are allowed and outputs overwrite sequentially. A failure can leave partial tables and an earlier COMPLETE receipt. The receipt hashes top-level files only, excludes itself and does not recurse into PER_STRAIN; unrelated/stale top-level files can be included. COMPLETE means the ranking writer reached its final step, not package validation or complete nested-output integrity. Use a fresh candidate destination and externally hash the receipt, alias mapping and every nested deliverable. Keep prior sources/evidence in place. An all-empty CDS input is explicitly refused before ranking, not a successful zero-locus report.

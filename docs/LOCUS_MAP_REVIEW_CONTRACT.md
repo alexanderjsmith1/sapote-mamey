@@ -18,8 +18,10 @@ Every map must include:
 - a legible locus tag or an unambiguous numbered label for every gene when geometry permits;
 - an on-figure shown/total label count when any labels are suppressed;
 - a companion CSV/TSV containing every gene and a `label_visible_on_figure` field;
-- a role legend, coordinate scale, boundary/truncation state, and capacity-level claim note;
+- a role legend, coordinate scale, and boundary/truncation state;
 - source/provenance sufficient to reproduce the plotted rows.
+
+The capacity-level claim note goes in the caption, not on the map.
 
 Label collision management may rotate or suppress labels, but suppression must never be silent. Every suppressed gene remains in the companion data and is counted on the figure.
 
@@ -70,10 +72,10 @@ Gene roles, domain calls, BLASTp, KCB/MIBiG, and GCF context are evidence channe
 
 ## 8. Contract checks versus current renderer guarantees
 
-This is an acceptance contract, not a claim that every renderer enforces all requirements. The v8 sidecar uses `label_displayed=YES` and includes complete identity in `panel`; it does not provide each required identity component as a separate column. An adapter may derive explicit columns only from the verified receipt/package crosswalk, preserving the original panel and source binding. Do not infer identity from a BGC alias or shortened filename.
+Not every renderer enforces all of this contract. The v8 sidecar uses `label_displayed=YES` and includes complete identity in `panel`; it does not provide each required identity component as a separate column. An adapter may derive explicit columns only from the verified receipt/package crosswalk, preserving the original panel and source binding. Do not infer identity from a BGC alias or shortened filename.
 
 For v8, reconcile raw source rows with accepted CSV rows because malformed gene rows may be skipped. Check recorded identity and source hashes independently of output-triple validation, inspect the non-blocking adapter's skipped results, and retain the exact ranked/full-inventory scope. R arrow redraws lack the v8 evidence panel and receipt, so acceptance requires their own layer accounting and visual review. See [current v8 limits and recovery](LOCUS_MAP_V8.md).
 
-The required capacity-level note here and the [house rules](FIGURE_HOUSE_RULES.md) placement policy need an explicit per-delivery decision: preserve the scientific ceiling in the caption/methods and review receipt, and record any on-artwork note requirement as a policy hold if its renderer's text gate refuses it. Do not silently remove required evidence wording or declare all policies passed.
+The capacity-level claim note goes in the caption, not on the map, as the [house rules](FIGURE_HOUSE_RULES.md) require. Keep the claim ceiling in the caption, the methods and the review receipt. Do not silently remove required evidence wording or declare all policies passed.
 
-Source owners: `mamey/locus_map_v8.py:352–398,748–788,815–853,894–908`; `tools/sapote_locus_map.R:36–57,130–143`.
+Code: `mamey/locus_map_v8.py`, `tools/sapote_locus_map.R`.

@@ -1,12 +1,10 @@
 # REUSE PROMPT — Top 50 Polyketide-Containing BGCs (claim-safe)
-*Vetted against Sapote–Mamey v9.7.7 contract · `prompts/reuse/` · inherits `_SHARED_GUARD_BLOCK.md` (G1–G5).
+
+> **Reuse status:** the v9.7.7 vetting label is historical. Bind the selected current contract, source version and actual package evidence before reuse. Apply the current shared guards; this template does not authorize extra scans, package mutation, external messaging or publication.
+*Vetted against Sapote–Mamey v9.7.7 contract · `prompts/reuse/` · inherits `_SHARED_GUARD_BLOCK.md` (all applicable guards).
 Use after a cumulative master workbook + per-strain outputs exist.*
 
-> ⚠ **ENEDIYNE SUBFAMILY IS TIGRFAM-AFFECTED (G4).** ene_KS (TIGR03828) is a TIGRFAM model and is
-> dropped by the package extractor. When distinguishing enediyne from hglE-KS, or counting enediyne
-> candidates, apply the G4 genomic-tigrfam fallback — do not conclude "no enediyne" from the package.
-> Also note: the rifamycin case showed a large modular PKS can be FRAGMENTED across contigs and the
-> AHBA diagnostic lost — so for ansamycin-type polyketides apply both G4 and a fragmentation check.
+> **G4 applies to the enediyne subfamily (required).** ene_KS (TIGR03828) is a TIGRFAM model. It lives only in the antiSMASH JSON, and the package carries it only if the record pass succeeded (see the `record_extraction` receipt). When you separate enediyne from hglE-KS, or count enediyne candidates, also read the raw genomic `antismash.detection.tigrfam` hits and reconcile them with the package. Do not conclude "no enediyne" from the package alone; a package-only count is a lower bound. Large modular PKS loci can also be fragmented across contigs and lose a diagnostic such as AHBA synthase, so for ansamycin-type polyketides apply both the G4 review and a fragmentation check. Keep raw-source observations beside the package; never edit sealed evidence.
 
 ## Task
 Build a Top 50 polyketide-containing BGC deliverable from the cumulative dataset.
@@ -29,4 +27,4 @@ Build a Top 50 polyketide-containing BGC deliverable from the cumulative dataset
 candidate polyketide-containing BGC · predicted BGC · source-derived KCB similarity · closest candidate
 known natural product · consistent with · disambiguation target · requires domain-level + metabolomic
 confirmation. Avoid: produces X · is X · confirmed enediyne · verified citation · PMID/DOI unless
-verified this session.
+supported by a source-bound verification receipt with source, date and claim scope; retain a valid prior receipt.

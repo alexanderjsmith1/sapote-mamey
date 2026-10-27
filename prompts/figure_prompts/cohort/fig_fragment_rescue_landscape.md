@@ -17,12 +17,12 @@
 - **order:** n/a; **scales:** linear
 
 ## Style
-Inherit `FIGURE_CONVENTIONS.md`. No arrows/callouts on points. Legend below or outside data (never overlapping). EFLS is the recovery-upside axis (≈0 in closed genomes); do NOT use FLBR megasynthase census as a fragmentation axis (it is genome-wide and high even when closed).
+Inherit `FIGURE_CONVENTIONS.md`. No arrows/callouts on points. Legend below or outside data (never overlapping). EFLS is a heuristic shared-label pair count, not measured recoverability; two Interior records are skipped, but closed/circular status alone does not prove zero pairs. Do NOT substitute FLBR megasynthase counts as a fragmentation measure.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Fragment-rescue landscape (n = <admitted_isolate_n> isolates). Recoverable fragment-linkage content (EFLS) vs fragmentation loss; point size = reference-anchored recovery candidates. Tier B is a deterministic high-upside priority group, not measured re-sequencing yield.
+> Fragment-rescue landscape (n = <admitted_isolate_n> isolates). Heuristic shared-label EFLS candidate pairs vs raw-minus-boundary-weighted count; point size = reference-anchored candidate count. Neither axis measures physical fragment linkage or recovered content. Tier B is a deterministic high-upside priority group, not measured re-sequencing yield.
 
 ## Overlay suggestions (downstream)
 - Circle the Tier-B re-sequencing shortlist (SID-XXX, SID-XXX, SID-XXX) in PowerPoint.

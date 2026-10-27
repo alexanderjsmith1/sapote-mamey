@@ -152,9 +152,27 @@ if (geometry == "bubble") {
 if (geometry != "bubble") {
   annot <- long
   annot$shown <- ifelse(is.na(annot$value), "", format(round(annot$value), trim = TRUE))
-  rng <- range(annot$value, na.rm = TRUE)
-  mid <- if (is_zscore) 0 else mean(rng)
-  annot$ink <- ifelse(annot$value > mid, "white", SAPOTE_INK)
+  # Match each label to the colour ggplot actually drew, after scale training,
+  # transformation and out-of-bounds handling. A raw-value midpoint cannot
+  # describe a pseudo-log or diverging fill. Bind by explicit cell coordinates
+  # rather than assuming the built tile layer retains the input row order.
+  tiles <- ggplot2::ggplot_build(p)$data[[1L]]
+  cell_key <- function(x, y) paste(as.numeric(x), as.numeric(y), sep = ":")
+  tile_keys <- cell_key(tiles$x, tiles$y)
+  label_keys <- cell_key(annot$series, annot$label)
+  matched <- match(label_keys, tile_keys)
+  if (anyDuplicated(tile_keys) || anyNA(matched)) {
+    stop("MATRIX_LABEL_COLOUR_BINDING: every label needs one unique rendered tile")
+  }
+  rgba <- grDevices::col2rgb(tiles$fill[matched], alpha = TRUE) / 255
+  # Native exports use a white page. Composite alpha before comparing contrast.
+  rgb <- sweep(rgba[1:3, , drop = FALSE], 2, rgba[4, ], "*")
+  rgb <- sweep(rgb, 2, 1 - rgba[4, ], "+")
+  linear <- ifelse(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055)^2.4)
+  luminance <- colSums(linear * c(0.2126, 0.7152, 0.0722))
+  black_contrast <- (luminance + 0.05) / 0.05
+  white_contrast <- 1.05 / (luminance + 0.05)
+  annot$ink <- ifelse(white_contrast > black_contrast, "#FFFFFF", "#000000")
   p <- p + geom_text(data = annot, aes(x = series, y = label, label = shown, colour = ink),
                      inherit.aes = FALSE, size = 8 / .pt, show.legend = FALSE) +
     ggplot2::scale_colour_identity()

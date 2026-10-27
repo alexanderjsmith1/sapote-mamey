@@ -17,9 +17,10 @@ PATTERNS = {
     "owner first name": re.compile(rf"\b{_OWNER}\b(?! ?(?:2026|Smith))"),
     "lane name": re.compile(r"\b(?:" + "|".join(re.escape(x) for x in _LANES) + r")\b"),
     "task label": re.compile(r"\b(?:Codex )?Task[ _]\d{1,3}\b"),
-    "session id": re.compile(r"\b(?:d4cc32a9|eb3df1ef|9a8398df|1955a8c0|88fdad06|fa3e5fb1|1947ad84|9c92d456|283f1f96|1246f6ce|"
+    # Underscores separate session tags; Unicode letters/digits still bound identifiers.
+    "session id": re.compile(r"(?<![^\W_])(?:d4cc32a9|eb3df1ef|9a8398df|1955a8c0|88fdad06|fa3e5fb1|1947ad84|9c92d456|283f1f96|1246f6ce|"
                              r"afc034dc|ce787e3d|1c20b8bd|2d6758ab|195c219b|9c5f37d0|a5b97902|6275a90d|fd48f690|09af774e|"
-                             r"59196886|b4640264|33ea24d7|841e7b03|3ab51b5f)\b", re.I),
+                             r"59196886|b4640264|33ea24d7|841e7b03|3ab51b5f|018c0f08|7288f3e5|8e930c18)(?![^\W_])", re.I),
 }
 # Files that must hold these words: the audits and guards that search for them, licences, citations, vendored code,
 # the two signed governance records, which only their signer changes, and hash-bound contracts.

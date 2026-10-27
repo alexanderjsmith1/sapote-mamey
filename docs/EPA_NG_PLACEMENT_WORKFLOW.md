@@ -36,18 +36,20 @@ missing; pass `--authoritative`, `--refseq-db` and `--blastdbcmd` explicitly for
 
 ## The pipeline (one command per stage)
 
+These are prospective command shapes. Run from the selected bundle root with its compatible interpreter. Current `all` writes a fresh `graft_length_evidence` child under the selected output; after numerical admission, resolve `<admitted-restored-graft>` from that receipt’s selected restored output, rather than guessing `epa_result.newick`. A held or occupied evidence child is preserved and cannot be treated as a completed current render. The later `placement_display.py` route performs its own source-bound length re-admission.
+
 ```
-phylo_place.py all <ref_16S.fasta> --group <Genus> --query <queries.fasta> \
+python tools/phylo_place.py all <ref_16S.fasta> --group <Genus> --query <queries.fasta> \
      --reference-metadata <ref_16S_meta.tsv> \
      --add-outgroup <Genus> --approved-by "<recorded-approval>" --one-per-species --bootstrap 10 --outdir <run>/placement
      # build-ref (mafft → raxml-ng GTR+G, rooted on the registry outgroup) → EPA-ng place → gappa graft → report
      # driver interpreter: Tools/bin/python3 (Biopython); binaries: miniconda3/envs/placement/bin
      # → epa_result.jplace, epa_result.newick, <Genus>_placements.tsv, <Genus>_neighborhoods.tsv, refpkg/
 
-phylo_postflight.py <run>/placement/epa_result.newick --outgroup <OutgroupGenus>   # P3 is placement-aware
-tree_sanity_check.py <run>/placement/epa_result.newick --outgroup <OutgroupGenus>  # must PASS (outgroup-aware)
+python tools/phylo_postflight.py <admitted-restored-graft> --outgroup <OutgroupGenus>
+python tools/tree_sanity_check.py <admitted-restored-graft> --outgroup <OutgroupGenus>
 
-build_placement_ggtree_inputs.py --graft <run>/placement/epa_result.newick --group <Genus> \
+python tools/build_placement_ggtree_inputs.py --graft <admitted-restored-graft> --group <Genus> \
      --neighbors <N> --host-table <paper strain table> --origin-table <isolation_source.tsv> \
      --ref-source-db <16S store with record(acc_base, definition)> \
      --outgroup-substr <OutgroupGenus> --out-prefix <run>/ggtree/<Genus>
@@ -57,7 +59,7 @@ build_placement_ggtree_inputs.py --graft <run>/placement/epa_result.newick --gro
      # flag delivers it. The producer now says so on stderr; reference_source_status records it per tip.
 
 GG_TITLE="..." GG_METHODS="<full methods paragraph>" \
-Rscript ggtree_placement.R <run>/ggtree/<Genus>_pruned.nwk <run>/ggtree/<Genus>_ggtree_annotation.tsv \
+Rscript tools/ggtree_placement.R <run>/ggtree/<Genus>_pruned.nwk <run>/ggtree/<Genus>_ggtree_annotation.tsv \
      <run>/ggtree/<Genus>_fig noloc
      # → candidate PDF + PNG: queries red/bold (host + 16S accession), refs blue with an
      #   isolation-source dot, methods footer below the tree.
@@ -115,10 +117,10 @@ fabricated key derived from `REF_NR_...`.
 5. **The prune ladder.** `--neighbors-per-query N` (figure) / `--neighbors N` (producer) renders a series:
    N=1 tight, N=3 medium, `--keep-all-refs` full. The full backbone size is always stated.
 6. **Honest labels.** Query tips = strain / host / 16S GenBank accession from the paper strain table (the
-   authoritative host source; NOT `host_common`, which had defects). Reference tips carry an **isolation
-   source** dot (soil / soil-rock / plant / lichen / insect-associated / clinical-animal / other / unresolved),
-   curated from species-description papers + BacDive — never invented; "unresolved" where no source is found.
-   The outgroup is **not** an isolation source and carries no dot.
+   authoritative host source; NOT `host_common`, which had defects). Reference tips carry the
+   **deposited isolation-source text** from `--ref-source-db`, in the label form
+   `[isolation source] (ACCESSION)`. The source is reported as deposited and is not binned into categories.
+   A reference with no deposited source carries no source text.
    A project strain accession found in the reference role is a hard refusal; the display reports how
    many project accessions were checked. Project strains are references only in a separately declared,
    receipt-bound analysis with an explicit role ledger.
@@ -175,9 +177,7 @@ Split a panel by its recorded roles before building a reference backbone:
 python tools/panel_split.py panel.fasta panel_meta.tsv --out-prefix work/panel
 ```
 
-The resulting reference FASTA includes the declared outgroup. The query FASTA contains only
-query records. Duplicate identities, missing roles and an empty side refuse. Existing output
-files are protected.
+The splitter copies rows with exact `reference` or `outgroup` roles to the reference FASTA and exact `query` rows to the query FASTA. It checks duplicate tips/headers, role membership and empty sides, but does not require an outgroup or verify taxonomy, nucleotide alphabet or biological identity (`tools/panel_split.py`). The CLI checks the three output paths with `exists()` before sequential direct writes; it has no exclusive reservation or transactional rollback. A race or dangling symlink can defeat that precheck, and a late failure can leave partial outputs. Use a fresh prefix in an existing destination directory, keep source/output paths distinct, and verify both FASTAs and the receipt; the input hashes are taken before output writes.
 
 After placement and reporting, render into a new directory:
 
@@ -190,12 +190,9 @@ python tools/placement_display.py work/run --name panel --group Example \
   --family-level --label-style noloc --out work/display_noloc
 ```
 
-The run must contain `report/epa_result.newick`, `refpkg/ref.aln.fasta` and
-`place/query.aligned.fasta`. Use `--family-level` only for a panel intentionally spanning genera.
-The wrapper uses the current bundled annotation builder, display receipt and tree gate. It
-preserves every tip, refuses accession conflicts and requires a new output directory for each run.
-A failure leaves an incomplete new work directory without a completion receipt, and preserves
-previous outputs and the original analysis inputs.
+Current display admission requires exactly one source-bound `graft_length_evidence/receipt.json`, at the run root for the declared flat layout or under `report/` for the declared nested layout. It rechecks numerical length evidence, selected restored tree, exact jplace/reference/model/provenance bindings and both alignments; three familiar filenames alone cannot admit an old run (`tools/graft_integrity.py`). Use `--family-level` for an intentionally mixed-genus panel and bind its query genus roster; the wrapper can also enable family-level handling from recorded reference genera (`tools/placement_display.py`).
+
+The wrapper requires a new output directory and checks initial tree/alignment coverage. Reference selection and collapse intentionally change the displayed roster; inspect the selection and dropped/collapse ledgers rather than assuming every reference tip remains. A later failure can leave rendered files **and** `placement_display_receipt.json`: that file is written before standalone-package export, required-file checks and final source re-admission. Require the actual zero exit, complete expected package/page roster, unchanged-source checks and rendered-page review. Receipt presence alone is not a terminal completion proof.
 
 `noloc` removes the structured country/location label fields and Location strip, while keeping
 habitat. Unresolved geography embedded in a reference label refuses instead of silently claiming
@@ -239,10 +236,12 @@ Every query must have a valid GenBank accession in the selected host or auxiliar
 
 ## Current source contract and historical observations
 
-The source guards `build-ref` with a nonempty `--approved-by` record and refuses writing its default refpkg inside the executing code bundle. The all-stage example must bind that approval and an external candidate output. The field records supplied authorization; a nonempty string does not authenticate a scientific owner decision (`tools/phylo_place.py:889–915`). Registry authority comes from a selected governed external registry, not the bundled reference-only rows; historical named outgroups in this page are illustrations, not authority for a new tree. See [outgroup/refset limits](OUTGROUP_AND_REFSET_WORKFLOW.md).
+The source guards `build-ref` with a nonempty `--approved-by` record and, when its bundle stamp is present, refuses the resolved refpkg destination inside the executing code bundle. The all-stage example must bind actual approval and an external candidate output. The field records supplied authorization; a nonempty string does not authenticate a scientific owner decision (`tools/phylo_place.py`). Registry authority comes from a selected governed external registry, not the bundled reference-only rows; historical named outgroups in this page are illustrations, not authority for a new tree. See [outgroup/refset limits](OUTGROUP_AND_REFSET_WORKFLOW.md).
 
-`all` can reuse an existing `refpkg/ref.tree` without rebuilding that reference package. Bind its complete input/model/tree/version/approval receipt first; existence alone is not freshness or panel identity. Reporting catches native figure failures and can return0 with skipped/held figures. The mandatory requested deliverable roster and current gate/hold receipts must be checked independently; an old PNG is not a current successful render (`1782–1790,1325–1341,1415`). The native renderer writes PNG200dpi and SVG, plus a labels JSON binding the input tree hash; that label receipt does not hash the PNG/SVG or labelmap bytes and is distinct from a complete rendered-output receipt (`1758–1779`).
+`all` reuses a supplied `--refpkg` when its `ref.tree` exists; otherwise it builds a reference package (`tools/phylo_place.py`). Bind the complete input/model/tree/version/approval record first; existence alone is not freshness or panel identity. Current reporting produces source-bound numerical length evidence before admitting neighborhood distances or rendering; unverified length evidence holds those products. Inspect `<group>_REPORT_ATTEMPT.json`: report completion requires admitted lengths and, when requested, strips in RENDERED or RENDERED_WITH_OMISSIONS state. A strip/length hold returns2. An optional diagnostic-render failure can still be caught without blocking a report whose other completion conditions pass. Check the requested deliverable roster independently.
 
-Outgroup role tokens are preferred, but the legacy genus heuristic and midpoint-root fallback remain. A mechanical tree gate does not establish that the selected outgroup/root is biologically suitable (`1583–1619,1700–1722`). Each alternative retained in the placements TSV is exported without renormalizing its LWR; `uncertainty_measure` explicitly reads `LWR_NOT_BOOTSTRAP_OR_SPECIES_PROBABILITY` (`1439–1490`).
+The native diagnostic renderer writes PNG200dpi, SVG and labels JSON. The label JSON binds the input tree and stores the labelmap/roles, while the returned render descriptor separately hashes PNG, SVG and labels JSON. It is no longer accurate to describe the current report path as lacking any rendered-artifact binding; those hashes still do not establish biological correctness or visual usability.
+
+Outgroup role tokens are preferred; when absent, the native diagnostic renderer retains a modal-organism-genus heuristic (`tools/phylo_place.py`). A mechanical gate or display-root convention does not establish biological outgroup suitability. Detailed alternatives are exported to `<group>_placement_alternatives.tsv`, with retained LWR sum/count, without renormalization; `<group>_placements.tsv` is the separate best-hit table. `uncertainty_measure` explicitly reads `LWR_NOT_BOOTSTRAP_OR_SPECIES_PROBABILITY`.
 
 The 106→46 reference thinning example, installed version list and project strain-table paths are historical project observations. They need their exact source hashes and run receipts before reuse, and do not set current panel adequacy or installed versions. “Methods travel” describes a renderer/display policy, not proof that a bare image contains complete acquisition provenance or passed visual review. Record actual placement, dependency and render receipts separately. Preserve source assets in place and carry path+SHA-256 and scope through every stage.

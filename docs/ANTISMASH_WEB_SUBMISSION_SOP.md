@@ -1,19 +1,19 @@
 # antiSMASH web submission: standard operating procedure
 
-> Project submission policy and historical operator observations. Service versions, API fields, feature defaults, capacity numbers and retention periods below describe historical service behavior, not current verified settings. Verify them against current service documentation during an authorized submission task. This page does not authorize a batch. Preserve exact input accession/version, requested and returned settings, job URL, retrieval time and archive hash in the job record. Error strings alone do not establish a cause; record `CAUSE_UNRESOLVED` when diagnostics do not support one.
+> Project policy for the public antiSMASH server. Service settings and limits change; check the server's current documentation before each batch, and record each job's accession, settings, URL and archive hash. When the diagnostics do not support a cause for an error, record `CAUSE_UNRESOLVED`.
 
 ## Local intake limitations
 
-The local reader recovers strictness and identity evidence; it does not certify a live job's settings or all-region consistency. `mamey/antismash_input.py:21–33` documents its first-region GBK header read and rejects `ORGANISM .` as an organism. `mamey/strain_identity.py:174–227` supports supplied/archive identities and filename fallback with warnings. Review the resolved identity before filing: a filename-derived label is not verified organism provenance. See [input troubleshooting](troubleshooting/ANTISMASH_INPUT_WORKFLOW.md). A downloaded ZIP, a normal command exit and a sealed package are separate states.
+The local reader recovers strictness and identity evidence; it does not certify a live job's settings or all-region consistency. Mamey reads the organism from the first region GenBank header and rejects `ORGANISM .`. It can fall back to the filename, with a warning. Review the resolved identity before filing: a filename-derived label is not verified organism provenance. See [input troubleshooting](troubleshooting/ANTISMASH_INPUT_WORKFLOW.md). A downloaded ZIP, a normal command exit and a sealed package are separate states.
 
-This page covers how reference genomes reach the public antiSMASH server (`https://antismash.secondarymetabolites.org`) for a Sapote-Mamey project. It is a procedure, not a tool. The bundle ships no code that submits to the public server, and every batch needs the project owner's named authorisation.
+This page covers how reference genomes reach the public antiSMASH server (`https://antismash.secondarymetabolites.org`) for a Sapote-Mamey project. It is a procedure, not a tool. The bundle ships no code that submits to the public server, and every batch needs the project owner's named authorization.
 
 The server is a shared public resource. The rules below keep this project's use light: it never adds to a queue other people are waiting in.
 
 ## 1. Who decides what
-- **The project owner authorises each batch by name,** for example "the nearest type strains" or "the five FASTA resubmissions". One authorisation covers one named set and does not roll forward.
-- **The owner sets pacing and strictness.** A number on the server page is evidence to bring to the owner, not a licence to change pacing.
-- **A resubmission is a new submission.** It needs a written reason and its own authorisation, including a resubmission by a different route.
+- **The project owner authorizes each batch by name,** for example "the nearest type strains" or "the five FASTA resubmissions". One authorization covers one named set and does not roll forward.
+- **The owner sets pacing and strictness.** A number on the server page is evidence to bring to the owner, not a license to change pacing.
+- **A resubmission is a new submission.** It needs a written reason and its own authorization, including a resubmission by a different route.
 
 ## 2. Settings: every job, every route
 | Setting | Value | API field |
@@ -27,13 +27,13 @@ The server is a shared public resource. The rules below keep this project's use 
 - **Why 11:** "All on" in the browser turns on 11 of 12 boxes; the twelfth needs an annotation file.
 - **Five of the 11 are off by default** (ClusterBlast, Cluster Pfam, Pfam-GO, TIGRFam, NCBI context). A run without them is a different analysis; never pool it with these results.
 - **Why no email:** no personal identifier goes on an outbound request. The job URL is therefore the only way back to a result.
-- **Never pool strictnesses.** Loose and relaxed are separate passes, each with its own authorisation.
+- **Never pool strictnesses.** Loose and relaxed are separate passes, each with its own authorization.
 
 ## 3. Input routes
 | Route | When | How |
 |---|---|---|
 | A. Get from NCBI (default) | an INSD record with CDS annotation: a complete chromosome (`CP…`, `AP…`) or a WGS master whose contigs are annotated | `ncbi=<accession>` |
-| B. FASTA upload with Prodigal | the deposit has no CDS (`all records skipped`), or the genome is held only as FASTA | `seq=@<file>.fna`, `genefinder=prodigal`; needs its own authorisation |
+| B. FASTA upload with Prodigal | the deposit has no CDS (`all records skipped`), or the genome is held only as FASTA | `seq=@<file>.fna`, `genefinder=prodigal`; needs its own authorization |
 
 **Never use route A for these:**
 - RefSeq (`NZ_…`) or assembly (`GCF_`/`GCA_`) accessions; historically failed with `Failed to download file from NCBI` in this project workflow. Use the INSD primary.
@@ -89,9 +89,9 @@ Once per batch, read `GET /api/v1.0/status/<job>` for one job and confirm `loose
 ## 9. Failures: classify, record, don't retry
 | Symptom | Cause | Disposition |
 |---|---|---|
-| `Failed to download file from NCBI` | a RefSeq or assembly accession was given | resubmit with the INSD primary, with authorisation |
+| `Failed to download file from NCBI` | a RefSeq or assembly accession was given | resubmit with the INSD primary, with authorization |
 | `all records skipped`, the record is a WGS master stub | no sequence | no route; drop it |
-| `all records skipped`, the record has 0 CDS | an unannotated deposit | route B, with its own authorisation |
+| `all records skipped`, the record has 0 CDS | an unannotated deposit | route B, with its own authorization |
 | a Python traceback inside antiSMASH | a service-side bug on that record | record the traceback; recurrence is not established by the error alone |
 | own job `queued` 20–30 s, with `queue_length` 0 and `running` under 60 | a transient early-stage bottleneck | none; it starts by itself |
 | own job `queued` for more than 2 minutes | submissions too close together, or a real queue | wait; do not resubmit; check the stats and tell the owner |
@@ -99,7 +99,7 @@ Once per batch, read `GET /api/v1.0/status/<job>` for one job and confirm `loose
 Record every failure with its set, accession, organism, job, supported cause or `CAUSE_UNRESOLVED` (not just the message) and disposition. Two symptoms above give the same message from opposite causes.
 
 ## 10. Never
-- Never submit without a batch authorised by name.
+- Never submit without a batch authorized by name.
 - Never put an email address or any personal identifier in a request.
 - Never submit while `queue_length` is above 0 or `running` is 60 or more.
 - Never have more than 5 of your jobs queued or running at once.

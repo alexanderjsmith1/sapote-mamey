@@ -19,7 +19,7 @@
     },
     {
       "model_id": "deepbgc_pfam_rf",
-      "display_name": "DeepBGC PFAM random-forest (reimplemented)",
+      "display_name": "DeepBGC Pfam random forest (declared adapter contract)",
       "family": "random forest over Pfam presence/absence",
       "primary_reference_doi": "10.1093/nar/gkz654",
       "license": "MIT",

@@ -176,7 +176,12 @@ def parse_sequence_bytes(data: bytes, suffix: str) -> list[str]:
     bad = sorted(set("".join(seqs)) - set("ACGTUNRYKMSWBDHVX.-"))
     if bad:
         raise PanelError(f"unexpected nucleotide characters: {''.join(bad[:10])}")
-    return [s.replace(".", "").replace("-", "") for s in seqs]
+    # U -> T as plan_gtotree_iqtree._fasta_sequences does, or the two content hashes disagree
+    normalized = [s.upper().replace("U", "T").replace(".", "").replace("-", "") for s in seqs]
+    normalized = [s for s in normalized if s]
+    if not normalized:
+        raise PanelError("no nucleotide sequences remain after normalization")
+    return normalized
 
 
 def assembly_content_sha256(sequences: Iterable[str]) -> str:

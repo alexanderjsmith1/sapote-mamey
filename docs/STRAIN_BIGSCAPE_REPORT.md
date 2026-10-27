@@ -1,4 +1,4 @@
-# Strain BiG-SCAPE report + figure-label convention (v9.7.293)
+# Strain BiG-SCAPE report and figure-label convention
 
 Two standard deliverables, both DB-free (they read the portable derived TSVs, not the 400 MB DB).
 
@@ -15,24 +15,20 @@ voice from the portable exports.
 
 Detailed sections:
 1. **Overview** — genus/habitat, BGC count, MIBiG-anchored / unanchored family split (the KNOWN/NOVEL labels), dominant class.
-2. **Assembly quality** — contig-size span, median, and the count of BGCs on <15 kb contigs, with the
-   fragmentation caveat stated up front (per-region hits are fragments until a contiguous assembly confirms).
-3. **BGC class distribution** — full antiSMASH class counts.
+2. **Locator-derived contig summary** — span and upper-middle value of lengths parsed from selected per-BGC locator rows, plus the count below 15 kb. Repeated contigs are not deduplicated; only nonzero parseable lengths enter that denominator. These values do not independently establish assembly quality or fragmentation.
+3. **BGC class distribution** — supplied class strings (blank becomes `?`), shown when counted at least twice or when the string contains PKS, NRPS or RiPP (case-insensitive). Other singleton classes are omitted; the table is not a full class census.
 4. **Antimicrobial capacity** (from `--antimicrobial`) — antifungal (Candida) / antibacterial (MRSA) /
    siderophore anchors, capacity-level.
 5. **MIBiG anchors** — nearest characterized cluster per KNOWN BGC, with antifungal/ionophore/over-broad
    flags, GCF distance, node.region, **and the antiSMASH domain architecture** (from `--integrated`).
-6. **Notable BGCs** (from `--integrated`) — the strain's clusters with a complete core assembly line
-   (PKS: KS+AT+ACP; NRPS: C+A+PCP), the ones most likely functional and worth prioritising.
+6. **Notable BGCs** (from `--integrated`) — rows passing simple case-sensitive domain-word combinations (PKS_KS + PKS_AT + ACP/PP-binding, or Condensation + AMP-binding + PCP). The emitted “very likely” label also uses a parsed 15 kb contig threshold. These are display heuristics, not evidence of an intact pathway or function.
 7. **Families without a MIBiG member** (from `--novel`; the legacy label is NOVEL) — antimicrobial-class families
    the strain is in that have no MIBiG member in this run, with the consensus assembly-line architecture. Not a novelty claim.
-8. **Biosynthetic neighbours** (from `--sharing`) — closest strains by shared GCF families.
+8. **Biosynthetic neighbors** (from `--sharing`) — closest strains by shared GCF families.
 9. **Cohort-exclusive families** (from `--uniqueness`) — the strain's BGC count and fraction in families no other loaded strain occupies, with the panel denominator. This is similarity-family membership in this panel, not private chemistry.
 10. **Caveats** — capacity-level, fragmentation, over-broad anchors, NAPAA exclusion.
 
-Filename carries the strain ID (bundle convention). Capacity-level throughout; node.region locators;
-no compound-production or per-BGC bioactivity claims. Runs anywhere the AS_analysis_export bundle
-reaches — no DB upload.
+The default output filename carries the strain ID. Display is bounded: at most 25 MIBiG anchor rows, 20 notable BGC rows, 15 unanchored-family rows and 8 neighbors. Long locators and domain text are shortened in selected tables. Preserve the full source tables and a bound strain / full node-or-contig / region / BGC alias crosswalk for individual-locus use; the Markdown alone is not a complete exact-identity export. No source database upload is needed.
 
 ```
 python tools/strain_bigscape_report.py --strain AS-XXX \
@@ -42,17 +38,13 @@ python tools/strain_bigscape_report.py --strain AS-XXX \
     --integrated antismash_bigscape_integrated.tsv \
     --genus Actinophytocola --habitat attine
 ```
-Verified on the real 51-strain export against one cohort strain's hand-built report — BGC counts,
-known/novel split, class tallies, contig-size profile, assembly-line count, and capacity calls all
-matched exactly. (v9.7.372: the per-strain numbers previously quoted here are unpublished cohort
-results, withheld from the public code tier; a public type-strain worked example follows.) Only `--per-bgc` is required; every
-other input adds a section if supplied and is skipped cleanly if not.
+Both `--strain` and `--per-bgc` are required. Optional tables are read only when their paths exist; a section also needs matching usable rows. A supplied path alone does not guarantee that its section is present.
 
 ## `tools/bigscape_figure_labels.py` — the type-strain vs MIBiG fix
 Cohort **type strains** (classified `reference/type` by mamey_habitat_map) were legended as bare
-"Reference", colliding with the **MIBiG reference** drawn in red. A grey node is a cohort strain; a
+"Reference", colliding with the **MIBiG reference** drawn in red. A gray node is a cohort strain; a
 red node is a MIBiG cluster. This module is the single source of truth: type/reference taxa ->
-**"type strain"** (grey), MIBiG -> **"MIBiG reference"** (red), host habitats unchanged. Bare
+**"type strain"** (gray), MIBiG -> **"MIBiG reference"** (red), host habitats unchanged. Bare
 "reference" is guarded (`assert_not_bare_reference` raises). Import `category_of`, `STYLE`,
 `legend_handles` in any figure builder.
 
@@ -64,10 +56,10 @@ red node is a MIBiG cluster. This module is the single source of truth: type/ref
 
 This is a formatting consumer of pre-admitted portable TSVs. It has no run/cutoff selection option, no input/output hash receipt, and no full four-part locus validation. `--genus` and `--habitat` are caller-provided labels. Reconcile all input tables against one independently bound run, cutoff, cohort/reference roster and exact-locus crosswalk before building; do not combine exports by matching a bare family number or node.region string.
 
-The implementation treats every selected per-BGC row whose status is not exactly `KNOWN` as part of its displayed `NOVEL` count. Blank, held, unassigned, or unknown statuses therefore inflate that complement. Quarantine those rows or use a corrected status-aware export before interpreting the printed split. The generated phrase “have no analog” means only the computed complement in the loaded TSV; it is not supported evidence of no homolog, chemical novelty, or missing references. The generated MIBiG 4.0 subtitle is a literal label, not archive/version validation. Bind and correct the display to the actual reference version.
+The implementation treats every selected per-BGC row whose status, after uppercasing without trimming whitespace, is not `KNOWN` as part of its displayed `NOVEL` count. Blank, held, unassigned, or unknown statuses therefore inflate that complement. Quarantine those rows or use a corrected status-aware export before interpreting the printed split. The generated phrase “have no analog” means only the computed complement in the loaded TSV; it is not supported evidence of no homolog, chemical novelty, or missing references. The generated MIBiG 4.0 subtitle is a literal label, not archive/version validation. Bind and correct the display to the actual reference version.
 
 Optional input paths that do not exist are silently skipped, just as omitted inputs are. An absent section is not a biological negative. Missing output-parent directories are not created, and an existing output Markdown is overwritten. Use a fresh path with an existing parent, retain a source/output hash record, and check the section census against requested inputs.
 
 The “very likely” / “likely” assembly-line labels are heuristic annotation labels based on domain words and boundaries, not functional proof. Preserve annotations as capacity evidence and remove unsupported biological-function wording from a reviewed copy while keeping the original provenance. Historical validation anecdotes above do not certify the current inputs or their scientific acceptance.
 
-Source owner: `tools/strain_bigscape_report.py:68–104,117–122,148–198,218–254,282–285`.
+Source: `tools/strain_bigscape_report.py`.

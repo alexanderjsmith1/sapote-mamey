@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_bioassay_a06_n_below_bars.
+"""Card 452_bioassay_a06_n_below_bars.
 
 Owner review of the A06 figure (strong activity by 16S genus group): no strong/tested fractions above the bars, and
 "n=<tested>" under each bar instead, with room made for it. `--bar-labels` brings the fractions back. Synthetic data.

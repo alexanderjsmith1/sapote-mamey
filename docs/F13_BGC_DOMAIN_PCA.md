@@ -1,8 +1,5 @@
 # F13 BGC domain-count PCA source-artwork contract
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
-
-
 F13 is a descriptive source-artwork candidate, not a scientific acceptance or a claim about products, sequences, activity, evolution, or phylogeny. It consumes existing `gene_data.json` `domain_arch` records and never infers a missing identity, source version, roster, or assembly decision.
 
 Run the cohort figure command with all of the following inputs:
@@ -28,7 +25,7 @@ For every plotted BGC, the source package must bind `manifest.json`, `gene_data.
 strain / full node-or-contig / region / BGC alias
 ```
 
-The source-artwork outputs are an SVG with live text, a complete plot-data CSV, caption/methods JSON, separate empty owner-notes JSON, provenance JSON, and a receipt. The SVG is a source-artwork candidate only. A final delivery PDF remains subject to the shared post-embed PDF gate.
+The source-artwork outputs are an SVG with live text, a PNG preview, a plot-data CSV for retained F13 rows, caption/methods JSON, separate empty owner-notes JSON, provenance JSON, and a receipt. The SVG is a source-artwork candidate only. A final delivery PDF remains subject to the shared post-embed PDF gate.
 
 If any binding is absent, stale, malformed, duplicate, or incomplete, F13 writes `F13_bgc_domain_pca_2d_HOLD.json` and creates no new F13 artwork.
 
@@ -36,6 +33,8 @@ If any binding is absent, stale, malformed, duplicate, or incomplete, F13 writes
 
 F13 is invoked by the **multi-strain F-series branch**. A single loaded strain uses the single-strain panels instead; G/D-only series do not invoke F13. Supplying F13 flags does not itself guarantee an F13 attempt. Record the loaded roster and series before checking the expected receipt.
 
-`cohort-figures` can exit 0 when other figures exist while F13 is held. A hold writes/overwrites `F13_bgc_domain_pca_2d_HOLD.json` and lists `preexisting_f13_artwork_detected`; it leaves old SVG/PNG/PDF files in place. Output-directory reuse also permits replacement of successful artwork and caption files, and overall PNG counts can include old files. Use a fresh output directory for each bound attempt. Inspect the current F13 status, source/config hashes and expected outputs; never treat an old SVG or overall suite count as evidence that a held attempt succeeded. Preserve the hold and diagnose its code before retrying with corrected, independently governed inputs.
+The current normal `cohort-figures` entry refuses an existing nonempty output directory before loading packages (`mamey/cohort_figures.py`). Use a fresh directory for each bound attempt, including a retry after partial output; the earlier blanket claim that this entry silently reuses old artwork is no longer current.
 
-Source owners: `mamey/cohort_figures.py:215–238,558–560,1196–1226`; `mamey/cli.py:5296–5332`.
+F13 status is still separate from overall suite success: the command can exit 0 because other figures were produced while F13 is held. Inspect the current F13 hold or `PASS_SOURCE_ARTWORK_ONLY` receipt, bound inputs and exact expected artifacts rather than an overall PNG count. The internal F13 helper itself writes fixed names without the outer directory admission: a direct invocation can replace outputs or leave preexisting artwork alongside its hold, whose `preexisting_f13_artwork_detected` field lists those files. That internal behavior is not the normal CLI retry contract. Preserve partial outputs and the hold, then use a new candidate path after resolving the cause.
+
+Source owners: `mamey/cohort_figures.py`; `mamey/cli.py`.

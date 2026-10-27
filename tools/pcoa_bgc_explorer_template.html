@@ -98,7 +98,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
 <div class="wrap">
   <header>
     <h1>__PAGE_TITLE__</h1>
-    <p class="sub">Each point is one protein or domain, placed by amino-acid identity against public genomes and MIBiG, as in the PCoA figures. Click an isolate point to open its BGC. Click a gene in the map to jump to it in any other PCoA.</p>
+    <p class="sub">Points replay supplied protein/domain coordinates; some background points represent multiple proteins. This explorer does not fit the ordination or independently verify its distance definition. Click an isolate point to open its BGC. Click a gene in the map to jump to it in any other PCoA.</p>
     <div class="controls">
       <label for="set"><span class="lbl">Protein class</span></label>
       <select id="set" aria-label="Protein class"></select>
@@ -135,7 +135,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     <aside class="card" id="detail" aria-live="polite">
       <div class="empty" id="hint">
         <h2>BGC</h2>
-        <p>Click a coloured point to see its strain, contig, region and BGC, with every gene drawn to scale. Or open any strain's BGCs here:</p>
+        <p>Click a coloured point to see its strain, contig, region and BGC, with its source gene arrangement. Or open any strain's BGCs here:</p>
         <label for="strainpick" class="lbl">Strain</label>
         <select id="strainpick"><option value="">Choose a strain…</option></select>
       </div>
@@ -148,13 +148,13 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     <div class="controls" style="padding:6px 12px">
       <label for="outgroup"><span class="lbl">Protein classes</span> <select id="outgroup"></select></label>
       <label for="outtier"><span class="lbl">Call</span> <select id="outtier"><option value="">any</option><option value="far">far in sequence (&lt; 50%)</option><option value="distant">distant in sequence (&lt; 70%)</option><option value="isolated">isolated in the plot</option></select></label>
-      <span class="stats">Only the cohorts ticked above are listed. Click a row to open the point and its BGC. A short or low-coverage contig makes an artifact or contaminant more likely than a new protein.</span>
+      <span class="stats">Only the cohorts ticked above are listed. Click a row to open the point and its BGC. Review assembly quality and contamination evidence before interpreting a distant point. This view does not diagnose either or assign a probability of novelty.</span>
     </div>
     <div class="tablebox" style="margin:0 12px 12px;max-height:420px"><table id="outtable"><thead><tr><th class="num">#</th><th>Call</th><th>Class</th><th>Strain</th><th>BGC</th><th class="num">Best match</th><th class="num">Isolation</th><th>Contig</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <footer id="foot">
-    Points replay the supplied PC1/PC2/PC3 coordinates. Axis percentage annotations have an unverified definition and historical fit execution; they are not interpreted as variance explained. This explorer does not fit an ordination. Nearness to a reference or MIBiG protein is similarity of sequence, not a shared product. Gene labels come from antiSMASH and are hints at function. MIBiG hits, where shown, are DIAMOND blastp of each gene against MIBiG proteins; a close MIBiG gene is similarity, not the same compound. NCBI and Swiss-Prot hits, where shown, come from a copy of the BLASTp store and are bound to a gene by strain, locus tag and protein length, or by exact sequence; an NCBI hit is nearest-neighbour similarity, not characterization. A BGC number is shown only when a Mamey package was built from the same antiSMASH result as the region file; otherwise the region is on identity hold.
+    Points replay the supplied PC1/PC2/PC3 coordinates. Axis percentage annotations have an unverified definition and historical fit execution; they are not interpreted as variance explained. This explorer does not fit an ordination. Nearness to a reference or MIBiG protein is similarity of sequence, not a shared product. Gene labels come from antiSMASH and are hints at function. MIBiG hits, where shown, are DIAMOND blastp of each gene against MIBiG proteins; a close MIBiG gene is similarity, not the same compound. NCBI and Swiss-Prot hits, where shown, come from a copy of the BLASTp store and are bound to a gene by strain, locus tag and protein length, or by exact sequence; an NCBI hit is nearest-neighbour similarity, not characterization. A BGC number is shown only when a Mamey package was built from the same antiSMASH result as the region file; otherwise the region is on identity hold. Unavailable region data remain an evidence hold: the current genome-wide fallback message does not establish genome-wide origin. A missing MIBiG list does not distinguish an unavailable or unrun search from a verified no-hit. Check the bound source record before interpreting either label.
   </footer>
 </div>
 

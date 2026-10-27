@@ -173,7 +173,13 @@ def is_private(sid, records=None):
 def genus(sid):
     g=(GENUS.get(sid) or "Unknown genus").split()
     return " ".join(g[:2]) if len(g)>=2 else GENUS.get(sid,"Unknown genus")
-def lab(sid): return f"{genus(sid)}\nstrain {sid}"
+def lab(sid):
+    # Wrap full IDs at underscore boundaries, never abbreviate or rewrite them.
+    import textwrap
+    identity = textwrap.TextWrapper(width=24, break_long_words=True,
+                                    break_on_hyphens=False)
+    identity.wordsep_simple_re = re.compile(r"(?<=_)")
+    return textwrap.fill(genus(sid), width=24, break_on_hyphens=False) + "\nstrain\n" + identity.fill(str(sid))
 
 def _load_manifest_short(pkg, sid):
     """Load manifest_short.json, or reconstruct the fields the figure suite needs
@@ -980,7 +986,7 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
                 if not np.isfinite(v):
                     continue
                 txt=f"{v:.0f}" if abs(v-round(v))<1e-6 else f"{v:.1f}"
-                ax.text(j,i,txt,ha="center",va="center",fontsize=7,color=_heatmap_cell_text_colour(im,v))
+                ax.text(j,i,txt,ha="center",va="center",fontsize=8,color=_heatmap_cell_text_colour(im,v))
     if divider: soft_divider(ax,ndiv,npriv)
     ax.set_title(title,pad=24)
     cb=fig.colorbar(im,ax=ax,fraction=0.024,pad=0.012); cb.set_label(cbar,fontsize=9)

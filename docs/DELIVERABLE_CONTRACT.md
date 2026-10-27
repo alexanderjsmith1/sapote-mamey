@@ -1,8 +1,8 @@
 # Sapote-Mamey deliverable contract
 
-Current workflow boundaries for the selected bundle; older v9.4/v9.6 module labels below identify document lineage rather than an alternate installed release. Check the exact loaded version and code-owned output contracts.
+This page lists what a full strain delivery contains and how each item is checked. Labels such as v9.4 or v9.6 below name where a rule came from; they are not separate releases.
 
-This document is the canonical source for what the bundle must produce. It is referenced by `CLAUDE_SYSTEM_PROMPT.md` (§4, §5), `MAMEY_CHATGPT_EXECUTION_PROMPT.md` (§3, §5), and `RELEASE_CHECKLIST_v9.md`. This document defines artifacts within the selected workflow. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern task scope, permissions and conflicts; no parent or legacy template expands them.
+This document is the canonical source for what the bundle must produce. It is referenced by `prompts/CLAUDE_SYSTEM_PROMPT.md` (§4, §5), `prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md` (§3, §5) and `docs/RELEASE_CHECKLIST_v9.md`. This document defines artifacts within the selected workflow. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern task scope, permissions and conflicts; no parent or legacy template expands them.
 
 **Status:** `SCHEMA_BACKED` for workbook sheets; `PROMPT_BACKED` for interpretation documents; `CODE_BACKED` for Python scan outputs.
 
@@ -75,7 +75,7 @@ per-scan CSVs.
 | Intake / assembly | `[StrainID]_1_intake.json` | Genome size, contigs, interior/edge/full-contig %, assembly tier, raw and corrected BGC counts |
 | BGC inventory | `[StrainID]_2_inventory.csv` | Every BGC with class, edge status, Architecture Confidence, KCB top hit, MIBiG %, WL score, bldA/TTA tier, treatment status |
 | BGC crosswalk | `[StrainID]_2b_bgc_crosswalk.csv` | BGC_ID ↔ bgc_uid ↔ contig/region ↔ User_Label locator map |
-| Scan states | `[StrainID]_3_scan_states.json` | Status and output file for all source-derived scans; assembly block; package status |
+| Scan states | `[StrainID]_3_scan_states.json` | Serialized `run.scan_status`; inspect actual scan/channel state and reason. Assembly/BGC summaries and package recovery status have separate owners and must not be inferred as fields of this file |
 | RG-GMCI (full + ranked + evidence + related loci) | `[StrainID]_4A_RGGMCI_full.json`, `_4A_RGGMCI_ranked_pairs.csv`, `_4A_RGGMCI_evidence.csv`, `_4A_RGGMCI_related_loci.csv` | Split-BGC pairs from ClusterBlast/KnownClusterBlast between regions antiSMASH flags as on a contig edge; required for every multi-contig genome. Pairs involving an interior region, or two regions on one contig, are listed apart as related loci, never rescues |
 | RG-GMCI candidate groups | `[StrainID]_4A_RGGMCI_groups.csv`, `[StrainID]_4A_RGGMCI_groups/[StrainID]_RGGMCI_Gnn.gbk` + `.members.tsv` | HIGH rescues that share a region, one row per group with every member's full identity. Each group file holds the members' own antiSMASH region records one after another, nothing joined; `tools/cluster_completeness.py` reads it per fragment and together. A group is a candidate, not a contig join |
 | Triage board | `[StrainID]_4_triage_board.csv` | Per-BGC triage: CCTT triggers, primary-metab flag, standing rule, corrected rank |
@@ -95,25 +95,27 @@ per-scan CSVs.
 | Deliverable | Audience | Required sections |
 |---|---|---|
 | **Layperson-Ranked BGC Guide** | PI, student, collaborator | Strain header block; 2–3 sentence narrative; 5-BGC ranked table with layperson headlines; assembly caveat; immediate next action |
-| **Technical Full-Analysis Report** | Natural-products specialist | Intake; assembly/BGC summary; all ten scan results; Triage First Board containing every BGC sorted by rank; DAPR (antibacterial + antifungal, separate); full Mode B for HIGH/HIGH* BGCs; candidate cards for MEDIUM BGCs; minimum candidate cards for remaining BGCs; edge/FC status as caveated metadata rather than a visibility limiter; wet-lab decision matrix; metabolomics readiness; fermentation card; ecology synthesis; **Cross-Strain Cohort Context block** (see A2.1); **Method Caveats block** (see A2.2); reviewer attack simulation; recommended figures; **Literature-Search Handoff list** for parallel ChatGPT execution (see A2.3) in place of inline lit-review prose; PNAS reference list |
+| **Technical Full-Analysis Report** | Natural-products specialist | Intake; assembly/BGC summary; all ten scan results; Triage First Board containing every BGC sorted by rank; DAPR (antibacterial + antifungal, separate); full Mode B for HIGH/HIGH* BGCs; candidate cards for MEDIUM BGCs; minimum candidate cards for remaining BGCs; edge/FC status as caveated metadata rather than a visibility limiter; wet-lab decision matrix; metabolomics readiness; fermentation card; ecology synthesis; **Cross-Strain Cohort Context block** (see A2.1); **Method Caveats block** (see A2.2); reviewer attack simulation; recommended figures; **Literature-Search Handoff list** for a separate literature-search session (see A2.3) in place of inline lit-review prose; PNAS reference list |
 | **Compound Detection and Isolation Bench Guide** | Bench scientist | Per-BGC bench protocol for HIGH and MEDIUM BGCs: detection method (UV, pigment, bioassay), extraction protocol, LC-MS method, isolation strategy — in plain English |
 
-#### A2.1 — Cross-Strain Cohort Context block (required in every per-strain deliverable)
+#### A2.1 — Cross-Strain Cohort Context block (for a selected full-strain interpretation report)
 
 Situates the single strain against the current banked cohort so a one-strain package is never read in isolation. Sourced from the `Strain_Cohort_Context` and `Cross_Strain_Class_Prevalence` workbook sheets. Required contents: corrected-BGC **rank in cohort** and assembly tier; **shared accessory chemistry** (each notable class with the count of other strains carrying it, e.g. "T2PKS — shared with 13 others"); **strain-unique classes** in the cohort (provisional, sample-limited); **reference-dark footprint** = this strain's fully KCB-dark region count expressed as a fraction of the stated cohort total (database/coverage-limited; not a strict floor on chemical novelty); **diagnostics carried** vs the cohort. All figures are presence/prevalence over antiSMASH product-class calls — class-level, never assayed chemistry. The four universal classes (saccharide, fatty_acid, other, terpene) are excluded from shared/novel statements.
 
-#### A2.2 — Method Caveats block (inherited boilerplate; every deliverable carries it verbatim)
+#### A2.2 — Method Caveats block (for a selected interpretation report)
+
+Include the applicable caveats below beside the claims they qualify; avoid repeating the same block in every figure, caption or card.
 
 1. `kcb_cumulative` is a cumulative **score, not a % identity** — a KCB hit anchors a class hypothesis, it does not mean the compound is known; never phrase a KCB value as "% known."
 2. RG-GMCI HIGH-pair counts are **not a fragmentation-severity metric** — they track reference-anchored homologous-pair richness (gated by BGC content) and do not move monotonically with contig count.
 3. The four universal product classes are **non-discriminating** and are excluded from cross-strain shared/novel arguments.
 4. `hglE-KS-PREV-001` is **collection-specific** — state it against the strain set it was measured on, never assume project-universal prevalence.
 
-#### A2.3 — Literature-Search Handoff list (replaces inline lit-review; for parallel ChatGPT run)
+#### A2.3 — Literature-Search Handoff list (replaces inline lit-review; for a separate literature-search session)
 
-Rather than writing the literature review inline (which serialises the work behind the deep-dive), the Sapote layer emits a **structured list of searches** the user can hand to ChatGPT to run in parallel while the deep-dive is written. Format: a numbered table of `Lead (BGC locator) | search query | purpose | citation purpose`, targeting PubMed first then Scholar. Every row is a **search to run, not a verified fact**; nothing from it may enter a manuscript until citation-verified (Verified/Partial bucket with a confirmed PMID/DOI). ChatGPT returns, per row: PMID/DOI, title, one-line finding, and a Verified/Partial/Not-found tag (no fabrication; unmatched rows return Not-found).
+Rather than writing the literature review inline (which serializes the work behind the deep-dive), the Sapote layer emits a **structured list of searches** the user can hand to a separate literature-search session to run in parallel while the deep-dive is written. Format: a numbered table of `Lead (BGC locator) | search query | purpose | citation purpose`, targeting PubMed first then Scholar. Every row is a **search to run, not a verified fact**; nothing from it may enter a manuscript until citation-verified (Verified/Partial bucket with a confirmed PMID/DOI). That session returns, per row: PMID/DOI, title, one-line finding, and a Verified/Partial/Not-found tag (no fabrication; unmatched rows return Not-found).
 
-#### A2.4 — Figure-Ready Tidy Export (standardised, portable; for downstream figure workflows)
+#### A2.4 — Figure-Ready Tidy Export (standardized, portable; for downstream figure workflows)
 
 For downstream figures, export the selected master workbook to tabular CSVs, then validate the values and plotting assumptions. The export is a separate command; confirm it ran for the current workbook. Use `tools/export_figure_ready.py` with the selected bundle's Python, `openpyxl` and bundled CSV helper. It reads a master workbook without writing it and emits CSVs plus `DATA_DICTIONARY.md`; it is an export adapter, not schema validation or scientific acceptance.
 
@@ -147,18 +149,28 @@ In any compiled deliverable that pairs a BGC locus map with its analysis (the ge
 
 Rules: do **not** page-break between a locus map and its class line + Mode B card. Only spill to a second page when a single BGC's Mode B card genuinely overflows one page (then the map stays with §1–§4 and §5–§8 continues overleaf, with a "cont." marker). The full layout spec with a worked example is `docs/PER_BGC_PAGE_LAYOUT_SPEC.md`; the ChatGPT-side compiler inherits it via `prompts/figure_prompts/deliverable_maps/map_gene_by_gene.md`.
 
-#### A2.6 — POOR/VERY_POOR equal-visibility rule (v9.7.147)
+#### A2.6 — POOR/VERY_POOR equal-visibility rule
 
 For POOR and VERY_POOR assemblies, all detected BGCs must remain visible in every report. Edge/full-contig status is assembly context, not a reason for lower visibility.
+
+A focused report or locus work order authors cards only for the requested loci. Every other detected BGC still appears on the triage board at its rank, with its boundary label.
 
 Required behavior:
 - Triage board lists all BGCs at their natural rank position, sorted by `Corrected_rank` when present or the active priority axis otherwise.
 - Edge/FC BGCs are labeled with boundary status but are not sorted below all Interior BGCs.
-- Every BGC receives at least a minimum candidate card: `BGC_ID (contig · regionXXX) · class/product hypothesis · boundary status · KCB top hit or NONE · one interpretive sentence · next action`.
+- Every requested BGC receives the selected card depth or an explicit disposition. A minimum candidate entry contains `strain / full node-or-contig / region / BGC alias`, its class hypothesis, boundary state, source KCB metric and evidence state, one supported interpretive sentence, and the next bounded action. Distinguish an evaluated no-hit result from not run, unavailable, unread or unbound evidence; use the actual source state and reason rather than a generic `NONE`. If a required identity field is missing, retain an identity hold instead of assigning evidence to that locus.
 - Boundary caveats belong in Mode B §3 and §19. They do not justify reducing §4/§5/§11 reasoning depth when visible domain evidence is interpretable.
 - Wet-lab/DAPR edge/FC truncation penalty is 0 in POOR/VERY_POOR assemblies unless a separate, documented non-assembly reason makes the fragment uninterpretable.
 
 A deliverable where an edge/FC BGC can only be found in an unlabeled low-detail appendix, or cannot be found without knowing its ID, is incomplete.
+
+#### A2.7  Cross-strain GCF network (BiG-SCAPE) — A-series cohort deliverable
+
+An exploratory / N-limited comparative deliverable produced after the per-strain runs, alongside the pangenome and normalization matrices: **`cross_strain_GCFs.tsv` + the browsable BiG-SCAPE HTML**. BiG-SCAPE clusters antiSMASH BGCs into gene cluster families by Pfam-domain content; the tsv lists, per cutoff, each family's spanned strains, dominant product, contains-MIBiG flag, and member `strain:node.region` locators — which require a validated source-run and complete-locus crosswalk before joining triage boards / Mode B cards. Filename or alias agreement does not guarantee a 1:1 join. It is the whole-cluster-family complement to the pangenome's orthogroup sharing; cite them side by side, not interchangeably. BiG-SCAPE / Pfam are an external prerequisite (not vendored). Workflow + receipts: `docs/BIGSCAPE_GCF_WORKFLOW.md`. Framing is capacity / similarity, not identity or confirmed product.
+
+#### A2.8  Reference-anchored versus unanchored cross-strain GCF status — A-series cohort deliverable
+
+`known_vs_novel_GCFs.tsv` = the base `cross_strain_GCFs.tsv` columns + `status` (KNOWN/NOVEL) + `n_members_known` + `mibig_matches`, produced by `bigscape_merge_anchors.py` unioning per-chat `bigscape_mibig_anchors.py` outputs against the no-MIBiG base. KNOWN = ≥1 family member anchors (shares a BiG-SCAPE family) to a characterized MIBiG reference; NOVEL = no MIBiG member in that run's loaded reference panel at the stated cutoff — a reference-unanchored family in this scope. These legacy KNOWN/NOVEL tokens describe reference membership, not biological novelty or compound identity. Record the run, cutoff, panel identity and member denominator; a run without loaded MIBiG references cannot establish a broader anchoring or novelty conclusion. See `docs/STRAIN_BIGSCAPE_REPORT.md`. Exploratory / N-limited, like the pangenome and GCF-network layers. Workflow: `docs/BIGSCAPE_GCF_WORKFLOW.md` (parallel MIBiG anchoring across sessions).
 
 ### A3 — Workbook sheets (SCHEMA_BACKED)
 
@@ -186,17 +198,17 @@ A deliverable where an edge/FC BGC can only be found in an unlabeled low-detail 
 
 | Deliverable | Required content |
 |---|---|
-| Project Memory Snapshot | Machine-readable JSON: all key findings, BGC scores, evidence pointers, scan statuses, session date/version |
+| Project Memory Snapshot | Current writer emits `project_memory_snapshot_alias_v1` with `alias_of: manifest.json` and strain metadata; historical packages may contain a full snapshot. Resolve and bind the actual target before reading findings; an unresolved stub is a reader hold, not a complete manifest |
 | Dated per-strain ZIP | `[StrainID]_Mamey_[BundleVersion]_[YYYY-MM-DD].zip` containing all A1 + A2 + A3 outputs |
 | QA gate record | Confirmation that all required items are present or logged as deferred |
 
 ---
 
-### A3 — Ported deliverable modules (auto-offered; v9.6.18)
+### A5 — Ported deliverable modules
 
-Registered so each is auto-built/auto-offered per the Offer Protocol (the user must never need to know the deliverable exists to receive it). Authority for each is its `docs/modules/` module.
+For a selected full-strain interpretation workflow, use these modules for the applicable deliverables. The triggers below apply within that workflow and do not automatically select additional reports, cards or analyses. Each module defines its format and evidence requirements.
 
-| Deliverable | Module | Auto-build trigger | Incomplete-delivery condition |
+| Deliverable | Module | Selected-workflow trigger | Incomplete-delivery condition |
 |---|---|---|---|
 | Wet-Lab Decision Matrix | `docs/modules/DELIVERABLE_WetLabMatrix.md` | any Mode B / synopsis | score without the 4 action scores |
 | Reviewer Attack Simulation | `docs/modules/DELIVERABLE_ReviewerAttack.md` | any contestable claim | claim with no RAS block / missing category |
@@ -226,6 +238,27 @@ Applicable when the authorized task includes project-level synthesis. Produced b
 | Project bundle manifest | All files, sizes, SHA-256 checksums | CODE_BACKED |
 
 ---
+
+## Author a layered BGC guide
+
+A layered guide explains one locus, from a plain-language story to the full gene catalog. Build it from a validated working package:
+
+```bash
+python mamey_run.py guide --package '/path/to/working-package' --bgc '<alias>' \
+  --audience both --format md --outdir '/path/to/review/guide'
+```
+
+`guide` writes `<strain>_<alias>_Guide.md` and `<strain>_<alias>_Guide.receipt.json`. With `--format docx` or `both` (the default), it also writes a Word copy when python-docx is installed. The default output folder is `<package>/guide/`. Writing there refreshes the package's post-seal checksums; an external `--outdir` does not. Without `--bgc`, it covers the first `--top-n` aliases (default 10) in gene-table order, which is not lead rank. Copy `<alias>` from a bound **strain / full node-or-contig / region / BGC alias** record.
+
+The guide has five Parts. `--audience technical` leaves out Part 2, the biology primer. The engine fills the coordinates, domains and BLASTp readouts. Each `<!-- LAY: ... -->` comment is a prose slot for the author. Write every slot from the package evidence. The `OK` that `guide` prints checks the generated skeleton only.
+
+Verify the authored file with the same audience:
+
+```bash
+python mamey_run.py verify-guide '/path/to/review/guide/<strain>_<alias>_Guide.md' --audience both
+```
+
+`verify-guide` exits 0 on a pass and 1 on a failure. It fails on any LAY slot left in place, a missing Part, or thin prose: under 300 characters in Part 1 or 5, or under 200 in Part 2 or 3. It also fails on a gene summary under 20 characters and on a claim-safety finding in the authored prose. A pass shows that the slots were written. It does not review the science.
 
 ## Record a bounded judgment-completeness result
 
@@ -292,12 +325,12 @@ An item not logged in the deferred ledger is considered missing, not deferred.
 
 ---
 
-*Sapote-Mamey Bundle v9.4 | Operational authority: AGENTS.md + docs/ASSISTANT_GOVERNANCE.md; analytical reference: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | 2026-06-09*
+*Operational authority: AGENTS.md and docs/ASSISTANT_GOVERNANCE.md. Analytical reference: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md.*
 
 
 ---
 
-## Citation-Compact Output Budget (proposed v9.7.136)
+## Citation-compact output
 
 Citation-compact mode is the preferred low-token output profile for ChatGPT/Claude handbacks and reader-facing reports when the user wants dense evidence rather than repeated claim-safety prose.
 
@@ -335,7 +368,7 @@ This mode does not change scoring, lead ranking, cassette calls, KCB parsing, or
 
 ## Citation-Compact Provenance and Citation Status
 
-Sapote-Mamey v9.7.140 uses citation-compact outputs to separate runtime evidence structure from literature verification.
+Citation-compact outputs are used to separate runtime evidence structure from literature verification.
 
 - **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
 - **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
@@ -345,11 +378,3 @@ Sapote-Mamey v9.7.140 uses citation-compact outputs to separate runtime evidence
 - **`Literature_Search_WorkOrder.md/json`** is a safe handoff for another ChatGPT/web-literature session. It is a search instruction, not a verified fact.
 
 Current compact lead tables use `interpretation_scope` for reader-facing scope. The older reader-facing scope field should not appear in current citation-compact outputs.
-
-#### A2.7  Cross-strain GCF network (BiG-SCAPE) — A-series cohort deliverable
-
-An exploratory / N-limited comparative deliverable produced after the per-strain runs, alongside the pangenome and normalization matrices: **`cross_strain_GCFs.tsv` + the browsable BiG-SCAPE HTML**. BiG-SCAPE clusters antiSMASH BGCs into gene cluster families by Pfam-domain content; the tsv lists, per cutoff, each family's spanned strains, dominant product, contains-MIBiG flag, and member `strain:node.region` locators — which require a validated source-run and complete-locus crosswalk before joining triage boards / Mode B cards. Filename or alias agreement does not guarantee a 1:1 join. It is the whole-cluster-family complement to the pangenome's orthogroup sharing; cite them side by side, not interchangeably. BiG-SCAPE / Pfam are an external prerequisite (not vendored). Workflow + receipts: `docs/BIGSCAPE_GCF_WORKFLOW.md`. Framing is capacity / similarity, not identity or confirmed product.
-
-#### A2.8  Reference-anchored versus unanchored cross-strain GCF status — A-series cohort deliverable
-
-`known_vs_novel_GCFs.tsv` = the base `cross_strain_GCFs.tsv` columns + `status` (KNOWN/NOVEL) + `n_members_known` + `mibig_matches`, produced by `bigscape_merge_anchors.py` unioning per-chat `bigscape_mibig_anchors.py` outputs against the no-MIBiG base. KNOWN = ≥1 family member anchors (shares a BiG-SCAPE family) to a characterised MIBiG reference; NOVEL = no MIBiG member in that run's loaded reference panel at the stated cutoff — a reference-unanchored family in this scope. These legacy KNOWN/NOVEL tokens describe reference membership, not biological novelty or compound identity. Record the run, cutoff, panel identity and member denominator; a run without loaded MIBiG references cannot establish a broader anchoring or novelty conclusion. See `docs/STRAIN_BIGSCAPE_REPORT.md`. Exploratory / N-limited, like the pangenome and GCF-network layers. Workflow: `docs/BIGSCAPE_GCF_WORKFLOW.md` (parallel MIBiG anchoring across sessions).

@@ -329,6 +329,15 @@ def build_command(bigscape_bin, input_dir, out_dir, pfam, cpus,
     return cmd
 
 
+def _database_stamp(path):
+    """Bind a selected output file before launch without relying on clock rounding."""
+    import hashlib
+    stat = os.stat(path)
+    with open(path, "rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+    return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, digest)
+
+
 def locate_db(out_dir):
     """Return the BiG-SCAPE 2.x SQLite cohort DB produced under out_dir (newest *.db), or None.
     BiG-SCAPE 2 names the DB from the run/output, so we glob rather than assume a fixed name."""
@@ -449,12 +458,27 @@ def run_pipeline(package=None, runs_dir=None, input_gbk_dir=None,
 
     # Blocking subprocess. The *caller* backgrounds `mamey bigscape` if desired; a short
     # foreground timeout truncates only the HTML write, so we do NOT impose a timeout here.
+    import time as _time
+    previous_databases = {
+        os.path.realpath(path): _database_stamp(path)
+        for path in glob.glob(os.path.join(out, "**", "*.db"), recursive=True)
+    }
+    launched = _time.time()
     proc = subprocess.run(cmd, env=env)
+    result["returncode"] = proc.returncode
     if proc.returncode != 0:
         emit(f"  bigscape: cluster exited {proc.returncode} "
               f"(DB may still be usable if only HTML failed).", file=sys.stderr)
 
     db = locate_db(out)
+    unchanged = bool(db and previous_databases.get(os.path.realpath(db)) == _database_stamp(db))
+    if db and (unchanged or os.path.getmtime(db) < launched - 1):
+        # The time tolerance must not admit an unchanged result from a recent earlier launch.
+        reason = "UNCHANGED_PREEXISTING_DATABASE" if unchanged else "DATABASE_PREDATES_LAUNCH"
+        sys.stderr.write(f"  bigscape: {db} is an earlier result ({reason}); not used as this run's result.\n")
+        result["stale_db"] = db
+        result["stale_db_reason"] = reason
+        db = None
     result["db"] = db
     if db:
         emit(f"  bigscape: cohort DB -> {db}")

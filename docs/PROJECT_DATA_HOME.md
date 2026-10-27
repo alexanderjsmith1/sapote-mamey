@@ -1,15 +1,29 @@
 # Portable project data home
 
-Run `python3 tools/init_project_data_home.py --root PATH --project-id NAME` to create a new pointer-first scientific data home.
+Run `python3 tools/init_project_data_home.py --root PATH --project-id NAME` to create a new, empty data home for a project.
 
-The home separates authority, strain genomes, phylogeny, antiSMASH and Mamey outputs, bioassays, citations, manuscripts, deliverables, and superseded artifacts. Registers store locators and checksums. Large genome and antiSMASH files may remain in governed external stores; a register entry points to them without silently copying or reclassifying them.
+The home is pointer-first. Its registers store where each file lives and its checksum. Large genome and antiSMASH files can stay in their existing external stores. A register entry points to them. Nothing is copied or reclassified.
 
-The initializer refuses an existing target. It does not select scientific inputs, approve tree membership, alter evidence, or confer release authority.
+The home has one folder each for incoming files, authority records, strain genomes, phylogeny, antiSMASH and Mamey outputs, bioassays, citations, manuscripts, deliverables and superseded files.
+
+The initializer refuses an existing target. It does not choose scientific inputs, approve tree membership or change evidence. It grants no release authority.
 
 ## What initialization actually writes
 
-The initializer creates ten numbered directories, nine TSV registers containing headers only, `PROJECT_HOME.json` and a README. It does not populate locators, compute evidence hashes, validate external stores or register existing packages automatically. A newly initialized empty register is not evidence that a scientific inventory is complete. Add source-bound rows as a separate task.
+The initializer creates:
+- ten numbered folders, `00_INBOX` to `09_SUPERSEDED`;
+- nine TSV registers that hold only a header row;
+- `PROJECT_HOME.json`;
+- a `README.md`.
 
-Use a new, explicit output root and a plain project identifier. The initializer refuses every existing target, including an empty directory. It creates missing parent directories; on a caught failure while writing the home, it attempts to remove the new home, but a process interruption can leave a partial directory that a retry will refuse. Inspect and preserve the failed attempt or choose a fresh root; do not merge partial generated files silently. The project identifier is inserted into generated Markdown, so choose a literal display label rather than a multiline Markdown fragment.
+It does not fill in locators or compute evidence hashes. It does not check external stores. It does not register existing packages. An empty register does not mean the scientific inventory is complete. Adding rows that point to real source files is a separate task.
 
-This layout is distinct from the hash-bound project catalog operated by `tools/project_catalog.py`. Initializing this home does not register its contents in that catalog or bind a portfolio privacy/evidence configuration.
+Use a new, explicit output root and a plain project identifier. The initializer refuses every existing target, including an empty folder. It creates missing parent folders.
+
+If writing the home fails with an error, the initializer tries to remove the new home. If the process is killed partway, a partial folder can remain. A retry will refuse it. Inspect and keep the failed attempt, or choose a fresh root. Do not quietly merge partial generated files.
+
+The project identifier is written into the generated README heading. Use a plain display label, not a multiline Markdown fragment.
+
+This layout is separate from the project catalog run by `tools/project_catalog.py`, which records file hashes. Creating this home does not add its contents to that catalog. It does not set up a portfolio privacy or evidence configuration.
+
+It is also separate from the Strain Master in [DATA_HOME.md](DATA_HOME.md), which holds byte copies rather than pointers. No bundle command reads this layout; the `strain-master` commands use their own layout.

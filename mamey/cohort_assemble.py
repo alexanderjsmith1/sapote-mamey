@@ -79,9 +79,16 @@ def _num(x: Any):
         return None
 
 
+_UNPOPULATED_TAX = ("", "not", "not verified", "none", "—", "unresolved", "unknown")   # as in cohort_synthesis
+
+
 def _genus_of(tax: Any) -> str:
-    """Genus = first whitespace-delimited token of the taxonomy string."""
-    return (str(tax).split()[0] if tax else "") or ""
+    """Genus = first whitespace-delimited token of the taxonomy string; a placeholder such as the
+    engine's own `not verified` gives no genus, not the genus "not"."""
+    s = str(tax).strip() if tax else ""
+    if s.lower() in _UNPOPULATED_TAX:
+        return ""
+    return s.split()[0] if s else ""
 
 
 def find_packages(runs_dir: str) -> list[str]:

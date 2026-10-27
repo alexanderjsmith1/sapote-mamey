@@ -53,7 +53,7 @@ SCAN_CATALOG = [
     ("KCB_sweep",   "Known-cluster-blast similarity sweep -> RiQ novelty. KCB is a similarity signal, not a product identification."),
     ("RG_GMCI",     "Reference-genome-guided multi-cluster integration: detects split-cluster pairs across contig breaks."),
     ("FLBR",        "Fragment-linked biosynthetic rescue / LMPKS fragment set."),
-    ("CCTT",        "T43 diagnostic class triggers (15 families) feeding AB/AF/novelty."),
+    ("CCTT",        "T43 diagnostic class triggers ({cctt_family_count} families) feeding AB/AF/novelty."),
     ("CGAD",        "Chitinase / glycan-active-domain ecology scan."),
     ("UMED",        "RiPP maturation-machinery scan (proteases / transporters / maturation gaps)."),
     ("EFLS",        "Evidence-from-linkage scan: candidate co-localized pairs."),
@@ -66,7 +66,7 @@ SCAN_CATALOG = [
 
 
 def build_catalog() -> dict:
-    from mamey.source_scans import CASSETTE_PATTERNS, CASSETTE_REGISTRY_MAP
+    from mamey.source_scans import CASSETTE_PATTERNS, CASSETTE_REGISTRY_MAP, CCTT_PATTERNS
     reg = _load_registry()
 
     cassettes = []
@@ -77,7 +77,7 @@ def build_catalog() -> dict:
             "family": family,
             "registry_id": mmc,
             "name": entry.get("name", ""),
-            "tier": entry.get("tier", ""),
+            "tier": entry.get("evidence_tier", entry.get("tier", "")),  # registry key is evidence_tier; "tier" left every row blank
             "detects": ", ".join(CASSETTE_PATTERNS[family]),
             "description": entry.get("description", ""),
             "positive_interpretation": entry.get("positive_interpretation", ""),
@@ -85,7 +85,8 @@ def build_catalog() -> dict:
             "claim_safety": entry.get("claim_safety", ""),
         })
 
-    scans = [{"scan": s, "description": d} for s, d in SCAN_CATALOG]
+    scans = [{"scan": s, "description": d.format(cctt_family_count=len(CCTT_PATTERNS))}
+             for s, d in SCAN_CATALOG]
     return {"cassettes": cassettes, "scans": scans}
 
 

@@ -733,6 +733,11 @@ def main(argv=None):
     parser.add_argument("--activity-palette", choices=("default", "calm"), default="default",
                         help=".452: activity strip colours, with --strip-set activity. 'default' is red / dark grey / grey "
                              "(unchanged); 'calm' is dark blue / blue-grey / pale grey (palette field activity_calm)")
+    parser.add_argument("--activity-states", choices=("two", "three"), default="two",
+                        help="activity strip states for numeric readings, with --strip-set activity and a split-Candida "
+                             "layout. 'two' (default) is 'strong (\u226580%%)' / 'tested, below 80%%'. 'three' is "
+                             "'strong (\u226580%%)' / 'moderate (50\u201379%%)' / 'tested, below 50%%' (thesis rulings 314-316: "
+                             "active means 50%% or more); not tested stays blank")
     parser.add_argument("--isolate-emphasis", choices=("none", "bold", "bold-band"), default="none",
                         help="v9.7.444: bold the isolate (query) labels; 'bold-band' also shades each isolate row from label through strips")
     parser.add_argument("--caption-note", action="append", default=[], help="v9.7.444 trial: sentence appended to the short caption")
@@ -802,10 +807,15 @@ def main(argv=None):
         queries = Path(length_admission["sources"]["query_alignment"])
         activity = _load("_placement_activity")
         split_activity = args.strip_set == "activity" and activity.profile(args.layout, args.layout_config or None).get("split_candida", False)
+        if args.activity_states != "two" and args.strip_set != "activity":
+            raise ValueError("ACTIVITY_STATES_NEEDS_ACTIVITY_STRIPS")
+        if args.activity_states != "two" and not split_activity:
+            # Without split strips the states come from positive / negative text and carry no percent to class.
+            raise ValueError("ACTIVITY_STATES_NEEDS_SPLIT_CANDIDA_LAYOUT")
         activity_strips = []
         if split_activity:
             pool_candida = activity.profile(args.layout, args.layout_config or None).get("tree_pool_candida", False)
-            measured_activity, activity_strips = activity.load(args.bioassay_table, args.bioassay_material, pool=pool_candida)
+            measured_activity, activity_strips = activity.load(args.bioassay_table, args.bioassay_material, pool=pool_candida, states=args.activity_states)
         builder = _load("build_placement_ggtree_inputs")
         inputs = [src, refs, queries, Path(args.host_table), Path(args.ref_source_db)] + [Path(p) for p in args.aux_table]
         if args.layout:
@@ -919,7 +929,7 @@ def main(argv=None):
         if args.strip_set == "activity" and not split_activity:
             # Query tips carry measured, strain-level activity; reference and outgroup tips are public comparators
             # and stay blank (they were not part of the screen). Values are mapped, never inferred.
-            _act = {"positive": "active (\u226580%)", "negative": "tested, inactive", "not_tested": "not tested", "": "not tested"}
+            _act = {"positive": "strong (\u226580%)", "negative": "tested, below 80%", "not_tested": "not tested", "": "not tested"}
             _by_tip = {a["tip"]: a for a in annotations}
             for row in rows:
                 if row["role"] == "query":
@@ -1027,12 +1037,14 @@ def main(argv=None):
                             f"RAxML-NG replicates), shown when \u2265{_smin}.")
             if split_activity:
                 caption += " Strips: " + "; ".join(strip['label'] for strip in activity_strips) + ". Recorded states are +, −, n.t. and blank; numeric readings, where present, retain the stated threshold. Reference cells are blank."
+                if args.activity_states == "three":
+                    caption += " Numeric readings: strong, 80% or more; moderate, 50\u201379%; tested, below 50%. Active means 50% or more."
                 if any(strip['label'] == activity.POOLED for strip in activity_strips):
                     caption += (" *Candida*: the strongest state recorded for *C. albicans*, *C. auris* or a reading that did not "
                                 "record which of the two was used (a positive in any one is shown as positive).")
             elif args.strip_set == "activity":
                 caption += (" Strips: best inhibition of *Candida* sp. (the higher of the *C. albicans* and *C. auris* readings, where some readings did not record which of the two was used) and of MRSA by crude extract or fraction; "
-                            "active, \u226580% inhibition. Reference strains were not screened.")
+                            "strong, \u226580% inhibition; tested, below 80% is not an inactive call. Reference strains were not screened.")
             else:
                 caption += " Strips: isolation source and country as deposited; white, no deposited value."
         # .452 (T1 caption half): tip labels no longer carry a grouping suffix, so every caption (any label style, and a
@@ -1058,6 +1070,7 @@ def main(argv=None):
                    GG_STRIP2_TITLE=('MRSA' if args.strip_set == 'activity' else 'Location'),
                    GG_STRIP_KIND=('activity' if args.strip_set == 'activity' else 'source'),
                    GG_ACTIVITY_PALETTE=args.activity_palette,
+                   GG_ACTIVITY_STATES=args.activity_states,
                    GG_STRIP1_FACE=('italic' if args.strip_set == 'activity' else 'plain'),
                    GG_BLANK_MISSING=('1' if args.omit_unsourced or split_activity else '0'),
                    GG_FOCAL_FACE=('bold' if args.isolate_emphasis in {'bold', 'bold-band'} else os.environ.get('GG_FOCAL_FACE', 'plain')),

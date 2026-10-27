@@ -96,12 +96,16 @@ def _const_key(node):
     return v
 
 
+class Unparsed(Exception):
+    """A file that could not be parsed was not scanned; the gate must not count it as clean."""
+
+
 def scan_file(path: Path):
-    """Yield dicts describing each offending dict literal in `path`."""
+    """Yield dicts describing each offending dict literal in `path`. Raises Unparsed on a SyntaxError."""
     try:
         tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-    except SyntaxError:
-        return
+    except SyntaxError as e:
+        raise Unparsed(f"{path.as_posix()}:{e.lineno}") from e
     for node in ast.walk(tree):
         if not isinstance(node, ast.Dict):
             continue
@@ -116,7 +120,7 @@ def scan_file(path: Path):
                    "entries_lost": len(const) - len(set(const))}
 
 
-def collect(roots, stats=None, unreadable_out=None):
+def collect(roots, stats=None, unreadable_out=None, unparsed_out=None):
     # v9.7.400: file discovery now goes through the shared safe_walk_files() (tools/
     # _safe_walk.py) instead of a local `rp.rglob("*.py")` -- rglob silently swallows a
     # per-directory OSError, so a real collision sitting inside an unscannable directory
@@ -133,9 +137,16 @@ def collect(roots, stats=None, unreadable_out=None):
         for f in files:
             if any(part in SKIP_PARTS for part in f.parts):
                 continue
+            try:
+                recs = list(scan_file(f))
+            except Unparsed as u:
+                if unparsed_out is None:
+                    raise
+                unparsed_out.append(str(u))
+                continue
             if stats is not None:
                 stats["files"] = stats.get("files", 0) + 1
-            for rec in scan_file(f):
+            for rec in recs:
                 rec["file"] = f.as_posix()
                 yield rec
 
@@ -162,8 +173,9 @@ def main(argv=None):
 
     stats = {"files": 0}
     unreadable: list[str] = []
+    unparsed: list[str] = []
     new, known = [], []
-    for rec in collect(a.root, stats, unreadable):
+    for rec in collect(a.root, stats, unreadable, unparsed):
         if not a.strict and rec["file"] in ALLOWLIST:
             rec["allowlisted"] = ALLOWLIST[rec["file"]]
             known.append(rec)
@@ -181,6 +193,12 @@ def main(argv=None):
         sys.stderr.write(f"duplicate-dict-key gate: ERROR — {len(uniq)} director"
                          f"{'y' if len(uniq) == 1 else 'ies'} could not be scanned (unreadable), "
                          f"so this run is NOT a complete scan and cannot report PASS: {uniq}\n")
+        return 2
+
+    # a file with a syntax error was skipped, not scanned: same rule as an unreadable directory
+    if unparsed:
+        sys.stderr.write(f"duplicate-dict-key gate: ERROR — {len(unparsed)} file(s) could not be parsed, "
+                         f"so this run is NOT a complete scan and cannot report PASS: {sorted(unparsed)}\n")
         return 2
 
     if stats["files"] == 0:

@@ -66,7 +66,8 @@ analysis mode. The capped flag forces `--brief none` and `--json-evidence off`, 
 and disables automatic locus maps unless explicitly enabled. For bounded JSON evidence, omit
 `--capped-session` and use `--json-evidence bounded` with sufficient runtime; the capped flag overrides
 that evidence choice. Do not replace a failed engine run with an informal raw-JSON interpretation.
-For batches, inventory all inputs and use `tools/intake_harness.py --inputs <dir> --resume`;
+For batches, inventory all inputs and run `tools/intake_harness.py` with `--inputs`, `--outdir`,
+`--registry`, `--metrics` and `--resume` (see `docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md`);
 checkpoint and diagnose a stalled input instead of repeatedly running it.
 
 After validation, read the package with `list-bgcs`, select the figure roster, and follow
@@ -77,7 +78,7 @@ held panels. Authored Mode B cards, guides and white papers are optional selecte
 this workflow does not automatically author a final report or manuscript.
 
 For native `render-figures`, `domain-level`, optional `mode-b` or BLASTp ingest, use an identified
-working package copy when the sealed original must remain byte-for-byte unchanged: .447 may
+working package copy when the sealed original must remain byte-for-byte unchanged: these commands may
 refresh package integrity files even with external output. Read `docs/POSTSEAL_READERS.md` for
 command-specific write boundaries. When authored cards or judgment/workbook updates are selected,
 use the admitted package and existing `ingest-receipts` workflow. Recover prior authored cards
@@ -102,18 +103,18 @@ authoring and verifier requirements below.
   authored card. Start from
   `emit-modeb-template`, select the current named profile, preserve its exact titles, author the
   evidence-backed sections, then run `verify-modeb` on the actual authored file. Obtain current
-  profile requirements from the machine-readable contract and emitted template. In .447 the native
+  profile requirements from the machine-readable contract and emitted template. The native
   emitter/verifier command contracts are `full48` (default) and opt-in `current50_v2`; carry the
   same explicit `--contract` through emission and verification. Historical
-  section counts are not authority. Named profiles include `MODEB_CANDIDATE_30` and
-  `FINISHED_FULL48_CURRENT_EVIDENCE`; use their current machine definitions. Read `docs/MODE_B_30_SECTION_CANONICAL_TITLES.md` and
+  section counts are not authority. Named profiles include `MODEB_CANDIDATE_30`,
+  `FINISHED_FULL48_CURRENT_EVIDENCE` and `FINISHED_FULL50_CURRENT50_V2`; use their current machine definitions. Read `docs/MODE_B_30_SECTION_CANONICAL_TITLES.md` and
   `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` in their declared profile scope.
 - Read `docs/ONLINE_BLASTP_PROTOCOL.md` before the independent homology channel. Preserve raw
   evidence, protein lengths, named references, and channel-specific provenance. Keep reconciled
   verdicts and distinguish unavailable evidence from tested negatives.
 - When a guide is requested, use `guide` to emit the package-backed skeleton, author only its prose slots, and run
   `verify-guide` on the authored file. A skeleton-structure pass does not verify authored prose.
-  See `docs/DELIVERABLE_CONTRACT.md` and the guide exemplars under `examples/`.
+  See `docs/DELIVERABLE_CONTRACT.md#author-a-layered-bgc-guide`.
 - `PASS_STRUCTURE` is a structural result, not literature or scientific validation.
   `operator_supplied` records evidence provenance; `citation_needed` remains unresolved.
 
@@ -158,7 +159,7 @@ protocol requires it. `pytest -q` uses configured tests, tools and deliverable_t
 require their explicit flags. Preserve complete logs and do not call an interrupted suite green.
 A surrogate gate is a fast preflight, not full-suite or real-input validation.
 
-For a requested Bunny Hop audit, load `docs/BUNNY_HOP_AUDIT_GAME.md`; the protocol lives under
+For a requested Bunny Hop audit, load `debugging_modules/BUNNY_HOP_AUDIT_GAME.md`; the other audit protocols are also under
 `debugging_modules/`. Findings and trial patches are inputs to owner review, never a release.
 
 Generated surfaces have owners. Edit this file's prose and `bootstrap_contract.yml` for shared
@@ -234,26 +235,26 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.457 / 1.9.177 · build 20261023v97457a
+   bundle / engine  : v9.7.458 / 1.9.177 · build 20261026v97458a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → render-figures → review figures and evidence → captions/Methods facts; optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.457 / 1.9.177 · 20261023v97457a)
+## 3 · Known gotchas for THIS build (v9.7.458 / 1.9.177 · 20261026v97458a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 
 - **blastp_hit_table_csv_shape** (high; BLASTP evidence store): Store raw Hit Table CSV/XML2 in blastp_evidence_store before summarizing; do not parse comma-bearing query titles with a naive split.
 - **public_single_region_intake** (medium; public accession antiSMASH ZIP intake): When inspect passes, do not treat VERY_POOR / 0% interior warnings as full-genome failure for single-region public accession inputs.
 - **bootstrap_contract_generation** (medium; assistant bootstrap and release checks): Edit shared operating guidance in AGENTS.md and generated blocks in bootstrap_contract.yml; render and check the CLAUDE.md mirror. Automatic discovery varies, so point other assistants to AGENTS.md or provide it through their supported instruction mechanism. README.md is the human landing page.
-- **mode_b_top_n_cumulative** (medium; mode-b CLI batching): mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches, run cumulative tiers and de-duplicate by BGC id until rank slicing exists.
+- **mode_b_top_n_cumulative** (medium; mode-b CLI batching): mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches, run cumulative tiers on the same package and de-duplicate by BGC id within that package until rank slicing exists; across packages, match on the full strain / contig / region / BGC alias identity.
 - **timing_breakdown_partial_runs** (low; timing outputs): *_timing_breakdown.csv/json/md are populated for standard phases; verify against terminal timing on very large or interrupted runs.
 - **json_evidence_off_is_lightest** (medium; evidence mode selection): --capped-session forces --json-evidence off regardless of assistant; omit the capped flag and use --json-evidence bounded with sufficient runtime when JSON evidence is needed.
 - **manifest_summary_nested** (low; package manifest readers): manifest.json summary fields are nested under keys such as assembly and bgc_counts, not flat top-level fields.
 - **mode_b_corrective_protocol_section_lock** (high; Mode B BGC card writing): Use the selected named Mode B profile and current machine-readable contract; emit the template, preserve its exact section titles, author evidence-backed content, then verify the authored file. A table or skeleton does not establish a finished card.
-- **mode_b_length_and_comparator_context** (medium; Mode B BGC workups): Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labelled proteins; repeated external-strain hits should trigger comparator next-step guidance rather than identity claims.
+- **mode_b_length_and_comparator_context** (medium; Mode B BGC workups): Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labeled proteins; repeated external-strain hits should trigger comparator next-step guidance rather than identity claims.
 <!-- END GENERATED: known_gotchas_section from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: bootstrap_surface_map from bootstrap_contract.yml -->

@@ -2,7 +2,7 @@
 
 Use the selected compatible interpreter/environment and bundle root. Documentation/source inspection does not authorize tests, provisioning, external-data runs or network work. Use the recorded test command, source digest and actual result to describe test outcomes.
 
-The default configured discovery paths are `tests`, `tools` and `deliverable_tools` (`pyproject.toml:70–82`). Restricting a command to `tests/` omits the other two configured paths. Explicit `slow` and `network` marks are skipped by default; `--run-slow` and `--run-network` include those marked partitions (`tests/conftest.py:125–155`). Fixture/dependency/renderer admission may still skip tests after those flags. A default green summary, selected partition or interrupted run is not full-suite clearance.
+The default configured discovery paths are `tests`, `tools` and `deliverable_tools` (`pyproject.toml:70–82`). Restricting a command to `tests/` omits the other two configured paths. Explicit `slow` and `network` marks are skipped by default; `--run-slow` and `--run-network` include those marked partitions (root `conftest.py:21–49`). Fixture/dependency/renderer admission may still skip tests after those flags. A default green summary, selected partition or interrupted run is not full-suite clearance.
 
 For an authorized bounded test task, select a relevant test file first with the chosen interpreter's `-m pytest`; retain the exact command, exit status, complete log, selected/passed/failed/skipped counts and reasons. A command fragment with `PYTHONPATH=...` is not a configured environment. Review collection/dependency errors and default skipped partitions before reporting coverage.
 

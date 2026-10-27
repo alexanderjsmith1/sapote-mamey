@@ -1,7 +1,7 @@
-# Sapote–Mamey v9.7.457 CODE tier
+# Sapote–Mamey v9.7.458 CODE tier
 
-Build stamp: 20261023v97457a  
+Build stamp: 20261026v97458a  
 Engine: Mamey v1.9.177  
-Bundle: v9.7.457
+Bundle: v9.7.458
 
 *This note restates BUILD_STAMP/TAG, which are authoritative. If it disagrees with BUILD_STAMP.txt, trust BUILD_STAMP.txt and regenerate this note at cut time.*

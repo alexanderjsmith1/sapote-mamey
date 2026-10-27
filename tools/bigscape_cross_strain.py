@@ -10,6 +10,7 @@ import io
 import os
 import re
 import sqlite3
+from pathlib import Path
 import sys
 from decimal import Decimal
 
@@ -72,7 +73,10 @@ def load_labels(path):
 def build_rows(db, run_id, cutoff=None, min_strains=2, labels=None):
     selected_run = normalize_run_id(run_id)
     selected_cutoff = normalize_cutoff(cutoff) if cutoff is not None else None
-    with sqlite3.connect(db) as connection:
+    # Read-only: a mistyped --db path must not leave a new empty database behind.
+    if not os.path.isfile(db):
+        raise FileNotFoundError(f"--db is not an existing BiG-SCAPE database: {db}")
+    with sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True) as connection:
         rows = connection.execute("""
           select fam.cutoff, fam.id, fam.bin_label, g.path, br.product, br.category, br.id
           from bgc_record_family rf

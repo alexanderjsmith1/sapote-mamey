@@ -41,17 +41,19 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
    `SKIP_INTIER_PYTEST=1` environment variable is not external-validation authority at the release
    orchestrator. The low-level `make_public_tier.sh` does accept that variable without verifying
    a structured receipt itself; that is a technical bypass, not an authorization to use it. The receipt must
-   bind the exact source-tree digest; the canonical `python -m pytest -q -p no:cacheprovider --run-slow --run-network` command
-   and `configured-full-suite` profile; zero process exit code; ordered UTC start/completion times and a completion no more than 24 hours old
-   (the verifier permits at most five minutes of future clock skew); Python, pytest, and platform identity; and SHA-256-bound log, exact node-ID list, and
+   bind the exact source-tree digest. It must also bind the canonical `python -m pytest -q -p no:cacheprovider --run-slow --run-network` command
+   and `configured-full-suite` profile, and a zero process exit code. It must bind ordered UTC start/completion times and a completion no more than 24 hours old
+   (the verifier permits at most five minutes of future clock skew). It must bind Python, pytest, and platform identity. It must also bind a SHA-256-bound log, exact node-ID list, and
    per-node outcome TSV. The identity and outcome node sets and all declared outcome counts must agree,
    with zero failures/errors. Keep the receipt and its three artifacts outside the source tree so the
    tree digest is not circular. The gate compares supplied artifacts; it does not execute pytest
    or authenticate authorship. Preserve the independently observed run evidence, not just its labels.
    In `release_cut.sh`, receipt verification happens after source preparation. A receipt bound to
    pre-bump/pre-regeneration bytes is stale at that point and must not be reused as if it covered
-   the prepared tree. Never skip the un-skippable gates: `sync_version --check`, the leak
-   audit, tier-derivation parity, and redaction.
+   the prepared tree. Never skip the required gates: `sync_version --check`, staged content/privacy
+   audit, CODE tier-derivation checks, and source-integrity/membership checks. The
+   current cut preserves genuine strain names and strain-to-class associations;
+   identifier redaction is an explicit utility, not an automatic cut transform.
 
 5. **Verify the artifact, not just the source.** At this point the tier ZIP is an **engineering build
    candidate, not a sealed release**. Extract it to a clean scratch
@@ -59,13 +61,13 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
    from there — the same `pytest` invocation as step 4, but against the extracted artifact, not
    the assembled-source working tree. Compare pass/fail/skip/error counts against step 4's numbers from
    the same session. Any new failure or error that wasn't present in step 4 means something was lost,
-   corrupted, or altered between "assembled source" and "shipped zip" — most likely a packaging/export-
-   tooling issue, not a code issue, but it still blocks the cut until explained. A clean diff (same
+   corrupted, or altered between "assembled source" and "shipped zip". That is most likely a
+   packaging/export-tooling issue, not a code issue, but it still blocks the cut until explained. A clean diff (same
    numbers, or only the expected differences from environment-skip variance) is required before the
    artifact is considered cut. (Added 2026-06-30 after a `.gitignore`-driven export bug silently stripped
    every `.zip` test fixture from a shipped release; nothing short of testing the actual artifact would
    have caught it. Cheap — one `unzip` and one more `pytest` run — and a backstop for *any* future
-   "looked right in the working tree, broke in the zip" class of bug, regardless of cause.) Only the
+   "looked right in the working tree, broke in the zip" class of bug, regardless of cause). Only the
    artifact-verified candidate can proceed to the separately authorized seal decision; building or
    testing the archive does not itself seal it.
 
@@ -73,7 +75,7 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
    Bert Mode status-tier vocabulary (Verified / Partial / Policy / GenBank) in-bundle so the retired v9.4
    three-bucket taxonomy ("Partially verified" / "Unverified leads") cannot creep back into the reconciled
    surface. Note: the gate cannot diff the external `literature-digest` skill (not shipped in the bundle by
-   design — self-containment), so it pins the vocabulary in-bundle rather than diffing upstream; when the
+   design — self-containment), so it pins the vocabulary in-bundle rather than diffing upstream. When the
    skill's tier set changes, propagate skill -> `docs/BERT_MODE_PROTOCOL.md` -> this gate's pattern list.
 
 6. **Hand back with a per-tier disclosure.** Every cut ends with the disclosure block below — filled in,
@@ -180,9 +182,9 @@ Bundle and engine version independently. Bump only what changed:
   `CITATION.cff version`, `mamey/__init__.py BUNDLE_VERSION`, `BUILD_STAMP.txt version`), engine unchanged.
 - **Engine/scoring change** → bump engine too, and say so loudly (it gates cross-strain comparability).
 
-Then, **in this exact order** (confirmed by direct execution at v9.7.153 — running these out of
-order produces a confusing, fully-recoverable but wasted round of transient "OUT OF SYNC" / "stale
-generated block" failures that look alarming but are just sequencing, not real drift):
+Direct execution at v9.7.153 confirmed the order below. Running these out of order produces a
+confusing, fully-recoverable but wasted round of transient "OUT OF SYNC" / "stale generated block"
+failures. They look alarming but are just sequencing, not real drift. Then, **in this exact order**:
 
 1. Bump `pyproject.toml [tool.sapote].bundle_version` (and engine, if applicable).
 2. Add the `CHANGELOG` entry (bolded headlines feed the `BUILD_STAMP.txt` `patch=` line).
@@ -265,8 +267,10 @@ require the receipt itself to be supplied by absolute path together with its ind
 SHA-256. `tools/release.sh` applies the same receipt gate before honoring
 `SKIP_INTIER_PYTEST=1`; direct environment-only bypass is refused.
 
-If a public tier **REFUSES** (leak audit) or **FATALs** (parity gate), that is the gate working. Do not
-force past it — fix the source (allowlist a genuine synthetic token; redact a real ID) and re-cut.
+If a tier refuses its content/privacy or derivation checks, preserve the failed evidence
+and resolve the named finding in the authorized candidate or explicit export policy before
+retrying. Do not add identifiers to allowlists or rewrite genuine labels merely to force a pass;
+a matching identifier pattern alone does not establish private status.
 
 ### Releases cut the CODE tier only (v9.7.444)
 
@@ -274,7 +278,7 @@ force past it — fix the source (allowlist a genuine synthetic token; redact a 
 are no longer part of the cut. `tools/release_cut.sh` cuts the CODE tier only, which still runs its own leak audit,
 derivation check and checksums. The tooling for the other tiers stays in the bundle, disabled by default:
 - the `clean`, `cohort`/`sid`, `merged` and `public` branches of `tools/make_public_tier.sh`, and the four-tier driver
-  `tools/release.sh`, refuse to run unless `SAPOTE_ENABLE_DISABLED_TIERS=1` is set;
+  `tools/release.sh`, refuse to run unless `SAPOTE_ENABLE_DISABLED_TIERS=1` is set.
 - `tools/check_tier_parity.py`, `tools/tier_vocabulary.py` and the redaction and leak-scan tools stay live, because
   the CODE tier and the release manifest still use them.
 
@@ -285,14 +289,14 @@ tools/release_cut.sh …`. For a CODE-only cut the disclosure block below has on
 
 The sealed ZIP is the validated artifact. A `.tar.gz` for a release page is a repackaging, and the
 gates above never see it. Build it only from a fresh extraction of the sealed ZIP, with the bundle
-tool, then prove it carries exactly the sealed files:
+tool. Then prove it carries exactly the sealed files:
 
 ```bash
 "$CUT_PYTHON" -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" <sealed.zip> <tmp>/<bundle-dir-name>
 bash tools/make_verified_code_tarball.sh <tmp>/<bundle-dir-name> <OUT> <sealed.zip> <selected-SEAL_RECEIPT.json>
 ```
 
-The CODE tarball route runs the producer, receipt-bound tarball verifier and SHA-256 sidecar check in private scratch space; it places the tarball and sidecar in `<OUT>` only after those checks pass. The selected local CODE seal receipt must name the supplied ZIP and bind its exact SHA-256 and byte count. Verify the receipt itself by the cut record before using it; this tool checks consistency, not owner selection. Publish only after that owner review, and quote the `.tar.gz.sha256` the tool wrote. Never
+The CODE tarball route runs the producer, receipt-bound tarball verifier and SHA-256 sidecar check in private scratch space. It places the tarball and sidecar in `<OUT>` only after those checks pass. The selected local CODE seal receipt must name the supplied ZIP and bind its exact SHA-256 and byte count. Verify the receipt itself by the cut record before using it; this tool checks consistency, not owner selection. Publish only after that owner review, and quote the `.tar.gz.sha256` the tool wrote. Never
 hand-build or copy the tarball through another volume. A tree that crossed exFAT, FAT or SMB
 carries macOS `._*` files that Linux extracts as real files; at v9.7.441 that broke pytest
 collection and failed `--strict-membership`.
@@ -311,15 +315,21 @@ Seal / promotion / publication authority: <separate owner decision / NOT GRANTED
 Changed scope and unresolved limitations: <specific records>
 ```
 
-## Generator mandate (v9.7.148h)
+## Generator mandate
 
-> **Before zipping any tier**, always run both generators to derive manifests from source-of-truth:
-> ```bash
-> "$CUT_PYTHON" tools/gen_release_manifest.py --root . --apply   # RELEASE_MANIFEST.md
-> "$CUT_PYTHON" tools/render_bootstrap_contract.py --apply       # docs/BOOTSTRAP_FILE_AUDIT.md
-> "$CUT_PYTHON" tools/sync_version.py --check                    # confirm no drift
-> ```
-> Never hand-edit `RELEASE_MANIFEST.md` build stamps — they drift within one cut. The generators exist; use them.
+Regenerate bootstrap and other owned surfaces in version-bump step 6, before
+source-integrity refresh and configured-suite validation. After the final green
+suite in step 7, set `FINAL_GREEN_PYTEST_LOG` to that complete log for the selected
+source, retained outside the source tree, and bind it with:
+
+```bash
+"$CUT_PYTHON" tools/gen_release_manifest.py --root . --apply --pytest-log "$FINAL_GREEN_PYTEST_LOG"
+```
+
+A bare `--apply` without test evidence is refused. Refresh source-stage membership
+and checksums after the manifest update, then run the checks in steps 8–9 before
+packaging. Never freehand derived build stamps. The generator preserves narrative
+prose; review archive-content and seal descriptions against the actual evidence.
 
 
 ## Custom private-vocabulary coverage
@@ -362,7 +372,7 @@ coverage. Old v1 evidence does not satisfy this changed contract.
 separate visible ready state: only exact pinned vendored ijson YAJL/CFFI backend
 modules may have `OPTIONAL_UNAVAILABLE` outcomes, with exact exception identity,
 origin and dependency-absence evidence. These outcomes remain in every worker and
-root summary and are never relabelled PASS. The pinned pure-Python JSON backend
+root summary and are never relabeled PASS. The pinned pure-Python JSON backend
 must pass fixed valid, incomplete, malformed and trailing-garbage JSON capability checks at its natural roster
 position. Unexpected exceptions, unknown vendor/dependency bytes, unavailable
 explicitly selected backends or DLLs, protected operations, altered global state,

@@ -1011,17 +1011,11 @@ def _phase_environment(
                    chatgpt_safe=(brief == "none"), input_zip_bytes=(_source_size(input_zip) if input_zip and _source_exists(input_zip) else None))
     _label_accession = _label_is_accession(strain_id)
     if _label_accession:
-        # v9.7.229 naming convention: derive Genus_species_Designation from the organism record rather
-        # than keep an accession/LLM label. Sourced from ORGANISM (or filename tokens); never invented.
-        from .cohort_resolver import derive_strain_id as _derive_sid
-        _derived, _sid_note = _derive_sid(strain_id, organism=taxonomy,
-                                          filename=(_os.path.basename(str(input_zip)) if input_zip else ""))
-        if _derived and _derived != strain_id:
-            _stage(f"[NOTE] {_sid_note}")
-            strain_id = _derived
-        else:
-            _stage(f"[NOTE] label '{strain_id}' looks like an NCBI accession — strain names are preferred; "
-                   f"supply --strain <Genus_species_Designation> when available (accession is a fallback label)")
+        # v9.7.458 (owner ruling, addendum 15): an accession that passed the identity guard is kept as the
+        # output identity. It is not rebuilt from --taxonomy or the ZIP filename (the v9.7.229 derivation
+        # did both); --strain auto or an explicit --strain is the route to an organism-based id.
+        _stage(f"[NOTE] label '{strain_id}' looks like an NCBI accession and is kept as the strain id; "
+               f"supply --strain <Genus_species_Designation> or --strain auto for an organism-based id")
 
     # F-6: the AS GBKs deposit `ORGANISM  .` (genus missing), so an organism string extracted from them is the
     # literal ".". Normalize a taxonomy with no alphabetic genus to a safe "sp." placeholder so "." never
@@ -1296,6 +1290,26 @@ def _atomic_publish_master(src_path, dest_path) -> None:
         raise
 
 
+
+# A failed --master workbook update is recovered through the Strain Master inbox
+# (docs/DATA_HOME.md): submit the sealed Complete_Package ZIP as kind mamey_package, verify it by a
+# different --chat id, then apply. tools/ingest_package.py has no --master flag, so the old printed
+# route could not run. The Strain Master folder comes from $SAPOTE_STRAIN_MASTER or --master; the
+# run's own --master names a workbook, not that folder, so it is never reused here.
+_MASTER_RECOVERY_NEXT = ("then strain-master verify --id <submission id> --chat <a different id>, then "
+                         "strain-master apply; add --master <Strain Master folder> unless "
+                         "$SAPOTE_STRAIN_MASTER is set (docs/DATA_HOME.md)")
+
+
+def _master_recovery_command(strain_id: str, package_zip: str | None = None) -> str:
+    """The `strain-master submit` command for a run whose master workbook update failed."""
+    import shlex as _shlex
+    return ("python mamey_run.py strain-master submit --chat <your-id> --target mamey_package "
+            f"--topic {_shlex.quote(f'{strain_id} package')} "
+            f"--summary {_shlex.quote('sealed package; the master workbook update failed')} "
+            + (_shlex.quote(str(package_zip)) if package_zip else "<Complete_Package.zip>"))
+
+
 def run_one_strain(
     strain_id: str,
     display_name: str,
@@ -1357,20 +1371,13 @@ def run_one_strain(
         emit(f"ERROR: {code}: {detail}", file=_sys.stderr, flush=True)
         return {"status": code, "written": False}
 
-    # M5_451 accession --strain fix: derive the Genus_species_Designation id BEFORE the run folder, lock and
-    # package are named, so folder, zip, manifest and every phase share one strain id. Previously
-    # _phase_environment derived it into context.strain_id only (manifest), while this function kept the
-    # accession for the folder, deep data and gene context -> GOLD_IDENTITY_STRAIN_CONFLICT holds and a skipped
-    # domain-level set. Same rule and inputs as _phase_environment (which now sees a non-accession id and no-ops).
-    _early_sid_note = None
-    if _label_is_accession(strain_id):
-        from .cohort_resolver import derive_strain_id as _derive_sid_early
-        _derived_early, _early_sid_note = _derive_sid_early(
-            strain_id, organism=taxonomy, filename=(os.path.basename(str(input_zip)) if input_zip else ""))
-        if _derived_early and _derived_early != strain_id:
-            strain_id = _derived_early
-        else:
-            _early_sid_note = None   # not derived: _phase_environment keeps its fallback note and issue
+    # v9.7.458 (owner ruling, addendum 15): the strain id that reaches this function is final. The identity
+    # guard (strain_identity.resolve_strain_id) already decided it: an accession is refused when the archive
+    # names an organism, kept when --allow-accession-strain-id is given, and kept with a warning when nothing
+    # better can be read. The M5_451 block that stood here renamed an accession after the guard had accepted
+    # it, from --taxonomy (KY089035.1 -> Streptomyces_sp_KY089035_1) or, with no genus there, from the ZIP
+    # filename (KY089035_1_zip_sp_KY089035_1), with or without the flag. The id is never rebuilt here or in
+    # _phase_environment, so folder, zip, manifest and every phase still share one strain id.
     out_root   = Path(outdir)
     run_dir    = out_root / strain_id
     package_dir = run_dir / "package"
@@ -1384,8 +1391,6 @@ def run_one_strain(
     global _RUN_T0
     _RUN_T0 = None
     _stage(f"start {strain_id} (mode={mode}, json-evidence={json_mode}, token-budget={token_budget})")
-    if _early_sid_note:
-        _stage(f"[NOTE] {_early_sid_note}")
     _timer, _label_accession, taxonomy, display_name, context = _phase_environment(
         package_dir, strain_id, mode, json_mode, token_budget, input_zip, brief,
         display_name, taxonomy, source, bioactivity, master_path, run_dir,
@@ -2414,7 +2419,7 @@ def run_one_strain(
             _atomic_write_manifest_text(manifest_path, json.dumps(manifest_data, indent=2))
         except Exception as _mwb_err:
             _master_wb_status = {"state": "FAILED", "reason": str(_mwb_err)[:200],
-                                 "recovery_command": "python tools/ingest_package.py --package <pkg_dir> --master <path>"}
+                                 "recovery_command": _master_recovery_command(strain_id)}
             issues.append(f"master_workbook FAILED: {_mwb_err}")
             emit(f"  [WARN] Master workbook FAILED: {_mwb_err}")
             if require_workbook:
@@ -2978,6 +2983,9 @@ def run_one_strain(
         for issue in issues:
             emit(f"  [ISSUE] {issue}")
 
+    if _master_wb_status.get("recovery_command"):
+        # The package is sealed now: name its ZIP in the recovery command.
+        _master_wb_status["recovery_command"] = _master_recovery_command(strain_id, _public_value(str(zip_path)))
     if _active_source() is not None:
         _per_wb_status = _active_source().output_status(_per_wb_status)
         _master_wb_status = _active_source().output_status(_master_wb_status)
@@ -2993,7 +3001,8 @@ def run_one_strain(
     elif _master_wb_status.get('reason'):
         emit(f"      reason: {_master_wb_status['reason']}")
         if _master_wb_status.get('recovery_command'):
-            emit(f"      recovery: {_master_wb_status['recovery_command']}")
+            emit(f"      recovery: {_master_wb_status['recovery_command']}",
+                 f"                {_MASTER_RECOVERY_NEXT}", sep="\n")
 
     # B11: canonical machine-readable terminal status codes
     machine_status = _terminal_mamey_status(status, issues)
@@ -3415,9 +3424,9 @@ def _write_package(run: MameyRun, package_dir: Path,
                 bgc.start, bgc.end, bgc.length_kb,
                 bgc.edge_status, "; ".join(bgc.products),
                 bgc.architecture_confidence, bgc.architecture_rationale,
-                bgc.kcb_top or "", bgc.kcb_cumulative or "",
+                bgc.kcb_top or "", "" if bgc.kcb_cumulative is None else bgc.kcb_cumulative,
                 getattr(bgc, "kcb_evidence_state", "UNKNOWN_KCB"),
-                bgc.kcb_protein_hits or "", bgc.riq_score if bgc.riq_score is not None else "", bgc.riq_label or "",
+                "" if bgc.kcb_protein_hits is None else bgc.kcb_protein_hits, bgc.riq_score if bgc.riq_score is not None else "", bgc.riq_label or "",
                 tta.get("bldA_tier", ""),
                 ", ".join(cctt_coupling.get(bgc.bgc_id, [])),
                 rt.get("tier", ""),
@@ -3808,7 +3817,7 @@ def _write_package(run: MameyRun, package_dir: Path,
                 getattr(t, "architecture_capacity", "") or getattr(bgc, "architecture_capacity", "") or "",
                 getattr(t, "architecture_class_confidence", "") or getattr(bgc, "architecture_class_confidence", "") or "",
                 t.ab_score, t.af_score, t.novelty_score, t.lead_tier,
-                bgc.kcb_top or "", getattr(bgc, "clusterblast_top", "") or "", (bgc.clusterblast_ranked[0]["label"] if getattr(bgc, "clusterblast_ranked", None) else ""), len(getattr(bgc, "mibig_ranked", []) or ""), "; ".join(f"{h['ref']}({h['mean_identity']})" for h in (getattr(bgc, "subcluster_hits", []) or [])[:3]), bgc.kcb_cumulative or "",
+                bgc.kcb_top or "", getattr(bgc, "clusterblast_top", "") or "", (bgc.clusterblast_ranked[0]["label"] if getattr(bgc, "clusterblast_ranked", None) else ""), len(getattr(bgc, "mibig_ranked", []) or ""), "; ".join(f"{h['ref']}({h['mean_identity']})" for h in (getattr(bgc, "subcluster_hits", []) or [])[:3]), "" if bgc.kcb_cumulative is None else bgc.kcb_cumulative,
                 ", ".join(cctt_coupling.get(bgc.bgc_id, [])),
                 "; ".join((rggmci_support.get(bgc.bgc_id) or [])[:10]),
                 _depth_floor(bgc, cctt_coupling, run.context.analysis_mode, rt_per_bgc),
@@ -5022,7 +5031,7 @@ def doctor_command(args) -> int:
             ok.append(f"{label} ✓")
         else:
             fail.append(f"{label} MISSING — required for workbooks (pip install openpyxl; "
-                        f"project https://openpyxl.readthedocs.io, MIT licence; not redistributed in this bundle — "
+                        f"project https://openpyxl.readthedocs.io, MIT license; not redistributed in this bundle — "
                         f"installing it is the user's responsibility; re-run `mamey doctor` to confirm)")
 
     # Core render dependency (NC-009): reportlab is CORE for Mode-B PDF/DOCX export — surfaced
@@ -5049,8 +5058,8 @@ def doctor_command(args) -> int:
     for mod, label, hint in [
         ("Bio", "biopython", "optional for core (GBK shim in use if absent) — but REQUIRED for `mamey triage-raw` AND `blastp-online` (parses NCBI BLAST XML). The bundled wheel is cp312/manylinux x86_64 only, so on macOS/arm64 or other Pythons it will NOT install offline — `pip install biopython` (needs network)"),
         ("numpy", "numpy", "optional; required for figures (pip install numpy; https://numpy.org, BSD)"),
-        ("matplotlib", "matplotlib", "optional; required for figures (pip install matplotlib; https://matplotlib.org, PSF-based licence)"),
-        ("shapefile", "pyshp (shapefile basemaps)", "optional for core and GeoJSON/no-basemap collection_site_map; required for local Shapefile maps (install selected bundle extra: python -m pip install -e '.[figures]'; https://github.com/GeospatialPython/pyshp, MIT licence)"),
+        ("matplotlib", "matplotlib", "optional; required for figures (pip install matplotlib; https://matplotlib.org, PSF-based license)"),
+        ("shapefile", "pyshp (shapefile basemaps)", "optional for core and GeoJSON/no-basemap collection_site_map; required for local Shapefile maps (install selected bundle extra: python -m pip install -e '.[figures]'; https://github.com/GeospatialPython/pyshp, MIT license)"),
         ("pytest", "pytest", "optional; required to run the test suite (pip install pytest; https://pytest.org, MIT)"),
     ]:
         # v9.7.405 (WAC-01375 item 11): every add-on line names the package, the official project
@@ -6498,10 +6507,13 @@ def build_parser():
     # Single-strain arguments
     r.add_argument("--allow-accession-strain-id", action="store_true",
                    dest="allow_accession_strain_id",
-                   help=("v9.7.372: permit a database accession (CP025018.1, GCA_000009765.1) to be "
-                         "used as the strain identity. Off by default: the strain id becomes the name "
-                         "of every output file, the manifest strain_id, the sealed package and every "
-                         "downstream card and figure label."))
+                   help=("v9.7.372: permit a database accession (CP025018.1, GCA_000009765.1) as the strain "
+                         "identity. With this flag the accession is kept as given. Without it, an "
+                         "accession --strain is refused when the archive names an organism, and kept "
+                         "with a warning when it does not. The id is never rebuilt from --taxonomy or "
+                         "the ZIP filename; use --strain auto for the archive's organism-based id. The "
+                         "strain id becomes the name of every output file, the manifest strain_id, the "
+                         "sealed package and every downstream card and figure label."))
     r.add_argument("--strain", default=None,
                    help="Strain ID (single strain; derived from ZIP name if omitted)")
     r.add_argument("--display-name", default=None, dest="display_name",
@@ -6677,7 +6689,10 @@ def build_parser():
     rf.add_argument("--package", required=True,
                     help="Path to sealed package directory (containing manifest.json)")
     rf.add_argument("--outdir", default=None,
-                    help="Output dir for figures (default: <package>/figures_rendered/)")
+                    help="Output dir for figures (default by --figure-set, under <package>/: "
+                         "standard -> figures_rendered/, domain-level -> domain_level/figures/, "
+                         "locus-maps -> locus_maps/, cohort-class -> cohort_figures/, "
+                         "mamey-native -> mamey_native_figures/)")
     rf.add_argument("--top-n", type=int, default=10, dest="top_n",
                     help="Top N leads in lead-board figures (default: 10)")
     rf.add_argument("--style", default="chatgpt-node-first",
@@ -7504,8 +7519,9 @@ def build_parser():
 
     # --- fingerprint (v9.7.199: cross-run/cross-chat determinism check) ---
     fpc = sub.add_parser("fingerprint",
-                         help="Determinism fingerprint of a sealed package (score-bearing "
-                              "outputs only) — same strain+bundle yields the same value in any chat")
+                         help="Compute a fingerprint over selected package outputs (missing components stay explicit); "
+                              "--compare diffs it against another package or hex. "
+                              "Not whole-package integrity, completeness or scientific validation")
     fpc.add_argument("package", help="Path to sealed Mamey package directory")
     fpc.add_argument("--compare", default=None,
                      help="Second package dir OR a raw fingerprint hex to diff against "
@@ -7583,8 +7599,14 @@ def build_parser():
     lb = sub.add_parser("list-bgcs",
                         help="Quick BGC inventory from a sealed package (table or JSON)")
     lb.add_argument("package_dir", help="Path to sealed Mamey package directory")
-    lb.add_argument("--top",  "-n", type=int, default=None, dest="top_n",
-                    help="Limit to top N BGCs")
+    def _top_at_least_one(v):
+        # 0 meant "no limit" and a negative N sliced from the tail
+        n = int(v)
+        if n < 1:
+            raise argparse.ArgumentTypeError("must be at least 1 (omit --top for every BGC)")
+        return n
+    lb.add_argument("--top",  "-n", type=_top_at_least_one, default=None, dest="top_n",
+                    help="Limit to top N BGCs (at least 1)")
     lb.add_argument("--axis", default="rank", choices=["rank", "ab", "af"],
                     help="Sort axis: rank (triage order), ab (antibacterial), af (antifungal)")
     lb.add_argument("--json", action="store_true", default=False,
@@ -7653,7 +7675,7 @@ def build_parser():
     gd = sub.add_parser("guide",
                         help="Layered per-gene BGC Guide (lay\u2192technical; Structure/Function/BLASTp per gene)")
     gd.add_argument("--package", required=True, help="Sealed package dir (manifest.json)")
-    gd.add_argument("--bgc", default=None, help="BGC ID (omit to cover --top-n leads)")
+    gd.add_argument("--bgc", default=None, help="BGC ID (omit to cover the first --top-n BGC IDs in gene-table order, not ranked leads)")
     gd.add_argument("--format", choices=["md", "docx", "both"], default="both")
     gd.add_argument("--audience", choices=["lay", "technical", "both"], default="both")
     gd.add_argument("--blastp-store", default=None, dest="blastp_store",
@@ -7861,6 +7883,11 @@ def build_parser():
                          "ERROR-severity §1–§48 contract violations. Use with "
                          "care — bypasses the firebreak that catches "
                          "wrong-scaffold cards. (W9, v9.7.150+)")
+    ir.add_argument("--contract", default=None, choices=["full48", "current50_v2"],
+                    help="Lint cards against this contract, with the same meaning as on verify-modeb. "
+                         "Omit it to use the contract each card header declares (emit-modeb-template "
+                         "writes it); a card with no contract marker uses full48. A card whose header "
+                         "names a different contract is refused.")
     ir.set_defaults(func=ingest_receipts_command)
 
     # Read-only gate between persisted candidate cards and external owner review.
@@ -7910,8 +7937,8 @@ def build_parser():
     from .compare import compare_command
     gc = sub.add_parser(
         "compare",
-        help="Compare two antiSMASH result sets gene by gene and retain ClusterBlast, "
-             "SubClusterBlast, and KnownClusterBlast comparator evidence")
+        help="Compare translated CDS from two antiSMASH inputs and write query best-hit rows; "
+             "optionally calculate ANI when both genome FASTAs are supplied")
     gc.add_argument("--strain-a", required=True, dest="strain_a",
                     help="Strain A: antiSMASH output ZIP (needs GBK records/translations; a "
                          "sealed package dir does NOT store these — pass the ZIP)")
@@ -8051,7 +8078,7 @@ def build_parser():
     fgg = fg_sub.add_parser("gcf-network", help="BiG-SCAPE GCF network for a strain (from a BiG-SCAPE 2 DB)")
     fgg.add_argument("--db", required=True, help="BiG-SCAPE 2 SQLite DB")
     fgg.add_argument("--strain", required=True, help="strain id as it appears in the gbk path (e.g. AS-XXX)")
-    fgg.add_argument("--run", type=int, required=True, help="BiG-SCAPE run id (largest/latest is authoritative)")
+    fgg.add_argument("--run", type=int, required=True, help="exact completed BiG-SCAPE run id; do not assume the largest id is the right run")
     fgg.add_argument("--cutoff", type=float, required=True, help="distance cutoff (0.3 strict / 0.5 default / 0.7 loose)")
     fgg.add_argument("--evidence", default=None, help="all_evidence.json to map BGC ids + highlight leads (optional)")
     fgg.add_argument("--out", required=True, help="output PNG path")
@@ -8611,7 +8638,9 @@ def cddr_pks_command(args) -> int:
             "report_json": receipt.report_json,
             "warning_count": receipt.warning_count,
         }, indent=2))
-        return 0 if receipt.status in {"READY", "UNKNOWN"} else 2
+        # UNKNOWN means the folder holds no readable study receipt; like the --source-csv route,
+        # only a READY study exits 0. The report is still written so the gaps can be read.
+        return 0 if receipt.status == "READY" else 2
 
     if not getattr(args, "source_csv", None) or not getattr(args, "study_spec", None):
         emit("ERROR: provide either --directed-study-dir or both --source-csv and --study-spec")
@@ -8858,6 +8887,7 @@ def main(argv=None) -> int:
     _POST_SEAL_AUTHORING_COMMANDS = frozenset({
         "render-figures", "render-all-figures", "mode-b", "guide", "domain-level",
         "ingest-blastp", "ingest-blastp-trove", "blastp-online", "blastp-ebi", "blastp-round",
+        "ingest-receipts",  # v9.7.458: records Mode B cards under judgment/, a covered subtree
     })
     from .blastp_gate import BlastpDiscoveryError
     try:

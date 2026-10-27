@@ -566,7 +566,8 @@
       "id": "M03",
       "label": "#7",
       "group": "meals",
-      "name": "Split-Pathway and Assembly-Line Reconstruction",
+      "name": "Split-Pathway and Assembly-Line Evidence Review",
+      "aliases": ["Split-Pathway and Assembly-Line Reconstruction"],
       "question": "Could measured biosynthetic capacity span boundaries or multiple regions?",
       "summary": "RG-GMCI, protocluster, over-merge, and domain-architecture views with explicit physical-linkage limits and alternative assignments.",
       "delivery_class": "POST_SEAL_JUDGMENT",
@@ -596,7 +597,7 @@
         "workflow"
       ],
       "triggers": [
-        "Reconstruct the measured split pathway"
+        "Review the split-pathway and assembly-line evidence"
       ],
       "claim_ceiling": "Co-occurrence or linkage score is not proof of one biosynthetic product."
     },
@@ -822,7 +823,7 @@
       "group": "governance",
       "name": "Workflow and Evidence Receipt",
       "question": "Which required stages passed, remain pending, or are blocked?",
-      "summary": "A machine-readable Sapote workflow ledger and additive evidence-receipt ingestion without mutating the sealed extraction package.",
+      "summary": "A Sapote workflow ledger and evidence-receipt ingestion. `workflow` writes its Markdown ledger inside the package by default; use `--ledger-out` for an external ledger. `ingest-receipts` writes Mode B judgment cards into the package’s `judgment/` folder and updates its judgment register. Review each command’s write boundary.",
       "delivery_class": "GOVERNANCE_AND_QA",
       "commands": [
         "workflow",

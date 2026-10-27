@@ -13,9 +13,9 @@ concurrency hook uses Python standard-library JSON parsing and requires permissi
 |---|---|---|
 | require_phylo_workflow.sh | PreToolUse with Bash matcher | Requires an explicit tree path and local tools/tree_sanity_check.py for recognized render commands; checks exit status. This is a command-pattern guard, not a universal render interceptor. |
 | block_blastp_overconcurrency.sh | PreToolUse with Bash matcher | Checks recognized runner launches and stagger syntax; default cap 10, configurable 1 to 12. This does not enforce service-wide submission timing across machines. |
-| c10_tool_drift.py | SessionStart with --mode baseline; Stop with --mode check | Reports changed existing tools under tools/ in the selected project. It detects changes after they occur. |
-| reasoning_self_audit_stop.py | Stop | Requests evidence for certain unsupported factual phrases; heuristic, debounced. |
-| contradiction_and_magnitude_stop.py | Stop | Requests review of certain numeric discrepancies; does not prove an arithmetic or scientific error. |
+| c10_tool_drift.py | SessionStart with --mode baseline; Stop with --mode check | Baseline writes `SAPOTE_CONTROL/tool_drift/baseline_<session>.json`; check reports modified/removed `.py` and `.sh` files at tools root or one nested level. Unreadable files are skipped and added-only files are not flagged. |
+| reasoning_self_audit_stop.py | Stop | Emits a debounced Stop block request for selected unsupported factual phrases; heuristic, not verification. |
+| contradiction_and_magnitude_stop.py | Stop | Emits a debounced Stop block request for selected numeric discrepancies; does not prove an arithmetic or scientific error. |
 | state_save_reminder.py | Stop | Reports stale STATE.md files under task_state/ or SAPOTE_TASK_STATE_ROOT; advisory. |
 | no_stop_short.py | Stop | Checks .claude/state/TASK_CONTRACT.md; missing/stale contracts allow stopping, and repeated blocks have a backstop. |
 | recommendation_contract.py | UserPromptSubmit | Adds a short recommendation-writing reminder; does not authorize an action. |

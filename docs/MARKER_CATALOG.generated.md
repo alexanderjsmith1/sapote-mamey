@@ -3,7 +3,7 @@
 **Generated from** `mamey/source_scans.py` — do not edit by hand.
 **Content hash:** `666e3bd82586132a…`
 
-Regenerate with `python3 tools/gen_marker_catalog.py`. The build checks this file against the live regex tables (`--check`), so the catalog cannot drift from the scanner.
+Regenerate with `python3 tools/gen_marker_catalog.py`. `--check` compares both generated files with the tables collected from the imported scanner module in that environment. The content hash covers that table mapping, not scanner control flow or a biological validation. Registry activation, fallback behavior, coupling and downstream guards require their own source/run evidence.
 
 
 ## CASSETTE_PATTERNS  ·  15 families / 72 patterns
@@ -45,7 +45,9 @@ Regenerate with `python3 tools/gen_marker_catalog.py`. The build checks this fil
 - **T43-GPA_glycopeptide** (15): `\boxyB\b`, `\boxyA\b`, `\boxyC\b`, `\bdpgs\b`, `3,5-dihydroxyphenylglycine`, `4-hydroxyphenylglycine`, `\bhpg\b aminotransferase`, `\bglycopeptide\b`  … (+7 more)
 - **T43-BLT_betalactone** (8): `\bbetalactone\b`, `\bbeta-lactone\b`, `\bsalinosporamide\b`, `\bplatensimycin\b`, `\bplatencin\b`, `\blactacystin\b`, `\bebelactone\b`, `\bovalicin\b`
 
-## CCTT_VETOES  ·  3 families / 9 patterns
+## CCTT_VETOES  ·  3 veto rules
+
+Each three-field tuple lists the context key, class override token and recorded reason; these 9 fields are not regex patterns.
 
 - **T43-NUC_nucleoside** (3): `glycogen_trehalose`, `nucleoside`, `sugar-kinase/glycogen-trehalose context (APH misreads as nucleoside)`
 - **T43-ENE_enediyne** (3): `hglE_hglD`, `enediyne`, `hglE/hglD glycolipid ketosynthase cross-reacts with ene_KS (PREV-001)`

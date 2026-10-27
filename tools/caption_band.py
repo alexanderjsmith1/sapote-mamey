@@ -113,8 +113,9 @@ def band_lines(caption_md: str) -> list[str]:
 def add_band(plot_png, caption_md, outdir=None) -> Path:
     pil = _pillow()
     if pil is None:
-        raise SystemExit("caption_band: Pillow is not installed (pip install '.[documents]'); "
-                         "no figure was written")
+        _sys.stderr.write("caption_band: Pillow is not installed (pip install '.[documents]'); "
+                         "no figure was written\n")
+        raise SystemExit(2)
     image_mod, draw_mod, font_mod = pil
     plot_png, caption_md = Path(plot_png), Path(caption_md)
     outdir = Path(outdir) if outdir else plot_png.parent

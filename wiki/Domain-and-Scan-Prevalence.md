@@ -2,9 +2,9 @@
 
 Turn a frozen cohort's antiSMASH domain and mamey-scan databases into a populated prevalence database, a
 ranked review queue, and an **interactive host-filterable widget** (Bees & Wasps vs all, single-strain
-drill-down, nr/ClusteredNR/Swiss-Prot evidence states, per-locus links, SVG figure export). Existing-evidence
-analysis only — no new scans, no Mode-B cards. Class-level; rarity, relevance and evidence are separate axes;
-absent annotation is not absent biology; similarity is not function; judgment deferred.
+drill-down, nr/ClusteredNR/Swiss-Prot evidence states, per-locus links, SVG figure export). It uses
+existing evidence only; it runs no new scans. A rare domain is a review candidate, not a novelty claim, and a
+missing annotation is not missing biology.
 
 ## When to run
 After a cohort has its `antismash_gene_census` + `antismash_gbk_domains` SQLite (and optionally the
@@ -17,11 +17,13 @@ python3 tools/domain_prevalence.py \
   --gbk-domains ANTISMASH_GBK_DOMAINS.sqlite \
   --nr NR.sqlite --cnr CNR.sqlite --sp SP.sqlite \
   --host-tsv STRAIN_METADATA_CONSOLIDATED.tsv --host-source-col source \
-  --exclude AS-XXX --host-override AS-XXX=ant \
-  --widget --out results/
+  --exclude "<excluded-ID>" --host-override "<admitted-nonexcluded-ID>=<reviewed-host-class>" \
+  --widget --out <fresh-domain-output>/
 ```
 The optional nr/ClusteredNR/Swiss-Prot paths must be bound to the intended cohort and channel
-schemas. Exclusions and host overrides are explicit owner rulings, not inferred biological labels.
+schemas. Exclusions and host overrides are explicit choices; record them with the build.
+The two ID placeholders are distinct: the override target must already belong to the admitted, nonexcluded denominator, and its host class requires reviewed metadata. The current domain builder inserts unknown/excluded override keys into its host map; this can reintroduce held rows or fail lookup. Do not use an override to reinclude excluded evidence. See [the source-scoped prevalence guide](../docs/PREVALENCE_WORKFLOW.md#host-metadata-and-filtering).
+
 The command is one shell invocation: comments after a continuation backslash would break it.
 
 Outputs: `domain_prevalence__v0.1.0.sqlite`, `domain_prevalence_ranking.json`, `domain_prevalence_widget.html`,
@@ -31,7 +33,8 @@ Outputs: `domain_prevalence__v0.1.0.sqlite`, `domain_prevalence_ranking.json`, `
 ```
 python3 tools/scan_prevalence.py --scan-db MAMEY_RESISTANCE_KEYWORDS.sqlite \
   --dataset-name mamey_resistance --host-tsv STRAIN_METADATA_CONSOLIDATED.tsv \
-  --exclude AS-XXX --host-override AS-XXX=ant --widget --out results/resistance/
+  --exclude "<excluded-ID>" --host-override "<admitted-nonexcluded-ID>=<reviewed-host-class>" \
+  --widget --out <fresh-scan-output>/
 ```
 Emits `domain_prevalence_ranking.json` in the compatible widget shape; `--widget` additionally
 requests HTML/SVG. It does not emit the domain prevalence SQLite or AUDIT_RECEIPT.json. Its
@@ -44,9 +47,7 @@ Use a fresh output directory for each reviewed build. The domain builder removes
 ranking JSON. Neither command offers a dry-run or rollback contract. Inputs are opened SQLite
 read-only, but that does not make outputs immutable or provenance complete.
 
-Both commands catch a failed widget subprocess and can still exit 0 with a warning after the
-ranking build. Inspect the warning and verify expected HTML/SVG files before calling the widget
-complete. Retry the widget separately with
+If the widget step fails, the command exits 3 after writing the ranking tables. Retry the widget separately with
 `python3 tools/domain_prevalence_widget.py results/` after diagnosing the failed step.
 
 ## Reading the widget

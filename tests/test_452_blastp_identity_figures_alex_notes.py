@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_blastp_identity_figures_alex_notes.
+"""Card 452_blastp_identity_figures_alex_notes.
 
 Owner review of the by-genome and by-class BLASTp identity figures:
 - panel B prints no genes-with-a-hit fraction above its bars by default, and `--bar-counts` opts back in;

@@ -19,13 +19,13 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Raw vs corrected BGC counts per isolate (n = <admitted_isolate_n> isolates). The gap is the fragmentation discount.
+> Raw and boundary-weighted BGC counts per isolate (n = <admitted_isolate_n> isolates). The gap follows the declared weighting policy; Unknown records contribute to raw count but not the weighted sum. It is not a measured number of missing or recoverable clusters. Missing correction values remain uncomputed.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - On the slide, bracket the strains with the largest gap to call out assembly-limited cases.

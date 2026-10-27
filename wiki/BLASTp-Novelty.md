@@ -1,6 +1,6 @@
 # BLASTp → novelty workflow — four unmixed channels and one honest rank
 
-*Source of truth: `docs/BLASTP_NOVELTY_WORKFLOW.md` (v9.7.401). Post-seal, advisory doctrine:
+*Source of truth: `docs/BLASTP_NOVELTY_WORKFLOW.md`. Post-seal, advisory doctrine:
 the ranking doctrine is advisory. Actual ingestion and search commands can author package overlays
 and refresh post-seal checksums; consult [the command write contracts](../docs/ONLINE_BLASTP_PROTOCOL.md)
 and work on a package copy when original bytes must remain fixed.*
@@ -23,19 +23,22 @@ not that the product is characterized); nr distance is a novelty *prior*, not ac
 | **ClusteredNR** | NCBI nr_cluster_seq (remote, own ledger) | deep representative channel where nr is saturated — **ClusteredNR is NOT nr**; its numbers are never merged with nr's |
 
 Hard rule: each channel keeps its own store, folder, and `subject_db` tag; `pct_identity` and
-`pct_positives` stay separate columns; a hit is never relabelled across channels.
+`pct_positives` stay separate columns; a hit is never relabeled across channels.
 
 ## Grading the family anchor (capacity, not identity)
 
 The thresholds below are this retained workflow's ranking heuristic, not universal biological
 boundaries or proof that the current reader computed them. Bind the selected algorithm/version,
 reference channel, denominator and coverage receipt before quoting an anchor grade.
+These labels are not the `kcb_frontpage` parser's tiers: that reader uses similarity
+and matching-gene thresholds (STRONG at ≥40/≥8, MODERATE at ≥25/≥5). Do not copy
+a label between the two grading systems.
 
 - **STRONG** — ≥4 genes hit one reference family, ≥25% of the BGC's true gene count, ≥55% median id.
 - **PARTIAL** — ≥2 anchor genes, below the STRONG bar.
 - **promiscuous-only** — hits only to genes recurring across unrelated clusters (scaffold/tailoring):
   gated OUT of "anchored" — promiscuous genes are capacity noise, not a family call.
-- **NO_MIBiG** — reference-dark by this channel.
+- **NO_MIBiG** — use only for the declared, completed and admitted reference search with no qualifying anchor. Unavailable/unrun/unbound results remain distinct; absence of a stored hit is not itself a verified no-match.
 
 Print the honest form `Ng @ X% → <family>`. Never print `= <compound>`.
 
@@ -71,5 +74,8 @@ a tested biological no-hit. Preserve the request/status/error receipt and use th
 - **Mode B admission** — an anchored lead is only promoted once its per-gene channel is fresh
   (U = 0 uncovered anchor genes) and the card carries OBSERVATION / INFERENCE / ALTERNATIVE /
   FALSIFIER structure. Thin evidence is a HOLD, not a lead.
-- **Exclusions carry through** — contaminated strains hard-excluded; chimeric/void assemblies
-  excluded from per-gene readers (their distances are untrustworthy).
+- **Exclusions carry through** — use the selected cohort pack and actual
+  `mamey/exclusions.py` accessors: hard exclusions, raw-assembly voids and audit-only
+  QC holds are different states. The shipped generic default is empty; the accessor
+  does not diagnose contamination or automatically identify chimeras. Pin the
+  actual exclusion source and apply the reader's required scope.

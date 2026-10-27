@@ -1,112 +1,96 @@
-# SOP-01 — Intake: Raw antiSMASH ZIP vs Mamey Package vs Reference Accession
+# SOP-01 — Intake: raw antiSMASH ZIP, Mamey package or reference accession
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
-
-
-## Purpose
-
-This SOP defines how Sapote/Mamey should classify uploaded ZIP files and choose the correct first command.
-
-## Raw antiSMASH ZIP
-
-A raw antiSMASH ZIP commonly contains:
-
-- `index.html`
-- `regions.js`
-- one or more `.gbk` files
-- one or more `.region###.gbk` files
-- optional `.json`
-- `clusterblast/`
-- `knownclusterblast/`
-- `subclusterblast/`
-
-First action:
+Use this SOP to decide what an uploaded ZIP is and which command comes first. Run commands from
+the bundle root, the folder that holds `mamey_run.py` and `pyproject.toml`.
 
 ```bash
 python mamey_run.py inspect <input.zip>
 ```
 
-## Full-genome antiSMASH ZIP
+## Raw antiSMASH ZIP
 
-Expected signs:
+A raw antiSMASH result usually contains `index.html`, `regions.js`, one or more `.gbk` files, one
+or more `.region###.gbk` files, optional `.json`, and the `clusterblast/`, `knownclusterblast/` and
+`subclusterblast/` folders. Run `inspect` first.
 
-- many region GBKs,
-- many clusterblast files,
-- one or more source contigs,
-- raw BGC count usually greater than 1.
-
-Run gold mode directly in ChatGPT (gold has been the only analysis mode since v9.7.161 — `smoke`
-was removed and `standard` is a deprecated alias of `gold`; `--capped-session` selects reduced evidence/render settings, but does not guarantee completion within any wall-clock budget or select a different mode):
+A full-genome result has many region GBKs, many ClusterBlast files and usually more than one BGC.
+Run gold directly. Gold is the only analysis mode; `standard` is a deprecated alias and `smoke` is not accepted.
 
 ```bash
-python mamey_run.py run --strain <bound-ID> --input-zip <input.zip> \
-  --taxonomy "<bound taxonomy or explicit unknown>" --source "<bound source or explicit unknown>" \
-  --release <PUBLIC-or-PRIVATE> --outdir <fresh-run-root> \
+python mamey_run.py run --strain <ID> --input-zip <input.zip> \
+  --taxonomy "<taxonomy, or unknown>" --source "<isolation source, or not supplied>" \
+  --release <PUBLIC-or-PRIVATE> --outdir <new-run-folder> \
   --mode gold --capped-session --reference-completion off
 ```
 
-## Single-region antiSMASH accession ZIP
+`--capped-session` reduces the work done. It does not set a time limit and does not turn off
+reference completion by itself, which is why the example adds `--reference-completion off`. Run
+reference completion separately when you need it. If a run fails, keep its output and logs, and
+rerun into a new folder.
 
-Expected signs:
+## Single-region accession ZIP
 
-- one `.region001.gbk`,
-- one accession-style sequence name such as `KY089035.1`,
-- one BGC,
-- public accession rather than private strain name.
-
-Run inspect first, then verify the actual source-record scope and identity. A successful preview does not validate content. Single-region inputs can produce assembly warnings that require limited-input interpretation; do not dismiss a warning solely because this input shape is expected.
+Signs: one `.region001.gbk`, an accession-style sequence name such as `KY089035.1`, one BGC, and a
+public accession instead of a private strain name. Run `inspect`, then check the source record and
+its identity. Expect assembly warnings for a single region; they describe the input, not a failed
+genome. Review each warning: an expected input shape does not clear content or provenance holds.
+See [SOP-07](SOP-07_Single_Region_Public_Accession_Inputs.md).
 
 ## Sealed Mamey package
 
-Expected signs:
-
-- package manifest,
-- checksums,
-- workbooks,
-- receipts,
-- run metadata.
-
-Preserve the original archive and select an extracted working package directory. Validation rewrites its mutable package-status receipt by default; it is not an entirely read-only intake step (`mamey/validate.py:1085–1106`). First action:
+Signs: `manifest.json`, `checksums_sha256.txt`, workbooks, receipts and run metadata. Validate it;
+do not rerun it as if it were raw antiSMASH output.
 
 ```bash
 python mamey_run.py validate <package_dir>
 ```
 
-Do not re-run the package as if it were raw antiSMASH input.
+`validate` rewrites `package_status.json`. Keep the original archive unchanged and validate an
+extracted working copy.
 
-## Reference accession interpretation
+`validate` prints a main result and a separate `WORKBOOK_CONTENT` result. By default the workbook
+check is advisory: with no `*_5_workbook.xlsx` it prints `SKIP` and does not fail. With
+`--workbook-strict`, a missing workbook prints `FAIL_WORKBOOK_MISSING` and the command exits
+nonzero; a workbook whose content check fails also fails the command. If several workbooks match,
+only the first in sorted order is checked. The populated-sheet check reads primary-key rows up to a
+row cap, so a pass does not cover every cell. `--manifest-contract` adds an optional advisory manifest check.
 
-Public accession inputs should be labeled as:
+## Public reference accessions
 
-- public reference sequence,
-- control BGC,
-- comparison BGC,
-- parser smoke fixture.
+Label a public accession input as a reference sequence, control BGC, comparison BGC or parser test
+fixture. Do not treat it as a private discovery strain. A public accession does not by itself set
+the release label to PUBLIC.
 
-They should not be treated as private discovery strains.
+<a id="inspector-and-validator-scope"></a>
+## What `inspect` can and cannot tell you
 
-## Bug-hunt checks
+`inspect` previews file names and markers and suggests a command. It does not check genome
+completeness, taxonomy or extraction.
 
-1. `inspect` should print archive type.
-2. Single-region accession inputs should be called valid but limited.
-3. Public reference accession should not trigger private AS/SID handling.
-4. Sealed package should not be treated as raw antiSMASH.
-5. Missing KCB should lower evidence availability, not necessarily fail intake.
+- Its suggested strain ID is cleaned from the ZIP filename. Check it against the archive and your
+  metadata before you use it.
+- Its region count includes only lowercase `.gbk` names containing `region` anywhere in the path.
+  Uppercase `.GBK`, `.gbff` and `.gb` files are missed by the preview, though the parser reads them.
+  A folder name containing `region` can also inflate the count.
+- A high region count describes the archive's shape. It does not prove a whole-genome export.
+  A zero preview count does not prove that supported source records are absent.
+- Treat duplicate members, non-regular members, an unsupported schema, unknown strictness or an
+  unresolved organism as intake warnings to review.
+- A sealed package ZIP should be recognized from its manifest and checksums, then extracted. Do not
+  rely on `inspect` to classify every ZIP.
 
-## Intake does not certify execution or identity
+## Checks for a bug hunt
 
-`inspect` classifies filenames/markers and returns a suggested command. It does not prove genome completeness, successful extraction, taxonomy or release authority (`mamey/package_inspector.py:47–103,110–218`). Its strain suggestion is sanitized from the ZIP filename; review it against archive identity and supplied metadata before use (`:32–44,205–208`). A sealed-package ZIP must be classified by its manifest/checksum content and extracted for package readers; do not rely on `inspect` to distinguish every arbitrary ZIP.
+1. `inspect` prints the archive type.
+2. A single-region accession is reported as valid but limited.
+3. A public accession does not trigger private AS/SID handling.
+4. A sealed package is not treated as raw antiSMASH output.
+5. Missing KnownClusterBlast output lowers evidence availability; it does not fail intake by itself.
 
-A multi-region count is an input-shape observation, not proof of a whole-genome export. Duplicate member, nonregular member, unsupported schema, unknown strictness or unresolved organism warnings remain intake holds for review (`mamey/antismash_input.py:339–398`). Unknown provenance must stay explicit. Public accession shape does not automatically select PUBLIC release or resolve a strain record.
+## Related pages
 
-The example opts out of optional reference completion; select that compute separately when required and authorized. Capped mode otherwise can still run reference completion if its inputs are available (`mamey/cli.py:6150–6167`). On failure preserve outputs/logs and use a fresh reviewed destination rather than rerunning over a package. See [workflow guide](../WORKFLOW_GUIDE.md), [single-region identity handling](../troubleshooting/SINGLE_REGION_ACCESSION_INPUTS.md) and [batch directives](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
-
-## Inspector and validator scope
-
-`inspect` is a filename/marker preview. Its region count uses lowercase `.gbk` suffixes and the substring `region` anywhere in the member path. Uppercase `.GBK`, `.gbff` or `.gb` records can be missed by that preview even though the main GenBank parser supports them. A directory name containing `region` can also influence the preview count. A counted filename is not a successfully parsed BGC, and no counted regions does not by itself prove an archive lacks supported source records. Reconcile the actual regular-member inventory, parser diagnostics and bound input scope before deciding that an upstream rerun is needed.
-
-For an extracted package, keep validation results separate from upstream scan coverage and requested-output completeness. The CLI prints a main result and a separate `WORKBOOK_CONTENT` result. Workbook checks are advisory by default: with no `*_5_workbook.xlsx`, the CLI prints `SKIP` and that workbook branch does not block success. With `--workbook-strict`, a missing matching workbook prints `FAIL_WORKBOOK_MISSING` and the command returns nonzero; a present workbook with a non-PASS content result also blocks success. With several matching files it checks only the first in sorted order. If your task requires a workbook, independently confirm the exact expected path/current run and its receipt, then review its full schema, roster and values. The populated-sheet check examines primary-key rows under a configured row cap; it does not certify all workbook content.
-
-Preserve both printed results, exit status, current input/package hashes and unresolved warning states. `--manifest-contract` is an optional additional check, not a substitute for input identity or scan coverage. Validation can update mutable status receipts, so use an authorized extracted working package while retaining the original archive. See [record-cap coverage](../ANTISMASH_INPUTS_CONSUMED.md#antismash-record-cap-coverage) and [current validation gates](../WORKFLOW_GATES_GUIDE.md).
-
-Sources: `mamey/package_inspector.py:47–103,110–218`, `mamey/parsers.py:378–389`, `mamey/cli.py:4631–4659` and `mamey/validate.py:1135–1225`. The strict-missing-workbook regression is `tests/test_452_workbook_strict_requires_workbook.py`.
+[Workflow guide](../WORKFLOW_GUIDE.md) ·
+[Single-region accession handling](../troubleshooting/SINGLE_REGION_ACCESSION_INPUTS.md) ·
+[Batch intake](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md) ·
+[Record-cap coverage](../ANTISMASH_INPUTS_CONSUMED.md#antismash-record-cap-coverage) ·
+[Validation gates](../WORKFLOW_GATES_GUIDE.md)

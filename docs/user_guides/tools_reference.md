@@ -7,7 +7,7 @@ untouched and report the hold; the diagnostic refuses an occupied probe location
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
 
-**Current navigation baseline: bundle v9.7.447 · engine 1.9.172 · build 20261003v97447a.** Execution receipts below retain their original versions; source inspection does not renew them.
+Bundle, engine and build identity are in `BUILD_STAMP.txt`. Execution receipts below keep their original versions; a newer bundle does not renew them.
 
 > **The per-script inventory that used to live here has been retired, not lost.**
 > It is now generated, not hand-maintained:
@@ -25,7 +25,7 @@ Operational examples below use the bundle-local launcher. Run them with the sele
 
 ## What remains in this file
 
-Section 15 is the maintained request/command route. Section 14 and Sections 16 onward are historical execution/development records: their versioned incidents, fixes and card counts are not current work orders or permission to change biological reports. Read the owning current code/profile before reusing any older command or applying an incident-specific repair. These records document observed behavior at their stated versions, not current runtime guarantees.
+Section 15 is the maintained request/command route, with a separate current section on [suite-receipt verification and recovery](#suite-receipt-verification-and-recovery). Section 14 and Sections 16–20 are historical execution/development records: their versioned incidents, fixes and card counts are not current work orders or permission to change biological reports. Read the owning current code/profile before reusing any older command or applying an incident-specific repair. These records document observed behavior at their stated versions, not current runtime guarantees.
 
 ---
 
@@ -283,7 +283,7 @@ Request `tools/check_module_accretion.py` for module membership and changelog-ju
 
 ### Manifest/schema-drift screen
 
-Request `tools/check_schema_drift.py` for its selected recorded-version/key-set/companion checks before a separately authorized merge. Read [schema and skipped-comparison limits](../batches/batch22_multi_strain_comparative_claims.md#separate-manifestschema-drift-screen) and supply an independently required workflow version. “No drift” does not prove complete schema, source provenance or merge acceptance.
+Request `tools/check_schema_drift.py` for its selected recorded-version/key-set/companion checks before a separately authorized merge. Read [schema and skipped-comparison limits](../reference/06_CURRENT_SOURCE_SCOPE.md#separate-manifestschema-drift-screen) and supply an independently required workflow version. “No drift” does not prove complete schema, source provenance or merge acceptance.
 
 ### Handback-format and instruction-drift screens
 
@@ -301,20 +301,33 @@ Rules operate per line. A quoted or negated forbidden phrase can trigger FAIL, w
 python mamey_run.py workflow --package '<package>' --json --ledger-out '<external-ledger.md>'
 ```
 
-The explicit ledger destination preserves the source package. `--strict` applies the workflow's mandatory-step gate; it does not certify scientific validity. Review per-step receipts and holds. For first extraction follow [Your first analysis](../MASTER_WALKTHROUGH.md); for existing packages follow [Read your results](../READING_YOUR_RESULTS.md).
+The explicit destination places the Markdown ledger outside the source package; `--json` separately prints JSON to stdout. Check that the ledger was actually saved: the adapter catches a ledger-write `OSError`, reports it, and can still return exit 0 when the mandatory-step gate does not fail. Use a fresh writable external destination and retain the stdout JSON separately if required. `--strict` applies the workflow's mandatory-step gate; it does not certify successful ledger persistence or scientific validity. Review per-step receipts and holds. For first extraction follow [Your first analysis](../MASTER_WALKTHROUGH.md); for existing packages follow [Read your results](../READING_YOUR_RESULTS.md).
 
-**compile-report `--pdf` publication artwork.** The PDF path validates every figure at the declared
-7.2-inch double-column width before writing render Markdown. Live-text SVG is preserved through vector
-PDF conversion when `cairosvg`, `rsvg-convert`, or `inkscape` is available. Only if vector conversion is
-unavailable may the compiler make a native-width raster fallback, which must still provide at least 300
-effective DPI. Existing PNG thumbnails that would be enlarged are refused with
-`FIGURE_EFFECTIVE_DPI_INSUFFICIENT`; metadata DPI and PDF-derived screenshots do not satisfy the gate.
-This fail-closed check prevents a standalone screen PNG from becoming blurred publication artwork.
+**compile-report `--pdf` publication artwork.** The helper scans Markdown line by line and
+selects the first inline image match on each line. For a selected SVG or PNG it applies the
+7.2-inch double-column artwork contract before writing render Markdown. If the selected image
+has another format, the entire line is dropped. This is not an inventory check of every figure
+or image syntax in the report.
+
+SVG must contain live text and vector geometry without embedded raster images. Vector conversion
+uses optional CairoSVG, with `rsvg-convert` and `inkscape` fallbacks on the branches that reach
+them. If the vector helper reports failure, the compiler tries a raster fallback at the required
+native pixel width and validates that result. At 7.2 inches the minimum is 2,160 pixels
+(300 effective DPI); an inadequate existing PNG is refused with
+`FIGURE_EFFECTIVE_DPI_INSUFFICIENT`. Metadata DPI does not supply missing pixels.
+
+Compare `dropped_figures`, `vector_preserved` and `publication_raster_fallbacks` with the intended
+figure roster. `checked_figures` counts validation receipts: one SVG raster fallback can contribute
+two, so it is not a unique-figure count. A returned `WRITTEN` PDF result includes separate,
+conditional embedded-artwork checks. Missing required QA tools or failed font/text/raster checks
+can refuse the PDF; a pass does not replace visual inspection of actual pages.
+These checks do not authenticate how an input PNG was obtained. A PDF-derived screenshot remains
+review evidence rather than approved source artwork.
 Install `cairosvg` via the render extra so the vector-preserving path is available wherever the compiled
 PDF is built:
 
 ```bash
-pip install '.[render]'   # cairosvg — also folded into '.[all]'
+python -m pip install -e '.[render]'   # selected interpreter, from the bundle root; also in '.[all]'
 ```
 
 ---
@@ -468,7 +481,7 @@ Sibling lint (same file / entry points). Guards the independent-homology channel
 
 **Why it exists:** a BLASTp result for a BGC whose panel was never built is a fabricated observation (the same AS-XXX BGC006 class). `authored_verify` records which BGCs actually have a panel so the lint can flag a per-gene claim on a BGC with none.
 
-**Keys on panel *selection*, not returned alignments (residual gap, stated):** a standard run builds a selection FASTA for *every* BGC, so this lint does **not** catch a fabricated per-gene result on a BGC that has a panel selection but was never actually run (reproduced on `S_erythraea` BGC017). The residual gap is "asserted result vs actual returned alignments"; a future gate closing it should extend `PANEL_ABSENT_CLAIM` to require a results artifact, not add a new gate.
+**Supplied-context boundary:** without `panels_present`, this lint is silent. With panel context it can flag an asserted result for an unselected BGC; when `blastp_results_present` is also supplied, it can flag a selected BGC missing a returned-results artifact. If result tracking is unavailable (`None`), that latter branch stays silent. These text/context checks do not prove whether a search ran; inspect the exact bound results and preserve missing-evidence states.
 
 **Severity:** ERROR → `DRAFT`; blocks via the any-ERROR path, not a `_READINESS_BLOCKING` member.
 

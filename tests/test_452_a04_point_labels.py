@@ -1,4 +1,4 @@
-"""A04 point labels by layout (card 018c0f08_452_bioassay_a04_point_labels): all (default), strong (>=80% on both
+"""A04 point labels by layout (card 452_bioassay_a04_point_labels): all (default), strong (>=80% on both
 targets, with leader lines) or none; the caption names the Candida split and the label rule. Synthetic data only."""
 import shutil
 import json

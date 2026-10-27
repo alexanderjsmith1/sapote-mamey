@@ -1,5 +1,5 @@
 # Sapote–Mamey: The Kernel and Evidence Gates
-**Sapote–Mamey v9.7.457 · Engine 1.9.177 · build 20261023v97457a**
+**Sapote–Mamey v9.7.458 · Engine 1.9.177 · build 20261026v97458a**
 
 ## Extraction and interpretation
 
@@ -9,24 +9,21 @@ Start with [the Master Walkthrough](../MASTER_WALKTHROUGH.md). The [current docu
 
 ## Gates apply to different objects
 
-- Environment diagnostics report available dependencies and tools.
+- Environment diagnostics report selected dependency discovery and tool checks. Read [doctor’s reserved write-probe scope](../INSTALL.md#doctor-scope-and-write-probe) before invoking it.
 - Package validation checks the selected package's declared files, identity and evidence contract.
 - Evidence admission binds external results to their source and exact locus.
 - Card verification checks the selected authoring profile and its required content.
 - Figure and document checks assess generated deliverables and their supporting data.
 
-A pass at one level does not imply a pass at the next. CLI exit zero also does not establish a
-requested optional output or a completed advisory review. Package validation normally writes a
-mutable status receipt; authoring commands can refresh post-seal checksums even when an output
-is external. Use a working package copy when original bytes must remain fixed. Read the reported scope and unresolved findings. Do not substitute the existence of an output file for validation of its contents.
+A pass at one level does not imply a pass at the next, and exit 0 does not mean an optional output was made. Validation rewrites a status file inside the package, so work on a copy when the original must not change. Read the reported findings; a file existing is not the same as its contents being right.
 
 ## Work from a complete identity
 
-Use **strain / full node-or-contig / region / BGC alias** from the bound package. Do not transfer an alias between package versions or select evidence by a matching filename alone. Preserve the query sequence and source hashes for protein evidence; keep nr, ClusteredNR and Swiss-Prot results distinct.
+Cite each locus as **strain / full node-or-contig / region / BGC alias**, copied from the package. Do not transfer an alias between package versions or select evidence by a matching filename alone. Preserve the query sequence and source hashes for protein evidence; keep nr, ClusteredNR and Swiss-Prot results distinct.
 
 ## Authoring and unresolved evidence
 
-Follow [Mode B authoring](../MODEB_GATE_CLEAN_AUTHORING.md) and the active package/profile contract. Do not combine section numbering from historical profiles. Attach only evidence admitted for the intended scope, distinguish candidate citations from reviewed passages, and preserve missing or contradictory evidence.
+Choose the [Mode B profile](../MODEB_PROFILE_MATRIX.md), then follow the [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md) with the active package/profile contract. The [gate-clean recipe](../MODEB_GATE_CLEAN_AUTHORING.md) is for full48; current50 v2 uses its own template and verifier path. Keep their section maps separate. Attach only evidence that applies to this locus, distinguish candidate citations from reviewed passages, and preserve missing or contradictory evidence.
 
 ## Diagnose failures at their source
 

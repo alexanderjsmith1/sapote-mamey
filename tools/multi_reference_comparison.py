@@ -759,6 +759,8 @@ def attach_gecco(model, directory, overlap_map=None):
         data = glm.load_gecco(genes_path, clusters_path, prots, accession)
         if producer_map and ref:
             relevant = [r for r in mapping if r["genome"] == accession and r["region_file"] == Path(ref["gbk"]).name]
+            if not ref.get("gecco_source") and not relevant:
+                raise ValueError("GECCO_PRODUCER_SOURCE_UNDECLARED: producer map supplied but no reference source or bound rows; coordinate fallback refused")
             if ref.get("gecco_source") == "fasta_pyrodigal" or relevant:
                 data = producer_gecco_binding(mapping, accession, Path(ref["gbk"]).name, prots, genes,
                                               _table(clusters_path, ["sequence_id", "cluster_id", "start", "end", "average_p"])
@@ -871,7 +873,7 @@ def spec_plans(spec):
             if len(ident) != 4 or not all(ident) or (grouped and query["identity"] != locus_id):
                 raise ValueError("query needs complete four-part identity matching SPEC locus")
             plans.append({"query": query, "references": references, "spec": str(spec), "sha256": rlc.sha_file(spec),
-                          "locus": locus_id, "producer_grouped": grouped and "genes_present" in query})
+                          "locus": locus_id, "producer_grouped": grouped and bool({"genes_present", "rank", "summed_bitscore"}.intersection(query))})
     return plans
 
 

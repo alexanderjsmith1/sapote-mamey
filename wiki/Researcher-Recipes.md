@@ -1,9 +1,11 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.457 · engine Mamey 1.9.177. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.458 · engine Mamey 1.9.177.*
+
+Each recipe gives inputs, the command, outputs, the states you should see, and the usual failure. None of these results establishes compound identity, production, activity, novelty or publication readiness; that is stated once here and not repeated.
 
 
-Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document.
+Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document. `inspect` classifies ZIP member names: a region-GBK count or recognized shape is a preview, not parsed GenBank content, extraction success or scientific input admission. Retain actual run/validation outcomes separately.
 
 ## Recipe 1 — first successful run
 
@@ -54,15 +56,11 @@ Omit `--release` unless a governed privacy profile or a deliberately more restri
 
 `inspect` reports that the ZIP contains no region GBKs. This usually means the input is a raw assembly or another ZIP type, not an antiSMASH result. Do not force the run; produce a valid antiSMASH output ZIP first.
 
-### What this result does not establish
-
-A successful first run does not establish compound identity, expression, production, bioactivity, novelty, causal phenotype linkage, completed Mode B judgment, public-release suitability, owner acceptance, or publication readiness.
-
 ## Recipe 2 — one-strain run with deliberate metadata
 
 ### Inputs
 
-- One ZIP already accepted by `inspect`.
+- One ZIP whose filename-level shape was previewed with `inspect`; parseability and source identity still need their own evidence.
 - A stable strain label that is not merely a convenience filename.
 - Taxonomy, source, and provenance values whose evidence strength is known.
 - Optional typed bioactivity JSON or privacy profile only when those governed inputs actually exist.
@@ -103,9 +101,7 @@ Use `--json-evidence off` when JSON processing must be deliberately disabled. Us
 
 Supplying a database accession as the strain identity without deliberately enabling the accession-label compatibility option can be refused or upgraded from archive metadata. Treat accession, organism name, and local strain identity as different fields; do not silently collapse them.
 
-### What this result does not establish
-
-Explicit metadata improves provenance but does not prove the stated host, habitat, phenotype, or activity belongs to any individual locus. Strain-level context cannot be localized without separate evidence.
+**Limit:** Strain-level context cannot be localized to a locus without separate evidence.
 
 ## Recipe 3 — small batch of up to about three strains
 
@@ -113,7 +109,7 @@ Explicit metadata improves provenance but does not prove the stated host, habita
 
 - Two or three antiSMASH ZIPs, each already checked with `inspect`.
 - Pipe-separated taxonomy and source lists aligned to the ZIP order.
-- One provenance value shared by the batch. The help text describes pipe-separated provenance, but the parser accepts only one of `accession`, `table`, `filename`, or `asserted`.
+- One provenance value for the whole batch: `accession`, `table`, `filename` or `asserted`.
 - A shared output directory.
 - An optional master workbook path for cross-strain accumulation.
 
@@ -151,11 +147,7 @@ The batch path resolves strain identifiers from archive content or filenames and
 
 ### Common failure
 
-Trying `--source-provenance "table|asserted"` is rejected by the parser even though its help text describes a pipe-separated batch form. Use one truthful shared value, or split inputs with different provenance states into separate runs. A shorter taxonomy or source list falls back to `not verified` or `not supplied`; fix the alignment and use a new governed output root if the recorded metadata is unacceptable.
-
-### What this result does not establish
-
-A successful batch does not establish a scientifically valid cohort, comparable antiSMASH settings, harmonized evidence availability, a shared biological denominator, or cross-strain causal conclusions.
+`--source-provenance "table|asserted"` is rejected. Use one truthful shared value, or split inputs with different provenance states into separate runs. A shorter taxonomy or source list falls back to `not verified` or `not supplied`; fix the alignment and use a new governed output root if the recorded metadata is unacceptable.
 
 ## Recipe 4 — validate a package
 
@@ -198,9 +190,7 @@ Read validator status and recovery status together. `RECOVERY_VALIDATED` means t
 
 Pointing `validate` at the sealed ZIP or at the parent run directory instead of the unpacked `package/` directory produces missing-file failures. Resolve the exact package directory before diagnosing content.
 
-### What this result does not establish
-
-Validation proves only the implemented package gates for the exact bytes inspected. It does not prove interpretation quality, biological truth, experimental validity, owner acceptance, integration, release, or publication readiness.
+**Limit:** Validation covers only the implemented package gates for the exact files checked.
 
 ## Recipe 5 — post-seal Mode B start
 
@@ -211,7 +201,7 @@ Validation proves only the implemented package gates for the exact bytes inspect
 - One or more configured evidence roots and, when available, a curated evidence-index TSV with explicit freshness states.
 - An additive output directory outside score-bearing extraction files.
 
-The package's numbered inventory is not automatically a valid `modeb-availability` input in v9.7.395 because its shipped header shape lacks the required normalized strain and lowercase identity fields. Build or use an explicit normalized crosswalk; do not guess missing fields.
+The package's numbered inventory is not automatically a valid `modeb-availability` input because its shipped header shape lacks the required normalized strain and lowercase identity fields. Build or use an explicit normalized crosswalk; do not guess missing fields.
 
 ### Command
 
@@ -227,7 +217,7 @@ python mamey_run.py mode-b \
   --outdir project/mode_b_native
 ```
 
-Omit `--evidence-index` when no curated index exists; absence then remains `UNVERIFIED` or another typed state. Do not fabricate `CURRENT` from timestamps or filenames.
+Omit `--evidence-index` when no curated index exists; absence then remains `UNVERIFIED` or another typed state. Do not fabricate `CURRENT` from timestamps or filenames. Native `mode-b` is in the post-seal authoring allowlist and can refresh integrity records inside its supplied package even with an external output directory. Preserve the sealed original and use an identified working package copy when byte preservation is required; retain both source and candidate hashes. See [command-specific write boundaries](../docs/POSTSEAL_READERS.md).
 
 ### Outputs
 
@@ -247,11 +237,7 @@ Treat native `mode-b` output as generated top-lead material, not as an automatic
 
 ### Common failure
 
-Using `modeb-availability --package ...` fails because that option does not exist in v9.7.395. The command requires `--inventory` and `--out`; evidence enters through repeatable `--source-root` and `--evidence-index` options.
-
-### What this result does not establish
-
-Availability `PASS`, an eligible promotion gate, native coverage, or a generated card does not establish correct interpretation, compound identity, novelty, production, activity, experimental adjudication, owner acceptance, release, or publication readiness.
+Using `modeb-availability --package ...` fails because that option does not exist. The command requires `--inventory` and `--out`; evidence enters through repeatable `--source-root` and `--evidence-index` options.
 
 ## Recipe 6 — Figure Factory Next preflight and refusal
 
@@ -336,9 +322,7 @@ Do not add `--probe-transports` unless network use is explicitly authorized. `--
 
 Treating a doctor's optional warning as a failed extraction, or treating an absent evidence channel as proof of novelty or biological absence. Preserve the typed state and acquire or bind the missing source when it is required for the intended claim.
 
-### What this result does not establish
-
-A core doctor pass does not prove optional analyses are available. Conversely, a missing optional tool or dataset does not negate a valid package and does not establish a biological negative.
+**Limit:** A missing optional tool or dataset does not invalidate a package and is not a biological negative.
 
 ## Recipe 8 — resume and recovery
 
@@ -361,7 +345,7 @@ python mamey_run.py workflow \
   --ledger-out project/resume/reference-isolate-001_WORKFLOW_LEDGER.md
 ```
 
-Use `workflow --strict` only when a nonzero exit is desired for every incomplete mandatory workflow step. The non-strict view is useful for orientation because pending downstream work is normal immediately after extraction.
+Use `workflow --strict` only when that implemented mandatory-step reduction is intended. W10 is mandatory but its behavioral checker returns `N/A`; the current reducer counts every mandatory state other than `PASS` as incomplete, so strict can exit1 even after every actionable upstream step passes. Inspect the named steps and retain the W10 implementation hold rather than inventing missing biological work. The non-strict view is useful for orientation because pending downstream work is normal immediately after extraction.
 
 ### Outputs
 
@@ -379,10 +363,6 @@ Use `workflow --strict` only when a nonzero exit is desired for every incomplete
 ### Common failure
 
 Running `resume` first and treating its briefing as a package-integrity check. `resume` reduces existing artifacts; it does not replace checksum or validation gates. Validate first, and stop on `RECOVERY_NEEDED`, `PARTIAL_FAILED`, checksum failure, or validator failure.
-
-### What this result does not establish
-
-A reconstructed briefing or workflow ledger does not prove that prior interpretation was correct, that a recovered run was uninterrupted, that pending evidence exists elsewhere, or that any deliverable is accepted, integrated, released, or publication-ready.
 
 ## Exact-locus inventory example
 

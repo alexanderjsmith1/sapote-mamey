@@ -4,9 +4,8 @@
 `KNOWLEDGE_<Name>.md`, and fill every `<…>`. Delete the sections that don't apply (a KNOWLEDGE module usually
 drops §3 Pipeline and §5 Acceptance; a DELIVERABLE module keeps all of them).
 
-The goal: a new module should be **pasteable into a fresh Sapote/Mamey chat** and have the workflow behave
-correctly with no other context. Two locks make that possible — **reference, don't restate** existing rules, and
-**state precedence** so a fresh runner knows what wins.
+A module page should let a reader produce the output from the package alone. Point to existing rules instead of
+restating them, and say which document wins in a conflict.
 
 ---
 
@@ -21,9 +20,11 @@ correctly with no other context. Two locks make that possible — **reference, d
 ---
 
 ## 1. When it is offered (Deliverable Offer Protocol)
-`<The trigger state — what condition or user phrasing makes this deliverable due. State the "incomplete delivery"
-condition: what it means to have stopped short. Per DELIVERABLE_CONTRACT, the user must never need to know the
-deliverable exists to receive it: auto-build it, or offer it as the first next-path.>`
+`<Name the user-selected workflow and trigger that makes this artifact applicable.
+State its completion evidence and what remains incomplete within that scope. A
+trigger may support a useful offer; it does not itself authorize a new analysis,
+network submission, package mutation, all-BGC authoring or publication. Distinguish
+a documented recommendation from an implemented automatic invocation.>`
 *(KNOWLEDGE modules: replace with "Why this exists / who reads it".)*
 
 ---
@@ -33,7 +34,7 @@ deliverable exists to receive it: auto-build it, or offer it as the first next-p
 |---|---|---|
 | `<input>` | `<which output>` | `<which sub-deliverable>` |
 
-State the **skip-not-fake** rule: a sub-output whose inputs are absent is omitted and labelled, never fabricated.
+State the **skip-not-fake** rule: a sub-output whose inputs are absent is omitted and labeled, never fabricated.
 
 ---
 
@@ -42,8 +43,9 @@ State the **skip-not-fake** rule: a sub-output whose inputs are absent is omitte
 python tools/<tool>.py --banked-dir <dir> --out-dir <dir> <flags>
 …
 ```
-Note the shared reproducibility flags the tool honors (`--replot`, `--dpi`, `--no-register`, etc.) and the single
-source of truth for any computed value (which function in which tool).
+List only flags implemented by that exact tool and verified against its parser;
+the placeholders above do not establish a common flag interface. Name the owning
+function for computed values, admitted inputs, output/write boundaries and receipts.
 
 ---
 
@@ -59,8 +61,7 @@ state that registration — not hand-editing — is the single source of truth.>
       audit for any public artifact.
 - [ ] Canonical numbers match the knowledge modules; no retired figures.
 - [ ] Complete locus identity on each operational BGC reference: strain, full contig/node, region and alias.
-- [ ] No retired internal/personal codenames; affiliation = .
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
+- [ ] Hand back the result, its evidence and open holds.
 
 ---
 
@@ -70,12 +71,12 @@ state that registration — not hand-editing — is the single source of truth.>
 ---
 
 ## 7. Next-paths closer
-`<At most one useful next action by default. Use eight distinct paths only for a major final delivery or explicit planning request when useful; never pad a menu.>`
+`<Hand back the result, its evidence and open holds. Add a next step only when one is useful.>`
 
 ---
 
 ### Authoring notes (delete before filing)
-- Keep it **paste-ready**: a fresh chat with only this file should behave correctly.
+- Keep it **paste-ready**: a reader with only this file and the package should get the output right.
 - **Reference, don't restate** — restating a rule is how two copies drift. Point to the canonical doc.
 - **State precedence** explicitly so a runner knows what wins in a conflict.
 - Put every computed number behind "the code is the source of truth"; modules carry the *portable copy*, not the

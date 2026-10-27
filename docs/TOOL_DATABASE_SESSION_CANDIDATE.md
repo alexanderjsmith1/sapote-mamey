@@ -1,9 +1,8 @@
-# Frozen database session candidate
+# Frozen database session (Python API)
 
 `mamey.tool_database_session.FrozenDatabaseSession` extends the existing reader
 owner for repeated local queries. It does not create a registry, copy a database,
-admit scientific evidence or select a population. Apply after the tool database
-reader and BLAST reader follow-on prerequisites listed in the patch receipt.
+admit scientific evidence or select a population.
 
 ```python
 from mamey.tool_database_session import FrozenDatabaseSession
@@ -41,7 +40,7 @@ full hashes checked at admission and close. Entry failures close the connection.
 Ordinary input drift is detected; hostile replacement-and-restoration is outside
 this guard. Sessions are single-threaded. Enter the context manager before using the API; merely constructing the object does not admit/open a database. `close()` closes an already entered session.
 
-This candidate adds no evidence-index records or section-complete assertions.
+The session adds no evidence-index records.
 Source profile metadata still requires comparison with the selected current
 contract. Search provenance remains recorded evidence, not original-job locus
 admission or accepted query function. Mixed hit/no-hit histories remain separate.

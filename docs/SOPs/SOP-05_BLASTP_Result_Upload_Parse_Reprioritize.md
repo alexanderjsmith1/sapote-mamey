@@ -1,6 +1,6 @@
 # SOP-05 — BLASTP Result Upload, Parse, and Reprioritization
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+Run the commands below from the bundle root, the folder that holds `mamey_run.py`.
 
 
 ## Purpose
@@ -38,9 +38,11 @@ The parser must handle:
 - Hit Table only,
 - XML2 paired with Hit Table.
 
+XML2 enrichment is a metadata join, not exact-query admission. After an exact query-title lookup fails, the fallback can match only BGC alias plus gene label and take the first matching result; it does not verify strain or query-sequence hashes. Keep input batches source-bound and independently reconcile query/result identities before using enriched titles, lengths or coverage as current-gene evidence.
+
 ## Headerless CSV recovery rule
 
-When a headerless NCBI Hit Table row contains commas inside the query title, the parser should treat the final stable BLASTP numeric/subject fields as the anchor fields and reconstruct the query title from the preceding fields.
+The headerless parser splits each row by its shape. It counts the trailing run of numeric fields: eleven means the % positives column is present, ten means it is not. The field before that run is the subject, and everything before the subject is the query title, rejoined with commas. So unquoted commas in a query title are repaired. A row of any other shape keeps the plain positional reading; check those rows against the original file. A row whose percent identity or bit score cannot be read is skipped, not stored as a zero hit. Keep the original Hit Table beside the parsed output.
 
 ## Required outputs
 
@@ -53,7 +55,7 @@ The implemented output set is:
 - `BLASTP_FOLLOWUP_USER_GUIDE.md`: interpretation and file guide;
 - `BLASTP_FOLLOWUP_next_batch_round001_for_BLASTP.faa`: only when both `--previous-selection` and `--panel-dir` are supplied. It can be empty when nothing qualifies.
 
-BGC metadata can occur in query rows, but this command does not write a separately aggregated BGC summary. Queries absent from the Hit Table are not automatically censused as no-hit queries. Reconcile searched and returned query IDs against the original panel before interpreting missingness.
+BGC metadata can occur in query rows, but this command does not write a separately aggregated BGC summary. Queries absent from the Hit Table are not automatically censused as no-hit queries. Reconcile searched and returned query IDs against the original panel before interpreting missingness. The optional next batch excludes only queries observed in the parsed hit rows, so previously submitted queries without a returned hit row can be selected again. Reconcile that FASTA against the original submission/no-hit ledger and receipts before any new submission; the previous-selection manifest alone does not establish which queries completed.
 
 Exit status is 0 when at least one query was parsed and 1 when no query was parsed. Files may already exist after a zero-query result; their existence alone is not success.
 

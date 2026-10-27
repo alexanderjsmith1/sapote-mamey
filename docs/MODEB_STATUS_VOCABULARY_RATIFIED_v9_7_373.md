@@ -1,13 +1,13 @@
-# RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)
+# Mode B status vocabulary: ratified mapping and current gate limits
 
-*the Developer or User ratified the mapping table (green-light on the vocabulary-reconciliation path, 2026-08-21).
-This is the single authority that resolves the three status vocabularies that were in flight; every
-.373-and-later Mode-B card and gate keys on it. the patch lane records; the Developer or User ratified. Folded into the
-bundle at v9.7.373 from the `.373` patch queue (`RATIFIED_STATUS_VOCABULARY_2026-08-21.md`).*
+This page preserves the status mapping recorded for the .373 patch queue on 21 August 2026
+(`RATIFIED_STATUS_VOCABULARY_2026-08-21.md`). The retained record reports ratification of that mapping;
+this page does not create a new approval. For a new card, choose the current [profile](MODEB_PROFILE_MATRIX.md),
+then use the mapping below to keep document progress separate from evidence holds. The
+[current implementation boundary](#current-implementation-boundary-mapping-retained) explains what the verifier checks.
 
 ## The problem it closes
-Three status vocabularies were live at once and would have shipped a fourth if the Codex Full48
-spec were implemented as-written:
+Three status vocabularies were in use at once:
 1. **Legacy** — `FINISHED_CURRENT_EVIDENCE`, the literal trigger token of the .372 matrix gate.
 2. **Protocol §4 ladder** — the 8-state dual-writer/dual-auditor document ladder (ships in .372).
 3. **Full48 spec** — `document_state` (SCAFFOLD | CANDIDATE | FINISHED_CURRENT_EVIDENCE) plus an
@@ -36,32 +36,21 @@ The admitted Codex sequence-first patch introduces `OBSERVED_UNBOUND` / `QUARANT
 result but not a bound (query-hash + exact-locus + channel + receipt) join. This ratification places
 them on the evidence axis, so they never collide with the document ladder.
 
-## What .373 implements vs defers
-- **Implemented in .373 (engine 1.9.126):** the legacy token is honoured as an alias-trigger by the
-  finished-profile check wired in `mamey/authored_verify.py` (B1) — a card carrying either
-  `FINISHED_FULL48_CURRENT_EVIDENCE` or the legacy `FINISHED_CURRENT_EVIDENCE` activates the
-  publication gate. The mechanical ceiling `EVIDENCE_MATRIX_VALIDATED` is unchanged.
-- **Deferred to .374 (engine-bump):** the full Full48 named-profiles implementation
-  (schema/emitter/gates emitting `document_state` + `evidence_state` as first-class fields) — it
-  changes emitted output and warrants its own bump. Tracked with the sequence-first coded
-  receipt-binding enforcement, which waits on the BLASTp-lane store schema migration
-  (`hits` lacks `query_hash`/`result_job_receipt` columns).
-
-*Claim-safety: authoring-status vocabulary only; no science claims; judgment deferred. the Developer or User ratified;
-the patch lane records.*
+*Claim-safety: authoring-status vocabulary only; no science claims; judgment deferred. The project owner ratified this mapping.*
 
 ## Current implementation boundary (mapping retained)
 
 The ratified mapping above is preserved as the dated governance record; this note does not change
-its canonical terms or grant a new approval. Its .373/.374 implementation/deferment bullets describe
-that historical rollout, not an exhaustive statement about the current bundle. Select the current
+its canonical terms or grant a new approval. The .373/.374 rollout notes are in
+[history](history/MODEB_STATUS_VOCABULARY_373_ROLLOUT.md). Select the current
 named profile and its actual producer/verifier; current50 v2 has its own FINISHED_FULL50_CURRENT50_V2
 profile token and relocated evidence section.
 
-The current full48 authored verifier tests the legacy/canonical finished tokens in active Markdown to
-select stronger checks. It is a routing signal, not a parser that independently proves exactly one
-first-class document_state, validates every evidence_state list, reconstructs the eight-state history
-or verifies an owner’s approval. A saved label, alias-trigger or mechanical PASS cannot establish
+The current full48 authored verifier tests recognized legacy/canonical finished tokens in its normalized
+Markdown view to select stronger checks. That view also admits a recognized profile from the first-line
+canonical Mode B metadata header. This is a routing signal: it does not independently prove exactly one
+first-class document_state, validate every evidence_state list, reconstruct the eight-state history
+or verify an owner’s approval. A saved label, alias-trigger or mechanical PASS cannot establish
 MAINTAINER_ACCEPTED, INTEGRATION_APPROVED, RELEASE_APPROVED or PUBLICATION_APPROVED. Those require
 the actual authorized owner record and bound reviewed bytes.
 

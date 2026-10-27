@@ -20,7 +20,7 @@ Every track has an ID, label, kind, identity, orientation, anchor gene and gene 
 
 Every gene supplies ID, short label (32 characters maximum), start, end, strand, normalized protein `aa_sha256`, and optional correspondence `group`. Coordinates are integer, zero-based, half-open: subtract one from a one-based inclusive start; retain its inclusive end as the half-open end. Strand is +1 or -1. Normalize AA sequences consistently upstream (remove whitespace, uppercase, remove terminal stop) before hashing. A source-bound producer, rather than this graphics module, verifies the sequence against its CDS.
 
-Every link has endpoints `a: [track_id, gene_id]`, `b: [track_id, gene_id]` and a nonempty `evidence` description. Endpoints must share the same explicitly supplied group. Optional identity, query coverage and reference coverage percentages are retained separately in the data sidecar. A gene with one correspondence on the selected identity_side (a by default, or b) displays its identity percentage beneath the arrow in report view, or appended to its outer BGC label in slide view; coverage stays in the sidecar. They are not conflated into one score. Best-hit correspondence is not automatically reciprocal orthology. Unmatched genes are grey.
+Every link has endpoints `a: [track_id, gene_id]`, `b: [track_id, gene_id]` and a nonempty `evidence` description. Endpoints must share the same explicitly supplied group. Optional identity, query coverage and reference coverage percentages are retained separately in the data sidecar. On the selected `identity_side` (`a` by default, or `b`), a gene with exactly one link carrying `identity_pct` displays that percentage beneath its arrow in report view, or appended to a nonempty outer BGC label in slide view. Links without `identity_pct` do not count toward this display decision; coverage stays in the sidecar. They are not conflated into one score. Best-hit correspondence is not automatically reciprocal orthology. Genes without a supplied nonempty `group` are gray. A supplied group receives a color even when the manifest declares no link for that gene.
 
 ## Orientation and layout
 
@@ -28,19 +28,19 @@ Orientation is an explicit +1 or -1 for the entire track. The anchor gene midpoi
 
 In report view, labels are centered over their arrows on one baseline per track. A detected gene-label overlap refuses the render before files are created; shorten labels or select a narrower locus view. Track labels and titles still require visual inspection. Reference origin or direction need not clutter the track heading; the exact transform remains in the receipt. Ribbons show the full-gene correspondence, not local alignment blocks. The common scale is fixed across tracks.
 
-Colors are assigned deterministically within a manifest. Maps with more than twelve groups use a larger generated palette; similar hues may still be difficult to distinguish, so endpoints and ribbons remain authoritative. Stable cohort-wide group palettes are a follow-on. No individual gene is moved to improve the drawing.
+Colors are assigned deterministically within a manifest. Maps with more than twelve groups use a larger generated palette; similar hues may still be difficult to distinguish, so endpoints and ribbons remain authoritative. No individual gene is moved to improve the drawing.
 
 ## Integration and limits
 
 Use `mamey.figures.locus_comparison` from Python or `tools/render_locus_comparison.py` from the extracted bundle root. The strain-slide workflow calls the same renderer through `tools/rescue_locus_comparison.py`. The renderer consumes declared coordinates and correspondences; the adapter owns input selection and source binding. See the slide-view and adapter responsibilities below.
 
-Review the supplied-coordinate sidecar and the actual SVG/PNG before using a result. A completed render or passing test does not establish product identity, production, function, physical linkage or scientific acceptance. The companion suite diagrams describe the local documented workflows and optional tools; they do not install them.
+Review the supplied-coordinate sidecar and the actual SVG/PNG before using a result. A finished render shows layout only. It is not evidence of product identity, function or physical linkage.
 
 ## Assembly markers and orientation audit
 
 Optional track `sequence_length` marks both native contig ends after applying the same orientation transform; genes outside that length are refused. Optional gene `missing_stop_codon: true` adds an asterisk and an explanatory report caption or slide heading annotation. These are supplied observations, not inferred completeness or pathway-boundary judgments. `label_caption` can map numeric arrow labels to complete locus tags. `identity_caption` names the protein comparison source; research producers should distinguish BLASTp and tblastn.
 
-The `identity_side` field chooses a or b endpoints for percentages. Multiple correspondences at one endpoint are left in the sidecar rather than collapsed to a misleading number. The renderer exports actual arrow start/end/strand, verifies these against source transformations before writing, and records `drawn_orientation_check`. `verify_drawn_orientation(spec, drawn, receipt)` also rejects an external receipt whose orientation disagrees with the source. Tests deliberately reverse a drawn arrow and tamper with a receipt.
+The `identity_side` field chooses a or b endpoints for percentages. If an endpoint has more than one link carrying `identity_pct`, those values stay in the sidecar without one displayed percentage. Additional links without `identity_pct` do not suppress a single supplied percentage. The renderer exports actual arrow start/end/strand, verifies these against source transformations before writing, and records `drawn_orientation_check`. `verify_drawn_orientation(spec, drawn, receipt)` also rejects an external receipt whose orientation disagrees with the source.
 
 ## Slide view
 
@@ -67,8 +67,8 @@ Top-row labels/headings face above; bottom-row labels/headings face below;
 intermediate rows have no gene labels and place their headings to the left.
 Conflicting inward settings are refused with the track ID. Headings anchor at
 their own first/last drawn gene according to `heading_align`. Bold headings and
-grey identity/subtitle text wrap. Label extents are measured after drawing;
-outer headings start six points beyond visible labels on their row (including shared-row neighbours). Colliding shared-row
+gray identity/subtitle text wrap. Label extents are measured after drawing;
+outer headings start six points beyond visible labels on their row (including shared-row neighbors). Colliding shared-row
 headings stack farther outward, and measured point extents determine the y-limits.
 
 Labels angle outward and are thinned using measured rotated rectangles, including

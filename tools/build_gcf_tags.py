@@ -110,6 +110,21 @@ def tag_bgc(kcb, products, pairs, orphan):
     ot=orphan.get(bucket) if bucket else None
     return (ot or 'OTHER_unknown'), 'unmatched_anchor'
 
+def _pct(part, whole):
+    # an empty bank, or a bank with every BGC dark, divided by zero after the CSV was written
+    return f"{100*part/whole:.0f}%" if whole else "n/a"
+
+
+def _coverage_lines(tagc, n):
+    dark=tagc['DARK_no_family']; named=sum(v for k,v in tagc.items() if not k.endswith(('_orphan','_unknown','_no_family')))
+    orphans=sum(v for k,v in tagc.items() if k.endswith(('_orphan','_unknown')))
+    anchored=n-dark
+    return [f"  tagged {n} BGCs -> GCF_Tags.csv", f"  dark (UNRESOLVED, no family): {dark} ({_pct(dark, n)})",
+            f"  resolved to a named GCF family: {named} ({_pct(named, n)})",
+            f"  named anchor but class-orphan: {orphans} ({_pct(orphans, n)})",
+            f"  of {anchored} anchored BGCs, {named} ({_pct(named, anchored)}) got a specific family tag",
+            "  top GCF families:"]
+
 @_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
@@ -128,11 +143,7 @@ def main():
     out_csv=os.path.join(a.out_dir,'GCF_Tags.csv')
     with atomic_open(out_csv,'w',newline='') as f:
         w=_SafeDictWriter(f,fieldnames=['strain','bgc','Predicted_BGC_Class','KCB_anchor','GCF_Product_Family_Tag','match_basis']); w.writeheader(); w.writerows(rows)
-    # coverage
-    n=len(bgcs); dark=tagc['DARK_no_family']; named=sum(v for k,v in tagc.items() if not k.endswith(('_orphan','_unknown','_no_family')))
-    orphans=sum(v for k,v in tagc.items() if k.endswith(('_orphan','_unknown')))
-    anchored=n-dark
-    emit(f"  tagged {n} BGCs -> GCF_Tags.csv", f"  dark (UNRESOLVED, no family): {dark} ({100*dark/n:.0f}%)", f"  resolved to a named GCF family: {named} ({100*named/n:.0f}%)", f"  named anchor but class-orphan: {orphans} ({100*orphans/n:.0f}%)", f"  of {anchored} anchored BGCs, {named} ({100*named/anchored:.0f}%) got a specific family tag", "  top GCF families:", sep="\n")
+    emit(*_coverage_lines(tagc, len(bgcs)), sep="\n")
     for t,c in tagc.most_common(14):
         if t!='DARK_no_family': emit(f"    {c:4}  {t}")
     if a.workbook and os.path.exists(a.workbook):

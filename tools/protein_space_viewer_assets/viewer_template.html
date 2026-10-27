@@ -1,0 +1,307 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protein Space, Final Set</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same family as "Protein Space in 3D": a control strip over one large rotating plot, counts beneath, notes last. */
+:root {
+  --bg: #F7F8F6; --panel: #FFFFFF; --fg: #18211C; --muted: #5C6760; --line: #DDE2DC;
+  --ref: #7973C9; --sid: #B0487A; --mibig: #4C7FB0; --focus: #2E7D4F;
+  --bee: #C9A227; --attine: #8C4A2F; --moss: #2E7D4F;
+  --body: "Public Sans", "Helvetica Neue", Arial, sans-serif; --mono: "JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --panel: #1A1F1C; --fg: #E6EBE7; --muted: #9AA59E; --line: #2D3530;
+  --ref: #A89EF0; --sid: #E07AA8; --mibig: #6E9FD0; --focus: #6CC08F;
+  --bee: #E0BC45; --attine: #D07A55; --moss: #5DBB83; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #1A1F1C; --fg: #E6EBE7; --muted: #9AA59E; --line: #2D3530;
+  --ref: #A89EF0; --sid: #E07AA8; --mibig: #6E9FD0; --focus: #6CC08F;
+  --bee: #E0BC45; --attine: #D07A55; --moss: #5DBB83; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 16px; }
+h1 { font-size: 1.6rem; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { margin: 0; color: var(--muted); max-width: 70ch; }
+.controls { display: grid; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); min-width: 7.5em; }
+button.chip, label.chip { font: 600 0.85rem var(--body); border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+button.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+label.chip input { accent-color: var(--focus); margin: 0; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+select { font: 600 0.85rem var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; max-width: 100%; }
+#plot { width: 100%; height: min(72vh, 760px); min-height: 420px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.runnote { font-size: 0.88rem; color: var(--muted); margin: 0; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+td.num { font-family: var(--mono); text-align: right; }
+.notes { color: var(--muted); font-size: 0.88rem; max-width: 80ch; display: grid; gap: 6px; }
+.notes p { margin: 0; }
+
+.plot-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,0.47fr); gap:16px; align-items:start; }
+.detail-panel {background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;max-height:850px;overflow:auto;overflow-wrap:anywhere;min-width:0;}
+.detail-panel h2 {font-size:1.1rem;margin:0 0 10px;} .detail-panel h3 {font-size:1rem;margin:16px 0 6px;}
+.detail-panel table {font-size:.78rem;} .detail-panel th {min-width:105px;word-break:normal;overflow-wrap:normal;} .detail-panel td,.detail-panel th {white-space:normal;vertical-align:top;}
+.detail-panel button {font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:4px 8px;cursor:pointer;}
+.detail-panel pre {white-space:pre-wrap;font-size:.74rem;} .detail-panel summary {cursor:pointer;font-weight:600;}
+#search {flex:1;min-width:180px;max-width:700px;padding:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;}
+.gene-table {table-layout:fixed;} .gene-table th:first-child,.gene-table td:first-child {width:110px;white-space:nowrap;overflow-wrap:normal;} .gene-table th:nth-child(2),.gene-table td:nth-child(2) {width:42px;white-space:nowrap;overflow-wrap:normal;}
+.hold {color:var(--muted);font-size:.85rem;} .selected-gene {background:var(--bg);font-weight:bold;}
+@media(max-width:1000px){.plot-grid {grid-template-columns:1fr;} .detail-panel {max-height:650px;}}
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:6px">
+    <h1>Protein space on the final genome set</h1>
+    <p class="runnote" id="offlineBadge">Local research explorer</p>
+    <p class="lede">Each point is one biosynthetic protein or domain from 1,806 actinomycete genomes and 2,088 MIBiG clusters. Choose a layout: the run 7 principal coordinates in three axes, or the three-dimensional TriMap the M5 laptop computed for run 4. Drag to rotate, scroll to zoom, hover or click a point to inspect its source record, gene evidence and whole BGC where available.</p>
+  </header>
+
+  <section class="controls" aria-label="Plot controls">
+    <div class="row"><span class="label">Layout</span>
+      <button class="chip" id="lay7" aria-pressed="true">PCoA axes 1–3, run 7</button>
+      <button class="chip" id="lay4" aria-pressed="false">TriMap 3D, run 4</button></div>
+    <div class="row"><span class="label">Protein set</span><select id="setsel" aria-label="Protein set"></select></div>
+    <div class="row"><span class="label">Isolates</span>
+      <label class="chip"><input type="checkbox" id="k3" checked><i class="sw" style="background:var(--bee)"></i>bees and wasps</label>
+      <label class="chip"><input type="checkbox" id="k4" checked><i class="sw" style="background:var(--attine)"></i>attine ants</label>
+      <label class="chip"><input type="checkbox" id="k5" checked><i class="sw" style="background:var(--moss)"></i>mosses</label>
+      <label class="chip"><input type="checkbox" id="onlyLow">only below 70% identity</label></div>
+    <div class="row"><span class="label">Context</span>
+      <label class="chip"><input type="checkbox" id="k0" checked><i class="sw" style="background:var(--ref)"></i>public genomes</label>
+      <label class="chip"><input type="checkbox" id="k1" checked><i class="sw" style="background:var(--sid)"></i>SID genomes</label>
+      <label class="chip"><input type="checkbox" id="k2" checked><i class="sw" style="background:var(--mibig)"></i>MIBiG 4.0</label></div>
+    <div class="row"><label for="pointScale" class="label">Point size</label>
+      <input type="range" id="pointScale" min="1" max="4" step="0.25" value="2" aria-label="Point size multiplier">
+      <output id="pointScaleValue" for="pointScale">2×</output></div>
+    <div class="row"><span class="label">Explore</span>
+      <input id="search" type="search" aria-label="Search genes and BGCs" placeholder="Search strain, BGC, gene, contig, class or reference">
+      <button class="chip" id="clearFocus">Clear search / BGC focus</button></div>
+    <div class="row"><span class="label">Centres</span>
+      <label class="chip"><input type="checkbox" id="showGenomes">genome means</label>
+      <label class="chip"><input type="checkbox" id="showCohorts">equal-genome cohort means</label></div>
+    <p class="runnote" id="centreNote">Diamonds show genome means; crosses show equal-genome cohort means. Centres use all eligible cohort points before low-identity, search or BGC-focus filters. These are descriptive coordinate means, not average sequences or genus-adjusted comparisons.</p>
+    <p class="runnote" id="runnote"></p>
+  </section>
+
+  <div class="plot-grid"><div id="plot" role="img" aria-label="Three-dimensional plot of protein similarity"></div>
+    <aside id="details" class="detail-panel" aria-label="Protein and BGC details"><h2>Protein and BGC details</h2>
+      <p>Click a point to inspect its source identity and gene evidence. Cohort points can open the whole BGC gene table.</p>
+      <p class="hold">Historical records are shown with their source and binding state. Missing data remain explicitly unavailable.</p>
+    </aside></div>
+  <section class="controls"><div class="row"><label class="label" for="browseStrain">BGC browser</label><select id="browseStrain" aria-label="Browse strain BGCs"></select><select id="browseRegion" aria-label="Browse BGC"></select><button class="chip" id="openRegion">Open gene table</button></div></section>
+  <section class="controls"><div class="row"><label class="label" for="referenceStrain">Reference genes</label><select id="referenceStrain" aria-label="Reference comparison strain"></select><select id="referenceSelect" aria-label="Reference comparison"></select><button class="chip" id="openReference">Open complete reference comparison</button></div><p class="runnote">Includes every retained reference gene: focal-region matches, same-contig flanks, other contigs, ambiguous matches and not-found rows. Partner and split-gene evidence stay separate.</p></section>
+  <details class="tablewrap"><summary>Per-genome identity, gene and domain summaries</summary><table id="genomeSummary" aria-label="Per-genome descriptive protein summaries"></table></details>
+
+  <section class="tablewrap"><table id="counts" aria-label="Eligible and visible protein or domain points, per collection"></table></section>
+
+  <section class="notes">
+    <p><strong>Points.</strong> Filled isolate points: the closest public-genome, SID or MIBiG protein is below 70% amino-acid identity. Open points: 70% or more. Points may be proteins or domains. Public and SID points are cluster representatives, not genome counts. Identity is measured against the pooled reference, SID and MIBiG search background; hiding a context group does not recalculate it.</p>
+    <p><strong>Run 7 PCoA.</strong> The final genome set: 1,645 public genomes, 116 SID genomes and 45 isolates, actinomycetes only. Classical principal coordinates of DIAMOND identity distances; the three displayed axes are a projection and may distort the original distances. Use the original distances for statistical comparisons; visual separation alone does not establish a cohort difference.</p>
+    <p><strong>Run 4 TriMap.</strong> The earlier run's points and distances, laid out in three dimensions by TriMap. TriMap keeps each protein's near neighbours better than PCoA does, but distances between separate groups carry no meaning. AS-102 and the cleaned AS-815 were not in run 4, so the run 4 view has 42 isolate genomes.</p>
+    <p><strong>Left out of both views.</strong> AS-813 (contaminated assembly), run 4's raw AS-815 assembly, and AS-956's second-part regions. AS-320, from a lichen, is drawn with the mosses.</p>
+    <p><strong>Resistance sets.</strong> Run 7's 19 CARD-family sets wait for their family names from the M5; run 4's carry theirs.</p>
+    <p><strong>Reading it.</strong> Distance from known proteins describes sequence only. It says nothing about the compound a cluster makes or about activity.</p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly-gl3d.min.js"></script>
+<script id="data" type="application/json">__DATA__</script>
+<script src="reference_browser.js"></script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const offlineBadge=document.getElementById('offlineBadge');if(offlineBadge)offlineBadge.textContent=D.standalone?'Single-file viewer · works offline · all gene details embedded':'Local research explorer';
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const KINDS = [
+    {k: 0, name: "public genomes", col: "--ref", size: 1.6, hover: true},
+    {k: 1, name: "SID genomes", col: "--sid", size: 1.8, hover: true},
+    {k: 2, name: "MIBiG 4.0", col: "--mibig", size: 2.0, hover: true},
+    {k: 3, name: "bees and wasps", col: "--bee", size: 4, hover: true},
+    {k: 4, name: "attine ants", col: "--attine", size: 4, hover: true},
+    {k: 5, name: "mosses", col: "--moss", size: 4, hover: true}];
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let focusRegion = "";
+  const loaded = {}, pending = {};
+  const metaCache = new WeakMap();
+  function metadata(p,s=current()) {
+    if(!s.meta) return {strain:(p[4]>=0 ? D.labels[p[4]].split(" · ")[0] : ""),locus_tag:"",origin:""};
+    if(!metaCache.has(s))metaCache.set(s,s.meta.map(row=>{
+      const m=Object.fromEntries(D.meta_columns.map((k,i)=>[k,D.meta_strings ? D.meta_strings[row[i]] : row[i]]));
+      const r=D.region_index?.[(m.origin||'').split('/').pop()];m.bgc=r?.[1]||'';m.locus_identity=r?.[0]||'';
+      m.gene_annotation=D.gene_search?.[m.strain+'|'+m.locus_tag]||'';const acc=(m.origin||'').match(/BGC\d{7}/)?.[0];if(acc&&D.mibig?.[acc]){m.reference_compounds=D.mibig[acc][0].join('; ');m.reference_producer=D.mibig[acc][1];}return m;
+    }));
+    return metaCache.get(s)[p[6]];
+  }
+  const regionKey = m => (m.origin||"").split("/").pop();
+  function loadRegions(strain) {
+    if(loaded[strain])return Promise.resolve(loaded[strain]);
+    if(pending[strain])return pending[strain].promise;
+    if(!D.region_files?.[strain])return Promise.reject(new Error("No source-bound region record is available for this strain."));
+    let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});pending[strain]={promise,resolve,reject};
+    if(D.region_payloads?.[strain])window.PROTEIN_SPACE_DETAILS_PACKED(strain,D.region_payloads[strain]);
+    else if(D.standalone)reject(new Error('Embedded region record is missing; no external file will be requested.'));
+    else {const script=document.createElement("script");script.src=D.region_files[strain];script.onerror=()=>reject(new Error("Region detail file could not be loaded."));document.head.appendChild(script);}
+    return promise;
+  }
+  window.PROTEIN_SPACE_DETAILS=(strain,payload)=>{loaded[strain]=payload;if(pending[strain])pending[strain].resolve(payload)};
+  window.PROTEIN_SPACE_DETAILS_PACKED=async(strain,encoded)=>{
+    try {
+      if(typeof DecompressionStream==='undefined')throw new Error('This browser cannot decode compressed details. Use a current browser with DecompressionStream support.');
+      const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const payload=JSON.parse(await new Response(stream).text());window.PROTEIN_SPACE_DETAILS(strain,payload);
+    }catch(error){if(pending[strain])pending[strain].reject(error);}
+  };
+  const recordTable = obj => '<table>'+Object.entries(obj).filter(([k,v])=>v!==undefined&&v!==null&&v!=="").map(([k,v])=>`<tr><th>${esc(k.replaceAll("_"," "))}</th><td>${esc(typeof v==="object"?JSON.stringify(v):v)}</td></tr>`).join("")+'</table>';
+  async function showRegion(strain,origin,locus="") {
+    const panel=document.getElementById("details");panel.innerHTML='<h2>Loading BGC evidence…</h2>';
+    try {
+      const payload=await loadRegions(strain),r=payload.regions[origin];
+      if(!r){panel.innerHTML='<h2>Region details unavailable</h2><p>'+esc(strain+' / '+origin)+'</p><p class="hold">No exact region record in the selected earlier explorer. Cleaned assemblies are not linked to older raw-assembly records.</p>';return;}
+      panel.innerHTML=`<h2>${esc(r.identity)}</h2><p>${esc(r.product)}</p><p class="hold">${esc(r.binding_state)}</p><p class="hold">Source: ${esc(r.source_gbk||payload.source)}</p><button id="focusBGC">Focus this BGC in the plot</button>
+        <div id="regionReferences"></div><div id="geneDetail"></div><h3>Every source-region CDS (${r.cds.length})</h3><p class="hold">Coordinates below are relative to the region. Click a gene for its annotations. Genes without a point in this protein set remain in the table.</p>
+        <table class="gene-table"><thead><tr><th>Gene</th><th>aa</th><th>Role / annotation</th></tr></thead><tbody>${r.cds.map(g=>`<tr class="${g[3]===locus?'selected-gene':''}"><td><button data-gene="${esc(g[3])}">${esc(g[3])}</button></td><td>${esc(g[8])}</td><td>${esc(g[4])}<br>${esc(g[5]||g[6])}</td></tr>`).join("")}</tbody></table>
+        <details><summary>BGC inventory and provenance</summary>${recordTable(r.inventory)}${recordTable({source_region:r.file,original_start:r.orig_start,original_end:r.orig_end,boundary:r.edge})}</details>`;
+      document.getElementById("focusBGC").onclick=()=>{focusRegion=origin;draw()};
+      const refs=D.reference_index?.[r.identity]||[],refpanel=document.getElementById('regionReferences');
+      refpanel.innerHTML='<h3>Complete reference-gene comparisons</h3>'+(refs.length?refs.map(id=>'<p><button data-reference="'+esc(id)+'">'+esc(D.reference_summaries[id].reference_name)+' · '+esc(D.reference_summaries[id].mibig)+'</button></p>').join(''):'<p class="hold">No retained comparison bound to this complete locus identity; not a no-hit.</p>');
+      refpanel.querySelectorAll('[data-reference]').forEach(button=>button.onclick=()=>window.ReferenceEvidence.open(button.getAttribute('data-reference')));
+      panel.querySelectorAll('[data-gene]').forEach(button=>button.onclick=()=>showGene(r,button.getAttribute('data-gene')));
+      if(locus)showGene(r,locus);
+    }catch(error){panel.innerHTML='<h2>Details unavailable</h2><p>'+esc(error.message)+'</p>';}
+  }
+  function showGene(r,locus) {
+    const g=r.cds.find(g=>g[3]===locus),panel=document.getElementById("geneDetail");if(!g)return;
+    const layer=r.gene_layers[locus],ledger=layer?Object.fromEntries(D.ledger_columns.map((k,i)=>[k,layer[i]])):null;
+    panel.innerHTML=`<h3>${esc(locus)}</h3>${recordTable({start_in_region:g[0],end_in_region:g[1],strand:g[2],amino_acid_length:g[8],gene_kind:g[4],function:g[5],product:g[6],domains:g[7]})}
+      <details><summary>BLASTp evidence channels from earlier explorer</summary>${Object.keys(g[9]||{}).length?recordTable(g[9]):'<p class="hold">No bound channel records in this source. This is not a measured no-hit.</p>'}</details>
+      <details><summary>MIBiG protein matches from earlier explorer</summary>${g[10]?.length?recordTable({matches:g[10]}):'<p class="hold">No match record supplied by this source.</p>'}</details>
+      <details><summary>Annotation ledger: Pfam, CARD, GECCO, reference genomes and source states</summary>${ledger?recordTable(ledger):'<p class="hold">Ledger record unavailable or rejected on contig, geometry or protein length. No annotation is inferred.</p>'}</details>`;
+    document.getElementById('details').scrollTop=0;
+  }
+  async function showPoint(m) {
+    if(m.centre){document.getElementById("details").innerHTML='<h2>'+esc(m.label)+'</h2>'+recordTable(m)+'<p class="hold">Descriptive coordinate mean only.</p>';return;}
+    if(m.source==='isolate'){await showRegion(m.strain,regionKey(m),m.locus_tag);const panel=document.getElementById('details');const block=document.createElement('details');block.open=true;block.innerHTML='<summary>Selected plotted domain / protein</summary>'+recordTable(m);panel.prepend(block);}
+    else {const acc=(m.origin||'').match(/BGC\d{7}/)?.[0];document.getElementById('details').innerHTML='<h2>Reference point</h2>'+recordTable(m)+(acc&&D.mibig?.[acc]?recordTable({mibig:acc,compounds:D.mibig[acc][0],producer:D.mibig[acc][1]}):'')+'<p class="hold">Reference similarity does not identify the focal product. Cluster representatives are not independent genomes.</p>';}
+  }
+  function genomeMeans(s) {
+    const genomes=new Map();s.pts.filter(p=>p[3]>=3).forEach(p=>{
+      const m=metadata(p,s);if(!m.strain)return;
+      if(!genomes.has(m.strain))genomes.set(m.strain,{strain:m.strain,kind:p[3],genus:m.genus,xyz:[0,0,0],n:0,identities:[],low:0,genes:new Set()});
+      const g=genomes.get(m.strain);for(let i=0;i<3;i++)g.xyz[i]+=p[i];g.n++;if(m.locus_tag)g.genes.add(m.locus_tag);
+      const id=Number(m.nearest_pident);if(m.nearest_pident!==''&&m.nearest_pident!==undefined&&Number.isFinite(id)){g.identities.push(id);if(id<70)g.low++;}
+    });
+    return [...genomes.values()].map(g=>{g.xyz=g.xyz.map(v=>v/g.n);g.identities.sort((a,b)=>a-b);const n=g.identities.length;g.median=n?(g.identities[Math.floor((n-1)/2)]+g.identities[Math.ceil((n-1)/2)])/2:null;return g;});
+  }
+  let layout = "run7_pcoa";
+  const sel = document.getElementById("setsel");
+  function fillSets() {
+    const cur = sel.value;
+    sel.innerHTML = "";
+    D.sets.filter(s => s.layout === layout).forEach((s, i) => {
+      const o = document.createElement("option");
+      o.value = s.key; o.textContent = `${s.key} · ${s.title}`; sel.appendChild(o);
+    });
+    if ([...sel.options].some(o => o.value === cur)) sel.value = cur; else sel.value = "KS";
+  }
+  function current() { return D.sets.find(s => s.layout === layout && s.key === sel.value); }
+  function draw() {
+    const s = current(); if (!s) return;
+    const onlyLow = document.getElementById("onlyLow").checked;
+    const pointScale = Number(document.getElementById("pointScale").value);
+    document.getElementById("pointScaleValue").textContent = `${pointScale}×`;
+    const query=document.getElementById("search").value.trim().toLowerCase();
+    const visible = s.pts.filter(p => {
+      const m=metadata(p,s);
+      return document.getElementById("k"+p[3]).checked && !(onlyLow&&p[3]>=3&&p[5]!==1) &&
+        (!focusRegion || regionKey(m)===focusRegion) && (!query || query.split(/\s+/).every(term=>Object.values(m).join(" ").toLowerCase().includes(term)));
+    });
+    // Keep geometry constant while visibility changes within this set/layout.
+    const ranges = [0, 1, 2].map(i => {
+      const values = s.pts.map(p => p[i]);
+      if (!values.length) return [-1, 1];
+      const lo = Math.min(...values), hi = Math.max(...values);
+      const pad = (hi - lo || 1) * 0.05;
+      return [lo - pad, hi + pad];
+    });
+    const traces = [];
+    KINDS.forEach(K => {
+      if (!document.getElementById("k" + K.k).checked) return;
+      for (const filled of (K.k >= 3 ? [0, 1] : [0])) {
+        const P = visible.filter(p => p[3] === K.k && (K.k < 3 || p[5] === filled));
+        if (!P.length) continue;
+        const c = css(K.col);
+        traces.push({type: "scatter3d", mode: "markers", name: K.k >= 3 ? `${K.name}${filled ? ", below 70%" : ", 70% or more"}` : K.name,
+          x: P.map(p => p[0]), y: P.map(p => p[1]), z: P.map(p => p[2]),
+          text: K.hover ? P.map(p => {const m=metadata(p,s);return esc([m.strain,m.genus,m.locus_tag,m.subtype,m.region_product,m.origin].filter(Boolean).join(" · "))}) : undefined,
+          customdata: P.map(p=>metadata(p,s)),
+          hoverinfo: K.hover ? "text" : "skip",
+          marker: {size: K.size * pointScale, color: K.k >= 3 && !filled ? "rgba(0,0,0,0)" : c, opacity: K.k < 3 ? 0.55 : 0.95,
+                   line: {color: c, width: K.k >= 3 ? 1.2 : 0}, symbol: "circle"}});
+      }
+    });
+    const means=genomeMeans(s),eligibleMeans=means.filter(g=>document.getElementById("k"+g.kind).checked);
+    if(document.getElementById("showGenomes").checked)KINDS.filter(k=>k.k>=3).forEach(K=>{
+      const G=eligibleMeans.filter(g=>g.kind===K.k);if(!G.length)return;
+      traces.push({type:"scatter3d",mode:"markers",name:K.name+" genome means",x:G.map(g=>g.xyz[0]),y:G.map(g=>g.xyz[1]),z:G.map(g=>g.xyz[2]),text:G.map(g=>esc(g.strain+' genome mean · '+g.n+' protein/domain entries · '+g.genes.size+' distinct genes')),hoverinfo:"text",customdata:G.map(g=>({centre:true,label:g.strain+' genome mean',points:g.n,distinct_genes:g.genes.size,median_pooled_identity:g.median})),marker:{symbol:"diamond",size:7*pointScale,color:css(K.col),line:{color:css('--fg'),width:1}}});
+    });
+    if(document.getElementById("showCohorts").checked)KINDS.filter(k=>k.k>=3).forEach(K=>{
+      const G=eligibleMeans.filter(g=>g.kind===K.k);if(!G.length)return;const xyz=[0,1,2].map(i=>G.reduce((a,g)=>a+g.xyz[i],0)/G.length);
+      traces.push({type:"scatter3d",mode:"markers",name:K.name+" equal-genome mean",x:[xyz[0]],y:[xyz[1]],z:[xyz[2]],text:[esc(K.name+' · '+G.length+' equally weighted genomes')],hoverinfo:"text",customdata:[{centre:true,label:K.name+' equal-genome mean',genomes:G.length,weighting:'one vote per genome'}],marker:{symbol:"cross",size:10*pointScale,color:css(K.col),line:{color:css('--fg'),width:2}}});
+    });
+    document.getElementById('genomeSummary').innerHTML='<thead><tr><th>Genome</th><th>Genus label</th><th>Eligible domain/protein points</th><th>Distinct genes</th><th>Median pooled identity</th><th>Below 70% / measured</th></tr></thead><tbody>'+eligibleMeans.map(g=>`<tr><td>${esc(g.strain)}</td><td>${esc(g.genus||'unavailable')}</td><td>${g.n}</td><td>${g.genes.size}</td><td>${g.median===null?'unavailable':g.median.toFixed(1)+'%'}</td><td>${g.low} / ${g.identities.length}</td></tr>`).join('')+'</tbody>';
+    const ax = (t, i) => ({range: ranges[i], autorange: false, title: {text: t, font: {color: css("--muted"), size: 11}}, showticklabels: false, zeroline: false,
+      gridcolor: css("--line"), backgroundcolor: css("--panel"), showbackground: true, color: css("--muted")});
+    const names = layout === "run7_pcoa" ? ["PCoA 1", "PCoA 2", "PCoA 3"] : ["TriMap 1", "TriMap 2", "TriMap 3"];
+    const rendering = Plotly.react("plot", traces, {paper_bgcolor: css("--panel"), plot_bgcolor: css("--panel"), margin: {l: 0, r: 0, t: 0, b: 0},
+      font: {family: css("--body"), color: css("--fg")}, showlegend: false, uirevision: layout + s.key,
+      scene: {aspectmode: "data", xaxis: ax(names[0], 0), yaxis: ax(names[1], 1), zaxis: ax(names[2], 2)}}, {responsive: true, displaylogo: false});
+    const attach=()=>{const plot=document.getElementById('plot');if(typeof plot.on==='function'&&!plot._codexDetails){plot._codexDetails=true;plot.on('plotly_click',event=>{const m=event.points?.[0]?.customdata;if(m)showPoint(m)})}};
+    if(rendering&&typeof rendering.then==='function')rendering.then(attach);else attach();
+    const c = s.counts, T = document.getElementById("counts");
+    const pct = (a, b) => b ? `${(100 * a / b).toFixed(1)}%` : "–";
+    T.innerHTML = `<thead><tr><th>Collection</th><th>Eligible points</th><th>Visible points</th><th>Eligible below 70%</th><th>Share of eligible</th></tr></thead><tbody>` +
+      [["bees and wasps", 3], ["attine ants", 4], ["mosses", 5]].map(([n, k]) =>
+        `<tr><td>${n}</td><td class="num">${c[k]}</td><td class="num">${visible.filter(p => p[3] === k).length}</td><td class="num">${c.low[k]}</td><td class="num">${pct(c.low[k], c[k])}</td></tr>`).join("") +
+      `<tr><td>context: public / SID / MIBiG points</td><td class="num">${c.ref} / ${c.sid} / ${c.mibig}</td><td class="num">${[0, 1, 2].map(k => visible.filter(p => p[3] === k).length).join(" / ")}</td><td></td><td></td></tr></tbody>`;
+    document.getElementById("runnote").textContent = layout === "run7_pcoa"
+      ? "Run 7 PCoA: three-axis projection; original distances are only partly represented. Visibility filters keep the axes fixed and do not recalculate reference identity."
+      : "Run 4 TriMap: gaps and distances between groups are not calibrated sequence distances. Visibility filters keep the axes fixed and do not recalculate reference identity.";
+  }
+  function setLayout(l) {
+    layout = l;
+    document.getElementById("lay7").setAttribute("aria-pressed", l === "run7_pcoa");
+    document.getElementById("lay4").setAttribute("aria-pressed", l === "run4_trimap");
+    fillSets(); draw();
+  }
+  document.getElementById("lay7").onclick = () => setLayout("run7_pcoa");
+  document.getElementById("lay4").onclick = () => setLayout("run4_trimap");
+  sel.onchange = draw;
+  document.getElementById('search').oninput=draw;
+  document.getElementById('clearFocus').onclick=()=>{focusRegion='';document.getElementById('search').value='';draw()};
+  document.getElementById('showGenomes').onchange=draw;document.getElementById('showCohorts').onchange=draw;
+  const browseStrain=document.getElementById('browseStrain'),browseRegion=document.getElementById('browseRegion');
+  Object.keys(D.region_files||{}).sort().forEach(strain=>{const o=document.createElement('option');o.value=strain;o.textContent=strain;browseStrain.appendChild(o)});
+  browseStrain.onchange=async()=>{browseRegion.innerHTML='';try{const payload=await loadRegions(browseStrain.value);Object.entries(payload.regions).forEach(([key,r])=>{const o=document.createElement('option');o.value=key;o.textContent=r.identity+' · '+r.product;browseRegion.appendChild(o)})}catch(error){document.getElementById('details').textContent=error.message}};
+  document.getElementById('openRegion').onclick=()=>showRegion(browseStrain.value,browseRegion.value);
+  if(browseStrain.value)browseStrain.onchange();
+  if(window.ReferenceEvidence){
+    window.ReferenceEvidence.configure(D);
+    const rs=document.getElementById('referenceStrain'),rr=document.getElementById('referenceSelect');
+    Object.keys(D.reference_files||{}).sort((a,b)=>Number(a.slice(3))-Number(b.slice(3))).forEach(strain=>{const o=document.createElement('option');o.value=strain;o.textContent=strain+(strain==='AS-815'?' · historical raw comparisons held':'');rs.appendChild(o)});
+    rs.onchange=()=>{rr.innerHTML='';Object.entries(D.reference_summaries||{}).filter(([id,s])=>s.strain===rs.value).forEach(([id,s])=>{const o=document.createElement('option');o.value=id;o.textContent=s.identity+' · '+s.reference_name;rr.appendChild(o)})};
+    document.getElementById('openReference').onclick=()=>window.ReferenceEvidence.open(rr.value);rs.onchange();
+  }
+  document.getElementById("pointScale").oninput = draw;
+  ["k0", "k1", "k2", "k3", "k4", "k5", "onlyLow"].forEach(id => document.getElementById(id).onchange = draw);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+  fillSets(); draw();
+})();
+</script>

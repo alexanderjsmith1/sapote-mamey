@@ -17,9 +17,7 @@ GToTree -v
 The package page currently offers `conda install bioconda::gtotree`; resolve dependencies with the
 configured strict channel priority and preserve the exported environment plus the exact resolved
 builds. The production version is GToTree 1.8.19; 2.0.x is admitted and 1.8.16 is refused
-([GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md)). The channel can publish newer versions, so no LLM may assume
-a version's behavior without checking `GToTree -h` for the installed
-version. Installation or upgrade needs user approval and network access; using an already installed
+([GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md)). The channel can publish newer versions, so check `GToTree -h` for the installed version before relying on its behavior. Installation or upgrade needs user approval and network access; using an already installed
 environment does not.
 
 ## Scientific design used by this project
@@ -28,8 +26,10 @@ environment does not.
    region GBKs.
 2. Rank reference candidates using taxonomic proximity plus recurrent ClusterBlast evidence across
    multiple BGCs. ClusterBlast recurrence is a candidate-selection heuristic, not organism identity.
-3. Use at most three related reference genomes per focal AS/SID genome. De-replicate identical or
-   near-identical assemblies before tree building.
+3. Use up to three linked reference genomes per focal AS/SID genome, plus up to two type anchors,
+   with at most four comparators per focal genome in all. `select_panel` in `tools/build_phylo_panel.py`
+   admits the anchors, and `read_prepared_panel` in `tools/plan_gtotree_iqtree.py` re-checks both caps.
+   De-replicate identical or near-identical assemblies before tree building.
 4. The project's six-locus target includes 16S, `atpD`, `gyrB`, `recA`, `rpoB` and
    `trpB`; the shipped `build_mlsa.py` screen extracts **five protein-coding loci only**
    (`atpD`, `gyrB`, `recA`, `rpoB`, `trpB`). A separate 16S record and a documented
@@ -40,19 +40,20 @@ environment does not.
    maximum, with the actual user-selected count recorded. A larger panel requires a new preflight.
 6. Use ANI/aligned fraction and locus-level comparisons to investigate duplicate, mislabeled, or
    contaminated assemblies. A tree alone does not resolve those cases.
+7. These panel rules are for analysis trees. A publication tree uses at most four references.
 
 ## Mandatory approval checkpoint
 
 Do not start GToTree until the user has seen and approved:
 
-- focal/reference counts and per-focal reference cap;
-- local genomes versus accessions requiring download;
-- total assembly bytes and assembly SHA-256 values;
-- HMM set name/path, target count, and checksum;
-- 6-locus versus 138-SCG plan;
-- one core per tree and maximum concurrent cores (never above four);
-- expected runtime and work-disk use, labelled measured or estimated;
-- exact output root and resume/new-run status.
+- Focal/reference counts and per-focal reference cap.
+- Local genomes versus accessions requiring download.
+- Total assembly bytes and assembly SHA-256 values.
+- HMM set name/path, target count, and checksum.
+- 6-locus versus 138-SCG plan.
+- The version-specific jobs/threads and admitted phase bound, plus the maximum concurrent-core budget (policy ceiling four). Legacy v1 uses one core per tree. Native v2 requires its separately admitted HMM resource profile as described in [the companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md#resource-policy).
+- Expected runtime and work-disk use, labeled measured or estimated.
+- Exact output root and resume/new-run status.
 
 Reference discovery and downloads are separate from tree execution and require network approval.
 
@@ -66,7 +67,7 @@ raw antiSMASH ClusterBlast channel
   -> rank_clusterblast_phylo_candidates.py (candidate evidence only)
   -> curator-approved accession resolution/local genome retrieval
   -> [OPTIONAL cheap wide-net screen — feeds, does not replace, the panel builder:
-       build_mlsa.py (5-locus full-pool MLSA; cheap, un-gated, build many)
+       build_mlsa.py (5-locus screen within its watched resource limits)
        -> prune_neighbors_from_tree.py --emit-panel-tsv (<=60-tip bounded panel TSV)]
   -> build_phylo_panel.py (membership, one outgroup, labels, exact-content dedup)
   -> plan_gtotree_iqtree.py --prepared-panel (immutable compute preflight)
@@ -77,9 +78,12 @@ raw antiSMASH ClusterBlast channel
   -> tree x BGC overlay figure (annotation track only; see TREE_BGC_OVERLAY.md)
 ```
 
-The optional MLSA screen is a **cheap** front-end, not a competing planner: **The shipped MLSA builder has no `--approved` tree gate, but it still runs local
+The optional MLSA screen is a **cheap** front-end, not a competing planner. **The shipped MLSA builder has no `--approved` tree gate. It still runs local
 BLAST, gene prediction, alignment and IQ-TREE, writes outputs and uses the specified
-threads. Run it only within the user-authorized analysis and resource budget.** `prune_neighbors_from_tree.py` emits its result
+threads. The public CLI applies the watched RSS, disk and time limits described in
+[bounded native workspaces](NATIVE_WORKSPACES.md); the absence of an `--approved`
+flag is not absence of resource checks. Run it only within the user-authorized analysis
+and resource budget**. `prune_neighbors_from_tree.py` emits its result
 in the exact `build_phylo_panel.py` manifest columns (`candidate_id, role, source_path,
 selection_basis, related_query_ids`; references carry `selection_basis=nearest_neighbour_patristic_MLSA`),
 so the screen still flows through the bounded-panel builder and the compute-approval preflight. The
@@ -131,11 +135,11 @@ and reconstruct a FASTA without changing the source archive. Reject region-only 
 
 Before final panel admission:
 
-- compare whole-assembly SHA-256 and normalized-sequence SHA-256;
-- run ANI with aligned fraction for suspected duplicates;
-- compare 16S and the other retained MLSA loci;
-- inspect assembly size/contig count and taxonomic discordance;
-- retain one representative of a proven duplicate and record every excluded alias.
+- Compare whole-assembly SHA-256 and normalized-sequence SHA-256.
+- Run ANI with aligned fraction for suspected duplicates.
+- Compare 16S and the other retained MLSA loci.
+- Inspect assembly size/contig count and taxonomic discordance.
+- Retain one representative of a proven duplicate and record every excluded alias.
 
 Do not merge records solely because they have 100% 16S identity. Do not label contamination without
 assembly-level evidence; use `SUSPECT/REQUEST` while it is unresolved.
@@ -165,10 +169,12 @@ GToTree \
   -o <run>/gtotree_alignment
 ```
 
-The command above is the GToTree 1.8 interface. The admitted v2 family has different
-flags; the .447 planner still requires/emits `-n`, while `run_planned_tree.py` omits it
-for v2. Treat v2 planner compatibility as an interface-review hold, not a verified
-execution route. See [companion run contracts](COMPANION_RUN_CONTRACTS.md).
+The command above is the GToTree 1.8 interface. The planner and runner now share the
+version-specific command builder: `-n` is required/emitted for 1.8 and omitted for v2.
+For the governed 2.0.0 route, the generated command delegates to `run_planned_tree.py`
+with `--plan-dir`, recorded approval and exact input/runtime/resource bindings. Version/help
+compatibility alone does not admit a v2 native HMM resource profile; inspect the selected
+plan's resource state and refusal/approval records. See [companion run contracts](COMPANION_RUN_CONTRACTS.md).
 
 Use `-B` only after documenting the multicopy-marker tradeoff. It selects a best hit when multiple
 hits exist; it is not universally mandatory and can mask contamination/paralogy. Report results
@@ -202,20 +208,20 @@ prove the combined ceiling is no more than four cores.
 
 The GToTree `-T IQ-TREE` shortcut uses its own defaults (`-m MFP -B 1000`) and is not the preferred
 publication workflow because it hides parameter control. FastTree is acceptable for a rapid
-assessment tree, clearly labelled preliminary; it does not replace the final IQ-TREE inference.
+assessment tree, clearly labeled preliminary; it does not replace the final IQ-TREE inference.
 
 ## QA and comparison outputs
 
 Report both input and retained denominators:
 
-- genomes proposed, admitted, excluded, and retained in the final alignment/tree;
-- loci/profiles requested and retained per genome;
-- missing/multicopy markers and the `-B` decision;
-- concatenated alignment length and gap/missingness summaries;
-- tree software/model/seed/support settings;
-- ANI/aligned-fraction and locus identities for suspected duplicates;
-- exact reference accessions, type status when known, and download receipts;
-- checksums for inputs, alignments, trees, labels, and figures.
+- Genomes proposed, admitted, excluded, and retained in the final alignment/tree.
+- Loci/profiles requested and retained per genome.
+- Missing/multicopy markers and the `-B` decision.
+- Concatenated alignment length and gap/missingness summaries.
+- Tree software/model/seed/support settings.
+- ANI/aligned-fraction and locus identities for suspected duplicates.
+- Exact reference accessions, type status when known, and download receipts.
+- Checksums for inputs, alignments, trees, labels, and figures.
 
 Keep the six-locus and 138-SCG analyses separate. A figure may overlay the smaller 138-SCG topology
 or support on the broad MLSA context only when the mapping between common tips is explicit; do not

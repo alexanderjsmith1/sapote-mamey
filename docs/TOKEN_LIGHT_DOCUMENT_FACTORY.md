@@ -9,7 +9,7 @@ canonical DOCX/PDF renderer used by `sapote-render`.
 
 ## Setup and the short workflow
 
-From the bound bundle root, install its document extra in the selected engine virtual environment when needed: `python -m pip install -e '.[documents]'`. The console scripts are installed entry points; they resolve to that environment's package. To pin source without depending on those entry points, use `python -m mamey.document_factory` from the selected bundle root with the same subcommands. Do not run installation merely to inspect this guide.
+From the bundle root, install the document extra if needed: `python -m pip install -e '.[documents]'`. The console scripts are installed entry points; they resolve to that environment's package. To pin source without depending on those entry points, use `python -m mamey.document_factory` from the selected bundle root with the same subcommands.
 
 ```bash
 # Create a starter project.

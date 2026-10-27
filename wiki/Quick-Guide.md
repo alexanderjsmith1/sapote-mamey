@@ -1,17 +1,20 @@
 <!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.457 / engine Mamey 1.9.177
+**Version:** v9.7.458 / engine Mamey 1.9.177
 
-Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
+Mamey extracts deterministic evidence from antiSMASH output. antiSMASH is a separate program that
+finds biosynthetic gene clusters (BGCs) in a genome. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../README.md). If you work through a
 coding assistant, it follows the shared [AGENTS contract](../AGENTS.md); the workflow is the same
 either way. Check the [release manifest](../RELEASE_MANIFEST.md) for the status of the exact
 bundle you have.
 
-This page is the compact reference. For a first-time walkthrough with plain-language setup and
-recovery steps, use [Your first analysis](../docs/MASTER_WALKTHROUGH.md). If you already have a
-package, use [Read your results](../docs/READING_YOUR_RESULTS.md). Use [Choose a task](../docs/USER_TASK_ROUTER.md) for named builders, required inputs and output/completion boundaries.
+This page is the compact reference. If this is your first time, start with
+[Start with your file](../docs/READER_START_HERE.md); it picks the right short guide for the file you
+have, including a saved package. For a longer first-run walkthrough, use
+[Your first analysis](../docs/MASTER_WALKTHROUGH.md); for the full result-reading reference, use
+[Read your results](../docs/READING_YOUR_RESULTS.md). Use [Choose a task](../docs/USER_TASK_ROUTER.md) for named builders, required inputs and output/completion boundaries.
 
 ## Start with the question you need answered
 
@@ -26,7 +29,7 @@ Find your starting point in the table, then go to the matching section.
 | Code ZIP or repository only | Review files; install only if execution is requested | Capability and setup assessment, not a strain result |
 | One antiSMASH result ZIP | Inspect, bind metadata, then run and validate | Inventory, evidence package, workbook and explicit missing/deferred states |
 | Existing validated package | Read manifest, issues and available evidence first | The requested summary/card/figure; no automatic rerun |
-| Genome or 16S FASTA only | Select the appropriate sequence workflow | A scoped placement/genome plan; not an invented antiSMASH package |
+| Genome or 16S (ribosomal RNA marker gene) FASTA only | Select the appropriate sequence workflow | A scoped placement/genome plan; not an invented antiSMASH package |
 | Several strains | Identify authoritative inputs and master workbook | A resumable batch with per-strain outcomes and preserved prior master |
 
 Three things to know before you run anything:
@@ -39,7 +42,8 @@ Three things to know before you run anything:
 ## 0. Install
 
 Before the setup block, read the [doctor write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation and leave an occupied `runs/_doctor_probe` path untouched.
+Use an editable working installation. If `runs/_doctor_probe` already exists, move it out of
+`runs/` (keep it; do not delete it) before you run doctor.
 
 Use Python 3.12 or newer in an isolated environment. The archive name below matches the current
 release manifest; if your download or unsealed candidate has a different name, substitute the real
@@ -53,7 +57,7 @@ python3 --version  # must be 3.12 or newer before creating the environment
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e '.[figures,bio]'
-python mamey_run.py start
+python -B mamey_run.py start --no-doctor
 python mamey_run.py doctor
 python tools/sync_version.py --check # checks version consistency, not candidate release acceptance
 ```
@@ -104,7 +108,7 @@ reported issue and resolve it. A passing structural gate is not scientific accep
 | Choice | Main JSON behavior | What to report |
 |---|---|---|
 | `--json-evidence bounded` | Streams with byte/leaf limits | Truncation, fallback and unresolved completeness |
-| `--json-evidence full` | Cap: 80,000,000 bytes per file | Size hold if over cap; admitted files may still require several GB RAM |
+| `--json-evidence full` | Cap: 80,000,000 bytes per file | Size hold if over cap; files under the cap may still need several GB of RAM |
 | `--json-evidence off` | Disables the main walker; record-level paths are separate | Which evidence channels actually ran |
 | `--capped-session` | Overrides the main walker to off and suppresses selected outputs | Deferred evidence and deliverables |
 
@@ -113,7 +117,7 @@ ZIP download size is not uncompressed JSON size, and more CPU threads cannot byp
 size check. Full mode is not a completeness certificate. See
 [a public-strain walkthrough with examples on both sides of 80 MB](../docs/ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md).
 
-Gold is the analysis mode. When a time limit applies, add `--capped-session` to the run command.
+Gold is the analysis mode. `--capped-session` reduces selected work; it is not a wall-clock timeout and cannot guarantee completion within a time limit. Select it only when the evidence/output tradeoff fits the task.
 It forces JSON evidence off and `--brief none`, requires the workbook, and disables automatic
 locus maps unless you enable them explicitly. Passing `--json-evidence bounded` alongside the
 capped flag does not keep JSON evidence. For bounded JSON extraction, omit the capped flag and
@@ -127,7 +131,7 @@ render the applicable figures after validation.
 Keep the input ZIP, its checksum, the run configuration, the package manifest and the issue log.
 Check the inventory, triage board, workbook and validation result. Report any brief, figure, locus
 map or evidence stream that is missing or deferred. Do not promise an artifact just because the
-command supports it. Keep sealed inputs as they are and use the documented post-seal commands for
+command supports it. Keep [sealed](Glossary.md#evidence-identity-portability-and-authority-vocabulary) inputs as they are and use the documented post-seal commands for
 follow-on work.
 
 ### Know which kind of completion you have
@@ -138,7 +142,7 @@ follow-on work.
 | Extraction and validation completed | Encoded package gates ran; inspect actual statuses and issues | Every optional evidence channel or requested narrative is finished |
 | `MAMEY_COMPLETE_WITH_ISSUES` | Pipeline completed with recorded issues | That every warning is resolved |
 | Validator says `MAMEY_COMPLETE` | Validator completed its encoded checks | That pipeline issues or judgment pending disappeared |
-| A template was emitted | A writing scaffold exists | An authored or verified Mode B card |
+| A template was emitted | A writing scaffold exists | An authored or verified [Mode B](Glossary.md#14-mode-b) card |
 | Structure/depth checks passed | The particular encoded checks passed | Factual source binding, literature verification or product identity |
 | Requested deliverable reviewed | The selected files and their evidence were checked | Publication, new release or permission to distribute private material |
 
@@ -153,8 +157,9 @@ follow-on work.
 | Figure or homology result missing | Requested mode, dependencies and recorded channel status | Complete only the needed follow-on work; absence of a file is not negative biology |
 | Ambiguous locus or master workbook | Source-bound identity, hashes and prior receipts | Hold the disputed join/update; continue independent review |
 
-The example run writes under `analysis/runs/` inside the bundle working directory. Use a new output
-directory when inputs or parameters change. Do not overwrite a previous run to make the latest
+The example writes to `analysis/runs/` relative to the folder you run it from, which here is the program
+folder. For real work, set `--outdir` to a separate project folder, outside the program and the input.
+Use a new output directory when inputs or parameters change. Do not overwrite a previous run to make the latest
 command succeed. Keep original inputs immutable and record which output supersedes which.
 
 ## 4. Process a cohort
@@ -184,14 +189,14 @@ conflicting, stop with an identity hold. Keep exact source paths and hashes.
 ### Protein search and result import
 
 Choose between a representative screen and a full region-level search. The representative panel
-reads translated CDS sequences from the input ZIP and writes FASTA batches plus a manifest:
+reads translated protein-coding (CDS) sequences from the input ZIP and writes FASTA batches plus a manifest:
 
 ```bash
 python mamey_run.py bgc-blastp-panel --input-zip path/to/antismash_result.zip \
   --strain EXAMPLE --outdir analysis/protein_panel --genes-per-bgc 2
 ```
 
-For a manual search, submit the exported amino-acid FASTA batches to the BLASTp service you have
+For a manual search, submit the exported amino-acid FASTA batches to the BLASTp (protein similarity search) service you have
 chosen. Keep the query headers and batch manifest. Save the hit-table CSV and alignment XML together
 with the search database, date and settings. A representative panel samples the regions; it is not
 a full per-gene examination of every region.
@@ -205,7 +210,7 @@ python mamey_run.py blastp-online --package path/to/selected_region.gbk \
 
 The shown command is plan-only: it prints the disclosure plan and sends nothing. Only after reviewing
 the selected queries and recording authority to disclose them, add `--submit --confirm-public-sequence-upload`
-for a live NCBI submission. Here `--package` means the protein-bearing region GBK or antiSMASH ZIP,
+for a live NCBI submission. Here `--package` means the protein-bearing region GBK (GenBank file) or antiSMASH ZIP,
 not simply the sealed Mamey output directory. For a multi-region ZIP, bind the full locus identity
 first and use the documented region/crosswalk selectors; do not treat an unscoped whole-genome ZIP
 as one region. The default batch size is 10 proteins.
@@ -246,17 +251,17 @@ read together. A failed search is not a no-hit result. The
 
 ### Fragmented-pathway review
 
-RG-GMCI runs during extraction. Review its pair-level evidence together with the inventory's
+[RG-GMCI](Glossary.md#7-rg-gmci-and-the-rescue-layer) runs during extraction. Review its pair-level evidence together with the inventory's
 boundary status and the original reference matches. For each proposed link, inspect:
 
-- shared reference support and hit geometry, including whether positions are coordinates or a locus-number proxy;
-- complementary subject-gene coverage versus both fragments matching the same conserved machinery;
-- contig-edge/terminus evidence, product-class compatibility, and reasons for a confidence downgrade;
-- conflicting protein/domain evidence and any remaining missing sequence.
+- Shared reference support and hit geometry, including whether positions are coordinates or a locus-number proxy.
+- Complementary subject-gene coverage versus both fragments matching the same conserved machinery.
+- Contig-edge/terminus evidence, product-class compatibility, and reasons for a confidence downgrade.
+- Conflicting protein/domain evidence and any remaining missing sequence.
 
 Keep both fragments' complete locus identities. A proposed link does not merge their source
 records. Low-complexity termini can need long-read resolution rather than a computed junction.
-BiG-SCAPE family context and BLASTp add evidence during interpretation; on their own they do not
+BiG-SCAPE family context (from a tool that groups similar BGCs) and BLASTp add evidence during interpretation; on their own they do not
 promote a link or repair the assembly.
 
 ### BiG-SCAPE family analysis
@@ -286,7 +291,7 @@ removed contig. The [BiG-SCAPE walkthrough](../docs/BIGSCAPE_COHORT_WALKTHROUGH.
 Use family membership to compare architectures across the sampled strains. Keep the run ID, cutoff,
 region membership, input hashes, reference-panel composition and contig-edge flags. Family
 identifiers are local to a run, and a singleton is not automatically a novel product. The
-[GCF workflow](../docs/BIGSCAPE_GCF_WORKFLOW.md) covers reference preparation and interpretation.
+[gene cluster family (GCF) workflow](../docs/BIGSCAPE_GCF_WORKFLOW.md) covers reference preparation and interpretation.
 
 ### Trees and heatmap overlays
 
@@ -294,7 +299,7 @@ Choose the sequence route that matches your question. A 16S FASTA can be
 placed against a reference backbone. Whole-genome FASTA can support a core-genome
 tree. If your antiSMASH ZIP contains the **full assembly** (not only clipped
 region files), `phylo-mlsa` offers an optional five-protein-coding-gene MLSA
-screen from that assembly. Selection of a non-region sequence member does not
+(multilocus sequence analysis) screen from that assembly. Selection of a non-region sequence member does not
 certify that the assembly is complete; review the member and assembly metrics.
 The screen helps select neighbors for a later core-genome
 analysis; it does not establish species identity. Reference genome
@@ -323,15 +328,15 @@ explains the 16S and core-genome routes; the [GToTree workflow](../docs/GTOTREE_
 explains MLSA screening and later genome-panel selection.
 
 Building a tree and annotating it are separate steps. The tree overlay tool reads a
-`sapote.tree-figure-factory.v1` configuration that names the tree, alignment, workflow/model/seed
+`sapote.tree-figure-factory.v1` configuration. It names the tree, alignment, workflow/model/seed
 receipts, outgroup and final-tip rosters, an explicit tip crosswalk and an annotation matrix:
 
 ```bash
 python tools/tree_bgc_overlay.py --config path/to/tree_overlay.json
 ```
 
-The config must bind the actual files and hashes; the command does not invent them. Supported
-strain-level tracks are ANI, BGC, DOMAIN, MODE_B, ASSEMBLY and BIOASSAY; the bioassay track needs an
+The config must bind the actual files and hashes. The command does not invent them. Supported
+strain-level tracks are ANI (average nucleotide identity), BGC, DOMAIN, MODE_B, ASSEMBLY and BIOASSAY; the bioassay track needs an
 admitted selection (see below). It renders SVG/PNG artwork with
 reproducibility outputs. Placement renderers also support metadata-oriented tree views, with host
 and location data taken from a supplied source. Keep missing values as missing, check label clipping
@@ -420,9 +425,9 @@ identify an authored card.
 
 The [tools reference](../docs/user_guides/tools_reference.md) and
 [command catalog](../docs/COMMAND_CATALOG.generated.md) cover cohort ledgers, comparator coverage,
-AF dossiers, Good Guesses, document export, locus maps and advisory helpers; check each one's
+antifungal (AF) dossiers, Good Guesses, document export, locus maps and advisory helpers; check each one's
 dependency, output and sign-off requirements. For release work, use the
 [cut protocol](../CUT_PROTOCOL.md); historical notes in the [changelog](../CHANGELOG.md)
 do not replace current operating instructions.
 
-For the figure example, first create and identify the working package copy at the shown path. An external figure destination does not prevent .447 package-integrity refresh. Follow [post-seal boundaries](../docs/POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447); preserve the original package and master before native authoring or evidence ingest.
+For the figure example, first create and identify the working package copy at the shown path. An external figure destination does not prevent the package-integrity refresh. Follow [post-seal boundaries](../docs/POSTSEAL_READERS.md#commands-that-write-into-the-package); preserve the original package and master before native authoring or evidence ingest.

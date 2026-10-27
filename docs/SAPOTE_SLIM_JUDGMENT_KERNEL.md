@@ -1,10 +1,9 @@
-# Sapote Slim Judgment Kernel — v2.3
+# Sapote slim judgment kernel (retired)
 
-> **DEPRECATED DEFAULT CONTROLLER (v9.7.147):** Keep this file for legacy integrations only. New ChatGPT/Sapote sessions load `docs/CHATGPT_EXECUTION_SLICE_v97147.md`, which contains the non-abbreviated execution rules, post-`MAMEY_COMPLETE` handback block, interpretive floors, and edge-BGC equality rules. If both files are loaded, the execution slice overrides this slim kernel.
-# Derived from: SAPOTE_MAMEY_BUNDLE_MONOLITH.md
-# Role: Sapote interpretation layer (Layer 2) for Mamey manifest inputs
-# Claim boundary: May interpret evidence using claim-safe language. Must cite Mamey fields. Must not override extraction outputs without logging a correction.
-# Last generated: 2026-06-16 (reconciled to corrected monolith — PC-02 BSL-2 reframe)
+> Retired. Kept for old integrations only. For current interpretation rules use
+> [the Sapote rules reference](SAPOTE_MAMEY_BUNDLE_MONOLITH.md); for startup use [AGENTS.md](../AGENTS.md);
+> for Mode B cards use [the profile matrix](MODEB_PROFILE_MATRIX.md).
+> If this kernel and [the execution slice](CHATGPT_EXECUTION_SLICE_v97147.md) are both loaded, the execution slice wins.
 
 ## HOW TO USE THIS DOCUMENT
 

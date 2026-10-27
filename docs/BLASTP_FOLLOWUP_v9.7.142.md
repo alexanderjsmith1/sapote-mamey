@@ -17,6 +17,16 @@ Operational examples below use the bundle-local launcher. Run them with the sele
 
 Sapote/Mamey BLASTP support is designed for iterative NCBI web BLASTP, not one giant all-protein query.
 
+## Parsing and metric limits
+
+XML errors can degrade silently to no enrichment: an unreadable/malformed XML file, a QBlastInfo response or XML without recognized query searches can yield an empty metadata map. `xml_query_count=0` is not a typed proof that XML was absent or that its searches completed with no hits. Inspect the retained raw file and submission binding independently.
+
+Core CSV numeric parse failures fall back to zero for identity, lengths and bitscore; these are not validated measured zeros. Percentage/length ranges and finite values are not comprehensively admitted. Short rows are skipped, and the headerless comma-recovery rule assumes a fixed trailing layout; reconcile the actual export columns and row inventory before using classifications.
+
+`query_coverage` is `min(1, align_len / query_len)` for one hit row, using a supplied/header-derived query length; unknown length emits `NA`. It is not a union of aligned query positions or multiple HSPs. `top_identical_count` and `top_positive_count` are rounded reconstructions from percentages and alignment length, rather than preserved native HSP counts, even when XML is supplied. Keep native alignments/counts for claims requiring those exact values.
+
+Source: `mamey/blastp_followup.py`.
+
 ## Local writes and interruption recovery
 
 Outputs are written sequentially with fixed sibling `.tmp` names and per-file replacement; there is no complete-set rollback. The output parent/root is created before parsing. A later panel/batch/summary failure can leave new normalized CSVs beside older summary/guide files. Reusing a directory without requesting the batch does not delete an earlier next-batch FASTA. Follow the current summary's `next_fasta` field and bind the invocation/output roster; filename existence alone does not make that file current. Preserve the failed directory and original sources, capture diagnostics, and use a fresh output for a corrected retry. Avoid concurrent writers to the same directory. Summary JSON records paths/counts but no source/output hashes; retain CSV/XML, panel/manifest, owner, arguments and artifact hashes separately.
@@ -26,7 +36,7 @@ Outputs are written sequentially with fixed sibling `.tmp` names and per-file re
 1. Generate a small first-pass FASTA with `bgc-blastp-panel`.
 2. Run NCBI BLASTP with `Max target sequences = 10`.
 3. Download the **Hit Table CSV** first.
-4. Download **Single-file XML2** only when query coverage, positives/similarity, or proof-grade hit titles are needed.
+4. Retain matching **Single-file XML2** when query-length or subject-title metadata is needed; source titles and added metadata still require identity/evidence review.
 5. Ingest results:
 
 ```bash

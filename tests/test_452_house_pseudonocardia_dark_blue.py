@@ -20,7 +20,7 @@ NEIGHBOURS = ("Streptomyces", "Kribbella", "Amycolatopsis")
 
 
 # Owner ruling 223 (20 Oct), after seeing both colours side by side: the Moss paper keeps Pseudonocardia orange.
-# It is the one set allowed to override the house dark blue (card 018c0f08_461).
+# It is the one set allowed to override the house dark blue (card v9.7.461).
 SET_OVERRIDES = {"moss": "#F28E2B"}
 
 

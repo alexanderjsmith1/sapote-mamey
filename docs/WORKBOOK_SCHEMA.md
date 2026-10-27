@@ -1,6 +1,6 @@
 # Master workbook schema — design reference and deployed validation
 
-Read [the current validation guide](WORKBOOK_VALIDATION.md) before using this retained design reference. .447 derives required headers/sheets from the builder; historical column lists and audit receipts below do not prove current implementation or PASS. The frozen requirements remain a separate retained contract.
+Read [the current validation guide](WORKBOOK_VALIDATION.md) before using this retained design reference. The checker derives required headers and sheets from the builder; historical column lists and audit receipts below do not prove current implementation or PASS. The frozen requirements remain a separate retained contract.
 
 
 ## Current versions at a glance (read this first)
@@ -14,9 +14,9 @@ Required headers come from the builder, not from the column lists on this page, 
 The dated audit results near the end of this page are a historical receipt, not a current pass.
 
 >
-> **✓ MASTER-SCHEMA FROZEN (v1.1, 2026-06-09).** The canonical *master strain workbook* schema (cross-strain artifact handed Claude↔Mamey) is FROZEN in `MASTER_SCHEMA_FROZEN_v1_1.md`: sheets B5–B12 and D4, three pre-freeze structural fixes, the KCB/MIBiG provenance gate (validated 3 ways + round-trip), and the append-only forward-compatibility contract (v2 must read v1). Per-strain (§57) and custom workbooks are intentionally NOT frozen. Frozen after provisional round-trip validation.
+> **✓ MASTER-SCHEMA FROZEN (v1.1, 2026-06-09).** The canonical *master strain workbook* schema (the cross-strain workbook) is FROZEN in `MASTER_SCHEMA_FROZEN_v1_1.md`. That file covers sheets B5–B12 and D4, three pre-freeze structural fixes, the KCB/MIBiG provenance gate (validated 3 ways + round-trip), and the append-only forward-compatibility contract (v2 must read v1). Per-strain (§57) and custom workbooks are intentionally NOT frozen. Frozen after provisional round-trip validation.
 >
-> **Two independent schema namespaces — do not conflate.** This document is the **Mamey master-workbook schema (v1.0)**: the cross-strain workbook sheets (A–H groups below), validated by `workbook_schema_check.py`. It is distinct from the **Sapote Excel schema (v1.1)** referenced in monolith §57, which versions a different artifact — the per-analysis `CrypticClass_Triggers` / `Hallucination_Trap_Audit` judgment sheets (the "Class sub-grade" column). The two version numbers track separate schemas and advance independently.
+> **Two independent schema namespaces — do not conflate.** This document is the **Mamey master-workbook schema (v1.1)**: the cross-strain workbook sheets (A–H groups below), validated by `workbook_schema_check.py`. It is distinct from the **Sapote Excel schema (v1.1)** referenced in monolith §57, which versions a different artifact — the per-analysis `CrypticClass_Triggers` / `Hallucination_Trap_Audit` judgment sheets (the "Class sub-grade" column). The two version numbers track separate schemas and advance independently.
 
 ## Purpose
 
@@ -24,10 +24,8 @@ This document retains the master-workbook design, dated additions and historical
 
 ## Related documents
 
-- **Handoff protocol:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md` — when Claude auto-triggers a ChatGPT task brief, merge procedure, and schema validation rules.  
-- **Claude system prompt:** `prompts/CLAUDE_SYSTEM_PROMPT.md` — paste into Claude settings; encodes standing rules and trigger conditions.  
-- **ChatGPT task brief template:** `prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md` — fill-in-the-blanks format Claude uses when emitting a task brief.  
-- **Mamey CLI / workflow guide:** `docs/HOW_TO_USE.md` — how to run Mamey (CLI primary; ChatGPT standalone in `docs/standalone/`).
+- [Workbook validation](WORKBOOK_VALIDATION.md) — how to check a workbook.
+- [Handoff protocol](CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md) — historical platform handoff rules.
 
 ## Design principles
 
@@ -171,7 +169,7 @@ This document retains the master-workbook design, dated additions and historical
 
 ### C1_DAPR_Antibacterial / C2_DAPR_Antifungal  (schema v1.2 — reconciled to deployed columns)
 
-**Hybrid sheet.** *Deterministic columns* are Mamey-regenerable (BGC data + framework lookup); *judgment columns* are the Sapote scoring/ranking overlay. The deterministic builder (`tools/build_dapr_rescue_sheets.py`) fills/refreshes the deterministic columns idempotently **without touching the judgment columns**.
+**Hybrid sheet.** *Deterministic columns* are Mamey-regenerable (BGC data + framework lookup); *judgment columns* are the Sapote scoring/ranking overlay. For these two boards, `tools/build_dapr_rescue_sheets.py` refreshes mapped `Activity_Ref` cells while leaving the other existing board cells unchanged; it does not rebuild their identities, selection, KCB values or scores. It separately replaces the whole `Fragment_Rescue_Tiers` sheet. Preserve and inspect before/after workbooks for this selected mutation.
 
 | Column | Type | Required | Owner | Source |
 |---|---|---|---|---|
@@ -185,7 +183,7 @@ This document retains the master-workbook design, dated additions and historical
 | KCB_Provenance | str | yes | Mamey | KnownClusterBlast nearest cluster |
 | Activity_Ref | str | yes | **Mamey (deterministic)** | framework citation lookup keyed on KCB compound → verification tag (VERIFIED / ROUTED-OUT / antifungal-adjacent), mirrored in `docs/DAPR_CLASS_FRAMEWORK.md` |
 
-**Determinism:** `Activity_Ref` is a pure function of the KCB nearest compound via the framework citation map (embedded in the builder, documented in `DAPR_CLASS_FRAMEWORK.md`). Re-running the builder reproduces it exactly. The *selection and ranking* of board rows remains a Sapote judgment pass (class-level hypotheses; typed metadata does not add a score; cytotoxic-adjacent + siderophore classes routed out).
+**Refresh boundary:** `activity_ref()` selects the first framework-map substring match from `kcb_top`, but the workbook writer overwrites `Activity_Ref` only when both KCB text and a mapped tag are present. Blank/unmapped current KCB values leave an old cell untouched, so the final cell is not always a pure function of current source text. Reconcile retained references against the current KCB and map; a successful refresh does not prove stale cells were cleared. The *selection and ranking* of board rows remains a Sapote judgment pass (class-level hypotheses; typed metadata does not add a score; cytotoxic-adjacent + siderophore classes routed out).
 
 ### E2_Comparative_Pairs
 
@@ -229,15 +227,15 @@ This document retains the master-workbook design, dated additions and historical
 ### User checkpoint
 
 The user can verify workbook health by checking:
-- A1_Dashboard: strain count, BGC count match expectations
-- A4_Completeness_Audit: which strains have which sections populated
-- H1_Handoff_Log: audit trail of who did what when
+- A1_Dashboard: strain count, BGC count match expectations.
+- A4_Completeness_Audit: which strains have which sections populated.
+- H1_Handoff_Log: audit trail of who did what when.
 
 ---
 
 ## Versioning
 
-This is Schema v1.0. Changes to column names or sheet codes require a version bump in H3_Schema_Version. Adding new sheets uses the next available code in the appropriate section.
+This is Schema v1.1. Changes to column names or sheet codes require a version bump in H3_Schema_Version. Adding new sheets uses the next available code in the appropriate section.
 
 ### Schema v1.2 additions (2026-06-11)
 
@@ -257,7 +255,7 @@ Fully deterministic from assembly/scan metrics with fixed tier thresholds. Regen
 |---|---|---|---|
 | Tier | str (A–D) | yes | tier rule below |
 | strain | str | yes | strain id |
-| Assembly | str | yes | GOOD/MOD/POOR (N50 ≥ 1 Mb / ≥ 100 kb / else) |
+| Assembly | str | yes | copied A2 `assembly_tier` value; not independently derived from the D5 N50 thresholds |
 | Contigs | int | yes | assembly contig count |
 | N50 | int | yes | assembly N50 (bp) |
 | Frag_Loss | float | yes | raw − corrected BGC count |
@@ -266,28 +264,15 @@ Fully deterministic from assembly/scan metrics with fixed tier thresholds. Regen
 | FLBR_Megasynth | int | yes | genome-wide megasynthase census (NOT a fragmentation metric) |
 | Recommendation | str | yes | tier-derived re-sequencing guidance |
 
-**Tier thresholds (locked):** `A` if N50 ≥ 1,000,000; else `D` if EFLS_Pairs < 20; else `B` if EFLS_Pairs ≥ 600; else `C`.
+**Declared tier rule:** `A` if N50 ≥ 1,000,000; else `D` if EFLS_Pairs < 20; else `B` if EFLS_Pairs ≥ 600; else `C`.
+
+The helper defaults missing/blank N50 and scan counts to zero. Missing A3 raw/corrected counts also become zero, with the last A3 row per strain selected by file order. These defaults can produce a tier, zero loss or strong recommendation text without measured supporting fields; reconcile input missingness and actual run identity before interpreting them. The `Failed assembly - negative control` label is generated policy text, not experimental or biological validation. No threshold is changed here.
 
 ---
 
 ## Platform-specific notes
 
-> Capabilities differ by environment and change over time. Check the environment you are in (`python mamey_run.py doctor`) rather than relying on the notes below, which describe one historical setup.
-
-### ChatGPT (Mamey runner)
-- Populates: A2 (partial), A3, B1–B4, D1–D2
-- Has Biopython: can run source-derived scans directly
-- Limitation: cannot do protein-level comparison without explicit FASTA extraction
-
-### Claude (Sapote runner)
-- Populates: A2 (judgment fields), C1–C4, D3, E1–E4, F1–F3, G1–G3
-- Has shim: can parse GBK from antiSMASH ZIPs for protein comparison
-- Limitation: no Biopython, no network for BLAST
-
-### User
-- Populates: A2 (taxonomy, ecology, habitat), F1 (metadata)
-- Validates: A4 completeness, H1 handoff log
-- Decides: which strains get Mode B, which go to Zenodo
+Which sheets a run fills depends on the tools and data available. Run `python mamey_run.py doctor` to see what this environment can do.
 
 ---
 
@@ -308,4 +293,4 @@ Of 29 coded sheets: **12 MATCHED**, **1 MAPPED**, **16 SCHEMA-ONLY**; 14 deploye
 
 **DEPLOYED-ONLY (recognized detail/overlay, not yet coded):** About; BGC_Scan_Profile, BGC_Domain_Architecture, BGC_Class_Predictions; Gene_NRPS_PKS_Substrates, Gene_Active_Sites, Gene_RiPP_Cores, Gene_Domain_Hits; TFBS_Motifs (→F2); Cross_Strain_Compare; TIGRFAM_Check; Strain_Catalog; Cross_Strain_Class_Prevalence, Cross_Strain_Findings, Strain_Cohort_Context.
 
-**Naming reconciled (2026-06-11):** the strain key + taxonomy columns are now generic `strain`/`taxonomy` across all sheets (lab-specific `SID`/`Organism` retired from the schema; strain-ID *values* like `SID-XXX` remain as identifiers). Core validator reconciled to the deployed columns (2026-06-11): `workbook_schema_check.py` REQUIRED_SHEETS now describes the 27 built sheets exactly and **PASSES** (0 missing / 0 extra / 0 column errors). The 16 deferred coded sheets moved to OPTIONAL_SHEETS (documented, not required). The idealized column lists in 'Column specifications' below are retained as the design reference where they differ from the enforced deployed spec. Pick one canonical naming and align either the builder or the schema column specs. This is why the core validator reports column_errors even though the v1.2 deterministic checks pass.
+**Naming reconciled (2026-06-11):** the strain key + taxonomy columns are now generic `strain`/`taxonomy` across all sheets (lab-specific `SID`/`Organism` retired from the schema; strain-ID *values* like `SID-XXX` remain as identifiers). Core validator reconciled to the deployed columns (2026-06-11): `workbook_schema_check.py` REQUIRED_SHEETS was then aligned with the built sheets. The 16 deferred coded sheets moved to OPTIONAL_SHEETS (documented, not required). The idealized column lists in 'Column specifications' above are retained as the design reference where they differ from the enforced deployed spec. Pick one canonical naming and align either the builder or the schema column specs. This is why the core validator reports column_errors even though the v1.2 deterministic checks pass.

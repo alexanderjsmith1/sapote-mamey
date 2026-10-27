@@ -10,7 +10,7 @@ at a glance, separate from the AB/AF score.
 
 ## Layout rules
 1. Title is node/contig-first, then BGC id: `"<Strain> <NODE...> (<BGC>) domain architecture"`.
-2. One arrow per domain, in genomic order; arrow direction follows CDS strand.
+2. One arrow per exported domain row, sorted by integer cds_start only; tied CDS positions keep source-row order, not a validated intra-protein domain order. Arrow direction follows the supplied CDS strand. The native renderer groups by BGC_ID alone, so use one source-bound strain package; do not combine aliases across strains. Retain the complete locus identity in the input crosswalk and required review surface; shortened native titles remain an identity-display hold.
 3. Arrow fill = role category from `domain_role_taxonomy.v1.json`, palette from
    `domain_figure_specs.v1.json` (`role_palette`).
 4. A role legend (categories present in the strip), not a raw per-domain key.

@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_blastp_identity_figures_true_median.
+"""Card 452_blastp_identity_figures_true_median.
 
 The BLASTp identity figures quoted the upper middle value as the "median" (sorted(v)[len(v) // 2], from the bee paper's v6
 script), which overstates the median of an even count. The tables and panel titles now give the true median.

@@ -4,9 +4,7 @@
 **Source table:** `domain_level/domain_role_counts_by_bgc.csv`.
 
 ## Purpose
-A BGC x role-category matrix (cell = domain count) comparing top BGCs — within or across
-strains — by controlled domain-role burden. The cohort-level read on where biosynthetic
-complexity concentrates.
+A BGC x role-category matrix (cell = domain count) over the supplied table. The native renderer uses all role-count rows, without a top-lead filter, and aggregates by its shortened node/region/alias label without a strain key. Do not concatenate strain tables and claim distinct cohort loci: label collisions can merge records. Retain complete strain / full node-or-contig / region / BGC alias identity in the bound input crosswalk; multi-strain rendering remains a source/identity hold until an approved owner repair preserves those keys.
 
 ## Layout rules
 1. Rows = BGCs (node/contig-first label); columns = role categories (sorted).

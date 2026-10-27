@@ -1,45 +1,32 @@
-# release_denylist.example.txt — TEMPLATE for defining your own private terms.
-#
-# WHY THIS FILE EXISTS
-# The real denylist, tools/release_denylist.txt, is deliberately STRIPPED from
-# every public tier so your private terms never ship. That left a downstream
-# user with no starting point. This .example template DOES ship (its name does
-# not match the strip pattern) and contains only placeholders, so you have
-# something to copy.
+# release_denylist.example.txt — reading template for private-term policy.
+# This example ships publicly; never put actual private terms in this file.
+# The active tools/release_denylist.txt is stripped from public tiers.
 #
 # HOW TO USE
-#   1. Copy this file:   cp tools/release_denylist.example.txt tools/release_denylist.txt
-#   2. Add one private term per line (see format below).
-#   3. Cut a public tier:  tools/make_public_tier.sh code <src> <out>
+# Create a separate tools/release_denylist.txt containing only your selected
+# terms, one per line, with a final newline. Do not copy this commented template
+# verbatim: the current reader skips only empty lines. A line beginning # and
+# leading/trailing spaces are treated as part of a term, not as comments.
+# Review the chosen terms before invoking any separately authorized tier cut.
 #
-# WHAT EACH TERM DOES on a public / non-merged tier cut (see tools/make_public_tier.sh):
-#   1. It is removed from the CONTENT of every shipped text file
-#      (.md .csv .py .cff .txt .json .sh .yaml .yml .html).
-#   2. Any file whose NAME contains the term is DROPPED from the tier.
-#   3. A fail-closed LEAK CHECK re-greps the staged tree for every term; if one
-#      still appears anywhere, the cut is REFUSED (exit 1). You cannot ship a
-#      bundle that still contains a denylisted term.
+# CURRENT NONMERGED CUT BEHAVIOR (tools/make_public_tier.sh:361-373)
+# Content removal is case-sensitive sed replacement for selected text extensions
+# (.md .csv .py .cff .txt .json .sh .yaml .yml .html), excluding wheels descendants.
+# Name removal uses case-insensitive find -iname glob patterns, also excluding
+# wheels descendants. Glob metacharacters in a term can broaden name matching;
+# content and filename matching are not the same literal-string operation.
+# The staged audit uses case-sensitive fixed-string grep with binary-file
+# suppression (`make_public_tier.sh` step 3 leak audit). A matching text term refuses the cut. This is not
+# proof that every binary payload or alternative spelling has been checked.
+# Do not list terms whose removal would corrupt evidence or required code.
 #
-# FORMAT
-#   - One term per line. Blank lines are ignored.
-#   - Matching is literal and case-sensitive (grep -F). "ACME" does not match "acme".
-#   - Put the most specific terms first.
-#   - Do NOT list terms you actually want to keep — every match is scrubbed.
+# STRAIN IDS
+# The identifier redactor is an explicit utility, not an automatic cut transform
+# (`make_public_tier.sh` step 2 block). Other admission/audit gates have their own scope; do not infer
+# that cutting a tier rewrites every strain identifier or certifies privacy.
+# Review and classify private inputs before a separately authorized cut.
 #
-# NOTE ON STRAIN IDS
-#   Nonmerged cuts already rewrite supported staged documentation/configuration
-#   through the maintained strain-ID redactor, independently of AS_SCRUB.
-#   Separate check-only gates require AS_SCRUB=1 and AS_GUARD_RETIRED=0 and
-#   refuse surviving private-ID candidates. Explicit public/synthetic exceptions
-#   remain owned by the detector. Classify or exclude private inputs before
-#   cutting; rewriting cannot certify an unknown dataset. Use this denylist
-#   for names, codenames, and free-text terms.
-#
-# ---------------------------------------------------------------------------
-# Replace the placeholders below with your own private terms, then rename to
-# tools/release_denylist.txt. These example lines are commented out so this
-# template ships inert.
-# ---------------------------------------------------------------------------
+# PLACEHOLDERS FOR A SEPARATE TERMS ONLY FILE
 # MyLabInternalCodename
 # ACME-PRIVATE-
 # unpublished-collaborator-surname

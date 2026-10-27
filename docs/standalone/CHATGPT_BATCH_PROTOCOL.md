@@ -1,6 +1,6 @@
 # Batch execution and continuation
 
-Documented bundle: v9.7.457 / engine 1.9.177
+Documented bundle: v9.7.458 / engine 1.9.177
 
 
 A batch is an operational grouping of inputs, not a fixed biological or model limit. Start with one representative input and inspect measured runtime, memory, disk output and evidence gaps before selecting the next group. Do not infer the appropriate batch size from a historical “three strains” or “four to six strains” rule.
@@ -15,7 +15,7 @@ Retain the exact command, exit status, package path, input hash, issue/validatio
 
 ## Continue or stop
 
-If a run completed, preserve its package and proceed only while the environment can support the next input. If it failed, record the failure and diagnose it before retrying into a new destination. Do not assume extraction has a universal resumable checkpoint at every phase. Keep the per-strain packages independent; adding to a master workbook is a separate schema-sensitive action.
+If a run completed, preserve its package and proceed only while the environment can support the next input. If it failed, record the failure and diagnose it before retrying into a new destination. Do not assume extraction has a universal resumable checkpoint at every phase. Keep the per-strain packages independent. If workbook ingestion is a later task, omit `--master` during extraction. Supplying `--master` requests a schema-sensitive update of that target during the run; use a working copy only when that update is intended.
 
 A combined ZIP is useful only when it serves the requested handoff. Count its added storage before duplicating already sealed per-strain archives. Save state and available transcripts at each substantive handoff, following the shared policy. Identify transcript gaps explicitly.
 

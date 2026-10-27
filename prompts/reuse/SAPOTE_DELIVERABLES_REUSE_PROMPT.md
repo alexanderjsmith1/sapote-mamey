@@ -17,7 +17,7 @@ re-run scans; interpret the sealed evidence. Before producing anything:
    `tier1_diagnostic` flags). This is antiSMASH's pre-computed HMMER and is the primary evidence for
    class-level calls — the inventory/triage CSVs are summaries and do NOT carry the per-locus domain
    list. Do not assign or doubt a class without reading the region's hit list.
-3. Read scan_states (`evidence_channels`: `COMPLETED_*` usable now; `NEEDS_*` = pending external).
+3. Read the bound `*_3_scan_states.json` as separate `scans` rows and `evidence_channels` records. Preserve each channel status, reason and observed hit/coverage fields. A `COMPLETED_*` prefix alone does not establish usable locus-level domains: `COMPLETED_SOURCE_DERIVED` can explicitly mean GBK domain extraction was not run or was skipped. Retain `NEEDS_*`, optional, failed, deferred and not-applicable states without converting missing evidence into a biological negative.
 
 ## Mandatory outputs (per DELIVERABLE_CONTRACT Part A2 + A3)
 Produce all three interpretation documents:
@@ -45,10 +45,9 @@ G3_Hallucination_Trap_Audit. Validate against WORKBOOK_SCHEMA on handoff.
   bound source record. Missing or conflicting fields require an identity hold; never guess or fall back
   to the alias.
 - **Treatment status:** every BGC gets one of full Mode B / candidate card / abbreviated ledger /
-  deferred / not applicable (Contract Part C). No PENDING stubs.
-- **Convention checks:** hglE-KS/PREV-001 is informational, not a class downgrade; report prevalence only from the actual bound cohort, without a fixed historical denominator. NAPAA is neutral, neither lead-blocking nor intrinsically excluded from comparison. Preserve complete product tokens and distinguish genome-class saccharide-only display from the separately scoped wider genus/BiG-SCAPE family policy. Use current source-backed correction and typed assay contracts; missing observations are not measured negatives.
-- **Citation guardrail:** any PMID/DOI must be Bert-Mode verified (Verified/Partial buckets); never emit
-  an unconfirmed identifier; defer if no network.
+  deferred / not applicable under the selected contract. Retain typed evidence-pending, failed, missing and held states; do not present an unfinished card or unperformed check as completed.
+- **Convention checks:** hglE-KS/PREV-001 requires the actual scorer policy: an own-product/no-CCTT fallback can still set a standing rule and use the class-gated bottom tier; registry status alone does not establish a universally informational result (`mamey/scoring.py`); report prevalence only from the actual bound cohort, without a fixed historical denominator. NAPAA is neutral, neither lead-blocking nor intrinsically excluded from comparison. Preserve complete product tokens and distinguish genome-class saccharide-only display from the separately scoped wider genus/BiG-SCAPE family policy. Use current source-backed correction and typed assay contracts; missing observations are not measured negatives.
+- **Citation guardrail:** distinguish Verified, Partial and supplied/unverified citations. Preserve a valid source-bound prior verification receipt with its source/date/scope; offline status does not erase that evidence. Leave unsupported bibliographic or claim bindings held rather than inventing verification.
 - **EVIDENCE_PENDING:** mark (don't guess) any claim that genuinely needs HMMER/DIAMOND/BLASTp the
   package doesn't contain; the evidence JSON resolves most class calls already.
 

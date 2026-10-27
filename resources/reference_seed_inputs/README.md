@@ -4,11 +4,13 @@ Small reference seeds and validation summaries may live here. **Heavy inputs do 
 
 ## What stays OUT of the bundle (external sidecars only)
 
-- **Real strain antiSMASH zips** (any AS-/AJS-/PENDING- genome). These are
-  20-80 MB each, contain unpublished data, and must never enter a public-facing cut. They are
-  passed to `domain-level --source-antismash` as an external path at run time.
-- **Full MIBiG dumps.** The bundle already carries a compact reference index under
-  `mamey/data/mibig/`; raw MIBiG GenBank dumps are not vendored.
+- **Real-strain antiSMASH ZIPs.** Keep these potentially large inputs as external
+  sidecars, and keep unpublished or private sequences out of a public-facing cut.
+  An `AS-` identifier alone does not establish publication status or disclosure authority;
+  use the exact input identity and admitted [privacy/evidence authority](../../docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md),
+  retaining the applicable private guards. Approved inputs are passed to
+  `domain-level --source-antismash` as an external path at run time.
+- **Full MIBiG dumps.** Raw GenBank dumps remain external. Engine reference-index consumers require a separately provisioned `mibig_reference_index.bacterial.json`; see the [external-assets guide](../../docs/EXTERNAL_ASSETS_GUIDE.md).
 
 ## What may live here
 

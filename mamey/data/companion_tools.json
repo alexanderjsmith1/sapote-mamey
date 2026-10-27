@@ -549,7 +549,7 @@
       "category": "metabolomics",
       "requirement": "optional",
       "purpose": "Integrates genome-side BGC/GCF and operator-supplied MS observations; associations require separate review.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
+      "consumes": "Prepared genomic and metabolomic data with strain-to-data mappings; staged region GBKs or spectra alone are not a complete linked NPLinker dataset.",
       "produces": "Separate external analysis; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,
@@ -579,7 +579,7 @@
       "category": "metabolomics",
       "requirement": "optional",
       "purpose": "Optional class-level genome-side reference interpretation; no product prediction is adopted by this bridge.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
+      "consumes": "Genome-side sequence data for the external PRISM workflow; not mass-spectrometry inputs. Current web-service availability and version readiness are unverified.",
       "produces": "Separate external analysis; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,
@@ -609,7 +609,7 @@
       "category": "metabolomics",
       "requirement": "optional",
       "purpose": "Operator-controlled MS/MS similarity and networking; no submission is made by Mamey.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
+      "consumes": "Operator-supplied MS/MS spectra and associated metadata for GNPS/MASST; genome-region GBKs are not MASST query spectra.",
       "produces": "Separate external analysis; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,
@@ -639,7 +639,7 @@
       "category": "metabolomics",
       "requirement": "optional",
       "purpose": "Annotates classes from operator-supplied MS/MS; mapped genome hypotheses are not CANOPUS predictions.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
+      "consumes": "Operator-supplied MS/MS spectra, with MS data where available, for SIRIUS/CANOPUS; not genome-region GBKs.",
       "produces": "Separate external analysis; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,
@@ -669,7 +669,7 @@
       "category": "BGC-detection",
       "requirement": "optional",
       "purpose": "Optional independent genome-side BGC detector; not run by this export.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
+      "consumes": "Genome-side sequence records accepted by the external DeepBGC tool; not mass-spectrometry inputs.",
       "produces": "Separate external analysis; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,

@@ -1,27 +1,42 @@
 # Cohort pack interface (external, operator-supplied, Git-ignored)
 
-The public/canonical source tree is **generic**: it ships no cohort roster, no cohort exclusions,
-and no cohort-specific adapters bound. A private cohort (e.g. an AS-series study) is supplied as an
-**external pack** that the operator binds by configuration; nothing in the pack is tracked in Git.
+The public runtime defaults are **generic**. No study roster, exclusion list or cohort-specific adapter is bound automatically.
+
+The CODE archive includes a synthetic `tests/fixtures/cohort_pack/exclusions.json` for the test harness. That fixture is not the operator's study pack.
+
+A private cohort, such as an AS-series study, comes as an **external pack**. The operator binds it by configuration. Nothing in the pack is tracked in Git.
 
 ## Binding
-For exclusion/governance loading, an explicit environment binding is exclusive. `MAMEY_OFFICIAL_DATA` wins; otherwise `MAMEY_DATA_ROOT` selects its OFFICIAL_DATA subdirectory. A missing or invalid explicitly bound file does not trigger a search for a different parent pack. Only when neither binding exists does the loader walk bundle parents for `OFFICIAL_DATA/`.
-- `MAMEY_OFFICIAL_DATA` — path to the pack's `OFFICIAL_DATA/` (contains `exclusions.json`, registries).
-- `MAMEY_DATA_ROOT` — path whose `OFFICIAL_DATA/` subdir holds the same.
+An active source context can supply governance directly, before any environment lookup. Record that context when it is in use.
+
+Otherwise, the exclusion and governance loader uses an explicit environment binding when one is set, and only that binding:
+- `MAMEY_OFFICIAL_DATA` — path to the pack's `OFFICIAL_DATA/` folder (holds `exclusions.json` and the registries). This wins when set.
+- `MAMEY_DATA_ROOT` — path whose `OFFICIAL_DATA/` subfolder holds the same files. Used when `MAMEY_OFFICIAL_DATA` is not set.
+
+If an explicitly bound file is missing or invalid, the loader does not look for another pack in a parent folder. Only when neither variable is set does it walk up the bundle's parent folders looking for `OFFICIAL_DATA/`.
 
 ## Pack contents and missing-source behavior
 - `OFFICIAL_DATA/exclusions.json` — `{hard_excluded, raw_assembly_void, strain_of_record, qc_hold_audit_only, governed}`.
-  With no pack bound or discovered, the shipped default excludes nothing. Non-strict loading can fall back to that empty default after a warning when a bound file is unreadable/missing. Strict loading refuses a missing or malformed bound source. The governed accessor `governed_excluded()` always loads strictly, so the governed-output exclusion gate, package validation and master-workbook ingest hold (raise, or report the gate as `ERROR`) on a failed binding instead of using the empty default. Raw-scope accessors keep the warning fallback. Inspect the resolved source and warning state before using any governed denominator; “no exclusions loaded” does not prove all strains were approved.
-- `OFFICIAL_DATA/*REGISTRY*.csv/.tsv` — strain⇄accession / genome registries used by cohort adapters.
-- A cohort roster (`strain_genus.csv`-shaped) if cohort figures/widgets are used; absent → those
-  behavior depends on the selected adapter. Record its actual unavailable/held/empty state instead of treating an empty result as a completed cohort analysis.
+  - With no pack bound or found, the shipped default excludes nothing.
+  - Non-strict loading can warn and fall back to that empty default when a bound file is missing or unreadable.
+  - Strict loading refuses a missing or malformed bound file.
+  - The governed accessor `governed_excluded()` always loads strictly. So the governed-output exclusion gate, package validation and master-workbook ingest stop on a failed binding. They raise an error or report the gate as `ERROR`; they do not use the empty default.
+  - Raw-scope accessors keep the warning fallback.
+  - Check the resolved source and any warnings before you use a governed denominator. "No exclusions loaded" does not prove that every strain was approved.
+- `OFFICIAL_DATA/*REGISTRY*.csv/.tsv` — strain⇄accession and genome registries used by cohort adapters.
+- A cohort roster shaped like `strain_genus.csv`, if you use cohort figures or widgets. When it is absent,
+  the behavior depends on the selected adapter. Record whether the result was unavailable, held or empty. An empty result is not a completed cohort analysis.
 
 ## Scope and validation boundary
 
-The pack is a governance input, not a privacy profile or evidence-admission receipt. Dataset presence in `doctor` is a file-layout probe, not full pack schema or denominator validation. The generic external-data resolver and exclusion loader have different fallback policies; record the actual exclusion source rather than assuming a green dataset probe identifies it. Preserve exact version and bytes of the operator-selected pack.
+The pack is a governance input. It is not a privacy profile or a record that evidence was admitted.
 
-The following are intended generic invariants. Verify them with the selected package and public-suite receipt before claiming conformance.
-- With no pack bound: exclusions are empty, unknown strains resolve to PRIVATE, and `run`/`validate`/
-  `explain` still work on a generic type/reference fixture.
-- Binding a pack changes cohort behavior **without modifying canonical code**.
-- Provenance: record the pack's own version/source; the engine never assumes a personal path.
+The dataset check in `doctor` only looks at the file layout. It does not validate the full pack schema or the denominators.
+
+The generic external-data resolver and the exclusion loader fall back in different ways. Record the exclusion source that was actually used. A green dataset check does not tell you which one it was. Keep the exact version and bytes of the pack the operator chose.
+
+The rules below are meant to hold for every generic install. Check them against the selected package and a public-suite receipt before you claim they hold:
+- With no pack bound, exclusions are empty and unknown strains resolve to PRIVATE. `run`, `validate` and
+  `explain` still work on a generic type or reference fixture.
+- Binding a pack changes cohort behavior **without changing canonical code**.
+- Provenance: record the pack's own version and source. The engine never assumes a personal path.

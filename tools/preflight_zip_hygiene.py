@@ -60,10 +60,10 @@ LARGE_LIMIT = 5 * 1024 * 1024
 # v9.7.361 (R1): the path-bound allowlist FILE is now consulted, closing the .355 gap where
 # tools/zip_hygiene_allowlist.{py,tsv} shipped as the sanctioned mechanism for intentionally-large
 # files but this gate never read it — two tools, one gate, not connected, so the gate stayed red on
-# a file that was already reviewed and declared. Precedence: the coarse suffix/substring tuple above
-# first (unchanged, back-compatible), then the path-bound allowlist, which is STRICTER because it
-# binds a specific relpath to a declared per-file ceiling and a written reason. An oversized file
-# still FAILS unless one of the two permits it, so the gate keeps its teeth.
+# a file that was already reviewed and declared. The coarse suffix/substring tuple above
+# is used only for undeclared paths. A declared per-path ceiling binds before the global
+# cutoff or suffix exemption, with its written reason. Undeclared files retain the global
+# cutoff and coarse exemptions.
 ALLOWLIST_TSV = Path(__file__).resolve().parent / "zip_hygiene_allowlist.tsv"
 
 
@@ -86,14 +86,16 @@ def _load_path_allowlist(tsv: Path = ALLOWLIST_TSV) -> dict:
 def _oversized(name: str, size: int, allow: dict) -> bool:
     """True if `name` breaches the size policy. Zip entries have no './' prefix; the allowlist is
     written with one, so both spellings are accepted."""
-    if size <= LARGE_LIMIT:
-        return False
-    if _coarse_large_allow(name):
-        return False
+    # a path-bound entry is the stricter, declared policy: it binds even for a .pdf/.xlsx/.whl,
+    # which the coarse suffix exemption below used to let through at any size
     for key in (name, "./" + name.lstrip("./")):
         if key in allow:
             ceiling, _reason = allow[key]
             return size > ceiling      # over its OWN declared ceiling -> still a violation
+    if size <= LARGE_LIMIT:
+        return False
+    if _coarse_large_allow(name):
+        return False
     return True
 
 

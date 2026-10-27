@@ -9,8 +9,13 @@
 > **Historical record.** This was the ChatGPT controller for engine 1.9.100. Its §1–§20 section
 > counts and authority order are superseded: finished cards use `FINISHED_FULL48_CURRENT_EVIDENCE`
 > (see `docs/MODE_B_USER_WALKTHROUGH.md`), and `AGENTS.md` governs every assistant. Use this file for
-> the history of the handback rules only.
-**Status:** default ChatGPT/Sapote execution controller.  
+> the history of the handback rules only. Select the current `full48` or opt-in `current50_v2`
+> contract from the walkthrough; this file cannot select a profile or certify completion.
+> Historical renderer recipes, forced reruns, numerical scoring rules, private-run observations and
+> mechanistic statements below are not freshly validated or authority to execute. Use the current
+> source-owned renderer and selected privacy profile. Preserve unresolved locus identities rather
+> than reconstructing them from the abbreviated historical examples.
+**Historical status:** former ChatGPT/Sapote execution controller.  
 **Replaces default use of:** `docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md`.  
 **Engine line:** Mamey 1.9.100.  
 **Applies to:** sealed `MAMEY_COMPLETE` / `MAMEY_COMPLETE_WITH_ISSUES` packages and interactive Mode B handbacks.
@@ -357,7 +362,7 @@ Before assembling the report, generate the figures that can be produced from the
 - `fig_class_composition` — bar chart of compound class counts (non-excluded BGCs only)
 - `fig_assembly_tier` — stacked bar of assembly completeness (Interior/Edge/FC fractions)
 
-Data source: `_4_triage_board.csv` (already in the package). Use matplotlib. Data-only PNG + companion `_data.csv` per figure.
+Historical data source: `_4_triage_board.csv`. For a current authorized figure task, use the selected bundle’s approved renderer and instructions in `docs/FIGURES_START_HERE.md`; retain source-table hashes, renderer provenance, sidecars and actual visual inspection. The former generic “use matplotlib” instruction does not select an approved renderer. Missing inputs or renderer support remain blockers for that figure.
 
 If gold figures exist (`gold_figures/` in the package): include them. If `gold_figures/GOLD_FIGURES_REQUIRE_GOLD_MODE.md` is present: note that domain heatmaps require a gold-mode re-run and include the note inline.
 
@@ -387,7 +392,7 @@ Cover page
 → Methods and claim-safety note
 ```
 
-Each section break gets a full-page divider in the PDF (horizontal rule + section title, centred).
+For the current document, use the selected document template and inspect the rendered pages. This historical full-page-divider instruction conflicts with the later no-header-only-page guidance; it is not a requirement to insert divider-only pages.
 
 **Step 5 — Gate delivery on `mamey compile-report --strict`.**
 
@@ -469,8 +474,8 @@ Before rendering the PDF, run the pre-delivery scan from §15: search for bare `
 - NEVER: "AS-XXX produces X" / "The compound is X" / "This bacterium makes Y antibiotic"
 - ALWAYS: "AS-XXX has the genetic capacity to make something in the X class" / "The genes suggest this bacterium could produce a compound similar to X" / "We cannot say what compound is made without isolating it"
 
-The layperson guide is allowed to say "produces" when describing a *class* of chemistry (e.g. "produces siderophore-type molecules that grab iron") — but NOT when naming a specific compound or making a product identity claim. The distinction:
-- ✅ "produces siderophore-type iron-grabbing molecules" (class-level capacity)
+Class-level wording must also preserve the distinction between genetic capacity and observed production. Without measured evidence, use capacity language even when no specific compound is named:
+- ✅ "has genetic capacity consistent with siderophore-type biosynthesis"
 - ✅ "has genes for making polyketide antibiotics, a class that includes erythromycin" (analogy to known, not identity claim)
 - ❌ "produces totopotensamide" (compound identity)
 - ❌ "the compound is a structurally distinct analogue of X" (identity claim dressed as analogy)
@@ -589,7 +594,7 @@ This rule exists because BGC IDs are Mamey-internal bookkeeping. A collaborator 
 
 ## 16 — Multi-strain batch workflow (v9.7.148e)
 
-**When you have multiple antiSMASH ZIPs, do not run `mamey run` on each strain one at a time by hand.** Use the intake harness, which chains them, appends to a shared master workbook, writes a batch report, and handles timeouts gracefully.
+**Historical batch recommendation; select the current authorized route and resource scope.** The intake harness has a separate parser and execution profile. Its default path writes registry/metrics and package outputs; optional captured intake has separate policy and `--capture-master` controls (`tools/intake_harness.py`). Do not infer a shared-master update or guaranteed timeout recovery from invoking the harness. A single-strain capped run remains a separate supported CLI route.
 
 ### Step 1 — Verify the selected environment
 
@@ -603,7 +608,7 @@ wheelhouse and index-disabled installation; missing dependencies remain an expli
 python tools/intake_harness.py   --inputs strain_A.zip strain_B.zip strain_C.zip strain_D.zip   --outdir runs_YYYYMMDD   --registry runs_YYYYMMDD/intake_registry.csv   --metrics runs_YYYYMMDD/intake_metrics.csv   --batch-report runs_YYYYMMDD/batch_report.md   --release PRIVATE   --mode gold
 ```
 
-Use `--mode gold` — it is the default and only analysis mode (smoke was removed v9.7.161; standard is a deprecated alias). For a capped ChatGPT session add `--capped-session`. Each strain's package lands at `runs_YYYYMMDD/<strain_id>/package/`.
+Use `--mode gold` — it is the default and only analysis mode (smoke was removed v9.7.161; standard is a deprecated alias). Do not append `--capped-session` to this harness command: the harness parser does not accept that flag (`tools/intake_harness.py`). The default harness child uses `--json-evidence bounded --brief none`; this is not the standalone CLI capped-session profile. Each default-path strain package is addressed at `runs_YYYYMMDD/<strain_id>/package/`; inspect actual completion receipts and outputs.
 
 ### Step 3 — Validate each package
 

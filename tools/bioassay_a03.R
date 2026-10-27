@@ -23,7 +23,7 @@ p <- ggplot(d,aes(x,y,fill=genus))+
   scale_shape_manual(values=shapes,name=if(is.null(prof$group_axis_label))"Source" else prof$group_axis_label)+scale_fill_manual(values=pal,labels=genlab,name="Genus (16S rRNA)")+
   scale_x_continuous(limits=c(min(-4,d$x-3),max(105,d$x+3)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   scale_y_continuous(limits=c(if(label_genus) -32 else min(-4,d$y-3),if(label_genus) 118 else max(105,d$y+3)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
-  labs(x=paste("Best inhibition of P. larvae (either strain),",suffix),y=paste("Best inhibition of MRSA,",suffix))+house()+
+  labs(x=sp_md(paste("Best inhibition of P. larvae (either strain),",suffix)),y=paste("Best inhibition of MRSA,",suffix))+house()+
   guides(fill=guide_legend(ncol=3,byrow=TRUE,order=1,override.aes=list(shape=21)),shape=guide_legend(nrow=1,order=2))
 if(!isTRUE(prof$a03_source_shape))p<-p+guides(shape="none")
 save_candidate(p,5.6,if(label_genus) 8.2 else prof$a03_height_in)

@@ -1,4 +1,4 @@
-"""Card 018c0f08_459_gap_map_gecco_track: a GECCO track under the strain row of a gap-rescue locus map, and the
+"""Card 459_gap_map_gecco_track: a GECCO track under the strain row of a gap-rescue locus map, and the
 5 kb scale bar moved up onto the contig-caption line (owner, 19 Oct, rulings 116 and 122). Synthetic two-row map; no
 GECCO run, no DIAMOND."""
 import importlib.util

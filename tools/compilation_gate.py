@@ -331,6 +331,10 @@ def run_gate(md_path: str, manifest: str | None, scorable_bgcs: int,
         "post_render": pdf is not None,
         "checks": {"G1": g1_ok, "G2": g2_ok, "G3": g3_ok, "G4": g4_ok, "G5": g5_ok,
                    "LOCATOR": "WARN" if loc_msgs else "OK"},
+        # G3 is True before render only because it is deferred; the name needs the page check
+        "g3_state": "CHECKED" if pdf is not None else "DEFERRED_PRE_RENDER",
+        "naming": ("_PARTIAL_" if not gate_pass else
+                   "_COMPENDIUM_" if pdf is not None else "PENDING_RENDER"),
         "findings": findings,
     }
 
@@ -364,12 +368,20 @@ def main():
             emit(f"  Pages: {receipt['page_count']} (floor {receipt['page_floor']})")
         else:
             emit(f"  Page floor: {receipt['page_floor']} (pre-render; G3 deferred)")
+        post = receipt.get("post_render", receipt.get("page_count") is not None)
+        g3_state = receipt.get("g3_state", "CHECKED" if post else "DEFERRED_PRE_RENDER")
+        naming = receipt.get("naming", "_PARTIAL_" if receipt["gate"] != "PASS"
+                             else "_COMPENDIUM_" if post else "PENDING_RENDER")
         for k, ok in receipt["checks"].items():
-            emit(f"  {k}: {'✓' if ok else '✗'}")
+            # sys.stdout.write keeps the strict-health print_calls ratchet flat
+            mark = "– deferred (pre-render)" if k == "G3" and g3_state != "CHECKED" else ("✓" if ok else "✗")
+            sys.stdout.write(f"  {k}: {mark}\n")
         for f in receipt["findings"]:
             emit(f"  ✗ {f}")
-        if receipt["gate"] == "PASS":
+        if naming == "_COMPENDIUM_":
             emit("  ✓ may be named _COMPENDIUM_")
+        elif naming == "PENDING_RENDER":
+            sys.stdout.write("  ✓ pre-render checks pass; render, then rerun with --pdf before naming it _COMPENDIUM_\n")
         else:
             emit("  ✗ must be labelled _PARTIAL_ — not a compendium")
 

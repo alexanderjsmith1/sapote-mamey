@@ -5,7 +5,7 @@
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
 # Sapote–Mamey CO-EXECUTION PROMPT — Claude directs ChatGPT, judgment runs alongside
-**Bundle:** v9.7.457 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
+**Bundle:** v9.7.458 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
 **Use when:** a sealed Mamey package already exists (extraction done, `MAMEY_COMPLETE`/`JUDGMENT_PENDING`)
 and the user has authorized parallel roles and their execution scope. Assistant names are
 historical examples, not required products or permission to message another task. Judgment may
@@ -80,6 +80,7 @@ and folds ChatGPT's returned evidence back in when it arrives. Neither layer wai
   available exact-locus evidence. full48 is the default CLI profile; opt-in current50_v2 is distinct.
 - Lead ranking, claim-ceiling assignment, and the convention checks (hglE-KS PREV-001, NAPAA
   exclusion, corrected BGC count, habitat class).
+  Check hglE-KS PREV-001 against both the rule registry and the scorer; they can disagree.
 - Flag — but do not resolve — any claim that the `blocking_for_claims` column says depends on
   HMMER/DIAMOND/BLASTp. Mark it `EVIDENCE_PENDING_CHATGPT` and proceed; upgrade it when the
   evidence returns.
@@ -93,7 +94,7 @@ value. A pending cell stays pending with its status code until real evidence fil
 
 ```text
 MAMEY FOLLOW-ON WORK ORDER  (issued by Claude/Sapote)
-Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.457
+Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.458
 Source of truth: the sealed package you produced; do NOT re-extract or re-run the ten scans.
 
 TASK 1 — Protein FASTA (GATING; everything below blocks on this)
@@ -117,11 +118,15 @@ TASK 5 — Inventory compression summary  (optional, speeds Claude's judgment)
   BGC_ID, KCB_top, KCB_score, novelty_auto, edge_status — so Claude compresses them as a group.
 
 RETURN CONTRACT
-  - Append-only: do not modify existing package files; emit new evidence files + an updated
-    cell_provenance.csv where NEEDS_* → COMPLETE_EXTERNAL_EVIDENCE for filled cells.
+  - Preserve existing sealed package files. Emit new evidence and a separately named provenance
+    overlay outside source evidence; do not overwrite the original cell_provenance.csv. Record
+    original state, newly supported state, full source identity and evidence path/hash for each
+    claimed transition. A work-order label alone does not update or validate a package channel.
+    Name the overlay `<strain>_cell_provenance_overlay.csv`. No bundle tool reads it yet; it stays a
+    sidecar until the owner merges it.
   - No fabricated rows. Any task that can't complete: emit the failure code (§8 of the Mamey
     execution prompt) + exact recovery inputs. Continue the other tasks.
-  - Hand back: new evidence files, updated provenance, and a one-line status per task.
+  - Hand back: new evidence files, the provenance overlay, and a one-line status per task.
 ```
 
 Claude tailors TASK 4's protein list and TASK 5's class/count to the actual package. Tasks 1–3 are
@@ -154,7 +159,10 @@ cells carry their provenance (`COMPLETE_EXTERNAL_EVIDENCE` + the source file/lin
 ## 7. End-of-session
 - Deliverables for every BGC (full or compressed-with-reason).
 - A ledger of `EVIDENCE_PENDING_CHATGPT` items still open (what's blocked on which ChatGPT task).
-- Updated workbook merge (append-only; `Strain`+`BGC_ID` row identity) if judgment is complete enough.
+- If a workbook update is selected, preserve its source and bind all full locus identities before
+  writing an owned candidate. `update_master_workbook` replaces matching-strain rows in an
+  allowlist of sheets; append-log history and extra sheets have different behavior. It is not a
+  globally append-only merge or a four-component identity verifier.
 Report completed work, evidence, unresolved holds and the next bounded action when useful. Do not expand the task to populate a menu.
 
 **Post-seal deliverable subcommands (v9.7.338 — non-scoring / advisory; read sealed outputs, never move
@@ -169,5 +177,5 @@ sign-off QC gate on trees), and `verify-modeb --interp` (Mode-B interpretation g
 class-level capacity — judgment deferred, similarity not identity, no structure/product/activity claim.
 
 ---
-*Sapote-Mamey Bundle v9.7.457 | This prompt orchestrates the parallel loop; the role boundary and
+*Sapote-Mamey Bundle v9.7.458 | This prompt orchestrates the parallel loop; the role boundary and
 claim-safety rules are inherited unchanged from CLAUDE_SYSTEM_PROMPT.md and the Mamey execution prompt.*

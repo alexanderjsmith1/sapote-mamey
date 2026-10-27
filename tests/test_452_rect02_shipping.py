@@ -105,7 +105,7 @@ def test_flat_admitted_run_renders_strips_end_to_end(tmp_path,monkeypatch):
         assert stamp(out/f'toy_rect02.{ext}')[0]=='PASS'
     audit=list(csv.DictReader((out/'toy_rect02.annotation_audit.tsv').open(),delimiter='\t'))
     assert len(audit)==7
-    assert sum(r['value']=='active (≥80%)' for r in audit)==1
+    assert sum(r['value']=='strong (≥80%)' for r in audit)==1
 
 
 def render_direct(tmp_path, n=7, long_label=False, **extra):
@@ -117,7 +117,7 @@ def render_direct(tmp_path, n=7, long_label=False, **extra):
         for i,tip in enumerate(tips):
             label=tip
             if i==0 and long_label:label='Example species SYN-970 (+12 grouped; max 1 nt differences; min 600 shared sites)'
-            writer.writerow(dict(tip=tip,label=label,role='query' if i<2 else 'reference',category='active (≥80%)' if i<2 else '',source='tested, inactive' if i<2 else ''))
+            writer.writerow(dict(tip=tip,label=label,role='query' if i<2 else 'reference',category='strong (≥80%)' if i<2 else '',source='tested, below 80%' if i<2 else ''))
     env=dict(os.environ,SAPOTE_PYTHON=sys.executable,GG_PRINT_WIDTH='7.2',GG_STRIPS='2',GG_STRIP_KIND='activity',GG_BLANK_MISSING='1',GG_STRIP1_TITLE='Activity A',GG_STRIP2_TITLE='Activity B')
     env.update(extra)
     proc=subprocess.run(['Rscript',str(ROOT/'tools/ggtree_rect_heatmap.R'),str(tree),str(meta),str(prefix)],env=env,text=True,capture_output=True)

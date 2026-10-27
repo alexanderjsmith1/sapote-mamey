@@ -59,9 +59,9 @@ before the final receipt. A failure leaves any partial artwork without a success
 receipt. PDF bytes can differ with export metadata, fonts or plotting versions;
 membership and input bindings are the replay contract.
 
-Group colour and presence are display choices supplied by the manifest. This
+Group color and presence are display choices supplied by the manifest. This
 initial adapter does not reproduce historical identity fills, per-strain labels,
-nearest-neighbour statistics or every publication layout. Such
+nearest-neighbor statistics or every publication layout. Such
 extensions need their own explicit input contracts and tests. A successful replot
 does not validate the original fitting environment, stochastic stability or any
 scientific interpretation.

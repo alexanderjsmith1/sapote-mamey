@@ -3,7 +3,7 @@
 **Status:** historical working-method record from 2026-08-26; not the current portable execution recipe.
 Use [the current companion contracts](COMPANION_RUN_CONTRACTS.md),
 [phylogenomics](phylogenomics.md) and [preflight](GTOTREE_IQTREE_PREFLIGHT.md)
-for .447 behavior and authority. The prior source records, timing claims and owner
+for the selected bundle’s behavior and authority. The prior source records, timing claims and owner
 sign-offs below are retained history requiring their original run packets before reuse.
 They do not authorize rebuilding,
 upgrading or relabeling a current tree.

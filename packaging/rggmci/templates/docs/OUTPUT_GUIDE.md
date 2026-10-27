@@ -1,10 +1,10 @@
 # Current standalone output and source-location boundary
 
-This is a documentation template for the standalone `rggmci` package, not the Sapote-Mamey CLI's per-strain package schema. The build copies this directory to the generated source tree's `docs/`; normal wheel package data declares only `rggmci/PROVENANCE.json`, so a pip installation does not promise this guide exists beside installed code. Keep the source documentation with its generated provenance and exact package version. Sources: `packaging/rggmci/build_rggmci_package.py:176–193`, template `pyproject.toml:25–31`.
+This guide covers the standalone `rggmci` package, not the Sapote-Mamey CLI's per-strain package schema. It ships in the source tree's `docs/`; a pip installation does not include it. Keep it with the package version and `PROVENANCE.json` it came with.
 
 ## Exact writes, missing states and batch recovery
 
-The normal CLI accepts antiSMASH ZIP files or folders recursively discovered for `*.zip`. Missing/no inputs or multiple inputs without `--out-dir` return 2. For a batch, each ZIP run failure is recorded in `SUMMARY.tsv` and processing continues; exit 1 means at least one input failed. Successful earlier per-genome outputs can therefore exist during batch failure. Filesystem write errors outside the guarded per-ZIP analysis call can propagate. No input processing was run for this guide.
+The normal CLI accepts antiSMASH ZIP files or folders recursively discovered for `*.zip`. Missing/no inputs or multiple inputs without `--out-dir` return 2. For a batch, each ZIP run failure is recorded in `SUMMARY.tsv` and processing continues; exit 1 means at least one input failed. Successful earlier per-genome outputs can therefore exist during batch failure. Ordinary output `OSError` failures in directory/file publication return 2, including aggregate-table writes. Other unexpected formatting/serialization exceptions can propagate. A partial output set remains possible; inspect the actual process result and every expected artifact rather than treating prior successful per-input rows as a completed batch. No input processing was run for this guide.
 
 With `--out-dir`, successful inputs write the eight-artifact canonical set: `<zip-stem>.json`,
 `_pairs.tsv`, `_related_loci.tsv`, `_candidate_groups.tsv`, `_summary.tsv` and three completion TSVs.
@@ -14,7 +14,7 @@ or aliased outputs are refused before analysis. Every final file is created excl
 failure can leave partial fresh artifacts, so this is not a transactional batch; it never authorizes
 reuse of prior output bytes as current evidence. Per-input failures remain in the attempted denominator.
 
-Completion tables are emitted with a tier row even when no gene/split/partner rows exist (`mamey/ref_completion.py:1202–1219`, copied into generated standalone source). Read `completion_tier` and aligner/evidence availability; non-FULL is an explicit not-completed state, not biological absence. HIGH, MODERATE, LOW and related-locus states are algorithmic candidate labels, not contig joins, compound identity, physical linkage or scientific acceptance.
+Completion tables are emitted with a tier row even when no gene/split/partner rows exist. Read `completion_tier` and aligner/evidence availability; non-FULL is an explicit not-completed state, not biological absence. HIGH, MODERATE, LOW and related-locus states are algorithmic candidate labels, not contig joins, compound identity, physical linkage or scientific acceptance.
 
 Use the owning command's `--help`, input/provenance/hash receipt and actual files together. Stored BLASTp layer reports may return 0 even when queries are unmapped or unmeasured; inspect NOT_IN_RESULTS/unmapped states rather than treating successful writing as completed searches. The detailed field descriptions below remain implementation guidance within this scope. External searches, model/database builds and biological acceptance are separate governed actions; output existence does not establish their execution or acceptance.
 
@@ -24,15 +24,11 @@ Use the owning command's `--help`, input/provenance/hash receipt and actual file
 
 ## The input it needs
 
-An antiSMASH result ZIP with its ClusterBlast output. RG-GMCI reads:
+Use a saved antiSMASH result ZIP with region GenBank files (`<contig>.region<NNN>.gbk`) and usable cluster-level reference records from `clusterblast/` (CB), `knownclusterblast/` (KCB), or both. RG-GMCI keeps these channels separate: cross-genome CB and characterized-reference KCB can each support a candidate pair. KCB-only evidence is not automatically unscorable. SubClusterBlast records are retained as a separate marker channel and do not supply pairing geometry.
 
-- the region GenBank files (`<contig>.region<NNN>.gbk`);
-- the `knownclusterblast/` and `clusterblast/` text files. These are written when antiSMASH runs with
-  KnownClusterBlast and ClusterBlast turned on (`--cb-knownclusters --cb-general` on the command line, or
-  the matching options on the web server, where ClusterBlast is off by default).
+To get these records in a new antiSMASH run, turn on KnownClusterBlast and ClusterBlast: `--cb-knownclusters --cb-general` on the command line, or the matching options on the web server, where ClusterBlast is off by default.
 
-Without the ClusterBlast files there is nothing to link, and every genome reports zero pairs. The
-`reference_map_status` column says whether reference hits were found.
+When neither CB nor KCB supplies usable records, there are no reference-supported pairs from this input. That is a missing/empty evidence state, not proof that no fragmented pathway exists. Read `reference_map_status`, `reference_parse_error_count` and the original channel files; a parsed map can still contain no eligible shared pair. This guide does not require resubmitting or regenerating antiSMASH output merely because one channel is absent.
 
 ## Pairs (`<genome>_pairs.tsv`, or `--pairs`)
 
@@ -40,7 +36,9 @@ One row per scored pair of regions.
 
 | column | meaning |
 |---|---|
-| `bgc_a`, `bgc_b` | region aliases, numbered in the order the regions were read |
+| `identity_a`, `identity_b` | complete canonical endpoint labels: logical strain / full physical contig / region / BGC alias; retain the source archive/result hashes and do not infer taxonomy from the logical label |
+| `region_a`, `region_b`, `source_gbk_a`, `source_gbk_b` | exact region labels and source member locators for each endpoint |
+| `bgc_a`, `bgc_b` | source-scoped region aliases, numbered in reading order; not stable cross-run join keys |
 | `contig_a`, `contig_b` | the full contig names antiSMASH used; use them to find the regions |
 | `products_a`, `products_b` | antiSMASH's product annotations for each region |
 | `edge_a`, `edge_b` | `Edge`: the region is within 5 kb of a contig end. `Full-contig`: it covers the contig. `Interior`: neither. `Unknown`: contig length not available |
@@ -89,9 +87,9 @@ separated; rggmci still does not claim a join.
 
 ## Related loci (`related_locus_pairs` in the JSON)
 
-Pairs that involve an interior region, or two regions on one contig, are scored the same way and kept apart, with
-`rggmci_confidence` set to `RELATED_LOCUS_NOT_A_RESCUE`, the original grade in `shared_reference_grade`, the interior
-side in `interior_side`, and the reason in `related_because` (`interior region`, `same contig`, or both). They can
+Pairs that involve an interior region, or two regions on one contig, are scored the same way and kept apart.
+Their `rggmci_confidence` is set to `RELATED_LOCUS_NOT_A_RESCUE`. The original grade is in `shared_reference_grade`,
+the interior side in `interior_side`, and the reason in `related_because` (`interior region`, `same contig`, or both). They can
 point to a second copy of a cluster, a separate locus of one pathway, or a shared cassette.
 They are never contig rescues and never feed the rescue list, candidate groups or the hub count.
 
@@ -121,8 +119,8 @@ was chosen (`knownclusterblast`, or `discovered` with its protein count, ties an
 compound names. When the tier is not `FULL`, each table holds one row that names the tier.
 
 The reference is the region's best-ranked KnownClusterBlast MIBiG hit that the database holds. A region with no such
-hit is given the MIBiG cluster with the most region proteins at 35% identity or more over half the protein or more:
-at least two proteins, one of them with a biosynthetic role, in a cluster of 250 kb or less.
+hit is given the MIBiG cluster with the most region proteins at 35% identity or more over half the protein or more.
+This needs at least two proteins, one of them with a biosynthetic role, in a cluster of 250 kb or less.
 
 ### Reference genes (`<genome>_reference_completion.tsv`)
 
@@ -131,7 +129,7 @@ One row per reference gene.
 | column | meaning |
 |---|---|
 | `status` | `PRESENT_IN_CORE` (a match inside the region at 30% identity or more over half the reference protein, or 25% with e ≤ 1e-10), `MISSING_FOUND_CLEAR` (the best match elsewhere reaches 35% and beats the next candidate's score by 20% or more), `MISSING_FOUND_AMBIGUOUS`, `MISSING_NOT_FOUND` |
-| `best_identity_pct`, `best_coverage_pct`, `best_locus`, `best_contig`, `best_region_identity` | the best match and where it sits; a match outside every region is labelled `(no antiSMASH region)` |
+| `best_identity_pct`, `best_coverage_pct`, `best_locus`, `best_contig`, `best_region_identity` | the best match and where it sits; a match outside every region is labeled `(no antiSMASH region)` |
 | `reciprocal_best` | whether this reference gene is that protein's own best match among the reference's genes |
 | `partner_verdict` | for a find outside the region: `SUPPORTED` (another find of this reference sits within 10 kb), `SINGLE_GENE`, `HOUSEKEEPING_CONTEXT` (a lone find beside primary-metabolism genes; needs the Pfam scan) or `PARALOG_FAMILY` (the reciprocal search fails, or five or more other genome proteins match the same reference gene) |
 | `reciprocal_best_mibig`, `reciprocal_best_identity`, `reciprocal_reference_identity`, `reciprocal_family_ratio` | the find's own best MIBiG cluster, and how its best score against the reference's compound family compares. Below 0.9 the find belongs to another family |
@@ -189,12 +187,12 @@ module cannot be told from another.
 
 - `blastp_proteins.tsv`, one row per query protein:
   - `blastp_status` is `HIT`, `NO_HITS` (XML2 lists the query with nothing), `NO_HITS_AFTER_EXCLUSION` or
-    `NOT_IN_RESULTS` (not in any file given; could be not run or no hits);
-  - the top hit's identity, query coverage, e-value, accession, title and organism;
+    `NOT_IN_RESULTS` (not in any file given; could be not run or no hits).
+  - The top hit's identity, query coverage, e-value, accession, title and organism.
   - `top_organisms` lists up to five, as named in the XML2.
 - `blastp_pairs.tsv`, one row per pair:
-  - the pair's `rggmci_confidence`, copied unchanged;
-  - per side, proteins sent, with hits, with no hits, not in the results, and the median top identity;
+  - The pair's `rggmci_confidence`, copied unchanged.
+  - Per side, proteins sent, with hits, with no hits, not in the results, and the median top identity.
   - `organisms_with_homologs_of_both` and `shared_organisms` need the XML2 and read "needs XML2" without it.
 - `blastp_layer.json`: all of the above, plus query headers in the results that matched nothing in the
   manifest (renamed headers are reported, never guessed).
@@ -230,7 +228,7 @@ members refuse common intake before a subset is reported. General source-reader 
 warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
 empty successful RGGMCI result.
 
-Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
 no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
 then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
 implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:

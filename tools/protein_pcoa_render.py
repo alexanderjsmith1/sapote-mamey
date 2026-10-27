@@ -798,7 +798,7 @@ def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, ital
     radii = [3.0 + step * n for n in range(int((max_leader_pt - 3.0) / step) + 1)]
     for n_, ((tx, ty, tr), text0) in enumerate(zip(targets, texts)):
       best = None
-      # 018c0f08_458 wrap_type: a "class (X-type)" label with no one-line spot is tried again on two lines, the type below the class
+      # v9.7.458 wrap_type: a "class (X-type)" label with no one-line spot is tried again on two lines, the type below the class
       for text in ([text0] + ([text0.replace(" (", "\n(", 1)] if wrap_type and " (" in text0 else [])):
         lines = text.split("\n")
         w = max(_font_length(t_, face, font_size) for t_ in lines); h = 0.93 * font_size + (len(lines) - 1) * 1.2 * font_size
@@ -819,7 +819,7 @@ def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, ital
                   if any(_segments_cross(seg, q) for q in segs):
                       continue
                   if leader_clear_pt is not None and leader_avoid is not None and len(leader_avoid):
-                      # 018c0f08_458: a leader passes no other below-threshold (dark) cohort point closer than leader_clear_pt,
+                      # v9.7.458: a leader passes no other below-threshold (dark) cohort point closer than leader_clear_pt,
                       # so it cannot be read as pointing at the wrong protein
                       AX, AY, AR = leader_avoid[:, 0], leader_avoid[:, 1], leader_avoid[:, 2]
                       vx, vy = seg[2] - seg[0], seg[3] - seg[1]; L2 = vx * vx + vy * vy or 1e-9
@@ -1160,7 +1160,7 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
             lims.append(dict(xlim=[min(xs) - PAGE_EXPAND["x"][0] * dx, max(xs) + PAGE_EXPAND["x"][1] * dx],
                              ylim=[min(ys) - PAGE_EXPAND["y"][0] * dy, max(ys) + PAGE_EXPAND["y"][1] * dy]))
             continue
-        # 018c0f08_458_pcoa_grid_zoom_to_isolates (owner, 19 Oct: "zoom in on the concentrated areas"): the window is the box of
+        # 458_pcoa_grid_zoom_to_isolates (owner, 19 Oct: "zoom in on the concentrated areas"): the window is the box of
         # every cohort point, padded by --zoom-cohort x the full data span on each side and clipped to the full padded range.
         # Every cohort point stays on the panel; reference and MIBiG centroids outside the window are not drawn and are counted.
         cx = [p["x"] for p in b["cpts"]]; cy = [p["y"] for p in b["cpts"]]
@@ -1187,6 +1187,7 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
         page = dict(stamp=stamp, probe=probe, ncol=ncol, panel_height=getattr(a, "panel_height", None) or 3.6, tags=list(letters), italic_labels=bool(getattr(a, "italic_labels", False)),
                     legend=legend, leader_colour="#555555", label_box=bool(getattr(a, "label_over_reference", False)),
                     legend_slot=bool(getattr(a, "legend_in_empty_slot", False)),
+                    title_above=bool(getattr(a, "title_above", False)),   # 458_pcoa_grid_title_above: panel title above the frame
                     **({"ref_point_scale": a.ref_point_scale} if getattr(a, "ref_point_scale", None) else {}),
                     **({"cohort_point_scale": a.cohort_point_scale} if getattr(a, "cohort_point_scale", None) else {}),
                     panels=[dict(tag=b["spec"]["tag"], xlab=b["spec"]["xlab"], ylab=b["spec"]["ylab"], **lims[c],
@@ -1223,15 +1224,15 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
         rx0, rx1, ry0, ry1 = rects[c]; (xl0, xl1), (yl0, yl1) = lims[c]["xlim"], lims[c]["ylim"]
         tx = lambda x: rx0 + (x - xl0) / (xl1 - xl0) * (rx1 - rx0); ty = lambda y: ry0 + (y - yl0) / (yl1 - yl0) * (ry1 - ry0)
         pts = b["spec"]["points"]
-        over_ref = bool(getattr(a, "label_over_reference", False))   # 018c0f08_458: labels may sit on grey/blue centroids (white box)
+        over_ref = bool(getattr(a, "label_over_reference", False))   # v9.7.458: labels may sit on grey/blue centroids (white box)
         obst = np.array([(tx(p["x"]), ty(p["y"]), point_radius_pt(1.25 if p["layer"].startswith("iso") else
                          0.17 * math.sqrt(3 + 1.5 * math.sqrt(p["size"])))) for p in pts
                          if not over_ref or p["layer"].startswith("iso")])
         title_w = _font_length(b["spec"]["tag"], "Arial-BoldMT", fs)
-        blocked = [(rx0, rx0 + title_w * 1.04 + 4.0, ry1 - 2.0 * fs, ry1)]
+        blocked = [] if getattr(a, "title_above", False) else [(rx0, rx0 + title_w * 1.04 + 4.0, ry1 - 2.0 * fs, ry1)]   # title above the frame blocks nothing inside it
         cp = b["cpts"]; groups = b["all_groups"]
         texts = [_group_text(cp, g, b["short"]) for g in groups]
-        if REGION_TEXT:   # 018c0f08_458: a region's proteins can lie far apart; the leader goes to its lowest-identity protein, not the mean
+        if REGION_TEXT:   # v9.7.458: a region's proteins can lie far apart; the leader goes to its lowest-identity protein, not the mean
             anchor = [min(g, key=lambda k: (cp[k]["pid"] if cp[k]["pid"] is not None else 1e9)) for g in groups]
             targets = [(tx(cp[k]["x"]), ty(cp[k]["y"]), point_radius_pt(1.25)) for k in anchor]
         else:
@@ -1285,7 +1286,7 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
     preview = None
     if shutil.which("qlmanage"):   # review-only PNG preview rendered from the checked PDF
         tmp = out / f".ql_{page['stamp']}"; tmp.mkdir()
-        # 018c0f08_458: qlmanage -s sets the LONGER side; a page taller than wide got under 600 dpi with print_width * 600
+        # v9.7.458: qlmanage -s sets the LONGER side; a page taller than wide got under 600 dpi with print_width * 600
         import re as _re_mb
         _mb = _re_mb.search(rb"/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)", Path(f"{prefix}.pdf").read_bytes())
         _long_in = max(float(_mb.group(3)) - float(_mb.group(1)), float(_mb.group(4)) - float(_mb.group(2))) / 72 if _mb else a.print_width
@@ -1384,6 +1385,8 @@ def main(argv=None) -> int:
     ap.add_argument("--cohort-point-scale", type=float, default=None, metavar="X",
                     help="grid pages: draw the cohort (isolate) points X times their default size (default 1); a locus page uses 2.5 "
                          "so its few proteins stand out from the reference cloud")
+    ap.add_argument("--title-above", action="store_true",
+                    help="with --page-grid: draw each panel title above its frame instead of inside its top-left corner, so no text sits in the data area (opt-in)")
     ap.add_argument("--legend-in-empty-slot", action="store_true",
                     help="with --page-grid: when the last row has an empty slot, the shared legend goes there (two-line entries)")
     ap.add_argument("--panel-height", type=float, default=None, help="with --page-grid: panel height in inches (default 3.6)")

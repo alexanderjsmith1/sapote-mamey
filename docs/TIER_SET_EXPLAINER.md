@@ -1,6 +1,6 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.457 · build 20261023v97457a · engine Mamey 1.9.177**
+**Bundle v9.7.458 · build 20261026v97458a · engine Mamey 1.9.177**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.
@@ -9,7 +9,7 @@
 > `docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`.
 
 This retained v9.7.319 record describes a five-tier framework and its historical measurements.
-It does not describe the default .447 cut. For current behavior use
+It does not describe the current cut. For current behavior use
 [CUT_PROTOCOL](../CUT_PROTOCOL.md) and the [privacy/tier guide](CUSTOM_PRIVACY_TIERS.md).
 
 ## The short version
@@ -26,16 +26,16 @@ The five tiers are a distribution framework: one source tree, cut five ways, eac
 | merged | `...-MERGED-PRIVATE-scaffold-...` | Everything, held back from nobody: the full internal working scaffold including any `private/` tree and real strain IDs. The Developer or User's copy. |
 | public | `...-PUBLIC-RELEASE-...` | The public GitHub artifact. Same content as the code tier, including the Pfam scanner HMM (CC0, freely redistributable). |
 
-**Renamed in v9.7.407+ (owner ruling 2026-09-04):** the tier now called **cohort** was previously
+**Renamed in v9.7.408 (owner ruling 2026-09-04):** the tier now called **cohort** was previously
 called `sid`, after one lab's strain series. The behaviour is unchanged — same strip rule, same
 content — only the name is now generic. `sid` is still accepted on the command line as a deprecated
 alias, and bundles sealed before the rename carry `-SID-public-` in their zip name and `tier=sid`
 in `BUILD_STAMP.txt`; current tools read both. `tools/tier_vocabulary.py` is the canonical owner of
 tier names, labels and aliases.
 
-## What each tier strips, by design
+## Read the retained tier branches
 
-When private content *is* present in the source tree, the cut removes different slices per tier. This is the actual logic in `tools/make_public_tier.sh`:
+The directory rules below explain the retained branches in `tools/make_public_tier.sh`; they are not a complete current archive-content specification. CODE is the default release tier, and other branches are disabled unless the explicit override is selected. The builder also applies shared stage policies, including exclusion of the reserved scanner HMM assets and indexes from non-merged stages. Use [the current cut protocol](../CUT_PROTOCOL.md) and its final inventory to determine what a selected archive contains.
 
 - **code / public**: remove `private/`, `cohort/`, `merged_cohort/`, `data/`, `release2_source_library/`, `docs/legacy/`, `offline_deps/`, plus internal working docs (session handoffs, freeze-triage notes, `PRIVATE_DO_NOT_PUBLISH.txt`, and similar).
 - **clean**: everything code removes, and *also* the worked outputs — `deliverables/deep_dives`, `deliverables/analyses`, `deliverables/reports`, `figures/`, and the example ledgers.
@@ -67,7 +67,7 @@ BUILD_STAMP.txt   -> tier=code | clean | cohort | merged | public
 TIER_MANIFEST.txt -> # TIER_MANIFEST tier=<name> version=9.7.319 stamp=20260712v97319a
 ```
 
-That one-word difference is why the five zip sizes differ by a handful of bytes (6,345,805 to 6,345,823) while the file lists are identical. The cut's fail-closed derivation gate (`verify_tier_derivation.py`) confirms `public == redact(private source)` for every shared file and allows only these two label files to vary per tier.
+The historical record attributes the small ZIP-size differences (6,345,805 to 6,345,823 bytes) to the tier labels while reporting identical file lists. Those measurements do not describe a current gate guarantee. The current `verify_tier_derivation.py` compares selected source text after declared omissions; it also has metadata exclusions beyond these two label files. It does not inspect binary contents, public-only additions or whether tests ran. Use the cut's separate integrity and test records for those questions.
 
 ## Historical distribution intentions
 
@@ -82,9 +82,9 @@ release_cut defaults to CODE; all non-code tier branches and the old multi-tier 
 unless the named override is separately selected. A label is not proof that the archive has no private
 content or that the owner has granted disclosure.
 
-## Integrity
+## Historical integrity record
 
-`SHA256SUMS.txt` ships alongside the five zips. Verify with `sha256sum -c SHA256SUMS.txt` before distributing.
+The five-ZIP record refers to a companion `SHA256SUMS.txt`. For an archive you actually receive, use its matching full checksum record before distribution; the abbreviated digests below cannot verify it. Follow [the current cut protocol](../CUT_PROTOCOL.md) for current archive and checksum evidence.
 
 ```
 clean   624b25a0...baf128a7

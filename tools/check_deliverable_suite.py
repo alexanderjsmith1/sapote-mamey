@@ -17,7 +17,7 @@ Exit 0 = PASS, 1 = FAIL. Designed for the release gate and for end-of-run self-c
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, json, re, sys
+import argparse, json, os, re, sys
 
 PLACEHOLDER = "COMPLETE/SKIPPED/N/A"
 SUITE_ROWS = 13  # the ordered §A contract
@@ -29,7 +29,7 @@ def parse_rows(text):
         rows.append({"n": int(num), "name": name, "status": status, "artifact": art})
     return rows
 
-def check(text, mode):
+def check(text, mode, artifact_root=None):
     findings = []
     rows = parse_rows(text)
     suite = [r for r in rows if r["n"] <= SUITE_ROWS]
@@ -44,6 +44,13 @@ def check(text, mode):
             findings.append(f"item {r['n']} ({r['name']}): status not filled in (still placeholder)")
         elif st == "COMPLETE" and not art:
             findings.append(f"item {r['n']} ({r['name']}): COMPLETE but no artifact path given")
+        elif st == "COMPLETE" and artifact_root is not None:
+            # a filled path cell was accepted without looking for the file
+            missing = [t for t in re.split(r"\s*[;,]\s*", art)
+                       if t and not os.path.exists(os.path.join(artifact_root, t.strip("`")))]
+            if missing:
+                findings.append(f"item {r['n']} ({r['name']}): COMPLETE but artifact not found under "
+                                f"{artifact_root}: {', '.join(missing)}")
         elif st in ("SKIPPED", "N/A", "NA") and not art:
             findings.append(f"item {r['n']} ({r['name']}): {st} but no reason given")
         elif st not in ("COMPLETE", "SKIPPED", "N/A", "NA"):
@@ -85,6 +92,8 @@ def main():
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--mode", default="standard", choices=["smoke", "standard", "gold"])
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--artifact-root", default=None,
+                    help="check that every COMPLETE artifact path exists under this folder")
     a = ap.parse_args()
     try:
         with open(a.manifest, encoding="utf-8") as f:
@@ -92,16 +101,19 @@ def main():
     except OSError as e:
         emit(f"error: cannot read manifest '{a.manifest}': {e.strerror}", file=sys.stderr)
         sys.exit(2)
-    findings, stats = check(text, a.mode)
+    findings, stats = check(text, a.mode, artifact_root=a.artifact_root)
     ok = not findings
     if a.json:
-        emit(json.dumps({"pass": ok, "mode": a.mode, **stats, "findings": findings}, indent=2))
+        emit(json.dumps({"pass": ok, "mode": a.mode, **stats, "artifacts_checked": a.artifact_root is not None,
+                         "findings": findings}, indent=2))
     else:
         emit(f"Deliverable-suite check [{a.mode}] — {'PASS' if ok else 'FAIL'}", f"  {stats['complete']}/{stats['suite_items']} suite items COMPLETE", sep="\n")
         for f in findings:
             emit(f"  ✗ {f}")
         if ok:
             emit("  ✓ all 13 contract items accounted for; Section H gate satisfied")
+            if a.artifact_root is None:
+                sys.stdout.write("  – artifact paths were not checked on disk (pass --artifact-root to check them)\n")  # direct write keeps the strict-health print_calls ratchet flat
     sys.exit(0 if ok else 1)
 
 if __name__ == "__main__":

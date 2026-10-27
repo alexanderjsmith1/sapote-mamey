@@ -139,12 +139,17 @@ geo_fixed <- setNames(shared_palette$color[shared_palette$field==geo_field], sha
 if (Sys.getenv("GG_STRIP_KIND","source") == "activity") {
   # .452: GG_ACTIVITY_PALETTE picks the palette field: default "activity" (red / dark grey / grey, unchanged) or
   # "calm" ("activity_calm": dark blue / blue-grey / pale grey; moss Fig. S1b, owner, 13 Oct). The split-strip states
-  # (+, −, n.t.) take the same three colours, in the palette's row order: active, tested inactive, not tested.
-  act_field <- switch(Sys.getenv("GG_ACTIVITY_PALETTE", "default"), default = "activity", calm = "activity_calm",
-                      stop("ACTIVITY_PALETTE_UNKNOWN: ", Sys.getenv("GG_ACTIVITY_PALETTE")))
+  # (+, −, n.t.) take the first, second-to-last and last colours of the set, in the palette's row order.
+  # GG_ACTIVITY_STATES picks the state set: "two" (default; strong >=80% / tested, below 80% / not tested) or "three"
+  # (strong >=80% / moderate 50-79% / tested, below 50% / not tested; palette fields activity_3state[_calm]).
+  act_states <- Sys.getenv("GG_ACTIVITY_STATES", "two")
+  if (!act_states %in% c("two", "three")) stop("ACTIVITY_STATES_UNKNOWN: ", act_states)
+  act_calm <- switch(Sys.getenv("GG_ACTIVITY_PALETTE", "default"), default = FALSE, calm = TRUE,
+                     stop("ACTIVITY_PALETTE_UNKNOWN: ", Sys.getenv("GG_ACTIVITY_PALETTE")))
+  act_field <- paste0(if (act_states == "three") "activity_3state" else "activity", if (act_calm) "_calm" else "")
   act_fixed <- setNames(shared_palette$color[shared_palette$field==act_field], shared_palette$value[shared_palette$field==act_field])
-  if (length(act_fixed) != 3) stop("ACTIVITY_PALETTE_UNAVAILABLE")
-  if (split_activity) act_fixed <- c(act_fixed, setNames(unname(act_fixed), c("+","−","n.t.")))
+  if (length(act_fixed) != if (act_states == "three") 4 else 3) stop("ACTIVITY_PALETTE_UNAVAILABLE")
+  if (split_activity) act_fixed <- c(act_fixed, setNames(unname(act_fixed)[c(1, length(act_fixed) - 1, length(act_fixed))], c("+","−","n.t.")))
   if (split_activity) {
     observed_activity <- unique(unlist(md[activity_spec$column],use.names=FALSE))
     act_fixed <- act_fixed[names(act_fixed) %in% union(observed_activity,c("+","−","n.t."))]

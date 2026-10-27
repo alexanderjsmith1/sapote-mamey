@@ -348,7 +348,7 @@ def finish(a, plt, fig, ax, outs, iso, by_site, where, gorder, gcol, groups, grc
     leg = fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=MIN_PT, title=title, title_fontsize=MIN_PT,
                      frameon=False, bbox_to_anchor=(0.5, 0.0), handlelength=1.2, columnspacing=1.4)
     for t in leg.get_texts():
-        if t.get_text() not in ("Other genera", NO_GENUS) and a.mark == "pie":
+        if t.get_text() not in ("Other genera", NO_GENUS) and not t.get_text().endswith(("aceae", "aceae bacterium")) and a.mark == "pie":   # family names stay roman
             t.set_fontstyle("italic")
     fig.canvas.draw()
     sizes = [t.get_fontsize() for t in ax.texts] + [t.get_fontsize() for t in leg.get_texts()] + [leg.get_title().get_fontsize()]

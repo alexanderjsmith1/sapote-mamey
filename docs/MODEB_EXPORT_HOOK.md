@@ -1,6 +1,6 @@
 # Mode B card export: current command and verification boundary
 
-`modeb-export` is a shipped .447 command, not a future CLI-wiring prototype. It converts Markdown into DOCX/PDF with a selected report theme; it does not author the card or verify its complete selected Mode B profile.
+`modeb-export` converts Markdown into DOCX/PDF with a selected report theme; it does not author the card or verify its complete selected Mode B profile.
 
 ```text
 python mamey_run.py modeb-export <card.md> --outdir <new-export-folder> --format both --theme evidence_dossier
@@ -20,7 +20,7 @@ The standalone module exposes `--force` for an explicitly reviewed phrase; the b
 
 Themes: `evidence_dossier` (default), `field_notebook`, `dark_lab`, `minimal_clinical`. DOCX uses python-docx; PDF uses reportlab through the packaged `mamey.markdown_pdf` renderer. It no longer imports `tools/render_deliverable_pdf.py`. Reportlab is a core declared dependency (`>=4.0,<5.0`); python-docx/lxml are in the `documents` extra. Package declarations do not prove the selected interpreter or offline wheelhouse contains those modules; inspect dependency status for that environment.
 
-Each requested format reports `WRITTEN`, a typed skip, or refusal. Default `--format both` requires **both** outputs written and returns 1 if either is skipped. PDF-only skipped returns 1. DOCX-only `SKIPPED_NO_DOCX` can return 0: always inspect the per-format status and file. Missing single input returns 2; an empty batch returns 1. Other read/render failures can propagate as exceptions and leave earlier batch outputs.
+Each requested format reports `WRITTEN`, a typed skip, or refusal. Default `--format both` requires **both** outputs written and returns 1 if either is skipped. A skipped requested format, including DOCX-only `SKIPPED_NO_DOCX`, returns 1. Always inspect the per-format status and file. Missing single input returns 2; an empty batch returns 1. Other read/render failures can propagate as exceptions and leave earlier batch outputs.
 
 Artifacts use the source stem. Existing export files are replaced via `.tmp` siblings; there is no no-clobber output guard or atomic DOCX+PDF pair transaction. Use a fresh export folder and preserve prior artifacts. A failure or refusal does not remove a preexisting export in a reused directory. The PDF prints the claim ceiling on each page; the explicit page-number callback skips the cover page.
 
@@ -28,4 +28,4 @@ Artifacts use the source stem. Existing export files are replaced via `.tmp` sib
 
 Export results provide path, bytes, theme and engine; no source/artifact hash receipt or saved verifier receipt is emitted. Retain the exact Markdown hash, package/source hashes, verifier invocation/receipt, theme, dependency versions and output hashes in a separate run record. Embedded assets are separate inputs and need their own binding. Inspect actual rendered pages at intended size before claiming visual QA. Use actual output and visual-review receipts for current page counts and layout.
 
-Source owners: `mamey/cli.py:7032–7042`; `mamey/modeb_export.py:245–263,338–368,371–443,449–545`; `mamey/authored_verify.py:68–109,591–680`; `pyproject.toml:13,33`.
+Code: `mamey/modeb_export.py`.

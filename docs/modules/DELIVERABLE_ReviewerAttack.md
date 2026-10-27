@@ -1,8 +1,10 @@
 # DELIVERABLE — Reviewer Attack Simulation (RAS)
 
+> **Current scope:** Prompt/reporting guidance only. The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions; the monolith is a design/history reference and cannot override them. Named triggers and auto-delivery language do not execute tools or authorize additional work. The worked example is historical and has incomplete/scrubbed identity. Its claims about definitive class calls, independent support and assay confirmation are not current scientific calibration or evidence of compound/locus attribution.
+
 > **Filing.** `docs/modules/DELIVERABLE_ReviewerAttack.md`.
-> **Extends / references:** `DELIVERABLE_CONTRACT.md` (Offer Protocol, Contig-ID Mandate, Next-Paths, claim-safety), `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 13 (Mode B), MODULE 14 (ecology synthesis), MODULE 5 (§34 Hallucination-Trap — the bioinformatics-only defence draws on it). **Do not restate claim-safety language — point to the contract.**
-> **Precedence.** Parent monolith (`SAPOTE_MAMEY_BUNDLE_MONOLITH.md`) wins over this module. This module is the authority for the *reviewer-attack format and required categories*; the *claims* it stress-tests are owned by the Mode B / synopsis that produced them.
+> **Extends / references:** `DELIVERABLE_CONTRACT.md` (Offer Protocol, Contig-ID Mandate, Next-Paths, claim-safety), `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 13 (Mode B), MODULE 14 (ecology synthesis), MODULE 5 (§34 Hallucination-Trap — the bioinformatics-only defense draws on it). **Do not restate claim-safety language — point to the contract.**
+> **Precedence.** [DELIVERABLE_CONTRACT.md](../DELIVERABLE_CONTRACT.md) and the code win over this page. This module is the authority for the *reviewer-attack format and required categories*; the *claims* it stress-tests are owned by the Mode B / synopsis that produced them.
 > **Status:** `PROMPT_BACKED` (Sapote-only; no deterministic artifact). There is nothing to compute — the value is structured adversarial judgment against claims the package already supports.
 > **One-line purpose.** Before a claim leaves the building, surface the criticisms a peer reviewer would raise and the manuscript-safe revision for each — so every report ships pre-hardened against fragmentation, overclaiming, and causality objections.
 
@@ -26,7 +28,7 @@ Per `DELIVERABLE_CONTRACT.md`, auto-build it; the user must not need to ask.
 | Source | Feeds | Required for |
 |---|---|---|
 | The report's strongest claim(s) (from Mode B §4 / Synopsis exec summary) | the "Claim or interpretation" line | Every RAS block |
-| `manifest.json → bgc_counts.assembly_tier`, `assembly.quality` | the fragmentation criticism + its defence | Category 1 |
+| `manifest.json → bgc_counts.assembly_tier`, `assembly.quality` | the fragmentation criticism + its defense | Category 1 |
 | `_4_triage_board.csv → KCB_score, Novelty_auto`, MIBiG hits | the dereplication / known-compound criticism | Category 2 |
 | Mode B §6 mechanism→bioactivity link (if made) | the causality criticism | Category 3 |
 | Ecology synthesis hypothesis (if made) | the ecological-overreach criticism | Category 4 |
@@ -68,27 +70,27 @@ Recommended manuscript wording:
 
 Every report includes at least one criticism + response for each category **that applies**:
 
-1. **Assembly fragmentation** — "your N BGCs / boundaries are an assembly artefact." (Always applies when tier is POOR/VERY POOR.)
+1. **Assembly fragmentation** — "your N BGCs / boundaries are an assembly artifact." (Always applies when tier is POOR/VERY POOR.)
 2. **Compound-identity overclaiming** — "a domain hit is not a compound."
 3. **Bioactivity-to-BGC causality** — "extract activity does not implicate this cluster." (Applies whenever a mechanism link is drawn.)
 4. **Ecological causality** — "genomic capacity is not in-host function." (Applies only if an ecological claim is made.)
 5. **Need for chemical validation** — "no HRMS / NMR, therefore unproven."
 
-The defence to (1) is the corrected count + edge-status discipline; to (2) the diagnostic-domain bitscore + Architecture grade; to (3) the extract-level bioactivity ceiling (never attribute without fractionation); to (4) the claim-safe ecological wording (kernel MODULE 14); to (5) the named experiment.
+The defense to (1) is the corrected count + edge-status discipline; to (2) the diagnostic-domain bitscore + Architecture grade; to (3) the recorded material/assay scope and independent attribution evidence (fractionation alone does not establish compound identity or BGC causation); to (4) the claim-safe ecological wording (kernel MODULE 14); to (5) the named experiment.
 
 ---
 
 ## 5. Acceptance checklist ("done" = all)
 
 - [ ] Claim line states the report's *actual* strongest claim, in its real claim-safe wording.
-- [ ] Every applicable category (§4) has a criticism **and** a defence; inapplicable ones are explicitly marked, not skipped silently.
-- [ ] Each defence cites a Mamey field / number (bitscore, KCB, corrected count) — not assertion.
+- [ ] Every applicable category (§4) has a criticism **and** a defense; inapplicable ones are explicitly marked, not skipped silently.
+- [ ] Each defense cites a Mamey field / number (bitscore, KCB, corrected count) — not assertion.
 - [ ] Standing constraints pre-empted where relevant (NAPAA, hglE-KS habitat, [E-signal] enediyne note).
 - [ ] Exactly one recommended manuscript sentence, claim-safe per `DELIVERABLE_CONTRACT.md`.
 - [ ] Contig-ID locator on any BGC referenced.
 - [ ] Placed correctly (after exec summary / after integrated model).
-- [ ] No retired codenames; affiliation = .
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
+- [ ] No retired codenames.
+- [ ] Hand back the result, its evidence and open holds.
 
 ---
 
@@ -98,7 +100,7 @@ The defence to (1) is the corrected count + edge-status discipline; to (2) the d
 |---|---|
 | Claim-safety wording rules | `DELIVERABLE_CONTRACT.md` (do not restate) |
 | Fragmentation / corrected-count discipline | kernel MODULE 1–2 (§4) |
-| Bioinformatics-only defence evidence | kernel MODULE 5 (§34 Hallucination-Trap) |
+| Bioinformatics-only defense evidence | kernel MODULE 5 (§34 Hallucination-Trap) |
 | Ecological claim-safety | kernel MODULE 14 (§ECO) |
 | Standing constraints to pre-empt | parent monolith |
 
@@ -123,13 +125,13 @@ Defense / safe revision:
 1. Claim is class-level, not structural; boundaries flagged, long-read named Priority 1.
 2. ene_KS bitscore = 830.8 (genome-max single-domain hit) + TIGR03604 + YcaO + an
    NCBI-annotated 'enediyne biosynthesis protein' (GTY63_26925) — three independent supports.
-3. Gene-level homology is definitive for class even where cluster-level MIBiG score is low.
+3. Gene-level homology supports the class call even where the cluster-level MIBiG score is low; it does not identify the compound.
 4. n/a.
 5. SEC/UV-DAD + cytotoxicity readout on the fraction would confirm the warhead.
 
 Recommended manuscript wording:
 "WWFW01000137.1 encodes an ene_KS-containing locus consistent with an enediyne
-biosynthetic gene cluster (cytotoxicity-guided handling per standard lab SOPs indicated prior to scale-up)."
+biosynthetic gene cluster."
 ```
 
 > Next paths:
@@ -137,4 +139,4 @@ biosynthetic gene cluster (cytotoxicity-guided handling per standard lab SOPs in
 > 2. Feed the recommended sentences into the manuscript Results draft.
 > 3. Pair each RAS with its §34 Hallucination-Trap row to show the audit trail.
 > 4. Add RAS to the Ecological Synthesis once the integrated model is written.
-> 5. Bank a control strain to test the fragmentation defence against a Good assembly.
+> 5. Bank a control strain to test the fragmentation defense against a Good assembly.

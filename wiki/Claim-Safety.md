@@ -19,11 +19,13 @@ these framings.
 5. **rDNA / 16S / ITS identity is a neighborhood, not a species call.** Marker identity anchors a
    strain to a clade; species delimitation needs genome-scale evidence (ANI / genome trees), and
    calls within ~1% of the 95% ANI boundary are *boundary/indeterminate*, not confident.
-6. **Missing evidence is not absence.** An empty scan or absent hit is "not detected under these
-   parameters," never "the strain lacks X."
+6. **Missing evidence is not absence.** Missing, unrun, failed or truncated evidence remains
+   unavailable or incomplete. Only a completed, scoped search with a recorded no-hit result supports
+   "not detected under these parameters"; it never establishes "the strain lacks X."
 7. **Every metric carries its denominator.** "44 novel GCFs" is meaningless without "of 1,753
    governed"; quote counts with their scope.
-8. **Every individual BGC claim carries complete identity:** `strain / full node-or-contig / region / BGC alias`, copied from one bound source record. A locked alias or node/region-only citation is insufficient. Tree statements retain the exact tip label and bound input/gate receipt. Missing or conflicting identity is a hold.
+8. **An RG-GMCI pair is a candidate link.** It is homology-guided; it does not join contigs.
+9. **Every individual BGC claim carries complete identity:** `strain / full node-or-contig / region / BGC alias`, copied from one bound source record. A locked alias or node/region-only citation is insufficient. Tree statements retain the exact tip label and bound input/gate receipt. Missing or conflicting identity is a hold.
 
 ## Where it is enforced
 
@@ -32,9 +34,12 @@ these framings.
   even those emit class-level language.
 - **Gates before figures** — `tree_sanity_check` and the 8-item analysis sign-off must PASS before
   a phylogenetic figure is shown; a gate FAIL is an engineering/quality finding needing diagnosis. Long branches can reflect alignment, reference, model or biological factors; the failure does not prove novelty. Inspect the sign-off report because its advisory CLI exits 0 even when issues remain.
-- **Release-tier redaction** — unpublished strain identifiers never leak into a public tier
-  (`tests/test_no_unpublished_ids_in_public_tier.py`); prefix-based release derivation fails safe
-  to PRIVATE for unrecognized prefixes.
+- **Release and disclosure checks** — omitted public authority defaults to PRIVATE, regardless
+  of identifier prefix. Exact profile assignments or an admitted explicit PUBLIC request can
+  select a run label, subject to private guards. Review the actual release decision and the
+  [privacy/evidence contract](../docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) before sharing.
+  Identifier tests and release audits have bounded scopes; a PUBLIC label or passing test is not
+  proof that every private field was removed or permission to publish.
 - **Mandatory phrasing in packages** — compound names from reference hits are labeled as
   class-level hypotheses; bioactivity fields carry the strain-level-context caveat; expression
   fields default to "unknown."

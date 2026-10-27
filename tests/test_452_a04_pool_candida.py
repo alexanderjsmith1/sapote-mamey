@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_bioassay_a04_pool_candida: A04 can draw one Candida axis while A01 keeps the species panels.
+"""Card 452_bioassay_a04_pool_candida: A04 can draw one Candida axis while A01 keeps the species panels.
 
 The owner, 13 Oct: "combine this into 1 candida panel and label it as C. albicans and C. auris." Synthetic IDs only.
 """

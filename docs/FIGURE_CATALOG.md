@@ -1,12 +1,22 @@
 # Sapote-Mamey figure catalog
 
-A descriptive catalog of the principal historical figure families; actual emitted coverage depends on inputs, mode, selected series and per-channel holds. It is not an exhaustive runtime receipt. This catalogs figures, in three tiers: **single-strain gold** (auto-emitted
-in each gold run), **cross-strain cohort — standard** (`cohort-figures` F-series), and **cross-strain
-cohort — extended** (the 11-figure suite fused in at v9.7.319). Each entry: what it plots, what it's for,
-and how to read it honestly. Domain-level definitions (Pfam/antiSMASH/TIGRFAM accession + catalytic
-signature) are in `COHORT_FIGURE_CAPTIONS.md`; a displayed domain token is a retained annotation occurrence whose source class must be checked; every count is an
-**annotation-capacity** summary, not a product or phenotype. Read all counts against fragmentation (boundary tier):
-edge/full-contig BGCs are fragment-limited and inflate apparent numbers relative to interior clusters.
+Use this catalog to choose among package and cohort panels and understand their
+counting units. For the command and required inputs, start with
+[Figures start here](FIGURES_START_HERE.md). Read the single-strain section for
+one package, the standard cohort section for strain comparisons, and the extended
+section for its alternative count-based views. The overlap map below helps choose
+between related panels.
+
+The family names and tier numbers include historical designs. Match a selected
+entry to its actual emitted filename, sidecar data and receipt; the list is not a
+promise that every panel will be produced. F11/F13 holds and skipped panels are
+explained beside their entries and under **Actual emitted-artifact census**.
+
+For domain-level definitions, see [cohort figure captions](COHORT_FIGURE_CAPTIONS.md).
+A displayed token is a retained annotation occurrence whose source class must be
+checked. Counts summarize annotation support, not measured products or phenotypes.
+Read region counts with boundary status: edge/full-contig calls are fragment-limited;
+G04 and extended fig8 show that context without estimating a dataset-specific correction.
 
 ---
 
@@ -30,7 +40,7 @@ Gold mode attempts figures in `package/gold_figures/`; panel counts vary with ad
 
 ### F-series — per-BGC / per-gene heatmaps
 - **F01 perBGC_domain_heatmap** — BGC × domain-family presence; the strain's domain fingerprint.
-- **F02 perGene_active_site_completeness** — per-gene active-site completeness; which catalytic centres look intact.
+- **F02 perGene_active_site_completeness** — per-gene active-site completeness; which catalytic centers look intact.
 - **F03 perBGC_cctt_resistance** — CCTT triggers and resistance tier per BGC together.
 
 ### G-series — complementary summaries
@@ -49,7 +59,7 @@ gene-specific resistance/CCTT badges; the plain map shows arrows + strand only.
 
 Emitted to the cohort output dir. Each PNG has a sidecar CSV of its underlying values.
 
-- **F01 census_zscore_heatmap** — 5 gene/domain metrics × strain; cells = raw counts, colour = z-score
+- **F01 census_zscore_heatmap** — 5 gene/domain metrics × strain; cells = raw counts, color = z-score
   within metric. The cohort's headline census. (Extended fig1 is this with the tier strip moved to caption.)
 - **F02 megasynthase_heatmap** — megasynthase (large PKS/NRPS) content × strain.
 - **F03 product_class_heatmap** — biosynthetic product class × strain.
@@ -61,8 +71,8 @@ Emitted to the cohort output dir. Each PNG has a sidecar CSV of its underlying v
 - **F09 transporter_family_heatmap** — transporter families × strain (export / resistance).
 - **F10 regulator_TF_heatmap** — regulator / transcription-factor families × strain.
 - **F11 active_site_completeness** — active-site completeness across the cohort. The separately named `F11_domain_clustermap_top40` is held until domain-token source classes and overlap semantics are bound; a HOLD JSON is emitted instead of its artwork.
-- **F12 bgc_pca_by_cluster** — BGCs coloured by architecture cluster.
-- **F13 strain_ordination_2d** — strains ordinated by mean BGC domain profile. Inspect the rendered layout; the three-strain review exposed a label/legend and footer/axis collision. The separately named `F13_bgc_domain_pca_2d` needs a hash-bound cohort manifest and independent denominator registry; absent these, its HOLD JSON is the result, not a figure.
+- **F12 bgc_pca_by_cluster** — BGCs colored by architecture cluster.
+- **F13 strain_ordination_2d** — strains ordinated by mean BGC domain profile. Check the rendered layout for label, legend and axis collisions. The separately named `F13_bgc_domain_pca_2d` needs a hash-bound cohort manifest and independent denominator registry; absent these, its HOLD JSON is the result, not a figure.
 
 The historical F11–F15 list conflated design names with emitted file IDs. When citing a panel, use the actual filename and receipt, and do not treat a HOLD file as artwork.
 
@@ -74,9 +84,9 @@ Auto-emitted by `cohort-figures` (default; `--no-extended` to skip) and regenera
 `tools/cohort_figure_prototypes.py`. Full captions incl. the domain glossary in `COHORT_FIGURE_CAPTIONS.md`.
 
 - **fig1 census_notier** — F01 census with the assembly-tier strip removed to the caption line.
-- **fig2 pks_bars** — each PKS BGC a bar, height = length (kb), stacked by gene-type coding bp; grey = non-CDS.
+- **fig2 pks_bars** — each PKS BGC a bar, height = length (kb), stacked by gene-type coding bp; gray = non-CDS.
   Reads big multi-modular megasynthases vs short fragments at a glance.
-- **fig3 size_vs_rich** — BGC length vs functional-gene richness, every BGC, coloured by strain.
+- **fig3 size_vs_rich** — BGC length vs functional-gene richness, every BGC, colored by strain.
 - **fig4 enriched_locus** — the enriched locus map: gene arrows by function + per-gene domain track +
   gene-specific T2/T3-resistance (◇) and CCTT (★) badges; BGC-wide resistance/TTA in the title.
 - **fig5 archetype** — BGC biosynthetic-class composition per strain (NRPS / PKS / hybrid / RiPP / terpene / …).
@@ -92,8 +102,10 @@ Auto-emitted by `cohort-figures` (default; `--no-extended` to skip) and regenera
 ---
 
 ## Overlap map (so the manual doesn't double-count)
-Some metrics appear in more than one tier by design (a per-strain heatmap in Tier 2, a per-BGC or
-count-based cut in Tier 3):
+
+Choose the view by what you need to compare. A family-by-strain heatmap and a
+stacked count of BGCs answer different questions, even when both concern the same
+annotation. These are alternative views, not independent evidence to add together:
 - **census** → F01 (Tier 2) = fig1 (Tier 3, no tier strip).
 - **CCTT** → F05 (metric × strain heatmap) vs fig7 (BGCs carrying each).
 - **resistance** → F06 (signal heatmap) vs fig10 (per-strain stacked BGC counts).
@@ -106,11 +118,11 @@ want the fine-grained family × strain matrix.
 The bundle ships [strain-centric GCF and clinker consumers](BIGSCAPE_FIGURES.md). They are separate from inferred biosynthetic architecture and KCB, with their own run/cutoff/source roster and incomplete-attempt states. Historic private panel sizes/path names are not portable examples or the current denominator.
 
 ## Honest caveats to carry into any manual text
-- Domain presence = **capacity**; never state a strain "produces" a compound from a figure.
+- A displayed domain token records annotation support within the producer's admitted input scope. It does not independently confirm a complete functional domain, biosynthetic capacity or compound production; never state a strain "produces" a compound from the figure.
 - KCB / BLASTp = **similarity, not identity**; "dark" describes the loaded comparator/search scope; absence of a named match is not global novelty.
 - Resistance and TTA tiers are **source-derived mechanism calls**, not measured phenotype or expression.
-- Counts are inflated by fragmentation — always read against fig8 / G04 boundary status.
-- Per-BGC-count figures count a BGC once regardless of how many of its genes carry a mark.
+- Fragmentation can affect called-region counts — read counts against fig8 / G04 boundary status. Those panels do not estimate the magnitude or direction of a count correction for an individual dataset.
+- Confirm each producer's counting unit and grouping key. For fig9, repeated tokens within an input BGC group are reduced to a set; this does not establish the same deduplication rule for every cataloged figure.
 
 ## Actual emitted-artifact census
 
@@ -118,4 +130,4 @@ Single-strain gold emission is best-effort and does not block package seal/valid
 
 F11/F13 holds are separate channel results. [F13 input/status guidance](F13_BGC_DOMAIN_PCA.md) describes its multi-strain F-series invocation and stale-artwork limits. Default compile-report attempts v8 only for the top five triage targets, then collects package images recursively; paired PNG/SVG may be two file references for one figure. The default inventory/recursive image count is not an admitted panel denominator.
 
-Source owners: `mamey/cli.py:791–859,5296–5332`; `mamey/cohort_figures.py:1196–1226`; `mamey/compile_report.py:522–560,791–819`; `mamey/locus_map_v8.py:869–909`.
+Source: `mamey/cli.py`, `mamey/cohort_figures.py`, `mamey/compile_report.py`, `mamey/locus_map_v8.py`.

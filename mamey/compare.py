@@ -141,7 +141,11 @@ def align_genes_to_proteome(
     pairwise SW. Returns an empty dict with no error if no backend is available (caller checks)."""
     backend = _aligner_backend()
     if backend == "diamond":
-        return _align_diamond(query_genes, reference_proteome, threads)
+        # Like pyswrd below: a DIAMOND failure degrades to Biopython instead of reading as 0 hits.
+        try:
+            return _align_diamond(query_genes, reference_proteome, threads)
+        except RuntimeError:
+            return _align_biopython(query_genes, reference_proteome)
     if backend == "pyswrd":
         # v9.7.409 (AUDIT_cli_code_bugs #1): a pyswrd runtime failure (e.g. the arm64 SIMD
         # RuntimeError) now propagates from _align_pyswrd instead of being masked as "0 hits";
@@ -216,7 +220,8 @@ def _align_diamond(query_genes, reference_proteome, threads) -> dict[str, dict[s
         _write_faa(reference_proteome, r)
         res = diamond_align.align_fasta(q, r, threads=threads)
         if not res["ok"]:
-            return {}
+            # a failed DIAMOND run is not "no hits"; the dispatcher falls back to another aligner
+            raise RuntimeError(f"DIAMOND alignment could not execute: {res.get('reason', 'unknown reason')}")
         best = diamond_align.best_hit_per_query(res["hits"])
         return {
             qid: {

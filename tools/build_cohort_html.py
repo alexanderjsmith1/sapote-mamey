@@ -43,7 +43,7 @@ def _read_json(_path, *, encoding="utf-8"):
 
 
 # BOUNDARY_WEIGHT is the SSOT boundary-weighted "corrected count" (Rule A) used across figures,
-# this cohort HTML, the cross-strain workbook, and docs/EXTERNAL_VALIDATION.md. It is a DIFFERENT
+# this cohort HTML, the cross-strain workbook, and docs/history/retired_458/EXTERNAL_VALIDATION.md. It is a DIFFERENT
 # denominator from tools/realistic_bgc_count.py's distinct-loci `Realistic_count` (RG-GMCI merge);
 # the two can differ for one strain by design (e.g. RB68: 59.5 here vs 53 there). realistic_bgc_count.py
 # keeps a byte-equal copy of this table and now emits both numbers side by side so neither is

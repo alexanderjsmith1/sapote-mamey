@@ -186,8 +186,8 @@ def _top_readme(name: str) -> str:
              "its source is in here.", "",
              "## House rules",
              "- **The master holds copies, never edits.** Records are edited at their home; the copy here is re-imported.",
-             "- **One way in.** Files enter only through `python mamey_run.py strain-master store`, which writes "
-             "the README record and a CHANGELOG line.",
+             "- **One way in.** Files enter through the inbox: `python mamey_run.py strain-master submit`, then "
+             "`verify` by a different `--chat` id, then `apply`, which writes the README record and a CHANGELOG line.",
              "- **A fixed layout.** Only the folders in `LAYOUT.md` are allowed.",
              "- **No stray files.** Every file is listed in its folder's README.",
              "- **One current version.** A replaced copy moves to the Superseded folder beside it.",

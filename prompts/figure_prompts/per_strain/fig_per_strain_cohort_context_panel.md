@@ -19,18 +19,18 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
 > Where <SID> sits in the admitted cohort (n = <admitted_isolate_n> isolates): corrected-BGC rank, shared vs unique classes, reported top-hit presence and search-coverage context.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Designed to drop next to a strain headshot/colony photo on a title slide.
-- All values are computed from the canonical export (no special overlay sheet required).
+- Derive rank/class comparisons from the admitted export with declared tie handling and comparison roster. Search-coverage status is not encoded by `kcb_top_present`; require separate bound evidence before displaying completed-search or no-match summaries.
 
 ## Build note
-Reproducible from the tidy export (`tools/export_figure_ready.py`) following the
-`tools/plot_examples.py` pattern. Keep the slug and column names stable so decks don't break.
+The exporter supplies the named CSV fields. `tools/plot_examples.py` does not draw
+this recipe; see [renderer choice](../HOW_TO_USE.md#renderer-choice).

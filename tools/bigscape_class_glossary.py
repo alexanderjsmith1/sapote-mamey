@@ -13,7 +13,7 @@ def render(vocabulary_path=DEFAULT_VOCABULARY):
     payload = json.loads(Path(vocabulary_path).read_text(encoding="utf-8"))
     entries = payload["entries"]
     lines = [
-        "# BiG SCAPE Class Glossary",
+        "# BiG-SCAPE Class Glossary",
         "",
         "This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary drives the TSV fields, report headings, network labels, and visible legends.",
         "",

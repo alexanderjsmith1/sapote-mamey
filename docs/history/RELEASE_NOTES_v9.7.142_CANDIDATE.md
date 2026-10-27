@@ -1,3 +1,5 @@
+> Historical release notes. Current release status: [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
+
 # Release Notes — Sapote/Mamey v9.7.142 Candidate
 
 Status: candidate for Claude sign-off, not signed release until reviewed.

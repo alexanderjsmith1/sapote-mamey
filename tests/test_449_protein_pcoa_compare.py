@@ -1,4 +1,4 @@
-"""Card 6275a90d_449_protein_pcoa_collection_compare: tools/protein_pcoa_compare.py on a synthetic PCoA kit.
+"""Card 449_protein_pcoa_collection_compare: tools/protein_pcoa_compare.py on a synthetic PCoA kit.
 
 Checks the rules the card states: the genome-level test uses one value per genome; Benjamini-Hochberg matches the
 textbook procedure; points without an identity value never get the identity code; a genus disagreement between the kit

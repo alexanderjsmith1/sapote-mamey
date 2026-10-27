@@ -31,11 +31,16 @@ Inputs
              RUN_INFO.json. locus_tag: the earlier join on the tag alone.
 Outputs (in --out, which must not hold earlier outputs): BLASTP_IDENTITY_BY_GENOME.png/.pdf + _numbers.tsv,
 BLASTP_IDENTITY_BY_CLASS.png/.pdf + _numbers.tsv, GENE_VALUES.tsv (one row per gene and database), RUN_INFO.json.
+The by-class figure fits --print-width, its genus key included; --split-classes N writes it as pages of N class panels
+(BLASTP_IDENTITY_BY_CLASS_p1.png/.pdf, _p2, ...) with the same tables.
+Extra CSVs are read with the runner's _result_generation.json beside them: a packet whose receipt says complete is false is
+refused (its CSV still grows) unless --allow-incomplete-packets; a CSV with no completeness record warns. RUN_INFO.json
+lists each extra CSV's packet state under extra_csv_packets.
 Similarity to a public protein is not identity or function.
 
 Usage: python3 tools/blastp_identity_figures.py --genomes genomes.tsv --store snapshot.sqlite --root <workspace> --out <folder>
        [--measure top10|top1] [--db best|nr|clustered] [--extra-csv <glob> ...] [--figure both|by-genome|by-class]
-       [--palette-set moss|attine]
+       [--palette-set moss|attine] [--print-width 6.5] [--split-classes N]
 """
 from __future__ import annotations
 
@@ -193,6 +198,26 @@ def read_query_index(path) -> dict:
         return {}
     return {(r["strain"], r["gene"], r["source_file"]): (r["protein_sha256"], r["query_aa_length"])
             for r in csv.DictReader(open(path, newline="", encoding="utf-8"), delimiter="\t")}
+
+
+def packet_state(path: Path) -> dict:
+    """Completeness of the result packet that holds one extra CSV, from the RID runner's _result_generation.json beside it.
+
+    A packet's CSV grows as each query batch for it returns, so a CSV bound by hash before the last batch is a partial packet.
+    state: complete, incomplete (the receipt says complete is false), no_generation_file (older runs), or
+    no_completeness_record (a receipt that predates the completeness fields, or one that cannot be read)."""
+    gen = path.parent / "_result_generation.json"
+    if not gen.is_file():
+        return {"state": "no_generation_file", "genes_missing": [], "generation": ""}
+    try:
+        rec = json.loads(gen.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        rec = None
+    if not isinstance(rec, dict) or not isinstance(rec.get("complete"), bool):
+        return {"state": "no_completeness_record", "genes_missing": [], "generation": ""}
+    done, expected = set(rec.get("genes_done") or []), list(rec.get("genes_expected") or [])
+    return {"state": "complete" if rec["complete"] else "incomplete",
+            "genes_missing": [g for g in expected if g not in done], "generation": str(rec.get("generation", ""))}
 
 
 def bind_values(by: dict, index: dict, qindex: dict, filled=frozenset(), query_lengths=None) -> tuple[dict, dict, set]:
@@ -471,27 +496,30 @@ def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts
     return [str(png)]
 
 
-def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), print_width: float = 7.2, grid: str = "auto") -> list[str]:
-    """One panel per BGC class. Classes in `omit` are left off the figure; their rows stay in the numbers table.
-    The canvas is fitted to `print_width` (inches; 7.2 = double column) so text drawn at 8 pt prints at 8 pt."""
+def _fit_key(fig, place, preferred: int, print_width: float):
+    """Draw the genus key with the most columns, up to `preferred`, at which the saved figure is no wider than
+    `print_width`. `place(ncol)` draws the key and returns it. The width is measured from the rendered figure: the tight
+    bounding box that savefig crops to, plus its padding on both sides. A key one entry per column too wide for the
+    page printed the whole figure scaled down (Bee Fig. S18: 9 genera in one row, 12.8 in wide, 8 pt text at ~4 pt)."""
+    import matplotlib
+    pad = 2 * float(matplotlib.rcParams["savefig.pad_inches"])
+    renderer = fig.canvas.get_renderer()
+    ncol = max(1, preferred)
+    while True:
+        key = place(ncol)
+        fig.canvas.draw()
+        if ncol == 1 or fig.get_tightbbox(renderer).width + pad <= print_width + 1e-3:
+            return key
+        key.remove()
+        ncol -= 1
+
+
+def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colours, measure, db, print_width, grid):
+    """Draw one page of class panels (`shown`, in order) and save it as `png` and its PDF."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    genus = {g["strain"]: g["genus"] for g in genomes}
-    per_all = defaultdict(list)
-    for (s, g), v in best.items():
-        per_all[s].append(v)
-    groups = _order(genomes, per_all)
-    xs, order, x = _positions(groups)
-    vals = {c: defaultdict(list) for c in CLASSES}
-    searched = {c: defaultdict(int) for c in CLASSES}
-    for (s, g), ks in core.items():
-        for k in ks:
-            searched[k][s] += 1
-            if (s, g) in best:
-                vals[k][s].append(best[(s, g)])
     width = print_width   # the figure is saved with a tight crop, so it prints no wider than print_width
-    shown = [c for c in CLASSES if c not in set(omit)]
     ncols = 2 if grid == "auto" and len(shown) in (3, 4) else 1
     nrows = (len(shown) + ncols - 1) // ncols
     # In a two-column grid the strain names sit under the bottom panel of each column. When the panels do not fill the
@@ -506,33 +534,17 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
     for unused in list(matrix.flat)[len(shown):]:
         unused.set_visible(False)
     bottom_axes = [axes[max(i for i in range(len(axes)) if i % ncols == col)] for col in range(ncols)]
-    panel = dict(zip(shown, axes))
-    rows = ["bgc_class\tstrain\tgenus\tcore_genes\tcore_genes_with_hit\tmedian\tshare_below_70"]
-    # BLASTp to-do list: every core gene of a drawn genome with no bound value, by class (all classes, omitted ones too)
-    todo = ["bgc_class\tstrain\tgenus\tlocus_tag\tclass_genes_with_hit\tbox_drawn"]
-    for (s, g), ks in sorted(core.items()):
-        if s in genus and (s, g) not in best:
-            for k in sorted(ks):
-                todo.append(f"{k}\t{s}\t{genus[s]}\t{g}\t{len(vals[k][s])}\t{'yes' if len(vals[k][s]) >= 5 else 'no'}")
-    (out / "CORE_GENES_WITHOUT_HIT.tsv").write_text("\n".join(todo) + "\n")
-    for k in CLASSES:
-        ax = panel.get(k)          # None for an omitted class: its numbers are still written
-        allv = []
+    for k, ax in zip(shown, axes):
+        vals, allv = panel_data[k]
         for i, s in zip(xs, order):
-            v = vals[k][s]; col = colours[genus[s]]
-            if ax is not None:
-                if v:
-                    if len(v) >= 5:
-                        ax.boxplot(v, positions=[i], widths=0.6, showfliers=False, medianprops=dict(color="black"),
-                                   boxprops=dict(color=col), whiskerprops=dict(color=col), capprops=dict(color=col))
-                    ax.scatter([i + stable_jitter((s, k, j), 0.45) for j in range(len(v))], v, s=6, alpha=0.55,
-                               color=col, edgecolor="none", zorder=3)
-                ax.text(i, 101.5, f"{len(v)}", ha="center", va="bottom", fontsize=8, color="#333")
-            allv += v
-            rows.append(f"{k}\t{s}\t{genus[s]}\t{searched[k][s]}\t{len(v)}\t{median(v):.1f}\t"
-                        f"{sum(y < 70 for y in v) / len(v):.3f}" if v else f"{k}\t{s}\t{genus[s]}\t{searched[k][s]}\t0\t\t")
-        if ax is None:
-            continue
+            v = vals[s]; col = colours[genus[s]]
+            if v:
+                if len(v) >= 5:
+                    ax.boxplot(v, positions=[i], widths=0.6, showfliers=False, medianprops=dict(color="black"),
+                               boxprops=dict(color=col), whiskerprops=dict(color=col), capprops=dict(color=col))
+                ax.scatter([i + stable_jitter((s, k, j), 0.45) for j in range(len(v))], v, s=6, alpha=0.55,
+                           color=col, edgecolor="none", zorder=3)
+            ax.text(i, 101.5, f"{len(v)}", ha="center", va="bottom", fontsize=8, color="#333")
         for y in (50, 70, 90):
             ax.axhline(y, color="#bbb", lw=0.6, ls="--", zorder=0)
         if len(groups) > 1:
@@ -554,14 +566,6 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
             t.set_color(colours[genus[strain]])
     handles = _legend_handles(plt, order, genus, colours)
     blocks = len(groups) > 1
-    if ncols == 2:
-        # key hangs below the figure (upper center at y = 0), clear of the block titles under the bottom panels; the
-        # tight bounding box at save time takes it in (Moss Fig. S4, 20 Oct: the lower-center key ran into a block title)
-        fig.legend(handles=handles, ncol=max(1, min(len(handles), 3)), frameon=False,
-                   loc="upper center", bbox_to_anchor=(0.5, -0.01), prop={"style": "italic", "size": 8})
-    else:
-        axes[-1].legend(handles=handles, ncol=len(handles) if not blocks else min(len(handles), 3), frameon=False, loc="upper center",
-                        bbox_to_anchor=(0.5, -0.42 if blocks else -0.3), prop={"style": "italic", "size": 8})
     what = ("Mean identity of the top 10 BLASTp hits of each core biosynthetic gene in the NCBI " if measure == "top10"
             else "Identity of each core biosynthetic gene to its highest-similarity protein in the NCBI ")
     title = (f"{what}{DB_WORDS[db]} databases, by the gene's own antiSMASH rule class (numbers above: genes with a hit)")
@@ -574,12 +578,70 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
     if blocks:
         for ax in bottom_axes:
             _block_labels(ax, groups, xs, x, -0.34, "top")
-    png = out / "BLASTP_IDENTITY_BY_CLASS.png"
+    # The genus key is drawn last, once the layout is final, with as many columns as the print width holds.
+    if ncols == 2:
+        # key hangs below the figure (upper center at y = 0), clear of the block titles under the bottom panels; the
+        # tight bounding box at save time takes it in (Moss Fig. S4, 20 Oct: the lower-center key ran into a block title)
+        def place(n):
+            return fig.legend(handles=handles, ncol=n, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                              prop={"style": "italic", "size": 8})
+        _fit_key(fig, place, min(len(handles), 3), print_width)
+    else:
+        def place(n):
+            return axes[-1].legend(handles=handles, ncol=n, frameon=False, loc="upper center",
+                                   bbox_to_anchor=(0.5, -0.42 if blocks else -0.3), prop={"style": "italic", "size": 8})
+        _fit_key(fig, place, len(handles) if not blocks else min(len(handles), 3), print_width)
     for p in (png, png.with_suffix(".pdf")):
         fig.savefig(p, dpi=600, bbox_inches="tight", metadata=savefig_metadata(p, TOOL))
     plt.close(fig)
+    return str(png)
+
+
+def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), print_width: float = 7.2, grid: str = "auto",
+             split_classes: int = 0) -> list[str]:
+    """One panel per BGC class. Classes in `omit` are left off the figure; their rows stay in the numbers table.
+    The canvas is fitted to `print_width` (inches; 7.2 = double column) so text drawn at 8 pt prints at 8 pt; the genus key
+    takes as many columns as that width holds. split_classes N > 0 draws N class panels per page, one figure per page
+    (BLASTP_IDENTITY_BY_CLASS_p1, _p2, ...), so a tall stack fits a page at true print size; the tables are unchanged."""
+    genus = {g["strain"]: g["genus"] for g in genomes}
+    per_all = defaultdict(list)
+    for (s, g), v in best.items():
+        per_all[s].append(v)
+    groups = _order(genomes, per_all)
+    xs, order, x = _positions(groups)
+    vals = {c: defaultdict(list) for c in CLASSES}
+    searched = {c: defaultdict(int) for c in CLASSES}
+    for (s, g), ks in core.items():
+        for k in ks:
+            searched[k][s] += 1
+            if (s, g) in best:
+                vals[k][s].append(best[(s, g)])
+    shown = [c for c in CLASSES if c not in set(omit)]
+    rows = ["bgc_class\tstrain\tgenus\tcore_genes\tcore_genes_with_hit\tmedian\tshare_below_70"]
+    # BLASTp to-do list: every core gene of a drawn genome with no bound value, by class (all classes, omitted ones too)
+    todo = ["bgc_class\tstrain\tgenus\tlocus_tag\tclass_genes_with_hit\tbox_drawn"]
+    for (s, g), ks in sorted(core.items()):
+        if s in genus and (s, g) not in best:
+            for k in sorted(ks):
+                todo.append(f"{k}\t{s}\t{genus[s]}\t{g}\t{len(vals[k][s])}\t{'yes' if len(vals[k][s]) >= 5 else 'no'}")
+    (out / "CORE_GENES_WITHOUT_HIT.tsv").write_text("\n".join(todo) + "\n")
+    panel_data = {}
+    for k in CLASSES:             # every class's numbers are written, drawn or omitted
+        allv = []
+        for s in order:
+            v = vals[k][s]
+            allv += v
+            rows.append(f"{k}\t{s}\t{genus[s]}\t{searched[k][s]}\t{len(v)}\t{median(v):.1f}\t"
+                        f"{sum(y < 70 for y in v) / len(v):.3f}" if v else f"{k}\t{s}\t{genus[s]}\t{searched[k][s]}\t0\t\t")
+        panel_data[k] = (vals[k], allv)
+    pages = [shown[i:i + split_classes] for i in range(0, len(shown), split_classes)] if split_classes > 0 else [shown]
+    made = []
+    for n, page in enumerate(pages, 1):
+        stem = "BLASTP_IDENTITY_BY_CLASS" if len(pages) == 1 else f"BLASTP_IDENTITY_BY_CLASS_p{n}"
+        made.append(_class_page(out / f"{stem}.png", page, panel_data, groups, xs, order, x, genus, colours, measure, db,
+                                print_width, grid))
     (out / "BLASTP_IDENTITY_BY_CLASS_numbers.tsv").write_text("\n".join(rows) + "\n")
-    return [str(png)]
+    return made
 
 
 def main(argv=None) -> int:
@@ -601,16 +663,35 @@ def main(argv=None) -> int:
     ap.add_argument("--genus-colour", action="append", default=[], metavar="GENUS=#RRGGBB", help="repeatable; colour for one genus")
     ap.add_argument("--block-labels", choices=("above", "below"), default="above", help="by-genome: block titles once above panel A (default), or bold under the genome names of both panels")
     ap.add_argument("--print-width", type=float, default=7.2, help="by-class: printed width in inches (7.2 double column; larger for a landscape page); text stays 8 pt at that width")
+    ap.add_argument("--split-classes", type=int, default=0, metavar="N", help="by-class: draw N class panels per page, one figure per page (_p1, _p2, ...), so a tall stack prints at true size; 0 (default) draws one figure")
     ap.add_argument("--omit-class", action="append", default=[], choices=CLASSES, help="by-class: leave a class off the figure (repeatable); its rows stay in the numbers table")
     ap.add_argument("--extra-csv-list", type=Path, help="checked path/sha256/bytes TSV; exclusive with --extra-csv")
+    ap.add_argument("--allow-incomplete-packets", action="store_true",
+                    help="draw from an extra CSV whose packet receipt says complete is false; warns and records it in RUN_INFO.json "
+                         "(default: refuse, naming the packet and its missing genes)")
     a = ap.parse_args(argv)
     if a.figure in ("both", "by-class") and set(a.omit_class) == set(CLASSES):
         ap.error("--omit-class must leave at least one class visible")
+    if a.split_classes < 0:
+        ap.error("--split-classes must be 0 (one figure) or a positive number of panels per page")
     root = a.root.resolve()
     try:
         extra_records, input_list_sha = csv_inputs(root, a.extra_csv, a.extra_csv_list)
     except (OSError, ValueError) as exc:
         ap.error(str(exc))
+    packets = [{"path": r["path"], **packet_state(root / r["path"])} for r in extra_records]
+    incomplete = [p for p in packets if p["state"] == "incomplete"]
+    if incomplete:
+        named = "; ".join(f"{Path(p['path']).parent.name} ({p['path']}): missing genes "
+                          f"{', '.join(p['genes_missing']) or 'not listed (no expected genes recorded)'}" for p in incomplete)
+        if not a.allow_incomplete_packets:
+            ap.error(f"{len(incomplete)} extra CSV packet(s) are incomplete; their CSVs will still grow: {named}. "
+                     "Wait for the runner to finish them, or pass --allow-incomplete-packets to draw anyway")
+        sys.stderr.write(f"warning: drawing from {len(incomplete)} incomplete packet(s) (--allow-incomplete-packets): {named}\n")  # direct write keeps the strict-health print_calls ratchet flat
+    unknown = [p["path"] for p in packets if p["state"] in ("no_generation_file", "no_completeness_record")]
+    if unknown:
+        sys.stderr.write(f"warning: {len(unknown)} extra CSV(s) have no packet completeness record; completeness unknown: "
+                         f"{', '.join(unknown[:5])}{' ...' if len(unknown) > 5 else ''} (all listed in RUN_INFO.json extra_csv_packets)\n")
     a.out.mkdir(parents=True, exist_ok=True)
     clash = [p.name for p in a.out.glob("BLASTP_IDENTITY_BY_*")] + [p.name for p in a.out.glob("GENE_VALUES.tsv")]
     clash += [name for name in ("EXTRA_CSV_FILES.tsv", "RUN_INFO.json") if (a.out / name).exists()]
@@ -633,7 +714,8 @@ def main(argv=None) -> int:
     if a.figure in ("both", "by-genome"):
         made += by_genome(genomes, region, best, colours, a.measure, a.db, a.out, bar_counts=a.bar_counts, block_labels=a.block_labels)
     if a.figure in ("both", "by-class"):
-        made += by_class(genomes, core, best, colours, a.measure, a.db, a.out, omit=a.omit_class, print_width=a.print_width, grid=a.grid)
+        made += by_class(genomes, core, best, colours, a.measure, a.db, a.out, omit=a.omit_class, print_width=a.print_width, grid=a.grid,
+                         split_classes=a.split_classes)
     with open(a.out / "GENE_VALUES.tsv", "w", newline="") as fh:
         w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
         w.writerow(["strain", "gene", "channel", "top1_identity", "top10_mean_identity", "hits_used", "ranks_from_disk", "source_file"])
@@ -641,12 +723,13 @@ def main(argv=None) -> int:
             w.writerow([s, g, ch, f"{v[0]:.1f}", f"{v[1]:.2f}", v[2], "yes" if v[4] else "", v[3]])
     manifest_sha = write_csv_manifest(a.out / "EXTRA_CSV_FILES.tsv", extra_records)
     info = {"extra_csv_manifest_sha256": manifest_sha, "extra_csv_list_sha256": input_list_sha, "genomes": len(genomes), "measure": a.measure, "db": a.db, "palette_set": a.palette_set or "default", "store": str(a.store), "extra_csvs": len(extra),
-            "genes_with_value": len(best), "bar_counts": a.bar_counts, "grid": a.grid, "omitted_classes": a.omit_class, "print_width_in": a.print_width, "figures": made, "binding": a.binding,
+            "genes_with_value": len(best), "bar_counts": a.bar_counts, "grid": a.grid, "omitted_classes": a.omit_class, "print_width_in": a.print_width, "split_classes": a.split_classes, "figures": made, "binding": a.binding,
             "query_index": str(a.query_index or ""), "genomes_without_proteins": sorted(g["strain"] for g in genomes if not g["proteins"]),
             "results_binding": binding,
             "median_method": "statistics.median", "point_placement": "sha256-json-index-v1",
             "genomes_without_values": sorted(g["strain"] for g in genomes if not any(s == g["strain"] for s, _ in best)),
-            "results_unbound": sum(n for c in binding.values() for k, n in c.items() if k.startswith("unbound"))}
+            "results_unbound": sum(n for c in binding.values() for k, n in c.items() if k.startswith("unbound")),
+            "allow_incomplete_packets": a.allow_incomplete_packets, "extra_csv_packets": packets}
     (a.out / "RUN_INFO.json").write_text(json.dumps(info, indent=1) + "\n")
     print(json.dumps(info))
     return 0

@@ -1,4 +1,4 @@
-"""tools/collection_map.py (card 018c0f08_452_collection_map_tool): collection-site map from explicit site and isolate
+"""tools/collection_map.py (card 452_collection_map_tool): collection-site map from explicit site and isolate
 tables on a shapefile basemap. Synthetic sites, isolates and a synthetic two-square shapefile."""
 import csv
 import importlib.util

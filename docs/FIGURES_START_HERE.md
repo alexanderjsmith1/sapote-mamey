@@ -1,23 +1,14 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.457 · Mamey engine 1.9.177
+Sapote–Mamey v9.7.458 · Mamey engine 1.9.177
 
-Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
+Choose the figure that answers your question using the inputs you already have.
+Start with the route table below. If a gold package already contains the image you
+need, inspect it before regenerating anything.
 
-Sapote-Mamey has several figure routes with **different input contracts**. Start with
-the question you want to show, then choose a route below. A finished image is
-not a validated biological interpretation: keep the plotted values, source
-identity, denominator, methods, and any missingness or assembly warning with it.
-
-For figures with concise factual interpretation, continue with
-[Evidence to report](EVIDENCE_TO_REPORT.md): keep the selected plots, data and scripts,
-then prepare captions, short findings and Methods facts from their actual evidence.
-Mode B cards and white papers are separately selected formats; they are not prerequisites
-for this figure workflow.
-
-## Aggregate rendering and recovery
-
-Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` for selected post-run sets. Default output is inside that working package; the current aggregate has no external-output flag. Read [aggregate source contract](reference/06_CURRENT_SOURCE_SCOPE.md#aggregate-figure-rendering-selection-writes-and-completion) for defaults/optional sets, dry-run integrity writes, skips, child failures, gathered old files and completion limits. A zero exit or CURRENT_GATHER row does not establish newly rendered or visually reviewed outputs.
+Each route uses the [figure house rules](FIGURE_HOUSE_RULES.md). Keep the plotted
+values, source identity, denominator, methods, and any missingness or assembly
+warning with the selected figure.
 
 ## Choose the route
 
@@ -27,14 +18,20 @@ Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` f
 | The same Mamey feature across several strains | One `<strain>/package/` per strain in a runs directory | `cohort-figures` below; [figure catalog](FIGURE_CATALOG.md) explains F, G, D and extended panels. |
 | A manuscript comparison from a master workbook | A checked workbook with strain registry and BGC master sheets | Export `figure_ready/` tables, then follow a [named figure recipe](../prompts/figure_prompts/_INDEX.md). The recipes are specifications, not an automatic renderer. |
 | A custom aggregate evidence-coverage bar chart | Counted metrics TSV plus an explicit cohort manifest | [Aggregate evidence guide](FIGURE_FACTORY_NEXT.md). This specialized route does not read BLASTp databases itself. |
-| BLASTp similarity of region genes to public proteins, per genome or per core class | Per-gene BLASTp result CSVs, plus a genome table (strain, genus, block, gene-context path) | `python3 tools/blastp_identity_figures.py --help`: `--measure top1|top10`, `--db best|nr|clustered`. Genus colours come from `mamey/data/genus_palette.json`. |
-| HPLC UV chromatograms: one representative run per strain as a lettered multi-panel figure, or every run of a strain as supplement pages | Native detector arrays (`<run_id>.npz` with its channel proof) and run metadata (`<run_id>.json`), plus a run table naming strain, run, sample label, acquisition time and material | `python3 tools/hplc_trace_panels.py panels --help` or `pages --help`. Folders and channel colours are arguments. Native points are drawn without smoothing; one material per figure, named in the file name. |
+| BLASTp similarity of region genes to public proteins, per genome or per core class | Per-gene BLASTp result CSVs, plus a genome table (strain, genus, block, gene-context path) | `python3 tools/blastp_identity_figures.py --help`: `--measure top1\|top10`, `--db best\|nr\|clustered`. Genus colors come from `mamey/data/genus_palette.json`. |
+| HPLC UV chromatograms: one representative run per strain as a lettered multi-panel figure, or every run of a strain as supplement pages | Native detector arrays (`<run_id>.npz` with its channel proof) and run metadata (`<run_id>.json`), plus a run table naming strain, run, sample label, acquisition time and material | `python3 tools/hplc_trace_panels.py panels --help` or `pages --help`. Folders and channel colors are arguments. Native points are drawn without smoothing; one material per figure, named in the file name. |
 | Isolates novel by 16S and active in a bioassay, as a tile table | One TSV row per isolate: 16S identity, GenBank strain count, dDDH, and `<target>\|crude` and `<target>\|fraction` best inhibition | `python3 tools/novel_and_active_figure.py --help`. `--material crude_extract`, `fraction`, or `side_by_side` (separate columns, never one value). n.t. and blank stay distinct. |
 | A tree or BiG-SCAPE gene-cluster-family panel | Bound tree/database, tips or regions, and matching metadata | [Tree figure grammar](TREE_FIGURE_GRAMMAR.md) or [BiG-SCAPE walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Do not derive host metadata from a strain ID. |
+| A single-locus diagram, atlas page, ANI heatmap, GCF network, clinker comparison or KCB locus map | A sealed package, plus the run or comparison inputs each subcommand names | `python mamey_run.py figures <subcommand> --help`; [BGC figures](BGC_FIGURES.md) documents each one. |
+
+Have admitted plotted-data sidecars and need an R view? Use [R figure workflows](R_FIGURE_WORKFLOWS.md)
+to match the sidecar schema to its renderer. For selected assay values beside an
+existing tree, go directly to [tree assay tracks](TREE_ASSAY_TRACK_RENDERING.md).
+For static design previews with example data, use [optional galleries](OPTIONAL_FIGURE_FACTORY_TOOLS.md).
 
 Use the bundle's `mamey_run.py` entry point from the extracted code root so the
 local bundled engine is selected. Commands below are templates: replace each
-path with your real input and choose a **new output directory** for review. For .447 figure commands, supply a separately identified working package copy if the original sealed package must remain unchanged; [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447) explain the integrity-refresh wrapper and package-native sets.
+path with your real input and choose a **new output directory** for review. Use a separately identified working package copy when the sealed original must remain unchanged; [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447) explain which commands refresh integrity records or create package data.
 
 ## A single Mamey package
 
@@ -44,14 +41,20 @@ antiSMASH source, assembly, strain, region identities, and any figure holds.
 Gold runs may already contain many images; you do not need to rerun extraction
 to view them.
 
-To regenerate the standard figure set from the package:
+To draw the post-seal top-lead charts, use `--figure-set standard` below. It
+reads the package's `*_4_triage_board.csv` and uses `AB_auto` and `AF_auto` scores
+to attempt `top_antibacterial_leads.png` and `top_antifungal_leads.png`. Read
+`figure_manifest.csv` and `FIGURE_QA.md` in the output folder to see what was
+actually drawn; a missing triage board is reported in `NO_FIGURES_RENDERED.md`.
+For the catalog's gold panels, inspect the existing `gold_figures/` outputs;
+for a locus map, choose the `locus-maps` set described below.
 
 ```bash
 python mamey_run.py render-figures --package /path/to/strain/package \
   --outdir /path/to/new_review/standard --figure-set standard
 ```
 
-The standard image destination can be external, but the .447 CLI still refreshes integrity records in the supplied package. Keep that package as a working copy.
+The standard image destination can be external, but the supplied package can still have its integrity records refreshed. Keep that package as a working copy; the version history and command-specific boundaries are in [post-seal readers](POSTSEAL_READERS.md).
 
 Other supported sets include `domain-level`, `locus-maps`, `cohort-class`,
 and `mamey-native`. `locus-maps` requires an output inside the supplied working package; `domain-level` can create package data even with external image output. The last two require `--workbook`; check
@@ -59,9 +62,16 @@ and `mamey-native`. `locus-maps` requires an output inside the supplied working 
 sheets before using them. An empty Sapote judgment sheet is not an observed
 negative finding.
 
-## Compare several Mamey packages (cross-strain comparison)
+## Aggregate rendering and recovery
 
-The Mamey package outputs are standardized to enable comparative figure generation across the figure suite. 
+Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` when you
+need selected post-run sets together. Output is inside that working package; the
+current command has no external-output flag. Read the [aggregate source contract](reference/06_CURRENT_SOURCE_SCOPE.md#aggregate-figure-rendering-selection-writes-and-completion)
+for default and optional sets, dry-run integrity writes, skips, child failures,
+and gathered old files. A zero exit or `CURRENT_GATHER` row does not establish
+newly rendered or visually reviewed outputs.
+
+## Compare several Mamey packages (cross-strain comparison)
 
 The cohort command expects a directory containing `<strain>/package/`
 subdirectories. Specify the strains deliberately; do not let an unrelated
@@ -73,9 +83,11 @@ python mamey_run.py cohort-figures --runs-dir /path/to/checked_runs \
   --out /path/to/new_review/cohort --series F --no-extended
 ```
 
-The standard F series contains domain, class, tailoring, resistance, and
-boundary-related panels; `--series G`, `D`, or `all` changes the set.
-Omit `--no-extended` to request the extended panels too. Some panels have
+The standard F series contains domain, class, tailoring and resistance panels;
+`--series G`, `D`, or `all` changes the set. For counts of Interior, Edge and
+Full-contig regions, choose the G-series `bgc_boundary_status` view or omit
+`--no-extended` to request extended `fig8_boundary_profile`. The F census includes
+an assembly-tier strip; use the boundary-count view when that is your question. Some panels have
 extra admission requirements: the separately named `F13_bgc_domain_pca_2d`
 needs a hash-bound cohort manifest and an independent denominator registry;
 without these, read its HOLD receipt rather than treating it as an admitted
@@ -153,20 +165,36 @@ what was measured. Do not print governance wording ("judgment deferred",
 figure, its footer, its key or its notes band; that belongs in the analysis
 record. `mamey/figure_policy.py` owns the shared phrase list and the context rule for “class-level”; `tools/caption_guard.py` imports them.
 
+To review a Figure Factory set, build a [review queue](FIGURE_REVIEW_WORKFLOW.md),
+then compile the [owner decisions](FIGURE_OWNER_REVIEW_WORKFLOW.md).
+
+Continue with [Evidence to report](EVIDENCE_TO_REPORT.md) to turn the selected
+figures, data and scripts into captions, short findings and Methods facts.
+Mode B cards and white papers are separately selected formats.
+
 Run the render check on every folder of finished figures before anyone uses
-them:
+them. Use a fresh QA directory and read both `RENDER_QC.md` and `RENDER_QC.tsv`:
 
 ```bash
-python tools/figure_render_qc.py /path/to/figures --out /path/to/new_qa_directory --ocr require [--bioassay]
+python tools/figure_render_qc.py /path/to/figures --out /path/to/new_qa_directory --ocr require
 ```
+
+Add `--bioassay` for bioassay figures. Supply `--print-width-in` with the intended
+embedded width to check effective raster DPI and the smallest text size
+(`--min-text-pt`, default 8); without it, both checks are `NOT_CHECKED`. Review warnings and unchecked items as well as errors, then look
+at every selected image for clipping, overlaps and the correct subset. A zero
+exit does not check layout or establish scientific acceptance.
+
+<details>
+<summary>Render-check behavior and caption helper reference</summary>
 
 The checker uses neighboring SVG text first and falls back to macOS OCR of the PNG. It flags matched wording, markup, literal `\n`, NA labels and near-blank images; it does not judge overlaps, clipping, layout or scientific accuracy. `--ocr require` makes any `not_checked` text state exit 2, even when no ordinary error was found; readable SVG text satisfies this check without requiring OCR. In default `auto` mode, unchecked text can coexist with exit 0. `--warn-only` also permits exit 0 despite error findings, although `--ocr require` still refuses unchecked text. Inspect the report levels and keep unresolved text or artifact requirements held; exit 0 is not figure acceptance.
 
-Wording on the figure is an error; matched wording in a readable caption is a warning. Missing `_plot_only.png`/PDF companions are **info**, and a missing caption is **warn**, so these omissions do not by themselves produce exit 2. An unreadable selected caption is an error. Caption selection tries several names, including generic `CAPTION.md`/`CAPTIONS.md`, and accepts the first existing file; it does not verify caption-to-figure identity or require nonempty caption text. Raster `--dpi` is a minimum, so 600 DPI does not fail a 300 DPI floor. Metadata below the minimum (with 5 DPI tolerance) warns; metadata alone does not establish native resolution. Supply `--print-width-in` for the declared embedded width of every selected PNG to check pixels/width independently: insufficient pixels are an error. Without that width, effective DPI is explicitly NOT_CHECKED. Missing metadata is reported, and prior upscaling/native-render provenance remains outside this checker. Resolve required companions and caption/provenance bindings independently (`tools/figure_render_qc.py:206–211, 239–287`).
+Wording on the figure is an error; matched wording in a readable caption is a warning. Missing `_plot_only.png`/PDF companions are **info**, and a missing caption is **warn**, so these omissions do not by themselves produce exit 2. An unreadable selected caption is an error. Caption selection tries several names, including generic `CAPTION.md`/`CAPTIONS.md`, and accepts the first existing file; it does not verify caption-to-figure identity or require nonempty caption text. Raster `--dpi` is a minimum, so 600 DPI does not fail a 300 DPI floor. Metadata below the minimum (with 5 DPI tolerance) warns; metadata alone does not establish native resolution. Supply `--print-width-in` for the declared embedded width of every selected PNG to check pixels/width independently: insufficient pixels are an error. Without that width, effective DPI is explicitly NOT_CHECKED. The same width drives the text-size check. The checker reads the smallest text from the figure's PDF, or from its SVG when there is no PDF, scales it to the declared width with `tools/_min_text_check.py`, and reports it for each figure. Text below `--min-text-pt` (default 8) is an error. A raster-only figure, or a companion whose text cannot be read, is a warning (text size not measurable), not a pass. Without a declared width, text size is NOT_CHECKED. Missing metadata is reported, and prior upscaling/native-render provenance remains outside this checker. Resolve required companions and caption/provenance bindings independently (`caption_file`, `check_image`, `check_text_size` and `check_files` in `tools/figure_render_qc.py`).
 
-Folder discovery selects lowercase `*.png` and excludes `_plot_only` images, AppleDouble names, designated old/cache directories and `_withdrawn*` paths; it is not every image in the folder. An explicitly supplied `.PNG` file is accepted, and overlapping input paths can repeat figures. No discovered figures exits 1. For review copies, `--manifest MANIFEST.tsv` checks PNG review/source equality and any supplied `sha256`; companion files are sought beside the source. Its case-sensitive `DO NOT USE` note is an error. A neighboring SVG is not separately hash-bound to that PNG by this check. Keep the intended figure roster and verify the selected text source belongs to the same figure (`tools/figure_render_qc.py:81–109, 290–342`). `--bioassay` checks crude/fraction/pooled in the filename and warns when readable figure text lacks such a term; it does not establish what material was tested.
+Folder discovery selects lowercase `*.png` and excludes `_plot_only` images, AppleDouble names, designated old/cache directories and `_withdrawn*` paths; it is not every image in the folder. An explicitly supplied `.PNG` file is accepted, and overlapping input paths can repeat figures. No discovered figures exits 1. For review copies, `--manifest MANIFEST.tsv` checks PNG review/source equality and any supplied `sha256`; companion files are sought beside the source. Its case-sensitive `DO NOT USE` note is an error. A neighboring SVG is not separately hash-bound to that PNG by this check. Keep the intended figure roster and verify the selected text source belongs to the same figure (`find_figures`, `read_manifest` and `run` in `tools/figure_render_qc.py`). `--bioassay` checks crude/fraction/pooled in the filename and warns when readable figure text lacks such a term; it does not establish what material was tested.
 
-`RENDER_QC.tsv` contains finding rows, so a figure with no findings has no row; summary error/warning counts count findings rather than distinct figures. Preserve the intended input roster with both reports. The command writes fixed report names in `--out`, replacing existing reports, and may create an OCR cache there. Use a fresh QA directory for each retained review and archive the command, source/configuration and input hashes. Unexpected file/parser/image failures are not all converted into structured report findings; if the command fails, keep that review incomplete (`tools/figure_render_qc.py:345–405`).
+`RENDER_QC.tsv` contains finding rows, so a figure with no findings has no row; summary error/warning counts count findings rather than distinct figures. Preserve the intended input roster with both reports. The command writes fixed report names in `--out` and refuses a destination where either report already exists; it may create an OCR cache there. Use a fresh QA directory for each retained review and archive the command, source/configuration and input hashes. Unexpected file/parser/image failures are not all converted into structured report findings; if the command fails, keep that review incomplete (`tools/figure_render_qc.py`).
 
 ### Methods-caption helpers: drafts and checks
 
@@ -189,10 +217,12 @@ and [preflight and methods](../wiki/Figure-Factory-Preflight-and-Methods-Manual.
 for the corresponding figure family. Keep visual QA, mechanical PASS, and
 scientific acceptance distinct.
 
+</details>
+
 ## Publication layout for R figures
 
 `tools/sapote_pub_layout.R` gives every R figure the house page: the figure, white space, the public
-caption, a thin rule, then small grey internal notes. `save_pub()` writes the captioned PNG and PDF, a
+caption, a thin rule, then small gray internal notes. `save_pub()` writes the captioned PNG and PDF, a
 `_plot_only.png` for slides, and the caption file. `theme_pub()` renders markdown in titles, axes and
 legends, so genus names can be italic.
 

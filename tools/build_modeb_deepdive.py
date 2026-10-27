@@ -49,23 +49,25 @@ from mamey.id_resolver import resolver_rows, resolver_md
 DEFAULT=[('SID-XXX','BGC024'),('SID-XXX','BGC032'),('SID-XXX','BGC037'),('SID-XXX','BGC059'),('SID-XXX','BGC014'),('SID-XXX','BGC067')]
 
 
+NO_VERDICT = 'NO_VERDICT'   # no modeb_verdicts.csv row: evidence only, never rendered as CONFIRM
+
+
 def _count_verdicts(targets, vmap):
-    """§8-verdict counts for the run summary line. Must use the SAME default ('CONFIRM' when a
-    target has no row in modeb_verdicts.csv) that the card body and section-header grouping in
-    main() already apply (`st=(v or {}).get('status','CONFIRM')`) -- otherwise a --targets-only
-    invocation with no modeb_verdicts.csv (vmap == {}) prints "0 CONFIRM, 0 DOWNGRADE, 0 DROP"
-    while every card in the document it just wrote literally renders "Verdict — CONFIRM": the
-    printed summary silently contradicts its own output. 408."""
-    nc = nd = nr = 0
+    """§8-verdict counts for the run summary line, with the same NO_VERDICT default the card body
+    and section grouping in main() use. Before .458 a missing row defaulted to CONFIRM, so a
+    --targets-only run with no modeb_verdicts.csv printed every card as "Verdict — CONFIRM"."""
+    nc = nd = nr = nn = 0
     for t in targets:
-        st = (vmap.get(t) or {}).get('status', 'CONFIRM')
+        st = (vmap.get(t) or {}).get('status', NO_VERDICT)
         if st == 'CONFIRM':
             nc += 1
         elif st == 'DOWNGRADE':
             nd += 1
         elif st == 'DROP':
             nr += 1
-    return nc, nd, nr
+        else:
+            nn += 1
+    return nc, nd, nr, nn
 
 
 CATS=[
@@ -150,7 +152,7 @@ def deepdive(sid,bid,brec,prof,asites,cpred,tfbs,rescue,sub,coupling=None,verdic
     reg=tfbs.get(sid,{})
     cset=(coupling or {}).get(sid,{}).get(bid,[]) if coupling else []
     incluster_sarp=('SARP' in cset)
-    status=(verdict or {}).get('status','CONFIRM'); vnote=(verdict or {}).get('note',''); vclass=(verdict or {}).get('modeb_class','')
+    status=(verdict or {}).get('status',NO_VERDICT); vnote=(verdict or {}).get('note',''); vclass=(verdict or {}).get('modeb_class','')
     L=[]
     L.append(f"## {sid} / {bid} — {b.get('closest_kcb_product','?')}  ·  **{status}**" + (f" ({vclass})" if vclass else "") + "\n")
     # §1 identity
@@ -212,14 +214,18 @@ def deepdive(sid,bid,brec,prof,asites,cpred,tfbs,rescue,sub,coupling=None,verdic
         L.append(f"\n**§8 · Verdict — DOWNGRADE.** *{vnote}*. The locus is real but reclassified ({vclass}); retained as genomic "
                  f"context (cell-envelope / primary-adjacent), **not** promoted as a diffusible small-molecule lead. "
                  f"Resistance tier {(p.get('resistance_tier') or '')[:30]}.\n")
-    else:
+    elif status=='CONFIRM':
         rt2={'T1':'source-derived self-protection','T2':'resistance-like self-protection','T3':'transporter-only routing','NU':'no source-derived resistance'}.get((p.get('resistance_tier') or 'NU')[:2],'-')
         L.append(f"\n**§8 · Verdict — CONFIRM (class-level).** Gene-by-gene logic ({ks} KS / {cc} C, tailoring + "
-                 f"{('SARP-coupled' if incluster_sarp else 'regulator-bearing (no in-cluster SARP)')}, {rt2}) supports a genuine, expressed "
-                 f"{b.get('products','').split(';')[0]} pathway in the *{b.get('closest_kcb_product','?').split('/')[0]}* family ({vclass or 'class-level'}). "
+                 f"{('SARP-coupled' if incluster_sarp else 'regulator-bearing (no in-cluster SARP)')}, {rt2}) is consistent with a "
+                 f"{b.get('products','').split(';')[0]}-class biosynthetic locus in the *{b.get('closest_kcb_product','?').split('/')[0]}* family ({vclass or 'class-level'}). "
 f"Class-level hypothesis only; bioactivity metadata may be `NOT_SUPPLIED` and is not asserted for this BGC. "
                  f"Next: HMMER/BLAST the core + {('halogenase' if 'HAL' in (p.get('cctt_triggers') or '') else 'tailoring')} genes"
                  f"{'; re-sequence to resolve fragmentation' if (b.get('edge_status')=='Edge' or (rescue.get(sid,{}).get('contigs') or 0)>200) else ''}.\n")
+    else:
+        L.append(f"\n**§8 · Verdict — none recorded.** No Mode B verdict row exists for this BGC"
+                 + (f" (status `{status}` is not CONFIRM, DOWNGRADE or DROP)" if status != NO_VERDICT else "")
+                 + ". The sections above are evidence, not a judgment; author and record a verdict before citing a class call.\n")
     return '\n'.join(L)
 
 @_bank_reader_scope
@@ -283,19 +289,18 @@ def main():
           "ordered gene inventory, regulatory context). All statements are class-level and KCB-anchored (similarity, "
 "not identification); bioactivity metadata is optional strain-level context; markers/coupling are candidate evidence "
           "pending HMMER/BLAST. CONFIRM = gene logic supports the anchor's class; DOWNGRADE = real locus, reclassified, "
-          "not a diffusible lead; DROP = anchor's class not supported at the locus (the framework saying no).*\n\n---\n\n")
+          "not a diffusible lead; DROP = anchor's class not supported at the locus (the framework saying no); "
+          "NO_VERDICT = no recorded verdict, evidence only.*\n\n---\n\n")
     body=[]; last=None
     for sid,bid in targets:
-        v=vmap.get((sid,bid)); st=(v or {}).get('status','CONFIRM')
+        v=vmap.get((sid,bid)); st=(v or {}).get('status',NO_VERDICT)
         if st!=last:
-            _desc={'CONFIRM':'gene logic supports the anchor class','DOWNGRADE':'real locus, reclassified','DROP':'anchor class NOT supported at the locus'}.get(st,'')
+            _desc={'CONFIRM':'gene logic supports the anchor class','DOWNGRADE':'real locus, reclassified','DROP':'anchor class NOT supported at the locus'}.get(st,'no recorded verdict; evidence only')
             body.append(f"\n# {st}S — {_desc}\n"); last=st
         body.append(deepdive(sid,bid,brec,prof,deep.get('active_sites',{}),deep.get('class_pred',{}),tfbs,rescue,gene.get('substrates',[]),coupling,v))
     head = head + "## ID resolver\n\n" + resolver_md(resolver_rows([brec[t] for t in targets if t in brec])) + "\n\n"
     atomic_write_text(a.out, head+'\n\n---\n\n'.join(body))
-    # 408: count with the SAME 'CONFIRM' default the card body/section-header grouping above
-    # already uses (line ~251's `st=(v or {}).get('status','CONFIRM')`) -- see _count_verdicts.
-    nc, nd, nr = _count_verdicts(targets, vmap)
-    emit(f"  wrote {len(targets)} Mode B deep dives ({nc} CONFIRM, {nd} DOWNGRADE, {nr} DROP) -> {a.out}")
+    nc, nd, nr, nn = _count_verdicts(targets, vmap)   # same NO_VERDICT default as the cards above
+    emit(f"  wrote {len(targets)} Mode B deep dives ({nc} CONFIRM, {nd} DOWNGRADE, {nr} DROP, {nn} without a verdict) -> {a.out}")
 
 if __name__=='__main__': main()

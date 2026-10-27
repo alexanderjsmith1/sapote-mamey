@@ -49,7 +49,7 @@ antiSMASH output is consumed separately from the upstream software. Bind the act
 *If a license listed here is inaccurate for the version you install, the upstream project's own
 license file governs. This notice is a convenience, not a substitute for it.*
 
-## Runtime dependencies added to the inventory (v9.7.381 reconciliation)
+## Other pip-installed dependencies
 
 These are pip-installed dependencies (not bytes redistributed in this repository); their license
 applies to the installed package, which the operator obtains from PyPI.
@@ -58,10 +58,7 @@ applies to the installed package, which the operator obtains from PyPI.
 - **PyYAML** — YAML parsing (core dependency / `.[dev]` alias). License: MIT. Installed from PyPI; not redistributed here.
 - **cairosvg** — optional SVG→PNG for locus-map embedding (`.[render]`, soft-guarded). License: LGPL-3.0-or-later. Installed from PyPI; not redistributed here.
 
-## Runtime dependencies added to the inventory (v9.7.409 reconciliation)
-
-These are pip-installed dependencies (not bytes redistributed in this repository); their license
-applies to the exact installed/redistributed distribution. Recorded permissive labels below are convenience metadata, not a blanket legal conflict or redistribution conclusion. Added here as a historical supply-chain inventory reconciliation (SC-4).
+The license labels below are convenience metadata, not a legal conclusion about conflicts or redistribution.
 
 `documents` extra (`pyproject.toml` — governed DOCX/PDF authoring):
 
@@ -70,7 +67,7 @@ applies to the exact installed/redistributed distribution. Recorded permissive l
 - **pypdf** — PDF page-count / render verification. License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **Pillow** — image handling for figure/PDF paths. License: HPND (MIT-CMU style, permissive). Installed from PyPI; not redistributed here.
 
-`figures` extra (soft-guarded figure outputs — added v9.7.409):
+`figures` extra (optional figure outputs):
 
 - **networkx** — BiG-SCAPE GCF-network figure (`mamey/bigscape_figures.py`); soft-guarded (`SKIPPED_NO_DEPS`). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **scipy** — cohort clustermap ordering (`mamey/cohort_figures.py`, `tools/cluster_relate.py`); soft-guarded (falls back to count-ordering). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
@@ -104,6 +101,6 @@ license and notices appropriate to that patch.
 
 Software, model/reference data and service conditions are separate provenance/license records. Pfam/MIBiG/NPAtlas/sequence database labels do not share one universal software license. Source-bound model builds retain operator source/list/output hashes; a build receipt is not legal or scientific acceptance. The retained GToTree compatibility patch is distinct from invoking a GToTree installation; its upstream revision/license-notice binding remains scoped by its [patch provenance note](../tools/upstream_gtotree2/COMPATIBILITY_PATCH_NOTES.md).
 
-The current [GToTree upstream repository](https://github.com/AstrobioMike/GToTree) identifies MIT, and the current [FastTree LICENSE](https://github.com/morgannprice/fasttree/blob/main/LICENSE) is GPL version3. These upstream declarations apply to their named distributions. Verify each older binary, derivative patch and companion dependency separately. Treat other table entries as recorded convenience labels until checked against the exact artifact.
+The current [GToTree upstream repository](https://github.com/AstrobioMike/GToTree) identifies MIT, and the current [FastTree LICENSE](https://github.com/morgannprice/fasttree/blob/main/LICENSE) is GPL version 3. These upstream declarations apply to their named distributions. Verify each older binary, derivative patch and companion dependency separately. Treat other table entries as recorded convenience labels until checked against the exact artifact.
 
-No source license text, wheel, package, database or model was changed, downloaded to the workspace or installed. No blanket conclusion about copyleft reach, legal conflict or publication/redistribution approval is asserted.
+This page is not legal advice about copyleft reach or redistribution.

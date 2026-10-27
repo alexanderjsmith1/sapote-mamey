@@ -64,6 +64,8 @@ GenBanks that are not independent assemblies. Auto-detection is accepted only
 when exactly one unambiguous assembly-like member remains after region/cluster
 members are excluded. Unsafe and absent member paths are rejected.
 
+This is a parser check, not assembly validation. FASTA headers and whitespace are dropped; accepted symbols are `ACGTUNRYKMSWBDHVX.-`, and dots and hyphens are removed. GenBank input is read from ORIGIN blocks only. The selector turns U into T, as the planner does, so both compute the same content hash.
+
 ## Exact-content duplicate guard
 
 Assemblies are hashed from uppercase nucleotide sequences after ignoring record
@@ -100,10 +102,14 @@ The new output directory contains:
 | `genomes.txt` | Absolute paths for a later GToTree command |
 
 Human review of the selected panel and label crosswalk is required before any
-GToTree invocation. One CPU per concurrently running tree and no more than four
-simultaneous trees is a run-orchestration choice outside this selector.
+GToTree invocation. Resource enforcement belongs to the selected planner/runner,
+not this selector. Serial v1 settings and the governed v2 worker profile have different
+requirements; in particular the v2 HMM phase requests two workers per genome job.
+Follow [runtime admission](GTOTREE_RUNTIME_ADMISSION.md) and the current approved budget.
+Unless an approved budget says otherwise, run at most four trees at once and stay within four
+threads in total.
 
-Use only the generated, headerless two-column file for GToTree label replacement:
+For the admitted v1.8.19 route, use the generated headerless two-column file for GToTree label replacement:
 
 ```bash
 GToTree ... -m staged_panel/labels.tsv ...
@@ -112,12 +118,36 @@ GToTree ... -m staged_panel/labels.tsv ...
 Column 1 is the staged FASTA filename (for example `Streptomyces_sp_AS-XXX.fna`)
 and column 2 is its unique machine-safe replacement label. Do **not** pass
 `label_crosswalk.tsv` to `GToTree -m`; that five-column headered table exists for
-human review and provenance only.
+human review and provenance only. The governed v2 planner generates a different map whose
+keys are the exact absolute paths in its `genomes_absolute.txt`; do not pass this selector's
+basename map unchanged to that route. Use the selected planner's bound map and manifest
+([current run contracts](COMPANION_RUN_CONTRACTS.md)).
+
+## Staging receipt and recovery limits
+
+The output directory must be absent, including an empty existing directory. Selection
+requires exactly the requested tip count; an undersupplied eligible pool is refused,
+not silently returned as a smaller panel. Writes then proceed file by file, so a later
+error can leave a partial destination that refuses reuse. Preserve that attempt and
+use a new reviewed destination for recovery (`tools/build_phylo_panel.py`).
+
+ZIP admission checks names/suffixes and sequence parsing; it does not independently
+prove that an explicitly selected GenBank/FASTA is a whole assembly. Type-anchor
+admission checks the supplied type-material string, not an NCBI record. Independently
+verify source accession/version, assembly scope and deposited type status. Content
+deduplication preserves sequence orientation; reverse-complement equivalence is not
+normalized.
+
+The receipt hashes the candidate manifest and rows retain whole-source and normalized
+content hashes. It does not separately hash each raw ZIP member, staged FASTA, output
+TSV or the builder source. Retain those bindings and a stable input snapshot separately
+when required for downstream admission; `PANEL_STAGED_NOT_RUN` is not an executed or
+scientifically accepted tree.
 
 ## Claim ceiling
 
 Panel membership is comparator selection only. It does not establish taxonomic
-identity, nearest-neighbour status, strain independence, novelty, biosynthetic
+identity, nearest-neighbor status, strain independence, novelty, biosynthetic
 production, or biological activity. A core-gene tree strengthens topology; ANI
 and provenance adjudication remain separate. Exact-content duplicates are an
 identity warning, not proof of the physical source of a mix-up or contamination.

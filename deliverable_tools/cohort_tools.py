@@ -25,6 +25,7 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import sys, os, re, subprocess, shutil, glob
+import ast
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SELF = os.path.basename(__file__)
@@ -71,10 +72,12 @@ def _describe(path: str) -> str:
         txt = open(path, encoding="utf-8", errors="ignore").read()
     except OSError:
         return ""
-    m = re.search(r'^\s*(?:#!.*\n)?\s*(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', txt, re.S)
-    if m:
-        body = m.group(1).strip()
-    else:  # shell / no docstring -> first non-shebang comment line
+    if path.endswith(".py"):
+        try:
+            body = ast.get_docstring(ast.parse(txt, filename=path), clean=True) or ""
+        except (SyntaxError, ValueError):
+            return "(module syntax unreadable — inspect source before dispatch)"
+    else:  # shell: first leading non-shebang comment, never shell execution
         body = ""
         for line in txt.splitlines():
             s = line.strip()
@@ -95,7 +98,7 @@ def _describe(path: str) -> str:
         break
     # trim "name — " / "name: " prefixes for a clean column
     first = re.sub(r'^[\w./-]+\s*[—:-]\s*', '', first)
-    return first[:96] or "(no docstring — run with -h)"
+    return first[:96] or "(no module docstring — inspect source before dispatch)"
 
 
 def _category(name: str) -> str:
@@ -126,7 +129,8 @@ def cmd_list(write_index: bool = False) -> int:
             for cat in sorted(by_cat):
                 fh.write(f"\n## {cat}\n\n| tool | what it does |\n|---|---|\n")
                 for name, desc in sorted(by_cat[cat]):
-                    fh.write(f"| `{name}` | {desc} |\n")
+                    cell = desc.replace("|", "\\|").replace("\n", " ")
+                    fh.write(f"| `{name}` | {cell} |\n")
         emit(f"\nwrote {idx}")
     return 0
 

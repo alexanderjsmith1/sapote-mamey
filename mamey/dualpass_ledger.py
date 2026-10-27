@@ -96,8 +96,12 @@ def normalize_value(assertion_type: str, value: str, vocab: dict[str, Any]) -> s
     return value  # passthrough
 
 
-def normalize_ledger(path: str | os.PathLike, vocab: dict[str, Any] | None = None) -> str:
-    """Write a *_norm.tsv copy of a ledger with `value` canonicalised. Originals untouched."""
+def normalize_ledger(path: str | os.PathLike, vocab: dict[str, Any] | None = None,
+                     out_dir: str | os.PathLike | None = None, prefix: str = "") -> str:
+    """Write a *_norm.tsv copy of a ledger with `value` canonicalised. Originals untouched.
+
+    The copy goes to `out_dir` when given, else beside the source. It is created exclusively, so an
+    existing copy is never replaced."""
     vocab = vocab if vocab is not None else load_vocab()
     with open(path, encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh, delimiter="\t"))
@@ -106,7 +110,8 @@ def normalize_ledger(path: str | os.PathLike, vocab: dict[str, Any] | None = Non
     for d in rows:
         d["value"] = normalize_value(d.get("assertion_type", ""), d.get("value", ""), vocab)
     source = Path(path)
-    out = str(source.with_name(source.stem + "_norm.tsv"))
+    name = prefix + source.stem + "_norm.tsv"
+    out = str(Path(out_dir) / name) if out_dir is not None else str(source.with_name(name))
     with open(out, "x", newline="", encoding="utf-8") as fh:
         w = _SafeDictWriter(fh, fieldnames=list(rows[0].keys()), delimiter="\t")
         w.writeheader()
@@ -179,12 +184,14 @@ def merge(claude_path, codex_path, out_dir=None, normalize=True, miscall_file=No
     """Merge two ledgers into DIVERGENCE.tsv. If normalize, canonicalise both first via claims_vocab."""
     vocab = load_vocab()
     cl_p, cx_p = str(claude_path), str(codex_path)
-    if normalize:
-        cl_p = normalize_ledger(cl_p, vocab)
-        cx_p = normalize_ledger(cx_p, vocab)
-    claude, codex = _load(cl_p), _load(cx_p)
     outd = os.path.abspath(out_dir or os.path.dirname(str(claude_path)) or ".")
     os.makedirs(outd, exist_ok=True)
+    if normalize:
+        # Normalized copies go to the output folder, named per side, so --out keeps every write
+        # out of the input folders and two inputs with the same name cannot collide.
+        cl_p = normalize_ledger(cl_p, vocab, out_dir=outd, prefix="claude_")
+        cx_p = normalize_ledger(cx_p, vocab, out_dir=outd, prefix="codex_")
+    claude, codex = _load(cl_p), _load(cx_p)
     miscalls = _load_miscalls(miscall_file)
 
     rows = []
@@ -232,9 +239,14 @@ def dualpass_command(args) -> int:
         if not Path(_p).is_file():
             emit(f"ERROR: dualpass {_label} ledger not found: {_p}", file=sys.stderr)
             return 1
-    res = merge(args.claude, args.codex, getattr(args, "out", None),
-                normalize=not getattr(args, "no_normalize", False),
-                miscall_file=getattr(args, "miscalls", None))
+    try:
+        res = merge(args.claude, args.codex, getattr(args, "out", None),
+                    normalize=not getattr(args, "no_normalize", False),
+                    miscall_file=getattr(args, "miscalls", None))
+    except FileExistsError as exc:
+        sys.stderr.write(f"ERROR: dualpass will not replace an earlier normalized ledger ({exc.filename}); "
+                         f"choose a new --out folder\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return 1
     _OUT.info('%s\n%s\n%s', f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", f"  -> {res['out']}")
     return 0
 

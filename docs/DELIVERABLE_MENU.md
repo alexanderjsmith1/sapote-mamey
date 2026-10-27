@@ -2,22 +2,13 @@
 
 *Choose by label, name, or plain-language request. This document is generated from `mamey/data/deliverables_registry.json`; do not edit it by hand.*
 
-**Bundle:** Sapote-Mamey v9.7.457  
+**Bundle:** Sapote-Mamey v9.7.458  
 **Engine:** Mamey 1.9.177  
 **Required exact-locus display:** `strain / full node-or-contig / region / BGC alias`
 
 > Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence. Gate success verifies encoded checks, not biological identity, activity, novelty, acceptance, or publication readiness.
 
-## Availability language
-
-- **DETERMINISTIC_BUILT_IN** — Produced by bundled deterministic code from admitted inputs.
-- **OPTIONAL_LOCAL_ADAPTER** — Available only when the named local tool, database, or result is present and admitted.
-- **POST_SEAL_JUDGMENT** — A Sapote judgment deliverable built after MAMEY_COMPLETE; it is not deterministic Mamey extraction.
-- **OPTIONAL_EXTERNAL_WORKFLOW** — May require separately authorized external contact; staging alone does not authorize contact.
-- **GOVERNANCE_AND_QA** — A validation, provenance, privacy, handoff, or release-control outcome.
-- **HUMAN_REVIEW_PROTOCOL** — A structured human/LLM review protocol rather than an engine-generated scientific result.
-
-Run `python mamey_run.py deliverables availability ...` for a local, read-only preflight. It checks local presence, not source admission, gate success or completed authorship. A listed external workflow is never authorization to contact it.
+Read the questions below and choose the outcome that answers yours. Copy its **Ask for** wording, supply its required inputs, then check the delivery class and claim ceiling. The delivery-class key follows the offerings.
 
 ## The Counter - quick orientation
 
@@ -235,7 +226,7 @@ A governed compilation of the sealed package and independently gated post-seal d
 - **Ask for:** “Build the full strain analysis”
 - **Claim ceiling:** Compilation does not raise the authority of its component evidence.
 
-### #7 — Split-Pathway and Assembly-Line Reconstruction
+### #7 — Split-Pathway and Assembly-Line Evidence Review
 
 *Could measured biosynthetic capacity span boundaries or multiple regions?*
 
@@ -247,7 +238,7 @@ RG-GMCI, protocluster, over-merge, and domain-architecture views with explicit p
 - **Optional evidence/resources:** `source_gbk`, `admitted_blastp`
 - **Outputs:** `linkage_assessment`, `assembly_line_context`
 - **Gates:** `workflow`
-- **Ask for:** “Reconstruct the measured split pathway”
+- **Ask for:** “Review the split-pathway and assembly-line evidence”
 - **Claim ceiling:** Co-occurrence or linkage score is not proof of one biosynthetic product.
 
 ### #8 — Cohort and GCF Atlas
@@ -348,7 +339,7 @@ A judgment-layer fermentation, detection, metabolomics, and wet-lab decision mat
 
 *Which required stages passed, remain pending, or are blocked?*
 
-A machine-readable Sapote workflow ledger and additive evidence-receipt ingestion without mutating the sealed extraction package.
+A Sapote workflow ledger and evidence-receipt ingestion. `workflow` writes its Markdown ledger inside the package by default; use `--ledger-out` for an external ledger. `ingest-receipts` writes Mode B judgment cards into the package’s `judgment/` folder and updates its judgment register. Review each command’s write boundary.
 
 - **Delivery class:** `GOVERNANCE_AND_QA`
 - **Commands:** `workflow`, `ingest-receipts`
@@ -418,6 +409,17 @@ A bounded source-first review protocol for patch applicability, conflicts, tests
 - **Gates:** `zero_fuzz_apply`, `named_tests`
 - **Ask for:** “Run an adversarial patch review”; “Can we Bunny Hop?”
 - **Claim ceiling:** Review recommendation only; no integration, acceptance, or release authority.
+
+## Availability language
+
+- **DETERMINISTIC_BUILT_IN** — Produced by bundled deterministic code from admitted inputs.
+- **OPTIONAL_LOCAL_ADAPTER** — Available only when the named local tool, database, or result is present and admitted.
+- **POST_SEAL_JUDGMENT** — A Sapote judgment deliverable built after MAMEY_COMPLETE; it is not deterministic Mamey extraction.
+- **OPTIONAL_EXTERNAL_WORKFLOW** — May require separately authorized external contact; staging alone does not authorize contact.
+- **GOVERNANCE_AND_QA** — A validation, provenance, privacy, handoff, or release-control outcome.
+- **HUMAN_REVIEW_PROTOCOL** — A structured human/LLM review protocol rather than an engine-generated scientific result.
+
+Run `python mamey_run.py deliverables availability ...` for a local, read-only preflight. It checks local presence, not source admission, gate success or completed authorship. A listed external workflow is never authorization to contact it.
 
 ## How to order safely
 

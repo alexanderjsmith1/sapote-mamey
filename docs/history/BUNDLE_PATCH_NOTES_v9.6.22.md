@@ -1,3 +1,5 @@
+> Historical patch notes. Current changes: [CHANGELOG](../../CHANGELOG.md).
+
 # BUNDLE PATCH NOTES — v9.6.22
 
 **Engine 1.9.13 · bundle v9.6.22.** Builds on v9.6.21 (validator realign, CAS-safe redaction,

@@ -1,6 +1,5 @@
 # rggmci: Reference-Guided Genome Mining Candidate Inference (RG-GMCI)
 
-> This is a package-build template, not an already assembled standalone release. `build_rggmci_package.py` combines lifted/copied source, templates and a generated provenance file (`:140–194`). The standalone project version comes from its own `pyproject.toml` (`1.0.0rc3`, Python ≥3.12); it is distinct from the Sapote-Mamey bundle version. Inspect the generated artifact's provenance and source bindings before use. Do not install the template directory as if all generated modules were present. Installation examples below require an explicitly selected artifact/environment; template contents alone do not establish a completed installation or search.
 
 ## Output and result-scope checks
 
@@ -10,7 +9,7 @@ For every successfully analyzed input in `--out-dir`, the CLI writes JSON, ranke
 
 JSON/TSV files are created exclusively, including completion tables from the shared byte formatter. Concurrent filesystem changes or a write failure can still leave partial fresh outputs; this is not a transactional batch. An output failure returns 2. Per-input analysis exceptions remain recorded in `SUMMARY.tsv`, with final exit 1 if any input errored; earlier successful outputs remain and a failed input has no success JSON. These admission rules cover the primary antiSMASH CLI; the optional subcommands have their own write contracts.
 
-The BLASTp layer returns 0 even when result queries are unmapped and excluded (`:105–117`). Review NOT_IN_RESULTS, unmapped queries and the exact query/result roster rather than interpreting a zero exit as complete coverage. Keep original files, generated manifest and input hashes. No cross-locus evidence transfer follows from a matching alias alone.
+The BLASTp layer returns 0 even when result queries are unmapped and excluded. Review NOT_IN_RESULTS, unmapped queries and the exact query/result roster rather than interpreting a zero exit as complete coverage. Keep original files, generated manifest and input hashes. No cross-locus evidence transfer follows from a matching alias alone.
 
 RG-GMCI surfaces antiSMASH regions in a fragmented genome assembly that may belong to one biosynthetic
 pathway: fragments that the assembly left on separate contigs. It reads biosynthetic logic through the
@@ -35,8 +34,11 @@ tables contain headers only. The examples above read saved antiSMASH evidence wi
 off; optional completion still defaults to auto when this flag is omitted.
 [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
 
-The input is an antiSMASH result ZIP that includes its `knownclusterblast/` and `clusterblast/` output.
-A ZIP with only region GenBank files still runs, but no pairs can be scored without the reference hits.
+The input is a saved antiSMASH result ZIP with region GenBank files and usable cluster-level
+`knownclusterblast/` (KCB) and/or `clusterblast/` (CB) records. The channels remain separate, and
+either can support a candidate pair. SubClusterBlast alone is not pairing evidence. A region-only
+ZIP can be read, but without usable CB/KCB records it has no reference-supported pairs; preserve
+missing/parse states rather than interpreting that result as biological absence.
 
 ### Starting from an assembly
 
@@ -150,9 +152,11 @@ protein at facing contig ends, no contigs are joined, and no score or confidence
 - Candidate groups: HIGH pairs on different contigs that share regions, gathered into one group. That is
   how a pathway spread over three or more fragments shows up.
 
-Regions are named by contig and region number, exactly as antiSMASH named them, so every pair can be
-found in the antiSMASH output. Cite a region by contig and region, never by its `BGC` alias alone: the alias is
-rggmci's reading order and changes between antiSMASH runs.
+For each endpoint, copy the canonical `identity_a` or `identity_b`: logical strain / full physical
+contig / region / BGC alias, with the source archive and result hash. The logical strain label is
+caller-supplied or derived from the archive stem; it is not independently verified taxonomy. Preserve
+`source_gbk_a`/`source_gbk_b` and the complete original contig value. Contig/region alone or a bare
+reading-order alias is not a complete source-bound identity, and aliases can change between runs.
 
 [docs/WORKED_EXAMPLES.md](docs/WORKED_EXAMPLES.md) walks through four pairs from public genomes: a complementary
 split, two copies of one cluster, a hub, and a pair with too little support.
@@ -180,8 +184,10 @@ antiSMASH 8.0, doi:10.1093/nar/gkaf334. Reference clusters come from MIBiG 4.0, 
 
 ## Where it comes from
 
-`src/rggmci/PROVENANCE.json` records the source version this build came from, and the SHA-256 of every
-source file used.
+`src/rggmci/PROVENANCE.json` records the package, source bundle, engine and build versions and hashes
+selected copied/lifted engine source files. Its `source_sha256` map does not cover every template,
+repository extra, builder, dependency or database. Retain those input/output hashes separately when
+reviewing an assembled artifact; matching provenance labels do not prove a complete build or release.
 
 ## Licence
 
@@ -206,7 +212,7 @@ members refuse common intake before a subset is reported. General source-reader 
 warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
 empty successful RGGMCI result.
 
-Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
 no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
 then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
 implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:

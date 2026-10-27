@@ -8,24 +8,24 @@
 ## Data
 - **source:** `figure_ready/diagnostics_long.csv`
 - **columns used:** strain, diagnostic_name, present
-- **row filter:** all strains × 4 diagnostics
-- **derived fields:** pivot strain × diagnostic, values = present
+- **row filter:** admitted isolates and the four named diagnostics, with explicit source availability
+- **derived fields:** pivot only source-validated values of present; retain unavailable cells separately. The exporter omits None cells and can coerce nonnumeric nonempty values to zero. Missing rows/cells are not measured absences; verify finite source counts and completed search scope before accepting a zero. This isolate-level table has no locus key.
 
 ## Plot
-- **type:** binary heatmap (present/absent)
+- **type:** heatmap of validated 0/1 diagnostic values plus a separate unavailable state
 - **x:** diagnostic_name (ansamycin/thiopeptide/enediyne/nucleoside)   **y:** strain   **color:** present (0/1)
 - **order:** strain rank   **scales:** —
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Diagnostic TIGRFAM presence across the cohort (n = <admitted_isolate_n> isolates). Ansamycin currently unexercised.
+> Exported TIGRFAM diagnostic values across the admitted cohort (n = <admitted_isolate_n> isolates), with unavailable cells distinguished. State any diagnostic-specific search/exercise status only from its bound source receipt.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Spotlight the enediyne column on the slide for a warhead-leads talk.

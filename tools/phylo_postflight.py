@@ -207,7 +207,10 @@ def main():
     # P6 tip count vs input genomes
     if a.genomes_dir:
         n_in = len(glob.glob(os.path.join(a.genomes_dir,"*.fna")))
-        if n_in and n_in != len(tips):
+        if n_in == 0:   # an empty or mistyped --genomes-dir compared nothing; it is not a match
+            rep.add("P6","WARN","No input genomes found to compare tip count against",
+                    f"0 *.fna in {a.genomes_dir}; {len(tips)} tips")
+        elif n_in != len(tips):
             rep.add("P6","WARN","Tip count differs from input genome count",
                     f"{len(tips)} tips vs {n_in} genomes — genomes dropped by the SCG filter?")
         else:

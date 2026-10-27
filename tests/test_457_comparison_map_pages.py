@@ -1,4 +1,4 @@
-"""Card 018c0f08_457_comparison_map_pages: batch comparison maps on one kb scale, the region-folder builder, pinned
+"""Card 457_comparison_map_pages: batch comparison maps on one kb scale, the region-folder builder, pinned
 rows (other isolate loci, MIBiG clusters) and page stacking. Synthetic data only; no DIAMOND, network or private data."""
 import importlib.util
 import json

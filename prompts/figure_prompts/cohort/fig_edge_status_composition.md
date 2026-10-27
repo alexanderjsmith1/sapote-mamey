@@ -13,19 +13,19 @@
 
 ## Plot
 - **type:** 100%-stacked horizontal bar
-- **x:** fraction of BGCs   **y:** strain   **color:** boundary (Interior/Edge/Full-contig)
+- **x:** fraction of admitted BGC records   **y:** strain   **color:** boundary (Interior/Edge/Full-contig/Unknown; preserve missing labels separately)
 - **order:** strain rank   **scales:** —
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Edge-status composition of BGCs per isolate (n = <admitted_isolate_n> isolates). Higher Interior fraction = more complete clusters; full-contig fraction rises with fragmentation.
+> Boundary-label composition of BGC records per isolate (n = <admitted_isolate_n> isolates). Labels describe source coordinate geometry under the classifier; Interior does not independently establish pathway completeness, and Full-contig is assigned before the circular-origin exemption. Retain Unknown and missing states in the reported denominator.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - —

@@ -1,4 +1,4 @@
-# BiG SCAPE Class Glossary
+# BiG-SCAPE Class Glossary
 
 This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary drives the TSV fields, report headings, network labels, and visible legends.
 
@@ -25,7 +25,7 @@ This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-S
 | LASSO | Lassopeptide | The source labels identify a lasso-shaped ribosomal peptide class. | Lassopeptide source label. | Broad RiPP subclass label only; mature peptide and activity remain unverified. |
 | LAN | Lanthipeptide | The source labels identify a lanthionine-containing ribosomal peptide class. | Lanthipeptide source label. | Broad RiPP subclass label only; precursor, ring pattern, and product remain unverified. |
 | LAP | Linear azol or azoline containing peptide | The source labels identify a ribosomal peptide class with azole or azoline modifications. | Linear azol, linear azoline, LAP, or azole-containing-RiPP source label. | Broad RiPP subclass label only; mature peptide and modification pattern remain unverified. |
-| RiPP | Ribosomally synthesized and post translationally modified peptide | The source labels identify a ribosomal peptide class without a more specific code in this vocabulary. | Generic RiPP source label. | Broad peptide class only; precursor, modifications, product, and activity remain unverified. |
+| RiPP | Ribosomally synthesized and post-translationally modified peptide | The source labels identify a ribosomal peptide class without a more specific code in this vocabulary. | Generic RiPP source label. | Broad peptide class only; precursor, modifications, product, and activity remain unverified. |
 | TERP | Terpene | The source labels identify a terpene or terpene-precursor biosynthetic class. | Terpene source label. | Broad terpene class only; scaffold and product remain unverified. |
 | SAC | Saccharide | The source labels identify a saccharide or oligosaccharide biosynthetic class. | Saccharide or oligosaccharide source label. | Broad carbohydrate class only; pathway role and product remain unverified. |
 | PHOS | Phosphonate | The source labels identify a phosphonate biosynthetic class. | Phosphonate source label. | Broad phosphonate class only; product and activity remain unverified. |

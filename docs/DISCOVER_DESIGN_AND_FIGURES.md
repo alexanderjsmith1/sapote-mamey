@@ -80,7 +80,7 @@ Pure function of the scanned state — `_suggest(packages, context)`:
 `validate` (non-passing gates) → `ingest-blastp` (worklist-only) → `render-all-figures` (no figures)
 → `mode-b` (no verdicts) → `cohort-figures`/`cohort` (≥2 packages, no cohort deck) → a note on
 pending patch/cut folders → `re-run` (engine drift: packages older than the newest engine seen /
-`--current`). Every line names a real subcommand, so `discover` is a launcher, not a lecture.
+`--current`). These are advisory strings, not an executable launch plan: `note` is explanatory text, `re-run (engine drift)` is a recommendation, and grouped command names omit required inputs. An unknown gate `?` is excluded from this ranker's non-passing list, so absence of a `validate` suggestion does not establish a passing gate.
 
 ---
 

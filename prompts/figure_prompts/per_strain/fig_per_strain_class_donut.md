@@ -9,17 +9,17 @@
 - **source:** `figure_ready/bgc_class_long.csv`
 - **columns used:** strain, product_class
 - **row filter:** strain == <SID>
-- **derived fields:** count by product_class
+- **derived fields:** count exported rows by product_class. These are class assignments: one multi-class region contributes to multiple classes and repeated tokens are not deduplicated. A donut uses total class assignments as its denominator, not unique BGCs; retain the full strain/contig/region/bgc_id audit.
 
 ## Plot
 - **type:** donut or horizontal bar (prefer bar for >6 classes)
-- **x:** n_BGCs   **y:** product_class   **color:** single series
+- **x:** exported class-assignment count   **y:** product_class   **color:** single series
 - **order:** by count desc   **scales:** linear
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)

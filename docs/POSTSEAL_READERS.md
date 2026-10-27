@@ -7,12 +7,9 @@ another external location. `compile-report --out` selects a Markdown file; the
 other three select an output directory. Resolved paths into the original package,
 including symlink aliases, are refused. Existing writer trees containing symlinks
 are refused. These output helpers do not amend original manifests, checksums or seal receipts.
-However, `compile-report` first calls the package validator with its default
-status-writing behavior, so it can refresh `package_status.json` in the supplied
-original package before the snapshot binding is recorded. The later
-`source_unchanged` receipt does not cover that earlier step. To preserve every
-original byte in .447, compile from a separately identified working copy; retain
-the original and its hashes. This implementation repair remains held.
+`compile-report` validates sealed input without rewriting its `package_status.json`.
+Unsealed input keeps its status write. Plain `validate` does write that file; see
+[validation write scope](#validation-can-update-a-mutable-status-receipt).
 
 The compile-report command and low-level assembly-line and compound-family APIs
 retain their earlier output
@@ -34,8 +31,8 @@ bound evidence; waiver provenance is recorded in the external reader manifest.
 Keep that snapshot alongside the report: its absolute image links refer there.
 Recompiling uses a new snapshot, but can replace the external report and its
 sidecars at the selected destination. Choose a new `--out` file to retain earlier
-attempts. Original-package preservation still has the validation caveat above. For mutable input without checksum or seal markers, the command writes the
-construction-time report inside the package and the workflow reads that report.
+attempts. For mutable input without checksum or seal markers, the command retains
+construction-time status writes and writes the report inside the package; the workflow reads that report.
 For sealed input, the workflow compile step reads the default external report before the auto-emitted in-package
 skeleton, and requires its current source/output receipt; stale or unbound external
 reports stay pending. Explicit custom deliverable folders retain their existing
@@ -57,7 +54,7 @@ require pdffonts, pdftotext and pdfimages. No dependency is installed automatica
 
 Tables wider than eight columns become a record ledger: the original field name
 and full value are shown per row, with record identity repeated. Exceptional long
-values continue in labelled rows; the former 300-character clipping is removed.
+values continue in labeled rows; the former 300-character clipping is removed.
 Every field remains present. Relative images resolve against the original
 Markdown directory before fallback preflight moves it. Missing images and excess
 unmatched table cells refuse rendering rather than disappear.
@@ -83,17 +80,19 @@ hash. Zero staged inputs fail with source guidance, rather than suggest a detach
 retry. Outputs, work directories and widget paths remain outside every input
 package. A dry run stages and records inputs but executes no clustering engine.
 
-## Commands that still author package data in .447
+<a id="commands-that-still-author-package-data-in-447"></a>
 
-The immutable external-reader behavior above applies to the four named commands, not to every post-seal command. In .447 the CLI refreshes `post_seal_checksums.txt` after `render-figures`, `render-all-figures`, `mode-b`, `domain-level` and BLASTp authoring/ingest commands when a package is supplied. An external `--outdir` does not bypass that wrapper for those commands. External `guide --outdir` has a separate explicit exemption.
+## Commands that write into the package
+
+The immutable external-reader behavior above applies to the four named commands, not to every post-seal command. The CLI refreshes `post_seal_checksums.txt` after `render-figures`, `render-all-figures`, `mode-b`, `domain-level` and BLASTp authoring/ingest commands when a package is supplied. An external `--outdir` does not bypass that wrapper for those commands. External `guide --outdir` has a separate explicit exemption.
 
 To retain an original sealed package byte-for-byte, use a separately identified working package copy for these authoring commands. Preserve the original ZIP, hashes and manifests, record the copy's source binding and destination, and validate/review the working result separately. Do not infer that `post-seal` or `non-blocking` means read-only. A written checksum is not scientific acceptance.
 
-`render-figures --figure-set standard` can put its image files externally, but still enters the CLI refresh wrapper. `domain-level` can populate `<package>/domain_level/` when its metric table is absent. `locus-maps` requires its requested output to be inside the supplied package. For that set, use the working copy's internal destination; an arbitrary external path is refused. Some renderer branches return zero even when outputs were skipped or held, so inspect their actual counts, status records and rendered pages.
+`render-figures --figure-set standard` can put its image files externally, but still enters the CLI refresh wrapper. `domain-level` can populate `<package>/domain_level/` when its metric table is absent. `locus-maps` requires its requested output to be inside the supplied package. For that set, use the working copy's internal destination; an arbitrary external path is refused. Some renderers exit 0 after skipping an output; check counts and status files.
 
 `ingest-blastp-trove` writes channel overlays, admission/quarantine and ledger records under the supplied package. `ingest-blastp` updates the supplied master workbook; adding `--package` also writes a package overlay and binding records. Use explicitly selected working copies and preserve prior masters. `tools/ingest_blastp_rollups.py` is a different path: its default is a read-only dry run, while `--execute` inserts into the named existing reservoir. See [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md) for format and channel boundaries.
 
-`explain`, `list-bgcs`, `validate` and `blastp-status` are not in the CLI authoring refresh list. Template emission with an explicit external `--out`, and verification with an external report destination, are different from the native `mode-b` authoring route; check each selected handler rather than assuming all Mode B commands mutate or all are readers.
+`ingest-receipts` writes Mode B cards under `judgment/` and updates the judgment register in the supplied package, but it is not in the refresh list above. To keep the original package unchanged, run it on a working copy too. `explain`, `list-bgcs`, `validate` and `blastp-status` are not in the CLI authoring refresh list. Template emission with an explicit external `--out`, and verification with an external report destination, are different from the native `mode-b` authoring route; check each selected handler rather than assuming all Mode B commands mutate or all are readers.
 
 ## Validation can update a mutable status receipt
 

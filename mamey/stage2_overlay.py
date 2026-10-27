@@ -356,6 +356,8 @@ def build(
     source_count, manifest_sha, admitted_review_paths = verify_source_manifest(
         review_root, source_manifest,
     )
+    if manifest_sha != expected_manifest_sha256:
+        raise ValueError("Review source-manifest drifted during initial admission")
     for input_path in [*analysis_paths, *disposition_paths]:
         resolved = input_path.resolve()
         try:
@@ -656,7 +658,9 @@ def build(
         # Rehash all four authority layers immediately before atomic publication.
         if sha256_file(target_ledger) != expected_target_sha256:
             raise ValueError("Target ledger drifted during build")
-        verify_source_manifest(review_root, source_manifest)
+        _, rechecked_manifest_sha, _ = verify_source_manifest(review_root, source_manifest)
+        if rechecked_manifest_sha != expected_manifest_sha256:
+            raise ValueError("Review source-manifest drifted during build")
         if verify_target_artifacts(target_root, targets) != target_snapshot:
             raise ValueError("Target artifacts drifted during build")
         if verify_base_boundary(

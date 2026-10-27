@@ -251,7 +251,7 @@ No horizontal-transfer claim is made. Local GC, mobility genes, flanking repeats
 
 ## §43 Split-pathway / cross-contig (RG-GMCI)
 
-The strongest RG-GMCI pair joins the exact target to NC_016109.1 region039: score 20, `HIGH_RG_GMCI_RESCUE`, three supporting references, and one strong reference. Additional moderate pairs involve NC_016109.1 regions027, 031, and 046. All are same-chromosome, Interior regions. RG-GMCI here means homology-guided complementary reference signal; it does not join the loci at nucleotide level or prove one product pathway.
+The historical source report for `Kitasatospora setae KM-6054T / NC_016109.1 / region016 / BGC016` lists score 20, `HIGH_RG_GMCI_RESCUE`, three supporting references and one strong reference for the unresolved partner locator `NC_016109.1 region039`, plus moderate reports for locators ending region027, region031 and region046. The partner BGC aliases are not bound in this sketch, so complete four-part endpoint identities remain held. These were reported as same-chromosome Interior regions. Current `mamey/rggmci.py` separates Interior/same-contig related-locus pairs from fragment rescues as `RELATED_LOCUS_NOT_A_RESCUE`, retaining their computational grade in `shared_reference_grade`. Reconcile the old report with its original pair receipts and selected version before reuse; neither a rescue nor a single product pathway is established here.
 
 ## §44 Within-cohort prevalence & tier
 

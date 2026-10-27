@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_class_heatmap_row_labels.
+"""Card 452_class_heatmap_row_labels.
 
 Owner review of the classes-per-genome heatmap (moss layout): one genus label spanning a block of rows was confusing,
 so every row now carries its own label, the genus in italics plus an optional row_note from the genome table in

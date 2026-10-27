@@ -12,7 +12,7 @@ own public/private cuts. For what the *project's* built-in tiers contain, see
 
 ## The one tool
 
-Everything is driven by [`tools/make_public_tier.sh`](../tools/make_public_tier.sh):
+Use [`tools/make_public_tier.sh`](../tools/make_public_tier.sh) for tier staging and archive finalization. It transforms a temporary copy. The broader [`tools/release_cut.sh`](../tools/release_cut.sh) workflow rewrites its selected source tree, including release identity, generated documentation, manifests and checksums; select a working candidate for release preparation and retain immutable source evidence separately:
 
 ```
 tools/make_public_tier.sh <tier> <src_dir> <out_dir>
@@ -22,12 +22,9 @@ tools/make_public_tier.sh <tier> <src_dir> <out_dir>
 `code` refuses to run (exit 2) unless you set `SAPOTE_ENABLE_DISABLED_TIERS=1`. See
 [CUT_PROTOCOL.md](../CUT_PROTOCOL.md).
 
-`<tier>` is one of `code`, `clean`, `cohort`, `merged` or `public`. `sid` is a deprecated alias normalized to `cohort`; `public` is a separate labelled branch and is disabled by default along with all non-code tiers. The cut runs source/version and tier-content gates, denylist handling and public audits before its final archive transaction. The in-tier test suite can be explicitly bypassed with `SKIP_INTIER_PYTEST=1`, which requires separate out-of-band evidence; do not describe that cut as in-tier tested. Existing archive names are refused. A failed precommit gate does not publish a new archive; a postcommit durability failure can retain an archive with a recovery hold.
+`<tier>` is one of `code`, `clean`, `cohort`, `merged` or `public`. `sid` is a deprecated alias normalized to `cohort`; `public` is a separate labeled branch and is disabled by default along with all non-code tiers. The cut runs source/version and tier-content gates, denylist handling and public audits before its final archive transaction. The in-tier test suite can be explicitly bypassed with `SKIP_INTIER_PYTEST=1`, which requires separate out-of-band evidence; do not describe that cut as in-tier tested. Existing archive names are refused. A failed precommit gate does not publish a new archive; a postcommit durability failure can retain an archive with a recovery hold.
 
-The optional `--privacy-profile <profile.json>` argument reuses the same
-portable privacy profile that Mamey accepts at intake. It adds folder-level and
-free-text controls to the public-export boundary; it does not change Mamey's
-deterministic extraction behavior or turn a profile into scientific evidence.
+The optional `--privacy-profile <profile.json>` argument reads export controls from the same portable profile format used at intake. The exporter consumes `public_export_policy`; intake `strain_assignments` do not automatically remove private records from arbitrary files or workbooks. Declare export exclusions and private literals explicitly, and review the resulting artifact. These controls do not change deterministic extraction or supply scientific evidence.
 
 ## Privacy controls and their actual boundaries
 
@@ -47,7 +44,7 @@ removed from every non-`merged` tier automatically. Keep your working copy as
 For private *terms* that appear inside otherwise-shippable files (a collaborator
 surname, an internal codename, an unpublished project name):
 
-1. Copy [`release_denylist.example.txt`](../tools/release_denylist.example.txt) into an operator-held denylist only after removing every `#` comment line and reviewing the resulting terms. The shell reader skips empty lines but treats comment lines as terms.
+1. Copy [`release_denylist.example.txt`](../tools/release_denylist.example.txt) into an operator-held denylist and review its terms. The shell reader skips blank lines and lines that start with `#`, and trims spaces around each term.
 2. Add one term per line. Content replacement is case-sensitive and limited to the selected text extensions. Name deletion uses case-insensitive `find -iname` glob matching, so wildcard characters have a different meaning in that path operation. Review terms for both uses; do not assume the filename check is literal.
 3. Use this file only during an independently authorized cut of a disposable stage. The non-`merged` shell branch modifies matching text and deletes matching paths. Both operations exclude paths below `wheels/` and `sapote_addons/wheels/`. The later fixed-string content grep is a separate check, not a proof that all paths, binary content or case variants were inspected.
 
@@ -61,10 +58,7 @@ For your own unpublished collection, declare explicit private identifiers and ex
 
 ### 4. Public-export policy — fail closed on staging roots and project-specific identifiers
 
-The optional `public_export_policy` object in the same
-`sapote_privacy_profile_v1` file is the portable configuration surface for
-folder-level export controls. Add the object to an operator-held profile; the
-profile itself is not copied into the staged public tree.
+The optional `public_export_policy` object in a `sapote_privacy_profile_v1` file configures folder-level export controls. Keep the operator profile outside the source tree, or inside an explicitly excluded directory. Passing `--privacy-profile` does not exclude an in-tree copy.
 
 - `exclude_root_names` removes every directory with that basename from the
   disposable non-merged stage. `future_improvements` is protected by default,
@@ -75,19 +69,19 @@ profile itself is not copied into the staged public tree.
   public audit checks every shipped text surface and every shipped path for the
   literal. It does not silently rewrite the literal: a remaining match refuses
   the cut.
-- `allowlisted_occurrences` is exceptional. It must name a declared
-  `identifier_id`, one exact relative path, the full-file SHA-256, and a reason.
-  It permits content only for that byte-exact file; it never permits a private
-  identifier in a path.
+- `allowlisted_occurrences` is exceptional. Each entry requires `identifier_id`, one exact `relative_path`, the full-file `sha256`, a `reason`, `purpose: "CONTENT_ONLY_EXCEPTION"`, and `state: "ACTIVE"`. The identifier must already be declared. It permits content only for that byte-exact regular file; it never permits a private identifier in a path.
 
-Keep a profile that contains real private literals outside the public source
-tree (or under a root that the public cut excludes). Passing it by path keeps
-the operator policy out of the staged bundle:
+Keep a profile containing real private literals outside the source tree. The example below uses an external profile path:
 
 ```bash
 tools/make_public_tier.sh code ./sapote-source ./out \
   --privacy-profile ../private-policy/strain_privacy_profile.json
-python tools/public_release_audit.py ./out/staged-tree \
+```
+
+The builder uses a temporary stage and removes it on exit. To audit an existing unpacked tree separately, use:
+
+```bash
+python tools/public_release_audit.py <existing-unpacked-tree> \
   --privacy-profile ../private-policy/strain_privacy_profile.json
 ```
 
@@ -106,10 +100,7 @@ temporary archive, reopens it to verify member names, member types, bytes, and
 hashes, and then commits that same audited file with the platform's native
 no-clobber primitive.
 
-Before staging, the transaction runs a same-filesystem two-call capability
-probe: an existing destination must remain unchanged, then an absent
-destination must receive exactly the source bytes. Platforms or filesystems
-that cannot prove that behavior refuse before a final archive is created.
+At finalization, before temporary archive construction, the transaction runs a same-filesystem two-call capability probe: an existing destination must remain unchanged, then an absent destination must receive exactly the source bytes. Unsupported behavior refuses archive construction; staging and its checks have already run.
 Existing output names are never replaced. A post-commit durability problem
 retains the committed archive and reports a typed recovery hold; it does not
 pretend to roll the archive back.
@@ -156,13 +147,8 @@ The identifier helper uses its own historical shared rules and public/test-name 
 
 Default audit mode writes a Markdown report even though it does not otherwise intend to edit the workbook. Explicit `--out` has no input-alias guard and atomically replaces an existing target; it can overwrite a public/private workbook, roster or other evidence if selected incorrectly. Keep every source and report destination disjoint, use a fresh report path and retain original hashes. The report can contain private cohort names/counts and leaked cell snippets, so its own audience needs review. Findings details are capped at 30 per kind, and no input/report/denominator hash receipt is emitted. Save the actual source identities, command, exit status and report hash separately.
 
-Optional `--scrub` writes a selected `--scrub-out` workbook (default `<input>_SCRUBBED.xlsx`) before re-auditing it. It substitutes every matching string cell, including data cells and formula text; it is not limited to prose and does not remove held rows. Its substitution patterns do not exactly match all main-audit identifier exceptions/rules. Use only a separately identified candidate output, preserve authoritative sources and compare all changed cells and formula behavior before adoption. There is no source/private/report output-collision guard or group transaction: a scrubbed workbook can remain after re-audit/report failure, and a selected existing destination can be replaced. Correct the problem and retry into new reviewed paths; retain failed/partial outputs. Normal `CLEAN` returns zero and findings return one; read/load/write errors can instead raise without a completed report. Sources: `tools/audit_public_cut.py:89–512`, `tools/redact_public_tier.py:77–119`, and `tools/_wbio.py:25–125`.
+Optional `--scrub` writes a selected `--scrub-out` workbook (default `<input>_SCRUBBED.xlsx`) before re-auditing it. It substitutes every matching string cell, including data cells and formula text; it is not limited to prose and does not remove held rows. Its substitution patterns do not exactly match all main-audit identifier exceptions/rules. Use only a separately identified candidate output, preserve authoritative sources and compare all changed cells and formula behavior before adoption. There is no source/private/report output-collision guard or group transaction: a scrubbed workbook can remain after re-audit/report failure, and a selected existing destination can be replaced. Correct the problem and retry into new reviewed paths; retain failed/partial outputs. Normal `CLEAN` returns zero and findings return one; read/load/write errors can instead raise without a completed report.
 
 ## Adding a brand-new named tier (advanced)
 
-The four content policies above cover most needs without editing code. If you
-need a *new named tier* with a different strip policy, add a `case` arm in
-[`tools/make_public_tier.sh`](../tools/make_public_tier.sh) alongside the
-existing ones — each arm is just the list of directories that tier removes,
-followed by `strip_internal`. Keep the fail-closed leak check downstream intact;
-it checks the encoded disclosure policy. Add meaningful fixtures for new tier behavior and preserve separate owner review; a misleading tier label is not corrected by the filename alone.
+Use the existing tier policies and operator export controls for routine customization. Adding a named tier is a maintainer change: coordinate the canonical tier vocabulary and aliases, archive naming, strip policy, and affected derivation/parity/checker consumers, then validate the complete route. Adding only a strip-policy `case` arm is insufficient. Non-code tiers remain disabled by default; a tier label does not grant disclosure authority.

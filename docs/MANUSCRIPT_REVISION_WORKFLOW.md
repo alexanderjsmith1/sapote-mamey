@@ -59,6 +59,8 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
    The dry run must report `refused 0`. `check-numbers` lists each edit whose replacement holds a number that is in neither
    its find text, its document nor any `--source` file. Each flagged number needs a named source or is removed.
    `scan-names` lists internal names in prose (see "Internal-name patterns" below).
+
+   A clean number check means only that the number appears somewhere in the find text, the document or a source file. Confirm it is the right value, unit and population for the claim, and cite the cell.
 8. **Apply.**
 
    ```bash
@@ -67,8 +69,8 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
 
    Each edit's `find` must occur exactly once in its document. One refused edit holds back every edit to that document, and
    the file is left unchanged. An edit whose `find` is gone and whose `replace` is present is reported as already applied,
-   so a rerun is safe. Each applied edit is appended, with a time stamp, to the change record (`<root>/CHANGES.jsonl`, or
-   `--record`). The record is append-only.
+   which is a text check, not proof. If the replacement still contains the find text, a second run can apply it again, so dry-run every time. Each applied edit is appended, with a time stamp, to the change record (`<root>/CHANGES.jsonl`, or
+   `--record`). The record is opened in append mode.
 9. **Change log.**
 
    ```bash
@@ -83,7 +85,7 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
 ## The rules
 
 - **Draft, check, apply.** An edit file is drafted first, checked second (`apply --dry-run`, `check-numbers`, `scan-names`),
-  and applied last. A drafter never applies its own file.
+  and applied last. Whoever drafts an edit file does not apply it.
 - **No value without a source.** Every new number, date, count, version or accession names the record it came from in the
   edit's `why`. A value that cannot be found is held, never estimated.
 - **Versions are immutable.** Never modify a printed or sent version. Fix forward in a new working copy.
@@ -116,6 +118,10 @@ An edit file is a JSON list:
 
 `doc` is relative to `--root`; absolute paths and `..` are refused. Several rows that touch one sentence go into one edit,
 with their ids joined by `+`. Keep each `find` as short as uniqueness allows.
+
+Paths are checked for `..` and absolute forms only; symlinks are not resolved. There is no lock, so another editor's later changes can be overwritten. Work in a separate copy.
+
+Each file is written atomically, but the documents and the change record are not one transaction. After a failure, compare the files with the edit plan before retrying. Give every ledger, answers file and change log a new filename.
 
 ## Internal-name patterns
 

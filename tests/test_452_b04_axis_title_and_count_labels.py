@@ -1,4 +1,4 @@
-"""B04 options (card 018c0f08_452_b04_axis_title_and_count_labels): a plain x-axis title in the ink colour, and the
+"""B04 options (card 452_b04_axis_title_and_count_labels): a plain x-axis title in the ink colour, and the
 'N of M' count labels optional. Without the options the original output is unchanged."""
 import csv, importlib.util, json, shutil
 from pathlib import Path

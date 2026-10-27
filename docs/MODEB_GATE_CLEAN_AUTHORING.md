@@ -2,13 +2,9 @@
 
 ## Current entry and implementation scope
 
-Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
-then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
-for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
-region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
-check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
-Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
-receipts rather than copying a package or inventing completed work.
+Choose the profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md). Cite every locus as
+`strain / full node-or-contig / region / BGC alias`. A clean gate result is a structural check, not
+scientific acceptance.
 
 The recipe below is scoped to the default full48 contract. Its §4 matrix, §48 synthesis and
 `publication_quality_findings` API are not a current50-v2 recipe. Select `--contract full48` explicitly
@@ -18,7 +14,7 @@ Choose a destination inside the authorized task, inspect the emitter's actual wr
 and retain the saved bytes plus actual report before making a gate-clean claim.
 
 The direct API example omits all prospective opt-in flags, which default false
-(`mamey/modeb_publication_gate.py:2735–2748`). It does not enable every later semantic, reconciliation,
+(`publication_quality_findings` keyword defaults). It does not enable every later semantic, reconciliation,
 selection or figure check. Passing an independently supplied locus-tag list checks roster correspondence;
 it does not open or verify every supporting source. Receipt-shaped/hash cells and lexical anchors remain
 checker inputs, not evidence that a file, experiment or source conclusion has been independently verified.
@@ -34,7 +30,7 @@ owner acceptance, release, or publication approval.
 ## 1. Emit; do not hand-build the section scaffold
 
 ```bash
-python mamey_run.py emit-modeb-template --package <package_dir> --bgc <BGC_ID>
+python mamey_run.py emit-modeb-template --package <package_dir> --bgc <BGC_ID> --contract full48
 ```
 
 The result is an authoring scaffold. It should pass the structure gate, but it is intentionally
@@ -80,9 +76,11 @@ Each row also states the retained, refined, withdrawn, or non-applicable content
 
 ### Section reconciliation
 
-Provide one row for every §1–§48. Each row needs at least five cells: section; `SUBSTANTIVE` or
-`REASONED_NOT_APPLICABLE`; named evidence; one historical-source disposition; and a non-empty
-reconciliation note.
+Provide one row for every §1–§48. Each row needs at least five cells: section; `SUBSTANTIVE`,
+`REASONED_NOT_APPLICABLE`, or `REVIEWED_SCOPE_LIMIT`; named evidence; one historical-source
+disposition; and a non-empty reconciliation note. Use `REVIEWED_SCOPE_LIMIT` when the section
+was reviewed but bound evidence does not support a full claim; do not relabel that state as
+substantive or not applicable.
 
 ## 4. Preserve the §5–§7 reasoning anchors
 
@@ -95,6 +93,10 @@ reconciliation note.
 
 These are reasoning prompts, not permission to add filler. Name the genes and measured evidence being
 discussed, or give a reasoned not-applicable disposition.
+
+The §27 and §45 subsection rules live in the dual-writer protocol: [§27 self-resistance](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md#112-section-27-self-resistance-contract)
+and [§45 cohort gene comparison](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md#113-section-45-cohort-gene-comparison-contract).
+The publication gate checks them.
 
 ## 5. Derive cohort and synthesis sections from source receipts
 

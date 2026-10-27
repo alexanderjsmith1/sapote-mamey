@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """rebuild_as_sid_comparison.py — AS vs SID compound comparison over the FULL SID set:
-25 SID from the gene master + 64 SID from the extracted supplement = 89 SID vs 46 AS.
+N1 SID from the gene master + N2 SID from the extracted supplement = N SID vs M AS.
 Per-gene KnownClusterBlast (MIBiG) is the common currency. Homology/capacity only."""
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))

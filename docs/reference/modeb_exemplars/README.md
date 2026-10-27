@@ -1,11 +1,10 @@
-# Mode B exemplar reader guide — v9.7.447 source check
+# Choose a Mode B example
 
-The reference collection below is historical calibration. For new current50_v2 authoring, use the explicit `current50_v2` contract and `FINISHED_FULL50_CURRENT50_V2` profile: §1–§50 exactly once in order, literature with relevance in §48–§49, and the data evidence table last in §50. A current50_v2 structural pass does not invoke all full48 finished-profile publication gates; it does not establish product, activity, linkage, scientific acceptance or release.
+For a new card, choose the [native profile](../../MODEB_PROFILE_MATRIX.md), then follow the [authoring walkthrough](../../MODE_B_USER_WALKTHROUGH.md). The default is `full48`; use `current50_v2` when the work order selects it. Current50 v2 keeps literature with relevance in §48–§49 and the data evidence table last at §50.
 
-`phosphonate_reference_full48_no_blastp_exemplar.md` remains a **full48 format reference**, not a current50_v2 finished card. The seven other supplied class cards are legacy sketches. Historical “verify-modeb OK”, “FULL” and “zero findings” statements below describe their old scope and are not fresh validation. A lexical heading census finds gaps in their §1–§30 coverage; do not copy their omission pattern or import their locus-specific conclusions. The README's old “no live BLASTp run” statements for RiPP and siderophore also conflict with the supplied cards' §4/§28 claims of operator-supplied offline-ingested BLASTp. Resolve original evidence and provenance before using either channel as calibration.
+Use the [full48 reference](phosphonate_reference_full48_no_blastp_exemplar.md) to study ordered sections, the displayed gene denominator and typed unavailable-evidence handling. Use the seven class sketches below for examples of gene-to-prose reasoning. Their historical measurements and pass/FULL labels are retained source assertions, not fresh validation or a completion template for a new locus.
 
-Keep `strain / full node-or-contig / region / BGC alias` on each new card. Source identity, complete per-gene denominators, citation substance, cross-stream disposition and interpretation require their own review. Similarity does not establish identity; an Interior boundary label does not prove every pathway component is present or active. These files have not been scientifically re-certified by this documentation audit.
-
+Before reusing a claim, trace its actual sources and receipts. The RiPP sketch's §15 conflicts with its §§4/16/28 about selected precursor/LanKC results; the siderophore introduction conflicts with its §§4/16/28 about whether a panel ran. These are unresolved source-state conflicts, not no-hit findings. Keep complete strain / full node-or-contig / region / BGC alias and independently review gene denominators, channel binding, citations and biological interpretation. Reuse writing structure rather than transferring these loci's genes, scores, mechanisms, activity claims or proposed experiments.
 ---
 
 ## Preserved historical collection README
@@ -55,11 +54,11 @@ the §1–§30 era and are not complete current-contract exemplars until individ
 
 ## Calibration hook
 
-Once a class's exemplar lands, the depth gate's floor for that class can be **recalibrated against real
-data** instead of the current provisional single-anchor numbers — in particular whether small classes
-(RiPP, terpene) warrant a class-specific floor below the flat 10–12k, since a genuinely complete small-BGC
-card may carry less absolute length while still being domain-dense. Until then the flat floor + density
-rule applies to every class.
+The retained proposal was to recalibrate class-specific writing depth against real examples. The shipped
+legacy passive evaluator instead uses priority-based 12k/11k/10k floors plus density and enrichment checks,
+with a separate reduced floor for qualifying boundary fragments. It does not select a class-specific floor.
+A legacy FULL tier is separate from the selected full48/current50 verifier; use the current profile's
+requirements and source review rather than treating these character counts as a scientific acceptance bar.
 
 
 ---
@@ -80,8 +79,11 @@ The paragraphs were **deleted, not reworded**, per the v9.7.246 changelog: there
 reword. Deletion cost 1,643 ch (ripp) and 1,639 ch (siderophore); **both remain FULL with zero THIN_\*
 findings**, and ripp's `PAD_SIGNAL` disappeared with them — the boilerplate was itself padding.
 
-`tests/test_exemplars_are_clean_v97247.py` now lints these files in CI. An exemplar that defines the bar
-must clear it.
+`tests/test_exemplars_are_clean_v97247.py` defines regression checks for these files. Its locus context is
+derived from the card's declared/modal contig index or its own native tags, rather than an independent
+package roster. It can miss foreign genes sharing that index; a pass does not authenticate the source
+identity or biology. The separate full48 reference test also checks a hardcoded displayed roster and
+ordinary structure/depth. No fresh test execution or independent evidence admission is established here.
 
 
 ## Profile status of these exemplars (v9.7.372, publication-quality repair Patch 9)

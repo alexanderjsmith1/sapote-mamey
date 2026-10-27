@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "bundle": "9.7.452",
-    "engine": "1.9.176",
-    "build": "20261016v97452a"
+    "bundle": "9.7.457",
+    "engine": "1.9.177",
+    "build": "20261023v97457a"
   },
   "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority. Baseline identifies the selected source anchors, not execution or semantic certification of every route.",
   "routes": [
@@ -16,7 +16,7 @@
         "strain metadata",
         "permitted output root"
       ],
-      "guide": "docs/MASTER_WALKTHROUGH.md",
+      "guide": "docs/reader/01_FIRST_RUN.md",
       "outputs": [
         "region inventory",
         "package",
@@ -33,7 +33,7 @@
         "existing package",
         "manifest and source bindings"
       ],
-      "guide": "docs/READING_YOUR_RESULTS.md",
+      "guide": "docs/reader/03_READ_RESULTS.md",
       "outputs": [
         "result explanation",
         "evidence gaps"
@@ -159,7 +159,7 @@
         "input hashes",
         "prior settings"
       ],
-      "guide": "docs/ASSISTANT_USER_GUIDE.md",
+      "guide": "docs/reader/04_RECOVERY_AND_LIMITS.md",
       "outputs": [
         "stage diagnosis",
         "retained attempt",
@@ -247,7 +247,7 @@
         "private handoff ZIP or extracted review root",
         "catalog and selected portfolio provenance"
       ],
-      "completion_limit": "The archive can include unlisted package files and omits referenced external evidence. Export can replace a destination; import can leave a partial root. It is not public disclosure approval or a complete project backup."
+      "completion_limit": "The archive can include unlisted package files and omits referenced external evidence. Export refuses an occupied destination; import can leave a partial root. It is not public disclosure approval or a complete project backup."
     },
     {
       "id": "project_portfolio_binding",
@@ -282,7 +282,7 @@
         "validation status and availability summary",
         "unresolved source/lineage limitations"
       ],
-      "completion_limit": "This pair is distinct from the project-registry schema. PASS does not detect every parent-cycle/cross-strain lineage problem or verify each evidence source; it does not establish activity, identity or release approval."
+      "completion_limit": "This pair is distinct from the project-registry schema. PASS checks recorded parent links, material/assay strain consistency and material cycles; it does not independently verify evidence sources or establish activity, identity or release approval."
     }
   ]
 }

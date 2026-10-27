@@ -20,7 +20,7 @@ compatibility diagnostics; it is not whole-profile finished-card verification.
 > **This file is retained as a redirect pointer only.** The §1–§30 contract that
 > replaced it is itself now the legacy `MODEB_CANDIDATE_30` profile. The historical "§1–§20 only" reading
 > of this document was the documented root cause of the recurring
-> wrong-scaffold authoring failure (`ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`
+> wrong-scaffold authoring failure (`history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`
 > §13.1). It is now superseded.
 
 ## Read instead

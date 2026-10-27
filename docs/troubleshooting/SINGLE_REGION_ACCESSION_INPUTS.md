@@ -23,12 +23,12 @@ subclusterblast/
 
 The strain-like label is often an accession such as `KY089035.1`, where `.1` is the GenBank version suffix. This is not a private strain ID.
 
-## Correct ChatGPT/Mamey behavior
+## What to do with this input
 
 1. Do not treat this as a full strain genome.
 2. Do not try to manually parse the large antiSMASH JSON in chat.
 3. Run `python mamey_run.py inspect <zip>` first.
-4. If inspect passes, run gold mode; add `--capped-session` when the session has a time limit.
+4. Treat `inspect` as a filename/marker preview, then reconcile the actual input records and identity before an authorized gold run. It does not certify parse success or completeness. `--capped-session` reduces selected work but imposes no wall-clock limit and does not itself disable optional reference completion.
 5. Explain that assembly completeness warnings may be expected because the input is one accession/one region.
 6. Treat exact KnownClusterBlast matches as reference/control evidence, not as a discovery result.
 
@@ -48,13 +48,15 @@ python mamey_run.py run \
   --input-zip KY089035.1.zip \
   --taxonomy "<organism from GBK LOCUS/SOURCE>" \
   --source "public GenBank sequence" \
+  --outdir <fresh-run-root> \
   --mode gold \
   --capped-session \
-  --json-evidence off \
-  --brief none
+  --reference-completion off
 ```
 
-Run from the selected bundle root with its compatible Python environment. The example deliberately retains the accession as the output identity. Without `--allow-accession-strain-id`, an explicit accession label can be refused when the archive supplies an organism-based identity. To use that archive identity instead, pass `--strain auto` and omit the override; record the resulting strain ID rather than assuming it equals the ZIP stem. The internal accession remains a sequence locator.
+Run from the selected bundle root with its compatible Python environment. With `--allow-accession-strain-id`, the run keeps the accession as the output identity: the run folder, package and manifest are all named `KY089035.1`. `--taxonomy` is recorded as metadata. It never renames the strain, and the run never builds an ID from the ZIP filename.
+
+Without `--allow-accession-strain-id`, an explicit accession label is refused when the archive names an organism. When the archive names none, the run keeps the accession and prints a warning. To use the archive's organism-based identity instead, pass `--strain auto` and omit the flag. Record the resulting strain ID rather than assuming it equals the ZIP stem. The internal accession remains a sequence locator.
 
 This recipe consumes an existing antiSMASH ZIP. `run --accession` does not download or preprocess a genome; it is an unsupported placeholder when no `--input-zip` is supplied.
 

@@ -23,4 +23,4 @@ Identity, gene slice and evidence checks happen before creating outputs, but lat
 
 The Markdown evidence section reports the number of bound rows; it does not serialize the full imported evidence TSV into the report. Keep the exact input TSV with the report or a resolvable logical source locator and verify its hash when auditing individual evidence. The SVG and supplied component descriptions remain source-artwork candidates; this tool does not run the full current50 Mode B gate or rendered visual review.
 
-Source owner: `mamey/deep_bgc_report.py:80–111,139–162,165–215`.
+Source: `mamey/deep_bgc_report.py`.

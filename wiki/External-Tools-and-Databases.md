@@ -1,11 +1,11 @@
 <!-- Mirror of docs/EXTERNAL_TOOL_INVENTORY.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # External tool & database inventory
 
-**Bundle v9.7.457 · engine Mamey 1.9.177 · compiled 2026-10-23**
+**Bundle v9.7.458 · engine Mamey 1.9.177 · compiled 2026-10-26**
 
-The external bioinformatics tools and reference databases the Sapote-Mamey workflow
-depends on, with the version of record, the run-defining parameters, and a
-version-matched citation for each. This is the reproducibility spine of the Methods.
+This page lists the external bioinformatics tools and reference databases the Sapote-Mamey
+workflow depends on. Each comes with the version of record, the run-defining parameters, and a
+version-matched citation. This is the reproducibility spine of the Methods.
 For the *internal* helper scripts shipped in `tools/`, see
 `docs/TOOLS_INVENTORY.generated.md` — a different document.
 
@@ -19,23 +19,23 @@ path, successful version probe, database identity, and run arguments for each an
 For historical results, use the original run receipt; a current installation does not
 establish which version produced an older result.
 
-Inventory rows and README download links are broader than `doctor --companions`, whose named registry is a best-effort local executable probe. That table does not install tools, enforce expected versions or prove required models/databases are present. Error output can be classified present in .447; see [companion detection limits](../docs/companion_tools.md#detection). Check the actual selected workflow and successful tool-specific diagnostics rather than treating an inventory row or check mark as an executed method.
+Inventory rows and README download links are broader than `doctor --companions`, whose named registry is a best-effort local executable probe. That table does not install tools, enforce expected versions or prove required models/databases are present. The detector requires exit 0, rejects configured diagnostic/manual markers and requires exactly one distinct numeric version. It separately reports expected-version comparison and review flags; web/manual entries are not executed. This supersedes the old error-output-as-presence behavior. See [companion detection limits](../docs/companion_tools.md#detection). Check the actual selected workflow and successful tool-specific diagnostics rather than treating an inventory row or check mark as an executed method.
 
 ---
 
 ## Pipeline stages → tool → version
 
-| # | Stage | Tool | Version (verified) | Run-defining parameters | Citation |
+| # | Stage | Tool | Recorded version or required run receipt | Run-defining parameters | Citation |
 |---|---|---|---|---|---|
-| 1 | Assembly | **SPAdes** (via Galaxy / usegalaxy.org) | 4.2.0 (confirmed for AS-XXX; confirm per strain from its Galaxy history) | `--isolate --cov-cutoff off`, error-correction off, k=21,33,55,77 | Prjibelski 2020, *Curr Protoc Bioinformatics* 70:e102; Galaxy Community 2024, *NAR* 52(W1):W83–W94, 10.1093/nar/gkae410 |
+| 1 | Assembly | **SPAdes** (via Galaxy / usegalaxy.org) | 4.2.0 for one strain; confirm each strain from its Galaxy history | `--isolate --cov-cutoff off`, error-correction off, k=21,33,55,77 | Prjibelski 2020, *Curr Protoc Bioinformatics* 70:e102; Galaxy Community 2024, *NAR* 52(W1):W83–W94, 10.1093/nar/gkae410 |
 | 2 | BGC detection | **antiSMASH** | 8.0.4 (core cohort) | `--taxon bacteria`, detection strictness = **loose**; KnownClusterBlast + ClusterBlast + Pfam-domain + RRE-finder enabled (schema 4) | Blin 2023 (antiSMASH 7), plus the antiSMASH 8 paper of record — cite the version actually run |
-| 3 | Extraction + triage | **Sapote-Mamey (Mamey)** | engine 1.9.163 / bundle 9.7.428 (verified 2026-09-15: all **42** AS packages in the sealed package store (`<store>/AS-*/package/manifest.json`) carry `workflow_version: Mamey v1.9.163` + `bundle_version: 9.7.428`, uniform, read from the manifests themselves — not filename stamps; per-package stamp remains authoritative) | `run --mode gold` | historical package snapshot; inspect the actual package manifest |
+| 3 | Extraction + triage | **Sapote-Mamey (Mamey)** | Read `workflow_version` and `bundle_version` from each package's `manifest.json` | `run --mode gold` | historical package snapshot; inspect the actual package manifest |
 | 4a | Homology — curated, local | **BLAST+ `blastp`** vs Swiss-Prot | record successful `blastp -version` / `blastn -version` for the run | default protein search | Camacho 2009, *BMC Bioinformatics* 10:421 |
 | 4b | Homology — comprehensive, remote | **NCBI BLAST (web)** vs **nr** | web service (nr is rolling/unversioned) | record per-run access date | Sayers 2024 (NCBI resources) |
 | 4c | Homology — curated, remote | **EBI Job Dispatcher** vs **UniProtKB** | remote service (UniProtKB release not locally stamped — record access date) | default | Madeira 2024, *NAR* 52(W1):W521–W525, 10.1093/nar/gkae241 |
 | 5 | GCF families / network | **BiG-SCAPE 2** with operator-provisioned **pyhmmer**, **Pfam-A** and **MIBiG** | BiG-SCAPE 2.0.3 · pyhmmer **0.12.1** · Pfam **38.2** · MIBiG **4.0** | GCF clustering anchored on MIBiG | BiG-SCAPE 2 (Navarro-Muñoz 2020 lineage); pyhmmer — Larralde & Zeller 2023, *Bioinformatics* 39(5):btad214, 10.1093/bioinformatics/btad214; Pfam — Paysan-Lafosse 2025, *NAR* (gkae997) |
 | 6 | Cluster figures | **clinker**; **matplotlib**; **NumPy** | clinker 0.0.32 | default alignment | clinker — Gilchrist 2021; matplotlib — Hunter 2007; NumPy — Harris 2020 |
-| 7 | Taxonomy / phylogenomics | **Prodigal, BLAST+, MUSCLE, trimAl, IQ-TREE 3, fastANI, GToTree, NCBI datasets** | Prodigal 2.6.3 · MUSCLE major version must match the driver and run receipt · trimAl 1.5.rev1 · IQ-TREE 3.1.2 · fastANI 1.34 · GToTree >=1.8.19 convention; record actual version · datasets 18.33.1 | historical route labels; current build_mlsa.py uses five protein loci; record selected GToTree HMM roster and actual run | per-tool papers of record (see phylogenomics methods) |
+| 7 | Taxonomy / phylogenomics | **Prodigal, BLAST+, MUSCLE, trimAl, IQ-TREE 3, fastANI, GToTree, NCBI datasets** | Prodigal 2.6.3 · MUSCLE major version must match the driver and run receipt · trimAl 1.5.rev1 · IQ-TREE 3.1.2 · fastANI 1.34 · GToTree 1.8.19 priority; 2.0.x experimental interface only; use the current owner policy, not an open-ended >= rule · datasets 18.33.1 | historical route labels; current build_mlsa.py uses five protein loci; record selected GToTree HMM roster and actual run | per-tool papers of record (see phylogenomics methods) |
 | 7b | Phylogenetic **placement** (query→fixed reference tree) | **MAFFT, RAxML-NG, EPA-ng, gappa** — *conda env, NOT bundled; `tools/` ships only the driver `phylo_place.py`* | MAFFT 7.526 · RAxML-NG 2.0.2 · EPA-ng 0.3.8 · gappa 0.9.0 (probed from the installed env — see *Version provenance* below) | `molecule=nucleotide`, `model=GTR+G`; reference tree built then held **FIXED**; queries placed, they do not re-infer the topology | EPA-ng — Barbera 2019, *Syst Biol* 68:365; gappa — Czech 2020, *Bioinformatics* 36:3263; RAxML-NG — Kozlov 2019, *Bioinformatics* 35:4453; MAFFT — Katoh & Standley 2013, *Mol Biol Evol* 30:772 |
 | 7c | Reference-set construction / quick trees | **FastTree**, **BLAST+ `blastn`**, **BLAST+ `makeblastdb`** | per installed env (BLAST+ record successful `blastp -version` / `blastn -version` for the run) | local reference DB build + nucleotide search; FastTree for fast draft topologies | FastTree — Price 2010, *PLoS ONE* 5:e9490; BLAST+ — Camacho 2009, *BMC Bioinformatics* 10:421 |
 | 7d | Optional sequence-file inspection | **SeqKit** (external, not bundled) | record the resolved executable and successful version output when used | record the exact inspection/extraction command; this optional tool is not silently required by every workflow | retain the installed tool's citation with the run |
@@ -74,7 +74,7 @@ conda create -n placement -c bioconda -c conda-forge mafft raxml-ng epa-ng gappa
 conda create -n phylo     -c bioconda -c conda-forge prodigal muscle trimal iqtree fastani gtotree fasttree blast
 ```
 
-**Where the drivers look for them.** Three environment variables are honoured; all default to a
+**Where the drivers look for them.** Three environment variables are honored; all default to a
 conda env under the workspace root:
 
 | Variable | Default | Read by |
@@ -83,7 +83,7 @@ conda env under the workspace root:
 | `PHYLO_BIN` | `<root>/miniconda3/envs/phylo/bin` | `tools/phylo_place.py`, `tools/figure_methods.py` |
 | `MAMEY_PHYLO_BIN` | *(unset)* | `tools/build_mlsa.py` — **historical alias for the same directory as `PHYLO_BIN`**; `build_mlsa.py` now falls back to `PHYLO_BIN` when it is unset, so setting either works |
 
-`tools/build_mlsa.py` accepts `--bin-dir`, then MAMEY_PHYLO_BIN or PHYLO_BIN, then PATH, with executable/alias checks (`:89–114`). Other drivers have their own resolver contracts. `tools/mibig_neighborhoods.py:33,50` sets a module-local ROOT-derived PHYLO_BIN prefix and prepends it to PATH; this is not evidence that it honors the environment variable of the same name. Source settings or a listed environment name do not prove which binary ran.
+`tools/build_mlsa.py` accepts `--bin-dir`, then MAMEY_PHYLO_BIN or PHYLO_BIN, then PATH, with executable/alias checks. Other drivers have their own resolver contracts. `tools/mibig_neighborhoods.py` sets a module-local ROOT-derived PHYLO_BIN prefix and prepends it to PATH; this is not evidence that it honors the environment variable of the same name. Source settings or a listed environment name do not prove which binary ran.
 
 Cross-references: `docs/PREREQUISITES.md` (Python-side dependencies and offline wheels) ·
 `docs/PHYLO_PLACEMENT_WORKFLOW.md` (the placement run recipe) · `docs/GTOTREE_WORKFLOW.md`
@@ -109,7 +109,7 @@ run, read that run's own caption/receipt rather than this table.
 
 ## Software receipt scope
 
-`tools/figure_methods.py:104–127` searches configured/default bin directories then PATH, uses `--version`, requires successful exit and extracts the first numeric version pattern; absent/unreadable/failed probes yield missing/empty metadata. It does not prove those binaries produced a past result or preserve a complete executable/database hash record. Keep actual per-stage argv/version/hash and result/source receipts. Table versions and original cohort/assembly/database assertions are historical context requiring the original result/source receipts before reuse.
+`tools/figure_methods.py` searches configured/default bin directories then PATH, uses `--version`, requires successful exit and extracts the first numeric version pattern; absent/unreadable/failed probes yield missing/empty metadata. It does not prove those binaries produced a past result or preserve a complete executable/database hash record. Keep actual per-stage argv/version/hash and result/source receipts. Table versions and original cohort/assembly/database assertions are historical context requiring the original result/source receipts before reuse.
 
 ## Honest caveats (do not overstate in Methods)
 
@@ -121,7 +121,7 @@ run, read that run's own caption/receipt rather than this table.
   produced analyses are recoverable from the JSON; detection strictness (`loose`) comes from
   Mamey's `antismash_profile` field, not antiSMASH's own record.
 - **Pfam "38.2" is count-inferred** in this historical record. A family count is not a unique release identity; bind upstream release/archive hashes and actual consumed model receipts. Do not choose a Pfam version from count alone.
-- **SPAdes 4.2.0 is confirmed only for AS-XXX.** Assemblies span Oct 2025–2026 and may have
+- **SPAdes 4.2.0 is confirmed for one strain only.** Assemblies span Oct 2025–2026 and may have
   used different Galaxy SPAdes wrappers; confirm each strain from its own Galaxy history.
 - **pyhmmer / BiG-SCAPE versions are the installed-environment versions.** For a specific
   past run, confirm against that run's `run.log`.

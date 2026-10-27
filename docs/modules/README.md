@@ -1,32 +1,48 @@
-# Module guide dispositions
+# Deliverable and knowledge modules
 
-Choose the selected task through [the task router](../USER_TASK_ROUTER.md). These module documents are hand-authored guides; no source generator was identified for this directory. An assistant recommendation or named trigger is not proof of automatic Python invocation. Use current finished-card [profile guidance](../MODE_B_USER_WALKTHROUGH.md), actual emitted receipts and exact locus identity. Historical examples with scrubbed/incomplete identifiers cannot be used as live source bindings.
+These pages describe optional outputs you can build after a validated package exists:
+wet-lab priorities, metabolomics planning, figure suggestions, reviewer objections and similar.
+These pages do not launch tools automatically. Pick a task in the [task router](../USER_TASK_ROUTER.md) first.
 
-| Guide | Disposition | Owning implementation or boundary |
+Each page says whether a Python tool makes the output or whether it is written by hand.
+"Written by hand" means a person or an assistant writes it from the package.
+There is no standalone builder for those pages; the chosen output format may still require a verifier.
+
+| Page | Made by | Status |
 |---|---|---|
-| [ACTIVITY_DECISION_TREES.md](ACTIVITY_DECISION_TREES.md) | current code backed with workflow limits | `tools/build_activity_decision_trees.py` |
-| [DEEP_BGC_REPORT.md](DEEP_BGC_REPORT.md) | current code backed with workflow limits | `tools/build_deep_bgc_report.py` |
-| [DELIVERABLE_AssemblyQC.md](DELIVERABLE_AssemblyQC.md) | current code backed with workflow limits | `tools/assembly_qc_check.py` |
-| [DELIVERABLE_ContigRescueReconstruction.md](DELIVERABLE_ContigRescueReconstruction.md) | current code backed with workflow limits | `tools/build_reconstruction.py` |
-| [DELIVERABLE_EcologicalSynthesis.md](DELIVERABLE_EcologicalSynthesis.md) | prompt policy no standalone engine | Assistant authoring/review; no standalone engine |
-| [DELIVERABLE_FamilySeeds.md](DELIVERABLE_FamilySeeds.md) | mixed code and prompt or proposal | `tools/build_gcf_tags.py` |
-| [DELIVERABLE_FigureSuggestion.md](DELIVERABLE_FigureSuggestion.md) | prompt policy no standalone engine | Assistant authoring/review; no standalone engine |
-| [DELIVERABLE_LMPKSRescue.md](DELIVERABLE_LMPKSRescue.md) | mixed code and prompt or proposal | `mamey/source_scans.py` |
-| [DELIVERABLE_MetabolomicsReadiness.md](DELIVERABLE_MetabolomicsReadiness.md) | current code backed with workflow limits | `tools/build_metabolomics_readiness.py` |
-| [DELIVERABLE_ReviewerAttack.md](DELIVERABLE_ReviewerAttack.md) | prompt policy no standalone engine | Assistant authoring/review; no standalone engine |
-| [DELIVERABLE_SubsetPanel.md](DELIVERABLE_SubsetPanel.md) | current code backed with workflow limits | `tools/build_subset_panel.py` |
-| [DELIVERABLE_WetLabMatrix.md](DELIVERABLE_WetLabMatrix.md) | current code backed with workflow limits | `tools/build_wetlab_matrix.py` |
-| [DOMAIN_LEVEL_MODE_B.md](DOMAIN_LEVEL_MODE_B.md) | current code backed with workflow limits | `mamey/domain_level.py` |
-| [KNOWLEDGE_ConstellationReporting.md](KNOWLEDGE_ConstellationReporting.md) | prompt policy no standalone engine | Assistant authoring/review; no standalone engine |
-| [KNOWLEDGE_DiagnosticDomainCombos.md](KNOWLEDGE_DiagnosticDomainCombos.md) | mixed code and prompt or proposal | `mamey/source_scans.py` |
-| [KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md](KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md) | historical workflow with current helper | `tools/build_priority_leads.py` |
-| [KNOWLEDGE_JudgmentChecks.md](KNOWLEDGE_JudgmentChecks.md) | mixed code and prompt or proposal | `mamey/scoring.py` |
-| [KNOWLEDGE_LeadTiers.md](KNOWLEDGE_LeadTiers.md) | historical workflow with current helper | `tools/build_lead_tiers.py` |
-| [MODE_B_BATCH_RUN.md](MODE_B_BATCH_RUN.md) | historical workflow with current helper | `mamey/judgment_store.py` |
-| [MODE_B_DEPTH_POLICY.md](MODE_B_DEPTH_POLICY.md) | historical workflow with current helper | `mamey/mode_b_quality_gate.py` |
-| [MODE_B_WRITE.md](MODE_B_WRITE.md) | historical workflow with current helper | `mamey/judgment_store.py` |
-| [SAPOTE_LEAD_DETAIL_MODULE.md](SAPOTE_LEAD_DETAIL_MODULE.md) | mixed code and prompt or proposal | `tools/build_lead_detail.py` |
-| [THESIS_HANDOFF.md](THESIS_HANDOFF.md) | current code backed with workflow limits | `tools/build_thesis_handoff.py` |
-| [_TEMPLATE_Module.md](_TEMPLATE_Module.md) | authoring template | Assistant authoring/review; no standalone engine |
+| [ACTIVITY_DECISION_TREES.md](ACTIVITY_DECISION_TREES.md) | `tools/build_activity_decision_trees.py` | Tool |
+| [DEEP_BGC_REPORT.md](DEEP_BGC_REPORT.md) | `tools/build_deep_bgc_report.py` | Tool |
+| [DELIVERABLE_AssemblyQC.md](DELIVERABLE_AssemblyQC.md) | `tools/assembly_qc_check.py` | Tool |
+| [DELIVERABLE_ContigRescueReconstruction.md](DELIVERABLE_ContigRescueReconstruction.md) | `tools/build_reconstruction.py` | Tool |
+| [DELIVERABLE_MetabolomicsReadiness.md](DELIVERABLE_MetabolomicsReadiness.md) | `tools/build_metabolomics_readiness.py` | Tool |
+| [DELIVERABLE_SubsetPanel.md](DELIVERABLE_SubsetPanel.md) | `tools/build_subset_panel.py` | Tool |
+| [DELIVERABLE_WetLabMatrix.md](DELIVERABLE_WetLabMatrix.md) | `tools/build_wetlab_matrix.py` | Tool |
+| [DOMAIN_LEVEL_MODE_B.md](DOMAIN_LEVEL_MODE_B.md) | `python mamey_run.py domain-level` | Tool |
+| [THESIS_HANDOFF.md](THESIS_HANDOFF.md) | `tools/build_thesis_handoff.py` | Tool |
+| [DELIVERABLE_FamilySeeds.md](DELIVERABLE_FamilySeeds.md) | `tools/build_gcf_tags.py` makes the tags; seed rows are written by hand | Tool + hand |
+| [DELIVERABLE_LMPKSRescue.md](DELIVERABLE_LMPKSRescue.md) | Domain fields from `mamey/source_scans.py`; grades written by hand | Tool + hand |
+| [KNOWLEDGE_DiagnosticDomainCombos.md](KNOWLEDGE_DiagnosticDomainCombos.md) | Domain fields from the package; class calls written by hand | Tool + hand |
+| [KNOWLEDGE_JudgmentChecks.md](KNOWLEDGE_JudgmentChecks.md) | Rules in `resources/bioactivity_axes.json`, `mamey/scoring.py` and named tools | Tool + hand |
+| [SAPOTE_LEAD_DETAIL_MODULE.md](SAPOTE_LEAD_DETAIL_MODULE.md) | `tools/build_lead_detail.py`; later passes written by hand | Tool + hand |
+| [KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md](KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md) | `tools/build_priority_leads.py` | Tool; counts are from one older cohort |
+| [KNOWLEDGE_LeadTiers.md](KNOWLEDGE_LeadTiers.md) | `tools/build_lead_tiers.py` | Tool; counts are from one older cohort |
+| [MODE_B_BATCH_RUN.md](MODE_B_BATCH_RUN.md) | `mamey/judgment_store.py` | Batch progress; verify cards under the selected profile separately |
+| [MODE_B_WRITE.md](MODE_B_WRITE.md) | `mamey/judgment_store.py` | Saving Mode B cards and tracking batches |
+| [MODE_B_DEPTH_POLICY.md](MODE_B_DEPTH_POLICY.md) | `mamey/mode_b_quality_gate.py` | Older length-and-density check |
+| [DELIVERABLE_EcologicalSynthesis.md](DELIVERABLE_EcologicalSynthesis.md) | Written by hand | Hand |
+| [DELIVERABLE_FigureSuggestion.md](DELIVERABLE_FigureSuggestion.md) | Written by hand | Hand |
+| [DELIVERABLE_ReviewerAttack.md](DELIVERABLE_ReviewerAttack.md) | Written by hand | Hand |
+| [KNOWLEDGE_ConstellationReporting.md](KNOWLEDGE_ConstellationReporting.md) | Written by hand | Hand |
+| [_TEMPLATE_Module.md](_TEMPLATE_Module.md) | Template for a new page | Template |
 
-Source-bound status and implementation checks do not validate every scientific example or authorize experiment, network, package mutation or disclosure. Builder CSVs with alias/region only do not themselves satisfy four-component locus identity; join the canonical package locator and preserve missing identity as a hold. The current NAPAA registry is neutral; old blanket exclusions in worked examples are historical.
+## Rules that apply to every module
+
+- Cite each BGC as **strain / full node-or-contig / region / BGC alias**, copied from one package record.
+  Several tool CSVs carry only the alias and region. Join them to the package locator before citing.
+  If a part is missing, hold the citation.
+- A KnownClusterBlast or MIBiG match is similarity, not compound identity.
+- Biosynthetic capacity is not production.
+- For a finished Mode B card, use the [Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md).
+  The older section counts in some module examples are history.
+- NAPAA follows the current rules registry (`mamey/data/rules_registry.json`).
+  Older worked examples that exclude NAPAA outright are history.

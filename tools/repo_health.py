@@ -42,27 +42,27 @@ from pathlib import Path
 SCAN_DIRS = ("mamey", "tools")
 # 2026-10-14 owner-approved UP: 1250 -> 1268 (measured emission sites).
 # New sites since the 2026-10-10 ratchet-down; counter and exclusions unchanged:
-# +1 tools/study_workflow_figure.py:192 — 018c0f08_452_study_workflow_figure
-# +1 tools/assembly_stats_table.py:180 — 018c0f08_452_assembly_stats_table
+# +1 tools/study_workflow_figure.py:192 — 452_study_workflow_figure
+# +1 tools/assembly_stats_table.py:180 — 452_assembly_stats_table
 # +1 tools/palette_distance_report.py:182 — attine_452_genus_palette_no_grey
-# +1 tools/chitin_isolate_vs_references.py:241 — 018c0f08_452_chitin_isolate_vs_references_panel
-# +1 tools/collection_map.py:267 — 018c0f08_452_collection_map_tool
+# +1 tools/chitin_isolate_vs_references.py:241 — 452_chitin_isolate_vs_references_panel
+# +1 tools/collection_map.py:267 — 452_collection_map_tool
 # +1 tools/gap_rescue_panel_figure.py:224 — attine_452_gap_rescue_panel_figure_rebased_j5
-# +1 tools/gen_figure_options.py:137 — 018c0f08_452_figure_options_list
-# +1 tools/gen_figure_options.py:132 — 018c0f08_452_figure_options_list
-# +1 tools/bigscape_public_family_counts.py:154 — 018c0f08_452_bigscape_public_family_counts
+# +1 tools/gen_figure_options.py:137 — 452_figure_options_list
+# +1 tools/gen_figure_options.py:132 — 452_figure_options_list
+# +1 tools/bigscape_public_family_counts.py:154 — 452_bigscape_public_family_counts
 # +1 tools/transfer_supports_to_graft.py:72 — codex_452_ship_rect02_placement_renderer
-# +1 tools/blastp_query_index.py:351 — 018c0f08_451_gene_names_bind_by_sequence
-# +1 tools/blastp_query_index.py:331 — 018c0f08_451_gene_names_bind_by_sequence
-# +1 tools/bigscape_region_binding_check.py:101 — 018c0f08_452_bigscape_region_binding_check
+# +1 tools/blastp_query_index.py:351 — 451_gene_names_bind_by_sequence
+# +1 tools/blastp_query_index.py:331 — 451_gene_names_bind_by_sequence
+# +1 tools/bigscape_region_binding_check.py:101 — 452_bigscape_region_binding_check
 # +1 tools/blastp_identity_figures.py:593 — f51fc51a_451_blastp_identity_figures
 # +1 tools/_min_text_check.py:58 — M5_452_pcoa_page_defaults
-# +1 tools/tygs_figures.py:208 — 018c0f08_452_tygs_figures
-# +1 tools/gene_local_names.py:258 — 018c0f08_452_gene_local_names
-# +1 tools/gene_local_names.py:302 — 018c0f08_452_gene_local_names
+# +1 tools/tygs_figures.py:208 — 452_tygs_figures
+# +1 tools/gene_local_names.py:258 — 452_gene_local_names
+# +1 tools/gene_local_names.py:302 — 452_gene_local_names
 # Existing tree_annotation_gate.py replacement is net zero and adds no site.
 # No waiver; print-to-emit spelling changes do not reduce this metric.
-PRINT_WARN_THRESHOLD = 1242  # +1 v9.7.457 -- UP, flagged for the owner: tools/multi_reference_comparison.py --spec --dry-run reports the number of validated comparisons (one new emission site, a different function from the end-of-run line, so it cannot be folded into it); +1 v9.7.455: new tools/antismash_input_genome.py, one emission site (per-ZIP notes and summary); +1 v9.7.454: new tools/chitin_genome_census.py, one emission site (per-genome results and errors); ratchet-down v9.7.455: 1268 -> 1239 (measured; 29 duplicate emission sites folded into per-file helpers, output byte-identical)  # ratchet-down 2026-10-10 prior: 1268 held  # ratchet-down 2026-10-10: 1255 -> 1250 (measured)  # v9.7.448 cut, 2026-10-05: 1249 -> 1255 (measured) -- UP, flagged for the owner: +3 tools/strain_slides.py (gene-label refusal, map-not-drawn and gallery-skip diagnostics on stderr), +2 tools/rescue_locus_comparison.py (fallback-step failure line, CLI result), +1 tools/multi_reference_comparison.py (CLI result); all three are imported by other tools, so they stay counted  # ratchet-down 2026-10-04: 1272 -> 1249 (measured)  # ratchet-down 2026-10-01: 1280 -> 1272 (measured; command results stay on emit, review F1)  # v9.7.410 cut, 2026-09-06: 1277 -> 1280 (measured) -- UP, flagged for the owner: +1 tools/gen_figure_r_manifest.py, +1 tools/check_patch_lane.py (two new tool entry points, one emit each), +1 mamey/cli.py ingest-blastp fail-loud WARNING (deliberate, replaces a silent 0-BGC bind); no consecutive single-arg emit pairs remain to merge (measured by AST)  # ratchet-down 2026-09-06: 1278 -> 1277 (measured)  # ratchet-down 2026-09-05: 1289 -> 1278 (measured)  # v9.7.408 close-out, second paydown: 101 more consecutive single-arg emits merged (sep="\n", byte-identical); the 5 new emissions from `start`/`phylo-autopilot` are absorbed. Ceilings only go down.
+PRINT_WARN_THRESHOLD = 1251  # ratchet-down v9.7.458: 1254 -> 1251 (measured on the full .458 stack; stacked cards converted three more emission sites)  # ratchet-down v9.7.458: 1255 -> 1254 (measured; messages added by .458 fix cards are written to sys.stdout/sys.stderr directly, and one existing compilation_gate line moved to a direct write)  # +13 v9.7.458 -- UP, flagged for the owner: eleven new command-line tools each print their result once (evidence_freshness 2, checkpoint_status 2, and one each in whole_locus_coverage, standalone_delivery_audit, round_trip_checkpoint, chapter_table_crossrefs, delivery_capability_card, retained_rescue_search_scope, ranked_match_shortlist, protein_space_standalone, bigscape_locus_r)  # +1 v9.7.457 -- UP, flagged for the owner: tools/multi_reference_comparison.py --spec --dry-run reports the number of validated comparisons (one new emission site, a different function from the end-of-run line, so it cannot be folded into it); +1 v9.7.455: new tools/antismash_input_genome.py, one emission site (per-ZIP notes and summary); +1 v9.7.454: new tools/chitin_genome_census.py, one emission site (per-genome results and errors); ratchet-down v9.7.455: 1268 -> 1239 (measured; 29 duplicate emission sites folded into per-file helpers, output byte-identical)  # ratchet-down 2026-10-10 prior: 1268 held  # ratchet-down 2026-10-10: 1255 -> 1250 (measured)  # v9.7.448 cut, 2026-10-05: 1249 -> 1255 (measured) -- UP, flagged for the owner: +3 tools/strain_slides.py (gene-label refusal, map-not-drawn and gallery-skip diagnostics on stderr), +2 tools/rescue_locus_comparison.py (fallback-step failure line, CLI result), +1 tools/multi_reference_comparison.py (CLI result); all three are imported by other tools, so they stay counted  # ratchet-down 2026-10-04: 1272 -> 1249 (measured)  # ratchet-down 2026-10-01: 1280 -> 1272 (measured; command results stay on emit, review F1)  # v9.7.410 cut, 2026-09-06: 1277 -> 1280 (measured) -- UP, flagged for the owner: +1 tools/gen_figure_r_manifest.py, +1 tools/check_patch_lane.py (two new tool entry points, one emit each), +1 mamey/cli.py ingest-blastp fail-loud WARNING (deliberate, replaces a silent 0-BGC bind); no consecutive single-arg emit pairs remain to merge (measured by AST)  # ratchet-down 2026-09-06: 1278 -> 1277 (measured)  # ratchet-down 2026-09-05: 1289 -> 1278 (measured)  # v9.7.408 close-out, second paydown: 101 more consecutive single-arg emits merged (sep="\n", byte-identical); the 5 new emissions from `start`/`phylo-autopilot` are absorbed. Ceilings only go down.
                              # emissions merged byte-identically with sep="\n"; merge requires the
                              # statement to stand ALONE on its line -- a single-line compound statement
                              # shares the indent of a bare one and is NOT in the same block)  # ratchet-down 2026-09-02: 1623 -> 1622 (measured)  # ratchet-down 2026-09-02: 1624 -> 1623 (measured)   # RATCHETED DOWN 2026-09-02 (v9.7.405) from 1629: the .405 composition

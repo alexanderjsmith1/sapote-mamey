@@ -1,60 +1,102 @@
-# HTML reader templates: names, inputs and recovery
+# HTML readers: which tool builds which page
 
-Use these names when requesting a reader. Bind the source root, manifest/configuration hashes, population, complete locus identity where applicable, output destination and acceptance owner. These are separate source tools, not one generic `render-widgets` interface. A supplied HTML template is not a completed reader package.
+The bundle ships several HTML templates. A template is an empty page with a placeholder; its
+builder fills it with data. Open the built output, never the raw template. Each page has its own
+builder; there is no single `render-widgets` command for them (that command is described in
+[widget deliverables](WIDGET_DELIVERABLES.md)).
 
-| Supplied page | Owning source tool and actual reader output | Operating boundary |
-| --- | --- | --- |
-| `bundle_support/deliverable_menu_widget.html` | `tools/build_deliverable_menu_widget.py`; selected `--out` HTML, or `--stdout`/`--json` | Already populated catalog snapshot. Builder imports the selected bundle's parser and registry, then embeds command/outcome descriptions. Displayed commands do not execute; registered outcomes do not establish availability or source acceptance. |
-| `deliverable_tools/related_view.html` | `deliverable_tools/build_related.py`; `index.html`, `view.json`, partitions and audits | Template requires `__DATA__` substitution. Config-driven, private `frozen45` comparison view; current44base and 46runs are not joined. Source binding and geometry checks do not establish orthology, biological absence or section completeness. |
-| `deliverable_tools/strain_portfolio/portfolio_template.html` | `deliverable_tools/strain_portfolio/build_portfolio.py`; `START_HERE.html`, `portfolio.json`, partitions and `BUILD_RECEIPT.json` | Template requires `__PORTFOLIO_DATA__` substitution. Private `frozen45` portfolios distinguish strain, run, locus and gene-occurrence denominators. The receipt state is `MECHANICAL_CANDIDATE_NOT_SCIENTIFIC_ACCEPTANCE`. |
-| `tools/explorer_template.html` | `tools/build_domain_explorer.py`; `index.html`, `data.json`, `SOURCE_MANIFEST.json` | Template requires `__DATA__` substitution. An explicitly named population and `--expected-census` SHA-256 are mandatory. The latter must match `RELEASE_MANIFEST.json`'s `binding.census_sha256`; it is not a numeric expected record count. The nonblank population string is a display label, not a roster selector or a checked census name. Existing annotation observations do not establish complete chemistry, homology, genus or novelty. |
-| `tools/next_evidence_actions.html` | `tools/cohort_next_evidence_actions.py`; local HTTP reader, no generated reader directory | Requires the selected server's `/api/meta`, `/api/queue` and `/api/evidence`; opening the HTML through `file://` does not supply those endpoints. Routing questions do not authorize a search, submission or experiment. |
-| `tools/reaction_gap_board.html` | `tools/reaction_gap_board.py`; `index.html`, `board_data.json`, `BUILD_RECEIPT.json` | Template requires `/*DATA*/` substitution. Private `frozen45` view selects the first eligible saved rank per strain, at most 45 pairs. Eligibility is routing only; displayed pairs are not accepted partners or mechanistic hypotheses. |
+## Pages and builders
 
-The four generated data readers embed their payload in HTML. The reviewed supplied pages have no external script/style dependencies; the next-evidence page additionally needs its local API. Inspect the generated pages in the intended browser and confirm their source-database bindings before accepting appearance or compatibility. Keep private source-derived readers within their approved handoff scope.
+| Template | Builder | What it writes |
+|---|---|---|
+| `bundle_support/deliverable_menu_widget.html` | `tools/build_deliverable_menu_widget.py` (`--out`, or `--stdout`/`--json`) | One HTML file. Already filled: a snapshot of the command and deliverable catalog. Commands shown on the page do not run. |
+| `deliverable_tools/related_view.html` | `deliverable_tools/build_related.py config output` | `index.html`, `view.json`, partitions and audits. Fills `__DATA__`. |
+| `deliverable_tools/strain_portfolio/portfolio_template.html` | `deliverable_tools/strain_portfolio/build_portfolio.py --config --output [--source-root]` | `START_HERE.html`, `portfolio.json`, partitions and `BUILD_RECEIPT.json`. Fills `__PORTFOLIO_DATA__`. |
+| `tools/explorer_template.html` | `tools/build_domain_explorer.py --database --reader --output --population --expected-census [--pilot] [--template]` | `index.html`, `data.json`, `SOURCE_MANIFEST.json`. Fills `__DATA__`. |
+| `tools/next_evidence_actions.html` | `tools/cohort_next_evidence_actions.py --root --manifest --manifest-pin [--port] [--audit]` | Nothing on disk: a local web server. |
+| `tools/reaction_gap_board.html` | `tools/reaction_gap_board.py --source --manifest-sha256 --contract --output [--pilot] [--strain]` | `index.html`, `board_data.json`, `BUILD_RECEIPT.json`. Fills `/*DATA*/`. |
+| `tools/pcoa_bgc_explorer_template.html` | `tools/pcoa_bgc_explorer.py` | `index.html` plus `data/*.js`, loaded by script tags so it works from disk. |
+| `tools/cohort_tailoring/atlas_template.html` | `tools/cohort_tailoring/build_atlas.py` | `START_HERE.html` and `ATLAS_DATA.json`. |
+| `mamey/data/siderophore_atlas.html` | `tools/render_siderophore_atlas.py` | One HTML file filled from a pinned atlas JSON. Search and filters; no export. |
+| `mamey/enzyme_neighborhoods.html` | `mamey/cohort_enzyme_neighborhoods.py` | A standalone explorer. Fills `__VIEW_DATA__`. Up to three loci side by side, raw evidence drawers. |
+| `mamey/evidence_disagreements.html` | `mamey/evidence_disagreements.py` | Nothing on disk: served on loopback with `/api/*` routes. |
 
-## Domain explorer selection and exported counts
+The filled pages load no external scripts or styles. Two pages need their own local server:
+the next-evidence page (`/api/meta`, `/api/queue`, `/api/evidence`) and the evidence
+disagreements page. Opening either through `file://` shows nothing useful.
 
-The builder uses the database's sibling `RELEASE_MANIFEST.json`, checks the selected reader hash and calls that reader's admission gate before projection. `--pilot` selects the first locus in exact-identity sort order for each of at most five distinct strains. It does not select every locus from those strains, an explicitly supplied pilot roster or tested negative controls. The generated label still says “five-strain pilot subset” if fewer strains are available; use the saved counts and exact identities. Source rows, held unbound/conflicting feature records and some exclusion counters are read across the whole database even in pilot mode. A pilot output can therefore carry metadata or held observations outside the displayed pilot; it is not a redacted five-strain handoff.
+Several builders cover the private `frozen45` cohort: the related view, the strain portfolio and
+the reaction-gap board. Keep their output inside the approved handoff.
 
-The two annotation channels, `aSDomain` and `PFAM_domain`, stay separate. Physical proteins are deduplicated by strain, full contig, tag, coordinates, strand and protein hash across exact-region memberships; boundary-context-only memberships are excluded. Unordered patterns need two distinct labels and discard multiplicity. Ordered patterns need two retained domain occurrences and preserve repeats, but interval overlap or an unbound strand holds their order. Exact coordinate/label duplicates collapse before those patterns are formed. These are within-protein observations, not gene order, pathway architecture or function.
+All of these pages show existing annotations. None of them establishes orthology, a product,
+pathway completeness or activity. Missing, unbound, not-run and parse-failed states are not
+biological zero. Keep the full `strain / full node-or-contig / region / BGC alias` in any
+locus-specific handoff.
 
-The default browser minimum is two matching strains after filters; selecting one reveals singletons without changing their claim ceiling. The table pages 30 patterns at a time. `observed-domain-counts.json` exports all currently filtered patterns, not just the visible page, with the current strain/locus denominators and filters. It is a counts projection, not the full raw evidence/data/manifest package. Browser downloads are outside the builder's three-file output manifest; retain their own path/hash and filter scope when sharing them. Locus memberships can overlap and class labels are multilabel, so do not sum class strata or interpret locus prevalence as independent samples.
+## Reading the pages
 
-## Write and interruption contracts
+**Domain explorer.** The two annotation channels, `aSDomain` and `PFAM_domain`, stay separate.
+Proteins are de-duplicated by strain, contig, tag, coordinates, strand and protein hash. Patterns
+are within one protein, not gene order or pathway architecture. By default the table shows
+patterns found in at least two strains, 30 per page. Picking one strain reveals singletons.
+`observed-domain-counts.json` exports every filtered pattern, not just the visible page. Locus
+memberships overlap and class labels are multi-label, so do not add class strata together.
 
-| Tool | Existing output and recovery behavior |
-| --- | --- |
-| Deliverable menu widget | Creates parents and directly overwrites `--out`; the default path is relative to the process working directory. `--root` selects the imported bundle, not the output base. No paired completion receipt or atomic replacement is written by this tool. Use a separately selected candidate output; preserve the supplied snapshot. |
-| Related view | Existing output needs an identical `RESUME_BINDING.json`; an existing `SELF_AUDIT.json` refuses reuse with `SEALED_OUTPUT_USE_NEW_ROOT`. Cached partitions require matching checksum files. Sequential writes can leave partitions or `index.html` before the final `SELF_AUDIT.json`; `PASS_SOURCE_BINDING` verifies the stated source checks, not scientific acceptance. Retain an interrupted checkpoint and resume only under the same binding. |
-| Strain portfolio | Existing files must be byte-identical; new files use exclusive creation. A conflict raises `OUTPUT_CONFLICT_USE_NEW_ROOT`. Partitions, data, HTML and receipt are written sequentially, so an interruption can leave a partial set. Reuse only when the same inputs produce the same bytes; retain conflicting evidence and choose a new destination. Listed source/owner files inside the proposed output root are rejected. |
-| Domain explorer | A nonempty output requires a matching `SOURCE_MANIFEST.json` resume binding and matching `data.json`/`index.html` hashes; a match returns saved data without rerendering. A partial directory without its final manifest fails this check. Fresh output writes are sequential and direct. With `--template`, use a compatible reviewed template containing the `__DATA__` placeholder: replacement is not checked for its presence or count, and a final manifest can accompany an HTML file with no embedded reader data. Verify the generated reader before adopting it. Keep database, reader, manifest and template stable throughout a build; only the database has a final change check. Preserve a partial directory, inspect the exact failure and select a fresh candidate destination when the resume contract is not met. |
-| Next-evidence reader | Binds to `127.0.0.1` (default port 8768), checks the Host header and exposes GET handlers. The server has no write/submission API. Source manifest path containment, hashes, SQLite sidecar and identity/profile checks gate its reader. Subsequent source stamp changes produce a restart/repin hold. `--audit` validates sources and prints metadata; it still loads the pinned reader/identity Python modules. A page request can return HTTP 400 with `status: HELD`; do not interpret it as an empty successful result. |
-| Reaction gap board | Requires a new or empty output directory; a nonempty checkpoint is refused. Data, HTML and receipt are sequential writes with no rollback. Source hashes are rechecked before output. A missing receipt or later write failure leaves a partial candidate, even if an HTML file exists. Preserve it and select a fresh destination after resolving the cause. |
+The builder checks the database's sibling `RELEASE_MANIFEST.json`, the reader hash and its
+admission gate. `--expected-census` is the exact `binding.census_sha256`, not a record count.
+`--population` is a display label, not a roster selector. Unordered patterns require two distinct
+labels and discard repeats; ordered patterns retain repeats but hold order when intervals overlap
+or the strand is unbound. Exact coordinate/label duplicates collapse first. Browser exports carry
+the current counts and filters, not the full raw evidence package; retain their own hashes.
 
-Recovery must follow the selected tool's contract. Do not delete checkpoints, replace source evidence, clear holds, merge different populations or treat a source-binding PASS as release/scientific acceptance. Database/source hashes and a completion receipt should be read together with their actual scope. Missing, unbound, not-run and parse-failed annotation states are not biological zero; section relevance is not section completion. Retain complete strain / full node / region / BGC alias identity in locus-specific handoffs.
+**Domain explorer pilot.** `--pilot` takes the first locus, in identity order, from each of up to
+five strains. Some counts and held records still come from the whole database, so pilot output
+is not a redacted handoff. The label gives the real count, such as "3-strain pilot subset".
 
-## Source entry points and bounded verification
+**Reaction-gap board.** It shows the first eligible saved rank per strain, at most 45 pairs. A
+displayed pair is a routing suggestion, not an accepted partner or mechanism.
 
-The actual interfaces differ: related-view takes positional `config output`; portfolio takes `--config`, `--output`, optional `--source-root`; explorer requires `--database`, `--reader`, `--output`, `--population`, `--expected-census`; next-evidence requires `--root`, `--manifest`, `--manifest-pin`; reaction-board requires `--source`, `--manifest-sha256`, `--contract`, `--output`. Optional pilot/strain/template/port switches depend on the owning tool. These are source interface descriptions, not execution instructions for an unbound dataset.
+**Siderophore atlas.** Frozen population, current entries and displayed records are separate
+counts. Its "negative controls" are selected source states, not biological absence. Links to
+`GUIDE.pdf`, `GUIDE.docx` and `FIRST_FIVE_AND_NEGATIVE_AUDIT.json` work only if you supply those
+files. Citation links leave the local page.
 
-Builder/reader tools dynamically import their selected bundle or source-bound Python readers. A pinned hash establishes the chosen bytes; it does not make executing arbitrary reader code an inert operation. Review selected owners and input contracts before an authorized build. Preserve supplied templates and build generated output into a separate destination.
+**Enzyme neighborhoods.** The builder selects up to five no-call controls, not always five. The
+page text says flanks are 10 kb; check the real `flank_bp` in the source manifest. Missing linked
+domains are not domain absence. See the [enzyme builder contract](ENZYME_NEIGHBORHOODS.md).
 
-Source anchors in the supplied baseline:
+**Evidence disagreements.** Copying the HTML alone does not make the evidence portable. Export a
+bounded audit only through its CLI. A page error is a hold, not an empty result. See
+[candidate service contract](EVIDENCE_DISAGREEMENTS_CANDIDATE.md).
 
-- `tools/build_deliverable_menu_widget.py:52–84,108–174,358–387`: imports/parser inventory, payload and output.
-- `deliverable_tools/build_related.py:30–54,96–129`: exact roster, source/resume binding, partition checksum and final audit.
-- `deliverable_tools/strain_portfolio/build_portfolio.py:88–124`: population/denominators, substitution, exclusive writes and input/output guard.
-- `tools/build_domain_explorer.py:37–57,120–134`: source/resume admission, annotation states and output sequence.
-- `tools/cohort_next_evidence_actions.py:9–22,25–48,58–98,173–199`: routing, pinned imports/identity, SQLite/source-change checks and server.
-- `tools/reaction_gap_board.py:21–50,62–76,103–118`: saved-rank eligibility, source reader and candidate output contract.
+**PCoA explorer.** `--mibig-dmnd` runs DIAMOND, which is computation. Outlier thresholds and
+visual isolation are for prioritizing, not proof of novelty.
 
-See [artifact/menu limits](ARTIFACT_MAP_LIMITS.md) for registry availability and [widget deliverables](WIDGET_DELIVERABLES.md) for the separate `render-widgets` builder.
+**Annotation atlas.** `--limit` and `--offset` slice the output after the full build, so they do
+not reduce reading or memory use. Full-population counts can sit beside pilot records; check the
+scope fields before comparing numbers. A 120-second SQLite progress handler limits part of the
+database work, not the whole build. Its current50 mapping checks the exact profile, not section completion.
 
-## Additional PCoA and annotation-atlas readers
+## Output folders and recovery
 
-For the two additional bundled templates, open generated output rather than raw placeholders. `tools/pcoa_bgc_explorer.py` uses `pcoa_bgc_explorer_template.html` to create index.html plus data/*.js, loaded with script tags for disk/static-host use. `tools/cohort_tailoring/build_atlas.py` injects JSON into atlas_template.html and emits START_HERE.html plus ATLAS_DATA.json. Check browser compatibility and page layout on the generated output.
+Most builders write files one after another with no rollback. A failure can leave a partial
+folder. Keep it, find the cause and build into a new folder. Do not delete source evidence.
 
-The PCoA builder requires new/empty output and at least one matching kit TSV, then writes outputs sequentially. A later failure leaves a partial directory that the next build refuses. Retain it and choose a fresh candidate after resolving the failure; do not delete source evidence. Its final build_receipt records summary/args, not a hash manifest or proof every source/plot is scientifically valid. `--mibig-dmnd` can run DIAMOND; selecting that option is computation, not merely reading HTML. Existing-hit input is a separate path. Region/crosswalk and homology binding checks have explicit holds; outlier thresholds and visual isolation remain prioritization, not novelty/product proof. Sources: tools/pcoa_bgc_explorer.py:273–295,383–448,535–582; template:166–180.
+| Builder | Existing output |
+|---|---|
+| Deliverable menu | Directly overwrites `--out` and creates parent folders; no paired completion receipt is written. The default path is relative to the current folder; `--root` picks the bundle to read, not the output folder. |
+| Related view | Resumes only with an identical `RESUME_BINDING.json`. If `SELF_AUDIT.json` exists, it refuses with `SEALED_OUTPUT_USE_NEW_ROOT`. Cached partitions also need matching checksum files. |
+| Strain portfolio | Existing files must be byte-identical; otherwise `OUTPUT_CONFLICT_USE_NEW_ROOT`. Source files inside the output folder are refused. |
+| Domain explorer | A non-empty folder must have a matching `SOURCE_MANIFEST.json` and data/HTML hashes; then it returns the saved data without rebuilding. With `--template`, exactly one `__DATA__` placeholder is required; otherwise the build stops with `TEMPLATE_PLACEHOLDER_HOLD`. |
+| Next-evidence server | Binds `127.0.0.1`, default port 8768, GET only. If a source changes after start, it holds until restarted. `--audit` checks sources and prints metadata. A page can return HTTP 400 with `status: HELD`; that is not an empty result. The manifest can be outside `--root`, and audit mode still imports the pinned reader code. |
+| Reaction-gap board | Needs a new or empty folder; a non-empty one is refused. |
+| PCoA explorer | Needs a new or empty folder and at least one matching kit TSV. Its `build_receipt` records arguments, not file hashes. |
+| Annotation atlas | Output must stay inside the configured root; existing files must match exactly. |
+| Siderophore atlas | Checks the atlas file SHA-256 and refuses an existing output. It prints hashes to stdout but saves no receipt, so keep them. |
 
-The annotation atlas admits hash-pinned inputs and dynamically imports selected source readers. The output root must stay within the configured permitted root; each existing output must match the produced text exactly. JSON and HTML writes are sequential, with no paired transaction/rollback. Its `--limit`/`--offset` slice is applied after full build, so it does not cap full input reads, projection memory or all computation. The 120-second progress handler bounds part of SQLite work, not overall import, hashing, decompression, Python loops and rendering. Full-population denominators/family counts can accompany pilot/partitioned records; interpret the scope fields before comparing visible counts. The current50 mapping binds the exact profile, not section completion. Family/context labels and dictionary links do not admit reaction/substrate/activity conclusions. Sources: tools/cohort_tailoring/build_atlas.py:21–35,47–82,126–150; template:3–11.
+Builders import Python readers from the selected bundle or source. A pinned hash fixes which
+bytes run; it does not make running them harmless. Review the inputs before a build, and keep
+templates separate from built output.
+
+See [artifact and menu limits](ARTIFACT_MAP_LIMITS.md) for which registered outputs are
+available.

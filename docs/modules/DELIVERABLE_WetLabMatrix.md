@@ -2,7 +2,7 @@
 
 > **Filing.** `docs/modules/DELIVERABLE_WetLabMatrix.md`.
 > **Extends / references:** `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 4 (§33 WL score), `DAPR_CLASS_FRAMEWORK.md` (AB/AF routing, kernel MODULE 17), `DELIVERABLE_CONTRACT.md` (Offer Protocol, Contig-ID Mandate, Next-Paths). Architecture grades come from kernel MODULE 3 (§31); LMPKS rescue grades from `prompts/reuse/SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md`. **Do not restate those rules — point to them.**
-> **Precedence.** The active parent monolith (`SAPOTE_MAMEY_BUNDLE_MONOLITH.md`) wins over this module. This module wins over the *abbreviated* WL score table in slim-kernel MODULE 4 (M4 is a lossy summary; this is the full restoration). The criteria table below is a **portable copy** — the authority is the monolith / Mamey scoring code, not this doc.
+> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. `score_bgc()` owns this standalone helper's emitted score; it is separate from core extraction priors. The inherited criteria below are historical/proposed policy, not an exact copy of the current helper. Do not add missing terms or alter scores from this table without a separately governed source change.
 > **Status:** `SCHEMA_BACKED` — `tools/build_wetlab_matrix.py` emits `<strain>_WetLab_Decision_Matrix.csv` + the `WetLab_Decision_Matrix` sheet; `score_bgc()` in that tool is the single source of truth and this doc is its portable spec. (Sapote may still compute by hand from §3a when no package is present.)
 > **One-line purpose.** Convert each BGC's evidence into four independent, actionable wet-lab priorities (sequence / activate / isolate / dereplicate) plus a single decision category, in the full matrix format that v7.5.2 §33 carried and the slim kernel compressed to a bare score.
 
@@ -29,13 +29,19 @@ Per `DELIVERABLE_CONTRACT.md`, the user must never need to know this exists to r
 | `manifest.json → bioactivity` | "strain bioactivity matches class" +2 (extract-level only) | Base score |
 | LMPKS rescue result (if run) | post-score LMPKS adjustment (§33.3 LMPKS table) | Base score |
 
-**Skip-not-fake.** Any term whose input is absent is omitted and the cell labelled (e.g. `RiQ: not computed`), never assumed. A BGC with no TFBS scan does not silently lose the +2 induction term — it is marked `induction: unscanned`.
+**Missing inputs.** The writer does not treat every missing value the same way.
+- A missing RiQ score is noted as "RiQ: not computed", and its term is left out.
+- A missing, blank or non-numeric `kcb_cumulative` is scored as 0. A 0 takes the "No KCB" branch, so the row reads as "no KCB hit". That 0 means the value is missing. It is not a tested negative.
+- A missing architecture or edge field drops the terms that need it.
+- Induction is always recorded as not per-BGC, and LMPKS as not run.
+
+These are helper defaults, not negative evidence. Check missing inputs against the bound package before you read a score or an action category.
 
 ---
 
 ## 3. Pipeline
 
-Currently `PROMPT_BACKED`: Sapote computes the score per BGC from the §33.3 portable table (below), citing the Mamey field behind each term (Contig-ID Mandate applies — every BGC carries `BGC_ID (contig · regionXXX)`).
+The standalone deterministic writer is implemented. The inherited §33.3 table below is historical/proposed policy, not an exact copy of `score_bgc()` or permission to add terms to its output by hand. The current writer leaves metadata activity out of deterministic prioritization, records induction as not per-BGC, and records LMPKS as not run; it does not consume a rescue result to apply the listed adjustment table. Inspect `score_breakdown` and `skip_notes` for the selected output. Bind full strain / full node-or-contig / region / BGC alias separately from the abbreviated display locator.
 
 The deterministic writer already exists. It emits a CSV and a separate XLSX, not a sheet added to the package/master workbook:
 ```bash
@@ -43,7 +49,7 @@ python tools/build_wetlab_matrix.py --package-dir <pkg> --out-dir <dir>
 # emits: <strain>_WetLab_Decision_Matrix.csv  +  workbook sheet WetLab_Decision_Matrix
 # single source of truth for the score = score_bgc() in that tool; this doc then becomes its portable spec.
 ```
-Until that tool exists, the score is reproducible by hand from §33.3 and must cite fields, not assert numbers.
+The CSV and XLSX are separate outputs; XLSX exceptions are caught and reported as skipped without making the process fail. Existing destinations can be replaced, with no atomic commit of both files. Use a fresh output directory and inspect each requested artifact and its source bindings. The writer emits no input/output hash receipt; retain one separately. Its synopsis/fermentation-card integration rows below describe workflow requirements, not additional artifacts emitted by this CLI.
 
 ---
 

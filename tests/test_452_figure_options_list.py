@@ -1,4 +1,4 @@
-"""tools/gen_figure_options.py (card 018c0f08_452_figure_options_list): the figure options list is generated from each
+"""tools/gen_figure_options.py (card 452_figure_options_list): the figure options list is generated from each
 registered tool's own --help, so people and LLMs see the options the code has. Synthetic tools only."""
 import importlib.util
 import json

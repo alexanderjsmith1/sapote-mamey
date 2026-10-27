@@ -19,7 +19,7 @@ a high score does not show that the organism makes a compound or has activity in
 | An error or warning | [When something goes wrong](#when-something-goes-wrong) | A specific diagnosis; the attempt is kept |
 
 Three different ZIPs are involved: the code ZIP, the antiSMASH ZIP and the Complete_Package ZIP.
-Keep their original names and note which is which. Extract a copy before browsing a ZIP's files.
+Keep their original names and note which is which. Browse archive members in place where possible; extract only the selected files needed for reading or an isolated working candidate, while preserving the original ZIP.
 Do not run the program against its own code ZIP.
 
 ## Route A: ask your assistant to run it
@@ -29,8 +29,9 @@ Fill in the real paths and paste this:
 > Use the Sapote–Mamey program at [program folder]. Inspect the antiSMASH ZIP at
 > [input path]. Keep all outputs under [existing project analysis folder] and tell me what you
 > will create before writing. Confirm strain identity from the records. Use bounded JSON evidence,
-> defer the brief and locus maps, and do not submit sequences to online services. Run and validate
-> one strain, then show me the workbook, unresolved evidence and a short result explanation.
+> defer the brief and locus maps, turn reference completion off, and do not submit sequences
+> to online services. Require the workbook when running one strain, then validate with
+> `--workbook-strict`. Show me the workbook, unresolved evidence and a short result explanation.
 > Save state and the available transcript automatically, and give me the portable result ZIP.
 
 If installation is needed, the assistant should tell you which environment and packages it will
@@ -70,29 +71,18 @@ fix the path.
 An environment is a private set of Python packages for this project. It is not a biological
 input, and it should not be copied to another laptop as a portable installation.
 
-Follow [INSTALL](INSTALL.md) to create and activate the environment and install the extras you
-want. For this example, core plus figures and Biopython is enough. Before the
-commands below, check the [doctor write-probe boundary](INSTALL.md#doctor-scope-and-write-probe):
-use an editable working installation and do not run the probe if `runs/_doctor_probe`
-is already occupied. Then confirm:
+Complete [INSTALL steps 1–4](INSTALL.md) for this program installation and environment.
+For this example, use Python 3.12 or newer with the core, figures and Biopython dependencies.
+Read the [doctor write-probe and cache boundary](INSTALL.md#doctor-scope-and-write-probe)
+before the setup diagnostics; they belong in a writable working installation. If
+`runs/_doctor_probe` already exists, move it out of `runs/` (keep it; do not delete it)
+before you run doctor.
 
-```bash
-python --version
-python -B mamey_run.py start --no-doctor
-python mamey_run.py doctor
-```
-
-Python must be 3.12 or newer. `start --no-doctor` reports which program is loaded without the
-doctor probe; plain `start` also invokes `doctor`. `doctor` reports selected capabilities and
-performs the write probe described above. In normal bytecode-enabled mode, the launcher can
-write its provenance marker or clear unbound caches before dispatch. With `-B` or
-`PYTHONDONTWRITEBYTECODE=1`, the revised launcher skips the marker on a cache-free tree and
-refuses untrusted bytecode without purging it. This does not make doctor or other writing
-commands read-only; the commands in this run workflow belong in an authorized writable
-installation. Explicit `--purge-bytecode` remains a request to remove caches. Neither command
-analyzes your strain. Optional capabilities can stay missing if your
-task does not use them. If something fails, save the actual error instead of reinstalling
-repeatedly.
+If you already completed those steps for this installation and environment, activate that
+existing environment in this Terminal and continue to step 3 below. Do not reinstall or repeat
+the probe just because you moved between guides. Keep the setup diagnostics: missing optional
+capabilities matter only for the work that uses them, and a successful check does not establish
+valid analysis output. If setup failed, retain the actual error before trying a targeted fix.
 
 ### 3. Inspect the ZIP
 
@@ -106,9 +96,10 @@ suggest a capped command; that is a resource option, not an instruction.
 
 Now pick a local strain label, a verified taxonomy, and an isolation source if you know it.
 If `ORGANISM` is a placeholder such as `.`, do not pass it through as taxonomy: check the GBK
-DEFINITION and other source records, record where the value came from, or mark taxonomy as
-unverified. The GenBank SOURCE label is not necessarily the isolation habitat. Use
-`not supplied` when that metadata is unavailable. The
+DEFINITION and other source records and record where the value came from. If taxonomy is
+unverified, leave out `--taxonomy`; the run records `not verified`. The GenBank SOURCE label is
+not necessarily the isolation habitat. Use `--source 'not supplied'` when no isolation source
+is recorded. The
 [public-strain walkthrough](ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md) shows real input names, values
 and measured outcomes.
 
@@ -148,7 +139,11 @@ Settings to know before you change them:
 
 ### 5. Validate and read what finished
 
-Copy the package path the run printed. With the example above:
+Copy the package path the run printed. Validate the writable output from this run:
+`validate` can refresh `package_status.json`. For an existing preserved package, read
+its saved receipts first and use a separate review copy for a new check; see
+[validation write scope](POSTSEAL_READERS.md#validation-can-update-a-mutable-status-receipt).
+Capture printed findings and the exit status beside the package. With the example above:
 
 ```bash
 PACKAGE="$WORK/runs/first_bounded/EXAMPLE/package"
@@ -173,7 +168,7 @@ workbook path/current receipt independently; see the [inspector and validator sc
 | File/path not found | Wrong folder or unquoted path | Fix the path; keep spaces inside quotes |
 | Python below 3.12 | Wrong interpreter selected | Pick a supported interpreter and recreate only the intended environment |
 | No module named… | The active environment lacks a dependency | Confirm activation; install the documented feature, not every available package |
-| `MAIN_JSON_PARSE_HELD` | Full-mode file exceeds its guard | Keep this run; use bounded in a separate output root if partial evidence suits the task |
+| `MAIN_JSON_PARSE_HELD` | Main-walker JSON errors or skipped members; the full-mode size guard is one possible cause | Keep the attempt; read the recorded error/skip reasons and affected members before choosing any separate rerun |
 | `MAIN_JSON_WALKER_TRUNCATED` | Bounded evidence limit reached | Record the gap; check whether it affects your question before doing more |
 | `UNKNOWN` completeness | Completion was not established | Keep the uncertainty; do not call the channel complete or absent |
 | Validation failure | A required gate failed | Stop the affected interpretation and diagnose the actual gate; never edit status to PASS |
@@ -188,7 +183,7 @@ useful part.
 
 Use the existing Complete_Package ZIP. Do not rerun just because you started a new conversation.
 On another laptop, extract a copy and open `OPEN_ME_FIRST.html`. Keep the whole extracted folder
-together; the links point at neighbouring files. The workbook opens in Excel. Re-running the
+together; the links point at neighboring files. The workbook opens in Excel. Re-running the
 software needs its own compatible Python installation. Keep the checksum and run receipts.
 There is no need to copy the source ZIP, environment or working folder without a reason.
 
@@ -238,11 +233,18 @@ home-directory boundary, but an explicit root is better when evidence is outside
 project. A `BLASTP_DISCOVERY_HOLD` means discovery could not finish; fix the root or access
 problem and retry.
 
-Then use [Mode B authoring](MODE_B_USER_WALKTHROUGH.md), the [profile matrix](MODEB_PROFILE_MATRIX.md) and the package's selected contract to
-emit, author and verify the card. A generated template is a scaffold, not an authored card. Do
-not splice section numbers from different profiles. Having a citation does not mean the passage
-was reviewed or the science accepted. Keep unresolved evidence states, and check every generated
-export against the authored source.
+Choose the card's contract with [the profile matrix](MODEB_PROFILE_MATRIX.md), then follow
+[Mode B authoring](MODE_B_USER_WALKTHROUGH.md) to emit, author and verify it. Before native
+`mode-b` authoring, read [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-write-into-the-package):
+an external output folder can still leave the supplied package's integrity records refreshed.
+Use a bound working package copy for commands that author package data. Sealed-input
+`compile-report` has a separate external-reader route described in that guide; check the
+selected command rather than treating all follow-on work alike.
+
+A generated template is a scaffold, not an authored card. Keep the same profile through
+emission and verification; preserve unresolved evidence states and check each export against
+the authored source. A citation alone does not establish source review or scientific acceptance.
+For another selected output, use [Choose a task](USER_TASK_ROUTER.md).
 
 ### Compare strains and gene-cluster families
 
@@ -258,12 +260,12 @@ prove a clustering run succeeded.
 ### Build trees and matched overlays
 
 Follow [the phylogeny workflow](PHYLO_AUTOPILOT_WORKFLOW.md) for 16S placement or genome-based
-trees. Genome FASTAs and reference metadata are separate inputs; an antiSMASH ZIP is not a
-genome assembly.
+trees. Supply a full genome assembly FASTA and the required reference metadata. An antiSMASH ZIP may contain that full assembly; if used, record its exact member path and hash. Clipped region GenBank files are not a substitute for the whole assembly.
 
 Check the tree toolchain, reference panel, outgroup and label mapping. Join heatmap tracks
 through explicit strain/locus identifiers, then look at the labels, legends and plotted values.
-Use [the Figure Factory guide](figure_factory/README.md) for rendering and data sidecars. A
+Start with [Make and review figures](FIGURES_START_HERE.md) to choose the rendering route
+and retain its plotted data and captions. A
 staged tree job is not a completed tree, and a caption is not proof that the inputs it describes
 were used.
 
@@ -290,10 +292,3 @@ for later authored work. [Troubleshooting](COMMON_MISTAKES.md) lists recognizabl
 and recovery steps. The [documentation map](DOCUMENTATION_MAP.md) separates first-run guides from
 specialist and historical records.
 
-### Continue into authored Mode B interpretation
-
-[The Mode B user walkthrough](MODE_B_USER_WALKTHROUGH.md) covers package inputs, exact identity,
-runnable preparation/verification examples, profile differences and the complete 50-section
-requirement map. The native scaffold is not a finished 50-section card.
-
-For named optional deliverables, use [Choose a task](USER_TASK_ROUTER.md). Before native follow-on authoring, figure rendering or BLASTp ingest, read [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447). In .447 an external output folder does not always prevent package-integrity refresh; preserve the original and use a bound working package copy for those commands.

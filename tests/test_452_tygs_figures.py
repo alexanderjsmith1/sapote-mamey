@@ -1,4 +1,4 @@
-"""Tests for tools/tygs_figures.py (card 018c0f08_452_tygs_figures). Parsing and selection only; drawing needs R."""
+"""Tests for tools/tygs_figures.py (card 452_tygs_figures). Parsing and selection only; drawing needs R."""
 import importlib.util, sys
 from pathlib import Path
 

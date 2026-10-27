@@ -6,9 +6,9 @@ it performs no sequence search and assigns no numerical rescue probability.
 
 The focal four-part identity remains the card identifier. Core counts and expanded
 interpretation counts are separate. An effective gene-level SUPPORTED ruling is an
-anchor for selecting bounded neighbourhood context, not proof that every neighbouring
+anchor for selecting bounded neighborhood context, not proof that every neighboring
 CDS is a pathway member. Pair-level findings remain a separate evidence layer.
-This patch infers zero physical contig joins and no product or production.
+Nothing here joins contigs or infers a product.
 
 ## Offline inventory and inputs
 
@@ -22,6 +22,14 @@ python mamey_run.py emit-modeb-template --package selected_package --bgc BGC001 
   --contract current50_v2 --gap-rescue-dir rescue_folder \
   --rescue-gene-adjudication-tsv reviewed_gene_rulings.tsv \
   --rescue-locus-inventory inventory.json --out MODE_B.md
+```
+
+Replace the example selectors with the strain, package, member and alias from one bound source record.
+Keep the complete strain / full node-or-contig / region / BGC alias in the card. Author the emitted
+`MODE_B.md` from admitted evidence, replacing its prompts while preserving the first-line canonical
+header and machine-readable scope declaration. Then verify the actual saved authored file:
+
+```sh
 python mamey_run.py verify-modeb MODE_B.md --contract current50_v2 \
   --package selected_package --bgc BGC001 --require-expanded-locus
 ```
@@ -31,13 +39,14 @@ Its reference name and candidate locus must bind exactly one external rescue row
 an optional contig field must agree with that row. Run and effective rulings are
 both retained. An absent explicit file or binding conflict creates a source hold.
 `--rescue-verdicts-tsv` continues to carry pair-level reviews independently.
-Use the native `emit-modeb-template --contract current50_v2` route above or the
-full50 wrapper with expanded-specific source flags; it automatically selects native
-`current50_v2` for those inputs. The wrapper exposes no `--contract` flag.
-`modeb-round` and `deliverable-queue` expose these source flags but emit the default
-legacy scaffold profile; they do not select current50_v2. Supplying expanded inputs
-to those batch routes creates a typed CONTRACT_REQUIRED refusal, so use the native
-explicit-v2 route for an expanded work order.
+Use the native `emit-modeb-template --contract current50_v2` route above. The full50 wrapper also
+selects native `current50_v2` when `--rescue-locus-inventory` or `--rescue-gene-adjudication-tsv` is supplied;
+`--gap-rescue-dir` alone does not select that route. The wrapper exposes no `--contract` flag.
+`modeb-round` and `deliverable-queue` forward source flags but retain the default full48 scaffold.
+With the two expanded-specific inputs, affected templates are rejected as
+`EXPANDED_LOCUS_CONTRACT_REQUIRED`. Batch emission records per-card skips and can still write an index;
+`modeb-round` can write a worklist with zero emitted cards. This is not a guaranteed whole-command
+refusal. Inspect emitted counts and skip findings, and use the explicit native-v2 route for this work order.
 
 The separate `modeb-round --from-precompute` imported-prefill option is unavailable and returns `COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE` before new templates or a worklist are written. Omit that option for package-backed templates; omission retains the default scaffold profile described above. Neither this hold nor the separate `--cohort-dir` source option implements source-bound imported prefill or enables the explicit expanded-locus profile.
 
@@ -52,7 +61,7 @@ Unflagged loci explicitly say `no antiSMASH region / no BGC alias`.
 The complete focal CDS roster must match package gene facts. External rescue rows
 join through both normalized AA SHA-256 and exact locus/location, never an alias
 alone. Effective SUPPORTED anchors select their own CDS plus 2,500 bp on each side,
-clipped to the contig. Overlapping seed windows merge. Every overlapping CDS is
+clipped to the contig. Overlapping or directly adjacent seed windows merge. Every overlapping CDS is
 included whole, even if it extends beyond the seed boundary; there is no recursive
 extension. Distant windows remain separate, and a shared CDS is counted once.
 
@@ -71,8 +80,7 @@ roster with geometry, AA hashes and run/effective reference rulings. Authors mus
 replace scaffolding with scientific synthesis over that scope and add each gene's
 separate evidence channels. GECCO probability, called membership and reference
 annotations remain separate. Authored PCoA comparisons and plots must cover the selected interpretation scope and
-retain embedded-observation versus regional-census denominators. This patch supplies
-scope and authoring requirements; figure generation uses its separate reviewed workflow.
+retain embedded-observation versus regional-census denominators. Figures use their own workflow.
 
 ## Verification and limits
 
@@ -84,7 +92,7 @@ gene row in section 50. Missing declarations, source drift, unbound inputs or dr
 selected genes fail. Ordinary v2 cards without the new inventory remain compatible.
 Validated selected/alternative loci extend the genomic-existence context for the
 same card strain and package. They do not extend the core gene roster or its BGC
-membership map. Genuine unflagged rescued neighbours therefore avoid a false
+membership map. Genuine unflagged rescued neighbors therefore avoid a false
 PHANTOM_LOCUS error while wrong-strain, wrong-package or unbound declarations
 cannot grant existence.
 The channel matrix has an explicit selected-CDS roster separate from the package's
@@ -99,7 +107,6 @@ A work order requiring expanded scope must invoke `verify-modeb --contract curre
 --require-expanded-locus`. This independently refuses an absent declaration even if
 both the emitted cue and declaration have been removed. The default remains compatible
 with ordinary core-only v2 cards.
-No full engine suite, release seal or scientific adoption is implied by targeted tests.
 
 ## Reader admission safeguards
 
@@ -132,7 +139,7 @@ an owned inventory destination and preserve the authoritative prior receipt; thi
 refusal for every destination or an all-output transaction.
 
 Recorded inventory/source bytes and selected-gene existence are mechanical bindings. Their successful
-rebuild does not establish that the operator selected the scientifically appropriate assembly, rescue
+rebuild does not show that the operator selected the scientifically appropriate assembly, rescue
 ruling or comparison scope. `verify-modeb --report-json <owned-receipt.json>` persists the optional
 verification report and can replace an existing report; without that flag the command prints findings.
 Keep the saved candidate, selected contract, required-expanded flag, exact source hashes, actual findings

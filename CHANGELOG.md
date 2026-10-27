@@ -1,3 +1,67 @@
+# v9.7.458 — unsealed cut candidate · build 20261026v97458a
+
+Build 20261026v97458a; engine 1.9.177.
+
+Builds on the sealed v9.7.457 (CODE zip, build 20261023v97457a). The engine stays 1.9.177: no card changes RG-GMCI scores, ranks, thresholds or KCB values. One engine output changes by owner ruling. A single-region public accession input now keeps its accession as the strain ID; before, it could get a derived or filename-based ID.
+
+- **User docs, rewritten for a reader opening the bundle cold.** Measured on reader pages against sealed .457:
+  - source line references: 539 → 73;
+  - sentences over 40 words: 2,446 → 1,113;
+  - hedge phrases: 966 → 845;
+  - words: 892k → 646k.
+
+  The work came in five parts:
+  - all 16 docs-review batches, applied page by page;
+  - six reader-path audits (front door, analysis, companion tools, cohort and data, figures, troubleshooting), each command and flag checked against the parser;
+  - first-use definitions on the reader path;
+  - over 100 retired or superseded pages moved to `docs/history/`, with banners and pointer pages;
+  - the bundle monolith's design history split into `docs/history/MONOLITH_DESIGN_HISTORY.md`.
+
+  A new test stops line references and long sentences from growing back.
+- **Mode B ingest.**
+  - `ingest-receipts` now checks each card against the contract named in its header, or against `--contract`. Cards written to the current50_v2 profile can be recorded; before, they were refused with title mismatches.
+  - `ingest-receipts` refreshes the post-seal checksums, so a later `validate` no longer flags recorded cards as injected.
+- **Strain Master.**
+  - After a failed master-workbook update, the run prints the inbox route that works: submit, then verify, then apply. Before, it printed an `ingest_package.py --master` command that does not exist.
+  - The README written by `strain-master init` names that route.
+- **Identity and metadata.**
+  - Single-region accession inputs keep the accession as the strain ID (see above).
+  - `tools/strain_level_bgc_logic.py` counts strains and loci from its input instead of printing fixed numbers.
+- **Figures.**
+  - Render QC measures the smallest text at print width; `--min-text-pt` defaults to 8.
+  - Placement activity legend per ruling 314: "strong (≥80%)" and "tested, below 80%". An opt-in three-state view is added.
+  - Locus maps fit a landscape page.
+  - TriMap pages: the corner-tick collision is fixed.
+  - Bioassay figures:
+    - pale last columns are no longer clipped;
+    - species names in titles are italic;
+    - family names are always roman;
+    - the bee and attine A06 panels show all groups.
+- **Codex hardening cards R458_36 to R458_60.**
+  - Seeded BiG-SCAPE runs refuse randomized hashing, and the final receipt is written atomically.
+  - A producer map without a declared source is refused.
+  - Outgroup and panel admission are stricter.
+  - Standalone receipts and round-trip checks are exact.
+  - Checkpoint and freshness bounds are enforced.
+  - Markdown appendices are preserved.
+- **Help text and smaller fixes.** These help texts no longer mislead: `figures gcf-network --run` (no "largest is authoritative"), `guide --bgc` (gene-table order), `render-figures --outdir` (one default folder per figure set), and `emit-modeb-template` (American spelling).
+- **CI.**
+  - The print-call ceiling is 1251, measured.
+  - The companion-instruction policy follows the current page wording.
+  - The retired-mode scan treats `docs/history/` as archival.
+- **Generated surfaces** are regenerated once, by the last card in the stack: the tool inventory, capabilities block, maintenance inventory, file atlas, command catalog, wiki mirrors and deliverable menu.
+
+- **Correction to the minimum-text check entry in v9.7.457.** That entry overstated the evidence for tree-figure text being read as 1 pt. The retained baseline record did not reproduce the fault: all eight synthetic cases passed without the proposed adapter, and no code change was admitted. Reproducing the original environment and the affected PDF is still needed before choosing a fix. The page-fit floor is a separate change.
+
+Known limits, for later (prepared for v9.7.459 or held for the owner):
+- KCB band cut points are on the wrong scale for raw bitscores, and the KCB score and its reference can come from different records. Both are being carded for .459, each with a list of the loci that change.
+- The register marks SHALLOW and STUB Mode B cards COMPLETE.
+- `phylo-run` defaults to two parallel jobs of four threads.
+- Placement tip labels bin countries into continents by default.
+- The six known defects listed under decisions row 71 are carded for .459. Their pages warn about each one.
+- A missing isolation source refuses a whole 16S roster. This waits on an owner ruling.
+- 17 Arial-metric tests skip on CI. `test_release_cut_partition_mode` needs a real filesystem, not a sandbox.
+
 # v9.7.457 — unsealed cut candidate · build 20261023v97457a
 
 Build 20261023v97457a; engine 1.9.177.

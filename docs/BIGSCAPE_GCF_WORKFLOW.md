@@ -11,8 +11,10 @@ For a command-by-command cohort example using the bundled launcher and figure to
 [cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md).
 
 BiG-SCAPE groups antiSMASH region GBKs by domain architecture and related sequence features.
-It is a downstream companion analysis: it does not alter the sealed Mamey run, and its families are
-run-specific similarity groups rather than compound identities.
+It is a downstream companion analysis; its families are run-specific similarity groups rather than
+compound identities. Clustering can use separately staged inputs, but the optional integration route
+rewrites package cards. Use preserved working packages for that route and read the
+[implemented-adapter limits](#implemented-adapters-versus-the-requested-runbook) before execution.
 
 ## 1. Input contract
 
@@ -77,13 +79,14 @@ bigscape cluster \
 ```
 
 If the installed CLI uses different spelling, the locally verified command is authoritative and
-must be captured in `COMMAND.sh` and `RUN_MANIFEST.json`. One core is the interactive default; two
-is balanced; four is the surfaced ceiling.
+must be captured in `COMMAND.sh` and `RUN_MANIFEST.json`. This template explicitly requests one
+core for interactive work; two is the balanced project budget and four is its surfaced ceiling.
+These are workflow resource choices, not claims about an installed tool's default core count.
 
 **Alignment mode — leave it on the default `auto` for this cohort, and say so.** BiG-SCAPE compares a
 pair of clusters with *global* alignment when both are complete and *glocal* when at least one is
 fragmented; 2.0 adds a true *local* mode for divergent pairs that share only a domain subset. The
-default `auto` selects global/glocal per pair and is the correct behaviour for the bee/wasp cohort,
+default `auto` selects global/glocal per pair and is the correct behavior for the bee/wasp cohort,
 whose assemblies are often fragmented — do **not** force `global`, which the tool documents as
 appropriate only for datasets with no contig breaks and manually curated borders. Verify the exact
 flag name against the installed `bigscape cluster --help` and record the chosen mode in the receipt.
@@ -130,9 +133,10 @@ Family ID may be included for display but cannot be the cross-run join key.
 
 For a cohort-only run write, for example:
 
-> AS-XXX NODE_…·region… and AS-XXX NODE_…·region… were assigned to the same run-specific
-> BiG-SCAPE family at cutoff 0.5 (run 3). This supports related BGC architecture in the sampled
-> cohort; it does not establish compound identity, production, activity, or novelty.
+> `<strain A> / <full node-or-contig A> / <region A> / <BGC alias A>` and
+> `<strain B> / <full node-or-contig B> / <region B> / <BGC alias B>` were assigned to the same
+> run-specific BiG-SCAPE family at cutoff 0.5 (run 3). This supports related BGC architecture
+> in the sampled cohort; it does not establish compound identity, production, activity, or novelty.
 
 Only a user-approved, source-preserving reconciliation may add this context to Mode B cards or the
 triage board. Write overlays or copied deliverables by default; never silently edit sealed/canonical
@@ -207,7 +211,7 @@ must be recovered before reuse. Apply the panel-scope principle without transfer
   cutoff 0.3), and the gap **widens** on interior (non-truncated) regions only — so fragmentation is not
   the driver. The driver is that a mutually-redundant single-genus panel (e.g. 89 cohort *Streptomyces*)
   self-clusters trivially, while a multi-genus panel gives each BGC far fewer eligible within-panel
-  neighbours.
+  neighbors.
 - **Caption rule.** "cohort-private", "AS-private", "singleton", and "reference-dark" all describe **the
   panel and the reference set**, never the organism. They are **not** rarity or novelty. A private/dark
   count becomes a novelty *candidate* only with genus-matched comparators (sign-off gate #4 comparator
@@ -215,14 +219,14 @@ must be recovered before reuse. Apply the panel-scope principle without transfer
 - **Do NOT use GCF-singleton as a novelty criterion in this panel.** It fires on ~2/3 of AS BGCs (base
   rate ~65%), so "lead X is also a singleton" is base-rate agreement, not independent corroboration
   (lift ≈1.5×). The *informative* direction is the **inverse**: a reference-dark lead that *does* have
-  cohort neighbours sits in the ~35% minority and is worth a second look. (a contributor lane, 2026-08-03.)
+  cohort neighbors sits in the ~35% minority and is worth a second look. (a contributor lane, 2026-08-03.)
 
 ## Implemented adapters versus the requested runbook
 
 The manifest, content-addressed storage, member hashes, state/events and QA receipts above are requirements for a reviewed companion run; they are not all produced automatically by `tools/bigscape_prep.py` or `tools/bigscape_pipeline.py`. The prep tool writes GBK byte copies with strain-prefixed basenames and a strictness manifest, not content-addressed objects plus relative links. Its only per-record source hashes are for excluded small query records. Accepted staged records need a separate source-member/hash/identity roster. Record reason and estimated size before staging substantial data; retain source archives in place and avoid full-package duplication.
 
-Prep requires explicit strictness or an explicitly justified mixed-input override, refuses a nonempty output directory, skips hard-excluded strains by default and returns1 for no staged records. Input-level errors are caught and reported; files staged earlier in a failing input can remain even when its manifest count is0. A successful aggregate count is not full manifest/filesystem parity. Collisions refuse a destination but do not roll back earlier records. Inspect exclusions, errors and all actual objects before clustering (`tools/bigscape_prep.py:98–109,149–209,266–327`).
+Prep requires explicit strictness or an explicitly justified mixed-input override, refuses a nonempty output directory, skips hard-excluded strains by default and returns 1 for no staged records. Input-level errors are caught and reported; files staged earlier in a failing input can remain even when its manifest count is 0. A successful aggregate count is not full manifest/filesystem parity. Collisions refuse a destination but do not roll back earlier records. Inspect exclusions, errors and all actual objects before clustering (`tools/bigscape_prep.py`).
 
-The pipeline forwards prep's input policy. Its prep path requires `--strictness {loose|relaxed|strict}`, or `--allow-mixed` with a non-empty `--mixed-justification`; `--assume-strictness` is forwarded when given. Missing or conflicting options refuse before any staging. The selected policy and forwarded arguments are written to `PREP_STRICTNESS_POLICY.json` in the work directory. Prep still applies its own admission gate. A separately reviewed prepared input with `--skip-prep` is an alternative only when its complete provenance is already bound. `--skip-cluster` requires an explicit run ID. Pre-existing databases require one too; chunked MIBiG remains refused. Fresh runs infer exactly one new run-ID row, but that delta alone does not certify completed scientific results or expected reference loading (`tools/bigscape_pipeline.py:112–126,145–218`).
+The pipeline forwards prep's input policy. Its prep path requires `--strictness {loose|relaxed|strict}`, or `--allow-mixed` with a non-empty `--mixed-justification`; `--assume-strictness` is forwarded when given. Missing or conflicting options refuse before any staging. The selected policy and forwarded arguments are written to `PREP_STRICTNESS_POLICY.json` in the work directory. Prep still applies its own admission gate. A separately reviewed prepared input with `--skip-prep` is an alternative only when its complete provenance is already bound. `--skip-cluster` requires an explicit run ID. Pre-existing databases require one too; chunked MIBiG remains refused. Fresh runs infer exactly one new run-ID row, but that delta alone does not certify completed scientific results or expected reference loading (`tools/bigscape_pipeline.py`).
 
 The pipeline invokes known/novel and cross-strain exporters even on its no-MIBiG branch. Their presence and legacy status strings do not authorize known/novel language on a cohort-only run. Its optional ingest mutates cards; it is not an additive overlay implementation and does not generate the complete minimum-deliverables receipt set. Follow [integration limitations](BIGSCAPE_MAMEY_INTEGRATION.md) and the [reader recovery guide](troubleshooting/BIGSCAPE_TROUBLESHOOTING.md) before interpreting or reconciling outputs. Bind the selected run logs and output hashes before using an external result.

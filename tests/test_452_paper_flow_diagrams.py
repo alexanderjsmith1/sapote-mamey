@@ -1,4 +1,4 @@
-"""Paper flow diagrams (card 018c0f08_452_paper_flow_diagrams): the default workflow diagram and the two method
+"""Paper flow diagrams (card 452_paper_flow_diagrams): the default workflow diagram and the two method
 diagrams use plain words, with no folder, module or schema names, and every figure choice writes its own .dot."""
 import importlib.util, re, shutil, subprocess, sys
 from pathlib import Path

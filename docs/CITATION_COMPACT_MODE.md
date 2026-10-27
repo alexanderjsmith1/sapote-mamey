@@ -1,9 +1,8 @@
 # Citation-Compact Mode
 
-Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+Run these commands from the bundle root.
 
 
-**Introduced:** historical proposal v9.7.136; current opt-in CLI output implementation exists  
 **Purpose:** reduce repeated claim-safety prose while increasing citation/evidence density.
 
 ---
@@ -68,20 +67,22 @@ Priority leads should have a citation basis or an explicit `citation_needed` mar
 
 | Column | Meaning |
 |---|---|
-| `lead_id` | stable lead identifier |
+| `lead_id` | generated priority-prefix/row-number label; can change with row order or priority |
 | `strain_id` | strain/source identifier |
-| `bgc_id` | BGC identifier, if applicable |
-| `stable_locus` | node/region locator |
+| `bgc_id` | supplied BGC alias, or row-derived fallback when absent; reconcile with the bound source locus |
+| `stable_locus` | first supplied assembly/node/contig field; does not itself guarantee a complete region identity |
 | `lead_priority` | EXCEPTIONAL/HIGH/MEDIUM/etc. |
 | `interpretation_scope` | what can safely be claimed |
 | `evidence_basis` | extracted evidence anchors |
 | `citation_basis` | references supporting class/family/method |
 | `uncertainty_flags` | unresolved or risky assumptions |
-| `next_experiment` | best practical next experiment |
+| `next_experiment` | generated generic follow-up text requiring scientific review and separate authorization |
 
 ---
 
-## Validator Expectations
+## Policy expectations and implemented checks
+
+The list below is an authoring policy, not a claim that every item is enforced. The current emitter checks citation-basis shape/status only for exact EXCEPTIONAL/HIGH priority tiers and counts its own whitespace-normalized global-caveat text across emitted Markdown; zero occurrences also pass. The separate package gate has the narrower acceptance scope described in [Citation-compact report readers](CITATION_COMPACT_READERS.md). It does not verify template completeness or literature truth.
 
 - repeated global caveat count must be ≤1;
 - priority leads must include citation basis;
@@ -104,10 +105,10 @@ Sapote-Mamey uses citation-compact outputs to separate runtime evidence structur
 
 - **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
 - **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
-- **`PASS_STRUCTURE` in CITATION_COMPACT_QA.json** means the emitter’s priority citation-basis and global-caveat checks found no error. It does not establish sealing/checksum tracking or literature truth. The separate package compact gate reports PASS/FAIL/NOT_REQUESTED and checks its own required files, schema, tracking and checksums when present; it accepts a QA WARN as an allowed status, so preserve warnings rather than upgrading them into verified content.
+- **`PASS_STRUCTURE` in CITATION_COMPACT_QA.json** means the emitter’s priority citation-basis and global-caveat checks found no error. It does not establish sealing/checksum tracking or literature truth. The separate package compact gate reports PASS_STRUCTURE/FAIL/NOT_REQUESTED and checks its own required files, schema, tracking and checksums when present; it accepts a QA WARN as an allowed status, so preserve warnings rather than upgrading them into verified content.
 - **`operator_supplied`** means the citation/provenance row came from runtime evidence or comparator fields already present in the package.
 - **`citation_needed`** means literature support is missing and should be filled by a separate literature-search pass.
-- **`Literature_Search_WorkOrder.md/json`** is a safe handoff for another ChatGPT/web-literature session. It is a search instruction, not a verified fact.
+- **`Literature_Search_WorkOrder.md/json`** is a handoff for a separate literature search. It is a search instruction, not a verified fact.
 
 Current compact lead tables use `interpretation_scope` for reader-facing scope. The older reader-facing scope field should not appear in current citation-compact outputs.
 

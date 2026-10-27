@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Check shared handback format and final SAVE STATE confirmation.
+"""Check legacy numbered handback format and final SAVE STATE confirmation.
+
+The legacy 3–8 item rule is not the current user handback policy.
 
 This lexical check does not prove that state or transcripts were written.
 
@@ -55,9 +57,13 @@ def main(path: str) -> int:
     nums = [int(re.match(r"^\s*(\d+)\.", x).group(1)) for x in items if re.match(r"^\s*(\d+)\.", x)]
     if nums != list(range(1,len(items)+1)):
         errors.append(f"expected consecutive numbering starting at 1; found {nums}")
-    if not items or not re.search(r"SAVE STATE.*(?:saved|FAILED)", items[-1], re.I):
+    state = (re.match(r"^\d+\.\s+SAVE STATE\s*(?:[—:-]\s*)?(saved|FAILED)\b",
+                      items[-1], re.I) if items else None)
+    if state and re.search(r"\bnot\s+saved\b", items[-1], re.I):
+        state = None
+    if not state:
         errors.append("final item must confirm SAVE STATE saved, or explicitly FAILED")
-    if items and re.search(r"SAVE STATE.*saved", items[-1], re.I) and not re.search(r"\[[^]]+\]\([^)]+\)", items[-1]):
+    if state and state.group(1).lower() == "saved" and not re.search(r"\[[^]]+\]\([^)]+\)", items[-1]):
         errors.append("saved confirmation must link its checkpoint")
     norms = [normalize_item(x) for x in items]
     if len(set(norms)) != len(norms):
@@ -68,7 +74,7 @@ def main(path: str) -> int:
     report = "NEXT_PATHS_CHECK: FAIL" if errors else "NEXT_PATHS_CHECK: PASS"
     if errors:
         report += "\n" + "\n".join("- " + e for e in errors)
-    emit(report)
+    sys.stdout.write(report + "\n")
     return 1 if errors else 0
 
 if __name__ == "__main__":

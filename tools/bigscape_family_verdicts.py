@@ -22,6 +22,14 @@ activity or novelty. Judgment deferred.
 """
 from __future__ import annotations
 import argparse, collections, csv, os, re, sqlite3, sys
+from pathlib import Path
+
+
+def _open_db_ro(path):
+    """Open a BiG-SCAPE database read-only. A plain connect on a mistyped path created an empty file."""
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"not an existing BiG-SCAPE database: {path}")
+    return sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
 try:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run outside an editable install
@@ -72,7 +80,7 @@ def build(db_path, cutoff, query_rx, prefixes, run_id=None):
     """A BiG-SCAPE 2 database reused for a later run (the documented way to add genomes) keeps every run's families.
     Families are read from one run only: run_id when given, else the latest run. Reading all runs counts each family
     once per run."""
-    con = sqlite3.connect(db_path)
+    con = _open_db_ro(db_path)
     runs = family_runs(con)
     if runs is None:
         if run_id is not None:

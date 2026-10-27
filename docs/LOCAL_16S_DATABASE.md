@@ -9,12 +9,14 @@ Build the BLAST database first. The store is needed only for the panel and ranki
 
 ## How the tools find the BLAST database
 
-Every tool below resolves the database through one function, `tools/_phylo16s.py: refseq_16s_blastdb()`. One setting therefore reaches all of them. The order is:
+Every tool below except the store builder resolves the database through one function, `tools/_phylo16s.py: refseq_16s_blastdb()`. One setting therefore reaches all of them. The order is:
 
-1. the tool's own argument (`--db`, `--refseq-db`), when given;
+1. the tool's own argument, when given: `--db`, `--refseq-db`, or `--blastdb` for `phylo_16s_from_genome.py`;
 2. `$SAPOTE_16S_DB`, then `$NCBI_16S_DB`;
 3. the `ncbi_16s_blastdb` row of the workspace asset registry, `OFFICIAL_DATA/ASSET_REGISTRY.tsv`. Its `path` column is the prefix, or a folder holding `16S_ribosomal_RNA.*`;
 4. `<workspace>/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA`, then `<workspace>/blast_dbs/16S_ribosomal_RNA`; the first that has database volumes is used.
+
+`tools/phylo_16s_build_db.py` is the exception. It reads RefSeq records only from an explicit `--refseq-blastdb`; the environment and registry settings do not reach it.
 
 Keep one copy and point everything at it. Two copies of different dates would give different answers from different tools. BLAST+ cannot read a database path that contains spaces, so keep it in a path without spaces.
 
@@ -95,22 +97,25 @@ export SAPOTE_16S_SQLITE=/data/16s/rrna16s.sqlite
 | `tools/phylo_16s_build_db.py` | BLAST database → store | Builds the SQLite store |
 | `tools/phylo_16s_panel.py`, `phylo_16s_rank.py`, `phylo_16s_fetch.py`, `phylo_16s_esearch.py`, `phylo_16s_audit_merges.py`, `phylo_16s_validate_db.py` | SQLite store | Panels, ranking, fetches, merge screens, defect checks |
 
-The same resources feed the isolate neighbourhood panel ([NEIGHBOUR_PANEL_16S_TYGS.md](NEIGHBOUR_PANEL_16S_TYGS.md)), the placement workflow ([PHYLO_PLACEMENT_WORKFLOW.md](PHYLO_PLACEMENT_WORKFLOW.md)) and outgroup selection ([OUTGROUP_AND_REFSET_WORKFLOW.md](OUTGROUP_AND_REFSET_WORKFLOW.md)).
+The same resources feed the isolate neighborhood panel ([NEIGHBOUR_PANEL_16S_TYGS.md](NEIGHBOUR_PANEL_16S_TYGS.md)), the placement workflow ([PHYLO_PLACEMENT_WORKFLOW.md](PHYLO_PLACEMENT_WORKFLOW.md)) and outgroup selection ([OUTGROUP_AND_REFSET_WORKFLOW.md](OUTGROUP_AND_REFSET_WORKFLOW.md)).
 
 ## How identity is measured
 
 `sixteen_s_similarity_check.py` and `comparator_select.py` measure identity the same way:
 
-- **Every record is searched.** `-max_target_seqs` is set to the database's sequence count. BLAST keeps the first N subjects in its own order, not the N most identical, so a small cap misses the nearest type strain in large genera such as *Streptomyces* and *Nocardia*.
+- **Subject cap.** `-max_target_seqs` is set to the database's sequence count from `blastdbcmd -info`. When that count cannot be read, both tools use a fallback cap of 100,000 subjects. BLAST keeps the first N subjects in its own order, not the N most identical, so a small cap can miss the nearest type strain in large genera such as *Streptomyces* and *Nocardia*. The similarity check records the cap it used as `max_target_seqs` in its receipt.
 - **Ambiguous bases are left out.** BLAST's `pident` counts every IUPAC code (N, R, Y and so on) as a mismatch. A partial Sanger read with 27 ambiguous calls in 702 bp loses about 3.8 points that way. The tools report identity over the alignment columns where both sequences carry A, C, G, T or a gap (`_phylo16s.unambiguous_identity`). Gaps still count as differences.
-- The similarity check writes both readings: `nearest_identity` (BLAST `pident`) and `nearest_identity_unambiguous`, with `query_ambiguous_bp`. Quote the unambiguous value against a species threshold.
+- The similarity check writes both readings: `nearest_identity` (BLAST `pident`) and `nearest_identity_unambiguous`, with `query_ambiguous_bp`. Quote the unambiguous value against a species threshold, with `nearest_title_unambiguous`. The raw and unambiguous nearest records can differ.
 
 ## What to put in Methods
 
 - the database title, sequence count and date, from `blastdbcmd -info`;
 - full or partial, with the genera when partial;
 - the BLAST+ version;
-- the tool and its thresholds; for the similarity check, hits covering at least 90% of the query, with a flag at the chosen point difference;
-- that identity was computed over unambiguous positions, across every record in the database.
+- the tool and its settings: for the similarity check, megablast with an 85% raw-identity floor (rerun without the floor if nothing passes), preferring hits that cover at least 90% of the query and falling back to shorter hits when none do;
+- the `-max_target_seqs` cap used and the flag's point difference;
+- that identity was computed over unambiguous positions, across every record in the database when `blastdbcmd -info` supplied the record count (otherwise up to the 100,000-subject fallback).
+
+If any `blastn` search fails, the similarity check stops with an error. The error gives BLAST's exit code and the first 300 characters of its error output. That covers both the nearest-record search and the search against the deposited species' records. A failed run writes no table and no receipt. In a finished table, a blank `nearest_identity` means the search ran and found no hit. A blank `identity_to_deposited_species` means either no hit or no database record for that species; `deposited_species_in_db` tells the two apart.
 
 A 16S similarity is a relatedness measurement. A value below a species threshold marks a candidate for genome comparison; it is not a species call.

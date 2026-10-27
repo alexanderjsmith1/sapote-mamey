@@ -2,12 +2,11 @@
 **Vetted against:** Sapote–Mamey v9.7.7 contract · Updated 2026-06-10 (added class-specific prompts + TIGRFAM guard).
 
 These are the reusable prompts that drive the "special output" runs — the Sapote/Claude judgment layer
-operating over sealed Mamey packages. All inherit `_SHARED_GUARD_BLOCK.md` (G1–G5) and are vetted
-against `docs/DELIVERABLE_CONTRACT.md`, `docs/WORKBOOK_SCHEMA.md`, and the monolith.
+operating over sealed Mamey packages. Read all applicable current guards in `_SHARED_GUARD_BLOCK.md`. Historical vetting does not prove current compatibility with the selected contract, workbook schema or scorer, and does not override user scope.
 
 ## Shared guard (read first)
 - `_SHARED_GUARD_BLOCK.md` — G1 claim-safety · G2 locator mandate · G3 evidence-JSON-first ·
-  **G4 TIGRFAM-extraction guard (NEW)** · G5 convention checks. Every prompt below inherits these.
+  **G4 run-specific evidence availability** · G5 convention checks · G6 source-bound misanchor wording. Apply the current text rather than an old numbered snapshot.
 
 ## Run prompts
 | Prompt | Use | Output |
@@ -15,9 +14,9 @@ against `docs/DELIVERABLE_CONTRACT.md`, `docs/WORKBOOK_SCHEMA.md`, and the monol
 | `SAPOTE_DELIVERABLES_REUSE_PROMPT.md` | Standard full per-strain interpretation | Three deliverable docs + workbook sheets |
 | `SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md` | Fragmented assembly, cross-contig reconstruction | RG-GMCI D1/D2/D3, FLBR census, LMPKS rescue |
 | `SAPOTE_TOP_N_CLASS_REUSE_PROMPT.md` | Generic parameterized class enumeration | Diagnostic-core-grounded top-N table |
-| `SAPOTE_TOP50_POLYKETIDE_REUSE_PROMPT.md` | Polyketide enumeration (enediyne TIGRFAM-affected) | Top-50 PKS deliverable + topology graphics |
+| `SAPOTE_TOP50_POLYKETIDE_REUSE_PROMPT.md` | Polyketide enumeration with run-specific diagnostic coverage checks | Top-50 PKS deliverable + topology graphics |
 | `SAPOTE_TOP50_HALOGENATION_REUSE_PROMPT.md` | Halogenation enumeration | Top-50 halogenation deliverable |
-| `SAPOTE_TOP_NUCLEOSIDE_REUSE_PROMPT.md` | Nucleoside enumeration (TIGRFAM-affected — fallback required) | Strict + adjacent nucleoside sections |
+| `SAPOTE_TOP_NUCLEOSIDE_REUSE_PROMPT.md` | Nucleoside enumeration with explicit channel/coverage states | Strict + adjacent nucleoside sections |
 
 ## TIGRFAM availability is package-specific
 
@@ -35,7 +34,7 @@ sealed-package rewrite or a biological negative from a missing diagnostic.
 ## Provenance note (header correction)
 Earlier copies carried a header saying they "live OUTSIDE the bundle / not under checksums." That is
 now stale: as of v9.7.6 the reuse prompts are IN `prompts/reuse/`, version-controlled and checksummed,
-regenerated against the current monolith/contract with the evidence-JSON, locator, and TIGRFAM guards
+regenerated (as of v9.7.6) against the then-current monolith/contract with the evidence-JSON, locator, and TIGRFAM guards
 built in. The standalone outside-bundle copies are superseded by these.
 
 Companions in `prompts/`: `SAPOTE_MAMEY_CO_EXECUTION_PROMPT.md`, `MAMEY_CHATGPT_EXECUTION_PROMPT.md`,

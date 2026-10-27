@@ -1,7 +1,6 @@
 # SOP-17 — cross-strain GCF cohort with BiG-SCAPE
 
-**Status:** active SOP. `docs/LLM_COMPANION_TOOL_PROTOCOL.md` and
-`docs/BIGSCAPE_GCF_WORKFLOW.md` bind this procedure.
+Read [the companion tool protocol](../LLM_COMPANION_TOOL_PROTOCOL.md) and the [GCF workflow](../BIGSCAPE_GCF_WORKFLOW.md) first.
 
 ## Purpose
 
@@ -11,8 +10,8 @@ universal novelty, and it does not edit sealed Mamey outputs by default.
 
 ## Procedure
 
-1. Resolve the current bundle, cohort registry, and BiG-SCAPE workspace. Read `CURRENT_RUN.txt` and
-   verify an existing handoff before creating a run.
+1. Find the current bundle, the cohort registry and the BiG-SCAPE workspace. Check for an existing
+   run and handoff before you create a new one.
 2. Select exact strain inputs and inventory their antiSMASH ZIP hashes, region-member counts, bytes,
    locators, and antiSMASH versions.
 3. Stage region GBKs as content-addressed objects with strain-prefixed run links. Quarantine
@@ -21,8 +20,10 @@ universal novelty, and it does not edit sealed Mamey outputs by default.
 5. Declare `cohort-only` or an approved reference-augmented design. Do not auto-download MIBiG.
 6. Show the preflight: BGC/strain/reference counts, bytes, core plan, runtime/disk estimate, output
    root, and mutation/network boundaries.
-7. Run the exact recorded BiG-SCAPE 2.x command at cutoffs 0.3, 0.5, and 0.7. Default one core;
-   surface two and four as user options.
+7. Run the exact recorded BiG-SCAPE 2.x command at cutoffs 0.3, 0.5, and 0.7. The interactive
+   policy is one core; select the runner’s core flag explicitly. The generic `mamey_run.py bigscape`
+   parser defaults to four without `--cpus 1`, while `tools/bigscape_pipeline.py` defaults its
+   separate `--cores` option to one. Surface two and four only as explicitly selected resource options.
 8. On interruption, inspect state/log/database before retrying. Reuse cache only when the immutable
    input manifest and scientific parameters are unchanged.
 9. Select the exact completed database run ID. QA count parity, integrity, families, memberships,
@@ -34,6 +35,13 @@ universal novelty, and it does not edit sealed Mamey outputs by default.
    triage products and retain original hashes. Do not silently mutate canonical cards.
 
 ## Reader implementation limits
+
+The procedure above is the required run contract, not a promise that one helper creates every
+receipt. `bigscape_prep.py` writes strain-prefixed GBK copies and a strictness manifest; it
+does not create content-addressed links or hash every accepted member. The pipeline’s optional
+`--ingest-package` route mutates cards rather than implementing additive overlays. Resolve
+these gaps through the [adapter boundary](../BIGSCAPE_GCF_WORKFLOW.md#implemented-adapters-versus-the-requested-runbook)
+and retain the required source/member roster and receipts separately.
 
 The cohort procedure above requires exact completed-run selection and count reconciliation. Some auxiliary family readers filter only by cutoff and can return 0 with empty, skipped or failed output rows. Their present behavior does not enforce all SOP gates. Read [the reader recovery guide](../../tools/BIGSCAPE_READER_RECOVERY.md), inspect per-output status tables and keep an explicit hold when the database contains unresolved/mixed run memberships. Never infer completion from the process exit status alone.
 

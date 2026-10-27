@@ -23,7 +23,14 @@ The default retains outgroup tips. Explicit `--prune-outgroup` only permits remo
 
 Outputs are `<prefix>_display.nwk`, `<prefix>_display_meta.tsv`, `<prefix>_collapse_ledger.tsv`, and `<prefix>_display_receipt.json`. Existing outputs are refused. Each ledger row retains the full original metadata as JSON, with the tip, representative, disposition, pairwise summary, and mismatch/shared-column counts. Every input tip appears exactly once, including representatives, retained queries, and explicitly pruned outgroups.
 
-Collapsed labels identify the shared recorded taxon, member count, mismatch ceiling, and representative. Source, category, accession, and other member-specific columns are cleared on grouped display rows; `display_source_scope=member_records_in_ledger` records why. A representative's deposited source is never displayed as a shared habitat. All member-specific values remain in the ledger.
+With the default `--group-label group`, collapsed labels describe the shared
+recorded taxon, member count, mismatch ceiling and representative; member-specific
+fields are cleared on grouped rows. With `--group-label representative`, the
+representative retains its own label and fields. `placement_display.py` currently
+selects representative mode. Those values remain properties of that record,
+not shared habitat or other properties of the collapsed members. Both modes
+retain the original member metadata and comparisons in the ledger and use
+`display_source_scope=member_records_in_ledger` for grouped rows.
 
 ## Verify and render
 
@@ -38,7 +45,19 @@ python tools/gate_stem_aware.py figures/panel_display.nwk \
 
 The verifier checks the externally supplied receipt digest, all input and output hashes and byte counts, the requested tree/metadata/parent paths, and the complete schema. It rebuilds the display from the bound inputs in memory and requires exact output bytes, including the membership ledger. Rehashing an arbitrary display does not make it a valid derivative. There is no sibling-filename receipt trust or newest-bundle selection. The checker is always the gate wrapper's sibling `tree_sanity_check.py`. Missing machinery returns exit 3 and blocks rendering; invalid bindings or gate failures return exit 2.
 
-The wrapper retains the engine's branch checks. Its narrow structural exemption applies only to a dominating internal ingroup stem directly below a bifurcating root with an exclusive outgroup sister. Every other non-outgroup branch is checked against the same depth ceiling, and terminal failures remain fatal. No comparison against rounded diagnostic text establishes branch identity. The exemption is printed and remains a display gate result, not scientific acceptance.
+The wrapper delegates branch checks to its sibling `tree_sanity_check.py`.
+Outgroup-only branches receive the engine's outgroup treatment. A dominating
+ingroup stem is not exempt merely because it is the root sister of an exclusive
+outgroup clade. The extra locked-outgroup route requires explicit
+`--locked-root-receipt` and `--locked-root-receipt-sha256` arguments selecting
+the tree being gated and recording the locked accession. Only the matching
+ingroup half of that root edge is exempt from `DOMINATING_BRANCH`; other ingroup
+branches and terminal checks remain. The command above supplies no such lock.
+The helper checks the receipt digest/schema, selected tree path and accepted
+variant, but does not establish external registry authority or replay every
+root-variant binding. A separately verified diagnostic render retains strict
+`gate_pass=false` and diagnostic-only authority; neither it nor gate PASS
+establishes scientific acceptance.
 
 ```bash
 GG_DISPLAY_RECEIPT=figures/panel_display_receipt.json \
@@ -83,7 +102,7 @@ python tools/add_reference_source_labels.py panel_meta.tsv \
 
 The database is explicit and read-only. It must be a frozen, checkpointed SQLite snapshot with a `record.acc_version` column; active journal/WAL sidecars are refused. Exact versioned accessions use the existing canonical parser. Versionless, conflicting, missing, and ambiguous lookups retain typed unresolved states. No shared numeric accession body or filename alias supplies identity.
 
-Only reference labels can change. The field order is deposited `isolation_source`, then `host`, then `geo_loc_name`; a geographic fallback is labelled `location:`. Full original labels, type tokens, accession versions, source fields, and raw record values are retained. Existing bracketed sources remain unchanged with an explicit review state. Query and outgroup labels remain unchanged. Missing source fields are unavailable evidence, not a negative biological observation. A sidecar receipt binds the original metadata, frozen database, and additive output. Perform this step before collapse so source values are part of the display's original metadata and ledger.
+Only reference labels can change. The field order is deposited `isolation_source`, then `host`, then `geo_loc_name`; a geographic fallback is labeled `location:`. Full original labels, type tokens, accession versions, source fields, and raw record values are retained. Existing bracketed sources remain unchanged with an explicit review state. Query and outgroup labels remain unchanged. Missing source fields are unavailable evidence, not a negative biological observation. A sidecar receipt binds the original metadata, frozen database, and additive output. Perform this step before collapse so source values are part of the display's original metadata and ledger.
 
 ## Export an editable figure-source copy
 
@@ -110,8 +129,8 @@ The generated `<stem>_rerender_captioned.sh` invokes `<stem>_render_figure.R` wi
 
 The export includes both the figure-specific R entry and a canonical `ggtree_rect_heatmap.R` copy. The current render gate binds the canonical filename as renderer provenance even when the helper executes the figure-specific entry. If that entry is edited, retain its actual executed file hash separately; do not describe the canonical copy's hash as proof of the modified renderer used. Shell interpolation is quoted, and the exported helper retains receipt-bound display checking, but export itself does not execute that check. A bound rerender refuses existing output-prefix artifacts; retain prior results and select a fresh reviewed prefix before an authorized rerender.
 
-The helper finishes by running its sibling `refresh_figure_source_manifest.py`, which directly replaces that exported folder's `MANIFEST.json` with hashes of current eligible files. It omits symlinks, caches/bytecode and files named `MANIFEST.json`; it is an inventory refresh, not display replay, complete source provenance, rendered-page inspection or scientific acceptance. Preserve the previous manifest as separate evidence before adopting an edited derivative. R packages and Python gate dependencies must be available on the destination machine; copying helper sources is not environment provisioning. Sources: `tools/export_tree_figure_source_package.py:13–149`, `tools/gate_stem_aware.py:49–87,165–180`, `tools/ggtree_rect_heatmap.R:4–65`, and `tools/refresh_figure_source_manifest.py:15–46`.
+The helper finishes by running its sibling `refresh_figure_source_manifest.py`, which directly replaces that exported folder's `MANIFEST.json` with hashes of current eligible files. It omits symlinks, caches/bytecode and files named `MANIFEST.json`; it is an inventory refresh, not display replay, complete source provenance, rendered-page inspection or scientific acceptance. Preserve the previous manifest as separate evidence before adopting an edited derivative. R packages and Python gate dependencies must be available on the destination machine; copying helper sources is not environment provisioning.
 
 ## Validation boundary
 
-Generic tests exercise retained distances, role protection, exclusive clades, complete-linkage limits, alignment and metadata failures, source-version conflicts, mutation refusal, deterministic replay, relocation, and real R rendering when the graphics stack is available. Focused test success is not a full-suite, integration, release, publication, or scientific validation result.
+Generic tests exercise retained distances, role protection, exclusive clades, complete-linkage limits, alignment and metadata failures, source-version conflicts, mutation refusal, deterministic replay, relocation, and real R rendering when the graphics stack is available.

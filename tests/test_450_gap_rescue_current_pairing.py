@@ -189,7 +189,7 @@ def test_standalone_saved_map_replay_preserves_legacy_default_pairing(pairing, m
     assert b.f.calls == before_stage_calls
     assert len(b.table_calls) == len(b.pair_calls) == 1
     # No pairing keyword: the default saved-map pairing is kept. The only keyword is the proteins for the gene-table
-    # positions (card 018c0f08_456_gap_rescue_gene_table_positions).
+    # positions (card 456_gap_rescue_gene_table_positions).
     assert b.writer_calls[0][1] == {"prots": b.f.prots}, "Standalone replay retains the default saved-map pairing contract"
     assert {path: path.read_bytes() for path in b.admitted_maps} == b.admitted_maps
     assert {Path(path).name for path in b.results[0]["files"]} >= {"map_and_table.png", "map_and_table.pdf"}

@@ -27,16 +27,6 @@ does not validate every section's scientific content. The full48 semantic public
 not applied to this profile's different section numbers. Source/protein provenance, geometry,
 GECCO/rescue interpretation and final content acceptance still require independent review.
 
-What changed from current50 v1:
-
-- §21 merges the RiPP precursor ladder and the RiPP search (v1 §21 + §22).
-- §22 is new: GECCO gene-level and cluster evidence.
-- §23 merges heterologous expression and OSMAC into one production-strategy section (v1 §23 + §26).
-- §26 is new: the contigs rescued into the BGC (reference-guided gap rescue, split-link rulings, assembled map).
-- §8 and §26 name both reference genes when one found gene is the best hit of two.
-- §40 uses the current BiG-SCAPE run with MIBiG and the reference genomes; §43 points to §26; §44 names the protein PCoA sets.
-- §48 and §49 are the literature sections, with relevance. §50, the data evidence table, is the very last section and adds the GECCO probability and the gap-rescue match per gene.
-
 Rows below use the same `| n | requirement |` shape as v1, so the four consumers that parse a 50-row table accept this file. Pin it by its own sha256; never edit it in place.
 
 | § | Requirement |

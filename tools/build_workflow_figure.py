@@ -68,7 +68,7 @@ LEGACY_DOT = r'''digraph sapote_mamey {
 }
 '''
 
-# Paper-ready diagrams (card 018c0f08_452_paper_flow_diagrams). Plain words only: no folder, module or schema names.
+# Paper-ready diagrams (card 452_paper_flow_diagrams). Plain words only: no folder, module or schema names.
 # Every box is an HTML table with a transparent padded border, so arrows stop a little short of the visible box.
 # Group names sit to the left of their boxes as plain text, never on a frame line that an arrow crosses.
 _INK, _PAD = "#4A5560", 6

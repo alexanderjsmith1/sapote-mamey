@@ -67,12 +67,19 @@ def render_md(payload: dict) -> str:
     lines = ["# Marker / Cassette Catalog (generated)", "",
              f"**Generated from** `{payload['source']}` — do not edit by hand.",
              f"**Content hash:** `{payload['sha256'][:16]}…`", "",
-             "Regenerate with `python3 tools/gen_marker_catalog.py`. The build checks this "
-             "file against the live regex tables (`--check`), so the catalog cannot drift "
-             "from the scanner.", ""]
+             "Regenerate with `python3 tools/gen_marker_catalog.py`. `--check` compares both "
+              "generated files with the tables collected from the imported scanner module in "
+              "that environment. The content hash covers that table mapping, not scanner control "
+              "flow or a biological validation. Registry activation, fallback behavior, coupling "
+              "and downstream guards require their own source/run evidence.", ""]
     for table, fams in payload["tables"].items():
         n_pat = sum(len(v) for v in fams.values())
-        lines.append(f"\n## {table}  ·  {len(fams)} families / {n_pat} patterns\n")
+        if table == "CCTT_VETOES":
+            lines.append(f"\n## {table}  ·  {len(fams)} veto rules\n")
+            lines.append("Each three-field tuple lists the context key, class override token and "
+                         f"recorded reason; these {n_pat} fields are not regex patterns.\n")
+        else:
+            lines.append(f"\n## {table}  ·  {len(fams)} families / {n_pat} patterns\n")
         for fam, pats in fams.items():
             shown = ", ".join(f"`{p}`" for p in pats[:8])
             more = f"  … (+{len(pats) - 8} more)" if len(pats) > 8 else ""

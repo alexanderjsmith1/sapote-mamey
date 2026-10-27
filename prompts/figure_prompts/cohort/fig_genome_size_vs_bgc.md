@@ -9,23 +9,23 @@
 - **source:** `figure_ready/strain_summary.csv`
 - **columns used:** assembly_bp, corrected_bgcs, assembly_tier
 - **row filter:** all strains
-- **derived fields:** —
+- **derived fields:** assembly_mb = assembly_bp / 1,000,000; admit finite source-derived values and preserve missingness
 
 ## Plot
 - **type:** scatter
-- **x:** assembly_bp (Mb)   **y:** corrected_bgcs   **color:** assembly_tier
+- **x:** assembly_mb (Mb)   **y:** corrected_bgcs   **color:** assembly_tier
 - **order:** —   **scales:** linear
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
-> Corrected BGC count versus genome size (n = <admitted_isolate_n> isolates); colour = assembly tier to show the fragmentation confound.
+> Corrected BGC count versus genome size (n = <admitted_isolate_n> isolates); color = assembly tier to show the fragmentation confound.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - If a regression line is wanted, add it downstream; do not imply causation in the figure.

@@ -289,11 +289,16 @@ def genus_literature(pkg, lit_dir: str | None = None) -> str:
     # pull the compound bullets (lines starting with '- **') as the compact context
     bullets = [ln for ln in body.splitlines() if ln.strip().startswith("- **")][:8]
     L = [f"#### Genus literature context — *{genus}*",
-         "<!-- gate-safe subsection; class-level genus chemistry/ecology from the in-bundle literature "
+         "<!-- gate-safe subsection; class-level genus chemistry/ecology from the selected literature "
          "KB. Similarity/capacity anchor for authoring, NOT a per-strain identity or product claim. -->",
          f"Characterised chemistry associated with *{genus}* / close relatives (capacity anchors):"]
     L += bullets if bullets else ["- (see the genus knowledge file for details)"]
-    L.append(f"\n*Source: `mamey/data/literature/{genus}.md`. Use as a class anchor; if a core is "
+    source_path = Path(md).resolve()
+    try:
+        source_label = source_path.relative_to(Path(__file__).resolve().parents[1]).as_posix()
+    except ValueError:
+        source_label = str(source_path)
+    L.append(f"\n*Source: `{source_label}`. Use as a class anchor; if a core is "
              "reference-dark, read domain grammar, not this list.*")
     return "\n".join(L)
 

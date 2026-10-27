@@ -1,4 +1,4 @@
-# Isolate neighbourhood panel: 16S genome hits, NCBI genome table and TYGS
+# Isolate neighborhood panel: 16S genome hits, NCBI genome table and TYGS
 
 This page describes how to build one isolate's genome panel for core-genome trees, MLSA and ANI/AAI from three sources: the
 isolate's 16S BLAST hits on complete genomes, NCBI's genome table, and the isolate's TYGS result. The panel holds the genomes the
@@ -85,6 +85,8 @@ python tools/neighbour_panel_candidates.py --isolate ISOLATE_001 --blast blast/I
   --exclude OWN_GENOMES.txt --out-dir PANEL/ISOLATE_001
 ```
 
+Use a fresh output directory and a fresh checker report path. The builder creates its directory if needed but replaces `PANEL_TREE.tsv` and `PANEL_ISSUES.tsv` when they already exist; the checker also replaces its `--out` file. Preserve the preceding panel, source roster and hashes before a changed build.
+
 - **`PANEL_TREE.tsv`:** one row per assembly. `why` lists every source that added it (`16S_genome_hit`, `TYGS_type_strain`). The other columns give the best 16S identity with its subject sequence, the organism, the strain, the NCBI type-material text, the TYGS type strain(s) with d4, and the assembly level.
 - **`PANEL_ISSUES.tsv`:** one line per item that was not added:
   - subject sequences with no complete or chromosome assembly;
@@ -92,7 +94,8 @@ python tools/neighbour_panel_candidates.py --isolate ISOLATE_001 --blast blast/I
   - TYGS rows resolved by strain designation;
   - second deposits of one strain (`duplicate_strain`).
 - **16S ranking:**
-  - genome hits rank by best identity, then bitscore, over alignments of at least `--min-align` bp;
+  - for each subject sequence, retain its highest-bitscore HSP meeting `--min-align`; choose each assembly's representative by identity, then bitscore, and rank assemblies the same way;
+  - 12-column input uses raw BLAST `pident`. Optional appended `qseq` and `sseq` columns allow identity over unambiguous alignment columns; the output records `best_16S_identity_basis`. Keep that basis with each reported identity; these two identity readings are not interchangeable;
   - **the default is 600 bp**;
   - the top `--top-16s` are kept.
 - **Excluded genomes:** the isolate's own genomes (`--exclude`) are removed **before** ranking, so they never take a slot.
@@ -109,7 +112,9 @@ python tools/check_tygs_coverage.py --tygs tygs_digital_ddh_*.tsv --panels-dir P
 The check reads the TYGS tables independently of the panel builder. It takes each strain's top N plus ties, and exits 1 if any row is
 neither in `PANEL_TREE.tsv` (`tygs_type_strain`) nor logged in `PANEL_ISSUES.tsv`. Run it on every set of panels before trees are built.
 
+Exit 0 can mean zero rows were checked (wrong query labels, no `U vs. T` rows, unreadable d4 or N = 0). Check that the report has the rows you expected.
+
 ## Claim limits
 
 Panel membership is comparator selection. A 16S identity and a dDDH value measure relatedness. Neither is a species or genus call by
-itself, and a 16S genome hit is not proof of nearest-neighbour status.
+itself, and a 16S genome hit is not proof of nearest-neighbor status.

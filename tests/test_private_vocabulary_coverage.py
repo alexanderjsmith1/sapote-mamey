@@ -79,7 +79,7 @@ def test_invalid_selected_profile_still_refuses(tmp_path):
 def test_current_container_scope_and_adjacent_path_guards_survive():
     spec=importlib.util.spec_from_file_location('coverage_container_audit',TOOL)
     api=importlib.util.module_from_spec(spec);spec.loader.exec_module(api)
-    path='/home/mnt/gbk/*.gbk';relative='docs/RIPPER_ARCHIVED_LOCAL_CONTRACT.md'
+    path='/home/mnt/gbk/*.gbk';relative='docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md'
     assert not api._personal_path_in_line('container `'+path+'`',relative)
     for text,rel in [('container `'+path+'`','docs/OTHER.md'),
                      ('container `'+path+'.backup`',relative),

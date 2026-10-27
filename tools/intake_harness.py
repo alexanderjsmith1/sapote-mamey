@@ -205,6 +205,28 @@ def run_monitored(cmd, timeout=None, **kw):
     return p.returncode, round(time.perf_counter()-t0, 3), round(peak_mb, 1), out
 
 
+def _run_monitored_input(cmd, *, env, timeout=None):
+    """Optional staged-input engine-child limit; the benchmark is separate.
+
+    run_monitored owns only its immediate child. A timeout is RUN_FAILED, never
+    completion; descendant cancellation and persistent full logs are not promised.
+    """
+    if timeout is None:
+        return run_monitored(cmd, env=env)
+    started = time.perf_counter()
+    try:
+        return run_monitored(cmd, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired as exc:
+        output = exc.output or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        message = (f"INPUT_TIMEOUT: engine child exceeded {timeout:g}s; "
+                   "descendant cancellation is not guaranteed")
+        sys.stderr.write(message + "\n")
+        # The monitor cannot certify peak memory after an interrupted attempt.
+        return -1, round(time.perf_counter() - started, 3), "", str(output) + "\n" + message
+
+
 def _run_failed_reason(log, max_len=160):
     """Best-effort one-line reason for a RUN_FAILED batch row, for the operator's stdout only.
 
@@ -304,11 +326,13 @@ def _engine_binding():
 
 
 def _run_binding(zp, name, args, engine):
+    options = {"mode": args.mode, "source": args.source, "release": args.release,
+               "taxonomy_map": _file_binding(args.taxonomy_map) if args.taxonomy_map else None,
+               "brief": "none", "json_evidence": "bounded"}
+    if getattr(args, "per_input_timeout", None) is not None:
+        options["per_input_timeout_seconds"] = args.per_input_timeout
     return {"input": _file_binding(zp), "strain": name, "engine": engine,
-            "options": {"mode": args.mode, "source": args.source, "release": args.release,
-                        "taxonomy_map": _file_binding(args.taxonomy_map) if args.taxonomy_map else None,
-                        "brief": "none", "json_evidence": "bounded"},
-            "outdir": os.path.realpath(args.outdir)}
+            "options": options, "outdir": os.path.realpath(args.outdir)}
 
 
 def _completion_path(outdir, name):
@@ -465,6 +489,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inputs", nargs="+", required=True, help="dir of zips and/or individual zips")
     ap.add_argument("--outdir", required=True)
+    ap.add_argument("--per-input-timeout", type=float, default=None, metavar="SECONDS",
+                    help="Optional finite positive engine-child wall limit for staged intake; "
+                         "default has no limit. Does not cap the benchmark or guarantee descendant "
+                         "cancellation; unavailable with captured-policy intake.")
     ap.add_argument("--registry", required=True)
     ap.add_argument("--metrics", required=True)
     ap.add_argument("--batch-report", default=None)
@@ -496,6 +524,12 @@ def main():
     ap.add_argument("--capture-threads", type=int)
     ap.add_argument("--capture-master", help="Optional cumulative master committed with the captured batch")
     a = ap.parse_args()
+    if a.per_input_timeout is not None:
+        if not math.isfinite(a.per_input_timeout) or a.per_input_timeout <= 0:
+            ap.error("--per-input-timeout must be finite and positive")
+        if a.capture_policy:
+            ap.error("--per-input-timeout applies to staged intake; captured-policy intake "
+                     "requires its separately captured execution policy")
     captured_error = None
     if a.capture_policy:
         from mamey.captured_harness import run as captured_intake
@@ -597,7 +631,7 @@ def main():
             _checkpoint(reg_rows[-1], met_rows[-1])
             continue
 
-        rc, wall, mem, log = run_monitored(
+        rc, wall, mem, log = _run_monitored_input(
             [sys.executable, os.path.join(ROOT, "mamey_run.py"), "run", "--input-zip", izip, "--strain", name,
              "--taxonomy", org or "not verified", "--source", a.source, "--mode", a.mode,
              # v9.7.431: --release was PARSED and used for the private-name guard and the registry
@@ -608,7 +642,8 @@ def main():
              # The engine still refuses an unsafe PUBLIC override (resolve_release's private guard
              # is not operator-bypassable), so forwarding cannot widen exposure.
              "--release", a.release,
-             "--json-evidence", "bounded", "--brief", "none", "--outdir", a.outdir], env=env)
+             "--json-evidence", "bounded", "--brief", "none", "--outdir", a.outdir],
+            env=env, timeout=a.per_input_timeout)
         pkg = os.path.join(a.outdir, name, "package")
         if rc != 0 or not os.path.isdir(pkg):
             emit(f"  - {name:40} RUN_FAILED (rc={rc}){_run_failed_reason(log)}")

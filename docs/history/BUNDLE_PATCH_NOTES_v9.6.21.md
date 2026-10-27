@@ -1,3 +1,5 @@
+> Historical patch notes. Current changes: [CHANGELOG](../../CHANGELOG.md).
+
 # BUNDLE PATCH NOTES — Sapote–Mamey v9.6.21
 
 > **Status (this build):** ALL items below are applied to **all four tiers**

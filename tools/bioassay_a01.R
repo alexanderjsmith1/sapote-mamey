@@ -13,7 +13,7 @@ nt <- d %>% count(target)
 lin_axis <- max(n$n) <= 20   # linear when every row is small; see the axis below
 p <- ggplot(b,aes(x=n,y=row,fill=activity_class))+geom_col(width=.74,colour="white",linewidth=.15)+
   geom_text(data=n,aes(x=n,y=row,label=n),inherit.aes=FALSE,hjust=-.25,size=PT,family=PUB_FONT)+
-  facet_wrap(~target,nrow=1,labeller=as_labeller(setNames(paste0(sub(" or ","\nor ",sub(" \\(not recorded\\)","\n(not recorded)",nt$target)),"\n(",nt$n," isolates)"),nt$target)))+
+  facet_wrap(~target,nrow=1,labeller=as_labeller(setNames(gsub("\n","<br>",sp_md(paste0(sub(" or ","\nor ",sub(" \\(not recorded\\)","\n(not recorded)",nt$target)),"\n(",nt$n," isolates)"))),nt$target)))+
   scale_fill_manual(values=setNames(c("#12355B","#4A7FB5","#9DBEDF","#E3E8EF"),lev),drop=FALSE)+
   scale_y_discrete(labels=genlab)+
   # a square-root axis keeps a 100-isolate row and a 1-isolate row on one panel, but it squeezes the outer part of a

@@ -1,6 +1,6 @@
 # Reading bundle identity, manifests and checksums
 
-Start with the exact bundle tree/archive and a trusted expected release hash or receipt supplied independently of that tree. Record the path, SHA-256 and selected build. Metadata carried inside a bundle describes its contents; it does not independently establish who supplied them, that required jobs ran, or that scientific conclusions were accepted. Keep the original bundle in place and prepare any documentation/code changes as a separate candidate.
+Start with the exact bundle tree/archive and a trusted expected release hash or receipt supplied independently of that tree. Record the path, SHA-256 and selected build. Metadata inside a bundle describes its contents. It does not prove who made it, that tests ran, or that the science was accepted. Keep the original bundle in place and prepare any documentation/code changes as a separate candidate.
 
 | Record | What it describes | Limit |
 |---|---|---|
@@ -27,7 +27,7 @@ This scope describes `check_release_manifest.py`'s CLI, which enables strict cov
 
 `tools/check_module_accretion.py` reads module membership from the sealed checksum list, validating its row syntax/duplicate paths. It does not use the human `MODULE_MANIFEST.txt` inventory for that comparison or rehash source files as part of membership admission. Current module names are scanned separately; additions require a recognized justification basename in the newest changelog block. Removed modules are reported without independently failing this gate. These are code-composition checks, not evidence that each module executes correctly.
 
-`--write` regenerates the human module-purpose inventory and mutates that file; it does not repair the sealed checksum baseline. The generated inventory header still describes the older baseline behavior. Preserve generated ownership and resolve its wording through the owner rather than editing the generated record. For readable command/capability discovery, use [the catalog guide](CATALOG_MAINTENANCE.md) and [current task routes](USER_TASK_ROUTER.md).
+`--write` regenerates the human module-purpose inventory and mutates that file; it does not repair the sealed checksum baseline. The header it writes still calls this file the gate baseline; that is a code defect. For readable command/capability discovery, use [the catalog guide](CATALOG_MAINTENANCE.md) and [current task routes](USER_TASK_ROUTER.md).
 
 ## Recovery and acceptance
 
@@ -53,4 +53,4 @@ The suite manifests use `sapote-mamey.seal-suite-input.v1` and pin the actual lo
 
 Generation writes `PLAN.json` and a mode-0600 `SEAL_CANDIDATE.sh` sequentially, reporting `PREPARED_OWNER_REVIEW`; a later failure can leave partial artifacts. Preserve any failed attempt and use a fresh destination. `--verify-plan PLAN --plan-sha256 EXPECTED_PLAN_SHA256` is a separate evidence-recheck mode and refuses generation arguments. It recomputes bound evidence, machinery, trees and named differences; it does not execute the consumer.
 
-The generated wrapper is a separate owner-execution artifact. It checks a plan-hash acknowledgment, rechecks the plan, then would hand off to the pinned consumer through `/bin/bash`. Its nonexecutable file mode does not prevent an explicit shell invocation. Setting an acknowledgment variable is not human authorization. Review the actual consumer, plan and remaining release gates before any separately authorized execution; this guide does not authorize it. Input/namespace races, immutable source-generation proof, consumer safety, Linux behavior, final-stack runtime and release/scientific adoption remain held. Historical logs lacking the native manifests cannot be retrospectively certified by this route. Generated inventories and final checksums stay with their canonical owners.
+The generated wrapper is a separate owner-execution artifact. It checks a plan-hash acknowledgment, rechecks the plan, then would hand off to the pinned consumer through `/bin/bash`. Its nonexecutable file mode does not prevent an explicit shell invocation. Setting an acknowledgment variable is not human authorization. Review the actual consumer, plan and remaining release gates before any separately authorized execution; this guide does not authorize it. It has not been tested on Linux and does not check the consumer script's safety. Historical logs lacking the native manifests cannot be retrospectively certified by this route. Generated inventories and final checksums stay with their canonical owners.

@@ -44,12 +44,26 @@ def _prodstr(p):
     return (" ".join(p) if isinstance(p, list) else (p or "")).lower()
 
 # ---- the score (single source of truth; §3a portable table is its spec) -------------------------
+# the engine writes "Full-contig" (mamey/architecture_first.py); "Full-Contig" never matched it
+_TRUNCATED_EDGES = ("Edge", "Full-contig", "Full-Contig", "FC")
+
+
+def _kcb_score(b):
+    # kcb_top is the MIBiG identity text (mamey/models.py); only kcb_cumulative is a number.
+    # Falling back to float(kcb_top) raised ValueError for any BGC with no cumulative score.
+    v = b.get("kcb_cumulative")
+    try:
+        return float(v) if v not in (None, "") else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def score_bgc(b, blda_tier, bioactivity_on=False):
     """Return (base_score, [(term, points, source_field)...], notes[])."""
     terms = []; notes = []
     arch = (b.get("architecture_confidence") or "").upper()
     edge = b.get("edge_status") or ""
-    kcb = float(b.get("kcb_cumulative") or b.get("kcb_top") or 0)
+    kcb = _kcb_score(b)
     riq = b.get("riq_score")
     prod = _prodstr(b.get("products"))
 
@@ -87,7 +101,7 @@ def score_bgc(b, blda_tier, bioactivity_on=False):
     # Metadata does not alter deterministic prioritization under this contract.
     # A future evidence-and-scoring authority would need to add any nonzero term.
 
-    if edge in ("Edge", "Full-Contig", "FC"):
+    if edge in _TRUNCATED_EDGES:
         terms.append(("edge/FC truncation", -2, "edge_status"))
 
     # tiny unanchored fragment: small region on an edge with no KCB anchor
@@ -114,9 +128,9 @@ def decision_category(score):
 def action_scores(b, base, blda_tier):
     arch = (b.get("architecture_confidence") or "").upper()
     edge = b.get("edge_status") or ""
-    kcb = float(b.get("kcb_cumulative") or b.get("kcb_top") or 0)
+    kcb = _kcb_score(b)
     riq = b.get("riq_score")
-    seq = "HIGH" if (edge in ("Edge", "Full-Contig", "FC") or arch == "C") else "LOW"
+    seq = "HIGH" if (edge in _TRUNCATED_EDGES or arch == "C") else "LOW"
     act = "HIGH" if blda_tier in ("T3", "T4") else "LOW"   # TFBS-induction half is not per-BGC; bldA carries it
     iso = "HIGH" if base >= 10 else ("MED" if base >= 7 else "LOW")
     if kcb > 1000:

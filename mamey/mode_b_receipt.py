@@ -163,6 +163,69 @@ def _load_receipt(receipt_path: Path) -> dict[str, Any]:
     return data
 
 
+# Contract routing for the structure gate. `emit-modeb-template` stamps the contract into the card
+# header: `<!-- MODE B | ... | contract: current50_v2 | ... -->` (modeb_current50_v2.header_line) and
+# `<!-- MODE B TEMPLATE | ... | contract: <schema_version> -->`. Ingest lints each card against the
+# contract it declares, or the one named by `--contract` (same names as verify-modeb). A card with no
+# recognized marker and no `--contract` keeps the full48 default. Unrecognized marker values (older
+# schemas such as modeb_corrective_full30_v1) are ignored, so those cards also keep the default.
+_CARD_CONTRACT_RE = re.compile(r"<!--\s*MODE\s*B\b[^>]*?\bcontract:\s*([A-Za-z0-9_.-]+)", re.IGNORECASE)
+_CONTRACT_LABELS = {"full48": "§1–§48", "current50_v2": "§1–§50 current50_v2"}
+
+
+def _contract_aliases() -> dict[str, str]:
+    """Marker value -> contract name: the command names and each contract file's schema_version."""
+    from .modeb_current50_v2 import CONTRACT_NAMES, load_contract as _load_named
+    from .modeb_structure_gate import load_contract as _load_full48
+    aliases = {name: name for name in CONTRACT_NAMES}
+    aliases[_load_full48()["schema_version"]] = "full48"
+    aliases[_load_named("current50_v2")["schema_version"]] = "current50_v2"
+    return aliases
+
+
+def _resolve_card_contract(content: str, requested: str | None = None):
+    """Pick the contract a card is linted against.
+
+    Returns ``(name, contract, source, findings)``. ``contract`` is None for full48, so
+    ``lint_card`` loads its own default exactly as before. ``source`` is ``--contract``,
+    ``card header`` or ``default``. A card whose markers disagree with each other or with
+    ``requested`` gets a CARD_CONTRACT_CONFLICT ERROR: it is refused, never re-routed.
+    Raises ValueError for an unknown ``requested`` name.
+    """
+    from .modeb_current50_v2 import load_contract as _load_named
+    aliases = _contract_aliases()
+    declared = sorted({aliases[v] for v in _CARD_CONTRACT_RE.findall(content or "") if v in aliases})
+    findings: list[dict[str, Any]] = []
+    if requested:
+        _load_named(requested)  # same validation and error text as verify-modeb
+        name, source = requested, "--contract"
+    elif len(declared) == 1:
+        name, source = declared[0], "card header"
+    else:
+        name, source = "full48", "default"
+    if len(declared) > 1 or (requested and declared and declared != [requested]):
+        findings.append({
+            "severity": "ERROR", "code": "CARD_CONTRACT_CONFLICT", "section": None,
+            "expected": f"one contract for this card ({name})",
+            "found": "card header declares " + ", ".join(declared),
+            "message": (f"card header declares contract {', '.join(declared)} but it is being linted "
+                        f"against {name} ({source}); re-emit the template for the intended contract "
+                        "or pass the matching --contract"),
+        })
+    return name, _load_named(name), source, findings
+
+
+def _contract_label(name: str | None) -> str:
+    return _CONTRACT_LABELS.get(name or "full48", name or "full48")
+
+
+def _structure_contract_label(summary: dict[str, Any], bgc_ids) -> str:
+    """Contract label for a report line; '§1–§48' when every card used the default."""
+    used = summary.get("structure_contracts") or {}
+    names = sorted({used.get(b, "full48") for b in bgc_ids}, key=lambda n: (n != "full48", n))
+    return " / ".join(_contract_label(n) for n in names) or _contract_label("full48")
+
+
 def _emit_shared_1(bgc_id, _gate_exc) -> None:
     """Same line emitted at 2 call sites in this file; one emission site."""
     emit(f'  STRUCTURE: {bgc_id} — gate UNAVAILABLE ({type(_gate_exc).__name__}); card treated as UNVERIFIED, not clean', file=sys.stderr)
@@ -174,6 +237,7 @@ def ingest_receipt(
     master_workbook_path: str | Path | None = None,
     *,
     force_structure: bool = False,
+    contract: str | None = None,
 ) -> dict[str, Any]:
     """Ingest one mode_b_receipt.json into the judgment store (and optionally the workbook).
 
@@ -192,6 +256,8 @@ def ingest_receipt(
     card write; card-header/package identity conflicts and unknown BGCs are
     skipped and reported. Structure-invalid cards (W9, v9.7.150+) are skipped
     unless force_structure=True. Identity conflicts are never overridable.
+    Each card is linted against the contract its header declares, or ``contract``
+    when given; the name used per BGC is in ``structure_contracts``.
     """
     from .judgment_store import (
         judgment_status_blocks_ingest, read_register, record_mode_b,
@@ -245,6 +311,7 @@ def ingest_receipt(
     skipped_identity_mismatch: list[dict[str, str]] = []
     skipped_structure_invalid: list[tuple[str, int]] = []
     persistence_warnings: list[dict[str, str]] = []
+    structure_contracts: dict[str, str] = {}
 
     for card in receipt["cards"]:
         bgc_id = (card.get("bgc_id") or "").strip()
@@ -299,14 +366,16 @@ def ingest_receipt(
                 if not _gate_available:
                     raise ImportError("modeb_structure_gate import failed")
                 ctx = _bgc_context_from_triage(pkg, bgc_id)
-                findings = _context_findings(ctx) + _lint_card(
-                    mode_b_md, bgc_context=ctx, check_evidence_presence=True
+                _c_name, _c_dict, _c_src, _c_findings = _resolve_card_contract(mode_b_md, contract)
+                structure_contracts[bgc_id] = _c_name
+                findings = _context_findings(ctx) + _c_findings + _lint_card(
+                    mode_b_md, bgc_context=ctx, contract=_c_dict, check_evidence_presence=True
                 )  # item 4: §4 coverage/named-subject enforced at receipt
                 n_errors = sum(1 for f in findings
                                if f.get("severity") == "ERROR")
                 if n_errors:
                     emit(f"  STRUCTURE: {bgc_id} — {n_errors} ERROR(s) vs "
-                          "§1–§48 contract", file=sys.stderr)
+                          f"{_contract_label(_c_name)} contract", file=sys.stderr)
             except Exception as _gate_exc:
                 # v9.7.335 (extension): this was `n_errors = 0  # gate fail-open`, the same
                 # defect .335 closed in ingest_one_card — and this is the PRIMARY documented
@@ -372,6 +441,7 @@ def ingest_receipt(
         "skipped_no_content": skipped_no_content,
         "skipped_identity_mismatch": skipped_identity_mismatch,
         "skipped_structure_invalid": skipped_structure_invalid,
+        "structure_contracts": structure_contracts,
         "persistence_warnings": persistence_warnings,
         "register_status": reg_after.get("judgment_status"),
         "complete_bgcs": reg_after.get("complete_bgcs"),
@@ -403,7 +473,8 @@ def ingest_receipt(
 
 def auto_detect_ingest(package_dir: str | Path,
                        *,
-                       force_structure: bool = False) -> dict[str, Any]:
+                       force_structure: bool = False,
+                       contract: str | None = None) -> dict[str, Any]:
     """Scan `<pkg>/judgment/` for `*_mode_b.md` cards not yet in the register
     and ingest them.
 
@@ -426,7 +497,8 @@ def auto_detect_ingest(package_dir: str | Path,
     back to "auto-detect" only when no header is parseable.
 
     Structure gate (W9, v9.7.150+):
-        Each candidate card is linted against the §1–§48 contract before
+        Each candidate card is linted against the contract its header
+        declares (or ``contract`` when given; §1–§48 by default) before
         write. Cards with ERROR-severity findings are skipped (listed in
         `skipped_structure_invalid`) unless force_structure=True, in which
         case they are recorded and listed in `recorded_with_structure_override`.
@@ -479,6 +551,7 @@ def auto_detect_ingest(package_dir: str | Path,
         "skipped_misnamed": [],
         "judgment_status": None,
         "scanned_count": 0,
+        "structure_contracts": {},
     }
 
     if not judgment.is_dir():
@@ -542,8 +615,10 @@ def auto_detect_ingest(package_dir: str | Path,
                 if not _gate_available:
                     raise ImportError("modeb_structure_gate import failed")
                 ctx = _bgc_context_from_triage(pkg, bgc_id)
-                findings = _context_findings(ctx) + _lint_card(
-                    content, bgc_context=ctx, check_evidence_presence=True
+                _c_name, _c_dict, _c_src, _c_findings = _resolve_card_contract(content, contract)
+                summary["structure_contracts"][bgc_id] = _c_name
+                findings = _context_findings(ctx) + _c_findings + _lint_card(
+                    content, bgc_context=ctx, contract=_c_dict, check_evidence_presence=True
                 )  # item 4: §4 coverage enforced at receipt
                 n_errors = sum(1 for f in findings
                                if f.get("severity") == "ERROR")
@@ -610,7 +685,8 @@ def _parse_card_session_id(content: str) -> str:
 def ingest_one_card(package_dir: str | Path,
                     card_path: str | Path,
                     *,
-                    force_structure: bool = False) -> dict[str, Any]:
+                    force_structure: bool = False,
+                    contract: str | None = None) -> dict[str, Any]:
     """Ingest a single Mode B card file directly (one card = one CLI call).
 
     Use case: an analysis chat writes a card to disk and wants to persist it
@@ -624,9 +700,12 @@ def ingest_one_card(package_dir: str | Path,
     Session ID is parsed from the same header; falls back to "card-ingest".
 
     Structure gate (v9.7.150+):
-        Before write, the card is linted against the §1–§48 contract via
+        Before write, the card is linted via
         `mamey.modeb_structure_gate.lint_card()` with the BGC's triage row
-        as context. ERROR-severity findings refuse the write — the firebreak
+        as context, against the contract the card header declares, or
+        ``contract`` when given (§1–§48 by default). ``structure_contract``
+        and ``structure_contract_source`` in the result record the choice.
+        ERROR-severity findings refuse the write — the firebreak
         for the BGC033 wrong-scaffold pattern. Override with
         force_structure=True (or CLI --force-structure), which records the
         card anyway and surfaces the findings in the return dict.
@@ -665,6 +744,8 @@ def ingest_one_card(package_dir: str | Path,
         "judgment_status": None,
         "structure_findings": [],
         "persistence_warnings": [],
+        "structure_contract": None,
+        "structure_contract_source": None,
     }
 
     # v9.7.409 (BC hostile audit H5): every early return below used to leave `structure_findings`
@@ -748,8 +829,10 @@ def ingest_one_card(package_dir: str | Path,
     try:
         from .modeb_structure_gate import lint_card
         bgc_ctx = _bgc_context_from_triage(pkg, bgc_id)
-        structure_findings = _context_findings(bgc_ctx) + lint_card(
-            content, bgc_context=bgc_ctx, check_evidence_presence=True
+        _c_name, _c_dict, _c_src, _c_findings = _resolve_card_contract(content, contract)
+        summary["structure_contract"], summary["structure_contract_source"] = _c_name, _c_src
+        structure_findings = _context_findings(bgc_ctx) + _c_findings + lint_card(
+            content, bgc_context=bgc_ctx, contract=_c_dict, check_evidence_presence=True
         )  # item 4: §4 coverage enforced at receipt
     except Exception as _gate_exc:
         # v9.7.335: this used to set structure_findings = [], which is BYTE-IDENTICAL to a clean
@@ -2471,6 +2554,25 @@ def _emit_shared_3(report_lines) -> None:
     emit(*report_lines, sep='\n')
 
 
+def _reconcile_e1_after_ingest(pkg: Path, master, rc: int) -> int:
+    """Apply --master after a --card or --auto-detect ingest, as the --receipt flow does.
+
+    Before .458 these two flows returned before --master was read, so the workbook was
+    silently left stale. rc 0, 3 and 4 leave a consistent register; any other rc skips E1.
+    """
+    if not master:
+        return rc
+    if rc not in (0, 3, 4):
+        sys.stdout.write("  workbook E1:       not updated (the ingest did not complete)\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return rc
+    from .master_workbook import update_e1_from_judgment
+
+    es = update_e1_from_judgment(pkg, master) or {}
+    sys.stdout.write(f"  workbook E1:       updated ({es.get('bgcs_complete', '?')} complete / "
+                     f"{es.get('bgcs_written', '?')} rows)\n")
+    return rc
+
+
 def ingest_receipts_command(args) -> int:
     """CLI: mamey ingest-receipts --package <dir> [--receipt <file.json>]
                                   [--auto-detect | --card <file.md>] [--master <wb.xlsx>]
@@ -2493,6 +2595,9 @@ def ingest_receipts_command(args) -> int:
     receipt = getattr(args, "receipt", None)
     card = getattr(args, "card", None)
 
+    # Passed only when given, so callers that wrap these engines keep their old signatures.
+    requested_contract = getattr(args, "contract", None)
+    contract_kw = {"contract": requested_contract} if requested_contract else {}
     flows = [bool(auto), bool(receipt), bool(card)]
     if sum(flows) > 1:
         emit("ERROR: --auto-detect, --receipt, and --card are mutually exclusive",
@@ -2506,15 +2611,19 @@ def ingest_receipts_command(args) -> int:
     if card:
         force_structure = bool(getattr(args, "force_structure", False))
         card_summary = ingest_one_card(pkg, Path(card).resolve(),
-                                        force_structure=force_structure)
+                                        force_structure=force_structure,
+                                        **contract_kw)
         emit(f"Card ingest for {card_summary['strain_id']}:", f"  card:              {card}", f"  BGC:               {card_summary['bgc_id'] or '(unresolved)'}", f"  session:           {card_summary['session_id'] or '(none)'}", f"  status:            {card_summary['status']}", sep="\n")
+        _c_used = card_summary.get("structure_contract")
+        if _c_used:
+            sys.stdout.write(f"  contract:          {_c_used} ({card_summary.get('structure_contract_source')})\n")
         # W9: surface structure findings (errors first, then warnings)
         findings = card_summary.get("structure_findings") or []
         n_err = sum(1 for f in findings if f.get("severity") == "ERROR")
         n_warn = sum(1 for f in findings if f.get("severity") == "WARN")
         if findings:
             emit(f"  structure:         {n_err} ERROR(S), {n_warn} WARN(S) "
-                  "vs §1–§48 contract")
+                  f"vs {_contract_label(_c_used)} contract")
             for f in findings:
                 sec = f"§{f['section']}" if f.get("section") else "—"
                 emit(f"    [{f['severity']}] [{f.get('code','?')}] "
@@ -2524,7 +2633,8 @@ def ingest_receipts_command(args) -> int:
                       "issues above (recommended) or re-run with "
                       "--force-structure to record anyway.", file=sys.stderr)
         else:
-            emit("  structure:         PASS (§1–§48 contract satisfied)")
+            emit("  structure:         PASS (§1–§48 contract satisfied)" if (_c_used or "full48") == "full48"
+                 else f"  structure:         PASS ({_contract_label(_c_used)} contract satisfied)")
         _advisory = _persistence_advisory(card_summary)
         emit(
             f"  register status:   {card_summary['judgment_status'] or '(unknown)'}",
@@ -2537,17 +2647,14 @@ def ingest_receipts_command(args) -> int:
         #   4 — RECORDED_WITH_STRUCTURE_OVERRIDE (recorded but flagged)
         #   1 — all other non-recorded outcomes
         st = card_summary["status"]
-        if st == "RECORDED":
-            return 0
-        if st == "RECORDED_WITH_STRUCTURE_OVERRIDE":
-            return 4
-        if st == "SKIPPED_STRUCTURE_INVALID":
-            return 3
-        return 1
+        rc = {"RECORDED": 0, "RECORDED_WITH_STRUCTURE_OVERRIDE": 4,
+              "SKIPPED_STRUCTURE_INVALID": 3}.get(st, 1)
+        return _reconcile_e1_after_ingest(pkg, getattr(args, "master", None), rc)
 
     if auto:
         force_structure = bool(getattr(args, "force_structure", False))
-        summary = auto_detect_ingest(pkg, force_structure=force_structure)
+        summary = auto_detect_ingest(pkg, force_structure=force_structure,
+                                     **contract_kw)
         report_lines = []
         report_lines.extend([f"Auto-detect ingest for {summary['strain_id']}:", f"  scanned:           {summary['scanned_count']} *_mode_b.md card(s) in judgment/", f"  recorded:          {len(summary['recorded'])} -> {', '.join(summary['recorded']) or '(none)'}"])
         if summary.get("recorded_with_structure_override"):
@@ -2559,7 +2666,7 @@ def ingest_receipts_command(args) -> int:
         if summary.get("skipped_structure_invalid"):
             bad = [f"{bid} ({n} err)"
                    for bid, n in summary["skipped_structure_invalid"]]
-            report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  (§1–§48 contract violations; rebuild from template or re-run with --force-structure)"])
+            report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  ({_structure_contract_label(summary, [b for b, _n in summary['skipped_structure_invalid']])} contract violations; rebuild from template or re-run with --force-structure)"])
         # v9.7.152 (AS-XXX Bug 1): loud, actionable warning for recognizable
         # near-miss filenames that were skipped — prevents silent
         # 'scanned: N, recorded: 0' with no diagnostic.
@@ -2597,16 +2704,19 @@ def ingest_receipts_command(args) -> int:
         # (so a CI run can detect that and fail)
         from .judgment_store import judgment_status_blocks_ingest
         if judgment_status_blocks_ingest(summary.get("judgment_status")):
-            return 1
-        if summary.get("skipped_unreadable") or summary.get("skipped_no_content") or summary.get("record_failures"):
-            return 1
-        return 3 if summary.get("skipped_structure_invalid") else 0
+            rc = 1
+        elif summary.get("skipped_unreadable") or summary.get("skipped_no_content") or summary.get("record_failures"):
+            rc = 1
+        else:
+            rc = 3 if summary.get("skipped_structure_invalid") else 0
+        return _reconcile_e1_after_ingest(pkg, getattr(args, "master", None), rc)
 
     master = getattr(args, "master", None)
     force_structure = bool(getattr(args, "force_structure", False))
     try:
         summary = ingest_receipt(pkg, Path(receipt).resolve(), master,
-                                  force_structure=force_structure)
+                                  force_structure=force_structure,
+                                  **contract_kw)
     except (FileNotFoundError, ValueError) as e:
         _emit_shared_2(e)
         return 1
@@ -2628,7 +2738,7 @@ def ingest_receipts_command(args) -> int:
     if summary.get("skipped_structure_invalid"):
         bad = [f"{bid} ({n} err)"
                for bid, n in summary["skipped_structure_invalid"]]
-        report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  (§1–§48 contract violations; rebuild from template or re-run with --force-structure)"])
+        report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  ({_structure_contract_label(summary, [b for b, _n in summary['skipped_structure_invalid']])} contract violations; rebuild from template or re-run with --force-structure)"])
     cov = summary.get("coverage_receipt")
     if cov:
         report_lines.extend([f"  native coverage:   {cov.get('coverage_status') or '(not supplied)'} ({cov.get('emitted_card_count')}/{cov.get('inventory_bgc_count')} emitted)"])

@@ -76,7 +76,7 @@ Before an external-tool run, report:
 - reference count and reference-selection rule;
 - HMM/Pfam target and checksum;
 - requested cores, jobs, threads per job, and maximum concurrent cores;
-- expected runtime and disk use, explicitly labelled as a local benchmark or estimate;
+- expected runtime and disk use, explicitly labeled as a local benchmark or estimate;
 - output root and whether the run is new, resumed, or recovered;
 - whether any step downloads data or writes into a sealed/canonical package.
 
@@ -123,8 +123,9 @@ Use a new report destination outside the bundle, policy and supplied evidence. `
 - At most four one-core tree jobs may run concurrently on the legacy v1 route. Governed v2
   concurrency is derived from its admitted phase bound and recorded total budget, not four
   nominal one-core jobs. Never assume unused logical CPUs are free.
-- BiG-SCAPE defaults to one core for interactive work; two is the balanced option; four is the
-  surfaced ceiling. Record the actual setting.
+- For interactive BiG-SCAPE work, explicitly select one core (`mamey_run.py bigscape --cpus 1`);
+  the generic CLI parser currently defaults to four when that flag is omitted. Two is the
+  balanced option and four the surfaced policy ceiling. Record the selected runner and actual setting.
 - Do not use detached `setsid`, `nohup`, background `&`, or an unattended parallel fan-out as the
   default LLM recipe. Use the product's persistent-task mechanism or a foreground process with a
   recorded session and regular status updates.
@@ -190,6 +191,10 @@ look clean; exclude it by explicit completed run ID.
 - BiG-SCAPE execution: `docs/BIGSCAPE_GCF_WORKFLOW.md`; [cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md) for the end-to-end run and [troubleshooting](troubleshooting/BIGSCAPE_TROUBLESHOOTING.md) for common failures
 - Cohort GCF interpretation: `docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md`
 - GToTree, MLSA, ANI, and IQ-TREE: `docs/phylogenomics.md`
+- 16S sequence workflow: [16S autopilot](PHYLO_AUTOPILOT_WORKFLOW.md).
+- Placement on a selected reference backbone: [placement workflow](PHYLO_PLACEMENT_WORKFLOW.md).
+- Local 16S reference setup: [local database](LOCAL_16S_DATABASE.md).
+- Governed GToTree and IQ-TREE execution checks: [preflight](GTOTREE_IQTREE_PREFLIGHT.md).
 - Optional tool detection and installation: `docs/companion_tools.md`
 
 Older cohort-specific notes and versioned addenda are historical evidence only. If an old example

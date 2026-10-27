@@ -38,6 +38,7 @@ GAP_IN = 0.12       # vertical gap between panels
 KEY_COLS = 4
 LEGEND_TITLE = "Genes not in the reference, by protein-search name"
 GECCO_KEY_H = 0.62  # extra key height for the GECCO probability bar, when any map draws a GECCO track
+SIDE_BARS_MIN_WIDTH = 8.5   # at a landscape page the two colour bars sit side by side, so the GECCO bar adds no height
 TOL_IN = 0.01
 
 
@@ -122,7 +123,9 @@ def _draw_page(maps, idx, letters, width_in, with_key, classes, unclear, gecco, 
     handles = [Patch(fc=glm.CLASS_FILL[c], ec="#333333", lw=0.6, label=c) for c in classes]
     if unclear:
         handles.append(Patch(fc="white", ec="#333333", lw=0.6, ls="--", label="class unclear"))
-    kh = key_height(len(handles), cols) + (GECCO_KEY_H if gecco else 0.0) if with_key else 0.0
+    side = bool(gecco) and width_in >= SIDE_BARS_MIN_WIDTH
+    kh = key_height(len(handles), cols) + (GECCO_KEY_H if gecco and not side else 0.0) if with_key else 0.0
+    bar_w, leg_x = (1.3, 3.55) if side else (1.8, 2.45)
     H = sum(hs) + GAP_IN * (len(imgs) - 1) + kh
     fig = plt.figure(figsize=(width_in, H), dpi=DPI)
     y = H
@@ -134,20 +137,21 @@ def _draw_page(maps, idx, letters, width_in, with_key, classes, unclear, gecco, 
             fig.text(0.02 / width_in, (y + h - 0.05) / H, letters[i], fontsize=LETTER_PT, weight="bold", va="top")
         y -= GAP_IN
     if with_key:
-        cax = fig.add_axes([0.35 / width_in, (kh - 0.22) / H, 1.8 / width_in, 0.12 / H])
+        cax = fig.add_axes([0.35 / width_in, (kh - 0.22) / H, bar_w / width_in, 0.12 / H])
         cb = fig.colorbar(ScalarMappable(norm=Normalize(*glm.IDENTITY_RANGE),
                                          cmap=LinearSegmentedColormap.from_list("id", list(glm.IDENTITY_RAMP))),
                           cax=cax, orientation="horizontal")
         cb.set_label("Protein identity (%)", fontsize=KEY_PT, labelpad=2); cb.ax.tick_params(labelsize=KEY_PT)
         if gecco:   # a second bar under the identity bar: GECCO per-gene probability, ramp read from the map module
-            gax = fig.add_axes([0.35 / width_in, (kh - 0.22 - GECCO_KEY_H) / H, 1.8 / width_in, 0.12 / H])
+            gax = fig.add_axes([(1.95 if side else 0.35) / width_in, (kh - 0.22 - (0.0 if side else GECCO_KEY_H)) / H,
+                                bar_w / width_in, 0.12 / H])
             gb = fig.colorbar(ScalarMappable(norm=Normalize(*glm.GECCO_RANGE),
                                              cmap=LinearSegmentedColormap.from_list("gecco", list(glm.GECCO_RAMP))),
                               cax=gax, orientation="horizontal")
             gb.outline.set_linewidth(0.6)
             gb.set_label("GECCO per-gene probability", fontsize=KEY_PT, labelpad=2); gb.ax.tick_params(labelsize=KEY_PT)
         if handles:
-            leg = fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(2.45 / width_in, 0.02 / H), ncol=cols,
+            leg = fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(leg_x / width_in, 0.02 / H), ncol=cols,
                              fontsize=KEY_PT, frameon=False, title=LEGEND_TITLE, title_fontsize=KEY_PT,
                              alignment="left", handlelength=1.6, columnspacing=1.0)
             fig.canvas.draw()

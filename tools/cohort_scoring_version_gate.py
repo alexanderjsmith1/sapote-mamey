@@ -12,7 +12,7 @@ reclassification in a comment — only this file's own docstring had not caught 
 `tests/test_cohort_scoring_version_gate.py` and `tests/test_cohort_deliverable.py` for the
 regression coverage.
 
-Why (COHORT_RESCORING_PLAN.md): scoring boundaries stacked 1.9.84→1.9.96. Cross-strain AB/AF
+Why (docs/history/retired_458/COHORT_RESCORING_PLAN.md): scoring boundaries stacked 1.9.84→1.9.96. Cross-strain AB/AF
 comparison is only valid when every aggregated strain was scored under the same engine. Before
 this gate existed, the comparative builds (hub_merge, build_cross_strain_figures, lead_board,
 cohort_concordance_summary, build_master*, merge_workbooks) aggregated strains with NO version

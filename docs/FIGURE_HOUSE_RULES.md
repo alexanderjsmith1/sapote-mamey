@@ -18,17 +18,17 @@ page is the short list of what every one of them must produce.
 | 6 | Show a reference strain by its deposited name and strain designation, with the accession in brackets after it. Never label it with the accession alone. | The name is what the literature and the type-strain question use. A column of accessions cannot be read. | By hand. |
 | 7 | Mark `[Type]` only when NCBI Assembly records the genome as assembly from type material. | A name that looks like a type strain is not evidence that it is one. | By hand. |
 | 8 | Do not delete a figure with a known defect. Rename its image files with `_KNOWN_DEFECTIVE`, and log the rename and the reason. | Numbering and past review comments stay valid, and nobody reuses the file by accident. | By hand. |
-| 9 | File each review comment in the folder of the figure it is about, with the words exactly as written. | Comments kept only in a chat are lost when that chat is compacted. | By hand. |
+| 9 | File each review comment in the folder of the figure it is about, with the words exactly as written. | Comments kept anywhere else get lost. | By hand. |
 | 10 | Look at the rendered image before sending it. Check for clipped labels, overlapping text, empty panels and a wrong subset. | A saved file is not a checked figure. | By hand. |
-| 11 | Label points on an ordination page (PCoA, TriMap) with names, never with numbers. On the plot, use the short italic species name. In the caption key, give the rule-6 form: deposited name, strain designation and the accession in brackets. Fit and placement decide how many points get a label. | A number sends the reader to a key and hides the name the literature uses, which is the failure rule 6 exists to prevent. The owner ruled this on 12 Oct. | By hand. |
-| 12 | Draw a figure only through a sealed bundle route, or through a staged patch the cut owner has signed off. Before drawing, write a rule check: each row of this page, the `docs/FIGURE_STYLE.md` gate, the doc for that figure type, and the tool you will use. A setting that is not in the bundle docs or the bee scripts goes to the owner as a proposal, never as a shipped default. | Figures drawn with hand-set labels, private scripts or unsealed renderers reached review and had to be withdrawn. The owner ruled this on 12 Oct. | By hand. |
+| 11 | Label points on an ordination page (PCoA, TriMap) with names, never with numbers. On the plot, use the short italic species name. In the caption key, give the rule-6 form: deposited name, strain designation and the accession in brackets. Fit and placement decide how many points get a label. | A number sends the reader to a key and hides the name the literature uses, which is the failure rule 6 exists to prevent. | By hand. |
+| 12 | Draw a figure only through a sealed bundle route, or through a staged patch the cut owner has signed off. Before drawing, write a rule check: each row of this page, the `docs/FIGURE_STYLE.md` gate, the doc for that figure type, and the tool you will use. A setting that is not in the bundle docs or the bee-paper figure scripts goes to the owner as a proposal, never as a shipped default. | Figures drawn with hand-set labels, private scripts or unsealed renderers reached review and had to be withdrawn. | By hand. |
 
 ### A note on rule 5
 
 An older convention put all provenance into one file name,
 `<DATA_FOLDER>__FIG_<NAME>_v<N>_<DATE>`. Current figure sets use one folder per figure, plus a
 hashed manifest for any export, and none of them use the single-name form. Follow the folder
-convention. A file name alone is not enough provenance, and a folder is.
+convention. Neither a file name nor a folder alone establishes provenance. Keep the source/data/configuration locators and hashes with the artifact manifest and review record.
 
 ## Owner study profile
 
@@ -39,7 +39,7 @@ figure folder.
 | Setting | Value |
 |---|---|
 | Pathogen axis order | Fungi first (*Candida albicans*, *Candida auris*), then the gram-negatives kept together (*E. coli*, *Acinetobacter*, *Enterobacter*, *Klebsiella oxytoca*, *Pseudomonas aeruginosa*), then MRSA last. |
-| Enterobacter variant | Also make a version without *Enterobacter*, which is easy to inhibit and makes activity look higher. |
+| Enterobacter variant | When selected by the study owner, also make a sensitivity version without *Enterobacter*. Identify the omitted target and the resulting denominator, retain the full-target view, and bind any susceptibility rationale to the actual assay evidence. |
 | Host groups | Honeybees (*Apis*), Bumblebees (*Bombus*), Other bees, Wasps. Keep "Other bees" as its own group. Label the axis "host group (as deposited)". |
 | Isolate scope | Bee and wasp isolates only. Moss and attine isolates belong to separate studies. |
 | Source and geography | Report them as deposited. Do not bin, infer or correct them. Leave out isolates with no deposited source or location, and list each one by genus, species and strain so it can be looked up. |
@@ -51,12 +51,12 @@ figure to get around a rule, without changing the rule, is how the two drift apa
 
 ## Enforcement and study-profile scope
 
-These are review requirements, not blanket runtime guarantees. The shared save/text gates apply where a renderer calls them; direct matplotlib saves and R templates need separate checks. The R save helper writes SVG/PNG without a no-overwrite guard or receipt validation. A caption band, `_plot_only` file, folder name, or PNG's existence does not establish provenance or visual acceptance. Retain bound data/config/source/output hashes and inspect the actual artifact. See [R figure workflows](R_FIGURE_WORKFLOWS.md) and [locus-map contract](LOCUS_MAP_REVIEW_CONTRACT.md).
+These are review requirements, not blanket runtime guarantees. The shared save/text gates apply where a renderer calls them; direct matplotlib saves and R templates need separate checks. The R save helper `sapote_save_pair()` in `tools/sapote_figure_theme.R` writes SVG/PNG without a no-overwrite guard or receipt validation. A caption band, `_plot_only` file, folder name, or PNG's existence does not establish provenance or visual acceptance. Retain bound data/config/source/output hashes and inspect the actual artifact. See [R figure workflows](R_FIGURE_WORKFLOWS.md) and [locus-map contract](LOCUS_MAP_REVIEW_CONTRACT.md).
 
 The bee/wasp ordering and host-group rules above are a study-specific owner profile. Apply them only to the matching study roster and evidence. They do not authorize dropping an owner query, inferring host geography, or redefining a different cohort's denominator. A conflicting required identity/evidence note or admission rule remains a named review hold.
 
 Before renaming a known-defective receipt-bound artifact, preserve its original bytes and manifest binding and record the quarantine/rename mapping in a new review record. A rename alone invalidates relative-locator bindings.
 
-Source examples: `tools/sapote_figure_theme.R:143–150`; `mamey/locus_map_v8.py:174–281`; `mamey/figure_review_queue.py:98–112`.
+Source examples: `tools/sapote_figure_theme.R`; `mamey/locus_map_v8.py`; `mamey/figure_review_queue.py`.
 
-The current v8 PNG producer requests 180 dpi (with a size-dependent safe-DPI helper), so the house-rule 300-dpi target is not established by its existence. Use the vector artifact and an independently checked delivery export where appropriate; record the presentation hold until the intended raster/export requirement is verified. Source: `mamey/locus_map_v8.py:747`.
+The current v8 PNG producer requests 180 dpi (with a size-dependent safe-DPI helper), so the house-rule 300-dpi target is not established by its existence. Use the vector artifact and an independently checked delivery export where appropriate; record the presentation hold until the intended raster/export requirement is verified. Source: `mamey/locus_map_v8.py`.

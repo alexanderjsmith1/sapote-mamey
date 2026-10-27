@@ -11,8 +11,7 @@ apply its individual motif/model claims to a locus only with separately admitted
 
 ## fig9 — Domain co-occurrence across BGCs (pooled cohort)
 Cell = number of BGCs whose domain set contains **both** row and column domains; diagonal = number of
-BGCs carrying that domain. Pooled across all cohort BGCs. Reads as: which biosynthetic modules travel
-together (the PKS block co-occurs; the NRPS block co-occurs; carrier/transport domains ride along).
+BGC groups carrying that retained token. The input is pooled across the selected strains, but only groups with at least one nonblank `sec_met_domains` token contribute; by default the matrix displays the 16 most frequent tokens. It shows source-token co-occurrence within those groups, not module movement, physical transfer, pathway coupling or verified catalytic function.
 
 **Domain glossary** (accession · function · diagnostic catalytic signature):
 - **PP-binding** · Pfam PF00550 · carrier domain (ACP in PKS / PCP in NRPS). The growing acyl/peptidyl
@@ -21,14 +20,14 @@ together (the PKS block co-occurs; the NRPS block co-occurs; carrier/transport d
   moiety from CoA. This is the attachment point every modular assembly line is built around.
 - **PCP** · peptidyl carrier (thiolation) domain — the NRPS instance of the same PF00550 Ppant-serine
   chemistry, in peptide context.
-- **ketoacyl-synt** · Pfam PF00109 · β-ketoacyl synthase (KS), N-terminal. Catalyses the decarboxylative
+- **ketoacyl-synt** · Pfam PF00109 · β-ketoacyl synthase (KS), N-terminal. Catalyzes the decarboxylative
   Claisen condensation that extends the polyketide by two carbons. Signature: active-site **cysteine**
   nucleophile plus a **His–His** pair.
 - **PKS_KS** / **PKSI-KS_m3**, **PKSI-KS_m5** · antiSMASH type-I modular-PKS ketosynthase profiles
   (module-position variants of the KS above). Same KS Cys/His–His catalytic chemistry; the m3/m5 tags mark
   specific module contexts antiSMASH resolves.
 - **Ketoacyl-synt_C** · Pfam PF02801 · KS C-terminal domain; completes the condensing-enzyme fold
-  (dimerisation / substrate channel). Structural partner to PF00109.
+  (dimerization / substrate channel). Structural partner to PF00109.
 - **KAsynt_C_assoc** · Pfam PF16197 · ketoacyl-synthase C-terminal *associated* domain; structural,
   packs against the KS.
 - **PKS_AT** / **Acyl_transf_1** · Pfam PF00698 · acyltransferase (AT). Selects the extender unit
@@ -97,12 +96,12 @@ both numerator and denominator. Interpret not-applicable separately.
 ---
 
 ## Other figures (brief)
-- **fig1 census_notier** — per-strain gene/domain census; cells = raw counts, colour = z-score within
+- **fig1 census_notier** — per-strain gene/domain census; cells = raw counts, color = z-score within
   each metric; assembly tier in the caption line.
-- **fig2 pks_bars** — each PKS BGC a bar, height = length (kb), stacked by gene-type coding bp; grey = non-CDS.
+- **fig2 pks_bars** — each PKS BGC a bar, height = length (kb), stacked by gene-type coding bp; gray = non-CDS.
 - **fig3 size_vs_rich** — BGC length vs functional-gene richness, all BGCs, by strain.
-- **fig4 enriched_locus** — gene arrows coloured by function + per-gene domain track + gene-specific
-  T2/T3-resistance (◇) and CCTT-trigger (★) badges; BGC-wide resistance/TTA summarised in the title.
+- **fig4 enriched_locus** — gene arrows colored by function + per-gene domain track + gene-specific
+  T2/T3-resistance (◇) and CCTT-trigger (★) badges; BGC-wide resistance/TTA summarized in the title.
 - **fig5 archetype** — BGC biosynthetic-class composition per strain (from Products).
 - **fig6 kcb_novelty** — BGCs by KCB tier (legacy score bins; missing/malformed scores also become dark, so novelty interpretation is held).
 - **fig7 cctt_triggers** — CCTT cryptic-chemistry trigger family × strain (BGCs carrying each).
@@ -113,8 +112,8 @@ called-region counts; this figure does not establish how much fragmentation infl
 
 ## Current implementation and output scope
 
-This page describes `mamey/cohort_figures_extended.py`'s fig1–fig11 family, not every current cohort plot. In fig9, only BGC groups with at least one nonblank source domain token contribute, and the default display shows the 16 most frequent tokens. Input grouping is by the supplied per-strain BGC alias; it is not an independent full-locus identity/hash validator. Repeated tokens within a BGC are reduced to a set. The diagonal and co-occurrence counts describe this admitted table scope, not unique genes/domains, whole-genome prevalence, physical linkage or motif confirmation (`470–515`).
+This page describes `mamey/cohort_figures_extended.py`'s fig1–fig11 family, not every current cohort plot. In fig9, only BGC groups with at least one nonblank source domain token contribute, and the default display shows the 16 most frequent tokens. Input grouping is by the supplied per-strain BGC alias; it is not an independent full-locus identity/hash validator. Repeated tokens within a BGC are reduced to a set. The diagonal and co-occurrence counts describe this admitted table scope, not unique genes/domains, whole-genome prevalence, physical linkage or motif confirmation.
 
-Fig6 converts missing or malformed `KCB_score` to 0 before applying `<1`, `1–<40`, `≥40` bins. A dark bar therefore mixes measured low scores and unverified missing data; the chart's “candidate-novel” label must not be adopted as novelty evidence. Its percentages use that same supplied inventory denominator. Record missing/invalid score counts separately and hold biological interpretation (`360–389`).
+Fig6 counts a missing or malformed `KCB_score` as 0, so it lands in the dark bar with real low scores. NaN joins no bar and infinities join the end bars. The legend calls the dark bar "candidate-novel"; do not use that as novelty evidence. Report missing scores separately.
 
 Legacy per-figure exception handling permits other files to be written after a plot failure; an output-directory scan can also encounter older PNGs. Use the exact current artifact roster and sidecar hashes, not file presence or count, to establish completion. These captions do not supply a run/source-hash receipt or visual clearance. Full strain/contig/region/alias bindings and current source-table hashes remain required for individual-locus figures. Retain separate render/review and scientific-adoption receipts.

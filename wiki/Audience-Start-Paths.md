@@ -1,6 +1,6 @@
 # Audience Start Paths
 
-*Current to bundle v9.7.457 · engine Mamey 1.9.177. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.458 · engine Mamey 1.9.177.*
 
 
 Choose the path that matches the object in front of you. All commands assume the current directory is the extracted Sapote–Mamey bundle root and use the bundle-local launcher, `python mamey_run.py`, so an older installed copy cannot shadow the bundle.
@@ -18,7 +18,7 @@ Choose the path that matches the object in front of you. All commands assume the
 
 You need one successful, understandable extraction before adding optional tools or post-seal interpretation.
 
-1. Run `doctor` without network probes.
+1. Read the [doctor write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe), then run `doctor` without network probes. It writes a test file under `runs/_doctor_probe/`. If that folder already exists, doctor reports its write check as FAIL. Move the folder out of `runs/` (keep it; do not delete it), then run doctor again.
 2. Run `inspect` on one raw antiSMASH output ZIP.
 3. Run gold mode with explicit taxonomy, source, and provenance metadata.
 4. Validate the unpacked package directory.
@@ -30,7 +30,7 @@ Proceed only when there are no blocking failures. Warnings about optional librar
 
 Do not infer package health from a ZIP filename, a spreadsheet, or a prior message.
 
-1. Work from an unpacked package directory.
+1. Work from an unpacked package directory. For byte-preserving review, read the existing receipts first and use an identified working copy for `validate`, which normally rewrites the mutable `package_status.json`.
 2. Read `manifest.json`, `checksums_sha256.txt`, `gate_validation.json`, and `package_status.json` when present.
 3. Run `validate` and record both validator status and package recovery status.
 4. Run `explain` only after validation is understood.
@@ -58,7 +58,7 @@ Post-seal tools consume an already sealed package; they do not repair a failed e
 - For figures, verify the required optional dependencies and content-addressed inputs before running the renderer.
 - For a resumed project, run `resume` and `workflow` to reconstruct progress from package artifacts and receipts.
 
-Generated Mode B material, evidence-availability manifests, and figure receipts remain mechanical or visualization outputs. They do not establish compound identity, production, activity, novelty, causal phenotype linkage, experimental adjudication, owner acceptance, release, or publication readiness.
+Generated Mode B material, evidence-availability manifests, and figure receipts remain mechanical or visualization outputs. They do not establish compound identity, production, activity, novelty, causal phenotype linkage, experimental adjudication, release, or publication readiness.
 
 ## Rules shared by every path
 
@@ -66,5 +66,5 @@ Generated Mode B material, evidence-availability manifests, and figure receipts 
 - Keep evidence channels separate. NCBI nr, ClusteredNR, local Swiss-Prot, MIBiG, ClusterBlast, BiG-SCAPE, domains, cohort evidence, and literature do not substitute for one another.
 - Treat missing or unbound evidence as a workflow state, never as biological absence.
 - Read the package manifest before convenient derived views.
-- Keep post-seal output additive and receipt-bound.
+- Use each post-seal command's [actual write boundary](../docs/POSTSEAL_READERS.md). Native authoring may refresh package integrity records even with external output; the automatic aggregate hook can replace its own figure directory. Preserve originals and retain current output/receipt bindings.
 - Treat checksums, validation, and structural gates as bounded engineering evidence, not scientific or release authority.

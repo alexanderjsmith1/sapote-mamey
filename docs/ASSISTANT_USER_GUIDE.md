@@ -47,7 +47,7 @@ For review without execution:
 - **Genome or 16S FASTA:** sequence inputs for selected genome/placement workflows; not substitutes
   for an antiSMASH result ZIP when you request the extraction pipeline.
 - **BLASTp or other comparison results:** additional evidence. Retain their database, query mapping,
-  settings, date and raw responses; one channel cannot be relabelled as another.
+  settings, date and raw responses; one channel cannot be relabeled as another.
 
 Keep a record of the source filename, its checksum, public accession when present, and the exact
 software commit/build. A familiar filename or “type strain” folder name is not proof that every
@@ -202,34 +202,6 @@ only illustrates command syntax. A walkthrough receipt records which commands we
 
 ## Next paths, automatic SAVE STATE, and transcripts
 
-Keep routine handoffs concise: report the result, supporting evidence, unresolved holds and
-at most one useful next action. For a major delivery or an explicit planning request, provide
-numbered options only when distinct choices help the user; do not add options to meet a quota.
-Follow the user's requested response format. Report the save-state result separately.
-
-SAVE STATE is automatic: before the handoff, update the existing session checkpoint in the
-agreed project output folder and verify that the write succeeded. Record the objective,
-authoritative inputs and revisions, decisions, completed work, tests and failures, pending
-work, exact artifact paths, transcript coverage, and the next action. The save-state confirmation
-must say **SAVE STATE — saved**, link the actual checkpoint, and say where transcripts and the
-file inventory are stored. It confirms completed work; it is not an option asking the user to
-request a save. If saving fails, report **SAVE STATE — FAILED**, with the reason;
-never claim success. Save at meaningful milestones too, not just when a session is about to end.
-
-Preserve accessible user/assistant messages and execution receipts for a transparent record.
-Use an appendable session transcript where possible. Keep a transcript distinct from the
-checkpoint summary; identify missing turns, truncation, export source and coverage. Do not
-invent unavailable messages or describe summaries as verbatim transcripts. Do not include
-private internal reasoning or retrieve unrelated conversations. Saving is an action performed
-by the assistant; this text does not install a background transcript recorder.
-
-Before creating files, tell the user the destination and purpose, and whether a tool will create
-many outputs. Prefer existing files and folders. At handoff, report new/changed file counts,
-paths and sizes in a file inventory, including generated logs and temporary artifacts. Avoid
-unrequested source copies, duplicate ZIPs and parallel “final” versions. Preserve the agreed
-top-level organization. An old output path in a receipt does not authorize new writes there.
-
-Keep transcripts in the authorized project workspace. If storage becomes burdensome, report their
-size and propose archival to the user's chosen storage destination. Verify the
-copy and update the index before any separately authorized source removal. Do not silently
-upload, relocate, or delete records. Transcript saving and archival do not authorize publishing.
+Assistants follow the handoff, save-state and transcript rules in
+[AGENTS.md](../AGENTS.md#next-paths-automatic-save-state-and-transcripts). Ask for a checkpoint path
+and a file inventory at the end of substantial work.

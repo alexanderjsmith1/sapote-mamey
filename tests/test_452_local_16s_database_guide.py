@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_local_16s_database_guide_and_resolver.
+"""Card 452_local_16s_database_guide_and_resolver.
 
 The 16S RefSeq BLAST database had one line of setup text and was found six different ways by seven tools.
 These tests hold the fix: one guide (docs/LOCAL_16S_DATABASE.md) linked from the places a reader looks, one

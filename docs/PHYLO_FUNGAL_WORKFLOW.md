@@ -3,16 +3,16 @@
 The bacterial workflows (`PHYLOGENETICS_WORKFLOW.md`, `PHYLO_PLACEMENT_WORKFLOW.md`, `GTOTREE_WORKFLOW.md`)
 do NOT apply to fungi: different loci, different alphabet, different reference world, and
 `outgroup_registry.tsv` is actinomycete-only. This is the fungal sibling — for any fungal isolate that
-turns up as a comparator (e.g. a Chaetothyriales black yeast from an insect host). This is a workflow design and recorded troubleshooting guidance, not a shipped
-one-command fungal runner or proof that its external binaries/assets are installed.
+turns up as a comparator (e.g. a Chaetothyriales black yeast from an insect host). There is no one-command fungal runner.
+Install the external tools and fetch references yourself.
 Bind the selected fungal input/reference scope, software and resource budget before
 execution; reference downloads are separate from local analysis.
 
 ## Two tiers (same philosophy as the bacterial two-tier)
-1. **rDNA screen (fast, low CPU)** — find the isolate's family/genus neighbourhood.
+1. **rDNA screen (fast, low CPU)** — find the isolate's family/genus neighborhood.
    - **ITS** (ITS1-5.8S-ITS2, the fungal barcode) via **ITSx**; **18S/SSU** and **28S/LSU** via **Barrnap with the installed version’s fungal model** (see [version guidance](BARRNAP.md)); or `blastn` the assembly with a reference operon when a tool is unavailable.
    - Align per locus (MUSCLE), trim (trimAl), IQ-TREE, root on the registry outgroup, gate.
-   - **Marker design caveat:** 18S is conserved (family/genus neighbourhood only); ITS resolves
+   - **Marker design caveat:** 18S is conserved (family/genus neighborhood only); ITS resolves
      WITHIN a genus but is UNALIGNABLE across divergent genera — never concatenate family-wide ITS.
      A matched whole-operon (18S+ITS+28S) matrix can provide additional rDNA context
      when alignment and source correspondence are defensible; its resolution and
@@ -28,25 +28,19 @@ Outgroup from `mamey/data/fungal_outgroup_registry.tsv` by `(taxon, scope)`, nev
 roots on a sister-family genus one rank out; never a distant taxon; never an ingroup member.
 
 ## Gates (identical to bacterial)
-`tools/tree_sanity_check.py` MUST PASS (outgroup-aware) then `tools/signoff_check.py`, BEFORE any render.
+Require a passing, outgroup-aware `tools/tree_sanity_check.py` result before rendering. Then inspect the findings and review reminders from `tools/signoff_check.py`: it is advisory and returns 0 even when it reports issues, cannot inspect a tree or finds no recent trees. Its zero exit is not a second passing gate or owner sign-off.
 A genuinely divergent/novel query can itself be the longest branch — that is a *finding*, reported with a
 proper outgroup, not hidden; but it must not dominate an artifactual alignment.
 
 ## Claim-safety
-ITS/rDNA = family/genus neighbourhood, NOT a species call; genome marker trees and appropriate genome-similarity methods provide additional
+ITS/rDNA = family/genus neighborhood, NOT a species call; genome marker trees and appropriate genome-similarity methods provide additional
 comparison evidence. They do not automatically delimit or name species, and bacterial
 ANI thresholds are not a universal fungal naming rule. Judgment deferred. State the nearest named genus with % identity as an anchor, never as an identification.
 
-## Hard-won rules (v9.7.406) — each of these cost a real detour
-
-These were learned by making the mistake, not by reasoning ahead. Follow them.
+## Rules from earlier fungal trees
 
 ### R1. Take the outgroup from the registry row, never from whichever comparator finished first
-`mamey/data/fungal_outgroup_registry.tsv` names a **primary and an alternate** per scope precisely
-so there is a documented fallback. Picking a different genus because its genome was ready is not
-covered by "same family, close enough" — the row's author already reasoned about fallbacks and
-chose these. If a registry outgroup genuinely is not available, say so in the caption as a stated
-limitation rather than silently substituting.
+The bundled `mamey/data/fungal_outgroup_registry.tsv` is a scoped reference snapshot keyed by `tree_scope` and `ingroup_taxon`, with `LOCKED`, `CONFIRM` and `BANNED` status labels. It separates rDNA marker accessions from genome assembly accessions. Some alternatives appear in rationale text or additional genome rows; it does not supply a complete approved primary/alternate pair for every scope. Bind the exact selected row, accession, source evidence and owner decision. Record unavailable or unconfirmed choices as holds rather than silently substituting another ready genome.
 
 ### R2. Cross-check a new tree against any EXISTING marker tree for the same organism, before presenting
 A genome tree that contradicts an rDNA tree you already built is a finding that needs stating, not
@@ -55,13 +49,10 @@ conservation, not bootstrap alone — a short conserved locus can show 98/98 on 
 sites), and say plainly that neither settles the question if neither does.
 
 ### R3. One genome per genus for a placement tree; congeners are optional breadth
-A genus-placement question needs one representative per genus. Queuing five congeners multiplies
-runtime without changing the answer. Add breadth later, deliberately, if a reviewer asks for it.
+Choose and record a comparator roster suited to the placement question and available resources. One representative per genus is a sampling choice for an initial view, not a guarantee that additional congeners cannot affect the interpretation. Record the omitted breadth and the reason for any later expansion.
 
 ### R4. A high-quality assembly of a taxonomically incoherent genus is still a bad comparator
-Check the *name* as well as the assembly stats. A **form-genus** (NCBI brackets these, e.g.
-`[Coniosporium]`) is polyphyletic by definition, so its "genus" tells you nothing about where the
-genome will sit. One such comparator, despite 99.58% completeness, produced a branch 79% of tree
+Check deposited names and their source evidence as well as assembly statistics. The bundled registry records `[Coniosporium] apollinis CBS 100218` as a specific `BANNED` comparator in this historical workflow; that row does not independently validate a general taxonomic rule about every bracketed name. One such comparator, despite 99.58% completeness, produced a branch 79% of tree
 depth and failed the gate. The registry now carries BANNED rows for these.
 
 ### R5. A gate FAIL can be the finding — report the numbers, withhold the figure

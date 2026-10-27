@@ -1,5 +1,13 @@
 # Current scanner manifest boundary
 
+To build the scanner HMM, run:
+
+```bash
+python tools/build_scanner_hmm.py --source <Pfam-A.hmm> --out <scanner_pfam.hmm> --preset 35
+```
+
+Use `--preset 148` for the larger set, or `--accessions <file>` for your own list. You supply the Pfam HMM file, and `hmmfetch` and `hmmpress` must be installed. The builder makes no network request.
+
 The retained manifest below describes a historical 35-model artifact. Its size, model descriptions, source-version wording, checksum and “Validated” examples are provenance claims, not verification of a currently installed HMM or current scanner result. The CODE bundle does not ship the old `Wheelhouse/hmm/` artifact. The `v3.3` label alone does not bind a Pfam release/archive; historical download/model provenance must be retained separately. Bind the installed HMM's exact source, hash and native scan receipt before using this manifest as current execution evidence.
 
 ## Current selectors and producer
@@ -8,11 +16,11 @@ The retained manifest below describes a historical 35-model artifact. Its size, 
 
 The current producer is `tools/build_scanner_hmm.py`, accepting `--source`, `--out` and exactly one of `--preset {35,148}` or `--accessions`. It requires operator-provided HMM bytes and installed `hmmfetch`/`hmmpress`; it makes no network request. It reads the selected accession list and hashes source/list, but does **not** consult `scanner_accession_source_pins.json` to authenticate the source HMM against historical pins. A completed new-source receipt is not exact reconstruction of the historical artifact.
 
-The builder refuses existing HMM, four index paths or build-receipt path (including symlinks), stages in the output parent, fetches one exact accession/model per selector, checks all four indices and unchanged source/list hashes, then publishes HMM, `.h3f/.h3i/.h3m/.h3p` and `<out>.build_receipt.json` through non-replacing hardlinks. Caught failures return 2; completed build returns 0 and receipt status `COMPLETE_NEW_SOURCE_BUILD`. Failed publication rolls back files it published, but this is sequential publication rather than a multi-file atomic transaction; interruptions still require inspection. Use a reviewed destination and preserve accepted evidence. Source: `tools/build_scanner_hmm.py:31–92`.
+The builder refuses existing HMM, four index paths or build-receipt path (including symlinks), stages in the output parent, fetches one exact accession/model per selector, checks all four indices and unchanged source/list hashes, then publishes HMM, `.h3f/.h3i/.h3m/.h3p` and `<out>.build_receipt.json` through non-replacing hardlinks. Caught failures return 2; completed build returns 0 and receipt status `COMPLETE_NEW_SOURCE_BUILD`. Failed publication rolls back files it published, but this is sequential publication rather than a multi-file atomic transaction; interruptions still require inspection. Use a reviewed destination and preserve accepted evidence. Source: `tools/build_scanner_hmm.py`.
 
 ## Discovery versus execution
 
-`SM_HMM_DB` takes precedence when its path exists; then configured directories and bundled/addon locations are searched. Resolver `n_models_hint` is filename-derived metadata, not an HMM inventory or successful model load (`mamey/wheelhouse.py:57–124`). In particular the explicit override checks path existence, not that it is a valid model file. `doctor` points to source-bound provisioning (`mamey/cli.py:4985–4991`); a discoverable path is not an executed scan. Missing models, skipped scanners and genuine negative evidence need separate states. See [external data](../EXTERNAL_DATA.md), [database inspection](../TOOL_DATABASE_INSPECTION.md) and [public data provisioning](../PUBLIC_RELEASE_DATA.md).
+`SM_HMM_DB` takes precedence when its path exists; then configured directories and bundled/addon locations are searched. Resolver `n_models_hint` is filename-derived metadata, not an HMM inventory or successful model load (`mamey/wheelhouse.py`). In particular the explicit override checks path existence, not that it is a valid model file. `doctor` points to source-bound provisioning (`mamey/cli.py`); a discoverable path is not an executed scan. Missing models, skipped scanners and genuine negative evidence need separate states. See [external data](../EXTERNAL_DATA.md), [database inspection](../TOOL_DATABASE_INSPECTION.md) and [public data provisioning](../PUBLIC_RELEASE_DATA.md).
 
 The historical “Validated” examples below lack complete strain/contig/region/BGC identity and source receipts in this manifest. Preserve them as unverified historical claims; do not infer compound production, scanner specificity or general validation from them.
 

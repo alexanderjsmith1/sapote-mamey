@@ -24,9 +24,19 @@ Reference-only mode (--references-only; M5_452_k01_references_only, 14 Oct 2026)
 --genomes (a TSV with a genus column) when given, else by median GH18 + GH19, highest first. Output stem
 K01_chitin_references_by_genus. Without the flag the tool and its output are unchanged.
 
+Left margin: sized from the widest genus band label plus the widest row label (strain and row_note), never below the
+former fixed 0.30 of the width, so figures whose labels already fit keep their layout. If the narrower panels would then
+make a panel title touch its neighbour, that title wraps onto more lines and the figure grows to keep the plot area.
+Labels too long for the print width are refused with the width they need.
+
 A count of zero is drawn, never dropped. "Above the reference range" compares counts only; capacity is not activity.
 """
 from __future__ import annotations
+
+
+def _gname(gn):
+    """Genus in italics (mathtext); a family name (ending in -aceae) stays roman."""
+    return gn if gn.endswith(("aceae", "aceae bacterium")) else f"$\\it{{{gn}}}$"
 
 try:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
@@ -39,6 +49,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import statistics
 import sys
 from collections import defaultdict
@@ -99,6 +110,73 @@ def groups(genomes):
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def text_width(fig, width_in, text, **kw):
+    """Width of one text run at MIN_PT, as a share of the figure width."""
+    tx = fig.text(0, 0, text, fontsize=MIN_PT, **kw)
+    out = tx.get_window_extent(fig.canvas.get_renderer()).width / (width_in * fig.dpi)
+    tx.remove()
+    return out
+
+
+def left_margin(fig, width_in, band_labels, row_labels, floor=0.30, ceiling=0.50):
+    """Left edge of the panels, as a share of the figure width: the widest genus band label (drawn from the left edge)
+    plus the widest row label (strain and row note, drawn right-aligned against the panels), measured at MIN_PT.
+    Never below the former fixed 0.30, so figures whose labels already fit keep their layout."""
+    band = max(text_width(fig, width_in, t, linespacing=1.15) for t in band_labels)
+    row = max(text_width(fig, width_in, t) for t in row_labels)
+    need = 0.005 + band + 0.06 / width_in + row + 0.008
+    if need > ceiling:
+        raise SystemExit(f"row and genus labels need {need * width_in:.2f} in of the {width_in:g} in print width; "
+                         "shorten the row notes or widen --print-width")
+    return max(floor, need)
+
+
+def wrap_line(fig, width_in, line, room):
+    """Greedy wrap of one title line at spaces and after hyphens, each piece at most `room` wide where possible."""
+    words = re.findall(r"[^\s-]+-?|-", line)
+    out = []
+    for wd in words:
+        if out:
+            cand = out[-1] + ("" if out[-1].endswith("-") else " ") + wd
+            if text_width(fig, width_in, cand) <= room:
+                out[-1] = cand
+                continue
+        out.append(wd)
+    return "\n".join(out)
+
+
+def fit_titles(fig, width_in, titles, w, gap, right_room):
+    """Panel titles are centred over panels w wide, gap apart; the column to the right starts right_room past the last
+    panel. A title whose widest line would touch a neighbour is wrapped onto more lines (widest of the pair first).
+    Titles that already fit are returned unchanged."""
+    pad = 0.03 / width_in
+    titles = list(titles)
+
+    def widest(t):
+        return max(text_width(fig, width_in, ln) for ln in t.split("\n"))
+
+    for _ in range(4 * len(titles)):
+        hw = [widest(t) / 2 for t in titles]
+        clash = [(k, k + 1, w + gap - pad) for k in range(len(titles) - 1) if hw[k] + hw[k + 1] > w + gap - pad]
+        if hw[-1] > w / 2 + right_room - pad:
+            clash.append((len(titles) - 1, None, w / 2 + right_room - pad))
+        if not clash:
+            return titles
+        k, j, room = clash[0]
+        order = [k] if j is None else sorted((k, j), key=lambda i: -hw[i])
+        for i in order:
+            other = 0.0 if j is None else hw[j if i == k else k]
+            limit = 2 * (room - other) if j is not None else 2 * room
+            new = "\n".join(wrap_line(fig, width_in, ln, limit) for ln in titles[i].split("\n"))
+            if new != titles[i]:
+                titles[i] = new
+                break
+        else:
+            raise SystemExit(f"panel titles do not fit the {width_in:g} in print width beside the row labels; "
+                             "shorten the row notes or widen --print-width")
+    raise SystemExit("panel titles could not be fitted")
 
 
 def _report(info):
@@ -174,11 +252,20 @@ def main(argv=None):
     label = {s: f"{s} ({note[s]})" if note[s] else s for s in pos}
     W = a.print_width
     fig = plt.figure(figsize=(W, 0.24 * H + 1.9))
-    L, R, B, T = 0.30, 0.89, 0.17, 0.88
+    band = {gn: f"{_gname(gn)}\n(n = {len(refs[gn])})" for gn, _, _ in blocks}
+    L, R, B, T = left_margin(fig, W, band.values(), label.values()), 0.89, 0.17, 0.88
     gap = 0.014
     w = (R - L - gap * (len(FAMILIES) - 1)) / len(FAMILIES)
+    titles = fit_titles(fig, W, [t for _, t in FAMILIES], w, gap, 0.008)
+    extra = (max(t.count("\n") for t in titles) - 1) * MIN_PT * 1.2 / 72     # inches for title lines past two
+    sc = 1.0
+    if extra > 0:                                                              # grow the figure; keep the plot area
+        h0 = fig.get_figheight()
+        fig.set_size_inches(W, h0 + extra)
+        sc = h0 / (h0 + extra)
+        B, T = B * sc, T * sc
     table = []
-    for k, (f, title) in enumerate(FAMILIES):
+    for k, ((f, _), title) in enumerate(zip(FAMILIES, titles)):
         ax = fig.add_axes([L + k * (w + gap), B, w, T - B])
         xmax = max([value(census[s], f) for s in pos] + [max(refv[(gn, f)]) for gn, _, _ in blocks])
         for gn, y0, y1 in blocks:
@@ -218,7 +305,7 @@ def main(argv=None):
                 ax.text(0.005, ys + 0.35, sec, transform=tr, ha="left", va="center", fontsize=MIN_PT,
                         fontweight="bold", color="#333333")
             for gn, y0, y1 in blocks:
-                ax.text(0.005, (y0 + y1) / 2, f"$\\it{{{gn}}}$\n(n = {len(refs[gn])})", transform=tr, ha="left",
+                ax.text(0.005, (y0 + y1) / 2, band[gn], transform=tr, ha="left",
                         va="center", fontsize=MIN_PT, color=col[gn], linespacing=1.15)
     axr = fig.add_axes([R + 0.008, B, 1 - R - 0.01, T - B])
     axr.set_ylim(H - 0.3, -0.8)
@@ -228,7 +315,7 @@ def main(argv=None):
         cds = census[s].get("cds_searched", "")
         axr.text(0.0, pos[s], f"{int(cds):,}" if str(cds).isdigit() else "", fontsize=MIN_PT, ha="left", va="center",
                  color="#666666")
-    fig.text(0.5 * (L + R), B - 0.075, "Proteins per genome with a Pfam hit", ha="center", fontsize=MIN_PT)
+    fig.text(0.5 * (L + R), B - 0.075 * sc, "Proteins per genome with a Pfam hit", ha="center", fontsize=MIN_PT)
     handles = [Rectangle((0, 0), 1, 1, fc=BAND, ec="#BBBBBB", lw=0.4), Rectangle((0, 0), 1, 1, fc=IQR, ec="none"),
                Line2D([0], [0], color=MED, lw=1.1),
                Line2D([0], [0], marker="o", ls="", markerfacecolor="#999999", markeredgecolor="black",
@@ -295,7 +382,7 @@ def references_only(a):
     H = len(order)
     W = a.print_width
     fig = plt.figure(figsize=(W, 0.26 * H + 1.7))
-    labels = {gn: f"$\\it{{{gn}}}$ (n = {len(refs[gn])})" for gn in order}
+    labels = {gn: f"{_gname(gn)} (n = {len(refs[gn])})" for gn in order}
     rend = fig.canvas.get_renderer()                                            # left margin from the measured widest label
     widest = max(fig.text(0, 0, t, fontsize=MIN_PT).get_window_extent(rend).width for t in labels.values()) / (W * fig.dpi)
     for t in list(fig.texts): t.remove()

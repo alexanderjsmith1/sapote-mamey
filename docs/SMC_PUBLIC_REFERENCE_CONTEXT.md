@@ -1,10 +1,10 @@
 # Optional JGI public reference context: IMG-ABC and SMC
 
-Reviewed 2026-10-10. This is a manual reference-context guide. Sapote–Mamey does not currently implement an SMC API adapter, automatic import or SMC analysis runner.
+Use this guide when a selected public reference record could help explain a local result. Start with the accession versions already selected for your analysis, then use the manual crosswalk below. Sapote–Mamey has no identified JGI SMC API adapter, automatic import or SMC analysis runner in this bundle. Service details below may have changed; check the linked pages before retrieving anything.
 
 JGI reports that IMG-ABC was retired following SMC’s official 2023 launch. Preserve IMG-ABC citations and identifiers when describing historical analyses; do not relabel them as SMC results. [JGI implementation report, page 14](https://archive.jgi.doe.gov/wp-content/uploads/sites/8/2024/03/Beyond-Basepairs-Implementation-Report-2024.pdf)
 
-The current [Secondary Metabolism Collaboratory](https://smc.jgi.doe.gov/) offers accession/identifier browsing and links to downloads and API documentation. Use a small selected public accession roster for reference context. Its presence in SMC does not establish type-strain status; retain independent type-strain evidence for paper examples.
+The [Secondary Metabolism Collaboratory](https://smc.jgi.doe.gov/) offers accession and identifier browsing, downloads and API documentation. Use a small selected public accession roster for reference context. Its presence in SMC does not establish type-strain status; retain independent type-strain evidence for paper examples.
 
 ## A bounded manual workflow
 
@@ -16,8 +16,8 @@ The current [Secondary Metabolism Collaboratory](https://smc.jgi.doe.gov/) offer
 
 ## Retrieval status and reproducibility
 
-The [SMC Downloads page](https://smc.jgi.doe.gov/projects/) reviewed on this date lists large dated exports. An offered snapshot is not evidence that it represents the current complete service. Prefer selected references over bulk acquisition for this workflow.
+The [SMC Downloads page](https://smc.jgi.doe.gov/projects/) lists large dated exports. An offered snapshot is not evidence that it represents the current complete service. Prefer selected references over bulk acquisition for this workflow.
 
-The [API help](https://smc.jgi.doe.gov/api-help) and [conduct policy](https://smc.jgi.doe.gov/code-of-conduct) require further endpoint/authentication-contract verification before automation. The policy’s broad availability wording does not establish a specific license for every underlying record. Preserve record-specific rights statements and source provenance. No API endpoint, authentication behavior, dataset export, annotation mapping or scientific result is validated by this guide.
+The [API help](https://smc.jgi.doe.gov/api-help) and [conduct policy](https://smc.jgi.doe.gov/code-of-conduct) require further endpoint/authentication-contract verification before automation. The policy’s broad availability wording does not establish a specific license for every underlying record. Preserve record-specific rights statements and source provenance. This guide has not tested any API endpoint, export or mapping.
 
 For Methods: describe only the records and operations actually used, with retrieval date, accession versions, annotation provenance and mapping criteria. Merely consulting this guide does not mean SMC was used in an analysis.

@@ -18,7 +18,7 @@ p <- ggplot(d,aes(x,y,fill=genus))+
   scale_fill_manual(values=pal,labels=genlab,name="Genus (16S rRNA)")+
   scale_x_continuous(limits=c(min(-5,d$x-4),max(as.numeric(Sys.getenv("BIOASSAY_A07_XMAX","112")),d$x+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   scale_y_continuous(limits=c(min(-5,d$y-4),max(112,d$y+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
-  labs(x=paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix),
+  labs(x=sp_md(paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix)),
        y=paste("Best inhibition of MRSA,",suffix))+house()+
   guides(fill=guide_legend(ncol=3,byrow=TRUE,order=1,override.aes=list(shape=21)),shape=guide_legend(nrow=1,order=2))
 if(!isTRUE(prof$a04_source_shape))p<-p+guides(shape="none")

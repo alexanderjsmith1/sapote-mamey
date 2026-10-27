@@ -2,9 +2,9 @@
 
 The four pairs and 40-genome census below are retained historical scientific examples. Check the original run, assembly and database records before reusing their names, locators, scores, counts or interpretations. These historical examples do not establish current scientific acceptance. Reading-order BGC aliases are not stable join keys. Use exact strain / full node-or-contig / region / BGC alias with input and result hashes before comparing an example to a current run.
 
-These examples are not the generated repository's small engine-parity fixture. `make_repo_candidate.py` generates that fixture's expected JSON by running the selected Sapote-Mamey engine and writes `tests/test_example_matches_engine.py` (`:104–130`). That test compares records and result for one fixture and requires at least one ranked pair (`:50–58`); it does not validate these four pairs or the 40-genome census, prove independent scientific correctness, or certify all package/platform modes. The plain package builder does not create that repository-only test.
+These examples are not the generated repository's small engine-parity fixture. `make_repo_candidate.py` generates that fixture's expected JSON by running the selected Sapote-Mamey engine and writes `tests/test_example_matches_engine.py`. That test compares records and result for one fixture and requires at least one ranked pair; it does not validate these four pairs or the 40-genome census, prove independent scientific correctness, or certify all package/platform modes. The plain package builder does not create that repository-only test.
 
-The standalone source tree receives this guide under `docs/`; the wheel does not declare docs as package data. Use [output scope and recovery](OUTPUT_GUIDE.md) and [the template source index](../README.md) for installed/source/provenance boundaries. Do not run the repository-candidate builder to read an example: it executes the engine probe and can replace a target checkout's files.
+The standalone source tree receives this guide under `docs/`; the wheel does not declare docs as package data. Use [output scope and recovery](OUTPUT_GUIDE.md) and [the README](../README.md) for installed/source/provenance boundaries. Do not run the repository-candidate builder to read an example: it executes the engine probe and can replace a target checkout's files.
 
 ## Retained worked examples — unchanged below
 
@@ -111,7 +111,7 @@ members refuse common intake before a subset is reported. General source-reader 
 warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
 empty successful RGGMCI result.
 
-Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
 no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
 then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
 implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:

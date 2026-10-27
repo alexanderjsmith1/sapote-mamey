@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import tempfile
@@ -301,6 +302,8 @@ def export_private_project_handoff(project_root: str | Path, output_zip: str | P
     output = Path(output_zip).expanduser().resolve()
     if output.exists() and output.is_dir():
         raise ValueError("handoff output must be a file path")
+    if output.exists():
+        raise ValueError(f"handoff output already exists; choose a new path: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.is_relative_to(root):
         raise ValueError("handoff archive must be written outside the project root to avoid self-inclusion")
@@ -319,15 +322,28 @@ def export_private_project_handoff(project_root: str | Path, output_zip: str | P
     }
     if portfolio is not None:
         manifest["portfolio"] = portfolio
-    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in files:
-            member = _relative(root, path)
-            info = zipfile.ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
+    # Stage a complete sibling archive, then publish without replacing another writer's file.
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".partial", dir=output.parent)
+    os.close(fd)
+    tmp = Path(tmp_name)
+    try:
+        with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for path in files:
+                member = _relative(root, path)
+                info = zipfile.ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, path.read_bytes())
+            info = zipfile.ZipInfo("handoff_manifest.json", date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
-            archive.writestr(info, path.read_bytes())
-        info = zipfile.ZipInfo("handoff_manifest.json", date_time=(1980, 1, 1, 0, 0, 0))
-        info.compress_type = zipfile.ZIP_DEFLATED
-        archive.writestr(info, json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+            archive.writestr(info, json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        try:
+            # A sibling hard link publishes complete bytes atomically and refuses an occupied name.
+            os.link(tmp, output)
+        except FileExistsError as exc:
+            raise ValueError(f"handoff output already exists; choose a new path: {output}") from exc
+    finally:
+        if tmp.exists():
+            tmp.unlink()
     return output
 
 
@@ -358,6 +374,11 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
         if not isinstance(records, list) or not records:
             raise ValueError("private handoff manifest has no file inventory")
         declared = {str(item.get("path") or ""): item for item in records}
+        # a repeated member or manifest path would leave one copy unchecked by the set comparison below
+        if len(names) != len(set(names)):
+            raise ValueError("private handoff archive repeats a member name")
+        if len(declared) != len(records):
+            raise ValueError("private handoff manifest lists a path more than once")
         if set(names) != set(declared) | {"handoff_manifest.json"}:
             raise ValueError("private handoff member set does not match its manifest")
         staging = Path(tempfile.mkdtemp(prefix="mamey_project_import_", dir=root.parent))

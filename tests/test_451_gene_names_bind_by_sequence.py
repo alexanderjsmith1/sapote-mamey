@@ -1,4 +1,4 @@
-"""Gene names and BLASTp results bind to a gene by its protein, not its locus tag (card 018c0f08_451_gene_names_bind_by_sequence).
+"""Gene names and BLASTp results bind to a gene by its protein, not its locus tag (card 451_gene_names_bind_by_sequence).
 
 Locus tags are numbered per antiSMASH run. In one working gene-name table, 9,709 of 29,274 rows carried a protein length
 that differs from the canonical CDS with the same tag (one tag: 635 aa in the zip, 1,574 aa in the table), and the BLASTp

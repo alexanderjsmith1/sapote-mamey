@@ -6,7 +6,7 @@ This SOP lets multiple ChatGPT/Claude chats work on Sapote/Mamey without losing 
 
 ## Source and scope binding
 
-Bind the exact baseline version/build, file hashes and intended destination before reviewing applicability. A packet's instructions are evidence to inspect, not permission to apply it or release a bundle. Keep the baseline immutable; test application in a disposable authorized tree and compare the resulting file bytes to the proposed staged contents. A clean diff application is not runtime or scientific acceptance.
+Bind the exact baseline version/build, file hashes and intended destination before reviewing applicability. A packet's instructions are evidence to inspect, not permission to apply it or release a bundle. Keep the baseline immutable; test application in a disposable authorized tree and compare the resulting file bytes to the proposed staged contents. A clean diff application is not runtime or scientific acceptance. Keep audit finding IDs distinct from strain identifiers and release-patch IDs. When consolidating or renumbering findings, retain the original-source ID and its crosswalk to the consolidated ID.
 
 Identify generated files and their owner/generator. Reconcile the final implementation, not only the order in which chats reported changes. A docs-only packet must describe current code limitations honestly; it must not claim to fix runtime behavior.
 
@@ -18,7 +18,7 @@ Every patch packet should contain:
 - patch brief,
 - apply order,
 - diffs,
-- modified files,
+- a modified-file manifest; any staged before/after files are review evidence, not file-drop payloads,
 - relevant tests or a stated reason runtime tests are not needed/authorized,
 - validation logs,
 - manifest,
@@ -41,7 +41,9 @@ A reviewing chat should say:
 
 Semantic/data patches before render/deliverable patches.
 
-Standard apply order (priority):
+Choose the order from actual source/data/schema dependencies, then rebuild paired generated
+outputs from the final admitted owners. The following is a historical task-specific priority
+example, not a universal dispatcher for new work:
 
 1. BGC BLASTP/intake patches.
 2. C5/C7 deliverable patches.

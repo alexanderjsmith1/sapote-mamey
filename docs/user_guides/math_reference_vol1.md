@@ -1,7 +1,11 @@
 # Sapote–Mamey — Volume I — Plain-Language Companion
 ## Counting, Scoring, and Reconstruction in the Deterministic Extraction Engine
 **Source document:** `docs/reference/01_Math_Reference_VolI.md` (re-grounded to Mamey engine v1.9.164 · bundle v9.7.429; originally compiled v1.9.110 / v9.7.319)
-> **This is the plain-language companion.** The canonical Volume I is `docs/reference/01_Math_Reference_VolI.md`; it holds the authoritative §10 constants table verified against the engine. Constants shown below are illustrative for the prose — if one ever disagrees with the canonical file, the canonical file wins (this companion carries no authoritative constants).
+> **Start with the value you are reading.** Use §1–§3 for counts/boundaries, §4–§6 for scores
+> and tier changes, and §7 for candidate fragment links. The [technical Volume I](../reference/01_Math_Reference_VolI.md)
+> gives formula context; [current source scope](../reference/06_CURRENT_SOURCE_SCOPE.md) records
+> known implementation boundaries. Resolve a conflict at the selected source owner, not by
+> assuming either prose constants table has been fully reverified.
 **Constants re-verified against:** bundle v9.7.429 · engine 1.9.164 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded at v1.9.99)
 
 
@@ -36,8 +40,10 @@ Every antiSMASH region is assigned exactly one of three boundary states, from it
 EDGE_FLANK        = 5_000        # bp
 FULL_CONTIG_FRAC  = 0.95         # region span / contig length
 
-Full-contig  ⇐  (end - start) >= 0.95 * contig_length
-Edge         ⇐  start < 5000  OR  (contig_length - end) < 5000
+Unknown      ⇐  contig_length <= 0
+Full-contig  ⇐  (end - start + 1) >= 0.95 * contig_length
+Interior     ⇐  circular replicon (after the Full-contig check)
+Edge         ⇐  start <= 5000  OR  (contig_length - end) <= 5000
 Interior     ⇐  otherwise
 ```
 
@@ -45,7 +51,10 @@ Precedence: **Full-contig is tested first.** A region occupying ≥95% of its co
 
 **Circular-replicon correction (v9.7.87).** On a closed chromosome the origin is not a truncation point: a region adjacent to the origin wraps and is **Interior**, not Edge. Without this correction every closed genome reported spurious Edge regions.
 
-**Interpretation.** Edge status answers exactly one question — *is this cluster truncated?* It is deliberately simpler than the A–E architecture grade (§5.2), which answers *how much can be claimed about it?* The two are reported side by side and must not be conflated.
+**Interpretation.** Edge status is a coordinate/topology classification under the supplied
+contig length and bounds. It flags possible boundary truncation; it does not directly measure
+missing sequence or pathway completeness. A–E architecture grading (§5.2) adds source-label,
+length and hybrid evidence, but is also a heuristic. Read the fields together.
 
 ---
 
@@ -63,11 +72,11 @@ The weights encode **partial evidence**, not partial existence:
 
 | Class | Weight | Reasoning |
 |---|---:|---|
-| Interior | 1.00 | Whole cluster observed |
-| Edge | 0.50 | Truncated at one boundary; half the locus is unobserved |
-| Full-contig | 0.25 | Presumed truncated at both ends; the contig *is* the fragment |
+| Interior | 1.00 | Fixed contribution for the Interior label; not proof of a complete pathway |
+| Edge | 0.50 | Fixed contribution for the Edge label; does not measure half a locus |
+| Full-contig | 0.25 | Fixed contribution for the Full-contig label; does not measure one-quarter recovery |
 
-**Invariant:** `corrected ≤ raw` always. A violation signals a coordinate or edge-status bug — it is exactly the observation that surfaced the circular-replicon defect at v9.7.87.
+**Invariant:** `corrected ≤ raw` always. With the same nonnegative I/E/F denominator, a violation signals inconsistent counts/inputs or arithmetic. False boundary labels can depress the discounted count, as in the circular-replicon defect, while still satisfying this inequality.
 
 **Corrected count is a boundary-weighted comparison heuristic, not the only meaningful counting scope or a proven biological count.** Retain raw region calls and exact denominators when reporting observed inventory; fragmentation can split one pathway across calls, while fused calls and false/missing predictions create other uncertainties. The raw count is always reported alongside, so the discount is visible rather than hidden.
 
@@ -82,7 +91,7 @@ The weights encode **partial evidence**, not partial existence:
 **Source:** `assembly.py:assembly_tier`
 
 ```python
-interior_pct = 100 * I / raw          # raw = I + E + F
+interior_pct = round(100 * I / raw, 1) if raw else None  # raw includes Unknown-boundary records
 
 interior_pct >= 70  ->  GOOD
 interior_pct >= 45  ->  MODERATE
@@ -93,11 +102,14 @@ None                ->  UNKNOWN
 
 **The tier is decided by interior-BGC percentage alone.** Contig count and N50 are descriptive context, not part of the test. The 66/50/33 thresholds are **retired** — `tools/check_monolith_freshness.py` scans the parent design document for them as a marker of stale doctrine.
 
-The tier sets the **strain-wide claim ceiling**. It is not a quality score to be improved; it is a statement about what any cluster in this genome is allowed to assert.
+The tier summarizes the supplied boundary distribution. It is separate from contiguity
+classification and per-locus architecture/claim fields; it does not impose a calibrated
+strain-wide biological claim ceiling. Read the source/input scope before interpreting a low
+count or a GOOD label.
 
 ### 3.1 Supporting statistics
 
-`N50` — sort contigs descending by length, accumulate; N50 is the contig length at which the running total first reaches half the assembly. A contiguity proxy, reported and never thresholded.
+`N50` — sort contigs descending by length, accumulate; N50 is the contig length at which the running total first reaches half the assembly. A contiguity proxy. It does not enter the interior-percentage `assembly_tier`; the separate `fragmentation_tier` does threshold N50 jointly with contig count (`assembly.py`).
 
 ### 3.2 Contamination / sanity heuristic (non-blocking)
 
@@ -109,7 +121,7 @@ GC_SD >= 5.0   ->  CONTAMINATION_SUSPECT
 
 Length-weighted standard deviation of per-contig GC%. Clean genomes run 1–2%; contaminated drafts 7–12%.
 
-**Genome size, not contig count, anchors the co-assembly flag.** An unusually large genome (>14 Mb for an actinomycete) suggests two strains co-assembled. High contig counts *alone* are a WARN, not a FLAG — because **fragmentation inflates raw-BGC count and contig count identically**, so neither is diagnostic on its own. Size has to anchor the call.
+**Genome-size and GC flags are assembly-sanity heuristics, not co-assembly diagnoses.** The current default upper bound is 12,000,000 bp; a positive size above that bound sets `INFLATED_ASSEMBLY_SUSPECT`. The lower 3,000,000-bp default can flag partial assemblies, with at most five contigs additionally setting `PARTIAL_SUBMISSION_SUSPECT`; caller overrides can change or disable these bounds. GC dispersion and any supplied GC/size priors are separate checks (`assembly.py`). Contig count and raw BGC count are affected differently by fragmentation and prediction; neither proves contamination or a two-strain assembly.
 
 Non-blocking: extraction proceeds, the stats are recorded.
 
@@ -133,9 +145,9 @@ base_novelty = 30 + score_keywords(class_txt, NOVELTY_KEYWORDS)
 
 **Keyword weights** (`scoring.py`):
 
-*AB (17 classes):* carbapenem 18 · phosphonate 15 · thioamide 14 · thiopeptide 14 · thiazolylpeptide 14 · hr-t2pks 14 · transat-pks 14 · aminoglycoside 14 · nrps 12 · t2pks 12 · lanthipeptide 12 · t1pks 10 · lassopeptide 10 · phenazine 10 · saccharide 8 · halogenated 8 · ripp 8 · azole 8
+*AB (18 keyword entries):* carbapenem 18 · phosphonate 15 · thioamide 14 · thiopeptide 14 · thiazolylpeptide 14 · hr-t2pks 14 · transat-pks 14 · aminoglycoside 14 · nrps 12 · t2pks 12 · lanthipeptide 12 · t1pks 10 · lassopeptide 10 · phenazine 10 · saccharide 8 · halogenated 8 · ripp 8 · azole 8
 
-*AF (16 classes):* hsaf 20 · nystatin 20 · nikkomycin 20 · polyoxin 20 · polyene 18 · candicidin 18 · nucleoside 18 · tetramate 16 · sgr ptm 14 · chitin 12 · ptm 12 · transat-pks 12 · t1pks 10 · nrps 8 · terpene 6 · siderophore 4 · metallophore 4
+*AF (17 keyword entries):* hsaf 20 · nystatin 20 · nikkomycin 20 · polyoxin 20 · polyene 18 · candicidin 18 · nucleoside 18 · tetramate 16 · sgr ptm 14 · chitin 12 · ptm 12 · transat-pks 12 · t1pks 10 · nrps 8 · terpene 6 · siderophore 4 · metallophore 4
 
 *Novelty (11 classes):* transat-pks 18 · enediyne 18 · azoxy 18 · thioamide 15 · phosphonate 15 · hgle 12 · ranthipeptide 12 · ripp 10 · nrps 8 · t1pks 8 · t2pks 8
 
@@ -186,7 +198,10 @@ The RiQ branch shown above remains conditional on an actually supplied numeric R
 ### 4.5 RG-GMCI rescue bonus
 
 ```python
-rescue_bonus = 0 if primary_metab_flag else (8 if high_rg else 4 if mod_rg else 0)
+eligible(pair) = pair.functional_rescue_class != "ACCESSORY_ONLY"
+high_rg = any(eligible HIGH pair)
+mod_rg  = any(eligible MODERATE pair)
+rescue_bonus = 0 if (primary_metab_flag or mobile_element_flag) else (8 if high_rg else 4 if mod_rg else 0)
 ```
 
 Never applied to a primary-metabolism-flagged or mobile-element-flagged BGC. **It is routing priority, not claim confidence** (§7.4).
@@ -229,7 +244,7 @@ best = max(ab, af, novelty)
 best >= 85  ->  Exceptional
 best >= 70  ->  High
 best >= 50  ->  Medium
-else        ->  Inventory
+else        ->  bottom_tier(bgc)  # Inventory for housekeeping-only/unresolved; Low otherwise
 ```
 
 **The tier is about where to spend lab effort. It is never a confidence statement.** Raising a lead's tier does not raise its claim ceiling.
@@ -303,7 +318,7 @@ An **uncorroborated** trigger is *recorded and preserved* for the judgment layer
 ### 6.2 The Tier-1 diagnostic floor
 
 ```python
-if tier == "Inventory" and tier1_floor:      # corroborated class trigger OR class-concordant T1 resistance
+if tier in ("Inventory", "Low") and tier1_floor:      # corroborated class trigger OR class-concordant T1 resistance
     tier = "Medium"; floored = True
 ```
 
@@ -333,7 +348,10 @@ A **lone flanking IS element is not dominant.** A mobile-dominant region with no
 
 ### 6.5 KCB mis-anchor guards
 
-Applied when the KCB anchor lacks its own committed-class diagnostic **and** no Tier-1 trigger fired:
+Read the recorded class-specific mis-anchor flags. An unrelated Tier-1 trigger is not a
+blanket exemption: the aminoglycoside clamp remains, and the polyene clamp has a separate
+exception for corroborated non-polyene AF evidence. The enediyne branch is independent of
+Tier-1 status.
 
 | Guard | Test | Effect |
 |---|---|---|
@@ -349,14 +367,14 @@ The enediyne guard is where **PREV-001** lives: the `hglE`/`hglD` glycolipid ket
 
 **Source:** `scoring.py:standing_rule_for`, reading `mamey/data/rules_registry.json` (SSOT)
 
-Rules with `action=downgrade AND lead_blocking=True` cap the tier at Inventory and set `corrected_rank = None`. **Raw scores are preserved for audit.**
+The scorer selects registry rules with `action=downgrade` and `lead_blocking=True`; a
+resulting standing flag sets `bottom_tier(bgc)` (Low or Inventory), preserves numeric scores
+and excludes corrected lead rank. NAPAA is neutral and is not in that selected subset.
 
-- **Committed-class guard:** a BGC whose own products contain any committed backbone class is exempt — **except** `_BYPASS_COMMITTED_CLASS_GUARD = {NAPAA, HGLE-KS-PREV-001}`, which are annotation-domain flags rather than label artifacts and fire regardless.
-- **`_OWN_PRODUCTS_ONLY = {SACCHARIDE}`** — saccharide is tested against own products only, never the full product+MIBiG+KCB text. A sugar *tailoring arm* on an NRPS backbone must not trigger the exclusion.
-- **hglE-KS-PREV-001** is habitat-non-specific across many strains, genera, and all three habitats. Its **habitat claims are retired; its structural novelty (zero KCB) stands.**
-- **NAPAA** is *registry-neutral* in the current rules registry: listed, not interpreted; neither downgraded nor lead-blocking. The Nosema hypothesis is retired.
-
-**Exclusion from comparison is not a claim of biological unimportance** — only that the signal does not discriminate between strains.
+The hglE own-product fallback is separate: without an existing standing rule or any raw CCTT
+trigger, it can still synthesize an hglE standing label despite the informational/nonblocking
+registry entry. Inspect actual labels and source products instead of transferring a historical
+habitat or novelty claim. See [the current standing-rule scope](../reference/06_CURRENT_SOURCE_SCOPE.md#volume-i-section-66-standing-rule-selection-scope-and-policy-conflict).
 
 ### 6.7 RiPP-fragment completeness floor
 
@@ -365,7 +383,7 @@ RIPP_FRAGMENT_MAX_KB = 8.0
 
 if class in RIPP_FAMILY_CLASSES and edge_status in {Edge, Full-contig} \
    and 0 < span_kb < 8.0 and tier in {Exceptional, High, Medium}:
-       tier = "Inventory"; ripp_floored = True
+       tier = bottom_tier(bgc); ripp_floored = True  # specialized RiPP normally becomes Low
 ```
 
 A truncated sub-8 kb RiPP fragment with no precursor captured cannot be evaluated as a product. A lone LanM synthetase on a tiny contig must not float to High.
@@ -433,9 +451,9 @@ Reads which genes of the shared reference each fragment hits:
 
 | Verdict | Meaning |
 |---|---|
-| `COMPLEMENTARY_SPLIT` | disjoint subject genes — two halves of one cluster |
-| `TERMINUS_TRUNCATION_SPLIT` | an arm severed exactly at a contig terminus |
-| `OVERLAPPING_PARALOG` | shared subject genes — independent paralogous clusters, **not** a split |
+| `COMPLEMENTARY_SPLIT` | Aggregated tiling/count/geometry conditions support a candidate split interpretation |
+| `TERMINUS_TRUNCATION_SPLIT` | Terminus/geometry evidence changed or corroborated the engine label; inspect the override |
+| `OVERLAPPING_PARALOG` | Overlapping subject support triggers the engine category and demotes HIGH/MODERATE confidence |
 | `MIXED_SUBJECT_SIGNAL` | ambiguous; manual review |
 | `INSUFFICIENT_SUBJECT_DATA` | no tiling data |
 
@@ -461,7 +479,11 @@ coverage = (#BGCs with ab, af, novelty all populated) / (#BGCs total)
 
 `assert_full_scoring_coverage` **raises** on any unscored BGC.
 
-This invariant does not exist to catch a scoring bug — the engine scores everything by construction. **It exists to catch downstream loss:** a merge or workbook build that carries scores for leads only. One cohort merge did exactly this, at **~9% coverage**, and shipped. Opting out is now a deliberate source edit, never a default: a user is confronted with incomplete coverage rather than shipping it silently.
+The helper checks score-field presence for the supplied object roster. Its default raises,
+but the native gold writer uses `raise_on_fail=False`, records warnings/errors and can continue
+to export. It does not reread the saved workbook/CSV, validate finite numeric scores or detect
+later merge loss. Check the serialized output separately. The earlier ~9% cohort example is a
+historical report, not a current measurement.
 
 ---
 
@@ -475,7 +497,7 @@ needs_multibatch  =  raw > 25
                   ∨  a fragmented-cluster rescue review was triggered
 ```
 
-A run too large to assess coherently in one judgment pass is split.
+A true result recommends batching; the helper does not partition rows, dispatch judgment work or establish that later batches ran.
 
 ---
 
@@ -493,7 +515,7 @@ A run too large to assess coherently in one judgment pass is split.
 | Score bases | 25 / 20 / 30 | `scoring.py:triage_bgcs` | AB / AF / novelty floor |
 | Diagnostic bonus | 25 | `scoring.py` | corroborated CCTT trigger |
 | KCB-strong novelty | −15 | `scoring.py` | `kcb_cumulative > 10000` |
-| No-KCB novelty | +5 | `scoring.py` | `kcb_cumulative is None` |
+| Missing/unknown KCB novelty | 0 | `scoring.py` | unavailable comparator adds no novelty credit; explicit UNKNOWN also suppresses the high-KCB penalty |
 | Low-RiQ novelty | +10 | `scoring.py` | `riq_score < 0.5` |
 | Rescue bonus | 8 / 4 | `scoring.py` | HIGH / MODERATE RG-GMCI |
 | Edge penalty | **0.0** | `scoring.py:edge_penalty` | neutralized v9.7.84 |

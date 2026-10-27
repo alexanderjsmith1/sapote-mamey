@@ -1,13 +1,16 @@
 # FIGURE_CONVENTIONS — read before generating ANY figure
 
-These conventions are inherited by every prompt in this library. They exist so figures from
-different sessions/LLMs look like one coherent set, and so a designer can finish them in
-PowerPoint / BioRender / Illustrator without fighting baked-in decoration.
+These are recipe conventions, not a renderer or permission to replace one. Choose the
+approved route in `docs/FIGURES_START_HERE.md` and retain its renderer, palette, font,
+layout and label method. Hold conflicting older settings for owner review. Keep the
+actual renderer, bound data/configuration, provenance-check result and any required
+approved-workflow receipt with the figure; inspect its rendered artifacts before
+calling it complete.
 
 ## The hard rule: no arrows or callouts on data points
 - **Do NOT draw arrows, lines, leader-lines, circles, stars, or text callouts pointing at
   individual data points, bars, or cells.** Annotation is limited to: axis labels, tick labels,
-  legend, title/subtitle, colorbar label, and value labels sitting flush at the end of a bar.
+  legend, non-interpretive title/subtitle, colorbar label, and value labels sitting flush at the end of a bar.
 - Why: overlays are presentation decisions. They are added downstream in PowerPoint, BioRender,
   Keynote, or Illustrator, where they can be moved, restyled, or removed. A baked-in arrow cannot.
   Every prompt lists *overlay suggestions* separately so the figure stays clean and the emphasis
@@ -44,7 +47,8 @@ Each figure carries a stable, typable ID (`COHORT-F1`, `DOT-D6`, `HM-…`, `SCAT
 ordering. Per FIGURE_STYLE.md (figure = data, caption = claim), the corner-baked ID is for the
 print catalog / ordering use ONLY; manuscript figures carry the ID in the **caption**, not baked
 into the PNG. Emit both variants where it matters — corner-labeled for the catalog, clean for the
-manuscript — or gate the corner label behind a `--catalog` flag.
+manuscript — or use a catalog-label option only if the selected renderer implements it.
+This library establishes no general `--catalog` interface.
 
 ## Typography & canvas (matplotlib rcParams — apply at top of every render)
 - Font: DejaVu Sans. Sizes: title 13 · axis label 11 · tick 9 · bar value label 8.
@@ -54,7 +58,10 @@ manuscript — or gate the corner label behind a `--catalog` flag.
   so strains line up across every panel.
 
 ## Captions
-- The caption is **text below the figure**, never inside it. Each prompt suggests one.
+- Keep interpretation outside the data panel in an editable caption/methods
+  companion. A required captioned export may use the approved band beneath the
+  plot; retain the clean plot-only artifact and inspect the rebuilt presentation.
+  Check suggested wording against the actual evidence.
 - Captions are claim-safe: antiSMASH product classes and KCB/MIBiG matches are **class-level
   hypotheses**, never assayed chemistry; say "candidate", "predicted", "consistent with".
 - State the actual admitted plotted isolate count and unit (use isolates in reader-facing text), any subset/group sizes, and the correction rule where relevant. Technical `strain_id` fields and filenames retain their schema names. Fill caption placeholders from bound input tables/receipts; never copy a historical count or result into a new set. For lead tables, distinguish displayed BGC rows from cohort isolates. Confirm every result-bearing example clause against this set before using it.

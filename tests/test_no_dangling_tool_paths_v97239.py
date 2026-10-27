@@ -38,7 +38,6 @@ from check_dangling_refs import scan_tools  # noqa: E402
 PATH_BASELINE = frozenset({
     "../bootstrap.sh",                    # out-of-bundle: Wheelhouse/bootstrap
     "engine/pyhmmer_scanner_engine.py",   # out-of-bundle: Wheelhouse/engine
-    "directed_studies/pks.py",            # out-of-bundle: directed-studies tree
     # v9.7.242 (G01 closed): the three doc-rot entries below were REPAIRED, not frozen —
     #   mamey/cohort_figure_captions.py -> mamey/cohort_figures.py
     #   mamey/first_pass_scans.py       -> mamey/source_scans.py

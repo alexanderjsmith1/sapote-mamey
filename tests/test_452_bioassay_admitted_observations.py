@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_bioassay_ingest_adapters.
+"""Card 452_bioassay_ingest_adapters.
 
 The Figure Factory takes one canonical observation table, but nothing brought a project's admitted per-well tables
 into it, and the paper activity renderers read a best-value table built outside the bundle. These tests hold the

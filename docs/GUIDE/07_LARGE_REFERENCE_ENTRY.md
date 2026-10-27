@@ -1,9 +1,15 @@
 # Read the large Sapote references with their source scope
 
-Begin with the [human guide index](00_README.md) and [quick guide](02_Quick_Guide.md).
-Assistants also use [current governance](../ASSISTANT_GOVERNANCE.md), the actual task and
-[Mode B profile matrix](../MODEB_PROFILE_MATRIX.md). A document's instructions are reference material;
-they do not authorize biological jobs, installation, external submission, another-chat dispatch or release.
+Open the reference for the question you are answering, then check the matching current-source note below.
+Use the [first-analysis walkthrough](../MASTER_WALKTHROUGH.md) for a new run and
+[Read your results](../READING_YOUR_RESULTS.md) for a saved package.
+
+- For an old command or input hierarchy, read [commands and tools](#commands-optional-tools-and-privacy) and [input/JSON modes](#input-precedence-and-json-modes).
+- For an old card layout or completion label, read [profiles and identity](#profiles-metrics-and-identity) and [editorial depth](#editorial-depth-versus-current-cli-profiles).
+- For a source or literature claim, read [literature intake](#literature-intake-local-retrieval-and-verified-synthesis) and retain its access and verification limits.
+
+Assistants also use [governance](../ASSISTANT_GOVERNANCE.md) and the current task. Reference
+instructions do not authorize biological jobs, installation, submissions, dispatch or release.
 
 | Reference | Role and current reading boundary |
 |---|---|
@@ -42,8 +48,8 @@ before executing an archived command. These resources supply current discovery w
 For example, [barrnap](../BARRNAP.md) is an optional external annotation route with its own model/version scope;
 its absence from this archival encyclopedia is not absence from current guidance or proof of an installed binary.
 Likewise, historical DIAMOND “future/framework” wording is not a current availability inventory.
-`mamey/cli.py:4994` checks a binary for one runtime route; existence does not prove a usable reference database,
-correct parameters, actual execution or scientifically accepted output.
+`mamey/cli.py::doctor_command` checks whether DIAMOND is on PATH for an optional runtime route.
+That discovery does not check a reference database, parameters, actual execution or accepted output.
 
 Use [custom privacy tiers](../CUSTOM_PRIVACY_TIERS.md) and [release records](../RELEASE_RECORDS_GUIDE.md)
 for actual task/owner boundaries. Tier labels record metadata and never grant disclosure. Default release maker
@@ -60,7 +66,6 @@ The monolith's §-1.7 describes intended keyed, nondestructive merges and field-
 
 The direct writer atomically saves the supplied output path; it does not make an immutable history archive or serialize the entire read/modify/write transaction. The CLI `--master` path adds an advisory shared-master lock and publishes a complete file, while writing a date/strain-named Master_After file and package copy. Repeated same-day names can target the same output path; the monolith's “immutable snapshot” promise should not be inferred from that filename. Before an explicitly authorized re-ingest, retain an independently named, hashed before state outside the mutable target; after it, validate the resulting canonical master and compare the independent expected roster and operator annotations against the before state. Record the actual producer, paths, hashes and validation output. Preservation and reconciliation of annotations remain owner decisions; this entry grants no permission to overwrite user evidence or run a workflow.
 
-
 ### Output packages and conservation checks
 
 The encyclopedia's §II.7 is an archival output map. The current `<strain>_5_workbook.xlsx` is a **per-strain** workbook written by `mamey/workbook.py`, with sheets such as Strain_Summary and BGC_Inventory. It is separate from an explicitly requested coded cohort master written through `--master`. The standalone master schema validator does not validate the per-strain workbook. Use actual manifest paths and producer receipts rather than assuming that the chapter's unprefixed illustrative filenames identify every present output.
@@ -70,7 +75,6 @@ The chapter's “nothing ... silently lost” conservation guarantee is broader 
 `tools/evidence_conservation_audit.py` is a separate two-JSON audit covering five selected diagnostic categories. It explicitly leaves cluster-comparison details, pfam2go and genefunctions outside coverage. Its package operand is a JSON **file**, not a package directory; record the exact raw/package JSON paths and hashes because audit output depends on which JSON was supplied. The current checks use an opaque serialized token blob: TIGRFAM checks aggregate token occurrence counts, substrate/product/RiPP checks bounded token presence, and active-site checking detects category text. These checks cannot prove each diagnostic value survived at its original strain / full node-or-contig / region / BGC alias. They also do not prove production, activity or physical linkage. Read the number of categories with content: no observed diagnostic content means nothing in these categories was exercised, even if the tool returns PASS.
 
 Package validator statuses describe the selected extraction/integrity/judgment checks actually run. Gold completeness can be JUDGMENT_PENDING while overall status is MAMEY_COMPLETE. Neither this label, a zero CLI exit, file presence nor checksums establishes every source-evidence category's conservation or scientific correctness. Distinguish package checks, standalone boundary audit, selected source-token conservation and identity-bound source comparison in the handoff evidence. Required adoption and further source reconciliation remain explicit owner holds.
-
 
 ## What currency checks cover
 
@@ -159,20 +163,13 @@ Verified synthesis therefore still needs source-specific metadata/full-text chec
 - **Workflow versus owner scope:** `literature_intake` parses sequential PubMed-export text, records DOI/PMID/PMCID/title/authors/citation and line spans, applies keyword-first routing, and writes TSV/JSON plus a receipt. Its explicit status and holds exclude query-locus admission; it does not execute the full nine-step publication workflow or produce §21's six-sheet workbook. `literature_lookup` reads JSONL and does keyword matching. Do not infer bundle-wide citation-verification capabilities from these two intake/lookup commands.
 - **Typed unavailable/readiness hold:** `load_corpus` returns {} for absent path, skips JSONDecodeError lines and silently overwrites repeated PMID keys. `abstract_for` returns an empty string for absent records or missing abstracts. `stats.corpus_present` uses bool(parsed records), rather than actual file existence/readability. Empty or all-malformed existing files therefore share that false status with an absent corpus. Malformed record types/read failures are not all caught. These facts bound this owner; they are not evidence about any real corpus.
 - **Refresh and duplicates hold:** maxsize1 lru_cache keys only the supplied path argument. A path unchanged on disk or the default None key can retain a prior record snapshot after file/env changes. Duplicate PMIDs have last-row-wins policy without conflict receipts. A future typed loader should bind source hash/snapshot, distinguish absent/empty/invalid/loaded/partial and report invalid lines plus duplicate/conflicting keys; refresh must be explicit or fingerprint-aware.
-- **Hash-label hold:** intake144–148 decodes UTF-8-sig/read_text then hashes the re-encoded normalized string for each record's source_file_sha256. Receipt230 hashes raw binary source through sha256_file. BOM removal/universal newline conversion can make those identifiers differ. The two digest representations are not interchangeable. Rename the normalized digest or bind raw bytes consistently, retain both identities if needed, and record transformation/version semantics.
+- **Hash-label hold:** `literature_intake` decodes UTF-8-sig/read_text, then hashes the re-encoded normalized string for each record's source_file_sha256. Its receipt hashes the raw binary source through sha256_file. BOM removal/universal newline conversion can make those identifiers differ. The two digest representations are not interchangeable. Rename the normalized digest or bind raw bytes consistently, retain both identities if needed, and record transformation/version semantics.
 
 ### Evidence required before reuse
 
 Distinguish absent, empty, invalid, partial and loaded corpus states. Retain duplicate/conflicting PMID records, missing abstracts and the source hash for the selected snapshot. After replacing a corpus or changing its resolved path, verify an explicit refresh before reuse. Keep raw-byte hashes separate from normalized-text hashes and record BOM/newline transformations. Parsed bibliographic metadata remains discovery input until independently verified and admitted to the claim.
 
 Record unresolved corpus, citation and metadata states alongside the selected literature records.
-
-## Evidence bindings
-
-- `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` — SHA-256 `0bbcd17b16d07b6b2bfdf8b20afe9c90fc2ecb0ce043e7b0c3ee91414be70984`; read ranges [[2571, 2666]].
-- `mamey/literature_intake.py` — SHA-256 `40bdf48e5b4c435bea9c284f177c9dd858afa475926a5eecacd4799f9114dca0`; read ranges [[1, 263]].
-- `mamey/literature_lookup.py` — SHA-256 `957df4b19a3a5a4aa4c8b9f667ef6ceb6ba7eec9b6d47b94ecdeda188e4612d4`; read ranges [[1, 154]].
-
 
 ### File naming and artifact selection
 
@@ -192,11 +189,13 @@ Do not use the monolith's legacy `DEFAULT-ASSUMED BIOACTIVITY` or `WET-LAB READY
 
 Retained sidecar identity is necessary for traceability but does not excuse truncating the required four-part identity on an individually attributed reader-facing locus. Review the current full-display contract as well as caption source/hash/denominator and numeric-state bindings. Readability, export success, policy checks and scientific/editorial adoption are separate outcomes.
 
-## Literature input limitations
+<a id="literature-input-limitations-1"></a>
 
-- **Editorial versus implemented scope:** the monolith's page/table/callout checklist does not certify every native writer. Landscape195–277 filters then caps at40; sidecar writes all original rows. Shared policy914–919 permits explicit enabled=False bypass, so the module's blanket “ALL figures” docstring is not itself proof of call-site enforcement. Current pure-saccharide predicate includes family-label expansion, whose classification and biological basis require separate validation.
+### Landscape rendering source limits
+
+- **Editorial versus implemented scope:** the monolith's page/table/callout checklist does not certify every native writer. The landscape filters, then caps the plot at 40 rows; its sidecar writes all original rows. The shared policy permits an explicit enabled=False bypass, so the module's blanket “ALL figures” docstring is not itself proof of call-site enforcement. Current pure-saccharide predicate includes family-label expansion, whose classification and biological basis require separate validation.
 - **Order/flag contract hold:** `ordered = fig_rows[:CAP]` has no local ranking sort/validation despite footer “by rank.” `load_facts` preserves CSV input order. An upstream producer may sort correctly; verify the final package output separately. Declare/validate ordering or label it as supplied order. `shown_keys` uses only `(bgc_id,region)`, omitting full contig/strain/row identity; duplicate keys can mark an unplotted sidecar row as shown. Require admitted unique complete identities and actual selected row keys before setting these flags; keep unresolved identity states explicit.
-- **Artwork-policy surface hold:** landscape237 prints `KCB = similarity, not identity`, while the current shared banned phrase set928–979 includes `not identity`. The landscape saves directly and render_brief does not provide a demonstrated call to that phrase guard in this contract. This is a static cross-owner mismatch, not a rendered-policy failure: reconcile whether extraction figures are explicitly exempt or adopt caption/receipt placement for that surface, then verify exact caller enforcement. Do not silently remove interpretive constraints from supporting evidence.
+- **Artwork-policy surface hold:** the landscape prints `KCB = similarity, not identity`, while the current shared banned-phrase set includes `not identity`. The landscape saves directly and render_brief does not provide a demonstrated call to that phrase guard in this contract. This is a static cross-owner mismatch, not a rendered-policy failure: reconcile whether extraction figures are explicitly exempt or adopt caption/receipt placement for that surface, then verify exact caller enforcement. Do not silently remove interpretive constraints from supporting evidence.
 - **Locator display remains held:** landscape calls truncated/wrapped `locus_label`, whose mapping prefers normalized node over physical Contig and does not include strain. The helper advertises sidecar preservation; this is not equivalent to the user's full reader-facing identity requirement. Map to the established full-display hold, with layout-safe complete text and actual rendered QA required before adoption.
 
 ### Figure checks before reuse
@@ -204,14 +203,6 @@ Retained sidecar identity is necessary for traceability but does not excuse trun
 Compare the displayed rows with the retained source roster, including omitted categories and duplicate alias/region labels on different contigs. Verify ordering, omission counts and shown flags against complete identities; keep measured zero distinct from unresolved data. Check long locators, artwork text, captions and supporting receipts under the intended output profile. Inspect actual rendered pages for readability and overlap before publication; source inspection alone is not visual QA. Scientific and editorial adoption remain separate.
 
 Resolve figure-policy, identity and numeric limitations before adopting the artwork.
-
-## Evidence bindings
-
-- `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` — SHA-256 `0bbcd17b16d07b6b2bfdf8b20afe9c90fc2ecb0ce043e7b0c3ee91414be70984`; read ranges [[957, 1007]].
-- `mamey/figure_policy.py` — SHA-256 `6537b02a099b0686cd0c0bf09bb53e638045af93898a4613e6c6291723b823fe`; read ranges [[1, 230], [886, 982]].
-- `mamey/render_brief.py` — SHA-256 `b14b6d4d82b1115add2f6bfa148d61f52c77c642d201e9e4ce2b2c63d4f90458`; read ranges [[80, 128], [195, 277]].
-- `mamey/render_safe.py` — SHA-256 `02452c1a07cb1e9733d1dcd3933a47ddba7d7b5acbcbe83ed70522f6965ebb5d`; read ranges [[70, 95], [240, 263]].
-
 
 ### Editorial depth versus current CLI profiles
 

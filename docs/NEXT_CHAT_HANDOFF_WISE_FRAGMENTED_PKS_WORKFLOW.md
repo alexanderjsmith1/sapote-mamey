@@ -5,7 +5,7 @@
 This body records a historical patch request and example batch counts. It is not a present user instruction,
 external submission authorization or proof of current execution. Current queue route is
 `python mamey_run.py wise-fragmented-pks --input-fasta <existing-ranked-fasta> --outdir <candidate-queue>`;
-`mamey/cli.py:8055–8064` supplies target 85000, hard cap 100000 and two active files by default.
+`mamey/cli.py` supplies target 85000, hard cap 100000 and two active files by default.
 These are shipped software defaults; check current service limits separately before an authorized submission.
 The command consumes an already ranked FASTA; it does not itself discover/rank all proteins or run BLASTP.
 Use `--target-residues 50000` for the conservative target, not an invented CLI `--extra-safe` flag.

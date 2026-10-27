@@ -1,8 +1,8 @@
 # Mode B gene-first and 48-section manual
 
-*Current to bundle v9.7.457 · engine Mamey 1.9.177. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.458 · engine Mamey 1.9.177.*
 
-This page does not replace the machine contract, create a Mode B card, or confer scientific, integration, release, or publication authority.
+The machine contract and the verifier are the authority; this page explains them.
 
 > **Profile scope:** This manual describes default full48. For the opt-in 50-section
 > card, start with [the profile matrix](../docs/MODEB_PROFILE_MATRIX.md) and
@@ -156,12 +156,14 @@ python mamey_run.py modeb-gene-first \
 
 The exact example identity is `SYNTH-001 / NODE_7_length_120000_cov_42.5 / region002 / BGC007`. It is synthetic.
 
-The command validates the package identity, canonical gene table, evidence-index schema, channel states, locators, hashes, and collision state before creating output. It writes one complete-identity child directory containing:
+The command checks the requested identity against manifest data, selected gene rows, evidence-index schema/states, locator/hash syntax and output collisions. It does not rerun whole-package checksum validation or independently establish that an external gene table equals the sealed canonical roster. External-index `BOUND` is declared input: referenced source/job bytes are not opened or rehashed by that index path. Review those bindings independently and retain the actual external gene-table path, whose basename is labeled `package://` in the receipt. See [input-admission and write boundaries](../docs/MODEB_GENE_FIRST_EXPLORATION.md#input-admission-and-write-boundaries). It writes one complete-identity child directory containing:
 
 - a concise exploration synthesis;
 - a deterministic important-gene inspection table;
 - a channel-separated availability table; and
-- a content-addressed receipt.
+- an identity/version-named receipt recording selected input and output hashes; the receipt itself needs an external hash binding.
+
+Files are written separately before the receipt. A failure can leave a partial child directory that a retry refuses; preserve the attempt and its diagnostics. Receipt presence is not a transaction, fresh-source snapshot or independent evidence admission.
 
 The inspection order is role category, then count of bound gene channels, then coordinates and locus tag. It is not a biological-importance score. The output selects exactly one next analysis from a fixed information-gain route; that route is workflow triage, not scientific priority.
 

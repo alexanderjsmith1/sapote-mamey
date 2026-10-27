@@ -1,6 +1,6 @@
 # From antiSMASH evidence to a durable BGC interpretation
 
-Sapote–Mamey helps you move from an antiSMASH result to a reviewable account of what a biosynthetic gene cluster (BGC) might do. Mamey extracts and records source-derived facts. Sapote guides the interpretation of those facts in a Mode B card. The two steps answer different questions: **what is present in the input**, and **what the combined evidence supports**. Ingest checks locus identity and structure before recording a saved card under the selected gate policy; an explicit structure override can record a card with reported errors. Recording and scientific completion are separate dispositions.
+Sapote–Mamey helps you move from an antiSMASH result to a reviewable account of what a biosynthetic gene cluster (BGC) might do. Mamey extracts and records source-derived facts. Sapote guides the interpretation of those facts in a Mode B card. The two steps answer different questions: **what is present in the input**, and **what the combined evidence supports**. Ingest checks locus identity and card structure before it records a card. Recording a card is not the same as accepting its science.
 
 This paper explains that division of work and the claims it permits. For commands in run order, use the [maintained walkthrough](MASTER_WALKTHROUGH.md). For current card requirements, use the template emitted by your installed bundle and the [Mode B authoring guide](MODEB_FULL50_CONTRACT_USAGE.md).
 
@@ -44,15 +44,16 @@ Mamey packages include a BGC-member protein FASTA and a CDS table. The optional 
 For example, a card file can be checked and then submitted with commands shaped like these:
 
 ```bash
-python mamey_run.py verify-modeb path/to/card.md --package runs/STRAIN/package
+python mamey_run.py verify-modeb path/to/card.md --package runs/STRAIN/package \
+  --bgc '<alias>' --contract full48
 python mamey_run.py ingest-receipts --package runs/STRAIN/package --card path/to/card.md
 ```
 
-Check the actual CLI help for your installed version before running a command. The [user manual](GUIDE/01_User_Manual.md) describes receipt-based ingest and optional master-workbook reconciliation.
+Match verification to the card's selected profile. For a `current50_v2` card, use `--contract current50_v2`. The `--bgc` alias lets the verifier check the card against that locus's gene roster. Ingest checks the card against the same contract. Its structure gate reads the contract marker that `emit-modeb-template` writes into the card header. A card with no marker is checked against full48 unless you add `--contract current50_v2` to `ingest-receipts`. A card that fails its own contract, or whose header disagrees with `--contract`, is not recorded. Check the installed CLI help before running a command. The [user manual](GUIDE/01_User_Manual.md) describes receipt-based ingest and optional master-workbook reconciliation.
 
 ## What a passed gate means
 
-A validation or ingest result establishes that the required files and structural fields meet the relevant software contract. It does **not** establish that the pathway interpretation, compound assignment, or proposed experiment is scientifically correct. The author still has to check the genes and evidence, and the project owner still has to accept any manuscript or release claim.
+A gate result reports the encoded checks and route-specific outcome. Read the selected profile, findings, skips and overrides: a receipt can record no cards and still return 0, and an explicit structure override can persist a card with errors. Neither validation nor ingestion establishes that every requested artifact is present or that the pathway interpretation, compound assignment or proposed experiment is scientifically correct. The author checks the genes and evidence; the project owner accepts any manuscript or release claim.
 
 This distinction is why the workflow retains both raw evidence and written judgment. A later reviewer should be able to trace a sentence in a card back to the exact gene, domain, hit, boundary, or experiment that supports it. If new evidence overturns a claim, update the interpretation and preserve a visible correction rather than allowing an older confident sentence to stand beside the new data.
 
@@ -60,12 +61,12 @@ This distinction is why the workflow retains both raw evidence and written judgm
 
 For each important locus, lead with the biology: the likely biosynthetic class, the core enzymes, the order of proposed transformations, and the most consequential uncertainty. Then show the per-gene evidence that supports or challenges that account. End with a discriminating next test—for example, checking a missing tailoring enzyme in a related assembly, comparing a core protein with characterized references, or connecting a fraction's mass spectrum to a proposed pathway. Report source and claim limits beside the conclusion, so a reader can see both the opportunity and the reason it remains a hypothesis.
 
-Related current guides: [reading the package](READING_YOUR_RESULTS.md), [gene-level analysis](GENE_LEVEL_ANALYSIS_GUIDE.md), [Mode B authoring](MODEB_FULL50_CONTRACT_USAGE.md), and [troubleshooting](COMMON_MISTAKES.md).
+Related current guides: [reading the package](READING_YOUR_RESULTS.md), [gene-level analysis](GENE_LEVEL_ANALYSIS_GUIDE.md), [Mode B authoring](MODE_B_USER_WALKTHROUGH.md), and [troubleshooting](COMMON_MISTAKES.md).
 
 ## Persistence, workbook updates, and recovery
 
-`ingest-receipts` mutates the package judgment store; retain the prior package/card evidence and inspect the reported register disposition and persistence warnings after a call. Select exactly one of `--receipt`, `--card`, or `--auto-detect`. In this release the optional `--master` workbook reconciliation is handled only by the receipt branch. The single-card and auto-detect branches return before that branch, so adding `--master` to those calls does not update the workbook. Preserve that distinction when preparing a workflow or a handoff.
+`ingest-receipts` mutates the package judgment store; retain the prior package/card evidence and inspect the reported register disposition and persistence warnings after a call. Select exactly one of `--receipt`, `--card`, or `--auto-detect`. `--master` updates the workbook's E1 Mode B index after `--receipt`, `--card` or `--auto-detect`. If the ingest did not complete, it says so and leaves the workbook alone. Preserve that distinction when preparing a workflow or a handoff.
 
 For a single `--card` call, exit 0 means recorded, 3 means rejected for structure, 4 means recorded with a structure override, and 1 covers the remaining non-recorded outcomes. These codes describe persistence/gate handling; they do not mean the card is scientifically accepted or that the whole register is COMPLETE. Auto-detect scans matching cards in `judgment/` and reports already-recorded, unknown, misnamed, unreadable, empty, structure-invalid, and persistence-failure outcomes separately. Read the per-card results even when a batch exits 0.
 
-Repair the identified card, filename, binding, gate availability, or write failure and rerun only the relevant ingest flow. `--force-structure` bypasses ERROR-severity structure refusal and records an override; it does not resolve identity conflicts or demonstrate correct interpretation. Retain the findings and fix the evidence/structure for a reviewed final card. Current profile requirements come from the installed emitted template and contract, even where legacy CLI help still says §1–§48.
+Repair the identified card, filename, binding, gate availability, or write failure and rerun only the relevant ingest flow. `--force-structure` bypasses ERROR-severity structure refusal and records an override; it does not resolve identity conflicts or demonstrate correct interpretation. Retain the findings and fix the evidence/structure for a reviewed final card. Current profile requirements come from the installed emitted template and contract.

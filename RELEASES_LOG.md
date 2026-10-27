@@ -16,6 +16,8 @@ that every entry was cut, signed off or distributed. Current cut/tier/privacy be
 “0 AS” label is a historical operator-supplied field, not a universal current disclosure policy.
 See [release record scopes](docs/RELEASE_RECORDS_GUIDE.md).
 
+The retained table also contains ambiguous historical row identities: build `20260705v97219a` appears against both v9.7.219 and v9.7.218, while another v9.7.218 row names `20260705v97218a`; one v9.7.199 stamp is the literal `.`. These are unresolved log anomalies, not proof of extra releases or authority to normalize either row. The logger's no-op test checks whether version text and stamp each occur anywhere in the log, rather than proving they belong to the same row (`tools/log_release.py:40–61`). Reconcile any disputed cut against its actual archive and receipt; preserve these historical bytes as evidence.
+
 | Build stamp | Version | Tiers | Headline change | Public leak-audit |
 |---|---|---|---|---|
 | 20260911v97428a | v9.7.428 | CODE · CODE-analysis-free · SID · MERGED | - Portable collaborator figure packages — automatically place descriptive PNG and PDF figures, source and display Newick trees, aligned FASTA, annotation TSV, full caption, methods, standalone R renderer, rerender command, and checksum mani | 0 AS (CODE/CAF/SID) |

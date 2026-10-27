@@ -1,7 +1,10 @@
-# How to Use Sapote-Mamey v9.7.457
+# How to Use Sapote-Mamey v9.7.458
 
-The [README](../README.md) is the human landing page. Run `python mamey_run.py start` from
-the extracted bundle root for the current command sequence. The [Quick Guide](GUIDE/02_Quick_Guide.md)
+The [README](../README.md) is the human landing page. For orientation, run
+`python -B mamey_run.py start --no-doctor` from the extracted bundle root for the current
+command sequence. A plain `start` also runs `doctor`; first read its
+[reserved write-probe boundary](INSTALL.md#doctor-scope-and-write-probe) and use a writable
+working installation, leaving an occupied `runs/_doctor_probe` untouched. The [Quick Guide](GUIDE/02_Quick_Guide.md)
 continues from installation through package review, BLASTp evidence, BiG-SCAPE, phylogeny,
 figures, and Mode B. This page keeps the core operating contract in one short place.
 
@@ -43,7 +46,7 @@ Sapote-Mamey uses citation-compact outputs to separate runtime evidence structur
 
 - **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
 - **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
-- **`PASS_STRUCTURE`** means the package structure, citation ledger, work-order files, compact reports, manifest tracking, and checksum tracking passed validation. It does **not** mean every literature claim has been manually verified.
+- **`PASS_STRUCTURE`** means citation-compact QA found no encoded priority-citation field/status errors and no more than one occurrence of the whitespace-normalized global caveat. `citation_needed` is an accepted status, and zero caveats also pass. This check does not validate package artifacts, manifest/checksum integrity or primary literature; assess those separately using the package validator and source-review receipts.
 - **`operator_supplied`** means the citation/provenance row came from runtime evidence or comparator fields already present in the package.
 - **`citation_needed`** means literature support is missing and should be filled by a separate literature-search pass.
 - **`Literature_Search_WorkOrder.md/json`** is a handoff for a literature-search session. It is a search instruction, not a verified fact.

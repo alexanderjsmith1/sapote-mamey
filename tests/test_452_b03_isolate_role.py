@@ -1,4 +1,4 @@
-"""B03 optional role column (card 018c0f08_452_b03_isolate_role): boxes from references only, isolates drawn as
+"""B03 optional role column (card 452_b03_isolate_role): boxes from references only, isolates drawn as
 labelled diamonds, italic genus with the reference count; without role the output is as before. Synthetic data."""
 import csv, importlib.util, shutil
 from pathlib import Path

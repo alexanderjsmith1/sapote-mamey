@@ -14,7 +14,7 @@ as if interchangeable (v9.7.409, audit AUDIT_scoring_tiers.md F2 / handle
     merge HIGH-confidence RG-GMCI split-pathway pairs. An *integer* count of distinct biosynthetic
     loci. It ignores boundary/fragmentation.
   * BOUNDARY-WEIGHTED corrected count (``Corrected_count_bw`` here; the SSOT number used in every
-    figure, the cohort HTML, the cross-strain workbook, and ``docs/EXTERNAL_VALIDATION.md``):
+    figure, the cohort HTML, the cross-strain workbook, and ``docs/history/retired_458/EXTERNAL_VALIDATION.md``):
     ``Interior*1 + Edge*1/2 + Full-contig*1/4`` over ALL regions. A *fractional* fragmentation
     discount. Canonical constant: ``tools/build_cohort_html.py:BOUNDARY_WEIGHT`` (kept in sync
     here as ``BOUNDARY_WEIGHT``; ``tests/test_realistic_bgc_count.py`` asserts the two are equal).

@@ -1,17 +1,13 @@
-## Current reader/loader boundary — .447 documentation audit
-
-This packaging decision record leaves the owner's choice intact. The normal writer produces the manifest alias stub, but readers have different failure contracts. `mamey/snapshot_alias.py:25–48` returns an unresolved stub when its target is missing or invalid; invalid initial snapshot JSON can raise. The generic resolver follows any truthy alias_of when source_scans is absent without schema, in-package path or target-hash validation. An unresolved stub is not a successfully read full manifest.
-
-The standalone build_deep_data/build_bgc_markers/assembly_qc readers condition alias following on the snapshot filename and can raise on malformed target JSON. `mamey/deep_data.py:126–155` instead loads the package's literal manifest.json for a stub and can degrade to empty structures. Thus “all four readers follow alias_of” does not mean identical resolution or completeness. Presence validation does not prove an alias target, source binding or filled downstream records. Keep snapshot, manifest and integrity evidence together in place; preserve unresolved/empty states as reader holds rather than biological absence.
-
-Historical size measurements and recommendations below are retained, not remeasured. No source package or decision was changed. The original record follows unchanged.
+> Packaging decision record. The owner's ruling at the end is still open. Current behavior: the
+> writer produces a small alias stub pointing at `manifest.json`; readers resolve it in different
+> ways, so an unresolved stub is not a loaded manifest.
 
 ---
 
 # Decision record — `Project_Memory_Snapshot.json`: keep-or-retire fork (opened 2026-06-25)
 
 **Status: RESOLVED-BY-ALIAS at v9.7.400; residual choice below awaits the owner's ruling.**
-Recorded v9.7.405 by the Claude Code patch lane. Not a scientific decision; packaging only.
+Recorded at v9.7.405. Not a scientific decision; packaging only.
 
 ## What the fork was
 `RUNNING_PATCH_LIST_v3_open_items.md` (v9.7.128, 2026-06-25) item A1 asked whether the per-strain

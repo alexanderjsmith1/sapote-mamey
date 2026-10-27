@@ -1,13 +1,12 @@
 # Phylogenetic placement workflow — putting lab strains into a strong reference tree's neighborhood
 
-**Purpose.** Build a trustworthy reference phylogeny from high-quality data (type strains), then *place* the lab
-test strains onto that fixed backbone and report which clade/neighborhood each lands in — without letting the
-lower-quality query sequences distort the reference topology. This is the published, standard method: it is
-what EPA-ng and related placement methods were built for, and it is exactly the design the user proposed
-("use better data to build a strong phylogeny, then state the user strains are in a neighborhood of it").
+**Purpose.** Build a trustworthy reference phylogeny from high-quality data (type strains). Then *place* the lab
+test strains onto that fixed backbone and report which clade/neighborhood each lands in. This keeps the
+lower-quality query sequences from distorting the reference topology. This is standard phylogenetic placement, the
+method EPA-ng was built for.
 
-## Yes, people do this — and here is the honest framing
-- **The method has a name: phylogenetic placement.** A reference tree + reference alignment are fixed; each
+## What placement can and cannot say
+- **The method has a name: phylogenetic placement**. A reference tree + reference alignment are fixed; each
   query is attached to the branch (edge) that maximizes likelihood, reported with a **likelihood-weight ratio
   (LWR)** and a **pendant length**. You then say *"query X places within/near clade Y"* — a neighborhood
   statement, with a confidence number, not a hard species call.
@@ -34,7 +33,7 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    name/designation and accession in the metadata and display according to the figure house rules.
 2. **`build-ref`** — `mafft` align → `raxml-ng` (or `iqtree`) ML tree + model → frozen `refpkg/`. CPU-heavy →
    **requires `--approved-by`** (tree-approval gate). Select an explicit output location
-   outside the sealed code bundle; .447 refuses a reference package inside that bundle. Bootstraps for the backbone only; the queries never enter
+   outside the sealed code bundle; `build-ref` refuses a reference package inside the bundle. Bootstraps for the backbone only; the queries never enter
    this inference. Without `--refpkg`, the package goes beside the placements (`<outdir>/refpkg`) when the
    command has an `--outdir` (the `all` command), and otherwise to `_PLACEMENT/<group>/refpkg` in the
    generic `trees/` home. Set `SAPOTE_TREE_HOME` to an absolute path or a workspace-relative path to override it. No top-level `strain_data/` folder is made, and
@@ -43,19 +42,16 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    `mafft --addfragments --keeplength` via `--fragmentary` for short Sanger reads) → **epa-ng** →
    `epa_result.jplace`. The autopilot writes `query_qc.tsv` and selects fragment mode when any
    routed query is shorter than 1,200 bp; unsupported symbols and reads shorter than 200 bp are held.
+   The placement reader keeps identical sequences with distinct query IDs, but repeated IDs keep only the first record with a warning, without proving that repeated sequences agree. Reconcile the exact input/retained roster and resolve conflicting IDs before placement; a reduced query count is not an accepted isolate merge. The separate sequence-admission gate is not automatically run by this step.
 4. **`report`** — `gappa examine graft` (a tree with the queries attached = the figure) + a
-   `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README; the optional advisory
+   `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README. The optional advisory
    sign-off helper runs only if found in the resolved external workspace's uppercase `Tools/` directory as `signoff_check.py`. This is an optional workspace path; the bundled helper is `tools/signoff_check.py`.
    Its status is not a hard completion gate. Reporting can return zero while a figure
    or caption is held; inspect the actual output roster and diagnostics.
 
 ## EPA-ng version admission before placement
 
-`place` checks the exact selected EPA-ng executable with `--version` before creating its output directory or aligning queries. The upstream [rooted-input warning](https://github.com/pierrebarbera/epa-ng#warning-v030---v033) identifies a result-breaking bug in 0.3.0–0.3.3 and recommends at least 0.3.4. This route conservatively requires a release version >=0.3.4 for every placement, because it does not independently prove that an arbitrary supplied reference tree is unrooted. Older versions outside the known affected range are unsupported by this policy, rather than automatically labelled affected.
-
-A missing, failed, timed-out, ambiguous, unknown or development-version banner is refused. There is no version-gate bypass. The executable content is bound around the version probe and checked again before and after placement; success provenance retains the observed release version, selected executable identity and probe-output hashes. A changed executable after alignment or placement causes a refusal and retains partial outputs for inspection, without a success stamp. This is not a transaction or a guarantee against concurrent executable replacement between checks. Existing `--redo` and output reuse behavior is otherwise unchanged: use a fresh output directory and preserve earlier evidence.
-
-The gate avoids this documented version risk; it does not validate all EPA-ng APIs, models, input-tree rooting, cohort metadata or historical results. No affected past run is inferred without its actual executable/version and tree provenance. Existing reports remain usable without rerunning placement, and this new check does not invent historical versions for them.
+`place` checks EPA-ng `--version` before writing anything and requires release 0.3.4 or later; 0.3.0–0.3.3 have a [rooted-input bug](https://github.com/pierrebarbera/epa-ng#warning-v030---v033). Missing, failed, timed-out, ambiguous, development or unknown banners are refused, with no bypass. The executable's bytes are checked before and after placement; a change refuses the run and keeps partial outputs. Use a fresh output directory. Existing reports stay usable.
 
 ## Example (after install; approval recorded)
 ```bash
@@ -80,7 +76,7 @@ as the other or claim that this workflow's example text verifies type status.
 
 > "On the selected 16S reference backbone (n=NN, software/model/support method from the receipt), isolate QUERY places within the
 > *Streptomyces* clade containing *S. albidoflavus* (LWR 0.86, pendant 0.004) — i.e. it falls in that
-> neighborhood of 16S phylogenetic space. 16S is an anchor, not a species call; species-level placement awaits
+> neighborhood of 16S phylogenetic space. 16S is an anchor, not a species call. Species-level placement awaits
 > the genome/ANI track."
 
 ## Relationship to the genome track (when genomes exist)

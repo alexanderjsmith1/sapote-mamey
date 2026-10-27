@@ -467,12 +467,12 @@ def record_mode_b(
     # Append layperson paragraph
     if layperson_paragraph.strip():
         lay_path = _laypersons_path(package_dir)
-        _append_section(lay_path, f"## {bgc_id}\n\n{layperson_paragraph.strip()}\n")
+        _upsert_section(lay_path, f"## {bgc_id}", layperson_paragraph.strip())
 
     # Append fermentation note
     if fermentation_note.strip():
         ferm_path = _fermentation_path(package_dir)
-        _append_section(ferm_path, f"## {bgc_id}\n\n{fermentation_note.strip()}\n")
+        _upsert_section(ferm_path, f"## {bgc_id}", fermentation_note.strip())
 
     # Update register (with verdict)
     persistence_warnings = _update_register(
@@ -674,6 +674,31 @@ def _append_section(path: Path, text: str) -> None:
     mode = "a" if path.exists() else "w"
     with open(path, mode, encoding="utf-8") as f:
         f.write("\n" + text + "\n")
+
+
+def _upsert_section(path: Path, heading: str, body: str) -> None:
+    """Replace the section under `heading`, or append it if absent.
+
+    The per-BGC Mode B file is overwritten on a retried save; appending here repeated the
+    layperson and fermentation paragraphs instead.
+    """
+    block = f"{heading}\n\n{body}\n"
+    if not path.exists():
+        _append_section(path, block)
+        return
+    text = path.read_text(encoding="utf-8")
+    pat = re.compile(rf"^{re.escape(heading)}[ \t]*\n.*?(?=^## |\Z)", re.M | re.S)
+    if pat.search(text):
+        replaced = False
+        def replacement(_match):
+            nonlocal replaced
+            if replaced:
+                return ""
+            replaced = True
+            return block + "\n"
+        _atomic_write_text(path, pat.sub(replacement, text))
+    else:
+        _append_section(path, block)
 
 
 def _update_register(

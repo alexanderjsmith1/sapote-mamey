@@ -9,7 +9,7 @@ different metadata display. It keeps the tree, reference choices, methods, and
 render receipts together for each view.
 
 The catalog is **not an inventory of tree files on your computer**. It does
-not search the Codex or Claude workspaces, infer a new tree, download reference
+not search your folders, infer a new tree, download reference
 genomes, repair missing metadata, or decide which earlier figure is current.
 Map and review existing assets separately before adding a completed placement
 run to a catalog.
@@ -53,7 +53,7 @@ Each catalog entry states:
 
 The tool does not infer that a type strain is representative, merge cohorts,
 choose an outgroup, or admit a non-type reference. Those decisions belong to the
-upstream placement run and its receipts. The .447 catalog renderer refuses any nonempty `spotlight_queries` field with
+upstream placement run and its receipts. The catalog renderer refuses any nonempty `spotlight_queries` field with
 `SPOTLIGHT_REQUIRES_DECLARED_QUERY_SUBSET_RUN`; even pointing that flagged entry
 to an already subsetted run does not bypass the refusal. Prepare and review a
 separate upstream subset run, then catalog that run with an empty/omitted
@@ -209,13 +209,20 @@ contain only type references. Render receipts therefore record the actual type,
 non-type, and unverified-reference counts for each delivered variant.
 
 Subprocess success alone is insufficient. Completion requires nonempty Newick,
-metadata, PDF and PNG outputs; exact tree/metadata tip joins; preservation of all
-queries and outgroups; complete backbone retention for `"all"`; and agreement
-with the declared parent tree after pruning and rerooting. Unrooted split-length
-comparisons allow an explicitly reported 0.0001 substitutions/site tolerance for
-legacy decimal serialization; this is not a biological uncertainty estimate.
-Output hashes are recorded. None of these mechanical gates establishes source
-metadata correctness, species identity, biological novelty or release authority.
+metadata, PDF and PNG outputs; exact tree/metadata tip joins; retention of all
+roster queries and outgroups; complete roster retention for `"all"`; and agreement
+of unrooted split lengths with the declared parent after pruning. The allowed
+0.0001 substitutions/site tolerance is for legacy decimal serialization, not
+biological uncertainty. Output hashes are recorded.
+
+The reference-manifest gate validates its declared tree, FASTA and roster
+independently. Catalog child commands consume the placement run and metadata
+paths, not that reference manifest. Reconcile the roster with the actual
+placement admission receipt, consumed sequences and display metadata before
+adoption. Delivery does not independently verify final root placement, metadata
+roles/type/source values against roster rows, or which sequences the producer
+consumed. These source-authority checks remain separate; internally consistent
+hashes do not establish species identity, novelty or release authority.
 
 `read_display_exclusions()` reads only the excluded `tip` and `accession` columns.
 It must never interpret a `retained_accession` representative as another exclusion.
@@ -233,9 +240,11 @@ provides an additive render path through the same series and delivery gates.
 Its JSON contains the same `series_requirements` and `trees` contracts, plus
 `display_jobs`. Each job has `job_id`, `tree_id`, `taxonomic_scope`,
 `reference_panel`, `reference_ratio`, `view`, a relative `input_dir`, and
-`input_hashes` for exactly `tree.newick`, `metadata.tsv`, `palette.tsv`,
-`settings.tsv`, and `caption.txt`. An optional filesystem-safe `group` organizes
-output directories. Job IDs must be unique and filesystem-safe.
+`input_hashes` for exactly `tree.newick`, `metadata.tsv`, `provenance.tsv`,
+`palette.tsv`, `settings.tsv` and `caption.txt`. An optional `group` organizes
+output directories. Job IDs must be unique and use the admitted characters;
+review resolved job/group destinations separately, since the character check
+alone permits dot-only path components.
 
 Each prepared display job also declares an integer `series_index` and a
 descriptive, filesystem-safe `output_stem`. Indices must be contiguous from 1
@@ -244,17 +253,33 @@ generic names such as `tree` or `figure`. Delivered filenames begin with the
 zero-padded series index followed by the descriptive stem, so neighboring
 trees remain identifiable after they are copied out of their job folders.
 
-The prepared metadata retains `tip`, `label`, `role`, `accession`, `type_status`,
-`raw_source`, `source_category`, and `geography`. The palette table has `field`,
-`value`, and `color` columns, using `source` and `geography` as field names. The
-settings table has `key` and `value`, including `view` and `title`.
+Prepared metadata must contain the shared contract columns: `tip`, `role`,
+`type_status`, `taxon_display`, `label_concise`, `label_experiment`, `raw_source`,
+`source_category`, `raw_geography`, `geography`, `candida_state`, `mrsa_state`,
+`assay_provenance`, `experiment_id` and `sample_id`. The renderer uses the
+concise/experiment labels rather than a legacy `label` column. Query assay states
+are explicit `positive`, `negative`, `not_tested` or `missing`, with bound assay
+provenance; reference/outgroup assay and experiment fields must be blank.
+
+`provenance.tsv` requires `tip`, `field`, `raw_value`, `source`, `evidence_sha256`
+and `status`. Bind raw source and geography for every tip, plus both assay states
+for each query. Keep unavailable assay evidence explicit; do not invent
+metadata to satisfy the contract. The palette table has `field`, `value` and
+`color`, using `source` and `geography` as field names.
+
+The settings table has `key` and `value`, with `view`, `title`, `layout_profile`,
+`tree_fraction`, `outgroup_tip`, `inference_program`, `model`, `support_type`,
+`support_replicates`, `support_cutoff` and `rooting`. The admitted layout profile
+is `full_genus_single_line_v1`; its tree fraction has a minimum of 0.39 (with
+the validator's numeric tolerance) and must be below 1. The method settings are
+caller declarations, not verification of the upstream inference.
 
 Every displayed query, reference, and outgroup must have a nonempty label plus
 resolved `source_category` and `geography` values. Missingness sentinels such as
 `Not recorded`, `Unknown`, `Unresolved`, and `N/A` fail preflight for every role,
 including when source and geography are both absent. Resolve that metadata or
 remove the reference upstream and record it in the display-exclusion ledger.
-An owner query cannot be removed to make a figure pass; hold the panel instead.
+Never remove a query tip to make a figure pass; hold the panel instead.
 Missingness categories are also forbidden in the palette, so a gray unknown cell
 cannot appear in an admitted figure or legend.
 
@@ -263,27 +288,30 @@ source or geography category must keep the same color in every job, and two
 categories in the same field cannot reuse an identical color. Any drift or
 collision fails preflight before a figure is rendered.
 
-Query tip text uses the series-wide red `#bb0000`. The preflight receipt records
-this color together with the per-job complete-metadata counts.
+Query tip text in both prepared-series and direct rectangular renderers uses
+`GG_FOCAL_COLOUR`, defaulting to black (`#000000`). Prepared preflight records the
+observed value; it does not enforce red (`#bb0000`) or freeze the environment
+for child execution. Bind the actual authorized display setting with the result.
 
-The maintained direct rectangular renderer applies the same red query text and
-the same fixed source-category colors. Its two-strip view requires complete
-source and geography for every displayed tip. A source-only view may hide the
-geography strip, but it cannot invent or display an unknown geography category.
+The direct rectangular renderer uses the maintained source-category palette.
+Its two-strip source/geography view requires complete metadata; hiding the
+geography strip does not authorize inventing an unknown geography category.
 
-Preflight verifies every input hash and refuses specific bee/wasp source labels
-that contradict the raw source. Rendering copies inputs into a new output root,
-freezes the R renderer and geometry helper, checks input/script hashes around
-execution, audits the actual plotted cells, and binds delivered artifacts. It
-never reuses an existing output directory as evidence of success. Every job gets
-a receipt; the series is complete only when the full requested matrix succeeds.
-This prepared-input consumer does not implement reference discovery or upstream
-sequence admission and does not turn provisional metadata into confirmed facts.
+Preflight verifies declared input hashes and refuses specific bee/wasp source
+labels that contradict the raw source. Rendering copies inputs into a new output
+root, freezes the R renderer, geometry helper and palette, checks those hashes
+around execution, audits plotted cells and binds delivered artifacts. It refuses
+an existing output directory. Jobs that reach the guarded worker body receive
+receipts; an earlier job-directory creation failure can occur before that guard.
+The series is complete only when the full requested matrix succeeds.
 
-The selected .447 bundle includes `tools/tree_annotation_geometry.R`, the shared
-annotation-gate helper. Check that it is present in the selected extraction; a
-partial or standalone export must explicitly retain it. A missing helper is an
-installation/export hold, not an instruction to apply an unidentified historical patch. The
+Prepared R reroots on `settings.outgroup_tip`; neither preflight nor delivery
+compares that setting with roster outgroup roles or validates the scientific
+rooting decision. Reconcile the setting, recorded rooting method and roster
+before adoption. This consumer does not discover references, admit upstream
+sequences or turn provisional metadata into confirmed facts.
+
+The bundle includes `tools/tree_annotation_geometry.R`, the shared annotation-gate helper. A partial or standalone export must keep it. The
 complete extracted bundle supplies the normalizer, stem-aware gate and its
 `mamey.csv_safety` dependency. A standalone export must retain those dependencies
 rather than relying on an unrelated installed Mamey version.

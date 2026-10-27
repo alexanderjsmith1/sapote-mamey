@@ -12,4 +12,4 @@ judgment-layer deliverable. Figures + tables it draws on:
 
 Scoring authority: `docs/DAPR_CLASS_FRAMEWORK.md` (literature-verified class→activity vocabulary).
 Claim-safety: class-level hypotheses; cytotoxic-adjacent + siderophore classes routed out; typed optional
-bioactivity metadata only. Every BGC carries a (contig·region) locator per §4 Contig-ID Mandate.
+bioactivity metadata only. Every individual locus carries its source-bound strain / full node-or-contig / region / BGC alias identity.

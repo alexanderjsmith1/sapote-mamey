@@ -1,4 +1,4 @@
-"""Card 018c0f08_452_sixteen_s_identity_all_records_unambiguous.
+"""Card 452_sixteen_s_identity_all_records_unambiguous.
 
 Two defects made 16S similarity to the nearest type strain read low:
 - the nearest-record search capped BLAST at 10 subjects (comparator_select at max(top*6, 30)). BLAST keeps the first N

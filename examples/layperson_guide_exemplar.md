@@ -9,7 +9,7 @@ software. It is a format example, not a scientific result.
 |---|---|
 | Genome evidence | `[What sequence and antiSMASH results were available, and their quality.]` |
 | Protein searches | `[Which protein sequences were searched, against which distinct databases, and what remained unsearched.]` |
-| Fragment rescue | `[Which split signals were connected across contigs and which remain uncertain.]` |
+| Fragment rescue | `[Which candidate split-pair signals were recorded across contigs, their source bindings, and which relationships remain unresolved.]` |
 | BGC families | `[Whether BiG-SCAPE or another family analysis was run and on what roster.]` |
 | Phylogeny | `[GToTree genome tree, EPA-ng 16S placement, or neither; include the reviewed receipt.]` |
 | Bioassay evidence | `[Which materials, targets, time points, replicates, and controls were admitted.]` |

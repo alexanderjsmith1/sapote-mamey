@@ -133,7 +133,7 @@ def render() -> str:
              "Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root "
              "(the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take "
              "`--package <sealed package dir>`; `run` is the only command that creates a package. "
-             "Claim-safety: every output is a class-level hypothesis with judgment deferred.", "",
+             "Descriptions below come from parser help. Outputs include extraction records, validation results, reports and evidence-routing artifacts; a catalog entry is not proof of execution, complete evidence or scientific acceptance.", "",
              "## Recommended front doors", "",
              "Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, "
              "`validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for "

@@ -7,7 +7,7 @@
 
 ## Data
 - **source:** `workbook sheet TFBS_Motifs (or gene_data tfbs)`
-- **columns used:** legacy TFBS_Motifs is wide: strain, taxonomy, motif-name columns, Total. Gene-data tfbs is a mapping keyed by isolate then motif. Neither source already has sid/regulator/hit_count columns.
+- **columns used:** legacy TFBS_Motifs is wide: strain, taxonomy, motif-name columns, Total. The native gene_data.json writer currently emits tfbs={} as a placeholder; a separately populated mapping needs its own documented schema and source receipt. Neither source already has sid/regulator/hit_count columns.
 - **row filter:** core regulators (FuR, ZuR, IolR, DmdR1, …)
 - **derived fields:** first reshape only actual motif columns to strain, regulator (motif label), hit_count; exclude taxonomy and Total from motif values, preserve missingness, then pivot strain × regulator. Bind the selected source schema; do not infer a full motif profile from a total-hit field.
 
@@ -19,11 +19,11 @@
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
 > Transcription-factor binding-site signal per regulator across isolates (n = <admitted_isolate_n> isolates); presence/strength of regulatory motifs, not expression.
 

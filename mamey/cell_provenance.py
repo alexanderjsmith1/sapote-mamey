@@ -33,7 +33,7 @@ STATUS_GLOSSARY = {
     'NEEDS_ANTISMASH_OUTPUT': 'Needs antiSMASH output ZIP/folder; assembled FASTA alone is not enough.',
     'NEEDS_PROTEIN_FASTA': 'Needs protein FASTA before HMMER/DIAMOND evidence can be generated.',
     'NEEDS_HMMER_DOMTBLOUT': 'Needs source-bound HMMER structured output and integration review; no general workbook importer is available.',
-    'NEEDS_DIAMOND_TSV': 'Needs DIAMOND BLASTP-like TSV output.',
+    'NEEDS_DIAMOND_TSV': 'Needs source-bound DIAMOND output and integration review; no general workbook importer is available.',
     'MANUAL_BLASTP_OPTIONAL': 'Optional NCBI BLASTP spot-check for top proteins only.',
     'LOW_CONFIDENCE_REVIEW': 'Evidence exists but requires review before claims.',
     'UNRESOLVED_METADATA': 'Metadata not supplied; do not infer.',
@@ -115,7 +115,7 @@ def build_cell_provenance(run: Any, package_dir: str | Path) -> list[dict[str, s
     external_rows = [
         ('Protein_Evidence', 'protein_fasta', 'Protein FASTA available', 'NEEDS_PROTEIN_FASTA', 'protein sequences', 'STRAIN_proteins.faa', 'protein FASTA extractor or gene caller', 'protein FASTA', 'Generate proteins from antiSMASH GenBank translations or local gene calling.'),
         ('HMMER', 'hmmscan_domtblout', 'HMMER marker/cassette hits', 'NEEDS_HMMER_DOMTBLOUT', 'HMMER profile scan', 'STRAIN_hmmscan.domtblout', 'independent HMMER output; no general workbook importer', 'HMMER', 'Use a compatible local profile library and retain query, library and tool hashes plus coordinates. Review the output separately; keep this field pending until source-bound integration has a receipt.'),
-        ('DIAMOND', 'diamond_hits_tsv', 'Fast BLASTP-like homolog hits', 'NEEDS_DIAMOND_TSV', 'DIAMOND blastp output', 'STRAIN_diamond_hits.tsv', 'DIAMOND TSV parser', 'DIAMOND', 'Run DIAMOND blastp against selected reference protein database.'),
+        ('DIAMOND', 'diamond_hits_tsv', 'Fast BLASTP-like homolog hits', 'NEEDS_DIAMOND_TSV', 'DIAMOND blastp output', 'STRAIN_diamond_hits.tsv', 'independent DIAMOND output; no general workbook importer', 'DIAMOND', 'Record the reference protein set and its hash, the query source, the settings and the raw output. Review the output separately; keep this field pending until source-bound integration has a receipt.'),
         ('Manual_BLASTP', 'manual_blastp_top_leads', 'Manual NCBI BLASTP top-lead checks', 'MANUAL_BLASTP_OPTIONAL', 'manual NCBI web BLASTP', 'manual_blastp_notes.tsv', 'human review', 'manual BLASTP', 'Use only for a small number of top proteins, not 10,000-query bulk annotation.'),
     ]
     for worksheet, field, label, status, derived, src, parser, evtype, fill in external_rows:
@@ -155,8 +155,9 @@ def build_cell_provenance(run: Any, package_dir: str | Path) -> list[dict[str, s
             release_handling='Release 1 optional evidence / Release 2 automation candidate', notes_for_llm='Manual BLASTP is independent support for selected top proteins, not bulk annotation.')
         add(worksheet='External_Evidence', cell_or_field=f'{bgc_id}.best_homolog', data_label='Per-BGC best homolog support',
             current_value='', status_code='NEEDS_DIAMOND_TSV', derived_from='DIAMOND TSV',
-            source_file='STRAIN_diamond_hits.tsv', source_parser='DIAMOND TSV parser', evidence_type='DIAMOND', confidence='not evaluated',
-            why_missing_if_blank='DIAMOND TSV was not packaged.', how_to_fill='Run DIAMOND blastp on protein FASTA and import TSV.',
+            source_file='STRAIN_diamond_hits.tsv', source_parser='independent DIAMOND output; no general workbook importer', evidence_type='DIAMOND', confidence='not evaluated',
+            why_missing_if_blank='Source-bound DIAMOND output and integration review are unavailable.',
+            how_to_fill='Record the reference protein set and its hash, the query source, the settings and the raw output. Review the output separately; keep this field pending until source-bound integration has a receipt.',
             release_handling='Release 1 optional evidence / Release 2 automation candidate', notes_for_llm='Use DIAMOND for bulk homolog evidence; reserve NCBI BLASTP for top-lead spot checks.')
 
     return rows
@@ -239,7 +240,12 @@ def _write_troubleshooting_folder(package_dir: Path) -> None:
     )
     _atomic_write_text(
         tdir / 'DIAMOND_Data_Workflow.md',
-        '# DIAMOND Data Workflow\n\nUse DIAMOND for scalable BLASTP-like homolog annotation of thousands of proteins. Import the tabular TSV output into Mamey/Sapote rather than using remote NCBI BLASTP for bulk searches.\n',
+        '# DIAMOND Evidence and Integration Limits\n\n'
+        'DIAMOND aligns query proteins against a reference protein set you choose. Sequence similarity does not establish compound identity, activity or production.\n\n'
+        'Record the reference set and its hash, the query source, the DIAMOND version, the settings and the raw output together. '
+        'Use DIAMOND for many proteins and keep remote NCBI BLASTP for a few top-lead spot checks.\n\n'
+        'The main extraction CLI has no general `--diamond-tsv` option or automatic workbook importer. Review the output separately and match its query IDs to source records. '
+        'Keep `NEEDS_DIAMOND_TSV` until the explicit source-bound integration/review step has a receipt; a TSV alone does not fill workbook cells.\n',
     )
     _atomic_write_text(
         tdir / 'Protein_FASTA_Workflow.md',

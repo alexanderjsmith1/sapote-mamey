@@ -7,23 +7,23 @@
 
 ## Data
 - **source:** `figure_ready/bgc_inventory.csv`
-- **columns used:** strain, bgc_id, region, length_kb, boundary
+- **columns used:** strain, bgc_id, contig, region, length_kb, boundary
 - **row filter:** strain == <SID>; top 10 by length_kb
-- **derived fields:** label = bgc_id (region)
+- **derived fields:** label = strain / full contig / region / bgc_id, from one bound inventory record
 
 ## Plot
 - **type:** horizontal bar
-- **x:** length_kb   **y:** bgc_id (region)   **color:** boundary
+- **x:** length_kb   **y:** complete source-bound locus identity   **color:** boundary
 - **order:** by length_kb desc   **scales:** linear
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Largest candidate BGCs in <SID> by region length; colour = edge status (completeness).
+> Largest candidate BGC records in <SID> by exported region length; color = boundary geometry label. These labels do not establish pathway completeness.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Spotlight the flagship cluster on the slide (e.g. the megacluster) with a callout box.

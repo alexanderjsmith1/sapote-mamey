@@ -2,9 +2,7 @@
 
 Use [CUT_PROTOCOL](../CUT_PROTOCOL.md) for the separately authorized cut workflow. This checklist
 supports engineering review; it does not grant a version bump, build, disabled-tier override,
-release seal, disclosure or publication. The previous v9.4-era checklist's smoke mode, test counts,
-four-tier outcomes and automatic full-deliverable defaults are historical and cannot be adopted as
-current acceptance evidence merely because its footer was restamped.
+release seal, disclosure or publication.
 
 ## Bind the intended object and scope
 
@@ -62,9 +60,7 @@ ZIP verification is optional. Omit both `--zip` and `--sha256` for a tree-only
 check; the ZIP result is then an explicitly optional SKIP, not a failed required
 gate. Supply both to select archive verification: a partial pair is refused,
 and the archive and checksum file must be readable, nonempty regular files.
-The checksum-file lookup still uses the archive basename as a substring, not
-exact manifest-member admission; independently verify exact checksum membership
-and archive identity. Required-input admission and a successful verification do
+The checksum line must name the archive file exactly. Required-input admission and a successful verification do
 not grant a version bump, cut, extraction acceptance, seal or publication.
 
 ```bash
@@ -79,8 +75,7 @@ storage estimate and need for full copies. Do not replace a modified-files-only
 documentation patch review with this whole-tree harness by default.
 
 Use `--tests` to select scope; without a nonempty selection it runs `tests/`.
-`--run-slow` is included automatically. `--full` shown in the helper's introductory
-example is not a parser option. The harness does not add `--run-network`, but this
+`--run-slow` is included automatically. The harness does not add `--run-network`, but this
 is not proof that all selected test bodies are offline or free of external writes.
 Retain the separately authorized execution scope.
 
@@ -114,17 +109,13 @@ Directory discovery selects case-sensitive `.py` filenames and prunes
 `__pycache__`, `_vendor`, `.git`, `node_modules`, `build` and `dist` by directory
 name. Explicit regular-file roots are parsed regardless of suffix. Prefer
 nonoverlapping roots and retain selected/excluded paths and source hashes;
-`files_scanned` counts encountered files, not necessarily distinct files or
-successful parses.
+`files_scanned` counts parsed files, not necessarily distinct files.
 
 Exit 1 reports detected unallowlisted collisions; exit 2 covers missing roots,
 zero encountered files or directory-walk failures. Individual file-read failures
-can instead raise exceptions. A syntax-error file currently yields no collision
-findings and still contributes to the file count. A nonempty collection of such
-files can therefore satisfy the file-count admission while detecting nothing.
-Capture diagnostics and independently establish parse coverage before accepting
-PASS. JSON output reports collisions and file count, not a saved source-bound
-completion receipt.
+can instead raise exceptions. A file that cannot be parsed makes the run exit 2
+and names the file, so PASS means every encountered file was parsed. JSON output
+reports collisions and file count, not a saved source-bound completion receipt.
 
 The checker compares hashable literal keys using Python equality, including
 collisions such as `1`/`True`/`1.0`. Computed keys and dictionary expansions are
@@ -143,13 +134,13 @@ scope or disclosure authority.
 python tools/check_module_accretion.py --json
 ```
 
-The gate uses the bundle containing the script. It compares discovered `mamey/**/*.py` membership with paths parsed from `SOURCE_CHECKSUMS_SHA256.txt`; the editable `MODULE_MANIFEST.txt` is not its comparison baseline. The checksum reader admits digest format and duplicate raw path checks, not actual source-byte hash equality or full checksum-path containment. Preserve independently verified baseline identity and the intended module roster (`tools/check_module_accretion.py:43–108`).
+The gate uses the bundle containing the script. It compares discovered `mamey/**/*.py` membership with paths parsed from `SOURCE_CHECKSUMS_SHA256.txt`; the editable `MODULE_MANIFEST.txt` is not its comparison baseline. The checksum reader admits digest format and duplicate raw path checks, not actual source-byte hash equality or full checksum-path containment. Preserve independently verified baseline identity and the intended module roster.
 
-Current discovery excludes `__pycache__`; missing/empty module roots can yield zero current modules without a traversal error. Removed modules are reported but do not make the gate fail. A parse/read error while extracting a docstring becomes `(no docstring)` and the module remains counted, without a separate failed-file state. A normal exit 0 therefore means no unjustified additions, reported directory-walk errors or baseline-parser errors under this membership check; it does not prove a complete, runnable or intact bundle. Inspect counts, removals and independent source/read/parse coverage (`:52–77,157–218`).
+Current discovery excludes `__pycache__`; missing/empty module roots can yield zero current modules without a traversal error. Removed modules are reported but do not make the gate fail. A parse/read error while extracting a docstring becomes `(no docstring)` and the module remains counted, without a separate failed-file state. A normal exit 0 therefore means no unjustified additions, reported directory-walk errors or baseline-parser errors under this membership check; it does not prove a complete, runnable or intact bundle. Inspect counts, removals and independent source/read/parse coverage.
 
-Justification takes basenames from `Consolidates:`/`Accretion-justified:` lines in the first recognized top-level version entry. One basename can justify distinct same-named modules under different subdirectories. The checker does not admit the entry's version against the selected cut or establish a real consolidation/reason. If no version header is recognized, it uses the first 4,000 characters. Review exact full paths, selected current entry and rationale independently (`:111–130,167–175`).
+Justification takes basenames from `Consolidates:`/`Accretion-justified:` lines in the first recognized top-level version entry. One basename can justify distinct same-named modules under different subdirectories. The checker does not admit the entry's version against the selected cut or establish a real consolidation/reason. If no version header is recognized, it uses the first 4,000 characters. Review exact full paths, selected current entry and rationale independently.
 
-`--write` is a separate direct overwrite of `MODULE_MANIFEST.txt`, not a read-only check. It can write a zero-module inventory and it does not update `SOURCE_CHECKSUMS_SHA256.txt`; consequently it does not clear a checksum-baseline addition merely by regenerating the editable manifest. The older source usage/remediation suggesting that writing the manifest resets this gate is not its current behavior. Select writes only as part of the authorized versioned cut procedure, preserve prior metadata and validate inventory before publication. Neither mode saves a structured input-hash receipt; JSON is emitted to stdout. Record actual command, inputs/hashes, complete diagnostics and exit status into a fresh disjoint destination. Unexpected read/write errors may prevent a complete report (`:133–154,211–233`).
+`--write` is a separate direct overwrite of `MODULE_MANIFEST.txt`, not a read-only check. It can write a zero-module inventory and it does not update `SOURCE_CHECKSUMS_SHA256.txt`; consequently it does not clear a checksum-baseline addition merely by regenerating the editable manifest. Select writes only as part of the authorized versioned cut procedure, preserve prior metadata and validate inventory before publication. Neither mode saves a structured input-hash receipt; JSON is emitted to stdout. Record actual command, inputs/hashes, complete diagnostics and exit status into a fresh disjoint destination. Unexpected read/write errors may prevent a complete report.
 
 ## Verify the tier and archive
 
@@ -174,4 +165,4 @@ promotional label or signed-looking metadata substitutes for this evidence.
 
 ## Version reference
 
-*Sapote-Mamey Bundle v9.7.457 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.458 | Active controller: current user task, AGENTS.md and docs/USER_TASK_ROUTER.md; the monolith is a design/history reference.*

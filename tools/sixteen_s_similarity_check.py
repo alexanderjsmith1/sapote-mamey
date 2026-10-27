@@ -71,10 +71,18 @@ def _nearest_search(bb, query, db: str, n_targets: int, floor: float = 85.0) -> 
     small; if nothing passes the floor, the search runs again without it."""
     cmd = [bb("blastn"), "-task", "megablast", "-query", str(query), "-db", db, "-max_target_seqs", str(n_targets),
            "-outfmt", "6 pident length qlen bitscore stitle qseq sseq"]
-    o = subprocess.run(cmd + ["-perc_identity", str(floor)], capture_output=True, text=True).stdout.split("\n")
+    o = _blastn(cmd + ["-perc_identity", str(floor)])
     if not any(l.strip() for l in o):
-        o = subprocess.run(cmd, capture_output=True, text=True).stdout.split("\n")
+        o = _blastn(cmd)
     return o
+
+
+def _blastn(cmd: list[str]) -> list[str]:
+    """Run blastn; a failed run is an error, never an empty hit list (no hits is not the same as no search)."""
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"blastn failed (exit {r.returncode}): {(r.stderr or '').strip()[:300]}")
+    return r.stdout.split("\n")
 
 
 def _shared_phylo16s():
@@ -125,8 +133,8 @@ def main(argv=None) -> int:
             same = same_u = ""
             if accs:
                 subprocess.run([bb("blastdbcmd"), "-db", a.db, "-entry", ",".join(accs), "-out", str(td / "s.fa")], check=True)
-                o = subprocess.run([bb("blastn"), "-task", "megablast", "-query", str(td / "q.fa"), "-subject", str(td / "s.fa"),
-                                    "-outfmt", "6 pident length bitscore qseq sseq"], capture_output=True, text=True).stdout.split("\n")
+                o = _blastn([bb("blastn"), "-task", "megablast", "-query", str(td / "q.fa"), "-subject", str(td / "s.fa"),
+                              "-outfmt", "6 pident length bitscore qseq sseq"])
                 hs = [l.split("\t") for l in o if l.strip()]
                 if hs:
                     same = f"{float(max(hs, key=lambda x: float(x[2]))[0]):.2f}"

@@ -50,8 +50,10 @@ before being written. Output uses explicit sorting, but duplicate strain package
 | Layperson headline | generated | class + `gene_logic_strength` (from `ACTIVITY_LEAD_GENE_LOGIC.csv`, when bound) + `interpretability_tier`/`interpretability_hold` |
 | Next experiment | generated | a small, per-class, generic bench-method dictionary — never a compound-specific step |
 | Gene anchors | `ACTIVITY_LEAD_GENE_ANCHORS.csv` | up to five genes per locus, unchanged from `activity_lead_genes.py`'s own selection and tier labels |
-| Assembly tier | `mamey.assembly.assembly_tier` | GOOD/MODERATE/POOR/VERY_POOR, same thresholds (≥70/45–69/20–44/<20 interior %) |
+| Assembly tier | `mamey.assembly.assembly_tier` | Boundary-derived GOOD/MODERATE/POOR/VERY_POOR: interior % ≥70 / ≥45 and <70 / ≥20 and <45 / <20; missing interior % gives UNKNOWN |
 | Corrected BGC count | `mamey.assembly.corrected_bgc_count` | Interior + 0.5×Edge + 0.25×Full-contig |
+
+The boundary-derived tier and weighted count do not measure whole-assembly contiguity or the number of complete pathways. Read contig count and N50 separately, and keep the raw boundary counts with the weighted statistic.
 
 ## Comparison against the Day-5 bar (`Layperson_BGC_Guide_All27Strains_BertMode_May2026.pdf`)
 

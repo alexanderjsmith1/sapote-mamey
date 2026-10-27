@@ -2,15 +2,15 @@
 
 > **Filing.** `docs/modules/DELIVERABLE_MetabolomicsReadiness.md`.
 > **Extends / references:** `DELIVERABLE_WetLabMatrix.md` (dereplication priority = Action score 4), `KNOWLEDGE_DiagnosticDomainCombos.md` (class call drives the defaults), Workbook Schema v1.0 (`Metabolomics_Readiness` sheet). **Do not restate the WL action scores — point to them.**
-> **Precedence.** Parent monolith wins. This module owns the class→analytics default table and the polar-compound caveat.
-> **Status:** `SCHEMA_BACKED` — `tools/build_metabolomics_readiness.py` emits `<strain>_Metabolomics_Readiness.csv` + the `Metabolomics_Readiness` sheet from the class→analytics table. (Sapote may still map by hand when no package is present.)
+> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. The current writer owns emitted defaults; this module retains separate historical/proposed analytics guidance, with independent scientific review required.
+> **Status:** `SCHEMA_BACKED` — `tools/build_metabolomics_readiness.py` emits `<strain>_Metabolomics_Readiness.csv` + the `Metabolomics_Readiness` sheet from the class→analytics table. (Sapote may still map by hand when no package is present).
 > **One-line purpose.** Prepare each lead for LC-MS / HRMS / UV / fractionation by giving the analyst expected MW range, ionization, UV handle, polarity, extraction route, and dereplication target — broad-class only, claim-safe.
 
 ---
 
 ## 1. When it is offered (Deliverable Offer Protocol)
 
-Assistant workflow recommendation for a selected Full-Run Profile; this standalone writer is not automatically invoked by the base engine, and the `Metabolomics_Readiness` workbook sheet is part of the Excel deliverable. Offer as a next-path whenever leads have a class call but no analytics plan. **Incomplete delivery** = naming a lead's class without its detection/extraction handle, or giving exact masses/formulas (forbidden — §37.4).
+The writer is not run by the engine. It is an optional step for a selected Full-Run Profile. Offer as a next-path whenever leads have a class call but no analytics plan. **Incomplete delivery** = naming a lead's class without its detection/extraction handle, or giving exact masses/formulas (forbidden — §37.4).
 
 ---
 
@@ -31,7 +31,9 @@ Assistant workflow recommendation for a selected Full-Run Profile; this standalo
 
 ---
 
-## 3a. Class-level analytics defaults (PORTABLE COPY; authority: monolith §37.3)
+## 3a. Historical/proposed class-level analytics defaults
+
+The retained table is not a byte-for-byte or scientific calibration of the current writer's `CLASS_DEFAULTS`. Read the actual source and emitted rows for the selected helper; these broad class priors are not measured properties or an approved experimental plan for a focal locus. The current `base_class()` scans product plus comparator wording in a fixed precedence order, so a comparator label can determine the selected default. That selection is not independent class adjudication. Preserve unsupported or conflicting class assignments as holds; no scientific default is changed by this documentation clarification.
 
 | Class | MW range | Ionization | UV/Vis | Extraction |
 |---|---|---|---|---|
@@ -49,11 +51,11 @@ Assistant workflow recommendation for a selected Full-Run Profile; this standalo
 | Polyene macrolide | 700–1,300+ Da | pos/neg | strong UV 300–400 nm | EtOAc, C18, UV-guided |
 | Linear polyketide | 400–1,200 Da | pos/neg | variable | EtOAc/BuOH broad |
 | trans-AT polyketide | 500–1,500 Da | positive likely | variable | EtOAc/BuOH, GNPS networking |
-| Aromatic PKS (anthracycline/tetracycline) | 400–900 Da | pos/neg | strong visible (often coloured) | EtOAc, C18, DAD-guided |
+| Aromatic PKS (anthracycline/tetracycline) | 400–900 Da | pos/neg | strong visible (often colored) | EtOAc, C18, DAD-guided |
 | Phosphonate | small, polar | neg often; **31P-NMR primary** | weak | **aqueous; ion-exchange; 31P-NMR before HRMS** |
 | Enediyne | variable | handle as cytotoxic | UV variable | **SEC/UV-DAD; cytotoxicity readout** |
 
-Last three rows extend §37.3 with classes the SID-XXX run surfaced.
+The last three rows extend the original table.
 
 **Polar-compound caveat (load-bearing).** Standard C18 reversed-phase **underrepresents or loses** polar/zwitterionic products — peptidyl nucleosides, siderophores, charged NRP fragments, **phosphonates**. When a lead predicts a polar product, explicitly flag that C18 crude extraction is insufficient and recommend aqueous/ion-exchange primary fractionation **before** HRMS dereplication.
 
@@ -67,7 +69,7 @@ Current emitted columns: `locator`, `bgc_id`, `class`, `MW_range`, `ionization`,
 
 ## 4. Outputs & contract surface
 
-`Metabolomics_Readiness` workbook sheet (Schema v1.0) + a top-targets block in the Deep Dive Synopsis + analytics lines on the Fermentation Card.
+`Metabolomics_Readiness` sheet in the writer's separate XLSX + a top-targets block in the Deep Dive Synopsis + analytics lines on the Fermentation Card.
 
 ---
 
@@ -94,7 +96,7 @@ Current emitted columns: `locator`, `bgc_id`, `class`, `MW_range`, `ionization`,
 
 ## 7. Worked next-paths closer (SID-XXX)
 
-> Metabolomics readiness: BGC047 enediyne → SEC/UV-DAD + cytotoxicity (standard-SOP handling); BGC063 phosphonate → 31P-NMR primary, aqueous/IEX, C18-insufficient flag; BGC019/072 catecholate siderophore → iron-limited culture + CAS assay; BGC025/074 aromatic PKS → DAD-guided, coloured-band watch. Next paths:
+> Metabolomics readiness: SID-XXX / <contig> / region<NNN> / BGC047 enediyne → SEC/UV-DAD + cytotoxicity (standard-SOP handling). SID-XXX / <contig> / region<NNN> / BGC063 phosphonate → 31P-NMR primary, aqueous/IEX, C18-insufficient flag. SID-XXX / <contig> / region<NNN> / BGC019 and BGC072 catecholate siderophore → iron-limited culture + CAS assay. SID-XXX / <contig> / region<NNN> / BGC025 and BGC074 aromatic PKS → DAD-guided, colored-band watch. Next paths:
 > 1. Build the `Metabolomics_Readiness` sheet for all 12 leads.
 > 2. Pair the 31P-NMR screen with GNPS LC-MS/MS as the strain's two decisive runs.
 > 3. Flag every polar lead (phosphonate, siderophore) for IEX-first fractionation.

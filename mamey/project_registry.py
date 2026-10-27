@@ -122,11 +122,26 @@ def _targets(value: Any) -> tuple[str, ...]:
         return ()
     if isinstance(value, str):
         values = [value]
-    elif isinstance(value, Iterable):
+    elif isinstance(value, Iterable) and not isinstance(value, Mapping):
         values = list(value)
-    else:
+    else:   # a mapping would contribute its keys as target IDs
         raise ProjectRegistryError("target_ids must be a string or list of strings")
-    return tuple(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
+    if any(not isinstance(item, str) for item in values):
+        raise ProjectRegistryError("target_ids must contain only strings")
+    return tuple(dict.fromkeys(item.strip() for item in values if item.strip()))
+
+
+def _strict_int(value: Any) -> int:
+    """An integer, or a string or float that is exactly one. int() turned 1.9 into 1 and True into 1."""
+    if isinstance(value, bool):
+        raise ValueError("boolean is not an integer")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+        return int(value.strip())
+    raise ValueError(f"not an integer: {value!r}")
 
 
 class ProjectRegistry:
@@ -186,7 +201,7 @@ class ProjectRegistry:
             if tier_id in tiers:
                 raise ProjectRegistryError(f"Duplicate privacy tier: {tier_id}")
             try:
-                rank = int(raw.get("audience_rank"))
+                rank = _strict_int(raw.get("audience_rank"))
             except (TypeError, ValueError):
                 raise ProjectRegistryError(
                     f"privacy tier {tier_id!r} requires integer audience_rank"
@@ -233,7 +248,7 @@ class ProjectRegistry:
                 replicate_value = None
             else:
                 try:
-                    replicate_value = int(replicate)
+                    replicate_value = _strict_int(replicate)
                 except (TypeError, ValueError):
                     raise ProjectRegistryError(
                         f"Assay {assay_id!r} replicate_count must be an integer"

@@ -803,14 +803,17 @@ def main():
                 ", ".join(os.path.basename(x) for x in og) +
                 "  -- intentional for e.g. Amycolatopsis+Gordonia; IQ-TREE roots on TREE_SPEC root_outgroup")
     else:
-        ogn = os.path.basename(og[0])
-        rep.add("O1", "PASS", "Exactly one outgroup", ogn)
+        rep.add("O1", "PASS", "Exactly one outgroup", os.path.basename(og[0]))
+    # O2/O3 run for every outgroup: with several, each must still be outside the ingroup and a sister
+    for ogpath in og:
+        ogn = os.path.basename(ogpath)
         ogb = ogn[:-4] if ogn.endswith('.fna') else ogn
         ogg, _ = genus_of(tipmap.get(ogb, ogn), tax)
+        tag = f" [outgroup {ogn}]" if len(og) > 1 else ""
         if ogg in genera:
-            rep.add("O2", "FAIL", "Outgroup genus also appears in the ingroup", ogg)
+            rep.add("O2", "FAIL", "Outgroup genus also appears in the ingroup", (ogg or "?") + tag)
         else:
-            rep.add("O2", "PASS", "Outgroup genus not in ingroup", ogg or "?")
+            rep.add("O2", "PASS", "Outgroup genus not in ingroup", (ogg or "?") + tag)
         if rank_of(ogg) and orders:
             of, oo = rank_of(ogg)
             io = list(orders)[0] if len(orders) == 1 else None
@@ -819,17 +822,17 @@ def main():
                         "Outgroup validity cannot be established — ingroup spans multiple orders",
                         f"outgroup {ogg} ({oo}); ingroup orders: {', '.join(sorted(orders))} — "
                         "no taxon is a sister group to all of them (this is what forces a distant "
-                        "root like Bifidobacterium). Fix T3 first.")
+                        "root like Bifidobacterium). Fix T3 first." + tag)
             elif oo == io:
-                rep.add("O3", "PASS", "Outgroup is same-order sister (family tree)", f"{ogg} ({of}, {oo})")
+                rep.add("O3", "PASS", "Outgroup is same-order sister (family tree)", f"{ogg} ({of}, {oo})" + tag)
             else:
                 near = {"Streptomycetales","Pseudonocardiales","Micromonosporales",
                         "Streptosporangiales","Propionibacteriales","Corynebacteriales"}
                 if oo in near and io in near:
-                    rep.add("O3", "PASS", "Outgroup is a near sister order", f"{ogg} ({oo}) vs ingroup {io}")
+                    rep.add("O3", "PASS", "Outgroup is a near sister order", f"{ogg} ({oo}) vs ingroup {io}" + tag)
                 else:
                     rep.add("O3", "FAIL", "Outgroup is a DISTANT taxon, not a sister group",
-                            f"{ogg} ({oo}) vs ingroup {io} — long-branch attraction; pick from OUTGROUP_REGISTRY")
+                            f"{ogg} ({oo}) vs ingroup {io} — long-branch attraction; pick from OUTGROUP_REGISTRY" + tag)
 
     # C1 comparator balance
     if as_n:

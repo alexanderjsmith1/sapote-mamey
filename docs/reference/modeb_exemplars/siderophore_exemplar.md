@@ -14,7 +14,7 @@ Reuse structure and bounded register only. Do not transfer these genes, homology
 
 # Mode B — BGC042 (BA000030.4 · region042) — *Streptomyces avermitilis* MA-4680
 
-*Public exemplar — NI-siderophore (desferrioxamine) class. Authored from store-backed antiSMASH + KnownClusterBlast for the finished public genome BA000030.4. §4 is authored to the honest no-live-BLASTp read: the independent per-gene BLASTp channel was not run for this card, so no per-gene BLASTp outcome is asserted; the panel can be run or its hit-table ingested offline later (`mamey ingest-blastp`). Every product statement is capacity language.*
+*Public NI-siderophore teaching sketch for the declared genome BA000030.4. Its source-state accounts conflict: this introduction originally said no independent per-gene BLASTp ran, but §§4/16/28 report a three-gene nr panel and offline ingestion. Preserve that conflict until the query, hit-table/XML2 and ingestion receipts are bound; neither the no-run statement nor the reported results are verified by this sketch alone. The remaining text retains historical source claims and capacity-level interpretations.*
 
 ## §1 Identity and node/region
 BGC042 sits on contig BA000030.4 · region042 (store-backed, finished single-contig genome) of *Streptomyces avermitilis* MA-4680, spanning roughly 6,369,180–6,398,953 (~29.77 kb), classed by antiSMASH as an NI-siderophore (NRPS-independent siderophore) region with associated "other" tailoring. It is an Interior BGC — both flanks are internal to the contig, so no edge/fragmentation correction applies to its boundaries.

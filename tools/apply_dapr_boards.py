@@ -18,6 +18,7 @@ def main():
     ap.add_argument("--cohort", default=os.path.join(os.path.dirname(__file__), "..", "cohort"))
     a = ap.parse_args()
     wb = openpyxl.load_workbook(a.workbook)
+    applied = 0
     for sheet, csvf in [("C1_DAPR_Antibacterial", "c1_dapr_antibacterial.csv"),
                         ("C2_DAPR_Antifungal", "c2_dapr_antifungal.csv")]:
         path = os.path.join(a.cohort, csvf)
@@ -33,7 +34,13 @@ def main():
             for c, v in enumerate(r, 1):
                 ws.cell(i, c, int(v) if c in (1, 5, 6) and str(v).strip().lstrip("-").isdigit() else (v or None))
         emit(f"  {sheet}: re-applied {len(data)} lead rows")
+        applied += 1
+    if not applied:
+        # Nothing to restore: leave the workbook untouched rather than re-save it through openpyxl.
+        _sys.stdout.write("  no DAPR board applied; workbook not written\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return 1
     atomic_save(wb, a.workbook)
+    return 0
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

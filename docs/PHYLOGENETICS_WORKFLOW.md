@@ -42,7 +42,7 @@ Use status terms that describe the evidence: `ANALYSIS_BOUND`, `SEQUENCE_UNBOUND
 
 ### Full tree and display tree
 
-EPA-ng reports may contain a full grafted placement tree and a smaller `tree_display.newick` used by a colour-strip PDF. List **both** query rosters. A focused display must say which queries it omits. The strict prepared-series contract in [Tree Catalog](TREE_CATALOG.md) requires preservation of all declared queries; an older pruned figure that omits queries does not become a complete all-query series merely because its PDF renders. Rebuild the display with the queries retained, or prepare an explicitly scoped spotlight analysis and keep its full-context companion.
+EPA-ng reports may contain a full grafted placement tree and a smaller `tree_display.newick` used by a color-strip PDF. List **both** query rosters. A focused display must say which queries it omits. The strict prepared-series contract in [Tree Catalog](TREE_CATALOG.md) requires preservation of all declared queries; an older pruned figure that omits queries does not become a complete all-query series merely because its PDF renders. Rebuild the display with the queries retained, or prepare an explicitly scoped spotlight analysis and keep its full-context companion.
 
 For GToTree, an inferred `.treefile`, a `.contree`, an aligned single-copy-gene FASTA, and a PDF may represent different stages. Check exact sequence/tree tip agreement where the alignment is available. A renderer may prune a duplicate reference accession while retaining the source analysis tree; record the exclusion and use the **displayed** count in the figure caption. Do not delete or relabel the source tree to make the count agree.
 
@@ -52,7 +52,7 @@ Search by the exact versioned accession in an authoritative sequence or assembly
 
 ## Build a new tree when the existing evidence cannot answer the question
 
-**16S route.** Inventory files with `python tools/phylo_autopilot.py plan INPUT_DIR`. Route sequences with `python tools/phylo_autopilot.py route --query QUERIES.fasta --db DB_PREFIX --out ROUTING.tsv`, then review genus conflicts. `run-16s --dry-run` prepares a reference/query plan without inference. A real run requires its `--approved-by` argument. The [autopilot guide](PHYLO_AUTOPILOT_WORKFLOW.md) and [16S data contract](PHYLO_16S_DATA_CONTRACT.md) describe sequence admission, reference evidence, and the EPA-ng outputs. `phylo_place.py report` can write a grafted tree without the required colour-strip figure if owner or reference metadata is missing; inspect `COLOR_STRIPS_NOT_RENDERED.txt` rather than treating the absence as success.
+**16S route.** Inventory files with `python tools/phylo_autopilot.py plan INPUT_DIR`. Route sequences with `python tools/phylo_autopilot.py route --query QUERIES.fasta --db DB_PREFIX --out ROUTING.tsv`, then review genus conflicts. `run-16s --dry-run` prepares a reference/query plan without inference. A real run requires its `--approved-by` argument. The [autopilot guide](PHYLO_AUTOPILOT_WORKFLOW.md) and [16S data contract](PHYLO_16S_DATA_CONTRACT.md) describe sequence admission, reference evidence, and the EPA-ng outputs. `phylo_place.py report` can write a grafted tree without the required color-strip figure if owner or reference metadata is missing; inspect `COLOR_STRIPS_NOT_RENDERED.txt` rather than treating the absence as success.
 
 If you have a genome assembly but no 16S FASTA, first inspect candidate spans:
 
@@ -70,7 +70,7 @@ For nearest-reference selection and genus-conflict review, 16S identity is measu
 columns where both sequences contain A, C, G, T or a gap. IUPAC ambiguity columns are excluded;
 gaps remain differences. Raw BLAST `pident` is a separate measurement. The routing table retains
 it as `pident_raw`; legacy imported hit tables without aligned sequences can only supply raw identity.
-The genome-neighbour panel records the identity basis beside its selected value.
+The genome-neighbor panel records the identity basis beside its selected value.
 
 Local nearest-record searches set the subject limit to the database record count, or the exact
 number of candidates in a locally constructed panel database. The requested number of output
@@ -96,7 +96,7 @@ python mamey_run.py phylo-mlsa --input-zip antismash_results.zip \
 
 To run the five-locus screen, provide a curated directory of local `.fna` reference genomes, including one filename marked `_OUTGROUP`, and a new output directory. Use `--mode prepare` to stage and review the inputs or `--mode run` to invoke `build_mlsa.py`. The latter needs Prodigal, BLAST+, MUSCLE, and IQ-TREE. A ZIP containing only clipped region records is refused. See the [Quick Guide](GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays) and [GToTree workflow](GTOTREE_WORKFLOW.md) for panel selection after the screen.
 
-**Genome route.** Start with an explicit genome list, comparator rationale, outgroup, and space-free work directory. `python mamey_run.py phylo-run --help` shows the current executable interface; `--approved` records authorization for the CPU run. GToTree, IQ-TREE, and optional fastANI are external companions, not included databases. The [GToTree execution guide](GTOTREE_WORKFLOW.md) and [preflight](GTOTREE_IQTREE_PREFLIGHT.md) describe the more detailed controlled route. Record the actual installed GToTree marker set and IQ-TREE settings for each tree; versions or marker sets must not be silently relabelled to match another figure.
+**Genome route.** Start with an explicit genome list, comparator rationale, outgroup, and space-free work directory. The `phylo-run` front door forwards released-v1 controls, not the governed-v2 runtime/probe/plan bindings. For selected governed GToTree 2.0.0, use the reviewed planner-generated `COMMAND.sh` and retain its exact approval/runtime/resource bindings; see [companion run contracts](COMPANION_RUN_CONTRACTS.md). `python mamey_run.py phylo-run --help` shows the current executable interface; `--approved` records authorization for the CPU run. GToTree, IQ-TREE, and optional fastANI are external companions, not included databases. The [GToTree execution guide](GTOTREE_WORKFLOW.md) and [preflight](GTOTREE_IQTREE_PREFLIGHT.md) describe the more detailed controlled route. Record the actual installed GToTree marker set and IQ-TREE settings for each tree; versions or marker sets must not be silently relabeled to match another figure.
 
 Use a declared outgroup appropriate to the taxonomic scope and check the resulting root. `tools/signoff_check.py` is **advisory**; its process exit does not certify a tree. Keep preflight, branch/sanity checks, alignment completeness, support, ANI if run, and human review as separate receipts. A tree alone does not establish a new species, genus, compound, or bioactivity.
 

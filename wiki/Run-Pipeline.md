@@ -1,7 +1,7 @@
 # The run pipeline — what happens inside `mamey_run.py run`
 
 **Motto: deterministic extraction, judgment deferred.** Tier 1 (Mamey, Python) extracts and
-organizes evidence; Tiers 2/3 (Sapote, LLM protocols shipped as Markdown) judge it. Nothing in this
+organizes evidence; Sapote, the judgment workflow, interprets it. Nothing in this
 pipeline makes a structural or bioactivity claim — outputs are class-level hypotheses routed for
 later judgment.
 
@@ -20,9 +20,9 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
    vendored ijson, wall-clock capped) with TXT-only fallback; `full` mode refuses JSON files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`).
 2. **Ten source-derived scans** (`source_scans.py`) — class triggers (CCTT), chitinase context
    (CGAD), resistance tiers, TFBS, RiPP maturation (UMED), bldA/TTA codon usage, cassettes, and
-   more, producing a `SourceScanBundle`. `rggmci.py` adds RG-GMCI: multi-contig split-pathway
-   linkage (two-proof rule — a HIGH-confidence merge claim needs two independent lines of
-   evidence). Scan marker definitions increasingly come from a central registry
+   more, producing a `SourceScanBundle`. `rggmci.py` adds RG-GMCI: homology-guided candidate links between
+   fragments on different contigs. A link is not a contig join; a HIGH label needs two
+   independent lines of evidence. Scan marker definitions increasingly come from a central registry
    (`registry_detector.py` / `registry_schema.py`) instead of hardcoded patterns.
 3. **Scoring / triage** (`scoring.py::triage_bgcs`) — auto-floor AB/AF/novelty **routing priors**
    (explicitly NOT final scores), CCTT diagnostic bonuses, standing-rule downgrades from
@@ -35,7 +35,10 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
 5. **Package + manifest** (`packaging.py`) — the numbered outputs (`_1_intake.json`,
    `_2_inventory.csv`, `_3_*`, `_4_triage_board.csv`, `_5_*.xlsx`), `manifest.json` (the
    authoritative handoff to the judgment kernel), checksums, and the sealed ZIP whose name embeds
-   both versions: `{strain}_SapoteMamey_v{BUNDLE}_engine{ENGINE}_Complete_Package.zip`.
+   both versions and the antiSMASH detection profile:
+   `{strain}_SapoteMamey_v{BUNDLE}_engine{ENGINE}_{profile}_Complete_Package.zip`.
+   The profile token is `strict`, `relaxed`, `loose` or `unknown`; use the emitted filename
+   and manifest rather than reconstructing it.
 6. **Validate** (`validate.py::validate_package`) — file presence plus **gates** (e.g. RGGMCI_GATE:
    HIGH-confidence pairs must be listed; DEPTH_FLOOR for gold mode) → `gate_validation.json` with
    PASS / PASS_WITH_ISSUES / MAMEY_COMPLETE.
@@ -49,8 +52,10 @@ original package bytes on a separate working copy when required and inspect each
 
 ## Run modes
 
-`gold` is the only analysis mode (every BGC gets full Mode B depth). `standard` is
-deprecated/retired and aliased to `gold`; `smoke` was removed entirely at v9.7.161.
+`gold` is the only analysis mode; it assigns the gold evidence/depth requirements. It does not
+author a finished Mode B card for every region. `standard` is a deprecated alias of `gold`;
+`smoke` was removed entirely at v9.7.161. Review actual phase receipts and selected outputs
+separately from the mode label; see [artifact scope](../docs/PER_MODE_ARTIFACT_SET.md).
 
 ## Why so many `*_gate` / `*_guard` tests
 

@@ -30,7 +30,7 @@ rewritten whenever one database, assembly, or interpretation changes.
 
 The normal promotion sequence is:
 
-1. bind MiBIG and KnownClusterBlast one-to-many comparator children;
+1. bind MIBiG and KnownClusterBlast one-to-many comparator children;
 2. bind ClusterBlast subjects and ordered locus topology;
 3. generate an exact editable locus/domain map;
 4. compare strict, relaxed and loose profiles only across an exact compatible
@@ -40,7 +40,7 @@ The normal promotion sequence is:
 6. run current Mode B verification against the complete consumed-evidence
    ledger.
 
-MiBIG/KnownClusterBlast and ClusterBlast per-gene CSVs can be declared as
+MIBiG/KnownClusterBlast and ClusterBlast per-gene CSVs can be declared as
 `comparator_sources` in an internal program specification. The builder writes
 separate child tables and `COMPARATOR_EVIDENCE_LEDGER.tsv`; it never collapses
 the channels. A locus-tag match to the exact-region inventory is recorded as
@@ -99,4 +99,4 @@ The overlay's status is `PASS_PROPOSAL_ONLY_NOT_ACCEPTED_NOT_INTEGRATED`. It has
 
 For work orders requiring the current 50-section card, the explicit profile is `current50_v2`; `verify-modeb` defaults to `full48`. Declare the contract and exact consumed-evidence/package bindings rather than relying on the default or an old §1–§20 layout reference. `--require-expanded-locus` is current50-only; a `--rescue-tsv` existence admission does not grant BGC membership to a gene outside a region. Verification is a separate action with its own receipt and does not establish publication or scientific adoption.
 
-Source owners: `mamey/bgc_l0_program.py:809–837,1004–1068,1071–1118`; `mamey/stage2_overlay.py:337–351,589–613,641–692`; `mamey/cli.py:7241–7255`.
+Code: `mamey/bgc_l0_program.py`, `mamey/stage2_overlay.py` and `mamey/cli.py`.

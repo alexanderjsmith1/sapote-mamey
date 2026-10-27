@@ -142,7 +142,7 @@ Do not turn an unavailable, incomplete or failed search into a tested-negative o
 The command writes a scoped `*_online_blastp.csv` panel and `*_cluster_reads.json` under `--outdir`
 (or the working directory if omitted). The prefix follows the requested locus selector; retain
 complete identity in the associated record. Inspect the actual panel and cluster-read fields.
-A file's existence or an exit status alone does not verify its scientific interpretation.
+Live output can be partial: failed batches are reported to the console and omitted, while any successful batch can still lead to a panel and exit 0. Reconcile the submitted roster and batch outcomes before reporting completeness. The XML reader checks the query count, then assigns records by submission order; it does not independently verify each returned query identifier or sequence hash. Preserve independent query/result bindings before exact-gene use. A file's existence or an exit status alone does not verify its scientific interpretation.
 
 For each cited hit preserve accession, organism, percent identity, query coverage, E-value,
 bitscore, query identity and source/database provenance. Retain missing translations and queries
@@ -151,11 +151,8 @@ not submission index alone.
 
 Some stored result sets name a gene by its position inside its antiSMASH region, written as a
 contig-prefixed tag (`ctg16_18` for the 18th CDS of a region on contig 16), and carry BGC numbers
-from an earlier engine. A join by tag or BGC number then attaches the hit to another gene. Readers
-that bind by protein SHA-256, or by tag and length, hold such rows. `tools/blastp_tag_position_audit.py`
-keys them without editing them: `TAG_OK`, `REGION_POSITION` (exactly one region on that contig has,
-at that position, a CDS of the recorded length) or a typed hold. A `REGION_POSITION` key is an
-inference from position and length; keyed rows become evidence only by an explicit decision.
+from an earlier engine. A join by tag or BGC number then attaches the hit to another gene. `tools/blastp_tag_position_audit.py` records `TAG_OK`, `REGION_POSITION` (one matching
+region-position/length locator) or a typed hold without changing the source rows. Sequence-bound readers can hold a query mismatch. Tag-and-length checks hold detectable label/length conflicts, but equal length cannot prove current-query identity. `TAG_OK` and `REGION_POSITION` are locator checks, not saved-result admission; retain the query-sequence and result-job receipt before using either as exact-current evidence.
 
 Compare hits with domains and comparator evidence when authoring a card. A named homolog is a
 functional hypothesis; numerical similarity thresholds alone do not prove a specific function.
@@ -178,7 +175,7 @@ python -m mamey.protein_signature --package <run>/<strain>/package \
   --out <analysis>/<strain>-bgc-protein-signature.json
 ```
 
-This writes a new file outside the sealed package; it does not alter package contents. Keep the JSON beside BLASTp query and result receipts. A matching BGC-protein signature is not proof that the whole assemblies are identical.
+The examples select outputs outside the sealed package. The signature CLI requires a fresh destination but does not enforce that external boundary; keep `--out` outside all preserved input packages. Use the same external-output discipline for per-strain database exports. Keep the JSON beside BLASTp query and result receipts. A matching BGC-protein signature is not proof that the whole assemblies are identical.
 
 ```bash
 python -m mamey.protein_signature <package-A-proteins.faa> <package-B-proteins.faa> \

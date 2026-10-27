@@ -1,7 +1,8 @@
 # Gene-level BiG-SCAPE exploration — workflow guide (v9.7.294)
 
 How to take a new batch of strains from antiSMASH GBKs through gene-level assembly-line analysis,
-predicted chemistry, sequence-level novelty, and into Mode B cards — **following the floors strictly**.
+predicted-chemistry context, sequence-divergence observations, and Mode B evidence inputs,
+with the parser, identity and selected-profile limits below.
 Everything here is capacity-level: biosynthetic potential, never production or bioactivity.
 
 ## The one rule that governs everything: count per GENE, not per region
@@ -17,7 +18,7 @@ contigs it splits one cluster across regions (deflates). Three annotation-counti
 ## Workflow for a new strain batch
 1. **Scan into BiG-SCAPE** (see BiG-SCAPE_RUN_GUIDE): the old one-strain Nocardia chunk recommendation was a measurement on a particular 3.9 GB/single-core environment, not a universal CDS/OOM limit. Bind the intended run configuration and resource receipt; this guide does not authorize a scan.
 2. **Gene catalog:** `python gene_assembly_line.py --dir <region_gbks>/ --out gene_catalog.tsv`
-   -> every assembly-line gene with reliable per-gene module counts, completeness, kind.
+   -> per-gene annotated domain/module counts, local core-presence flag and kind for the supported identifier format; this is not every gene or whole-pathway completeness.
 3. **Predicted chemistry:**
    - NRPS: `python nrps_substrate.py REGION.gbk` -> predicted backbone + siderophore/glycopeptide/
      lipopeptide signature (glyco/lipo annotation-based candidates; keyword co-occurrence is not confirmation).
@@ -105,6 +106,8 @@ Catalog identity comes from filenames: strain is the first underscore-delimited 
 NRPS substrate consensus is concatenated across all matched genes in the region and corroborated by whole-file annotation keywords; this can combine adjacent candidates. PKS class labels are simple domain-order heuristics, including literal activity-like wording in the classifier. Neither defines a verified scaffold, activity or precise product. Enrichment only prints the first PKS gene's class, not all PKS genes (`nrps_substrate.py:35–69`; `pks_product_class.py:33–65`; `gene_modeb_enrichment.py:229–243`). “Auto-confirmed” in the older recipe is corrected above.
 
 The protein-context hash/roster path described earlier remains the preferred bound channel. It does not repair catalog identity truncation or validate the whole report. The numbered section suggestions are legacy full-card mapping; bind the actual current profile and verifier before insertion. Finished current50 cards require the applicable [current50 contract](MODEB_CURRENT50_V2_CONTRACT.md), not the legacy floors or a successful helper stdout result. The generated NAPAA/anchor warning is prose, not a general filter over every comparative output. Record biological/search/model execution and card adoption as separate evidence states.
+
+The protein-context query checks the saved metadata and source-manifest digests against the supplied build receipt, but does not independently authenticate that receipt, rehash the source GBKs, verify the saved protein FASTA digest, or bind the compiled BLAST database volumes. Enrichment checks the result/roster/database-receipt locators and query hash/length values but does not establish complete roster-query coverage or independently recompute subject alignments. Retain the exact query FASTA, compiled database inventory, source GBK inventory, executable versions and command/output hashes in an external run receipt. A syntactically bound row is not independently validated sequence evidence, and an omitted query remains unavailable rather than no-hit.
 
 ## Saved RiPP views are separate readers
 

@@ -9,21 +9,21 @@
 - **source:** `figure_ready/class_by_strain.csv`
 - **columns used:** strain, product_class, n_bgcs
 - **row filter:** collapse rare classes into "other-minor"
-- **derived fields:** stack n_bgcs by class within strain
+- **derived fields:** stack the exported n_bgcs counts by class within strain, normalized by their sum. The exporter explodes every nonempty semicolon-delimited product token; a multi-class region contributes to multiple classes and repeated tokens are not deduplicated. Label the denominator class assignments and retain the full strain/contig/region/bgc_id token audit; this is not a mutually exclusive partition of unique regions.
 
 ## Plot
 - **type:** 100%-stacked horizontal bar
-- **x:** fraction of BGCs   **y:** strain   **color:** product_class
+- **x:** fraction of exported class assignments   **y:** strain   **color:** product_class
 - **order:** strain rank   **scales:** —
 
 ## Style
 Inherit `FIGURE_CONVENTIONS.md`. **No arrows, leader-lines, circles, or text callouts pointing at
 individual data points** — emphasis is added downstream (PowerPoint / BioRender). Permitted
-annotation: axis labels, legend, title, colorbar, and value labels flush at bar ends. A highlight
+annotation: axis labels, legend, non-interpretive title, colorbar, and value labels flush at bar ends. A highlight
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+Fill placeholders from the plotted data and drop any sentence the data do not support.
 
 > Relative product-class composition per isolate (n = <admitted_isolate_n> isolates).
 

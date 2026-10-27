@@ -1,6 +1,6 @@
 # Run Mamey through a hosted assistant
 
-Documented bundle: v9.7.457 / engine 1.9.177
+Documented bundle: v9.7.458 / engine 1.9.177
 
 
 This route requires an assistant session with a working Python runtime, access to the supplied files and sufficient storage. A chat window alone does not guarantee execution. The current environment must be checked; historical model names and batch quotas are not capability guarantees.
@@ -11,7 +11,7 @@ Use the actual code bundle you received, not the obsolete `Mamey_v1.9.98_Standal
 
 Provide the code location, one antiSMASH result ZIP, known metadata with its source, and the permitted output location. An existing master workbook is optional and requires a compatible ingestion route. Do not attach unrelated private inputs.
 
-> Inspect these files and confirm the runtime before execution. Run one identified strain with bounded JSON evidence, brief none and locus maps off. Do not submit sequences online. Tell me the expected output groups, preserve the original input, validate the resulting package and explain unresolved evidence. Save the portable package and available transcript before the session ends. Report missing capabilities plainly rather than assuming they are installed.
+> Inspect these files and confirm the runtime before execution. State the expected output groups, then run one identified strain with bounded JSON evidence, brief none, locus maps off and reference completion off. Omit --master; workbook ingestion is a later task. Do not submit sequences online. Preserve the original input, validate the resulting package and explain unresolved evidence. Save the portable package and available transcript before the session ends. Report missing capabilities plainly rather than assuming they are installed.
 
 Follow [the Master Walkthrough](../MASTER_WALKTHROUGH.md) for the command sequence and expected review steps. Use [runtime profiles](../ASSISTANT_RUNTIME_PROFILES.md) to reason about environment limits. If execution is unavailable, a document review is still possible, but it must not be described as a completed extraction.
 

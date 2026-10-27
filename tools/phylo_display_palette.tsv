@@ -28,12 +28,20 @@ geography	Indian Ocean	#AA4499
 geography	Southern Ocean	#999933
 geography	Arctic Ocean	#BBBBBB
 geography	Other documented	#666666
-activity	active (≥80%)	#B00020
-activity	tested, inactive	#4D4D4D
+activity	strong (≥80%)	#B00020
+activity	tested, below 80%	#4D4D4D
 activity	not tested	#C8C8C8
-activity_calm	active (≥80%)	#1F4E79
-activity_calm	tested, inactive	#B8C4D2
+activity_calm	strong (≥80%)	#1F4E79
+activity_calm	tested, below 80%	#B8C4D2
 activity_calm	not tested	#ECEFF3
+activity_3state	strong (≥80%)	#B00020
+activity_3state	moderate (50–79%)	#E69F00
+activity_3state	tested, below 50%	#4D4D4D
+activity_3state	not tested	#C8C8C8
+activity_3state_calm	strong (≥80%)	#1F4E79
+activity_3state_calm	moderate (50–79%)	#5B8DB8
+activity_3state_calm	tested, below 50%	#B8C4D2
+activity_3state_calm	not tested	#ECEFF3
 country	USA	#D62728
 country	Canada	#6A51A3
 country	Algeria	#DB9D85

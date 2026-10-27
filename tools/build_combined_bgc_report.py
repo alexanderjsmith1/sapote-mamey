@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Build one portable combined V7 + Mode B BGC dossier."""
+"""Build one portable combined V7 + Mode B BGC dossier.
+
+Exit 0: draft built (not accepted/integrated); exit 3: owner-policy exclusion, no output."""
 
 from __future__ import annotations
 
@@ -51,7 +53,7 @@ def main() -> int:
     args = parser.parse_args()
     result = build_from_path(args.job_spec, _roots(args.source_root), args.out_root)
     emit(json.dumps(result, indent=2, sort_keys=True))
-    return 0
+    return 3 if result.get("status") == "EXCLUDED_NO_OUTPUT" else 0
 
 
 if __name__ == "__main__":

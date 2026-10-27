@@ -1,4 +1,4 @@
-"""tools/protein_pcoa_render.py --label-ids (card 018c0f08_455_pcoa_label_ids_locus_pages): label exactly the listed points,
+"""tools/protein_pcoa_render.py --label-ids (card 455_pcoa_label_ids_locus_pages): label exactly the listed points,
 every one of them, with the given text; without the option the existing label rules are unchanged.
 Synthetic strains only (tools/test_synthetic_ids.txt)."""
 import importlib.util

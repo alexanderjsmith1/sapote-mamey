@@ -58,15 +58,16 @@ The current portable implementation uses a disclosed two-stage method:
 1. length-gated 4-mer prefilter, retaining the top 40 candidates per query gene and cohort;
 2. local BLOSUM62 alignment with gap-open -11 and gap-extension -1.
 
-Ranking uses local alignment score, then query coverage, identity, and deterministic exact-locus/gene tie breakers. For aligned candidates the table provides identical-residue count, alignment-column denominator including gaps, BLOSUM-positive count, identity, positives, query coverage, subject coverage, protein SHA-256 values and comparator source-package paths. The prefilter restricts subject length to approximately 0.55–1.80 times query length, drops zero shared 4-mer candidates and aligns only the retained set. A missing row is not an exhaustive no-homology result. Ranking is within that screened set.
+Ranking uses local alignment score, then query coverage, identity, and deterministic exact-locus/gene tie breakers. For aligned candidates the table provides identical-residue count, alignment-column denominator including gaps, BLOSUM-positive count, identity, positives, query coverage, subject coverage, protein SHA-256 values and comparator source-package paths. The prefilter restricts subject length to approximately 0.55–1.80 times query length, drops zero shared 4-mer candidates and aligns only the retained set. A missing row is not an exhaustive no-homology result. Ranking is within that screened set. The output then retains one best protein row per distinct comparator locus and query gene/cohort, up to `--top-n` loci (default 3). It is not the full aligned candidate set or every paralog in each locus. The neighborhood summary is built only from these retained matches (`mamey/cohort_proteins.py`).
 
 The states are navigation labels, not biological verdicts:
 
 - `STRONG_WHOLE_PROTEIN_FAMILY_NAVIGATION`: at least 60% identity and 80% bilateral coverage;
 - `MODERATE_WHOLE_PROTEIN_FAMILY_NAVIGATION`: at least 40% identity and 70% bilateral coverage;
-- `WEAK_CLOSEST_AVAILABLE`: the highest-ranked measured candidate does not meet the moderate threshold.
+- `WEAK_CLOSEST_AVAILABLE`: the highest-ranked measured candidate does not meet the moderate threshold;
+- `ALIGNMENT_SKIPPED_UNMEASURED`: the pair was too long to align, so nothing was measured.
 
-Weak aligned rows are retained for within-screen navigation. Inspect `alignment_skipped` before describing any row as measured: a pair with either sequence longer than `MAMEY_MAX_ALIGN_AA` (default 10,000) is not aligned and receives placeholder zero metrics plus a skip reason; the current navigation state still reads `WEAK_CLOSEST_AVAILABLE`. Those placeholders are unavailable alignment evidence, not measured zero identity or a tested weak match. If explicit `--genes` entries lack sequences, the loader skips them; compare requested and resolved query lists and retain omissions as holds.
+Weak aligned rows are retained for within-screen navigation. Inspect `alignment_skipped` before describing any row as measured: a pair with either sequence longer than `MAMEY_MAX_ALIGN_AA` (default 10,000) is not aligned and receives placeholder zero metrics plus a skip reason, and its state is `ALIGNMENT_SKIPPED_UNMEASURED`. Those placeholders are unavailable alignment evidence, not measured zero identity or a tested weak match. If explicit `--genes` entries lack sequences, the loader skips them; compare requested and resolved query lists and retain omissions as holds.
 
 ## Outputs, mutation and recovery
 
@@ -77,6 +78,8 @@ zero exit does not establish complete cohort coverage. Inspect quarantine and in
 counts. Package catalog ingestion currently builds an alias-to-row dictionary,
 so conflicting duplicate inventory aliases are not independently quarantined;
 require the supplied inventory's alias uniqueness before using its joins.
+
+Focal-query loading additionally keys gene context by BGC alias and locus tag, and protein sequences by locus tag within the selected alias; duplicate keys keep the last row/sequence rather than refusing ambiguity. The catalog's uniqueness key includes protein SHA-256, so different sequences sharing one locus tag can survive as separate occurrences while the focal loader chooses one. Require unique, source-bound gene keys and reconcile requested versus loaded sequences before interpreting a comparison. GBK-register ingress uses a single-record parser; a multi-record file is quarantined as a parse failure rather than combining its records.
 
 An existing catalog is refused unless `--replace` is selected. Replacement swaps
 the database before writing its receipt; it is not a crash-atomic database/receipt
@@ -94,8 +97,8 @@ existing-output guard. Outputs are `__COHORT_PROTEIN_MATCHES.tsv`,
 The comparison receipt binds output hashes but does not bind the input database or
 focal package files. Retain an external run record binding those inputs, parameters,
 actual query roster and matching build receipt; the comparison's `PASS` alone is
-not sufficient for reproducible input identity. A version-aware input-binding and
-skip-state repair remains owning-code work.
+not sufficient for reproducible input identity. Binding those inputs needs a code
+change.
 
 ## Neighborhood extension
 
@@ -105,6 +108,8 @@ After per-protein ranking, matches are grouped by complete comparator locus. Mul
 - two or more component genes in the same comparator BGC;
 - order-concordant, reverse-order, mixed-order, or order-unmeasured neighborhoods;
 - recurrence of only one component of an apparently composite focal region.
+
+Here `matched_query_gene_count` counts distinct retained query genes, not distinct comparator genes. Several query genes can select the same comparator gene; there is no one-to-one assignment. `ORDER_CONCORDANT` uses nondecreasing stored gene-order integers and can include repeated positions; missing order produces `ORDER_UNMEASURED`. These labels do not independently establish strand-aware, one-to-one synteny or a complete neighborhood comparison (`mamey/cohort_proteins.py`).
 
 Co-occurrence is not operon proof, physical joining, orthology, or complete pathway identity.
 

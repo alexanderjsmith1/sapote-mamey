@@ -13,6 +13,10 @@ Checks per figure (a PNG that is not a *_plot_only.png):
   text      claim-safety and governance wording (caption_guard.BLOCKED, same scoped "class-level"
             rule), raw HTML/markdown, literal \\n, NA/NaN/Inf, "page N of N", optional --extra-rules
   image     near-blank, dpi other than --dpi, transparent background, extreme aspect
+  size      smallest text size at --print-width-in, read from the figure's PDF or SVG companion by
+            tools/_min_text_check.py and reported per figure; below --min-text-pt (default 8) is an
+            error. A raster-only figure, or a companion whose text cannot be read, is a warning
+            ("text size not measurable"), never a pass. Without --print-width-in it is NOT_CHECKED.
   files     <stem>_plot_only.png, a PDF, a caption file; caption_guard on the caption file (a warning:
             the sidecar is not the page, but its caption gets pasted into manuscripts); raw HTML
   bioassay  (--bioassay) file name says crude, fraction or pooled; figure text says so too
@@ -21,7 +25,8 @@ Layout (overlaps, clipping, legend over data) is not judged. That still needs a 
 
 Usage:
   figure_render_qc.py <folder|png> [...] [--out DIR] [--ocr auto|off|require] [--bioassay]
-                      [--extra-rules rules.tsv] [--dpi 300] [--warn-only]
+                      [--extra-rules rules.tsv] [--dpi 300] [--print-width-in IN] [--min-text-pt 8]
+                      [--warn-only]
   figure_render_qc.py --manifest MANIFEST.tsv [--out DIR] ...
   A manifest maps review copies to their source figures, whose folders hold the caption, PDF and
   _plot_only.png. Columns: png, source (paths absolute or relative to the manifest), optional note.
@@ -312,6 +317,55 @@ def check_image(png: Path, want_dpi: int, print_width_in: float | None = None, r
     return flags
 
 
+def check_text_size(png: Path, print_width_in: float | None, min_text_pt: float = 8.0,
+                    packet: "PacketAdmission | None" = None, review: Path | None = None) -> list[tuple[str, str]]:
+    """Smallest text size in pt when the figure is printed at print_width_in, from its vector companion.
+
+    Companions are <stem>.pdf, then <stem>.svg, beside the source figure (then beside a review copy). In a
+    completed packet only roster members are read, through the byte-bound reader. Measurement is done by
+    tools/_min_text_check.py. Effective DPI says nothing about text size: a 12.81 in figure placed at 6.5 in
+    shrinks its 8 pt text to about 4 pt, at any DPI.
+    """
+    if print_width_in is None:
+        return [("info", "text size at print width NOT_CHECKED (no declared print width)")]
+    candidates = [png.with_suffix(".pdf"), png.with_suffix(".svg")]
+    if review is not None and packet is None:
+        candidates += [c for c in (review.with_suffix(".pdf"), review.with_suffix(".svg")) if c not in candidates]
+    tried = []
+    for vec in candidates:
+        if packet is not None:
+            if vec.name not in packet.files:
+                continue
+            try:
+                data = _packet_read(packet.root, Path(vec.name), packet.files[vec.name][1])
+            except (OSError, ValueError) as exc:
+                raise RenderPacketAdmissionRefusal(f"completed packet changed after admission: {exc}") from exc
+        elif vec.is_file():
+            try:
+                data = vec.read_bytes()
+            except OSError as exc:
+                tried.append(f"{vec.name} unreadable ({type(exc).__name__})")
+                continue
+        else:
+            continue
+        try:
+            import _min_text_check
+        except ImportError as exc:  # pypdf is an optional extra
+            return [("warn", f"text size not measurable: {vec.name} needs {exc.name or 'pypdf'} "
+                             f"(pip install pypdf)")]
+        r = _min_text_check.printed_min_text(data, vec.suffix.lower().lstrip("."), print_width_in)
+        if r["smallest_pt"] is None:
+            tried.append(f"{vec.name}: {r['reason']}")
+            continue
+        below = r["smallest_pt"] < min_text_pt - 0.05
+        return [("error" if below else "info",
+                 f"smallest text {r['smallest_pt']:.2f} pt at declared width {print_width_in:g}in "
+                 f"({'below' if below else 'meets'} the {min_text_pt:g} pt minimum); read from {vec.name}: "
+                 f"{r['drawn_pt']:.2f} pt on a {r['page_width_in']:g}in page; text {r['smallest_text']!r}")]
+    return [("warn", "text size not measurable: " + ("; ".join(tried) if tried else
+                                                     "no PDF or SVG next to the figure (raster only)"))]
+
+
 class RenderPacketWriteConflict(ValueError):
     """QA report destinations must be fresh, independent of receipt validity."""
 
@@ -546,7 +600,8 @@ def check_files(png: Path, packet: PacketAdmission | None = None) -> list[tuple[
 def run(paths: list[Path], out: Path, ocr_mode: str = "auto", bioassay: bool = False,
         extra_rules: Path | None = None, want_dpi: int = 300,
         manifest: Path | None = None, print_width_in: float | None = None,
-        expected_render_receipt_sha256: str | None = None) -> list[tuple[Path, list[tuple[str, str]]]]:
+        expected_render_receipt_sha256: str | None = None,
+        min_text_pt: float = 8.0) -> list[tuple[Path, list[tuple[str, str]]]]:
     admit_qa_destination(out)
     rules = TEXT_RULES + load_extra_rules(extra_rules)
     units = read_manifest(manifest) if manifest else [(f, f, "", "") for f in find_figures(paths)]
@@ -622,6 +677,7 @@ def run(paths: list[Path], out: Path, ocr_mode: str = "auto", bioassay: bool = F
             flags += check_image(f, want_dpi, print_width_in, review_buffers[index])
         elif f.is_file():
             flags += check_image(f, want_dpi, print_width_in)
+        flags += check_text_size(source, print_width_in, min_text_pt, packet, None if f == source else f)
         flags += check_files(source, packet) if packet is not None else check_files(source)
         if bioassay:
             if not MATERIAL.search(f.name):
@@ -696,6 +752,8 @@ def main(argv=None) -> int:
     ap.add_argument("--extra-rules", type=Path)
     ap.add_argument("--dpi", type=int, default=300, help="minimum raster DPI, not an exact target")
     ap.add_argument("--print-width-in", type=float, help="declared embedded width for every selected PNG; checks pixels/width independently of metadata")
+    ap.add_argument("--min-text-pt", type=float, default=8.0,
+                    help="smallest text size in pt at --print-width-in, read from the PDF or SVG companion (default 8)")
     ap.add_argument("--render-receipt-sha256", help="admitted SHA-256 for one completed packet, including a transferred folder")
     ap.add_argument("--warn-only", action="store_true")
     a = ap.parse_args(argv)
@@ -703,6 +761,8 @@ def main(argv=None) -> int:
         ap.error("--dpi must be positive")
     if a.print_width_in is not None and (not __import__("math").isfinite(a.print_width_in) or a.print_width_in <= 0):
         ap.error("--print-width-in must be finite and positive")
+    if not __import__("math").isfinite(a.min_text_pt) or a.min_text_pt <= 0:
+        ap.error("--min-text-pt must be finite and positive")
     if a.render_receipt_sha256 and not re.fullmatch(r"[0-9a-f]{64}", a.render_receipt_sha256):
         ap.error("--render-receipt-sha256 must be a lowercase SHA-256")
     if not a.paths and not a.manifest:
@@ -712,7 +772,8 @@ def main(argv=None) -> int:
         return cli_failure(f"not found: {', '.join(map(str, missing))}", 1)
     out = a.out or (a.manifest.parent if a.manifest else next((p for p in a.paths if p.is_dir()), a.paths[0].parent))
     try:
-        results = run(a.paths, out, a.ocr, a.bioassay, a.extra_rules, a.dpi, a.manifest, a.print_width_in, a.render_receipt_sha256)
+        results = run(a.paths, out, a.ocr, a.bioassay, a.extra_rules, a.dpi, a.manifest, a.print_width_in, a.render_receipt_sha256,
+                      a.min_text_pt)
         if not results:
             return cli_failure("no figures found (PNG files that are not *_plot_only.png)", 1)
         cnt = write_reports(results, out, a.paths or [a.manifest.parent])

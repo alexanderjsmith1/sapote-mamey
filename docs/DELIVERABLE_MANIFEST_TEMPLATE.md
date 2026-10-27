@@ -37,7 +37,7 @@ This template records the selected full-run authoring suite, not extraction succ
 | manifest.json + SHA-256 checksums present | COMPLETE/SKIPPED/N/A | ____ |
 | Final ZIP bundled | COMPLETE/SKIPPED/N/A | ____ |
 
-## v9.7.338 interpretive & cohort add-ons (OPTIONAL — report-only, non-scoring; NOT part of the §A 13-item contract)
+## Optional interpretive and cohort add-ons (report-only; not part of the 13-item contract)
 <!-- List only those actually produced; these consume already-sealed packages and change no score/tier/gate/version. -->
 <!-- Capacity-level / claim-safe: similarity not identity; measured bioactivity is strain-level context, never a per-BGC production claim; judgment deferred. -->
 | Deliverable | Status | Artifact (path) or Reason |

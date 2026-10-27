@@ -5,8 +5,6 @@
     "docs/history/"
   ],
   "engineering_prefixes": [
-    "docs/working/",
-    "docs/release_planning/",
     "docs/patch_notes/",
     "docs/figure_factory/"
   ],

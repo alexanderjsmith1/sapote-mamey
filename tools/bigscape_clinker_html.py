@@ -19,6 +19,13 @@ from __future__ import annotations
 import argparse, collections, csv, html, json, os, re, sqlite3, subprocess, sys, tempfile, time
 from pathlib import Path
 
+
+def _open_db_ro(path):
+    """Open a BiG-SCAPE database read-only. A plain connect on a mistyped path created an empty file."""
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"not an existing BiG-SCAPE database: {path}")
+    return sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
+
 try:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run outside an editable install
@@ -390,7 +397,7 @@ def main(argv=None):
     if query_rx.groups < 1:
         ap.error(f"--query-regex {a.query_regex!r} has no capture group; group 1 is the track label (try '^(SYN-[0-9]+)')")
     prefixes = tuple(a.layer_prefix) if a.layer_prefix else ("SID_", "TYPE_")
-    con = sqlite3.connect(a.db); idx = gbk_index(con, query_rx, prefixes, load_labels(a.labels))
+    con = _open_db_ro(a.db); idx = gbk_index(con, query_rx, prefixes, load_labels(a.labels))
     fams = {a.cutoff: family_members(con, a.cutoff, idx)}
     if a.fallback_cutoff:
         fams[a.fallback_cutoff] = family_members(con, a.fallback_cutoff, idx)
@@ -430,6 +437,14 @@ def main(argv=None):
             w = _SafeDictWriter(h, fieldnames=["family_id", "cutoff", "strain_product", "tracks", "strain_records", "classes", "shared_orthogroups", "private", "html", "pdf", "status"],
                                delimiter="\t", lineterminator="\n", extrasaction="ignore"); w.writeheader(); w.writerows(rows)
     con.close()
+    pages = [r for rows in index.values() for r in rows if r.get("html")]
+    if not pages:   # nothing selected, or every family skipped; an empty run is not a success
+        sys.stderr.write("bigscape_clinker_html: no family page was written (nothing selected)\n")
+        return 1
+    failed = sum(1 for r in pages if r["status"] == "PDF FAILED")
+    if failed:
+        sys.stderr.write(f"bigscape_clinker_html: {failed} of {len(pages)} page(s) PDF FAILED; see CLINKER_INDEX.tsv\n")
+        return 1
     return 0
 
 

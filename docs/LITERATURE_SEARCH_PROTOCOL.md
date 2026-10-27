@@ -1,13 +1,13 @@
 # Literature Search Protocol — Sapote-Mamey Bundle
 
-This historical five-bucket search map supports a selected literature task. Its §8 numbering belongs to the older Layer B report, not every current Mode B profile. Use the selected profile’s actual literature/evidence slots; no parser automatically executes this search map or closes its deferrals.
+Search strings for the five literature buckets of a strain report. The §8 numbering comes from the older Layer B report; in a current Mode B profile, use that profile's literature slots.
 
 ---
 
 ## Why §8 is deferred by default
 
 The Sapote interpretation layer runs without guaranteed network access.
-Protocol §4.8 and §10 require verification of the identifiers that the primary record actually assigns,
+Verify the identifiers the primary record actually assigns,
 using PubMed/DOI.org as applicable. Record an unassigned or unavailable PMID or DOI explicitly;
 never invent one or reject a supported source solely because it has no PMID or DOI. Rather than fabricate unverifiable
 references, §8 is logged as `DEFERRED` with a completion path.
@@ -34,7 +34,7 @@ BGC IDs and classes. Map those to the searches below.
 
 ### Bucket 2 — Resistance/self-protection framing (always include)
 
-These two apply to every antibacterial lead with coupled resistance genes:
+These searches apply to every antibacterial lead with coupled resistance genes:
 
 - `Ogawara self-resistance Streptomyces beta-lactam` *(Ogawara 2016, Molecules — PMID 27171072)*
 - `Wencewicz antibiotic resistance biosynthesis crossroads` *(Wencewicz 2019, J Mol Biol — PMID 31288031)*
@@ -60,12 +60,12 @@ Always include one insect-symbiont or soil-ecology anchor:
 - **Bee/insect-associated strains:** `Streptomyces insect microbiome antimicrobial potential` *(Chevrette et al. 2019, Nat Commun — PMID 30705269; verified)*
 - **Soil strains:** `soil Streptomyces chemical ecology competition antibiotic`
 - **Any Streptomyces:** `Streptomyces symbionts emerging widespread theme` *(Seipke et al. 2012, FEMS Microbiol Rev — PMID 22091965; verified)*
-- **Strain-specific:** always search `[species name] secondary metabolites` to check prior characterization
+- **Strain-specific:** always search `[species name] secondary metabolites` to check prior characterization.
 
 ### Bucket 5 — Strain-specific prior literature
 
 Always run this before §8:
-`[Genus species] secondary metabolites` and `[Genus species] biosynthesis antibiotic`
+`[Genus species] secondary metabolites` and `[Genus species] biosynthesis antibiotic`.
 
 If hits exist, they become the first reference in §8.1 (discovery/prior context).
 If there are no hits, report a bounded result, not a conclusion: "No relevant records found in [database] using
@@ -109,8 +109,4 @@ never one to fill in:
 
 ## Access and completion boundaries
 
-Access depends on the actual environment and admitted local sources, not a model name. An assistant can check supplied primary text without networking, but must identify which fields/passages it inspected. Missing access is an explicit partial/deferred state. Memory-generated citations, query strings, a work-order file or a labelled bank row are not verified sources.
-
----
-
-*Sapote-Mamey Bundle v9.4 | docs/LITERATURE_SEARCH_PROTOCOL.md*
+Access depends on the actual environment and admitted local sources, not a model name. An assistant can check supplied primary text without networking, but must identify which fields/passages it inspected. Missing access is an explicit partial/deferred state. Memory-generated citations, query strings, a work-order file or a labeled bank row are not verified sources.

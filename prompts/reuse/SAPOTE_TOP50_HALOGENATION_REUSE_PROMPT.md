@@ -1,15 +1,14 @@
 # REUSE PROMPT — Top Halogenation-Containing BGC Leads (claim-safe)
+
+> **Reuse status:** the v9.7.7 vetting label is historical. Bind the selected current contract, source version and actual package evidence before reuse. Apply the current shared guards; this template does not authorize extra scans, package mutation, external messaging or publication.
 *Vetted against Sapote–Mamey v9.7.7 contract (DELIVERABLE_CONTRACT + WORKBOOK_SCHEMA) · `prompts/reuse/`.
-Inherits `_SHARED_GUARD_BLOCK.md` (G1–G5). Use after a cumulative master workbook + per-strain outputs exist.*
+Inherits `_SHARED_GUARD_BLOCK.md` (all applicable guards). Use after a cumulative master workbook + per-strain outputs exist.*
 
 > **Note on scope:** the Top-N table is a STANDALONE deliverable, not a frozen master-workbook sheet.
 > Do not write it into the frozen master schema; emit it as its own CSV/XLSX/HTML/MD/PDF + ZIP.
 
 ## Guard inheritance
-Apply G1–G5 from `_SHARED_GUARD_BLOCK.md`. Halogenation is largely Pfam/antiSMASH-label diagnosed
-(Trp_halogenase, FADH2 halogenase, `halogenated` product label) so the TIGRFAM gap (G4) is lower-risk
-here than for nucleoside/enediyne — BUT if a halogenated candidate is also an ansamycin/enediyne
-(TIGRFAM-diagnosed) co-call, apply the G4 genomic-tigrfam fallback.
+Apply all applicable guards from `_SHARED_GUARD_BLOCK.md`. Separate source annotations and screening terms from validated chemistry. G4 concerns the bound run's actual evidence availability; the historical extraction-gap report does not establish a current defect or a lower-risk channel for this dataset. Check the version, receipt and available evidence before making comparisons or requesting any separately authorized source review.
 
 ## Task
 Build a Top 50 halogenation-containing BGC deliverable from the cumulative dataset.
@@ -31,4 +30,4 @@ Use: candidate halogenation-containing BGC · source-derived T43-HAL signal · h
 target · closest candidate KCB product · consistent with · requires local gene/domain + LC-MS
 isotope-pattern confirmation.
 Avoid: produces chlorinated compound · confirmed halogenated product · halogenase confirmed by ChatGPT ·
-exact PMID/DOI unless verified this session.
+exact PMID/DOI unless supported by a source-bound verification receipt (source, date and claim scope), whether from this session or a retained prior review.

@@ -8,7 +8,7 @@ diagnostic possibility, not permission to rerun, download, replace references or
 ## Unquoted paths can break shell-out tools
 
 The recorded failure involved a wrapper constructing unquoted shell paths. Test the selected executable and wrapper rather than assuming every tool fails under paths containing spaces — often with misleading errors ("Incorrect number of
-command line arguments" from cmsearch via barrnap, 2026-09-01). **Fix:** stage inputs, databases,
+command line arguments" from cmsearch via barrnap). **Fix:** stage inputs, databases,
 and outputs in a space-free work dir (`/tmp/...`), run there, copy results back. Wrapper scripts
 should enforce this (the fungal-toolchain barrnap wrapper lives in the phylo workspace, outside this bundle).
 
@@ -29,7 +29,7 @@ BUSCO), or run in the Linux container. Check `file <binary>` says `arm64` before
 ## A "failed" conda env may still have delivered usable binaries
 
 A historical environment-creation failure left some binaries on disk — the broken BUSCO env
-still provided working `miniprot`, `hmmsearch`, and `diamond` (2026-09-01). **Check:** inventory existing executable paths, versions and imports. A leftover binary does not prove a coherent usable environment; do not adopt a partially installed environment solely because one file exists.
+still provided working `miniprot`, `hmmsearch`, and `diamond`. **Check:** inventory existing executable paths, versions and imports. A leftover binary does not prove a coherent usable environment; do not adopt a partially installed environment solely because one file exists.
 
 ## conda itself can break (`env: python: No such file or directory`)
 
@@ -57,17 +57,16 @@ are not shipped. **Skips mean "gated," not "broken."** Do not chase them; do not
 
 Doc headers and version literals that are not machine-owned drift silently across cuts (see
 [Versioning](Versioning.md) for the three documented freezes of `CURRENT_DOCS_INDEX.md`).
-**Fix:** `tools/sync_version.py` owns every stamp; run it plus the version tests at every bump.
+**Fix:** `tools/sync_version.py` owns a declared set of current version surfaces, not every version literal. Inspect its exact anchors and use the corresponding checks during an authorized bump. Preserve producing versions and dated review/run stamps; synchronization does not revalidate their historical content.
 
 ## One bad reference record can fail a whole tree
 
-A single mis-deposited GenBank record (a 5.4-subs/site terminal branch in a 36-taxon LSU tree,
-2026-09-01) trips the sanity gate for the entire figure. **Check:** verify reference identity, alignment, model and record provenance. Exclude only with a documented source-backed reason and record the altered denominator; do not weaken the gate to hide a failure. And distinguish that case from a genuinely divergent *query*, where the gate FAIL is a quality-control observation requiring interpretation, not proof of novelty: report numbers, withhold the figure.
+A single mis-deposited GenBank record (a 5.4-subs/site terminal branch in a 36-taxon LSU tree)
+trips the sanity gate for the entire figure. **Check:** verify reference identity, alignment, model and record provenance. Exclude only with a documented source-backed reason and record the altered denominator; do not weaken the gate to hide a failure. And distinguish that case from a genuinely divergent *query*, where the gate FAIL is a quality-control observation requiring interpretation, not proof of novelty: report numbers, withhold the figure.
 
 ## IQ-TREE outgroup crash
 
-`iqtree -o <outgroup>` combined with partition models can abort (SIGABRT in setRootNode,
-2026-09-01). **Fix:** build unrooted, then root afterwards (Bio.Phylo `root_with_outgroup`) before
+`iqtree -o <outgroup>` combined with partition models can abort (SIGABRT in setRootNode). **Fix:** build unrooted, then root afterwards (Bio.Phylo `root_with_outgroup`) before
 rendering.
 
 *General habit behind all of these: verify before asserting — check the actual binary, env, file,

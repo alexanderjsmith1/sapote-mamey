@@ -1,8 +1,7 @@
 # BiG-SCAPE GCF networks — grouping clusters without over-claiming
 
-*Source of truth: `docs/BIGSCAPE_GCF_WORKFLOW.md` (v9.7.401), under `docs/LLM_COMPANION_TOOL_PROTOCOL.md`.
-BiG-SCAPE is a downstream companion: it never alters a sealed Mamey run, and its families are
-**run-specific similarity groups, not compound identities**.*
+*Source of truth: `docs/BIGSCAPE_GCF_WORKFLOW.md`, under `docs/LLM_COMPANION_TOOL_PROTOCOL.md`.
+BiG-SCAPE clustering has separate outputs, and its families are **run-specific similarity groups, not compound identities**. Optional Mamey ingestion can rewrite Mode B cards in place; it is not an immutable overlay. Preserve the original package/cards and use a separately bound working copy for any selected integration. See [integration limits](../docs/BIGSCAPE_MAMEY_INTEGRATION.md).*
 
 ## What it does
 

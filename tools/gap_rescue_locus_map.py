@@ -377,6 +377,21 @@ def short(g: dict) -> str:
     return f"{acc} ({p})" if acc else p
 
 
+def shared_tag_prefix(labels, min_labels=8):
+    """The locus-tag stem (text up to and including the first underscore, such as "AMYAL_") that most gene labels start with,
+    or "" when fewer than min_labels labels, or under half of them, share one, or when stripping it would leave under 3
+    characters. A reference taken from a genome record labels most genes by locus tag; the stem repeats on every label."""
+    stems = {}
+    for lab in labels:
+        m = re.match(r"^[A-Za-z0-9]+_", lab or "")
+        if m and len(lab) - m.end() >= 3:
+            stems[m.group(0)] = stems.get(m.group(0), 0) + 1
+    if not stems:
+        return ""
+    stem, n = max(stems.items(), key=lambda kv: kv[1])
+    return stem if n >= min_labels and 2 * n >= len([x for x in labels if x]) else ""
+
+
 def short_panel(g: dict) -> str:
     """A gene's label in a figure panel: its name with a capital, else the bare accession the gene table prints (the
     product in brackets is left to the table). With no accession, the short product label."""
@@ -502,6 +517,24 @@ PRINT_WIDTHS = {"single": 3.5, "double": 7.2, "landscape": 9.0,   # landscape: a
                 # the text column of the thesis papers: a map placed there at 7.2 in printed its 8 pt text at 6.7-7.2 pt
                 "page6.0": 6.0, "page6.5": 6.5}
 MIN_PRINT_PT = 8.0
+NUMERIC_WIDTH_RANGE = (3.0, 10.0)   # inches; a number lets the map match the width it is placed at
+
+
+def print_width_inches(print_width):
+    """Inches for a named width (PRINT_WIDTHS) or a number such as 7.99 or "7.99"; None stays None."""
+    if print_width is None:
+        return None
+    if print_width in PRINT_WIDTHS:
+        return PRINT_WIDTHS[print_width]
+    try:
+        inches = float(print_width)
+    except (TypeError, ValueError):
+        inches = None
+    lo, hi = NUMERIC_WIDTH_RANGE
+    if inches is None or not lo <= inches <= hi:
+        raise ValueError(f"print_width must be None, one of {sorted(PRINT_WIDTHS)}, or inches from {lo} to {hi}, "
+                         f"not {print_width!r}")
+    return inches
 PRINT_NAME_CHARS = 26   # a BLASTp name is cut to this many characters at print width; the gene table keeps it whole
 PRINT_DRIFT = 2.0       # an unmatched-gene label may sit at most this many label spacings from its gene; otherwise it is
                         # left to the gene table and counted in the footnote
@@ -1020,8 +1053,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     and a line under the genes of each GECCO cluster); the strain-gene labels move down by the strip's height.
     scale_bar_up: False (default, unchanged) or True: the 5 kb bar sits on the line of the contig captions, at the
     right, instead of under them, when it touches none of them (owner, 19 Oct, Moss Fig. 5: "5 kb can move up")."""
-    if print_width is not None and print_width not in PRINT_WIDTHS:
-        raise ValueError(f"print_width must be None or one of {sorted(PRINT_WIDTHS)}, not {print_width!r}")
+    print_width_inches(print_width)   # refuses an unknown name or an out-of-range number
     if panel and print_width is None:
         raise ValueError("GAP_RESCUE_MAP_PANEL: panel needs a print width ('single' or 'double')")
     if not key and not panel:
@@ -1062,6 +1094,12 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         r1 = min(ref_len, max(ref[k]["e"] for k in ks_drawn) + trim)
         ref = [dict(g, s=max(g["s"], r0) - r0, e=min(g["e"], r1) - r0, _out=g["e"] <= r0 or g["s"] >= r1) for g in ref]
         ref_len = r1 - r0
+    tag_prefix = ""
+    if print_width is not None:   # a print width is a paper figure: the shared locus-tag stem is named once, in the title
+        tag_prefix = shared_tag_prefix([label_of(g) for g in ref if not g.get("_out")])
+        if tag_prefix:
+            _label_full = label_of
+            label_of = lambda g, _f=_label_full, _p=tag_prefix: _f(g)[len(_p):] if _f(g).startswith(_p) else _f(g)
     verdict_of = {r.get("best_protein"): r.get("partner_verdict") for r in rows if r.get("best_protein")}
     single_gene = {c for c in order[1:] if c not in {prots[p]["contig"] for s in split_info.values() for p in s[:2]}
                    and not (partner and c == partner["contig"])
@@ -1199,7 +1237,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     # ribbons. make the mibig and isolate loci farther from each other" -> panels now use the full band of the screen map
     Y_V, Y_A = 2.3, 0.0
     gene_names, other_refs = gene_names or {}, other_refs or {}
-    W = PRINT_WIDTHS.get(print_width)       # None: the 13.5 in screen layout, unchanged
+    W = print_width_inches(print_width)       # None: the 13.5 in screen layout, unchanged
     fs = (lambda v: v) if W is None else (lambda v: max(MIN_PRINT_PT, v))
     note_wrap = NOTE_WRAP   # screen layout only; at a print width the footnote is wrapped by measurement
     name_chars = NAME_CHARS if W is None else PRINT_NAME_CHARS
@@ -1240,13 +1278,21 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             ax.text(xmin - 0.4, (rg_y0 + rg_y1) / 2 - 0.02, "GECCO", fontsize=fs(8), va="center", ha="right",
                     color="#374151", clip_on=False)
 
-        def ref_label(k, g, lx, mx):
+        def ref_label(k, g, lx, mx, ceiling=None):
+            lead = None
             if lx - mx > 0.05 or mx - lx > 0.05:  # a label pushed sideways keeps a thin lead to its gene
-                ax.plot([mx, lx], [Y_V + H / 2 + 0.02, Y_V + H / 2 + 0.07], color="#9CA3AF", lw=0.5, zorder=3)
+                lead = ax.plot([mx, lx], [Y_V + H / 2 + 0.02, Y_V + H / 2 + 0.07], color="#9CA3AF", lw=0.5, zorder=3)
             t = ax.text(lx, Y_V + H / 2 + 0.08, label_of(g) if k in colour else g["name"], ha="left", va="bottom",
                         fontsize=fs(7.5), rotation=60, rotation_mode="anchor", style="italic" if named(g) else "normal",
                         weight="bold" if k in colour else "normal", color="#111827" if k in colour else "#6B7280")
-            highs.append(t.get_window_extent(rend).transformed(inv).y1)
+            y1_t = t.get_window_extent(rend).transformed(inv).y1
+            if ceiling is not None and y1_t > ceiling + 1e-6:   # an optional label may not lengthen the page
+                t.remove()
+                for ln in lead or []:
+                    ln.remove()
+                return False
+            highs.append(y1_t)
+            return True
         if W is None:
             for k, g in enumerate(ref):
                 if g.get("_out"):
@@ -1269,8 +1315,10 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             cands = [((g["s"] + g["e"]) / 2, k) for k, g in enumerate(ref) if named(g) and k not in colour and not g.get("_out")]
             placed_r, dropped_r = fill_label_gaps(fixed, cands if level < 1 else [], min_dx, PRINT_DRIFT * min_dx)
             dropped_r += [k for _, k in cands] if level >= 1 else []
+            matched_ceiling = max(highs) if highs else None
             for lx, mx, k in placed_r:
-                ref_label(k, ref[k], lx, mx)
+                if not ref_label(k, ref[k], lx, mx, ceiling=matched_ceiling):
+                    dropped_r.append(k)
             omitted["reference"] = len(dropped_r)
         top = max(highs + [Y_V + H / 2 + 0.3]) + 0.2
         acc = str(ref_gbk).replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
@@ -1296,6 +1344,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             head = f"{name} cluster ({kind}{acc}, {ref_full_len:.1f} kb" + (f"; {ref_len:.1f} kb shown)" if trim is not None else ")")
         else:
             head = f"Reference cluster {acc} ({ref_full_len:.1f} kb" + (f"; {ref_len:.1f} kb shown)" if trim is not None else ")")
+        if tag_prefix:
+            head += f"; labels omit {tag_prefix}"
         if W is not None:   # at a column width the whole title wraps, measured against the reference row's width
             head = re.sub(r"(\d) kb\)", "\\1\u00a0kb)", head)   # a size and its unit never split across lines
             span = ax.transData.transform([(0, 0), (xmax, 0)])
@@ -1309,7 +1359,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color="#B91C1C",
                         weight="bold", zorder=4)
                 ax.text(a - SPLIT_GAP_KB / 2, Y_A + H / 2 + 0.12, "gap" + (" (RG-GMCI pair)" if link and i == 1 else ""),
-                        ha="center", va="bottom", fontsize=fs(7), color="#B91C1C")
+                        ha="center", va="bottom", fontsize=fs(8), color="#B91C1C")
             elif link and i == 1:
                 ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=link_colour, weight="bold",
                         zorder=4)
@@ -1357,12 +1407,12 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 done.add(k)
                 p1, p2, i1, i2 = split_info[k]
                 lx = (mid(p1) + mid(p2)) / 2
-                lab = f"{label_of(ref[k])}-like, split {i1:.0f}% | {i2:.0f}%"
+                lab = (f"{label_of(ref[k])}-like split {i1:.0f}|{i2:.0f}%" if W is not None else f"{label_of(ref[k])}-like, split {i1:.0f}% | {i2:.0f}%")
             elif k in split_info and all(p in xpos for p in split_info[k][:2]):
                 # pieces drawn far apart (6 Oct: a spectinomycin-like map put one label between pieces 20 kb apart, and the
                 # spreading pass pushed the next gene's label along with it): each piece is labelled under itself
                 n = split_info[k][:2].index(pid) + 1
-                lx, lab = (a + b) / 2, f"{label_of(ref[k])}-like, split piece {n} of 2, {split_info[k][1 + n]:.0f}%"
+                lx, lab = (a + b) / 2, (f"{label_of(ref[k])}-like split {n}/2, {split_info[k][1 + n]:.0f}%" if W is not None else f"{label_of(ref[k])}-like, split piece {n} of 2, {split_info[k][1 + n]:.0f}%")
             else:
                 lx, lab = (a + b) / 2, f"{label_of(ref[k])}-like {ident:.0f}%"
             entries.append((lx, lab, (a + b) / 2, True))
@@ -1377,17 +1427,25 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
 
         g_dy = (0.06 + GECCO_BOX_H + 0.12) if gecco else 0.0   # the GECCO strip sits between the strain row and its labels
 
-        def strain_label(lx, lab, mx, is_match):
+        def strain_label(lx, lab, mx, is_match, floor=None):
             # the reference row already leads a displaced label back to its gene; the strain row did not, so a label
             # spread sideways by min_dx could sit several genes away from the gene it names with nothing joining them
+            lead = None
             if lx - mx > 0.05 or (W is not None and mx - lx > 0.05):
-                ax.plot([mx + off, lx + off], [Y_A - H / 2 - g_dy - 0.02, Y_A - H / 2 - g_dy - 0.07],
-                        color="#9CA3AF", lw=0.5, zorder=3)
+                lead = ax.plot([mx + off, lx + off], [Y_A - H / 2 - g_dy - 0.02, Y_A - H / 2 - g_dy - 0.07],
+                               color="#9CA3AF", lw=0.5, zorder=3)
             t = ax.text(lx + off, Y_A - H / 2 - g_dy - 0.08, lab, ha="right", va="top",
                         fontsize=fs(7) if is_match else fs(6.4),
                         rotation=60, rotation_mode="anchor", color="#111827" if is_match else "#6B7280",
                         style="normal" if is_match else "italic")
-            lows.append(t.get_window_extent(rend).transformed(inv).y0)
+            y0_t = t.get_window_extent(rend).transformed(inv).y0
+            if floor is not None and y0_t < floor - 1e-6:   # an optional label may not lengthen the page
+                t.remove()
+                for ln in lead or []:
+                    ln.remove()
+                return False
+            lows.append(y0_t)
+            return True
         if W is None:
             for lx, lab, mx, is_match in sorted(entries, key=lambda e: e[0]):
                 if last is not None and lx < last + min_dx:
@@ -1403,8 +1461,10 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             placed_s, dropped_s = fill_label_gaps(fixed, [(e[0], e[1]) for e in greys] if level < 1 else [], min_dx,
                                                   PRINT_DRIFT * min_dx)
             dropped_s += [e[1] for e in greys] if level >= 1 else []
+            matched_floor = min(lows) if lows else None
             for lx, mx, lab in placed_s:
-                strain_label(lx, lab, mx, False)
+                if not strain_label(lx, lab, mx, False, floor=matched_floor):
+                    dropped_s.append(lab)
             omitted["strain"] = len(dropped_s)
         # Where two or more ribbons meet one local gene, say so under it: a reader should not have to infer a shared
         # match from crossing ribbons. The count is of reference-gene rows the table counts, not of ribbons drawn.
@@ -1629,7 +1689,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         # draw at the print width: redraw until the saved (tight) figure is no wider than W, so nothing shrinks on the
         # page. Text sizes are absolute, so each pass only moves data, not type size.
         pad = 2 * float(plt.rcParams["savefig.pad_inches"])   # savefig(bbox_inches="tight") adds this to the width
-        fitted, tried = False, []
+        fitted, tried, under = False, [], []   # under: (width, level, fig_w) of every pass no wider than the column
         # Shrink only as far as needed, in this order (owner, 12 Oct): drop unmatched-gene names, then shorten segment
         # captions, then narrow the row-label gutter, and only then refuse.
         for level in range(4):
@@ -1641,6 +1701,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 if W * 0.96 <= tight_w <= W:   # never wider than the column: wider would print every text below 8 pt
                     fitted = True
                     break
+                if tight_w <= W:
+                    under.append((tight_w, level, fig_w))
                 plt.close(fig)
                 target = W * 0.985
                 if prev and abs(fig_w - prev[0]) > 1e-6:   # secant step: part of the drawing does not scale with the canvas
@@ -1656,6 +1718,14 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             tried.append(round(float(tight_w), 2))
             if fitted:
                 break
+        if not fitted and under and max(under)[0] >= 0.9 * W:
+            # the search can step over the 4 % band when a label appears or disappears between two canvas widths: take the widest
+            # pass that was no wider than the column (still never wider, so no text prints below 8 pt)
+            tight_w, level, fig_w = max(under)
+            fig, ax, rend, res = _render(fig_w, level)
+            fig.canvas.draw()
+            tight_w = fig.get_tightbbox(fig.canvas.get_renderer()).width + pad
+            fitted = tight_w <= W
         if not fitted:
             raise ValueError(f"GAP_RESCUE_MAP_PRINT_WIDTH: could not fit the map to {W} in after every shrink step "
                              f"(widths {tried} in)")

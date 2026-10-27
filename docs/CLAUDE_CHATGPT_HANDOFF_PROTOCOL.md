@@ -1,5 +1,5 @@
 # Claude ↔ ChatGPT Handoff Protocol
-**Version:** 1.1 · Mamey v1.9.177 / Sapote v9.7.457  
+**Version:** 1.1 · Mamey v1.9.177 / Sapote v9.7.458  
 **File location:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`
 
 ---
@@ -97,9 +97,9 @@ The master xlsx must have all existing strains intact plus new strains appended.
 ## §4 — Claude merge procedure (on receipt)
 
 1. Identify the exact workbook family and schema contract. `workbook_schema_check.py` accepts the coded master-workbook family, not every per-strain workbook; a numerical ≤ comparison of H3 alone is not its acceptance rule.
-2. Filter new strains from `BGC_Master` (strains not already in B1).
-3. Map columns to B1 schema (see `docs/WORKBOOK_SCHEMA.md` §Column specs).
-4. Apply heuristic ab_auto / af_auto / novelty_auto scoring (0–20 cap).
+2. For a coded-master input, identify new strains from its B1_BGC_Master sheet against the receiving workbook’s A2_Strain_Registry. A per-strain BGC_Inventory or another workbook family needs an explicit source-to-target mapping first.
+3. Map admitted columns to the current B1_BGC_Master headers in mamey/master_workbook.py; preserve strain / full node-or-contig / region / BGC alias and source provenance.
+4. Preserve the source-bound native ab_auto, af_auto and novelty_auto values and their engine provenance. Do not cap or rescore them during handoff. Any separately requested historical/manual score needs a distinct field, named rule and scale.
 5. Build A2, B4, C1–C4, D1, F1, G2 rows.
 6. If RGGMCI `FLBR grade = STRONG`: add D3 entry.
 7. If strain has known chemistry: add G1 literature rows; assign G2 `benchmark_retrospective_validation` role.
@@ -134,7 +134,7 @@ Every handoff — in either direction — appends one row to `H1_Handoff_Log`:
 | direction | `benchmark_batch_merge` / `auto_score_fill` / `assembly_stats_fill` / etc. |
 | strains_affected | comma-separated short IDs |
 | sheets_modified | comma-separated sheet codes |
-| file_sha256 | SHA-256 of the xlsx being handed off (optional but recommended) |
+| file_sha256 | SHA-256 of the immutable incoming/pre-update workbook, with that source identified in notes; record the final outgoing XLSX SHA-256 in an external handoff receipt after saving |
 | validation_result | `PASS` / `PASS_WITH_KNOWN_GAPS` / `FAIL` |
 | notes | one-sentence summary |
 

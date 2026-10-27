@@ -1,5 +1,7 @@
 # Extract a marker-co-occurrence candidate region
 
+Finds a candidate gene-cluster region in a raw genome FASTA by looking for your marker proteins close together. Use it for genomes without an antiSMASH run.
+
     python tools/extract_cluster.py --genome fixture.fna --marker markers.faa \
       --label FixtureA --min-markers 2 --outdir OUT
 
@@ -28,7 +30,7 @@ Output artifacts are serialized before publication and ordinary write failures r
 
 ## Status and evidence binding
 
-`present` in the JSON is marker-window admission under the declared method; the console's `PRESENT` or `absent/insufficient` strings are not biological presence/absence findings. The CLI returns zero after either admitted output or JSON-only non-admission. Require the current JSON and expected GBK roster rather than accepting zero exit or a previously existing GBK as confirmation (`tools/extract_cluster.py:145–171,174–220`).
+`present` in the JSON is marker-window admission under the declared method; the console's `PRESENT` or `absent/insufficient` strings are not biological presence/absence findings. The CLI returns zero after either admitted output or JSON-only non-admission. Require the current JSON and expected GBK roster rather than accepting zero exit or a previously existing GBK as confirmation.
 
 The JSON retains label, called-gene count, marker requirement, marker names and admitted coordinates; it does not record input genome/marker hashes, caller/alignment versions, every window/flank/identity parameter, output hashes or a validated four-part antiSMASH locus identity. Preserve a separate source/parameter receipt, using the source FASTA contig and extracted interval as candidate coordinates; do not invent a region number or BGC alias before a separately reviewed binding exists. Marker labels remain supplied-match labels, not functional annotation proof.
 

@@ -11,7 +11,8 @@ headers, stamped H3 = v1.1). It is what the documented `mamey_run.py run --maste
 from master_workbook.CANONICAL_V1_HEADERS, so the two cannot drift).
 
 It is still a live step: `tools/build_workbook.py --full` runs it as step 2 of 6 (base workbook from
-banked per-strain data), and docs/user_guides/operational_reference.md documents that order. Retire it
+banked per-strain data); the retired operational reference recorded that order
+(docs/history/retired_458/user_guides/operational_reference.md). Retire it
 only together with a change to that route. New single-strain work uses `mamey_run.py run --master`.
 Do not use its output with the schema validator; it will (correctly) fail the coded-scheme check.
 See docs/MASTER_SCHEMA_FROZEN_v1_1.md.

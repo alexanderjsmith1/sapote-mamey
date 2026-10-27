@@ -45,7 +45,7 @@ def test_current_docs_clear_original_failure_without_growing_allowlist():
     strict = set(scanner.scan_tools(SOURCE, strict_paths=True))
     lenient = set(scanner.scan_tools(SOURCE, strict_paths=False))
     assert not {'Tools/check_md_links.py','Tools/signoff_check.py'} & strict
-    assert strict-lenient == {'../bootstrap.sh','engine/pyhmmer_scanner_engine.py','directed_studies/pks.py'}
+    assert strict-lenient == {'../bootstrap.sh','engine/pyhmmer_scanner_engine.py'}
     for name in docs:
         text = (SOURCE/name).read_text()
         assert 'tools/' in text

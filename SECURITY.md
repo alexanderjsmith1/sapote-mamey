@@ -2,15 +2,11 @@
 
 ## Scope
 Sapote-Mamey is a research workflow that reads genome-mining output and emits interpretive,
-claim-safe reports. It ships code and small governed reference data only — no third-party
-databases, tools, or genomes. Its local extraction path is distinct from explicit online BLASTp, reference/download and companion-tool commands. Those operations can contact services and disclose selected sequence/metadata inputs; offline extraction does not establish that every CLI command is offline.
+claim-safe reports. The CODE archive ships small reference files and a few third-party Python components (packaging wheels and a vendored `ijson`). Local extraction runs offline. Online BLASTp, reference downloads and some companion tools contact outside services and can send them sequences or metadata.
 
 ## Reporting a vulnerability
-If private vulnerability reporting is enabled on the actual repository, use GitHub → Security →
-Report a vulnerability. This bundle does not establish that the repository feature is enabled and
-ships no independently verified private fallback contact. If it is unavailable, obtain the
-maintainer’s authorized private reporting route before disclosing sensitive details. Preparing a
-report does not authorize an assistant to send it.
+Report privately through GitHub → Security → Report a vulnerability, if the repository has it turned on.
+If it does not, ask the maintainer for a private route before sharing details.
 
 Include bundle and engine versions, BUILD_STAMP, exact source/patch identity, affected path, the
 operation and relevant flags, and a minimal synthetic or appropriately redacted reproduction.
@@ -23,7 +19,5 @@ to parsing untrusted archive/JSON inputs; reports about archive traversal, resou
 unsafe deserialization are especially welcome.
 
 ## Supported versions
-The latest owner-released bundle is the stated support target; a candidate filename or historical
-PASS row does not establish that release. Check the archive-bound external receipt and owner
-release decision separately. [Release record scopes](docs/RELEASE_RECORDS_GUIDE.md) distinguishes
-change history, engine lineage, generated summaries and actual archive acceptance. Check the current repository security reporting policy for reporting routes and response expectations.
+The supported version is the latest release the owner has published. A candidate archive is not a
+release; [release record scopes](docs/RELEASE_RECORDS_GUIDE.md) explains how to tell them apart.
