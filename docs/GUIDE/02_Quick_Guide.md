@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.459 / engine Mamey 1.9.177
+**Version:** v9.7.460 / engine Mamey 1.9.177
 
 Mamey extracts deterministic evidence from antiSMASH output. antiSMASH is a separate program that
 finds biosynthetic gene clusters (BGCs) in a genome. Sapote turns a validated evidence

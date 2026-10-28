@@ -10,6 +10,10 @@ tip of the receipt.  `geography_region` is a separate display field from the ten
 list below, filled only from an exact list value or the bundle's country table, and
 blank otherwise.  A tip with no deposited geography is admitted with it blank and listed
 in `figure_omissions` by full name, so figures can omit it.
+
+Isolation source follows the same rule (owner ruling, .460).  It is carried unchanged on each
+tip as `isolation_source`; a tip with none deposited is admitted and listed in
+`figure_omissions` with reason NO_DEPOSITED_SOURCE.  A tip missing both is listed twice.
 """
 from __future__ import annotations
 
@@ -157,14 +161,19 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
         expected = row["expected_genus"].strip()
         if not expected or genus.casefold() != expected.casefold():
             raise ValueError(f"GENUS_CONTRADICTION: {tip} observed={genus} expected={expected}")
-        for field in ("accession", "isolation_source", "sequence_evidence", "metadata_evidence"):
+        for field in ("accession", "sequence_evidence", "metadata_evidence"):
             if _missing(row[field]):
                 raise ValueError(f"METADATA_INCOMPLETE: {tip} field={field}")
         deposited = row["geography"].strip()          # as deposited; never binned or filled in
         region, basis = geography_region(deposited)
+        source = row["isolation_source"].strip()     # as deposited; never categorized or filled in
         tip_records.append({"tip": tip, "organism": organism, "accession": row["accession"].strip(),
+                            "isolation_source": source,
                             "geography": deposited, "geography_region": region,
                             "geography_region_basis": basis})
+        if geography_missing(source):                  # same missing test: blank, placeholder, INSDC term
+            omissions.append({"tip": tip, "name": _full_name(row), "accession": row["accession"].strip(),
+                              "reason": "NO_DEPOSITED_SOURCE"})
         if basis == "NOT_RECORDED":
             omissions.append({"tip": tip, "name": _full_name(row), "accession": row["accession"].strip(),
                               "reason": "NO_DEPOSITED_GEOGRAPHY"})

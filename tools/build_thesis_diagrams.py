@@ -40,7 +40,7 @@ DEV_CHAIN = r'''digraph dev_chain {
   s4 [label="cross-reacting-family vetoes\n+ saccharide triage (1285→18)"];
   s5 [label="Sapote: Mode B deep dives\n+ locked claim-safety rules"];
   s6 [label="four-axis priority scoring\n→ Class A–C"];
-  s7 [label="pan-BGC-ome / novelty\n(41% dark; not saturated)"];
+  s7 [label="pan-BGC-ome / novelty\n(41% dark)"];
 
   node [shape=box style="rounded,filled" fillcolor="#FCE8C8" color="#C8954A" width=3.0];
   out [label="ranked, fragmentation-corrected,\nclaim-safe shortlist  →  6 Class-A leads + manuscript"];

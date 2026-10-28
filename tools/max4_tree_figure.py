@@ -149,7 +149,7 @@ def reference_row(rec: dict, args) -> dict:
     if args.country_part:
         geo = geo.split(":")[0].strip()
     role = "OUTGROUP" if acc in args.outgroup else "REFERENCE"
-    return {"tip": acc, "role": role, "label_concise": f"{name} ({acc})", "source_display": src, "geography_display": geo,
+    return {"tip": acc, "role": role, "label_concise": f"{name} [{acc}]", "source_display": src, "geography_display": geo,
             "type_material": (rec.get("fromtype") or "").strip()}
 
 

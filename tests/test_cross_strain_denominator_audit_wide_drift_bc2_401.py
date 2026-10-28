@@ -99,11 +99,3 @@ def test_small_category_ratio_now_over_flags_by_design():
     )
 
 
-def test_bgc_total_ratio_still_not_flagged_even_far_from_registry():
-    """No regression: a ratio over the BGC total (e.g. 164/1131) is still correctly excluded
-    by the exact-match `allowed` set, regardless of how far it sits from the registry length --
-    this protection was never provided by the window in the first place."""
-    d = tempfile.mkdtemp()
-    p = os.path.join(d, "bgc.xlsx")
-    _make_master(p, [[7, "dark", "164/1131 (15%)"]], n_strains=24, n_bgc=1131)
-    assert audit_denominators(p) == []

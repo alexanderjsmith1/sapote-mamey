@@ -1,3 +1,28 @@
+# v9.7.460 — unsealed cut candidate · build 20261027v97460a
+
+Build 20261027v97460a; engine 1.9.177.
+
+Builds on the sealed v9.7.459 (CODE zip, build 20261027v97459a). The engine stays 1.9.177: no card changes RG-GMCI scores, ranks, thresholds or KCB values.
+
+- **Metadata as deposited.** The 16S admission gate no longer refuses a whole roster when one row has no deposited isolation source. Isolation source now follows the geography rule: each tip carries its source exactly as deposited, and a tip with none is admitted and listed for omission from figures, with reason `NO_DEPOSITED_SOURCE`. A tip missing both is listed under both reasons. Accession and the evidence fields are still required.
+- **Mode B ingest.** `ingest-receipts --card` no longer prints "structure: PASS" for a card the gate never checked, such as a card for a BGC already COMPLETE or one the register does not know. It prints "NOT EVALUATED" with the reason, and the result carries `structure_evaluated`.
+- **No hidden package scans.** `tools/build_bgc_markers.py` and `tools/build_deep_data.py` read only the folders named in `MAMEY_PACKAGES`. Before, they also scanned shared `/tmp` folders and an old hosted-sandbox upload path, so packages from another run could enter a bank. The add-on installer no longer searches that upload path for wheels.
+- **doctor** checks PyYAML, a declared core dependency, the same way it checks ijson.
+- **Figures.**
+  - The cohort figures no longer draw "novelty-leaning" on the plot; captions are unchanged.
+  - The thesis method diagram drops "not saturated".
+  - Reference labels from `tools/max4_tree_figure.py` put the accession in brackets, as the house rules and `bind_panel_metadata.py` do.
+  - `tools/scan_prevalence.py` writes the `AUDIT_RECEIPT.json` its widget footer points to.
+- **Tests.**
+  - 22 exact duplicate tests are removed, including one whole file that another file already contained.
+  - The docs line-reference ceiling drops to 72, measured.
+- **Generated surfaces** are regenerated once, by the last card: the file atlas and the maintenance inventory.
+
+Known limits, for later:
+- The Mode B register still marks shallow cards COMPLETE. The fix, which also extends the seal checks to DRAFT cards, is held for its test updates.
+- v2-only literature checks are not yet run at ingest.
+- `test_release_cut_partition_mode` needs a real filesystem, not a sandbox.
+
 # v9.7.459 — unsealed cut candidate · build 20261027v97459a
 
 Build 20261027v97459a; engine 1.9.177.

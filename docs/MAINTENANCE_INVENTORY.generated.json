@@ -19,7 +19,7 @@
     {
       "bytes": 21582,
       "path": "CURRENT_DOCS_INDEX.md",
-      "sha256": "250f9db56992b82b99df13a2e54ec2f6aa9db68cdd5c0a3ea0e6c37a694824ef"
+      "sha256": "55a008ec651b9ca147522e4c9322cda0918a0fc43e56485f62e619e3e368b7a7"
     },
     {
       "bytes": 8058,
@@ -34,7 +34,7 @@
     {
       "bytes": 15107,
       "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-      "sha256": "a898142b8e40b2c450b3a057c332aa078d77c4ebbb32d828d8584ddb7fd5f0fd"
+      "sha256": "6beab4637dec99bfab29819d1eeb7425a6804b08cf12fa83bcbcd4bb4b9bd42a"
     },
     {
       "bytes": 92306,
@@ -44,17 +44,17 @@
     {
       "bytes": 61832,
       "path": "docs/GUIDE/01_User_Manual.md",
-      "sha256": "eea47fc58d83530d080237e98b78368654c9cb9acc4c0a98c50c4bd10ef4441c"
+      "sha256": "e2fc2c5d0221d2a9322f0ae8e6d6a8762044f54d5ef696bcd6415f7397f6f00c"
     },
     {
       "bytes": 27372,
       "path": "docs/GUIDE/02_Quick_Guide.md",
-      "sha256": "25abd21ee2cf4a3356abaa31432c63bd4cccb4c7fcc9b0992f990104c0f4a689"
+      "sha256": "a075a450eea55a48a9ad677320ec80a02742e9b20a1e68dedb00baf5027d727f"
     },
     {
       "bytes": 99716,
       "path": "docs/GUIDE/06_Concepts_QandA.md",
-      "sha256": "4870c79661c6ba9cbee2d2699b2d06e9ffac7aee3db8a639fefd9849ba8ebb62"
+      "sha256": "a6e93de7c88502640bd4627e8620a963bef38927e0d808927790764c09e578bb"
     },
     {
       "bytes": 7602,
@@ -64,7 +64,7 @@
     {
       "bytes": 11633,
       "path": "docs/PREREQUISITES.md",
-      "sha256": "053e4256dc0555655588a44588df0f9a79b509195d4c9b55413c8a057c5293ca"
+      "sha256": "086ab65a2b137df46ed7cc3ce6806439637cdcbc986ef073a04bf05ea72878e7"
     },
     {
       "bytes": 4298,
@@ -72,9 +72,9 @@
       "sha256": "2b9ebf3c0cfa26a1eae56f7787182ac4a0679575fd1bdb7d054aeca5866e9e22"
     },
     {
-      "bytes": 545566,
+      "bytes": 546162,
       "path": "mamey/cli.py",
-      "sha256": "2bd6caa3683bb3713896e72b63970130d5fecc51d939333de18ed0d88ea35f66"
+      "sha256": "20ea6c4e2d48bbbc14a7d8f0da0a84a892bdf898a1e52ab2cb3afa7611b9f34c"
     },
     {
       "bytes": 12938,
@@ -2395,9 +2395,9 @@
       "path": "CHANGELOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 77821,
+        "bytes": 80218,
         "path": "CHANGELOG.md",
-        "sha256": "6cf7da86c0bbf6ed92cb6aa4203f3f5a620027759598b5448d64453bf164c177"
+        "sha256": "c7c4f489df2b97be7723587b810816f20ab970523aeeb2a39242d975855016a5"
       }
     },
     {
@@ -2441,7 +2441,7 @@
       "source": {
         "bytes": 21582,
         "path": "CURRENT_DOCS_INDEX.md",
-        "sha256": "250f9db56992b82b99df13a2e54ec2f6aa9db68cdd5c0a3ea0e6c37a694824ef"
+        "sha256": "55a008ec651b9ca147522e4c9322cda0918a0fc43e56485f62e619e3e368b7a7"
       }
     },
     {
@@ -3273,7 +3273,7 @@
       "source": {
         "bytes": 7657,
         "path": "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md",
-        "sha256": "674106be62c07de518588fc4d68be838b26b358354b93e439c32d86a03fe8765"
+        "sha256": "6124bddce00b01b08c50d066bf029b0827a6d76893cfd291d215311ad29add8b"
       }
     },
     {
@@ -3965,7 +3965,7 @@
       "source": {
         "bytes": 15107,
         "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-        "sha256": "a898142b8e40b2c450b3a057c332aa078d77c4ebbb32d828d8584ddb7fd5f0fd"
+        "sha256": "6beab4637dec99bfab29819d1eeb7425a6804b08cf12fa83bcbcd4bb4b9bd42a"
       }
     },
     {
@@ -4045,7 +4045,7 @@
       "source": {
         "bytes": 25709,
         "path": "docs/FIGURES_START_HERE.md",
-        "sha256": "18c94b9212ec326cc5c06c5fb403173d07f9c4c3724eb90f54a3159715c303af"
+        "sha256": "562006b0645107ffc3d3906362658a46dc77cf2e3a4c0bfdf3c8a23b3a41aecf"
       }
     },
     {
@@ -4345,7 +4345,7 @@
       "source": {
         "bytes": 2148,
         "path": "docs/GUIDE/00_README.md",
-        "sha256": "6201301f47a0d82cd045ff230c575d9c2e6c98fd5e83921f257f7aa418881efc"
+        "sha256": "f60247171693a8add95816951fe1a6d508deb6540737eeb91d013289b7c582a5"
       }
     },
     {
@@ -4361,7 +4361,7 @@
       "source": {
         "bytes": 61832,
         "path": "docs/GUIDE/01_User_Manual.md",
-        "sha256": "eea47fc58d83530d080237e98b78368654c9cb9acc4c0a98c50c4bd10ef4441c"
+        "sha256": "e2fc2c5d0221d2a9322f0ae8e6d6a8762044f54d5ef696bcd6415f7397f6f00c"
       }
     },
     {
@@ -4377,7 +4377,7 @@
       "source": {
         "bytes": 27372,
         "path": "docs/GUIDE/02_Quick_Guide.md",
-        "sha256": "25abd21ee2cf4a3356abaa31432c63bd4cccb4c7fcc9b0992f990104c0f4a689"
+        "sha256": "a075a450eea55a48a9ad677320ec80a02742e9b20a1e68dedb00baf5027d727f"
       }
     },
     {
@@ -4425,7 +4425,7 @@
       "source": {
         "bytes": 99716,
         "path": "docs/GUIDE/06_Concepts_QandA.md",
-        "sha256": "4870c79661c6ba9cbee2d2699b2d06e9ffac7aee3db8a639fefd9849ba8ebb62"
+        "sha256": "a6e93de7c88502640bd4627e8620a963bef38927e0d808927790764c09e578bb"
       }
     },
     {
@@ -4457,7 +4457,7 @@
       "source": {
         "bytes": 5318,
         "path": "docs/HOW_TO_USE.md",
-        "sha256": "8959f1e6b2da14e98218a065295ff336a5d750540e7367dc469649fc129c4dd9"
+        "sha256": "833f8735e54f8a67fdbf56523aaacc98a69b1ab525a39fdee14c99899e0f0b72"
       }
     },
     {
@@ -5583,9 +5583,9 @@
       "path": "docs/PHYLO_16S_DATA_CONTRACT.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 15864,
+        "bytes": 16138,
         "path": "docs/PHYLO_16S_DATA_CONTRACT.md",
-        "sha256": "3d4f830cc9fcf12cc62d118b0374d87307b3e4da8cef97170aeb41e75eb6bb20"
+        "sha256": "088697ebc06740be486380fa2628f5219fa0deb37d65c53951ccea6f0da325e6"
       }
     },
     {
@@ -5697,7 +5697,7 @@
       "source": {
         "bytes": 6746,
         "path": "docs/PLAYBOOK.md",
-        "sha256": "4200960683b8006c39b2574450d0f1f9af4c45d4c15fe81fe4b049c14c3f5a02"
+        "sha256": "5c7c037327d8d0f9ae9c600af34ca2807b440c787cc4ee1c8da32074416a2de7"
       }
     },
     {
@@ -5761,7 +5761,7 @@
       "source": {
         "bytes": 11633,
         "path": "docs/PREREQUISITES.md",
-        "sha256": "053e4256dc0555655588a44588df0f9a79b509195d4c9b55413c8a057c5293ca"
+        "sha256": "086ab65a2b137df46ed7cc3ce6806439637cdcbc986ef073a04bf05ea72878e7"
       }
     },
     {
@@ -6001,7 +6001,7 @@
       "source": {
         "bytes": 12208,
         "path": "docs/RELEASE_CHECKLIST_v9.md",
-        "sha256": "ca249c1dea6fd1629852d40f032f3f013f4b2ba15412513d3eae03bba0aea255"
+        "sha256": "1930b07a2486a0dba97961b6f5c43a385b54200f1616a2842e74e8517ab7c87b"
       }
     },
     {
@@ -6865,7 +6865,7 @@
       "source": {
         "bytes": 272,
         "path": "docs/TIER_NOTE_CODE.md",
-        "sha256": "2972a27afe1cfc0e9fab33495c7abf012943f7ecdad71a37ba432a3eef65c89a"
+        "sha256": "10356b0e40601bd892266842785c9159a9055ba589717a46a8f6e041b5257fa5"
       }
     },
     {
@@ -6881,7 +6881,7 @@
       "source": {
         "bytes": 7759,
         "path": "docs/TIER_SET_EXPLAINER.md",
-        "sha256": "97a0a08fa1a825d5c3994b962d5dc448c4598228d433d048ae2499741c57fb4c"
+        "sha256": "9eb38ddccbfb53647fba1065ad2802b682a30723c70e5bd192df737778664b32"
       }
     },
     {
@@ -7305,7 +7305,7 @@
       "source": {
         "bytes": 7684,
         "path": "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
-        "sha256": "2c76a9edb90cc9a24a1b8c44ea81cfc127ee0384c3be9fab685a8cd0970c9e38"
+        "sha256": "a3dcaf5e4810ac5eaa8752bff8b77e6cbbe9280f9041509d682a8e6bbcbd8568"
       }
     },
     {
@@ -10121,7 +10121,7 @@
       "source": {
         "bytes": 35759,
         "path": "docs/reference/01_Math_Reference_VolI.md",
-        "sha256": "950f1d3dabec1509798f51a360e4482916ee27c1d27cd5e3cbbdc5bb4d1aba30"
+        "sha256": "9f1ae6d7a3cd4d838381dfe94c3a75f68acea720ac562f338798859d95f79f60"
       }
     },
     {
@@ -10137,7 +10137,7 @@
       "source": {
         "bytes": 164326,
         "path": "docs/reference/02_Math_Reference_VolII.md",
-        "sha256": "108f1e6996386680a8baa5bb039640442b491d6c8535accbf33f261936727ad0"
+        "sha256": "e8ec4efae38be1dc4425cf6524b2f8679e2c831cfd0ead270659f0bafcb5534a"
       }
     },
     {
@@ -10153,7 +10153,7 @@
       "source": {
         "bytes": 391,
         "path": "docs/reference/03_Plumbing_Reference.md",
-        "sha256": "df187ccdebc6dd38dc8ac5bda2b8467e1e7390ce712c4a31c53005eed2f047d4"
+        "sha256": "500f4b33532d5a23ee5234e32e79108bcd7e6eb430a25b4c102cfeb9f3cb7651"
       }
     },
     {
@@ -10233,7 +10233,7 @@
       "source": {
         "bytes": 7266,
         "path": "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
-        "sha256": "e2d1f33acb179383e6ba08ebf26d3cc962c64431482ed14b3cf1935d3c4bbc74"
+        "sha256": "0bd8e75b32700cc261b5518676ff689e0e026477b837b73c535d644bcee50453"
       }
     },
     {
@@ -10425,7 +10425,7 @@
       "source": {
         "bytes": 2462,
         "path": "docs/standalone/CHATGPT_BATCH_PROTOCOL.md",
-        "sha256": "2056d1e01b9880cc3671e0794a3bdaef0a7d1edf14b2d2e4644cb28697ac4846"
+        "sha256": "d685ed386eec6c6a088cce66f00be94de7e557ccef8f9a85378a3e9daedde513"
       }
     },
     {
@@ -10457,7 +10457,7 @@
       "source": {
         "bytes": 2386,
         "path": "docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
-        "sha256": "f3d42b11022ce7522dd081198b0e87c1b279b70088cfa5bb26490b59908a0490"
+        "sha256": "790daa44004db66a09d9980c1266b807ff77812309c7a38eb13686d16886cfac"
       }
     },
     {
@@ -10473,7 +10473,7 @@
       "source": {
         "bytes": 8417,
         "path": "docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
-        "sha256": "9410914cd49a267fb4cceca5af7618a742a707eb99d069ba5ea246240178cdfa"
+        "sha256": "1a803e25e188fe82c5a54a699680332839465291f83556eb9744abfb6dc8c5b7"
       }
     },
     {
@@ -10697,7 +10697,7 @@
       "source": {
         "bytes": 373,
         "path": "docs/user_guides/comprehensive_glossary.md",
-        "sha256": "7e63e4cc51cea0afe513ed347243048ed998c5dc5e99afe0b1228c6cd5f056e1"
+        "sha256": "ee3338b96f875ac949716820ac98ced5254a54dde793cdb46fe59799ef87852a"
       }
     },
     {
@@ -10729,7 +10729,7 @@
       "source": {
         "bytes": 396,
         "path": "docs/user_guides/operational_reference.md",
-        "sha256": "586841aebae65b83f380dde6d6092ab9978d8ba762555dbbefef714b9b49783a"
+        "sha256": "7078ea7e80c6961e49d70c8a120fc6fd662d32f89584de095da5c233f05e6d6a"
       }
     },
     {
@@ -10745,7 +10745,7 @@
       "source": {
         "bytes": 3319,
         "path": "docs/user_guides/sapote_kernel_guide.md",
-        "sha256": "00b675de1b7ab2dca1e0d686c23c1f389cc10bd06421c741d16450754784df31"
+        "sha256": "18b0846e41b42af5ee6db5f03a6672fd9074d0db32bb9ab6cd0bfa1e7eba8ed7"
       }
     },
     {
@@ -10793,7 +10793,7 @@
       "source": {
         "bytes": 6039,
         "path": "wiki/Audience-Start-Paths.md",
-        "sha256": "3f6221140122ebed2a74489f98ee872f7ed99b8cffb708638066910a6f92301b"
+        "sha256": "6c225e3b3605f42beb4b744c6ff5b194aaa0f7206bb5191ab2e0d4daf822d3f6"
       }
     },
     {
@@ -10913,7 +10913,7 @@
       "source": {
         "bytes": 607,
         "path": "wiki/Encyclopedia.md",
-        "sha256": "2d1e3a18dbd63d984b6523c43a8a9fc9863eefb8c178aaacf557b8361818e297"
+        "sha256": "bac332b992580d2e0f32d863c8b80054452586dc2db439dcf55a57faa9040c5a"
       }
     },
     {
@@ -10985,7 +10985,7 @@
       "source": {
         "bytes": 4705,
         "path": "wiki/Home.md",
-        "sha256": "7ea069e81f0649181c569476aa7a9e3a5aaf9056c74cc2776ee1c382c0fd3297"
+        "sha256": "3cf316f63083cf836365b7eb5e6be774e29b1967c6ee5bab899a78c1a31c3a06"
       }
     },
     {
@@ -11001,7 +11001,7 @@
       "source": {
         "bytes": 15163,
         "path": "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
-        "sha256": "91b2218b07ed0949dbb337df6b5be09bc48120f1a012754821eaf4a0225be9cb"
+        "sha256": "82441d51502967a9586ef274e26fecc62821bf12f6af068bb7c34a897c537799"
       }
     },
     {
@@ -11085,7 +11085,7 @@
       "source": {
         "bytes": 19149,
         "path": "wiki/Researcher-Recipes.md",
-        "sha256": "5292ee259cf14eb4840e1d783ce5270a59d46edcbfce2838ac3b0ab67fb12ee0"
+        "sha256": "4ddd45b085afeb39f33948d49ff8fc6be5416a19669a78caf346a2150837d362"
       }
     },
     {
@@ -11161,7 +11161,7 @@
       "source": {
         "bytes": 10155,
         "path": "wiki/What-It-Does-and-Limitations.md",
-        "sha256": "558ffb74d6f55395d1431c3324770071545828c6342ccbfde7fb694f61ae60f3"
+        "sha256": "39f32365973d8fdaf237979abd2f38e116f9f08d40a796bbd302c1c47ff5bcab"
       }
     },
     {
@@ -11177,7 +11177,7 @@
       "source": {
         "bytes": 1416,
         "path": "wiki/_Sidebar.md",
-        "sha256": "5b49748b660a151133ff35252045edcd1359e2f533bae55533a3ff2e614a161e"
+        "sha256": "e547baca45ec4ee854dd34e834e36de08646e15b050f8c1b2f792d7c0e631270"
       }
     },
     {
@@ -13299,9 +13299,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 8779,
+        "bytes": 8622,
         "path": "tools/build_bgc_markers.py",
-        "sha256": "5b2b07c0c31deb02186a87074ed922fa8e564ddac422b55dbcb72b20f9bcabc7"
+        "sha256": "a0017009d670ff539cf66f84a7a47753bb455f086c03951b38b652942900f6da"
       }
     },
     {
@@ -13453,9 +13453,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 9988,
+        "bytes": 9840,
         "path": "tools/build_deep_data.py",
-        "sha256": "76c58820ba9a1a120761dc137956adeb05212734fd114fbb0aac20ff139545ba"
+        "sha256": "9c7dd993afca80195fc4e6bca4625f0f69b66ab1a60a40eb096ce01ecce5e59d"
       }
     },
     {
@@ -14083,9 +14083,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 5965,
+        "bytes": 5950,
         "path": "tools/build_thesis_diagrams.py",
-        "sha256": "80f9c99058a88c682a027012e627300106dc7dd0dfa155d92cfe199ab55253d5"
+        "sha256": "7cb4a6823c142c2bbc65dd835fe995af4aab82725993127314a9dfc193839211"
       }
     },
     {
@@ -16661,7 +16661,7 @@
       "source": {
         "bytes": 26038,
         "path": "tools/max4_tree_figure.py",
-        "sha256": "f4df114fb83965687a78ad5355957ded11e4997e11996204d8c2fae742c7e12e"
+        "sha256": "5c21a11fe946ce38b97927734c022cf3c59d046002c17d02bcc76767aac67bfd"
       }
     },
     {
@@ -17317,9 +17317,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 13134,
+        "bytes": 13810,
         "path": "tools/phylo_sequence_admission.py",
-        "sha256": "498edb633bc673ed9b07bf5cfb826fbd4c5538d9cb58e689f2149dd136feb495"
+        "sha256": "cebf3a8c4c461ce2b7d0d2cfd24b9779a01f287a29da251f0a90e2e19099fd50"
       }
     },
     {
@@ -18717,9 +18717,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 6174,
+        "bytes": 6797,
         "path": "tools/scan_prevalence.py",
-        "sha256": "8cc2467003961e449ae34018f8dbf0f6cb133e03bf22022e7886404cbe1aee0e"
+        "sha256": "b16f0ab6dc01f4ada5a6e215bb2a180fba50dc11e93f6f7818bf06551cf7af81"
       }
     },
     {

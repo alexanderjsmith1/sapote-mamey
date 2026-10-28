@@ -90,10 +90,6 @@ CONCATENATED = [
 ]
 
 
-def test_producer_is_present():
-    assert PRODUCER.is_file(), f"missing {PRODUCER}"
-
-
 @pytest.mark.parametrize("tip,modal", RESOLVABLE)
 def test_a_resolvable_tip_never_publishes_a_non_accession(tip, modal):
     """The 164-defect contract: what is in the parens must be an accession from this tip."""

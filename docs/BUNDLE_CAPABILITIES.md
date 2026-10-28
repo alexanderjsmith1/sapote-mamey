@@ -609,7 +609,7 @@ _Check here before building a new tool. Full table: `docs/TOOLS_INVENTORY.genera
 
 ## Version reference
 
-Engine: Mamey v1.9.177 · Bundle: sapote-mamey-v9.7.459.
+Engine: Mamey v1.9.177 · Bundle: sapote-mamey-v9.7.460.
 
 The full48 contract names `FINISHED_FULL48_CURRENT_EVIDENCE` as its strict profile. Select and verify the requested profile explicitly; this name does not certify current50_v2 output, scientific acceptance or release readiness.
 

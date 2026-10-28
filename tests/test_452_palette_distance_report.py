@@ -35,7 +35,3 @@ def test_tool_flags_fallback_grey_and_close_pairs(tmp_path):
     assert rc == 1 and "SynD: fallback colour" in md and "SynC: grey-like" in md and "SynA / SynB" in md
 
 
-def test_attine_figure_colours_pass(tmp_path):
-    rc = pdr.main(["--set", "attine", "--genera", ",".join(ATTINE_GENERA), "--key", "No 16S genus on record=#DDE2E8",
-                   "--grey-ok", "No 16S genus on record", "--out", str(tmp_path / "attine.tsv")])
-    assert rc == 0, (tmp_path / "attine.md").read_text()

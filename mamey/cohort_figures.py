@@ -1730,7 +1730,7 @@ def build(S, order, OUT):
     if _pos_kcb:
         ax.set_yscale("log")
     else:
-        ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(all BGCs novelty-leaning; linear axis)",
+        ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)")
     ax.set_title("KCB reference-similarity vs BGC size, by boundary status\n(truncated Edge/Full-contig BGCs trend to weaker / absent hits)",pad=12); ax.grid(alpha=0.2,which="both")
@@ -1776,12 +1776,12 @@ def build(S, order, OUT):
     if _pos_kcb:
         ax.set_yscale("log")
     else:
-        ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(all BGCs novelty-leaning; linear axis)",
+        ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
     ax.set_xticks(range(len(order))); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
     ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)"); ax.tick_params(length=0)
     soft_div_x(ax,order,ax.get_ylim()[1])
-    ax.set_title("KCB reference-similarity distribution per strain (one dot = one BGC with a hit;\n'no-hit' count noted = novelty-leaning, incl. truncated BGCs)",pad=12); ax.grid(alpha=0.2,axis="y",which="both")
+    ax.set_title("KCB reference-similarity distribution per strain (one dot = one BGC with a hit;\n'no-hit' count noted, incl. truncated BGCs)",pad=12); ax.grid(alpha=0.2,axis="y",which="both")
     fn=stamp_d(fig,"strip_kcb_per_strain"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","kcb_rank1_score"],d06)
 
@@ -2042,7 +2042,7 @@ def batch1(S, order, OUT):
          "KCB cumulative-BLAST-score band per strain (BGC counts)\n"
          "Bands are COHORT TERTILES of this cohort's own scores, not similarity thresholds. The score is\n"
          "antiSMASH's unnormalised 'Cumulative BLAST score', which grows with cluster size and protein count,\n"
-         "so it is not comparable between BGCs of different size. 'No hit' is novelty-leaning, not proof of novelty.",
+         "so it is not comparable between BGCs of different size.",
          "kcb_similarity_strength",OUT,cbar="BGC count",cmap="cividis",row_raw=bins)
 
     # G04 BGC boundary status (corrected-count components)

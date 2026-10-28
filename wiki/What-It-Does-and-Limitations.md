@@ -1,6 +1,6 @@
 # What It Does and Limitations
 
-*Current to bundle v9.7.459 · engine Mamey 1.9.177.*
+*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
 
 What Sapote-Mamey does well, and where its limits are recorded. The retained strengths describe design requirements and selected demonstrated routes, not universal enforcement across every command. Current implementation gaps and source-specific holds remain controlling; this page is not a fresh benchmark or audit receipt. **Strength**
 means a capability or design choice that has produced genuine scientific, interpretive,

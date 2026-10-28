@@ -86,8 +86,8 @@ type status, isolation source, deposited geography, sequence evidence, metadata 
 biological sample ID and explicit admission state. A nonmissing biological sample ID
 is enforced for query rows; reference/outgroup sample cells can remain blank. Exact
 accession versions remain an operator requirement, as qualified below. The gate
-rejects short 16S fragments, cross-genus records, missing accession, isolation
-source or evidence fields, duplicate type-species representatives, and identical query sequences from the same biological
+rejects short 16S fragments, cross-genus records, missing accession or evidence
+fields, duplicate type-species representatives, and identical query sequences from the same biological
 sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are
 convenience labels and are never the sole authority.
 
@@ -146,6 +146,11 @@ such as `missing: lab stock` is not refused. The tip is admitted with its cell
 unchanged and an empty `geography_region`. It is also listed under
 `figure_omissions` by full name (organism, plus a `strain` cell when the roster has
 one), accession, and reason `NO_DEPOSITED_GEOGRAPHY`. Figures omit these tips. The
-reason matches `tools/omitted_tips_receipt.py`. Isolation source is still required.
+reason matches `tools/omitted_tips_receipt.py`.
+
+Isolation source follows the same rule. Each tip carries `isolation_source` exactly as
+deposited. A blank, placeholder or INSDC missing-term source is not refused: the tip is
+admitted and listed under `figure_omissions` with reason `NO_DEPOSITED_SOURCE`. A tip
+missing both source and geography is listed once for each reason.
 
 A mechanically valid admission does not establish species identity.

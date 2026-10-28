@@ -227,7 +227,7 @@ def test_new_mamey_modules_have_companion_tests():
         'mamey/figures_smoke.py':  'tests/test_figures_smoke.py',
         'mamey/judgment_store.py': 'tests/test_judgment_dir_split.py',
         'mamey/mode_b_receipt.py': 'tests/test_ingest_one_card.py',
-        'mamey/locus_map.py':      'tests/test_locus_map_compile_integration.py',
+        'mamey/locus_map.py':      'tests/test_locus_map_compile_integration_v9_7_152.py',
         'mamey/modeb_structure_gate.py':  'tests/test_modeb_structure_gate.py',
         'mamey/modeb_template_emitter.py': 'tests/test_modeb_template_emitter.py',
         'mamey/render_all_figures.py':    'tests/test_render_all_figures.py',

@@ -74,6 +74,13 @@ def build(a):
         "strains_sorted":sorted(strains),"strain_host":{s:hostmap[s] for s in strains},"rows":rows,"held":[],
         "source":{"scan_db_sha256":sha256(a.scan_db),"dataset":ns}},
         open(os.path.join(a.out,"domain_prevalence_ranking.json"),"w"),indent=1)
+    # The widget footer points to AUDIT_RECEIPT.json, so write it with domain_prevalence's keys.
+    # A keyword scan has no nr/cnr/sp evidence channels: the list is empty, not omitted.
+    with open(os.path.join(a.out,"AUDIT_RECEIPT.json"),"w") as fh:
+        json.dump({"scope_strains":NSt,"distinct_families":len(rows),"held":0,
+            "host_distribution":dict(collections.Counter(hostmap.values())),"evidence_channels":[],
+            "elapsed_s":round(time.time()-t0,2),"token_counter":"UNAVAILABLE_NO_LIVE_TASK_TOKEN_COUNTER",
+            "source":{"scan_db_sha256":sha256(a.scan_db),"dataset":ns}},fh,indent=1)
     print(f"scan_prevalence[{ns}]: {len(rows)} groups, {NSt} strains, {sum(r['feature_occurrences'] for r in rows)} gene-hits -> {a.out}")
     return rows
 def main(argv=None):

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.459 stamp=20261027v97459a
+# TIER_MANIFEST tier=code version=9.7.460 stamp=20261027v97460a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -2231,6 +2231,14 @@
 ./tests/test_459_strain_slides_hcn_only_left_out.py
 ./tests/test_459_tip_labels_keep_deposited_geography.py
 ./tests/test_459_us_spelling_color_flags_and_help.py
+./tests/test_460_cohort_figures_plot_text_has_no_novelty_words.py
+./tests/test_460_doctor_checks_pyyaml.py
+./tests/test_460_ingest_card_skip_never_prints_pass.py
+./tests/test_460_max4_reference_label_accession_brackets.py
+./tests/test_460_package_discovery_no_shared_folder_scan.py
+./tests/test_460_phylo_admission_missing_source_is_omitted.py
+./tests/test_460_scan_prevalence_writes_audit_receipt.py
+./tests/test_460_thesis_diagram_no_saturation_claim.py
 ./tests/test_462_panel_key_fits_page_width.py
 ./tests/test_466_multi_reference_aligned_layout.py
 ./tests/test_ab_diagnostic_triggers.py
@@ -3082,7 +3090,6 @@
 ./tests/test_locus_bgc_membership_gate_b1.py
 ./tests/test_locus_comparison.py
 ./tests/test_locus_gene_context_loader_v9_7_117.py
-./tests/test_locus_map_compile_integration.py
 ./tests/test_locus_map_compile_integration_v9_7_152.py
 ./tests/test_locus_map_labels_v9791.py
 ./tests/test_locus_map_review_contract_v9_7_370.py

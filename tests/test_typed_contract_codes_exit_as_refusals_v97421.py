@@ -51,10 +51,6 @@ def _mod():
     return m
 
 
-def test_producer_is_present():
-    assert PRODUCER.is_file(), f"missing {PRODUCER}"
-
-
 def test_the_module_still_raises_typed_codes():
     """If this ever reaches zero the guard below is vacuous and must be re-justified."""
     codes = _typed_codes()

@@ -79,8 +79,9 @@ _TIGR_NAMES={'TIGR01454':'ansamycin','TIGR03604':'thiopeptide','TIGR03828':'ened
 TIGR={acc:_TIGR_NAMES.get(acc, acc) for acc in _diagnostic_tigrfam_ids()}
 
 def find_packages():
-    """sid -> (snapshot_path, evidence_path). MAMEY_PACKAGES (os.pathsep dirs, set by mamey_intake)
-    searched first, then the default staged/upload locations. Matches SID and AS- strains."""
+    """sid -> (snapshot_path, evidence_path), from the MAMEY_PACKAGES dirs only (os.pathsep-separated,
+    set by mamey_intake). Matches SID and AS- strains. Shared /tmp and upload folders are never scanned:
+    another run's packages must not enter this bank unasked."""
     SID_RE=re.compile(r'SID\d+|AS-?\d+')
     pkgs={}
     def add(sid, snap, ev):
@@ -91,13 +92,9 @@ def find_packages():
             sid=m.group(0) if m else os.path.basename(d)
             ev=glob.glob(f'{d}/**/*AntiSMASH_Evidence_Parse.json', recursive=True)
             add(sid, sp, ev[0] if ev else None)
-    for d in glob.glob('/tmp/*/SID*')+glob.glob('/tmp/mamey_SID*')+glob.glob('/mnt/user-data/uploads/SID*'):
-        if d.endswith('.zip'): continue
-        sid_m=SID_RE.search(os.path.basename(d))
-        if not sid_m: continue
-        snap=glob.glob(f'{d}/**/*Project_Memory_Snapshot.json', recursive=True)
-        ev=glob.glob(f'{d}/**/*AntiSMASH_Evidence_Parse.json', recursive=True)
-        if snap: add(sid_m.group(0), snap[0], ev[0] if ev else None)
+    if not os.environ.get('MAMEY_PACKAGES'):
+        sys.stderr.write("build_bgc_markers: MAMEY_PACKAGES is not set; no package folders searched "
+                         "(markers come from the banked profiles only)\n")
     return pkgs
 
 def tigr_by_bgc(evpath, snap):

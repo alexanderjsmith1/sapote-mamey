@@ -165,4 +165,4 @@ promotional label or signed-looking metadata substitutes for this evidence.
 
 ## Version reference
 
-*Sapote-Mamey Bundle v9.7.459 | Active controller: current user task, AGENTS.md and docs/USER_TASK_ROUTER.md; the monolith is a design/history reference.*
+*Sapote-Mamey Bundle v9.7.460 | Active controller: current user task, AGENTS.md and docs/USER_TASK_ROUTER.md; the monolith is a design/history reference.*

@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey / Mamey Task Brief Template — v9.7.459
+# Sapote-Mamey / Mamey Task Brief Template — v9.7.460
 
 Fill this template before handing a batch to an assistant or another Mamey runner.
 The file name is historical; any assistant can use the template.

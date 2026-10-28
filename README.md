@@ -443,7 +443,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.459 / engine 1.9.177 · build 20261027v97459a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.460 / engine 1.9.177 · build 20261027v97460a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

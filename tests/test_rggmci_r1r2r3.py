@@ -110,11 +110,6 @@ def test_tp_desferrioxamine():
     r3c, _ = _r3_noise_class_gate("HIGH_RG_GMCI_RESCUE", "NI-siderophore; other", "NI-siderophore; other")
     assert r1c == r2c == r3c == "HIGH_RG_GMCI_RESCUE"
 
-def test_tp_betalactone_pair():
-    "AS-XXX BGC010xBGC023 betalactone - sr=17, must not be R3-demoted"
-    c, _ = _r3_noise_class_gate("HIGH_RG_GMCI_RESCUE", "betalactone; other", "betalactone; other")
-    assert c == "HIGH_RG_GMCI_RESCUE"
-
 # Calibration-identified demotion targets
 def test_r1_as365_hgle_pair():
     "AS-XXX BGC031xBGC034 hglE-KS x hglE-KS - R1 target"

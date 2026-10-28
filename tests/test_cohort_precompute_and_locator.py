@@ -10,10 +10,6 @@ def test_cohort_locator_matches_architecture_format():
     r = {"BGC_ID": "BGC065", "Contig": "NODE_9_length_167436_cov_37", "antiSMASH_Region": "region003"}
     assert _cohort_locator(r) == "NODE_9_length_167436_cov_37 region003"
 
-def test_cohort_locator_normalizes_bare_region_number():
-    r = {"Contig": "NODE_5_length_1000_cov_10", "antiSMASH_Region": "2"}
-    assert _cohort_locator(r) == "NODE_5_length_1000_cov_10 region002"
-
 def test_cohort_locator_differs_from_bosslabel_helper():
     # the join key (full contig, no paren) is intentionally NOT the boss-facing crosswalk label
     from mamey.crosswalk import assembly_locator

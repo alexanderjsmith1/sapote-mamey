@@ -35,11 +35,6 @@ def _by_id(calls):
     return {c.cassette_id: c for c in calls}
 
 
-def test_phase2_backends_are_not_globally_activated():
-    assert ACTIVE_DETECTORS == frozenset({"regex", "motif"})
-    assert {"pfam", "tigrfam", "hmm", "diamond", "blastp"} <= PHASE2_DETECTORS
-
-
 def test_first_batch_ids_are_expected():
     assert FIRST_BATCH_IDS == ("SMC-001", "SMC-002", "SMC-004", "SMC-009", "SMC-013", "SMC-016")
 

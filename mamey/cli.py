@@ -5065,6 +5065,15 @@ def doctor_command(args) -> int:
                     "and re-run `mamey doctor` (https://github.com/ICRAR/ijson; retained ijson notice: "
                     "BSD-3-Clause, separate YAJL notice)"))
 
+    # Declared core dependency (pyproject.toml): tools/render_bootstrap_contract.py and the bootstrap
+    # tests import yaml unconditionally, so its absence is a core warning, never silent.
+    if _have("yaml"):
+        ok.append("PyYAML (declared core >=6.0,<7.0) ✓")
+    else:
+        warn.append(_CoreWarn("PyYAML", "PyYAML absent — declared core dependency >=6.0,<7.0 (pyproject.toml); "
+                    "tools/render_bootstrap_contract.py and the bootstrap checks import it. Install it "
+                    "(python -m pip install 'PyYAML>=6.0,<7.0') and re-run `mamey doctor`"))
+
     # Optional deps
     for mod, label, hint in [
         ("Bio", "biopython", "optional for core (GBK shim in use if absent) — but REQUIRED for `mamey triage-raw` AND `blastp-online` (parses NCBI BLAST XML). The bundled wheel is cp312/manylinux x86_64 only, so on macOS/arm64 or other Pythons it will NOT install offline — `pip install biopython` (needs network)"),

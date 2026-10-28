@@ -1,6 +1,6 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.459 · engine Mamey 1.9.177.*
+*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
 
 Each recipe gives inputs, the command, outputs, the states you should see, and the usual failure. None of these results establishes compound identity, production, activity, novelty or publication readiness; that is stated once here and not repeated.
 

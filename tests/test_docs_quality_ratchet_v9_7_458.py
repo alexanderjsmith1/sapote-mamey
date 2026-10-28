@@ -20,7 +20,7 @@ SKIP_PARTS = {"tests", "history", "archive", "patch_notes", "working", ".git"}
 SKIP_NAMES = {"CHANGELOG.md", "RELEASES_LOG.md", "FILE_ATLAS.md"}
 LINEREF = re.compile(r"\b[\w/.-]+\.(?:py|R|sh|json|md)(?::L?\d+|#L\d+)(?:\s*[–-]\s*L?\d+)?\b|\(`?:\d+[–-]\d+`?\)")
 
-LINEREF_CEILING = 73   # measured on the .458 stack (562 entries); .457 measured 539
+LINEREF_CEILING = 72   # measured on the .460 stack; .458 measured 73, .457 measured 539
 LONG_SENTENCE_CEILING = 1113   # measured on the .458 stack; .457 measured 2,446
 
 

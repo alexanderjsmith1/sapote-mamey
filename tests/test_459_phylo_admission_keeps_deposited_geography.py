@@ -79,9 +79,10 @@ def test_missing_geography_stays_missing_and_is_listed_for_omission(missing):
                                            "accession": "NR_000002.1", "reason": "NO_DEPOSITED_GEOGRAPHY"}]
 
 
-def test_missing_isolation_source_is_still_refused():
-    with pytest.raises(ValueError, match="METADATA_INCOMPLETE: R1 field=isolation_source"):
-        adm.validate([_fx.row("R1", SEQ, isolation_source="")], {"R1": SEQ})
+def test_missing_isolation_source_follows_the_omission_rule():
+    # .460 ruling: same rule as geography; see test_460_phylo_admission_missing_source_is_omitted.py
+    result = adm.validate([_fx.row("R1", SEQ, isolation_source="")], {"R1": SEQ})
+    assert [o["reason"] for o in result["figure_omissions"]] == ["NO_DEPOSITED_SOURCE"]
 
 
 def test_ten_value_list_is_kept_as_the_display_list():

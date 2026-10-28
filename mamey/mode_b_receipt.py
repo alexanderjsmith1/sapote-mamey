@@ -722,6 +722,7 @@ def ingest_one_card(package_dir: str | Path,
          "session_id": <str|None>,
          "judgment_status": <register status after ingest>,
          "structure_findings": [Finding, ...],
+         "structure_evaluated": <bool: the structure gate ran on this card>,
          "persistence_warnings": [{identity, stage, error_type, message}]}
 
     Never raises. The caller decides exit behaviour from the `status` field.
@@ -746,6 +747,7 @@ def ingest_one_card(package_dir: str | Path,
         "persistence_warnings": [],
         "structure_contract": None,
         "structure_contract_source": None,
+        "structure_evaluated": False,  # True only once lint_card has run on this card
     }
 
     # v9.7.409 (BC hostile audit H5): every early return below used to leave `structure_findings`
@@ -834,6 +836,7 @@ def ingest_one_card(package_dir: str | Path,
         structure_findings = _context_findings(bgc_ctx) + _c_findings + lint_card(
             content, bgc_context=bgc_ctx, contract=_c_dict, check_evidence_presence=True
         )  # item 4: §4 coverage enforced at receipt
+        summary["structure_evaluated"] = True
     except Exception as _gate_exc:
         # v9.7.335: this used to set structure_findings = [], which is BYTE-IDENTICAL to a clean
         # lint — a crashed gate was recorded as a valid card and printed as "structure: PASS".
@@ -2632,6 +2635,10 @@ def ingest_receipts_command(args) -> int:
                 emit("\n  Card was NOT recorded. Either fix the structure "
                       "issues above (recommended) or re-run with "
                       "--force-structure to record anyway.", file=sys.stderr)
+        elif not card_summary.get("structure_evaluated"):
+            # A skipped card (already COMPLETE, unknown BGC) never reached the gate; never print PASS for it.
+            sys.stdout.write(f"  structure:         NOT EVALUATED (status {card_summary['status']}; "
+                             "the gate did not run on this card)\n")  # direct write keeps the print ratchet flat
         else:
             emit("  structure:         PASS (§1–§48 contract satisfied)" if (_c_used or "full48") == "full48"
                  else f"  structure:         PASS ({_contract_label(_c_used)} contract satisfied)")

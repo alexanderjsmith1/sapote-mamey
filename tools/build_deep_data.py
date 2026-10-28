@@ -62,7 +62,8 @@ def json_mode_of(snap_path):
     except Exception: return 'unknown'
 
 def find_snaps():
-    # MAMEY_PACKAGES (os.pathsep-separated dirs, set by mamey_intake) searched first, then defaults.
+    # MAMEY_PACKAGES (os.pathsep-separated dirs, set by mamey_intake) only. Shared /tmp and upload
+    # folders are never scanned: another run's packages must not enter this bank unasked.
     out={}
     env=[p for p in os.environ.get('MAMEY_PACKAGES','').split(os.pathsep) if p]
     for root in env:
@@ -70,12 +71,8 @@ def find_snaps():
             m=SID_RE.search(os.path.basename(sp))
             sid=m.group(0) if m else os.path.basename(os.path.dirname(sp))
             out.setdefault(sid, sp)
-    for d in glob.glob('/tmp/*/SID*')+glob.glob('/tmp/mamey_SID*')+glob.glob('/mnt/user-data/uploads/SID*'):
-        if d.endswith('.zip'): continue
-        m=SID_RE.search(os.path.basename(d))
-        if not m: continue
-        snap=glob.glob(f'{d}/**/*Project_Memory_Snapshot.json', recursive=True)
-        if snap: out.setdefault(m.group(0), snap[0])
+    if not env:
+        sys.stderr.write("build_deep_data: MAMEY_PACKAGES is not set; no package folders searched\n")
     return out
 
 def merge_section(records, new, sids_replaced):

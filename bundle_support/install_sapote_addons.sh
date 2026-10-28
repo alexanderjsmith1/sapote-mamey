@@ -43,7 +43,7 @@ while [ "$#" -gt 0 ]; do
 done
 SEARCH_ROOTS+=(
   "$HERE/.." "$HERE" "$HERE/../sm_addons" "$HERE/sapote_addons"
-  "$HERE/../uploads" "$HERE/../../uploads" "/mnt/user-data/uploads" "."
+  "$HERE/../uploads" "$HERE/../../uploads" "."
 )
 
 POOL="$(mktemp -d)"

@@ -16,7 +16,9 @@ def test_complete_16s_roster_passes_and_fragment_fails():
 def test_genus_and_metadata_fail_closed_geography_kept_as_deposited():
     s='A'*1400
     with pytest.raises(ValueError,match='GENUS_CONTRADICTION'):validate([row('R1',s,expected_genus='Nocardia')],{'R1':s})
-    with pytest.raises(ValueError,match='METADATA_INCOMPLETE'):validate([row('R1',s,isolation_source='unknown')],{'R1':s})
+    with pytest.raises(ValueError,match='METADATA_INCOMPLETE'):validate([row('R1',s,metadata_evidence='')],{'R1':s})
+    # .460 ruling: a missing isolation source is admitted and listed for omission, not refused
+    assert validate([row('R1',s,isolation_source='unknown')],{'R1':s})['figure_omissions'][0]['reason']=='NO_DEPOSITED_SOURCE'
     # .459 row 20: geography outside the ten-value display list is admitted as deposited, not refused
     assert validate([row('R1',s,geography='Yunnan Province')],{'R1':s})['tips'][0]['geography']=='Yunnan Province'
 

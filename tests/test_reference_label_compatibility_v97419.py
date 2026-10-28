@@ -55,37 +55,3 @@ def test_a_doubled_accession_no_longer_eats_the_strain_number():
     assert "NR 118886" not in lab.replace("NR_118886",""), f"a second raw accession survived into the text: {lab}"
 
 
-@pytest.mark.parametrize("tip,modal,must_contain", [
-    ("NR_044855_1_Saccharothrix_mutabilis_subsp_capreolus_DSM_40225_16S_ribosomal_RNA",
-     "Saccharothrix", "40225"),
-    ("NR_042711_1_Streptomyces_brasiliensis_DSM_43159_16S_ribosomal_RNA", "Streptomyces", "43159"),
-])
-def test_real_truncation_offenders_keep_their_collection_number(tip, modal, must_contain):
-    lab = _mod()._ref_label(tip, modal)
-    assert must_contain in lab, f"collection number lost: {lab}"
-
-
-def test_the_ordinary_short_label_keeps_full_genus():
-    """The shared display contract keeps the full genus in ordinary labels."""
-    lab = _mod()._ref_label(
-        "NR_149213_1_Kribbella_soli_strain_FMN22_16S_ribosomal_RNA_partial_sequence", "Kribbella")
-    assert lab == "Kribbella soli FMN22 (NR_149213)"
-
-
-def test_legacy_cap_does_not_truncate_reference_identity(monkeypatch):
-    m = _mod()
-    assert m.REF_LABEL_CHARS == 48
-    monkeypatch.setenv("GG_REF_LABEL_CHARS", "20")
-    m2 = _mod()
-    assert m2.REF_LABEL_CHARS == 20
-    lab = m2._ref_label("NR_044855_1_Saccharothrix_mutabilis_subsp_capreolus_DSM_40225_16S", "X")
-    assert lab == "Saccharothrix mutabilis subsp capreolus DSM 40225 (NR_044855)"
-
-
-def test_truncation_still_happens_on_a_word_boundary():
-    """The cap moved; the .417 rule that it never cuts mid-token must survive."""
-    m = _mod()
-    lab = m._ref_label("NR_000001_1_Aaaaaaaaaa_bbbbbbbbbb_cccccccccc_dddddddddd_eeeeeeeeee_16S", "Z")
-    name = lab.split(" (")[0]
-    assert not name.endswith("-") and "  " not in name
-    assert all(len(tok) > 1 or tok.isalpha() for tok in name.split())

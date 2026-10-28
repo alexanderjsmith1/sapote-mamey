@@ -1,6 +1,6 @@
 # Mode B gene-first and 48-section manual
 
-*Current to bundle v9.7.459 · engine Mamey 1.9.177.*
+*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
 
 The machine contract and the verifier are the authority; this page explains them.
 

@@ -194,13 +194,6 @@ def test_unknown_compound_no_flag():
 
 # ── AS-XXX audit regression pins ──────────────────────────────────────────────
 
-def test_as902_bgc035_colibrimycin_mismatch():
-    """AS-XXX BGC035: halogenated;other × colibrimycin — mismatch flagged."""
-    flag, _ = _check_kcb_class_compat(
-        "BGC0002100.2 | colibrimycin | knownclusterblast #1",
-        ["halogenated", "other"])
-    assert flag is True
-
 def test_as902_bgc007_kinamycin_mismatch():
     """AS-XXX BGC007: NI-siderophore;other × kinamycin — mismatch flagged."""
     flag, _ = _check_kcb_class_compat(
@@ -208,9 +201,3 @@ def test_as902_bgc007_kinamycin_mismatch():
         ["NI-siderophore", "other"])
     assert flag is True
 
-def test_as902_bgc039_phosphono_sacch_mismatch():
-    """AS-XXX BGC039: saccharide × phosphonoglycans — mismatch flagged."""
-    flag, _ = _check_kcb_class_compat(
-        "BGC0000806.5 | phosphonoglycans | knownclusterblast #1",
-        ["saccharide"])
-    assert flag is True

@@ -1,5 +1,5 @@
-version=9.7.459
-build=20261027v97459a
+version=9.7.460
+build=20261027v97460a
 engine=1.9.177
-patch=Metadata as deposited.; Defaults and help.; Figures.; Smaller fixes.; CI.; Generated surfaces
+patch=Metadata as deposited.; Mode B ingest.; No hidden package scans.; doctor; Figures.; Tests.; Generated surfaces
 tier=code

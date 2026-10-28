@@ -52,8 +52,8 @@ def test_missing_ijson_is_not_called_optional(synthetic_bundle, monkeypatch, cap
 
 def test_only_optional_items_missing_keeps_the_old_wording(synthetic_bundle, monkeypatch, capsys):
     _absent(monkeypatch, "matplotlib")      # an optional extra; ijson and reportlab stay as the environment has them
-    if importlib.util.find_spec("ijson") is None or importlib.util.find_spec("reportlab") is None:
-        pytest.skip("needs ijson and reportlab installed")
+    if any(importlib.util.find_spec(m) is None for m in ("ijson", "reportlab", "yaml")):
+        pytest.skip("needs the core dependencies ijson, reportlab and PyYAML installed")
     status, out = _doctor(capsys)
     summary = _summary(out)
     assert "optional items only" in summary and "core dependency" not in summary

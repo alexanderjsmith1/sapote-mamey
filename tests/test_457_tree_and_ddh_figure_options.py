@@ -70,8 +70,8 @@ def test_metadata_from_ncbi_records_follows_tip_label_rules(tmp_path):
     assert rc == 0
     rows = {r["tip"]: r for r in _rows(out)}
     assert [r["tip"] for r in _rows(out)] == ["SYN-1", "GCF_000000001.1", "GCF_000000002.1", "GCF_000000003.1", "GCF_000000009.1"]
-    assert rows["GCF_000000001.1"]["label_concise"] == "Synthetica alpha DSM 1 [Type] (GCF_000000001.1)"
-    assert rows["GCF_000000002.1"]["label_concise"] == "Synthetica beta X2 (GCF_000000002.1)"   # strain already in the name
+    assert rows["GCF_000000001.1"]["label_concise"] == "Synthetica alpha DSM 1 [Type] [GCF_000000001.1]"
+    assert rows["GCF_000000002.1"]["label_concise"] == "Synthetica beta X2 [GCF_000000002.1]"   # strain already in the name
     assert "[Type]" not in rows["GCF_000000003.1"]["label_concise"]
     assert rows["GCF_000000001.1"]["geography_display"] == "Chile"
     assert rows["GCF_000000002.1"]["source_display"] == "host: Apis mellifera"
@@ -79,7 +79,7 @@ def test_metadata_from_ncbi_records_follows_tip_label_rules(tmp_path):
     assert rows["GCF_000000009.1"]["role"] == "OUTGROUP" and rows["SYN-1"]["role"] == "QUERY"
     assert rows["SYN-1"]["label_concise"] == "Synthetica sp. SYN-1"
     receipt = json.loads((tmp_path / "meta_receipt.json").read_text())
-    assert receipt["summary"]["no_deposited_source_or_country"] == ["Synthetica gamma (GCF_000000003.1)"]
+    assert receipt["summary"]["no_deposited_source_or_country"] == ["Synthetica gamma [GCF_000000003.1]"]
     out_hash = {Path(o["path"]).name: o["sha256"] for o in receipt["outputs"]}
     assert out_hash["meta.tsv"] == hashlib.sha256(out.read_bytes()).hexdigest()
     assert any(Path(i["path"]).name == "ncbi.json" for i in receipt["inputs"])

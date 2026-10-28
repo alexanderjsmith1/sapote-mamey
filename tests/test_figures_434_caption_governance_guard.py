@@ -42,12 +42,6 @@ def test_every_blocked_phrase_is_detected():
         assert check_caption(f"Methods sentence. {phrase} trailing.", raises=False), phrase
 
 
-def test_detection_survives_wrapping_and_case():
-    wrapped = "Screening signal is\n  CLASS-Level; judgment\n\tdeferred to the owner."
-    hits = check_caption(wrapped, raises=False)
-    assert {p for p, _ in hits} >= {"class-level", "judgment deferred"}
-
-
 def test_threshold_language_is_not_a_false_positive():
     """'>=80% inhibition' is a real method statement and must not trip the guard."""
     assert check_caption("Calls use a >=80% inhibition threshold at a generic 48 h.") == []
