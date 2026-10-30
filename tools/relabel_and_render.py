@@ -30,9 +30,17 @@ def _canonical_as_query(name):
     return canon
 
 
-if __name__ == "__main__":
-    treefile, gdir, outpng, title = sys.argv[1:5]
-    og_selector = sys.argv[5] if len(sys.argv) > 5 else None
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("treefile")
+    parser.add_argument("genomes_dir")
+    parser.add_argument("outpng")
+    parser.add_argument("title", help="title lines separated by ||")
+    parser.add_argument("outgroup_substr", nargs="?", default=None)
+    args = parser.parse_args(argv)
+    treefile, gdir, outpng, title = args.treefile, args.genomes_dir, args.outpng, args.title
+    og_selector = args.outgroup_substr
     RENDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "render_clean_tree.py")
     PY = sys.executable
 
@@ -166,3 +174,7 @@ if __name__ == "__main__":
     r = subprocess.run(cmd, capture_output=True, text=True)
     print(r.stdout[-300:], r.stderr[-300:] if r.returncode else '', sep="\n")
     sys.exit(r.returncode)
+
+
+if __name__ == "__main__":
+    main()

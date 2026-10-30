@@ -1,23 +1,29 @@
 """Public examples must use the real CLI argument contract; no tools are run."""
 import re
+import shlex
 from pathlib import Path
 import pytest
 from mamey.cli import build_parser
 
 ROOT=Path(__file__).resolve().parents[1]
 
-@pytest.mark.parametrize('document',['README.md','docs/COMPANION_CLASS_EVIDENCE.md'])
+@pytest.mark.parametrize('document',['docs/COMPANION_CLASS_EVIDENCE.md'])
 def test_new_reader_commands_have_parseable_package_arguments(document):
     source=(ROOT/document).read_text()
     parser=build_parser()
-    for command in ('gecco-crosscheck','export-metabolomics','two-proof-rescue'):
-        assert re.search(r'\b'+command+r' --package <package>',source)
-        args=[command,'--package','synthetic-package']
-        if command=='gecco-crosscheck':args.extend(['--zip','synthetic.zip'])
-        elif command=='export-metabolomics':args.extend(['--source-zip','synthetic.zip'])
-        else:args.extend(['--policy','nonks_position_v1','--scorecard','synthetic.tsv'])
-        parsed=parser.parse_args(args)
-        assert parsed.package=='synthetic-package' and callable(parsed.func)
+    seen=set()
+    for block in re.findall(r'```bash\n(.*?)\n```', source, re.S):
+        tokens=shlex.split(block.replace('\\\n', ' '))
+        if tokens[:2] != ['python', 'mamey_run.py']:
+            continue
+        parsed=parser.parse_args(tokens[2:])
+        assert parsed.package=='runs/EXAMPLE/package' and callable(parsed.func)
+        seen.add(tokens[2])
+    assert {'gecco-crosscheck','export-metabolomics','two-proof-rescue'} <= seen
+
+
+def test_landing_page_routes_to_the_command_guide():
+    assert '](docs/COMPANION_CLASS_EVIDENCE.md)' in (ROOT / 'README.md').read_text()
 
 
 def test_completed_workflow_guides_are_indexed_inside_source():

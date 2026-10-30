@@ -160,6 +160,9 @@ def parse_gbk_features(gbk_text: str) -> list[GBKFeature]:
                     value = value[1:]
             _append_qualifier(current["qualifiers"], key, value)
             current_key = key
+        elif current_key is None and line.startswith("                     "):
+            # GenBank wraps compound locations before the first qualifier.
+            current["location"] += line.strip()
         elif current_key and line.startswith("                     "):
             cont = line.strip()
             if cont.endswith('"'):

@@ -65,7 +65,9 @@ def _parse(text):
     # ValueError for unsupported Newick; this matches that convention. 89 zero-byte .newick files
     # exist in this workspace (BiG-SCAPE writes one per singleton GCF), so degenerate input is a
     # routine condition, not an edge case.
-    s = text.strip().rstrip(';').strip()
+    s = text.strip()
+    if s.endswith(';'):
+        s = s[:-1].rstrip()
     pos = 0
     if not s:
         raise ValueError("no Newick tree to parse (empty or whitespace-only input)")
@@ -101,7 +103,10 @@ def _parse(text):
             while pos < len(s) and s[pos] not in '(),;':
                 pos += 1
         return n
-    return node()
+    root = node()
+    if pos != len(s):
+        raise ValueError(f"trailing Newick content at offset {pos}; expected one complete tree")
+    return root
 
 
 def bipartitions(root, restrict=None):
@@ -203,13 +208,21 @@ def main(argv=None):
         labels = [os.path.basename(os.path.dirname(t)) or os.path.basename(t)
                   for t in tree_files]
 
-    identities = [(stat.st_dev, stat.st_ino) for stat in (os.stat(tf) for tf in tree_files)]
-    if len(set(identities)) != len(identities):
-        sys.stderr.write("DUPLICATE_TREE_INPUT: give distinct tree files\n")
+    try:
+        identities = [(stat.st_dev, stat.st_ino) for stat in (os.stat(tf) for tf in tree_files)]
+        if len(set(identities)) != len(identities):
+            sys.stderr.write("DUPLICATE_TREE_INPUT: give distinct tree files\n")
+            return 1
+        if len(set(labels)) != len(labels):
+            labels = [f"{index + 1}:{label}" for index, label in enumerate(labels)]
+        texts = {}
+        for lab, tf in zip(labels, tree_files):
+            with open(tf) as handle:
+                texts[lab] = handle.read()
+            _parse(texts[lab])
+    except (OSError, UnicodeError, ValueError) as exc:
+        sys.stderr.write(f"TREE_INPUT_ERROR: {exc}\n")
         return 1
-    if len(set(labels)) != len(labels):
-        labels = [f"{index + 1}:{label}" for index, label in enumerate(labels)]
-    texts = {lab: open(tf).read() for lab, tf in zip(labels, tree_files)}
     emit("=== MLSA outgroup-stability scan (ingroup RF; 0 = identical topology) ===")
     labs = list(texts)
     worst = 0

@@ -321,8 +321,9 @@ def _match_member(members: list[str], contig: str, region: str = "") -> Optional
         if region_no is not None:
             suffix = f"_c{region_no}.txt"
             matches = [m for m in members if Path(m).name.lower().endswith(suffix)]
-            if matches:
-                return matches[0]
+            if len(matches) > 1:
+                raise ValueError("region matches multiple knownclusterblast files; pass --contig or --kcb-txt")
+            return matches[0] if matches else None
         if len(members) > 1:
             raise ValueError(
                 "multiple knownclusterblast regions found; pass --contig and --region "
@@ -335,9 +336,9 @@ def _match_member(members: list[str], contig: str, region: str = "") -> Optional
     if region_no is not None:
         suffix = f"_c{region_no}.txt"
         scoped = [m for m in exact if Path(m).name.lower().endswith(suffix)]
-        if scoped:
-            return scoped[0]
-        return None
+        if len(scoped) > 1:
+            raise ValueError("contig and region match multiple knownclusterblast files; pass the full contig or --kcb-txt")
+        return scoped[0] if scoped else None
     if len(exact) > 1:
         choices = ", ".join(Path(m).name for m in exact[:5])
         raise ValueError(

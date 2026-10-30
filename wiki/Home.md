@@ -1,80 +1,19 @@
 # Sapote–Mamey
 
-**Claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters (BGCs).**
+Sapote–Mamey turns antiSMASH results into auditable biosynthetic evidence packages.  
+Mamey extracts evidence using defined rules; Sapote guides interpretation.  
+The software describes biosynthetic capacity and supports review.  
+Similarity does not establish identity, and missing evidence is not absence.  
+This wiki helps researchers run the software and interpret its outputs.
 
-*Current to bundle v9.7.460 · engine Mamey 1.9.177*
+## Choose a starting point
 
-Sapote–Mamey turns antiSMASH output into auditable, claim-safe biosynthetic evidence packages and
-interpretations. It is built in two layers, and the boundary between them is deliberate:
+- [Understand what the software does](What-It-Does-and-Limitations.md).
+- [Install and run your first analysis](Quick-Guide.md); check [prerequisites](Prerequisites.md).
+- [Run the pipeline](Run-Pipeline.md) and consult the [User Manual](User-Manual.md) to read results.
+- Choose an analysis: [Mode B](Mode-B.md), [BLASTp](BLASTp-Novelty.md), [gene cluster families](BiG-SCAPE-GCF-Networks.md), [phylogenetic placement](Phylogenetic-Placement.md), [fungal phylogenetics](Fungal-Phylogenetics.md), [domain and scan prevalence](Domain-and-Scan-Prevalence.md), or the [bioassay activity channel](Bioassay-Activity-Channel.md).
+- [Find a term](Glossary.md), a [concept](Concepts-Q-and-A.md), or a [common mistake](Common-Mistakes.md).
+- [Troubleshoot a run](Troubleshooting-Field-Notes.md).
+- [Review the retired Encyclopedia](Encyclopedia.md) for historical context.
 
-- **Mamey** — the executable BGC-analysis module. A deterministic Python engine that extracts and
-  records source-derived measurements and evidence states: BGC inventory, boundary tiers, KCB
-  triage, per-gene comparison evidence, and figures. Given the same inputs and settings it
-  applies the same extraction rules and defers biological judgment. Timestamps, software
-  versions and optional-stage results can still change output bytes.
-- **Sapote** — the governed post-extraction judgment workflow. It uses Mamey's sealed evidence
-  packages to author gene-by-gene Mode B cards, ecological synthesis, and deliverables under hard
-  claim-safety rules.
-
-**Engine motto: deterministic extraction, judgment deferred.**
-
----
-
-## Choose the task first
-
-Use the [human task router](../docs/USER_TASK_ROUTER.md) to select the workflow, inputs,
-outputs and completion limits. Its [JSON companion](../docs/USER_TASK_ROUTER.json) helps assistants
-route the same requests. For strain PowerPoint and gene-table companions, request the
-**Sapote-Mamey Strain slides builder** (`tools/strain_slides.py`) and read the
-[strain slides guide](../docs/STRAIN_SLIDES.md). A filename tag alone does not reproduce a
-version-specific build profile.
-
-## Read in this order
-
-| Start | Page | What it gives you |
-|---|---|---|
-| **1** | **[Start with your file](../docs/READER_START_HERE.md)** | Pick the guide for the file you have: code, antiSMASH result or saved package. Start here. |
-| **2** | **[Quick Guide](Quick-Guide.md)** | Installation, the run command, key flags, the deliverable menu. |
-| **3** | **[User Manual](User-Manual.md)** | The consolidated operating manual — install → running a strain → reading the output → configuration → engine internals. |
-| **4** | **[Concepts Q&A](Concepts-Q-and-A.md)** | The "why does it work this way" companion, in plain language. |
-| **5** | **[Encyclopedia](Encyclopedia.md)** | The deep reference — 13 volumes, engine internals through type-strain analyses. |
-| — | **[Glossary](Glossary.md)** | The single canonical source for every term. Other pages point here rather than redefining terms. |
-| — | **[Common Mistakes](Common-Mistakes.md)** | Wrong ZIP type, stale antiSMASH, missing dependencies. Read this first when something goes wrong. |
-
-## Installing
-
-| Page | Covers |
-|---|---|
-| **[Prerequisites](Prerequisites.md)** | Python-side dependencies, offline wheels, the bundle tiers. |
-| **[External Tools & Databases](External-Tools-and-Databases.md)** | The external binaries and reference databases, with the version of record, run-defining parameters, and a version-matched citation for each — the reproducibility spine of the Methods. **These binaries are not shipped in the bundle**; that page has the conda recipes and the environment variables the drivers read. |
-
-## Workflows
-
-| Page | Covers |
-|---|---|
-| **[Phylogenetic Placement](Phylogenetic-Placement.md)** | Placing query sequences onto a fixed reference tree (MAFFT → RAxML-NG → EPA-ng → gappa), and how to read likelihood-weight ratios and pendant lengths. |
-| **[Make and review figures](../docs/FIGURES_START_HERE.md)** | Choose a route from existing package, plotted-data, gene-map or tree inputs; retain data, caption/methods and actual review evidence. |
-| **[Mode B](Mode-B.md)** | Choose a named authoring profile and distinguish native lead material, authored interpretation and verification. |
-
----
-
-## Claim-safety — read this before interpreting any output
-
-Every claim the pipeline makes is **capacity-level**. It reports "biosynthetic capacity consistent
-with class X", never "produces compound Y".
-
-- A KnownClusterBlast hit is **similarity, not identity**.
-- Bioactivity metadata is optional **strain-level** context, never pinned to a single BGC without
-  governed linkage.
-- **Absence of recorded evidence is never read as biological absence.** Missing is not negative.
-- Marker/16S phylogenetic placement indicates a **neighborhood, not a species assignment**.
-- Expression is "unknown" without culture data.
-
-Mamey is the factual floor; Sapote is the interpretive ceiling. The contract between them is what
-keeps "what the data says" from blurring into "what we think it means".
-
----
-
-## License
-
-Code is MIT; documentation is CC-BY-4.0. See the repository `LICENSE` and `LICENSE-DOCS.txt`.
+Code is MIT; documentation is CC-BY-4.0. See the bundle licenses.

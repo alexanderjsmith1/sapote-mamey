@@ -352,17 +352,26 @@ def explore_strain(strain_dir: str | Path, *, bundle_root: Path | None = None,
 
     # Step 1 — KCB front page
     try:
-        frontpage_hits = _kcb_frontpage.read_frontpage(str(strain_dir))
-        anchor_map = _kcb_anchor_to_region_id(strain_dir)
-        _unmapped = 0
-        for h in frontpage_hits:
-            anchor = h.get("region")
-            if anchor in anchor_map:
-                h["region"] = anchor_map[anchor]
-            else:
-                _unmapped += 1  # keep the raw anchor as a fallback rather than dropping the hit
-        report["steps"]["kcb_frontpage"] = {"status": "RAN", "n_hits": len(frontpage_hits),
-                                             "n_unmapped_anchors": _unmapped}
+        frontpage_sources = [path for path in glob.glob(f"{strain_dir}/**/regions.js", recursive=True)
+                             if "MACOSX" not in path]
+        if frontpage_sources:
+            frontpage_hits = _kcb_frontpage.read_frontpage(str(strain_dir), strict=True)
+            anchor_map = _kcb_anchor_to_region_id(strain_dir)
+            _unmapped = 0
+            for h in frontpage_hits:
+                anchor = h.get("region")
+                if anchor in anchor_map:
+                    h["region"] = anchor_map[anchor]
+                else:
+                    _unmapped += 1
+            report["steps"]["kcb_frontpage"] = {"status": "RAN", "n_hits": len(frontpage_hits),
+                                                 "n_unmapped_anchors": _unmapped}
+        else:
+            frontpage_hits = []
+            report["steps"]["kcb_frontpage"] = {
+                "status": "SOURCE_UNAVAILABLE", "n_hits": None, "n_unmapped_anchors": None,
+                "skipped_reason": "regions.js not available; front-page evidence is unavailable, not a negative result.",
+            }
     except Exception as e:
         frontpage_hits = []
         report["steps"]["kcb_frontpage"] = {"status": "ERRORED", "error": f"{type(e).__name__}: {e}"}
@@ -452,6 +461,9 @@ def render_explore_report_md(report: dict, strain_name: str = "") -> str:
     lines = [f"# Genome exploration — {strain_name or report.get('strain_dir', '')}", ""]
     lines.append("Steps run: " + ", ".join(
         f"{k}={v.get('status')}" for k, v in report["steps"].items()))
+    for channel, state in report["steps"].items():
+        if state.get("status") == "SOURCE_UNAVAILABLE":
+            lines.append(f"{channel}: {state.get('skipped_reason', 'source unavailable')}")
     lines.append("")
     lines.append("## Priority regions (explore-first order)")
     if not report["priority_regions"]:
@@ -499,9 +511,10 @@ def explore_command(args) -> int:
             emit(f"ERROR: triage-raw input is not a valid zip: {args.input_zip}",
                   file=__import__("sys").stderr)
             return 1
-    if not strain_dir:
-        emit("mamey explore: supply --strain-dir <extracted antiSMASH dir> "
-              "or --input-zip <antiSMASH.zip>", file=__import__("sys").stderr)
+    if not strain_dir or not Path(strain_dir).is_dir():
+        message = (f"TRIAGE_SOURCE_UNAVAILABLE: source directory not found: {strain_dir}"
+                   if strain_dir else "mamey explore: supply --strain-dir <extracted antiSMASH dir> or --input-zip <antiSMASH.zip>")
+        emit(message, file=__import__("sys").stderr)
         return 1
 
     report = explore_strain(strain_dir, top_n=getattr(args, "top_n", 5),

@@ -1,5 +1,8 @@
 # The run pipeline — what happens inside `mamey_run.py run`
 
+Understand the stages of the run command.  
+This page is for operators and readers interpreting run outputs.
+
 **Motto: deterministic extraction, judgment deferred.** Tier 1 (Mamey, Python) extracts and
 organizes evidence; Sapote, the judgment workflow, interprets it. Nothing in this
 pipeline makes a structural or bioactivity claim — outputs are class-level hypotheses routed for
@@ -14,15 +17,16 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
 ## The six stages
 
 1. **Intake / parse** (`parsers.py`, `antismash_evidence.py`) — the antiSMASH output ZIP is parsed;
-   each region becomes one `BGCRecord` with a stable `bgc_id` locked at parse time (the node-naming
-   rule: every claim traces to a stable BGC node id). KnownClusterBlast / RiPP / Pfam / TIGRFAM
+   each region becomes one `BGCRecord` with a parse-time `bgc_id`. A claim about an individual
+   locus also needs its bound `strain / full node-or-contig / region / BGC alias` identity; the alias
+   alone is not a physical identity. KnownClusterBlast / RiPP / Pfam / TIGRFAM
    evidence status is read. JSON handling defaults to `--json-evidence bounded` (streamed via the
    vendored ijson, wall-clock capped) with TXT-only fallback; `full` mode refuses JSON files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`).
 2. **Ten source-derived scans** (`source_scans.py`) — class triggers (CCTT), chitinase context
    (CGAD), resistance tiers, TFBS, RiPP maturation (UMED), bldA/TTA codon usage, cassettes, and
    more, producing a `SourceScanBundle`. `rggmci.py` adds RG-GMCI: homology-guided candidate links between
-   fragments on different contigs. A link is not a contig join; a HIGH label needs two
-   independent lines of evidence. Scan marker definitions increasingly come from a central registry
+   fragments on different contigs. A link is not a contig join; HIGH is a computational category,
+   not proof of physical linkage. Scan marker definitions increasingly come from a central registry
    (`registry_detector.py` / `registry_schema.py`) instead of hardcoded patterns.
 3. **Scoring / triage** (`scoring.py::triage_bgcs`) — auto-floor AB/AF/novelty **routing priors**
    (explicitly NOT final scores), CCTT diagnostic bonuses, standing-rule downgrades from

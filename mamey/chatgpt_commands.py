@@ -30,7 +30,6 @@ import sys
 from pathlib import Path
 # v9.7.410 (CLAUDE_410 savefig OOM sweep): clamp publication DPI under the Agg pixel
 # ceiling before every raster write. See mamey/render_safe.py::safe_savefig_dpi.
-from .render_safe import safe_savefig_dpi as _safe_dpi
 
 
 def _atomic_write_text(path, text, encoding: str = "utf-8") -> None:
@@ -56,8 +55,8 @@ def render_figures_command(args) -> int:
     """Render figures from a sealed Mamey package (post-seal, ChatGPT-safe).
 
     Emits:
-      - top_antibacterial_leads.png
-      - top_antifungal_leads.png
+      - top_antibacterial_leads.png / .svg
+      - top_antifungal_leads.png / .svg
       - figure_manifest.csv
       - FIGURE_QA.md
       - NO_FIGURES_RENDERED.md  (if matplotlib absent or render fails)
@@ -209,51 +208,63 @@ def render_figures_command(args) -> int:
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-        def _bar_figure(ranked: list, score_col: str, title: str, fname: str, color: str) -> bool:
-            labels = [_label(r) for r in ranked]
-            scores = [_score(r, score_col) for r in ranked]
-            if not scores:
-                return False
-            h = max(4.0, len(labels) * 0.45)
-            width = max(10.0, 7.0 + max(map(len, labels), default=0) * 0.065)
-            fig, ax = plt.subplots(figsize=(width, h))
-            y = list(range(len(labels)))
-            ax.barh(y, scores, color=color, edgecolor="#333", linewidth=0.6)
-            ax.set_yticks(y)
-            ax.set_yticklabels(labels, fontsize=8)
-            ax.invert_yaxis()
-            ax.set_xlabel(f"{title} score (DAPR auto)", fontsize=9)
-            ax.set_title(title, fontsize=11, fontweight="bold")
-            ax.grid(axis="x", linestyle="--", alpha=0.4)
-            plt.tight_layout()
-            out_png = outdir / fname
-            fig.savefig(str(out_png), dpi=_safe_dpi(fig, 120), bbox_inches="tight")
-            w_px = int(fig.get_size_inches()[0] * 120)
-            h_px = int(fig.get_size_inches()[1] * 120)
-            plt.close(fig)
-            size = out_png.stat().st_size
-            manifest_rows.append({
-                "filename": fname,
-                "source_table": triage_csv.name,
-                "row_count": len(ranked),
-                "dimensions": f"{w_px}x{h_px}",
-                "render_status": "OK",
-                "file_bytes": size,
-            })
-            qa_lines.append(f"[PASS] {fname}  size={size} bytes  rows={len(ranked)}")
-            return True
+        def _bar_figure(ranked: list, score_col: str, title: str, fname: str) -> bool:
+            from .figure_theme import apply_theme, resolve_palette, save_figure_pair
+            with matplotlib.rc_context():
+                apply_theme(plt, profile="manuscript")
+                labels = [_label(r) for r in ranked]
+                scores = [_score(r, score_col) for r in ranked]
+                if not scores:
+                    return False
+                import textwrap
+                wrapped_labels = [textwrap.fill(label, width=36, expand_tabs=False, replace_whitespace=False,
+                                                drop_whitespace=False, break_on_hyphens=False)
+                                  for label in labels]
+                h = max(4.0, 1.4 + sum(0.18 + 0.16 * len(label.splitlines())
+                                      for label in wrapped_labels))
+                fig, ax = plt.subplots(figsize=(6.2, h))
+                y = list(range(len(labels)))
+                palette = resolve_palette()
+                color = palette["navy"] if score_col == "AB_auto" else palette["teal"]
+                ax.barh(y, scores, color=color, edgecolor="#333", linewidth=0.6)
+                ax.set_yticks(y)
+                ax.set_yticklabels(wrapped_labels, fontsize=9)
+                ax.tick_params(axis="x", labelsize=9)
+                ax.invert_yaxis()
+                ax.set_xlabel("DAPR auto score", fontsize=9)
+                ax.set_title(textwrap.fill(title, width=35, break_on_hyphens=False),
+                             fontsize=11, fontweight="bold")
+                ax.grid(axis="x", linestyle="--", alpha=0.4)
+                plt.tight_layout()
+                out_png = outdir / fname
+                save_figure_pair(fig, out_png.with_suffix(""), profile="manuscript")
+                from PIL import Image
+                with Image.open(out_png) as image:
+                    w_px, h_px = image.size
+                plt.close(fig)
+                size = out_png.stat().st_size
+                manifest_rows.append({
+                    "filename": fname,
+                    "source_table": triage_csv.name,
+                    "row_count": len(ranked),
+                    "dimensions": f"{w_px}x{h_px}",
+                    "render_status": "OK",
+                    "file_bytes": size,
+                })
+                qa_lines.append(f"[PASS] {fname}  size={size} bytes  rows={len(ranked)}")
+                return True
 
         ok = _bar_figure(
             ab_ranked, "AB_auto",
-            f"Top {top_n} Antibacterial Leads -- {strain_name}",
-            "top_antibacterial_leads.png", "#2c6fad",
+            f"Top {len(ab_ranked)} Antibacterial Leads -- {strain_name}",
+            "top_antibacterial_leads.png",
         )
         if ok:
             rendered_ok += 1
         ok = _bar_figure(
             af_ranked, "AF_auto",
-            f"Top {top_n} Antifungal Leads -- {strain_name}",
-            "top_antifungal_leads.png", "#2a9d5c",
+            f"Top {len(af_ranked)} Antifungal Leads -- {strain_name}",
+            "top_antifungal_leads.png",
         )
         if ok:
             rendered_ok += 1
@@ -646,7 +657,8 @@ def mode_b_command(args) -> int:
     for rank, row in enumerate(ranked, 1):
         bgc_id = row.get("BGC_ID", "?")
         bgc = bgcs_by_id.get(bgc_id, {})
-        contig = row.get("Contig", "").split(".")[0]
+        # Periods belong to the source identifier, including accession versions.
+        contig = row.get("Contig", "")
         region = bgc.get("antismash_region", "")
         prods = bgc.get("products", row.get("Products", ""))
         prods_str = "; ".join(prods) if isinstance(prods, list) else str(prods)

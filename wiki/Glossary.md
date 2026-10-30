@@ -1,319 +1,174 @@
 <!-- Mirror of docs/GLOSSARY.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 <!-- CANONICAL GLOSSARY -->
-> **CANONICAL.** This is the single Sapote-Mamey source for reader-facing term definitions. Scoped addenda may define only their own local codes: `troubleshooting/CELL_STATUS_CODE_GLOSSARY.md` covers workbook cell-status codes. The historical `user_guides/comprehensive_glossary.md` and `user_guides/sapote_mamey_wheel_glossary.md` are retained drift sources, not parallel authorities.
+# Sapote-Mamey glossary
 
-# Sapote-Mamey Bundle — Glossary
+Find a term from a result, report or command. Search this page with **Ctrl+F**
+(**Command+F** on Mac), or start with the core concepts below. Workbook cell codes
+have their own [cell-status glossary](../docs/troubleshooting/CELL_STATUS_CODE_GLOSSARY.md).
 
-This glossary covers abbreviations, codes, and terms used across Mamey output,
-Sapote judgment reports, workbooks, evidence interfaces, and release tooling.
-It is written for readers without a genomics or natural-products background.
-
-Definitions are stable. Numbers, formulas and field lists come from the named code or schema;
-check it before copying a number into a report.
-
-Two reading notes before you start:
-
-- **Claim-safe by design.** Throughout the bundle, biosynthetic predictions are written as *capacity* ("consistent with," "candidate," "predicted"), never as production claims. A cluster that *looks like* a vancomycin-class glycopeptide pathway is described as having "biosynthetic capacity consistent with a glycopeptide," not as "producing vancomycin." The glossary keeps that framing.
-- **Similarity is not identity.** Wherever a known compound name appears next to a cluster (usually via a KCB hit), it marks a retained reference similarity anchor, written with a leading "~" in reports (e.g. "~napyradiomycin"). It means "resembles," not "is."
-
----
+This is the canonical glossary. Formulas and thresholds describe the named
+implementation; check that source when comparing results from different builds.
 
 ## Core concepts
 
-*The sixteen load-bearing terms the rest of this glossary leans on. Each is given a full structured entry; the enumerations that follow (BGC classes, status codes, resistance families, and so on) stay in scan-friendly tables. If you read only one section, read this one — every figure, caption, and lead ranking in the bundle is built from these concepts. Field order is consistent across entries: definition first, then what it operates on, outputs, the claim ceiling, related terms, where it surfaces, and version notes.*
-
----
-
 ### 1. BGC — biosynthetic gene cluster
 
-- **Full name:** Biosynthetic gene cluster.
-- **Aliases:** cluster; antiSMASH region call. `BGC###` is a source-scoped display alias, not the primary identity.
-- **Category:** Base unit of analysis.
-- **Definition:** An antiSMASH-called genomic region containing genes consistent with specialized-metabolite biosynthetic capacity. Assembly fragmentation can split one biological pathway across several region calls, so a BGC call is an analysis unit, not proof of one complete physical pathway.
-- **Operates on:** antiSMASH region calls on the assembled genome.
-- **Key fields:** strain, full `node_id`/`contig`, `antismash_region`/`region_number`, source-scoped `bgc_id`, `products`, and `edge_status`.
-- **Claim ceiling:** A BGC is a *capacity* statement — it shows what enzymes are encoded, not what compound is made. The presence of a cluster never establishes production.
-- **Evidence tier:** Structural (what is encoded).
-- **Related terms:** Edge status, corrected count, architecture confidence, products.
-- **Where you'll see it:** everywhere — `*_2_inventory.csv`, every board, every Mode B card.
-- **Guards:** every individual reference must display `strain / full node-or-contig / region / BGC alias`, in that order. If any component is unavailable, fail closed instead of guessing or falling back to the alias.
-- **Caveats:** a fragmented assembly splits one biological cluster across several BGC calls — this is what the rescue layer exists to detect.
-- **Plain English:** "A region call containing genes that may form part or all of one chemical-making pathway; its full genomic address always travels with it."
+An antiSMASH-called genome region containing genes associated with specialized
+metabolism. One biological pathway can span several calls in a fragmented assembly.
+The call describes encoded capacity; identifying a produced compound needs other evidence.
 
----
+Find it in `*_2_inventory.csv`. Identify each locus as
+**strain / full node-or-contig / region / BGC alias**, using one source record.
+The `BGC###` alias alone is local to that run.
 
 ### 2. KCB — KnownClusterBlast
 
-- **Full name:** KnownClusterBlast sweep.
-- **Aliases:** KCB hit; known-cluster match.
-- **Category:** Scan (similarity).
-- **Definition:** Scores each BGC against the MIBiG database of characterized clusters; a high cumulative score means the cluster resembles a known producer cluster.
-- **Operates on:** antiSMASH KnownClusterBlast output vs MIBiG.
-- **Key fields:** `kcb_top`, `kcb_cumulative`, KCB protein-hit count.
-- **Claim ceiling:** **Similarity, not identity.** A KCB hit marks a retained reference similarity anchor, written with a leading "~" (e.g. "~napyradiomycin") — it means *resembles*, never *is*. KCB never licenses a compound-identity or production claim.
-- **Evidence tier:** Similarity signal; any downstream weight is versioned scoring policy.
-- **Related terms:** MIBiG, RG-GMCI, ~ (tilde), claim ceiling, KCB-dark.
-- **Where you'll see it:** triage board KCB columns; Mode B §KCB; every "~name" in a report.
-- **Guards:** the genome self-hit bug (a genome hitting its own deposited cluster) was fixed in v9.7.22 (`kcb_top` correctness).
-- **Caveats:** some genuinely bioactive clusters are *KCB-dark* (no database match) — marker-aware scoring exists so these aren't buried.
-- **Plain English:** "How much this cluster looks like something already in the books — a resemblance score, not an ID."
+An antiSMASH comparison with characterized clusters in MIBiG. The cumulative
+score and protein-hit count describe similarity to the reference cluster.
+A leading `~` before a reference compound name means “resembles.”
 
----
+Read the reference name, score and matched proteins together. “KCB-dark” means
+no reference match was found; other diagnostic evidence can still guide review.
 
 ### 3. Corrected BGC count
 
-- **Full name:** Corrected (truncation-weighted) BGC count.
-- **Aliases:** corrected count; defensible BGC inventory.
-- **Category:** Key metric.
-- **Definition:** A boundary-weighted inventory statistic used by the program to discount regions near contig ends; it is not an estimate of the fraction of each pathway recovered.
-- **Operates on:** the `edge_status` of every BGC in the assembly.
-- **Key fields / current engine formula:** **Interior × 1.0 + Edge × 0.5 + Full-contig × 0.25**, rounded to two decimals by `mamey/assembly.py::corrected_bgc_count`. This is a versioned engine rule, not a biological constant.
-- **Claim ceiling:** a heuristic summary, not a measured number of distinct pathways. Report it separately from raw region count and boundary distribution; compare only with matched input processing and settings.
-- **Evidence tier:** computed (deterministic rule).
-- **Related terms:** Edge status, interior %, assembly tier, RG-GMCI.
-- **Where you'll see it:** `*_2_inventory.csv`; strain-summary tables; every cohort figure's strain ordering.
-- **Guards:** Edge/Full-contig weights are fixed; do not re-derive the formula in downstream tools.
-- **Caveats:** fragment candidates can overlap, duplicate or belong to different pathways. The weights do not establish a mathematical lower bound on biological pathway count.
-- **Plain English:** "The program gives different weights to boundary categories. A weight of one-half does not mean half a pathway was recovered."
+A weighted summary of region boundary categories:
+**Interior × 1.0 + Edge × 0.5 + Full-contig × 0.25**, rounded to two decimals by
+`mamey/assembly.py::corrected_bgc_count`.
 
----
+Report it with the raw region count and boundary distribution. A weight of 0.5
+is a scoring rule, not a measurement that half a pathway was recovered.
+Use matched processing and settings when comparing these counts.
 
 ### 4. Edge status
 
-- **Full name:** Coordinate-derived Edge / Interior / Full-contig / Unknown boundary label.
-- **Aliases:** boundary status.
-- **Category:** Structural label (drives the corrected count).
-- **Definition:** A coordinate/topology heuristic for the region’s proximity to a contig boundary. Unknown contig length returns Unknown; a span at least 95% of the contig returns Full-contig before the circular-topology check; otherwise circular records return Interior and a linear/unknown-topology record within 5,000 bp of either end returns Edge.
-- **Operates on:** the position of the BGC relative to its contig ends.
-- **Key values:** **Interior** (does not trigger the current boundary tests, weight 1.0); **Edge** (near a contig end, weight 0.5); **Full-contig** (region span at least 95% of contig length, weight 0.25); **Unknown** (contig length unavailable/nonpositive; preserve missingness). These labels do not establish sequence completeness.
-- **Claim ceiling:** Edge and Full-contig clusters are restricted to architecture-class claims; only Interior clusters support fuller capacity statements.
-- **Evidence tier:** structural (observed from coordinates).
-- **Related terms:** corrected count, architecture confidence (A–E), terminus-truncation rescue, assembly tier.
-- **Where you'll see it:** inventory; triage board; the banner on every Edge/FC Mode B card.
-- **Guards:** an Edge region whose boundary sits *at* the contig terminus is the trigger for terminus-truncation rescue (v9.7.100).
-- **Caveats:** Boundary status is simpler than the A–E architecture grade. It describes geometry, not measured physical completeness; an Interior call does not establish a complete pathway.
-- **Plain English:** "How the called region sits relative to the contig ends, with a separate Unknown state when the length is unavailable."
+The called region's position relative to contig boundaries. Unknown contig
+length gives **Unknown**. A span of at least 95% of the contig gives **Full-contig**
+before topology is considered. Otherwise circular records give **Interior**;
+a linear or unknown-topology record within 5,000 bp of either end gives **Edge**.
 
----
+These labels describe geometry. Read the gene evidence separately when assessing
+whether a pathway is complete. Terminus-truncation rescue uses a boundary at the
+contig end as a trigger.
 
-### 5. Architecture confidence (A–E) and the three confidence axes
+<a id="5-architecture-confidence-ae-and-the-three-confidence-axes"></a>
+### 5. Architecture confidence (A–E) and the confidence axes
 
-- **Full name:** Architecture confidence grade; architecture capacity; class confidence; claim confidence.
-- **Aliases:** `Arch`; A–E code.
-- **Category:** Confidence framework.
-- **Definition:** The A–E grade is a source-derived structural reliability heuristic using boundary status, product/core annotations, length, optional strong KCB support and a guarded chemical-hybrid promotion. It is one of four distinct confidence-like measures; it does not measure physical completeness.
-- **Operates on:** boundary status, product/core annotations, region length, KCB score when supplied, and chemical-hybrid evidence when supplied.
-- **Key fields:** `Arch` (A–E structural grade); `Arch_Capacity` (the claim-safe class *name*, not a confidence); `Class_Conf` (confidence in that class call, HIGH/MOD/LOW); `claim_confidence` (overall lead-claim confidence).
-- **Claim ceiling:** each axis caps a *different* claim; a clean structure (Arch=A) does not raise the class-call confidence (Class_Conf) or the lead confidence.
-- **Evidence tier:** mixed (structural + judgment).
-- **Related terms:** edge status, claim ceiling, Mode B, WL tier.
-- **Where you'll see it:** `*_4_triage_board.csv`, reported side by side.
-- **Guards:** "Arch=A, Class_Conf=LOW" is **coherent, not contradictory** — a structurally clean locus whose product class is still uncertain.
-- **Caveats:** through v9.7.27 `Class_Conf` was mislabeled `Arch_Conf` (read as architecture-grade confidence, which it is not); renamed v9.7.28.
-- **Plain English:** "Four different 'how sure are we' numbers that answer four different questions — don't mash them into one."
+The A–E grade summarizes structural evidence from boundaries, annotations,
+length and selected supporting signals. It is separate from product-class
+confidence, architecture-grade confidence and lead confidence.
 
----
+`Arch=A, Class_Conf=LOW` can describe a structurally clear region whose class is
+uncertain. Keep the axes separate when reading a result. Older files can label
+class confidence `Arch_Conf`; check their schema before comparing columns.
 
 ### 6. BGC-inventory assembly tier and fragmentation tier
 
-- **Full name:** BGC-inventory assembly tier; assembly fragmentation tier.
-- **Aliases:** `assembly_tier`; `fragmentation_tier`.
-- **Category:** Genome-level QC.
-- **Definition:** Two separate descriptors. `assembly_tier` summarizes BGC-boundary recovery from the interior-BGC percentage. `fragmentation_tier` summarizes sequence contiguity from contig count and N50. Neither is a compound-confidence grade.
-- **Operates on:** interior-BGC percentage for `assembly_tier`; contig count and N50 for `fragmentation_tier`.
-- **Key thresholds:** `assembly_tier`: GOOD ≥70% interior, MODERATE ≥45%, POOR ≥20%, VERY_POOR <20%, or UNKNOWN. `fragmentation_tier`: CLOSED, CONTIGUOUS, DRAFT, FRAGMENTED, HIGHLY_FRAGMENTED, or UNKNOWN under the ordered bands in `mamey/assembly.py`.
-- **Claim ceiling:** fragmented or unknown contiguity weakens physical-completeness claims; raw and weighted counts do not establish a proven biological floor. It never licenses compound identity, production, or activity.
-- **Evidence tier:** computed (deterministic thresholds).
-- **Related terms:** corrected count, interior %, N50, edge status, assembly caveat.
-- **Where you'll see it:** strain summary; the assembly banner on every package.
-- **Guards:** do not infer sequence contiguity from `assembly_tier`; use `fragmentation_tier`. Genome-size or contamination warnings are separate advisory checks and do not alter extraction.
-- **Caveats:** `assembly_tier` is an unfortunately broad historical field name. A genome can have a favorable interior-BGC percentage while still being highly fragmented by contig/N50 criteria.
-- **Plain English:** "One label asks how many cluster calls avoid contig edges; the other asks how continuous the assembled genome is."
+`assembly_tier` summarizes the percentage of BGC calls away from contig edges.
+`fragmentation_tier` describes sequence contiguity using contig count and N50.
+A genome can score favorably on the first while remaining fragmented on the second.
 
----
+Use the boundary summary for BGC recovery and contig/N50 measures for genome
+contiguity. Genome-size and contamination warnings are separate checks.
 
 ### 7. RG-GMCI and the rescue layer
 
-- **Full name:** Reference-Guided Genome Mining Candidate Inference.
-- **Aliases:** RGGMCI; "the rescue layer."
-- **Category:** Scan / reconstruction (mandatory pre-triage for fragmented assemblies).
-- **Definition:** Homology-guided linkage proposing that two BGC fragments on different contigs are one split pathway, when they map to the same reference producer cluster in ClusterBlast/KnownClusterBlast output.
-- **Operates on:** antiSMASH ClusterBlast + KnownClusterBlast tables; per-BGC geometry.
-- **Key fields (v9.7.100):** `rggmci_score`, `rggmci_confidence` (HIGH/MODERATE/LOW); `db_kind` (knownclusterblast vs clusterblast vs excluded subclusterblast); `rescue_evidence_base` (BOTH_KCB_AND_CB / CLUSTERBLAST_ONLY / KNOWNCLUSTERBLAST_ONLY); `functional_rescue_class` (COMPLEMENTARY / BOTH_CORE / ACCESSORY_ONLY); `subject_tiling_verdict` (COMPLEMENTARY_SPLIT / OVERLAPPING_PARALOG / …); `terminus_truncation_rescue`.
-- **Claim ceiling:** **candidate inference — does not join contigs at the nucleotide level.** The bonus is routing priority, not claim confidence.
-- **Evidence tier:** routing/prioritization signal (capacity-level).
-- **Related terms:** FLBR, EFLS, KCB, db_kind, terminus-truncation rescue, functional rescue class.
-- **Where you'll see it:** `*_4A_RGGMCI_ranked_pairs.csv`; the workflow arrow (Parse → Scans → **RG-GMCI** → Boards); the "RG-GMCI context" line in Mode B.
-- **Guards:** promiscuous-hub down-weighting (a fragment linking to >4 partners is demoted); distant-reference penalty.
-- **Caveats:** a small severed-arm contig can belong to only one cluster, so where it pairs with several Edge regions the evidence base + functional class disambiguate; physical confirmation needs long-read / gap-PCR. **Reworked v9.7.100** to use the full ClusterBlast evidence rather than KnownClusterBlast alone.
-- **Plain English:** "Two broken pieces on different contigs probably came from the same cluster because they both resemble the same known cluster — a lead to chase, not a proven join."
+RG-GMCI proposes candidate relationships between fragments using reference
+similarity and gene context. Keep the candidate pair, supporting sources and
+recorded rule together. Its routing bonus changes review priority.
 
----
+The contigs remain separate sequences. Compare competing partner assignments
+and the actual supporting genes before interpreting a pair as one split locus.
+See the detailed rescue definitions below for the selected workflow's fields.
 
 ### 8. CCTT / T43 class-trigger framework
 
-- **Full name:** Compound-Class Trigger Table.
-- **Aliases:** T43-* triggers; cryptic-class triggers.
-- **Category:** Diagnostic scan (feeds marker-aware scoring).
-- **Definition:** A table of per-BGC gene/motif signals that flag specific biosynthetic classes — HAL (halogenase), LAN (lanthipeptide), TET (tetronate), PHO (phosphonate), NUC (nucleoside), ENE (enediyne), and others — independent of any KCB match.
-- **Operates on:** per-BGC domain/gene annotations.
-- **Key fields:** `cctt.counts` (hit count); `cctt.trigger_bgc_counts` (BGC-carrying count); the `T43-*` trigger IDs.
-- **Claim ceiling:** a trigger is a *signal*, not a product call; it raises routing priority (and can floor a KCB-dark cluster), never compound identity.
-- **Evidence tier:** diagnostic routing evidence; any downstream weight is versioned scoring policy.
-- **Related terms:** diagnostic floor, marker-aware scoring, CGAD, [E-signal].
-- **Where you'll see it:** the CCTT block in Mode B; marker columns on the board.
-- **Guards:** report hits **and** BGC spread — "T43-PHO 8 hits / 1 BGC" is one dedicated phosphonate locus, not a phosphonate-rich strain.
-- **Caveats:** through v9.7.27 only the hit count was shown ("T43-PHO ×8"), which misread as strain-level abundance.
-- **Plain English:** "Gene-level tripwires for specific chemistry — so a cluster gets credit for what its genes show even when no database matches it."
+CCTT/T43 signals flag genes or motifs associated with biosynthetic classes,
+such as HAL, LAN, TET, PHO, NUC and ENE. They can draw attention to regions with
+weak or unavailable KnownClusterBlast evidence.
 
----
+Report both the number of hits and the number of regions containing them.
+Several marker hits in one region are different from a marker spread across
+several regions.
 
 ### 9. Marker registry
 
-- **Full name:** Diagnostic-marker registry.
-- **Aliases:** marker bank; MMK IDs.
-- **Category:** Scoring infrastructure.
-- **Definition:** The curated set of per-BGC diagnostic markers (resistance folds, CCTT triggers, regulatory motifs) that marker-aware scoring reads, each with a stable ID so a score is traceable to the exact signal that produced it.
-- **Operates on:** per-BGC scan outputs.
-- **Key fields:** marker ID, marker class, the evidence-axis weight it carries.
-- **Claim ceiling:** a marker is evidence *for routing*; its presence is capacity-level and traceable, never a production claim.
-- **Evidence tier:** diagnostic (capacity-level).
-- **Related terms:** CCTT, diagnostic floor, real-anchor rule, evidence traceability.
-- **Where you'll see it:** the evidence-traceability block; marker columns on the board.
-- **Guards:** **real-anchor rule** — every marker keyword is audited against the strings antiSMASH *actually emits* (e.g. "nucleoside"), not textbook compound names (e.g. "nikkomycin").
-- **Caveats:** a marker firing is presence, not function — "presence ≠ function" applies.
-- **Plain English:** "A fixed, ID'd list of gene-level clues the scorer is allowed to use, each one traceable back to what triggered it."
+The diagnostic-marker registry gives each scoring signal a stable ID, class
+and weight. It connects a score to the annotation or motif that triggered it.
 
----
+Look for marker IDs in the board and evidence-traceability records. The
+real-anchor rule matches keywords to strings antiSMASH actually emits; use the
+recorded match when explaining a score.
 
 ### 10. Mamey triage tier / routing prior
 
-- **Full name:** Mamey triage tier (Exceptional / High / Medium / Low / Inventory).
-- **Aliases:** routing tier; lead tier. A downstream Wet-Lab score is a separate judgment-layer metric.
-- **Category:** Prioritization.
-- **Definition:** The engine's effort-allocation bucket derived from the largest of the antibacterial, antifungal, and novelty routing priors, followed by diagnostic floors and fail-safe downgrades.
-- **Operates on:** AB, AF, novelty, corroborated diagnostics, class policy, and scoring guards.
-- **Key thresholds:** current `mamey/scoring.py::triage_bgcs` uses Exceptional ≥85, High ≥70, and Medium ≥50. Below 50, the governed class policy selects Low or Inventory. These numbers are versioned implementation details.
-- **Claim ceiling:** **tier is about where to spend effort, never how confident a claim is** — raising a lead's tier never raises its claim ceiling.
-- **Evidence tier:** composite routing score.
-- **Related terms:** AB/AF/novelty routing priors, diagnostic floor, standing-rule downgrade, evidence axes.
-- **Where you'll see it:** the triage board's `tier`/lead-tier field and downstream lead lists.
-- **Guards:** a corroborated class-defining diagnostic can floor Low/Inventory to Medium; class-specific machinery and standing-rule guards may apply other bounded adjustments.
-- **Caveats:** precision, not recall — the tiers decide attention, not truth.
-- **Plain English:** "Which regions the engine routes toward attention first — a to-do prior, not a measured activity or truth score."
+The triage tier tells you where the engine suggests spending review effort.
+It uses the largest antibacterial, antifungal or novelty routing score, followed
+by diagnostic floors and other scoring rules.
 
----
+`mamey/scoring.py::triage_bgcs` uses **Exceptional ≥85**, **High ≥70** and
+**Medium ≥50**. Below 50, class policy selects **Low** or **Inventory**.
+Read these as prioritization categories rather than measured activity.
+A downstream Wet-Lab score is a separate metric.
 
 ### 11. Diagnostic bonus & diagnostic floor
 
-- **Full name:** Marker-aware diagnostic bonus; diagnostic floor.
-- **Aliases:** the floor; KCB-dark protection.
-- **Category:** Scoring rule.
-- **Definition:** Marker-aware scoring reads per-BGC diagnostics so that diagnostic-bearing clusters with unavailable or weak KCB comparison evidence are not buried by a KCB-only score; the **floor** can raise eligible, corroborated class-diagnostic candidates to Medium.
-  Tailoring-only exclusions and corroboration/cargo eligibility can prevent the floor; later
-  standing-rule or RiPP downgrades can override it. Presence of a marker does not guarantee a tier or activity.
-- **Operates on:** CCTT/resistance diagnostics + chitin context (CGAD).
-- **Key fields:** `AF_DIAGNOSTIC_TRIGGERS` (the antifungal markers that fire the floor); the floored tier.
-- **Claim ceiling:** the floor changes *routing*, not claim strength — a floored cluster is "worth screening," not "confirmed active."
-- **Evidence tier:** diagnostic routing rule.
-- **Related terms:** CCTT/T43-NUC, CGAD, KCB-dark, WL tier.
-- **Where you'll see it:** the score-rationale line where a cluster was floored.
-- **Guards:** the canonical worked case is a KCB-dark nucleoside cluster *with* chitin context (CGAD-positive) → antifungal bonus + floor to MEDIUM (the nikkomycin/polyoxin-style case a KCB-only scorer misses).
-- **Caveats:** the floor sets a *minimum*; it does not promote to HIGH.
-- **Plain English:** "A safety net so a real but unknown cluster isn't dumped just because the database has never seen it."
+A diagnostic bonus changes a routing score. A diagnostic floor can raise an
+eligible candidate to Medium when corroborated class evidence warrants attention
+despite weak or unavailable KCB evidence.
 
----
+Eligibility, tailoring-only exclusions and later standing-rule or RiPP downgrades
+still apply. Read the score-rationale record, including
+`AF_DIAGNOSTIC_TRIGGERS`, to see which rule affected that region.
 
 ### 12. Standing rules and workflow-scoped exclusions
 
-- **Full name:** Standing biological constraints.
-- **Aliases:** standing notes; scoped DOWNGRADE/exclusion rules. Informational and neutral states are not downgrades.
-- **Category:** Interpretation guard.
-- **Definition:** Versioned, scoped rules and informational notes that constrain interpretation. Consult each current registry record's status, action, scope and lead_blocking fields; do not infer a downgrade from its label or historical rationale.
-- **Operates on:** comparative/cross-habitat claim generation.
-- **Key members:** **saccharide** (a workflow-scoped display/routing exclusion). **hglE-KS-PREV-001** (informational registry note; separately, the current scorer can assign this standing-rule flag to an hglE product without any CCTT trigger and route it to the class-gated bottom tier). **multi-siderophore** (interpret with current context). **NAPAA** is neutral: neither downgraded, lead-blocking nor intrinsically excluded from comparative/ecological claims. Its former Nosema hypothesis remains retired.
-- **Claim ceiling:** use measured, source-bound cohort comparisons at their actual scope. Neutral/informational annotations do not establish habitat specificity, structural novelty, compound identity or activity; they also do not impose a blanket comparison ban.
-- **Evidence tier:** the named current rule and its scope; neutral/informational status alone does not override scoring.
-- **Related terms:** claim ceiling, CCSM, [E-signal].
-- **Where you'll see it:** the exclusions note on cohort/comparative figures.
-- **Guards:** new strains do not reopen a retired hypothesis without explicit re-grounding.
-- **Caveats:** exclusion from *comparison* is not a claim of biological unimportance — only that the signal is not ecologically discriminating.
-- **Plain English:** "Check what the current rule actually does in this workflow. A historical prevalence note is not a universal exclusion."
+A standing rule changes how a particular signal is used in a named workflow.
+Read its current scope: a historical prevalence note or neutral annotation does
+not automatically exclude a region from every comparison.
 
----
+For cohort comparisons, keep the selected rule, measured cohort and denominator
+with the result. Revisit an earlier interpretation when its evidence or scope changes.
 
 ### 13. Claim-safety vocabulary
 
-- **Full name:** Claim-safety vocabulary (the bundle's central discipline).
-- **Aliases:** capacity language; the claim ceiling.
-- **Category:** Interpretation discipline.
-- **Definition:** The fixed vocabulary governing how confident any statement may be: capacity not production, similarity not identity, missingness not absence.
-- **Operates on:** every report sentence.
-- **Key terms:** **Biosynthetic capacity** ("consistent with," never "produces"). **claim ceiling** (the max confidence a given evidence level allows). **~ (tilde)** ("resembles, is not"). **missingness vs absence** ("not found in this assembly" ≠ "gene absent"). **bioactivity metadata** (typed strain-level context, `NOT_SUPPLIED` when absent, never pinned to a BGC without governed linkage). **`[EG]`/`[VL]`** (evidence-grounded vs literature-verified).
-- **Claim ceiling:** this *is* the claim-ceiling machinery.
-- **Evidence tier:** governs all tiers.
-- **Related terms:** KCB, architecture confidence, standing-rule downgrade, evidence traceability.
-- **Where you'll see it:** every Mode B verdict; every caption.
-- **Guards:** missing/unrun evidence is never a measured negative. A governed, bound measured negative may be reported only for its named assay conditions; neither it nor a positive is attributed to a BGC without linkage.
-- **Caveats:** the discipline is mandatory, not stylistic — a production/identity phrasing is a defect, not a wording preference.
-- **Plain English:** "Use capacity language for sequence predictions and assay-scoped language for bound measurements; do not turn either into an unproved product or locus-activity claim."
+Use language that matches the evidence: sequence predictions describe capacity,
+reference comparisons describe similarity, and measured results name their assay
+conditions. Missing or unrun evidence stays marked as missing.
 
----
+`[EG]` means evidence-grounded and `[VL]` means literature-verified. A claim ceiling
+is the strongest statement the available evidence supports. Keep strain-level
+bioactivity with its material, assay and source; connecting it to an individual
+locus requires separate evidence.
 
 ### 14. Mode B
 
-- **Full name:** Mode B — full per-BGC interpretation protocol.
-- **Aliases:** Mode B card; expanded owner-review card.
-- **Category:** Sapote judgment protocol.
-- **Definition:** The current expanded per-BGC authoring protocol uses the canonical §1–§48 template. It begins with exact-locus identity and a gene-first evidence read, then carries architecture, channel-separated homology, tailoring, resistance, class, ecology, caveats, provenance, unresolved questions, and the final claim-safe verdict.
-- **Operates on:** a sealed Mamey package's per-BGC evidence.
-- **Key fields:** exact-locus identity, `document_state`, typed `evidence_state` holds, complete canonical gene roster, channel-separated BLASTp matrix when the finished profile is claimed, §28 provenance, §30 decision tree, and the final verdict.
-- **Claim ceiling:** Mode B applies — not relaxes — the claim ceiling; a CONFIRM verdict is "judged a genuine cluster," not "produces compound X."
-- **Evidence tier:** authored judgment; any downstream numeric weight is a versioned builder rule.
-- **Related terms:** evidence axes, lead classes, DAPR, FULL ANALYSIS MODE.
-- **Where you'll see it:** authored card Markdown, the judgment store/register, Mode B receipts, and compiled reports.
-- **Guards:** run `modeb-availability` before prose. Keep nr, ClusteredNR, and local Swiss-Prot separate; bind every gene by the canonical roster and protein sequence identity. Edge/Full-contig status changes caveats, not authoring depth.
-- **Caveats:** a generated scaffold, a mechanically valid card, and an ingested receipt are different states. None is scientific acceptance, release approval, or publication approval.
-- **Plain English:** "The deep per-cluster write-up that turns raw scan output into a judged, caveated lead."
+A written interpretation of one locus, built from its full gene roster and
+supporting sources. The default full48 profile uses **§1–§48**; the optional
+current50 v2 profile uses 50 sections. Follow the
+[authoring walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md) for the selected profile.
 
----
+The template, authored card, verification report and saved package record are
+different files. Keep `document_state`, typed evidence states and complete locus
+identity with the card. Distinguish nr, NCBI ClusteredNR and local Swiss-Prot matches.
 
 ### 15. Evidence axes & legacy lead classes (A / B / C)
 
-- **Full name:** Evidence axes; lead classes A/B/C.
-- **Aliases:** the scoring backbone.
-- **Category:** Prioritization framework.
-- **Definition:** A judgment-layer overlay that keeps independent lines of evidence legible instead of collapsing them into one biological claim. Historical cohort builders combined selected axes into A/B/C labels; that overlay is distinct from the current Mamey triage tier.
-- **Operates on:** architecture/completeness, KCB similarity, novelty, diagnostics, regulation, authored judgment, and other explicitly bound evidence.
-- **Key policy:** fixed weights, membership rules, and cohort totals are versioned builder outputs. Recompute them from the controlling builder and bound cohort; do not treat an old count or formula as a universal definition.
-- **Key classes:** A/B/C are retained legacy routing labels where a downstream workflow still emits them. The emitting artifact must identify its rule and denominator.
-- **Claim ceiling:** **raising a lead's class never raises its claim confidence** — class is about effort (precision), claim ceilings still cap assertions.
-- **Evidence tier:** composite routing.
-- **Related terms:** WL tier, Mode B, SARP, DAPR.
-- **Where you'll see it:** selected legacy/cohort lead tables and historical figure documentation.
-- **Guards:** never infer a current cohort count from this glossary; never translate a stronger lead class into a stronger product claim.
-- **Caveats:** the axes can disagree without contradiction — they measure different things.
-- **Plain English:** "Keep the different reasons for pursuing a region visible; if a workflow combines them, record exactly which rule and cohort it used."
+Evidence axes keep different reasons for pursuing a region visible. Some
+historical cohort workflows combine them into A/B/C lead classes. Those labels
+are separate from the current Mamey triage tiers.
 
----
+Use the emitting workflow's rules, weights and cohort denominator when comparing
+classes. Recompute a cohort result after changing its membership.
 
 ### 16. Compound-class annotation
 
-- **Full name:** Compound-class annotation layer.
-- **Aliases:** chemotype layer.
-- **Category:** Interpretation layer.
-- **Definition:** Maps each BGC to a claim-safe chemotype/compound class so a cluster can be discussed by *class* without naming a product. The available classes and reference set are versioned data, not part of the term's definition.
-- **Operates on:** KCB hits + class diagnostics + product annotations.
-- **Key fields:** chemotype label; the MIBiG references supporting it.
-- **Claim ceiling:** class-level only — "biosynthetic capacity consistent with a [class]," never a compound name.
-- **Evidence tier:** capacity (class call).
-- **Related terms:** KCB, CCTT, claim-safety vocabulary, `Arch_Capacity`.
-- **Where you'll see it:** the product-class column; compound-class matrices in cohort work.
-- **Guards:** cohort-local class matrices are computed *within* a cohort and must be recomputed after any merge — never concatenated.
-- **Caveats:** a chemotype is a resemblance class, inheriting KCB's similarity-not-identity ceiling.
-- **Plain English:** "Tag each cluster with the *kind* of molecule it could make, without ever claiming the specific molecule."
+A label for the type of chemistry suggested by product annotations, class
+diagnostics and reference matches. Read the class label together with its source
+and supporting references.
 
----
+Class matrices summarize a selected cohort. Recompute them after merging cohorts
+so their counts and membership describe the new set.
 
 ## Enumerations & code tables
 
@@ -321,7 +176,8 @@ Two reading notes before you start:
 
 ## BGC classes (antiSMASH product annotations)
 
-A **BGC** here is an antiSMASH-called region containing genes consistent with specialized-metabolite biosynthetic capacity. A region can be fragmented or composite, so a call is not proof of one contiguous complete pathway or one produced natural product. antiSMASH’s product annotations provide predicted classes.
+These are antiSMASH product-class annotations. Read the examples as reference-class
+context; the core BGC definition explains what a call establishes.
 
 | Term | Full name | What it means in plain English |
 |---|---|---|
@@ -384,8 +240,9 @@ Mamey runs a fixed battery of deterministic detection modules ("scans") over the
 | DAPR | Dual Antibacterial/Antifungal Prioritization Ranking | Sapote protocol for ranking top 3 antibacterial and top 3 antifungal BGC leads. |
 | LMPKS | Linear Megasynthase PKS | Historical label within LMPKS_FRAGMENT_SET. The current FLBR flag uses KS-like pattern counts plus fragmented PKS/NRPS/transAT product labels; it does not establish linear assembly architecture, polyether chemistry or ionophore activity. |
 
-**CCTT counts: hits vs. BGCs.** A CCTT trigger is reported two ways, and they answer different questions. The *hit* count (`cctt.counts`, shown as "N hits") is the number of gene/motif matches for that trigger across the genome; the *BGC-carrying* count (`cctt.trigger_bgc_counts`, shown as "M BGC(s)") is how many distinct clusters carry it. One BGC can hold several hits, so the two diverge — "T43-PHO 8 hits / 1 BGC" is a single dedicated phosphonate locus, not a phosphonate-rich strain, whereas the same 8 hits spread across 8 BGCs would be. The PHO_CLUSTER flag now reports both and words its interpretation from the BGC spread. (Through v9.7.27 only the hit count was shown, as "T43-PHO x8", which read as a strain-level abundance.)
-
+**CCTT counts:** `cctt.counts` counts gene/motif matches across the genome;
+`cctt.trigger_bgc_counts` counts the distinct regions containing them.
+Eight hits in one region and eight hits across eight regions describe different distributions.
 
 ---
 
@@ -414,10 +271,10 @@ Mamey assigns the A–E structural grade to every BGC from its position in the a
 | A | Interior, coherent | Interior with a core-bearing product and length ≥10 kb, or a guarded compact chemical-hybrid promotion. Structural heuristic, not pathway-completeness proof. |
 | B | Interior, limited/compact | Interior with core annotation or KCB score ≥10,000 that does not meet the A branches; strong KCB can support B without core annotation. |
 | C | Edge, core-bearing | Edge with a recognized core-bearing product annotation. Partial interpretation only. |
-| D | Edge limited / Full-contig core-bearing | Edge without core annotation, or Full-contig with core annotation. Retain geometry and partial-capacity caveats. |
+| D | Edge limited / Full-contig core-bearing | Edge without core annotation, or Full-contig with core annotation. Keep geometry and partial-capacity caveats. |
 | E | Other weak/ambiguous cases | Remaining cases, including Full-contig without core annotation or Unknown geometry. Inventory-level architecture interpretation. |
 
-The four side-by-side confidence fields in `*_4_triage_board.csv` are below. Do not conflate them. They answer different questions and can disagree without contradiction.
+The four confidence fields in `*_4_triage_board.csv` answer different questions:
 
 | Column / field | What it measures | Values |
 |---|---|---|
@@ -428,8 +285,10 @@ The four side-by-side confidence fields in `*_4_triage_board.csv` are below. Do 
 
 *History: through v9.7.27 `Class_Conf` was labeled `Arch_Conf`, which read as architecture-grade confidence (which it is not); renamed in v9.7.28*.
 
-The triage board's region-structure fields are also distinct: `Composite_region` is a structural flag that fires only when `Single_protocluster_count >= 3`; it is not the general over-merge verdict. `Overmerge_state` is the E5 verdict (`OVERMERGE_SUSPECT`, `COHERENT_CHEMICAL_HYBRID`, or `NOT_VERIFIABLE`). A consumer that needs the number of antiSMASH protoclusters resolved in the region, including a two-protocluster merge, must read `Protocluster_count`. These are structural descriptors only and do not establish product identity, novelty, or activity.
-
+`Composite_region` fires when `Single_protocluster_count >= 3`.
+`Overmerge_state` reports the E5 verdict: `OVERMERGE_SUSPECT`,
+`COHERENT_CHEMICAL_HYBRID` or `NOT_VERIFIABLE`. Use `Protocluster_count`
+for the number of resolved antiSMASH protoclusters, including a two-protocluster merge.
 
 ---
 
@@ -465,8 +324,10 @@ denominator must travel with the output.
 | Regulation / expression planning | Are pathway-linked regulatory signals present? This is not expression evidence. |
 | Authored judgment | What claim-safe synthesis did the current Mode B review reach from the bound evidence? |
 
-| Class | Definition | Plain English |
-|---|---|---|
+**Class-A / B / C** are legacy judgment-layer labels from selected cohort builders.
+Read the emitting file's rule, version and denominator when comparing them.
+
+---|---|---|
 | Class-A / B / C | Legacy judgment-layer labels emitted by selected cohort builders. | Read the emitting artifact's rule, version, and denominator; there is no version-free membership count. |
 
 ---
@@ -478,7 +339,7 @@ denominator must travel with the output.
 | Term | Meaning |
 |---|---|
 | T43-NUC | A nucleoside diagnostic trigger. On a KCB-dark nucleoside cluster *with chitin context* (CGAD-positive), it adds an antifungal bonus and floors the cluster to at least Medium — the nikkomycin/polyoxin-style antifungal case a KCB-only scorer would miss. |
-| Diagnostic floor | An eligible corroborated class marker or cargo-aware T1 self-protection signal can raise Low/Inventory to Medium. Tailoring-only exclusions and eligibility checks apply; later standing-rule and short RiPP-fragment guards can lower the resulting tier. It is not an unconditional final minimum. |
+| Diagnostic floor | An eligible corroborated class marker or cargo-aware T1 self-protection signal can raise Low/Inventory to Medium. Tailoring-only exclusions and eligibility checks apply; later standing-rule and short RiPP-fragment guards can lower the resulting tier.  |
 | AF_DIAGNOSTIC_TRIGGERS | The set of antifungal-diagnostic markers that fire the floor. |
 | Real-anchor rule | Audit every keyword against the strings antiSMASH *actually emits* (e.g. "nucleoside", "SGR PTMs"), not textbook compound names (e.g. "nikkomycin"). |
 
@@ -497,7 +358,7 @@ then applies corroborated floors and fail-safe downgrades.
 | High | Current best routing prior ≥70 | High routing priority |
 | Medium | Current best routing prior ≥50, or an applicable diagnostic/machinery floor | Review priority; a floor does not raise claim confidence |
 | Low | Below 50 with a resolved specialized class outside the governed Inventory policy | Keep visible at lower routing priority |
-| Inventory | Below 50 and unresolved or covered by the governed Inventory policy | Retain in the complete inventory; do not equate with biological unimportance |
+| Inventory | Below 50 and unresolved or covered by the governed Inventory policy | Keep in the complete inventory; do not equate with biological unimportance |
 
 The thresholds above describe the current engine and must be checked against
 `mamey/scoring.py::triage_bgcs` when used outside this bundle.
@@ -552,10 +413,8 @@ band satisfying both limits wins:
 | HIGHLY_FRAGMENTED | valid contig count but no earlier band matches |
 | UNKNOWN | contig count unavailable or invalid |
 
-Fragmented, highly fragmented, or unknown contiguity requires an explicit
-caveat: raw region counts and weighted inventory statistics are not measured
-biological pathway counts or proven mathematical floors. Neither tier establishes
-a compound, production, activity, or publication claim.
+Report raw region counts, weighted counts and these tiers together.
+The core corrected-count definition explains the weighting and its limits.
 
 ---
 
@@ -581,7 +440,7 @@ a compound, production, activity, or publication claim.
 
 → *The discipline in full: **Core concepts #13**. The complete term list is below.*
 
-The bundle's central discipline. These terms govern how confident any statement is allowed to be.
+Use these terms when explaining the evidence behind a result.
 
 | Term | Meaning |
 |---|---|
@@ -598,7 +457,9 @@ The bundle's central discipline. These terms govern how confident any statement 
 
 ## Typed assay observations
 
-An observation state describes what is recorded for the selected assay, target, tested material, dose, time point and decision criterion. It is not a genome-wide or all-condition activity verdict and never attributes activity to a BGC without governed linkage.
+Observation states apply to the recorded assay, target, tested material, dose,
+time point and decision criterion. These isolate-level records need a separate
+evidence link before activity can be assigned to a BGC.
 
 | Observation state | Meaning |
 |---|---|
@@ -607,7 +468,11 @@ An observation state describes what is recorded for the selected assay, target, 
 | `NEGATIVE` | A bound measured result is negative under the stated assay conditions and criterion; it does not establish biological inactivity under every condition. |
 | `POSITIVE` | A bound measured result is positive under the stated assay conditions and criterion; it does not establish a named compound, expression or locus-level causality. |
 
-`bioactivity_metadata_v1` records `metadata_state` separately: `NOT_SUPPLIED`, `SUPPLIED_UNKNOWN`, `MEASURED_NEGATIVE`, `MEASURED_POSITIVE`, `BIOACTIVITY_LEGACY_SHAPE_HOLD` or `LEGACY_UNTYPED_CONTEXT`. Preserve the actual state, assay records, usage scope, receipt binding and `compound_linkage`; a legacy context or schema pass does not supply a measured observation or experimental acceptance. Example-only metadata is not production evidence. Missing/unrun/failed evidence must not be relabeled as a measured negative. These definitions do not claim that enumeration validation alone verifies a scientifically consistent state combination.
+`bioactivity_metadata_v1` also records `metadata_state`: `NOT_SUPPLIED`,
+`SUPPLIED_UNKNOWN`, `MEASURED_NEGATIVE`, `MEASURED_POSITIVE`,
+`BIOACTIVITY_LEGACY_SHAPE_HOLD` or `LEGACY_UNTYPED_CONTEXT`.
+Keep this field with the assay records, usage scope, receipt binding and
+`compound_linkage`. Example or legacy metadata cannot supply a missing observation.
 
 ## Evidence, identity, portability, and authority vocabulary
 
@@ -621,19 +486,19 @@ candidate from an authorized release.
 | Source object | An external evidence file or dataset represented by its source role, logical locator, SHA-256, byte count, and binding/admission state. A path, filename, timestamp, or duplicate copy is not source authority by itself. |
 | Logical locator | A portable reference such as `evidence://root-id/path` that resolves through runtime configuration. Machine-specific absolute paths may be supplied at runtime but do not enter portable or public reports. |
 | Discovery catalog | A bounded inventory of candidate collections. `DISCOVERED_NOT_ADMITTED` means exactly that: discovery proposes material for review and does not authorize consumption. |
-| Admission / collection decision | The explicit disposition `CONSUME`, `REJECT_WITH_REASON`, or `SUPERSEDED_WITH_RECEIPT` for a hash-bound collection. Admission permits a workflow to read named bytes; it is not scientific acceptance. |
+| Admission / collection decision | The recorded choice `CONSUME`, `REJECT_WITH_REASON` or `SUPERSEDED_WITH_RECEIPT` for a collection identified by its hash. `CONSUME` permits the workflow to read those files. |
 | Exact-locus evidence states | `EXACT_LOCUS` is bound to strain, full node/contig, and region; `ALIAS_BOUND` lacks an independent full locator; `STRAIN_ONLY` is context only; `UNBOUND` cannot yet join; `ABSENT` means no matching artifact in the configured scope. `UNBOUND` and `ABSENT` are workflow states, not biological negatives. |
 | Evidence-readiness states | `READY_BOUND` may be integrated; `AVAILABLE_UNINGESTED` must be ingested first; `NEAR_READY_ACTIVE_RUN` remains blocked while a run completes; `PRACTICALLY_ATTAINABLE` should be obtained before content QA; `STRUCTURALLY_UNAVAILABLE` and `NOT_APPLICABLE` require a typed reason. |
 | Gene-first / sequence-first review | Build the canonical gene roster before prose and preserve its order. Bind a protein result by the exact locus plus protein SHA-256; a locus tag or similar name alone does not prove sequence identity. Every canonical gene remains in the denominator, including boundary/context genes. |
 | Channel-separated BLASTp | NCBI nr, NCBI ClusteredNR, and local Swiss-Prot are separate evidence channels with separate named-match, alignment-metric, state, and coverage fields. Missing or unbound evidence in one channel is never filled from another. ClusteredNR is not nr; percent positives is not percent identity; similarity is not functional proof. |
-| `document_state` / `evidence_state` | Two orthogonal Mode B axes. `document_state` says where the card is in the authoring/review ladder; `evidence_state` records bound, unbound, quarantined, unavailable, or not-applicable evidence. A mechanically validated state is not maintainer acceptance or publication approval. |
-| Privacy profile | User-owned policy mapping exact strain IDs to named access tiers. Unassigned strains inherit a required non-public default. Only a tier explicitly marked `public_export: true` maps to package `PUBLIC`; all others map to `PRIVATE`. Privacy policy is not scientific evidence or publication approval. |
-| Package `PUBLIC` / `PRIVATE` | Binary run/export metadata used by package consumers. An exact privacy profile uses its required non-public default for unassigned strains. Without a profile or explicit public authority, the current resolver defaults to PRIVATE for every ID prefix; an admitted public override or exact public assignment has a separate recorded basis. The local label does not replace staged-tree leak audits, governance decisions, or publication authorization. |
-| Release/archive transaction states | **Source tree**, **staged tier tree**, **archive candidate**, and **verified archive** are distinct objects. A clean source does not prove the stage; a clean stage does not prove the ZIP; a matching ZIP or local gate does not promote a candidate. `PUBLIC_RELEASE` is a separately authorized promotion state; a CODE or `NOT_FOR_PUBLIC_RELEASE` candidate is not one. |
-| Portable / offline core | The application, small reference assets, vendored fallbacks, and local wheel paths are designed to run without network access. Optional commands whose names or help explicitly say online may contact their named service and must retain provenance; their absence is an evidence gap, not a failed core extraction. |
-| Sealed package | A package that passed the deterministic extraction and package-integrity gates for its recorded engine and inputs. `MAMEY_COMPLETE` means that extraction handoff is complete; it does not mean Sapote judgment, biological validation, acceptance, release, or publication is complete. |
-| Post-seal tool | An additive consumer of an already sealed package, such as Mode B, domain-level, receipt ingestion, comparison, cohort, or figure tooling. "Post-seal" and "non-blocking" mean the core extraction does not depend on it; they do not guarantee the added output is complete, correct, accepted, or release-ready. Authoring can write package artifacts and refresh post-seal checksums; validation normally writes a mutable status receipt. |
-| Mechanical gate / authority ceiling | A validator may establish schema, hash, identity, or completeness facts only. It cannot grant scientific acceptance, owner acceptance, integration, release, or publication authority unless a separate governing decision explicitly does so. |
+| `document_state` / `evidence_state` | Two orthogonal Mode B axes. `document_state` says where the card is in the authoring/review ladder; `evidence_state` records bound, unbound, quarantined, unavailable, or not-applicable evidence. Read both fields to distinguish writing progress from evidence availability. |
+| Privacy profile | User-owned policy mapping exact strain IDs to named access tiers. Unassigned strains inherit a required non-public default. Only a tier explicitly marked `public_export: true` maps to package `PUBLIC`; all others map to `PRIVATE`. |
+| Package `PUBLIC` / `PRIVATE` | Binary run/export metadata used by package consumers. An exact privacy profile uses its required non-public default for unassigned strains. Without a profile or explicit public authority, the current resolver defaults to PRIVATE for every ID prefix; an admitted public override or exact public assignment has a separate recorded basis.  |
+| Release/archive transaction states | **Source tree**, **staged tier tree**, **archive candidate**, and **verified archive** are distinct objects.  `PUBLIC_RELEASE` is a separately authorized promotion state; a CODE or `NOT_FOR_PUBLIC_RELEASE` candidate is not one. |
+| Portable / offline core | The application, small reference assets, vendored fallbacks, and local wheel paths are designed to run without network access. Optional commands whose names or help explicitly say online may contact their named service and must keep provenance; their absence is an evidence gap, not a failed core extraction. |
+| Sealed package | A package that passed the extraction and package-integrity checks for its recorded engine and inputs. `MAMEY_COMPLETE` reports that extraction state; written interpretation has a separate status. |
+| Post-seal tool | A tool that uses an existing sealed package, such as Mode B, comparison or figure tooling.  Authoring can write package files and refresh checksums; validation normally writes a status receipt. |
+| Mechanical gate / authority ceiling | A check of named conditions such as schema, hashes, identity or completeness. Read the check's scope and result; release decisions follow the separate release procedure. |
 
 Contract sources: `PORTABLE_EVIDENCE_WORKSPACE.md`,
 `MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md`,
@@ -649,7 +514,7 @@ Permanent rules, learned across many strains, that override case-by-case interpr
 
 | Constraint | Rule |
 |---|---|
-| NAPAA (poly-amino-acid class) | Current registry status is neutral, action none, lead_blocking false: no intrinsic comparison/ecological exclusion or score downgrade. Retain product tokens and interpret only bound evidence at its actual scope. The former Nosema/glucocerebrosidase hypothesis remains retired. |
+| NAPAA (poly-amino-acid class) | Current registry status is neutral, action none, lead_blocking false: no intrinsic comparison/ecological exclusion or score downgrade. Keep product tokens and interpret only bound evidence at its actual scope. The former Nosema/glucocerebrosidase hypothesis remains retired. |
 | hglE-KS-PREV-001 | Current registry status is noted, scope informational, lead_blocking false. Historical prevalence is context, not by itself a comparative-ranking downgrade or a universal habitat claim. Separately, the current scorer’s direct hglE-product check can set a standing-rule flag when no CCTT trigger is present and lower the tier; inspect the actual flag and producer. The separate gene-level enediyne-artifact guard remains applicable; a zero/unbound KCB result does not prove new chemistry. |
 | Saccharide-gating null | Pure-saccharide clusters (carbohydrate machinery with no specialist warhead) are omitted from comparative counts; the polysaccharide-gating signal was confirmed null in the bryophyte and attine sets. |
 | Multi-siderophore flag | Carrying several siderophore systems recurs across many strains; treated as an iron-economy observation, not a per-strain distinction. |
@@ -731,10 +596,7 @@ not an engine completion status.
 
 ## Plain-language terms (overloaded everyday words)
 
-The bundle reuses a lot of ordinary English words as technical terms. This
-section is for readers who hit a familiar word being used in an unfamiliar way.
-It is not an exhaustive glossary of the abbreviations above — only the common
-words that carry a special meaning here.
+These familiar words have specific meanings in the bundle.
 
 ### Names
 
@@ -746,73 +608,73 @@ words that carry a special meaning here.
 
 ### Overloaded common words
 
-| Word | Everyday meaning | What it means in Sapote–Mamey |
-|---|---|---|
-| Gate | a fence opening | A bounded validation checkpoint. Its name and receipt must say what it checked; passing one gate does not imply scientific, acceptance, integration, release, or publication authority. |
-| Cassette | a tape | A reusable biosynthetic logic pattern in the registry, used for marker-aware scoring. |
-| Marker | a pen / signpost | A literature-backed diagnostic signature that flags a specific biosynthetic capability. |
-| Arm | a limb | A glycosylation arm: sugar-tailoring genes sitting outside the core BGC boundary. Reported as evidence, not proof of physical linkage. |
-| Scan | to look over | One detection-module pass (CCTT, CGAD, EFLS, etc.). Each BGC carries "scan states." |
-| Sweep | to clean | A scoring pass across a whole reference database. The KCB sweep scores every BGC against MIBiG. |
-| Triage | ER prioritizing | Ranking BGCs by promise. The "triage board" is the ranked output. |
-| Board | a plank | A results table: Lead Board, Hive Board, Triage Board. |
-| Lead | to guide / the metal | A prioritized BGC candidate worth pursuing. Raising lead priority never raises claim confidence. |
-| Kernel | a seed | The Slim Judgment Kernel, an older condensed instruction file for Sapote, replaced by the execution slice and AGENTS.md. |
-| Monolith | a stone slab | A large reference/controller document used only when selected. It does not override the host instruction hierarchy, current user authorization, AGENTS.md or the selected current scientific/profile contract. See ASSISTANT_GOVERNANCE.md. |
-| Manifest | a cargo list | Two senses: the `manifest.json` handoff object Mamey emits, and the release manifest listing shipped files. |
-| Ledger | an account book | The append-only audit log of findings. |
-| Freeze | to turn to ice | A locked baseline that must not drift: schema freeze, frozen release candidate, freeze-triage. |
-| Constellation | stars | An evidence constellation: a set of co-occurring signals reported together instead of as one over-claim. |
-| Edge | a border | A contig edge: where a BGC is cut off at the end of a contig, so it may be truncated or incomplete. |
-| Flank | a side | A region next to a feature or boundary. The relevant scan defines its coordinate distance; EFLS currently compares shared labels and does not match raw contig-end sequence or prove the other half of a pathway. |
-| Warhead | a missile tip | The reactive chemical group that gives a compound its bioactivity (e.g. a β-lactone electrophile). |
-| Rescue | a save | A candidate inference that relates fragments split across contigs. FLBR finds fragments and RG-GMCI/related tools propose linkage; they do not reassemble or physically join the contigs. |
-| Census | a population count | FLBR's tally of fragmented megasynthase sets across contigs. |
-| Banked / Bank | money in a bank | The stored cross-session cohort state (`cohort/`) that the master workbook is built from. |
-| Handoff | a relay pass | The structured transfer of data from Mamey to Sapote (and between the execution and judgment layers). |
-| Trap | a snare | A hallucination trap: a deliberate check on every BGC to catch over-interpretation of generic domains. |
-| Card | a playing card | A structured per-item write-up: a Mode B card per BGC, or an A5 fermentation card. |
-| Corrected | fixed | The assembly-quality-adjusted BGC count (vs. the raw antiSMASH region count). |
-| Tier | a level | A named band whose meaning depends on the field: evidence tier, Mamey routing tier, privacy tier, or release tier. Never compare two "tiers" until their namespace is clear. |
-| Atlas | a map book | The interactive BGC Atlas HTML tool. |
-| Hub | a center | The master Hub workbook that integrates every workstream. |
-| Register | a record book | A structured ledger such as a missingness, judgment, or output register. A missingness row records a workflow observation, not proof of biological absence. |
-| Contract | a legal agreement | The current named specification for the selected output/profile and its evidence requirements. It defines coverage and checks within authorized scope; a contract or old prompt is not permission to execute, expand scope, integrate or release. |
-| Anchor | a ship's weight | A publicly reproducible reference point (KCB anchor, calibration anchor) that grounds a threshold. |
-| Floor | the ground | A minimum applied at a named scoring stage. The diagnostic floor is conditional, and later guards may lower the final tier; read the actual producer and rule order. |
-| Ceiling | the roof | A maximum a claim cannot exceed. The claim ceiling caps how confident a statement is allowed to be. |
-| Band | a stripe / group | A prevalence bracket (e.g. core / common / rare) used to judge whether a class is informative for comparison. |
-| Proximity | nearness | The proximity rule: a resistance marker only counts toward a lead if it sits near the BGC. |
-| Snapshot | a quick photo | The Project Memory Snapshot: a captured cross-session state of a strain's analysis. |
-| Split | to divide | A split pathway: one biosynthetic pathway whose genes are spread across two or more contigs (Split-A / Split-B). |
-| Routed out | sent away | A class deliberately excluded from a track (e.g. cytotoxic-adjacent classes routed out of the antibacterial lead track). |
-| Verdict | a court ruling | A Mode B verdict: the confirm/drop call on whether a candidate is genuine. |
-| Profile | a silhouette | A scan profile: the assembled per-BGC summary of all scan results. |
-| Pack | a bundle | A judgment pack or prompt pack: a grouped set of inputs or instructions handed off as one unit. |
-| Guard | a sentry | An audit-finding guard (G1–G6): an automated check that fails the build if a known defect reappears. |
-| Trigger | a switch | A CCTT trigger: a specific biosynthetic signal (halogenase, lanthipeptide, etc.) that fires a flag. |
-| Axis | a graph line | One independent evidence question, such as structure, similarity, novelty, diagnostics, regulation, or authored judgment. A versioned builder may combine selected axes, but the combination is not a biological truth score. |
-| Class | a school group | Either a biosynthetic/compound class or a legacy A/B/C lead overlay, depending on context. Neither is the Mamey routing tier, and neither raises the claim ceiling. |
-| Dark | absence of light | KCB-dark: a cluster with no KnownClusterBlast match — unknown, possibly novel, easy to under-rank. |
-| Tilde (~) | approximately | "Resembles, is not" — the similarity marker before any known-compound name. |
+| Word | What it means in Sapote–Mamey |
+|---|---|
+| Gate | A bounded validation checkpoint. Its name and receipt say what it checked. |
+| Cassette | A reusable biosynthetic logic pattern in the registry, used for marker-aware scoring. |
+| Marker | A literature-backed diagnostic signature that flags a specific biosynthetic capability. |
+| Arm | A glycosylation arm: sugar-tailoring genes sitting outside the core BGC boundary. Reported as evidence, not proof of physical linkage. |
+| Scan | One detection-module pass (CCTT, CGAD, EFLS, etc.). Each BGC carries "scan states." |
+| Sweep | A scoring pass across a whole reference database. The KCB sweep scores every BGC against MIBiG. |
+| Triage | Ranking BGCs by promise. The "triage board" is the ranked output. |
+| Board | A results table: Lead Board, Hive Board, Triage Board. |
+| Lead | A prioritized BGC candidate worth pursuing. Raising lead priority never raises claim confidence. |
+| Kernel | The Slim Judgment Kernel, an older condensed instruction file for Sapote, replaced by the execution slice and AGENTS.md. |
+| Monolith | A large reference/controller document used only when selected.  See ASSISTANT_GOVERNANCE.md. |
+| Manifest | Two senses: the `manifest.json` handoff object Mamey emits, and the release manifest listing shipped files. |
+| Ledger | The append-only audit log of findings. |
+| Freeze | A locked baseline that must not drift: schema freeze, frozen release candidate, freeze-triage. |
+| Constellation | An evidence constellation: a set of co-occurring signals reported together instead of as one over-claim. |
+| Edge | A contig edge: where a BGC is cut off at the end of a contig, so it may be truncated or incomplete. |
+| Flank | A region next to a feature or boundary. The relevant scan defines its coordinate distance; EFLS currently compares shared labels and does not match raw contig-end sequence or prove the other half of a pathway. |
+| Warhead | The reactive chemical group that gives a compound its bioactivity (e.g. a β-lactone electrophile). |
+| Rescue | A candidate inference that relates fragments split across contigs. FLBR finds fragments and RG-GMCI/related tools propose linkage; they do not reassemble or physically join the contigs. |
+| Census | FLBR's tally of fragmented megasynthase sets across contigs. |
+| Banked / Bank | The stored cross-session cohort state (`cohort/`) that the master workbook is built from. |
+| Handoff | The structured transfer of data from Mamey to Sapote (and between the execution and judgment layers). |
+| Trap | A hallucination trap: a deliberate check on every BGC to catch over-interpretation of generic domains. |
+| Card | A structured per-item write-up: a Mode B card per BGC, or an A5 fermentation card. |
+| Corrected | The assembly-quality-adjusted BGC count (vs. the raw antiSMASH region count). |
+| Tier | A named band whose meaning depends on the field: evidence tier, Mamey routing tier, privacy tier, or release tier. Never compare two "tiers" until their namespace is clear. |
+| Atlas | The interactive BGC Atlas HTML tool. |
+| Hub | The master Hub workbook that integrates every workstream. |
+| Register | A structured ledger such as a missingness, judgment, or output register. A missingness row records a workflow observation, not proof of biological absence. |
+| Contract | The current named specification for the selected output/profile and its evidence requirements. It defines coverage and checks within the selected task. |
+| Anchor | A publicly reproducible reference point (KCB anchor, calibration anchor) that grounds a threshold. |
+| Floor | A minimum applied at a named scoring stage. The diagnostic floor is conditional, and later guards may lower the final tier; read the actual producer and rule order. |
+| Ceiling | A maximum a claim cannot exceed. The claim ceiling caps how confident a statement is allowed to be. |
+| Band | A prevalence bracket (e.g. core / common / rare) used to judge whether a class is informative for comparison. |
+| Proximity | The proximity rule: a resistance marker only counts toward a lead if it sits near the BGC. |
+| Snapshot | The Project Memory Snapshot: a captured cross-session state of a strain's analysis. |
+| Split | A split pathway: one biosynthetic pathway whose genes are spread across two or more contigs (Split-A / Split-B). |
+| Routed out | A class deliberately excluded from a track (e.g. cytotoxic-adjacent classes routed out of the antibacterial lead track). |
+| Verdict | A Mode B verdict: the confirm/drop call on whether a candidate is genuine. |
+| Profile | A scan profile: the assembled per-BGC summary of all scan results. |
+| Pack | A judgment pack or prompt pack: a grouped set of inputs or instructions handed off as one unit. |
+| Guard | An audit-finding guard (G1–G6): an automated check that fails the build if a known defect reappears. |
+| Trigger | A CCTT trigger: a specific biosynthetic signal (halogenase, lanthipeptide, etc.) that fires a flag. |
+| Axis | One independent evidence question, such as structure, similarity, novelty, diagnostics, regulation, or authored judgment. A versioned builder may combine selected axes, but the combination is not a biological truth score. |
+| Class | Either a biosynthetic/compound class or a legacy A/B/C lead overlay, depending on context. Neither is the Mamey routing tier, and neither raises the claim ceiling. |
+| Dark | KCB-dark: a cluster with no KnownClusterBlast match — unknown, possibly novel, easy to under-rank. |
+| Tilde (~) | "Resembles, is not" — the similarity marker before any known-compound name. |
 
 ---
 
+
 ## Versioned implementation notes
 
-This appendix helps readers interpret historical outputs. It does not create a
-second definition or freeze counts and formulas across releases. Check the
-named current code, registry, or schema before using an implementation detail.
+Use these notes to read older outputs. Check the named current code, registry
+or schema before using a formula or threshold from another build.
 
 | Term | Full name | What it means in plain English |
 |---|---|---|
 | Marker registry | Governed evidence library (`mamey/mamey_markers.py`) | The versioned detection-marker set spanning domain-class, CCTT, regulator, TFBS, maturation, resistance, transporter, chitin/glycan, and fragment-rescue libraries. Each marker has a stable ID, evidence tier, and claim ceiling. Query the current registry for its count; do not copy an older fixed total. |
 | CCTT / T43 | Class-trigger framework | The versioned T43 trigger set in `mamey/source_scans.py::CCTT_PATTERNS`. When a class-defining trigger is corroborated on a compatible locus it may drive the current diagnostic bonus and Medium floor; tailoring-only/promiscuous triggers do not receive that floor by themselves. Query the current registry for families and weights. |
-| Standing-rule downgrade | Workflow-scoped routing/display consequence | Apply only a current rule's explicit action and scope. NAPAA is neutral; the hglE-KS/PREV-001 registry record is informational, while the scorer separately applies its conditional hglE-product/no-CCTT standing-rule guard. Genome-class displays park saccharide only, while genus/BiG-SCAPE family comparisons retain their separately selected wider policy. Preserve full product tokens, counts and provenance for audit. |
+| Standing-rule downgrade | Workflow-scoped routing/display consequence | Apply only a current rule's explicit action and scope. NAPAA is neutral; the hglE-KS/PREV-001 registry record is informational, while the scorer separately applies its conditional hglE-product/no-CCTT standing-rule guard. Genome-class displays park saccharide only, while genus/BiG-SCAPE family comparisons keep their separately selected wider policy. Preserve full product tokens, counts and provenance for audit. |
 | RiQ | Reference-information quotient | A selected JSON-derived reference signal whose source/channel and region binding must remain explicit. In the current scorer, an admitted nonmissing value below 0.5 adds 10 to the novelty routing prior before other handling; it is not measured chemical novelty. The bounded walker keeps RiQ separate from its auxiliary leaf budget, but RiQ still has group caps, authority limits, source-conflict and unmapped/held states. “Exempt from the record cap” does not mean unlimited or complete. |
 | RG-GMCI | Reference-Guided Genome Mining Candidate Inference | Homology-guided shared-reference linkage across contigs — proposes two fragments on different contigs are one split pathway when they share MIBiG references. **Does not join contigs at the nucleotide level.** Its bonus (HIGH +8 / MODERATE +4) is routing priority, not claim confidence; promiscuous-hub and distant-reference pairs are down-weighted. |
 | Edge penalty | (removed v9.7.84) | A score deduction for BGCs on a contig edge, **removed in v9.7.84**. It had no measurement basis (edge BGCs show no truncation signature in their base score) and was burying overlooked edge fragments at the tier threshold. Truncation is now carried as a confidence grade (architecture C/D), not a score deduction. The corrected-count weight (Interior 1.0 / Edge 0.5 / Full-contig 0.25) is separate and unchanged. |
-| Judgment store / register | Mode B persistence layer | The per-package store (`<strain>_judgment_register.json` + `judgment/*_mode_b.md`) that holds Sapote's Mode B cards durably. Without it, a Mode B card lives only in chat and is lost when the session ends. |
+| Judgment store / register | Mode B persistence layer | The per-package store (`<strain>_judgment_register.json` + `judgment/*_mode_b.md`) that holds Sapote's Mode B cards durably.  |
 | Mode B receipt | `mode_b_receipt.json` | The JSON a Sapote session emits at the end of a Mode B batch (`{strain_id, session_id, cards:[{bgc_id, mode_b_md, …}]}`). `python mamey_run.py ingest-receipts` consumes it to persist the cards into the judgment store and reconcile the workbook's E1 sheet. Fail-closed (unknown BGC skipped, never invented) and idempotent. |
 | `doctor` / `inspect` / `explain` / `list-bgcs` | Environment, intake and package inspection | `doctor` checks the environment. `inspect <antiSMASH.zip>` previews raw antiSMASH ZIP intake before a run. `explain <package_dir>` summarizes an existing result package. `list-bgcs <package_dir>` prints its BGC inventory (optionally `--json`). These operations do not rerun extraction. From the bound bundle root, use `python mamey_run.py` before the command. |
 

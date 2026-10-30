@@ -1,3 +1,51 @@
+# v9.7.461 — unsealed cut candidate · build 20261029v97461a
+
+Build 20261029v97461a; engine 1.9.177.
+
+Builds on the sealed v9.7.460 (CODE zip, build 20261027v97460a), with 151 cards. The engine stays 1.9.177: no card changes an RG-GMCI score, rank or threshold, or a KCB value. Reports, refusals and figures change.
+
+- **User documentation, rebuilt for a reader opening the bundle cold.**
+  - The eleven reader-path pages after README fall from 37,500 words to 10,700, measured; the first-run page goes from 836 to 329.
+  - README keeps its full content, including the table of every bioinformatics tool with its download link and license. It adds a link to the public datasets page.
+  - Commands use the defaults, and each caveat appears once, where a reader could make the mistake.
+  - The README "Status" disclaimer and the untested-organisms paragraph are removed.
+  - Glossary rows no longer treat a resistance marker as evidence of a product, or a KCB-dark region as novel.
+  - About 100 pages change in all; docs outside `docs/history/` fall from 727,000 words to 622,000.
+- **Wiki.** Home, the sidebar and the page openings are rebuilt, and the Mode B pages merge into one topic. 27 pages, from 62,000 words to 37,000.
+- **Public datasets.** The new `docs/PUBLIC_DATASETS.md` lists the 14 Zenodo records of public-genome antiSMASH 8.0.4 loose ZIPs (1,258 ZIPs, CC BY 4.0). README, the first-run page and the inputs page link to it.
+- **Notices.** NOTICE credits the MIBiG test records and the other public genome data, and fixes a wrong path. `bundle_support/README.md` describes the marker registry as the live registry it is.
+- **Identity kept whole.**
+  - The prepared-lead summary keeps the full contig ID with its version.
+  - Widget domain exports bind to exact inventory identities.
+  - Tree tips keep their exact labels.
+  - The front-page command selects an exact region anchor.
+- **A missing source is not an empty result.** Raw triage, BLASTp availability, the HMM extraction state, the evidence bundle and the judgment receipt record unavailable or unknown states instead of "ran, 0 hits".
+- **Refusals.** These are now refused with a clear message:
+  - output paths inside the source package;
+  - malformed tree input;
+  - negated HIGH tokens;
+  - path-bearing identifiers;
+  - an out-of-range region index;
+  - ambiguous KS source tables;
+  - unparsed regex-gate sources.
+- **Packages and commands.**
+  - New packages record their source ZIP.
+  - `inspect` recognizes a saved Complete_Package.
+  - The entry page counts the recorded issues.
+  - Printed validation commands are shell-safe, and the offline-import hint is complete.
+  - The comparison report names the backend it actually used.
+- **Figures.**
+  - Cohort figures keep legend identities.
+  - Counts sit beside their labels and are drawn on integer scales.
+  - Display offsets are explained, and titles describe the displayed comparison.
+  - Standard lead exports are 300 DPI and readable at six inches.
+- **Release surfaces.** The version-claim registry follows the rewritten pages, the `inspect` output contract registers the shell-safe validation path, and the generated catalogs, atlas, inventories and wiki mirrors are regenerated once, by the last card.
+
+Known limits, for later:
+- The protein-space page and README as the single front door are planned for the next build.
+- v2-only literature checks are not yet run at ingest.
+- The deliverable-menu widget still shows an old version label.
+
 # v9.7.460 — unsealed cut candidate · build 20261027v97460a
 
 Build 20261027v97460a; engine 1.9.177.

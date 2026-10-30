@@ -136,3 +136,76 @@ def test_triage_board_class_conf_label_not_arch_conf(synth_run):
     assert "Arch_Conf" not in header, header
     # the two distinct sibling axes must still be present and separate
     assert "Arch" in header and "Arch_Capacity" in header, header
+
+
+# The synthetic source is deliberately outside the generated package tree.
+def _source_locator_manifest(synth_run):
+    _result, outdir = synth_run
+    return outdir / "SMOKE" / "package" / "manifest.json"
+
+
+def test_stored_source_zip_records_original_path_and_digest(
+    synth_run, synthetic_single_contig_full_locus_zip
+):
+    import hashlib
+    source = synthetic_single_contig_full_locus_zip.resolve()
+    payload = json.loads(_source_locator_manifest(synth_run).read_text())
+    assert payload["input_zip"] == str(source)
+    assert payload["input_zip_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
+
+
+def test_stored_source_zip_default_reader_finds_original(
+    synth_run, synthetic_single_contig_full_locus_zip
+):
+    from mamey.postseal_output import resolve_source_archive
+    archive, receipt = resolve_source_archive(_source_locator_manifest(synth_run).parent)
+    assert archive == synthetic_single_contig_full_locus_zip.resolve()
+    assert receipt["state"] == "ARCHIVE_HASH_VERIFIED"
+
+
+def test_stored_source_zip_figure_reader_finds_original(
+    synth_run, synthetic_single_contig_full_locus_zip
+):
+    from mamey.render_all_figures import _resolve_source_zip
+    assert _resolve_source_zip(_source_locator_manifest(synth_run).parent) == str(synthetic_single_contig_full_locus_zip.resolve())
+
+
+def test_stored_source_zip_bigscape_stages_original_regions(synth_run, tmp_path):
+    from deliverable_tools.bigscape_run import _stage_bound_package
+    destination = tmp_path / "staged"
+    destination.mkdir()
+    assert _stage_bound_package(str(_source_locator_manifest(synth_run).parent), str(destination)) > 0
+    assert list(destination.glob("*.gbk"))
+
+
+def test_stored_source_zip_explicit_override_still_wins(
+    synth_run, synthetic_single_contig_full_locus_zip, tmp_path
+):
+    from mamey.postseal_output import resolve_source_archive
+    from mamey.render_all_figures import _resolve_source_zip
+    override = tmp_path / "moved.zip"
+    override.write_bytes(synthetic_single_contig_full_locus_zip.read_bytes())
+    package = _source_locator_manifest(synth_run).parent
+    archive, _receipt = resolve_source_archive(package, override)
+    assert archive == override.resolve()
+    assert _resolve_source_zip(package, override) == str(override.resolve())
+
+
+def test_stored_source_zip_explicit_digest_mismatch_is_refused(synth_run, tmp_path):
+    from mamey.postseal_output import resolve_source_archive
+    from mamey.render_all_figures import _resolve_source_zip
+    wrong = tmp_path / "wrong.zip"
+    wrong.write_bytes(b"software fixture with a different digest")
+    package = _source_locator_manifest(synth_run).parent
+    with pytest.raises(ValueError, match="DIGEST_MISMATCH"):
+        resolve_source_archive(package, wrong)
+    with pytest.raises(ValueError, match="DIGEST_MISMATCH"):
+        _resolve_source_zip(package, wrong)
+
+
+def test_stored_source_zip_bigscape_archive_finds_original(synth_run, tmp_path):
+    from deliverable_tools.bigscape_run import _stage_bound_package
+    result, _outdir = synth_run
+    destination = tmp_path / "from_package_zip"
+    assert _stage_bound_package(result["package_zip"], str(destination)) > 0
+    assert list(destination.glob("*.gbk"))

@@ -60,8 +60,9 @@ class InstructionScopeTests(unittest.TestCase):
         text = (ROOT / 'docs/GUIDE/02_Quick_Guide.md').read_text()
         self.assertNotIn('../analysis/runs/', text)
         self.assertNotIn('analysis/analysis/', text)
-        self.assertIn('analysis/runs/EXAMPLE/package', text)
-        self.assertIn('Recover without losing provenance', text)
+        self.assertIn('runs/EXAMPLE/', text)
+        self.assertIn('](../reader/01_FIRST_RUN.md)', text)
+        self.assertIn('](../reader/04_RECOVERY_AND_LIMITS.md)', text)
 
 
 if __name__ == '__main__':

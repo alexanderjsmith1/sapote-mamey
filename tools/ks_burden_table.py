@@ -56,9 +56,16 @@ def _one(package: Path, pattern: str, label: str) -> Path:
     return matches[0]
 
 
-def _rows(path: Path) -> list[dict[str, str]]:
-    with path.open(newline="", encoding="utf-8") as handle:
-        return list(csv.DictReader(handle))
+def _rows(path: Path, required: set[str]) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        fields = reader.fieldnames or []
+        if len(fields) != len(set(fields)) or not required <= set(fields):
+            raise KSBurdenHold("KS_SOURCE_SCHEMA_HOLD", f"{path.name}: unique headers including {sorted(required)} required")
+        rows = list(reader)
+    if any(None in row or any(value is None for value in row.values()) for row in rows):
+        raise KSBurdenHold("KS_SOURCE_SCHEMA_HOLD", f"{path.name}: non-rectangular table")
+    return rows
 
 
 def package_row(package_dir: str | Path) -> tuple[dict[str, object], list[dict[str, object]]]:
@@ -75,7 +82,7 @@ def package_row(package_dir: str | Path) -> tuple[dict[str, object], list[dict[s
     if not strain:
         raise KSBurdenHold("KS_SOURCE_BINDING_HOLD", "intake strain_id is required")
 
-    inventory_rows = _rows(inventory)
+    inventory_rows = _rows(inventory, {"Boundary"})
     boundaries = [str(row.get("Boundary") or "").strip().lower() for row in inventory_rows]
     interior = boundaries.count("interior")
     edge = boundaries.count("edge")
@@ -83,14 +90,14 @@ def package_row(package_dir: str | Path) -> tuple[dict[str, object], list[dict[s
     raw = len(inventory_rows)
     interior_pct = round(100.0 * interior / raw, 1) if raw else None
 
-    module_rows = _rows(modules)
+    module_rows = _rows(modules, {"row_id", "domain"})
     ks_rows = [row for row in module_rows if str(row.get("domain") or "").strip() == "PKS_KS"]
     row_ids = [str(row.get("row_id") or "").strip() for row in ks_rows]
     if any(not value for value in row_ids) or len(row_ids) != len(set(row_ids)):
         raise KSBurdenHold("KS_MODULE_ROW_ID_HOLD", "PKS_KS rows require unique nonblank row_id values")
 
     orphan_count = 0
-    for number, row in enumerate(_rows(fragments), 2):
+    for number, row in enumerate(_rows(fragments, {"n_ks"}), 2):
         raw_count = str(row.get("n_ks") or "").strip()
         try:
             value = int(raw_count)

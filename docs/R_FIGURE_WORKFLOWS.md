@@ -1,22 +1,8 @@
-# R figure workflows
+# Render existing figure data with R
 
-Use this page when you already have a tree or plotted-data sidecar and need its
-bundled R renderer. Match the **Accepted data** column below to your input, then
-follow that figure family's guide. If you still need to produce the data, return to
-[Figures start here](FIGURES_START_HERE.md). For quantitative assay values beside
-an existing tree, use [Exact selected assay tracks](#exact-selected-assay-tracks).
-
-The Python producer performs joins, validation, aggregation, provenance binding
-and typed missingness before rendering. Keep those admitted sidecars with the R
-output; do not recover scientific selections from filenames or guess how to
-reshape raw assay exports.
-
-The R files under `tools/` are maintained source files; an analysis does not generate them.
-For 16S placement trees, `placement_display.py` writes a display-specific Newick plus annotation
-TSV, then passes both through `ggtree_rect_heatmap.R`. The Newick topology comes from the upstream
-EPA-ng/gappa placement run. R/ggtree handles layout, labels, metadata strips, the scale bar, PNG,
-and PDF. Changing a concise, detailed, no-geography, or internal label view reuses the admitted
-tree and does not rerun phylogenetic inference.
+Choose the bundled renderer for your tree or data sidecar. Keep the producer's
+data and receipt with the rendered files. If you still need to make the data,
+start with [Figures start here](FIGURES_START_HERE.md).
 
 ## Current renderer map
 
@@ -34,65 +20,50 @@ tree and does not rerun phylogenetic inference.
 | `sapote_locus_map.R` | Exact-locus gene sidecar | BGC gene-arrow maps |
 | `figure_factory_next_ggplot.R` | Factory plotted-data sidecar | Alternate rendering of already computed coverage values |
 
-`sapote_figure_theme.R` is shared style policy rather than a standalone renderer. The generic
-bioassay Figure Factory now supplies the broader assay path; the legacy binary placement script
-must not be applied to other targets, fraction types, or time points.
-`tools/FIGURE_R_MANIFEST.tsv` is a generated description of cohort figure schemas,
-geometry and source locations. Read its notes: some geometry is inferred from a
-sidecar schema where no renderer call was found. Use the maintained renderer map
-above and the specific figure guide to choose an R script; the manifest is not a
-registry for standalone tree-track renderers. The R scripts remain source files
-in the bundle.
+`sapote_figure_theme.R` supplies the shared style.  The generated `tools/FIGURE_R_MANIFEST.tsv`
+describes cohort schemas and geometry; some entries are inferred from schemas,
+so use the selected figure's guide for its actual rendering command.
 
 ## Bioassay to tree workflow
 
-Use [Bioassay Figure Factory](BIOASSAY_FIGURE_FACTORY.md) for the observation and
-selection inputs. Once a selected track exists, continue with [tree assay track
-rendering](TREE_ASSAY_TRACK_RENDERING.md) for the adapter, exact tip metadata and R
-commands. The steps below explain the data path between those guides.
+1. Prepare measurements with [Bioassay Figure Factory](BIOASSAY_FIGURE_FACTORY.md).
+2. Select one material/target/time/dose scope and keep the selection receipt.
+3. Bind the resulting track to exact tree-tip IDs.
+4. Follow [tree assay track rendering](TREE_ASSAY_TRACK_RENDERING.md) for the
+   adapter and R command. Keep its data, mapping, methods and output receipt.
 
-1. Map the original 96- or 384-well export into the canonical observation schema. Keep the source
-   plate, well, material lineage, target resolution, time point, replicate type, control state, and
-   row disposition.
-2. Run `figure-factory` with `bioassay_observation_summary_v1`. The factory verifies the source
-   hash and emits admitted rows plus exact-group summaries.
-3. For a tree overlay, provide `tree_track_selection` with one target, target state, time point,
-   material type, strain roster, and an explicit material ID per strain. The resulting
-   `bioassay_tree_track.tsv` preserves a measured zero separately from `NOT_MEASURED`.
-4. Bind the track through an exact tree-tip/strain crosswalk. GToTree/IQ-TREE can provide the
-   genome tree; EPA-ng can place a strain that has 16S but no genome. These are different tree
-   channels and should be labeled as such.
-5. Use the linked tree assay track workflow to adapt and render the selected values. Keep its
-   data, methods, mapping and adapter receipt with the PDF, PNG and tip-order TSV; bind the
-   supplied tree, R sources, arguments and final artifacts in a separate output inventory.
+Recorded zero and `NOT_MEASURED` remain distinct. The optional `fraction_set_max`
+view selects among pooled material means from a named fraction set; it is not
+an experiment-specific maximum. Report experiment and observation counts with it.
+The legacy binary Candida/MRSA placement renderer is limited to that assay scope.
 
-Maximum inhibition is supported only as the explicit `fraction_set_max` view: one target, time
-point, final assay concentration, material type, named fraction set per strain, and a declared
-activity threshold. Its selection details retain the winning fraction, measured and active fraction
-counts, and summed recorded material amount. It is not the default. It never combines different targets, final doses or material types. Matching rows can span several experiments: the grouping key has no experiment ID, rows are weighted equally, and the tree selector cannot filter by experiment. So `fraction_set_max` picks among pooled material means, not per-experiment maxima. Record experiment and observation counts with the selection receipt. Do not read an equal-experiment mean or a no-pooling guarantee from the plot.
+## Placement and genome-tree displays
 
-## Still needed
+`placement_display.py` writes display Newick and metadata for
+`ggtree_rect_heatmap.R`; the upstream EPA-ng/gappa result supplies the topology.
+Switching concise/detailed metadata views changes display, not tree inference.
+Label a 16S placement and a genome-marker tree as their respective channels.
 
-- declarative mapping profiles for each raw plate layout and plate-reader export;
-- an in-vivo observation schema with outcome type, unit, subject/time structure, and exclusions;
-- categorical assay-track rendering beyond the selected numeric BIOASSAY workflow;
-- a reviewed policy for experiment-level versus pooled views and biological versus technical
-  replication;
-- visual regression fixtures for tree/heatmap alignment, long labels, and legends;
-- a source-bound structure panel that consumes the existing NP Atlas/RDKit reference structure
-  record without implying that a comparator molecule was produced or assayed.
+For numeric assay strips, the [tree assay track workflow](TREE_ASSAY_TRACK_RENDERING.md)
+uses `build_tree_tracks.py`, `render_tree_one_bar_row.R` and
+`render_tree_bar_groups.R`. It preserves selection receipts and exact tip IDs.
 
-Known class-member structures, including nucleoside or indolocarbazole examples, can already be
-resolved and drawn through the NP Atlas/RDKit path described in
-[`NPATLAS_PROVISIONING.md`](NPATLAS_PROVISIONING.md). Figure assembly should label the molecule as a
-reference or comparator and preserve its structure identifier, source record, and license.
+## Check the rendered files
 
-## Exact selected assay tracks
+Verify the consumed sidecar against its producer hash. Record the R/theme source
+hashes, arguments, library versions and new output hashes. Use a fresh output
+prefix: `sapote_save_pair` writes directly and can replace existing files.
+Inspect the final plot at its intended size, including dense columns and labels.
 
-The portable [tree assay track workflow](TREE_ASSAY_TRACK_RENDERING.md) uses `build_tree_tracks.py`, `render_tree_one_bar_row.R` and `render_tree_bar_groups.R`. It preserves the Figure Factory selection receipts and exact tip IDs; it does not aggregate across assay scopes.
+`sapote_locus_map.R` draws gene arrows with two label rows and expects
+`label_displayed=YES`. It lacks the v8 comparator/evidence panel and v8 receipt.
+For that content use [locus-map v8](LOCUS_MAP_V8.md) with its rich CSV and checks.
 
-## R output binding and locus-map limits
+New raw-plate layouts, in-vivo schemas, categorical assay strips and experiment-level
+selection need supported inputs before rendering. Reference structures use the
+[NP Atlas/RDKit route](NPATLAS_PROVISIONING.md); label the structure as a comparator
+and keep its source identifier and license.
 
-The R templates consume sidecars directly. `figure_factory_next_ggplot.R` checks required columns, nonempty data, and cohort palette entries; it does not verify the Python receipt hashes, re-admit rows, or certify the numeric fields against the source. Verify the consumed sidecar against its producer receipt first, then record the exact R/theme source hashes, arguments, session/library versions and new output hashes. Use a new output prefix: `sapote_save_pair` calls `ggsave` directly and has no existing-output refusal. R outputs do not inherit the Python artifact hashes or receipt status.
-
-`sapote_locus_map.R` draws gene arrows and two alternating label rows. It reads the exact `panel` subtitle but does not render the v8 comparator/evidence panel, enforce collision-free dense labels, or emit a v8 receipt. Its required visibility field is `label_displayed` (YES); a different legacy visibility schema needs an explicit checked adapter. Treat this as an alternate arrow view, with its content gaps recorded. For review-grade v8 maps use [LOCUS_MAP_V8](LOCUS_MAP_V8.md), retain the rich CSV, and inspect dense labels at the intended size. Do not label an R redraw as v8 parity without content and identity verification.
+<a id="still-needed"></a>
+<a id="exact-selected-assay-tracks"></a>
+<a id="r-output-binding-and-locus-map-limits"></a>

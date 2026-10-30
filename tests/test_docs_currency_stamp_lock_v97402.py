@@ -102,11 +102,10 @@ CLAIMED = [
     "wiki/Encyclopedia.md",
     "docs/GUIDE/01_User_Manual.md",
     "docs/GUIDE/06_Concepts_QandA.md",
-    "wiki/Home.md",
+    "wiki/Mode-B.md",
     "wiki/Audience-Start-Paths.md",
     "wiki/Researcher-Recipes.md",
     "wiki/What-It-Does-and-Limitations.md",
-    "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
 ]
 
 

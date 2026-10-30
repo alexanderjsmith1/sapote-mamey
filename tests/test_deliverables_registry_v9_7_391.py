@@ -65,8 +65,9 @@ def test_menu_carries_current_contract_not_stale_modeb_language():
     assert "§1–§20" not in text
     assert "strain / full node-or-contig / region / BGC alias" in text
     assert "PRIVATE — AS-series data" not in text
-    assert "Similarity is not identity" in text
-    assert "missing or unbound evidence is not biological absence" in text
+    assert "Similarity is not identity" in load_registry()["global_claim_ceiling"]
+    assert "missing or unbound evidence is not biological absence" in load_registry()["global_claim_ceiling"]
+    assert "Availability checks local files and tools" in text
 
 
 def test_deliverables_cli_lists_and_explains(capsys):

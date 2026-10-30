@@ -87,7 +87,7 @@ def test_without_biopython_the_shim_and_a_plain_reader_give_the_same_fasta(tmp_p
 def test_companion_files_points_to_the_zip_before_asking_for_genomes():
     text = (ROOT / "docs" / "COMPANION_FILES.md").read_text(encoding="utf-8")
     assert "tools/antismash_input_genome.py" in text
-    assert "First check the strains' antiSMASH ZIPs" in text
+    assert "original ZIPs" in text or "antiSMASH ZIPs" in text
 
 
 def test_a_sequence_less_record_is_not_written_as_a_genome(tmp_path):

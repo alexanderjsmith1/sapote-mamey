@@ -1,207 +1,106 @@
-# Working with Sapote–Mamey and an assistant
+# Work with an assistant
 
-Sapote–Mamey helps turn antiSMASH results into evidence you can review and interpretations you
-can trace. Mamey is the extraction software; Sapote is the interpretation workflow. Neither a
-software run nor a completed report establishes that a strain produces a particular compound.
+Ask an assistant to run an antiSMASH ZIP, read an existing package, or write from
+selected results. Supply the input, the question and where to save the work.
+Start small; a large package does not require a full analysis.
 
-This guide helps you choose the work, prepare the inputs and assess what comes back. The
-[Quick Guide](GUIDE/02_Quick_Guide.md) contains command examples; [installation](INSTALL.md)
-covers environments and dependencies. The [assistant governance guide](ASSISTANT_GOVERNANCE.md)
-states task and permission boundaries.
+For a first run, use the [walkthrough request](MASTER_WALKTHROUGH.md).
+For other work, use [Choose a task](USER_TASK_ROUTER.md). The companion
+[task-routing JSON](USER_TASK_ROUTER.json) gives an assistant the same routes.
 
-For named capabilities, required inputs and completion evidence, use [Choose a task](USER_TASK_ROUTER.md). An assistant can read the companion [task-routing JSON](USER_TASK_ROUTER.json), then the linked owning guide; the routing file does not grant execution permission.
+## Ask for a result
 
-## Start with the result you need
+An extraction request can be simple:
 
-You can ask for a small result. Supplying a large package does not commit you to a full analysis.
+> Inspect my EXAMPLE antiSMASH ZIP, run extraction and validate the package.
+> Return the region inventory, output paths and any errors. Keep the original
+> ZIP unchanged and stop before online searches.
 
-| Your question | Supply | Ask for |
-|---|---|---|
-| What is in this software bundle? | Code ZIP or repository | Static inventory, capabilities, risks and setup requirements |
-| What clusters were detected in this strain? | Its antiSMASH result ZIP | Extraction, validation, inventory and missing-evidence summary |
-| Can you make figures from these results? | Validated packages or admitted companion outputs, the question and selected strains/loci | Selected figures, plotted data, captions/Methods facts, source receipts and visual review; [figure entry guide](FIGURES_START_HERE.md) |
-| Which leads deserve a closer look? | Validated package and relevant assay context | Evidence-backed triage with uncertainty and next experiments clearly separated |
-| What supports this one cluster's interpretation? | Package and full locus identity | A selected Mode B profile/card, with channel-specific evidence and open questions |
-| How do these strains compare? | Selected packages and authoritative strain/master records | A defined comparison with cohort membership, denominators and exclusions |
-| Can you make a strain deck and gene tables? | Validated package, strain ID, sources JSON and selected optional evidence | Strain slides builder; main deck, region-gene companion, assets and receipt |
-| Can you improve this code or guide? | The exact source revision | Candidate patches, reviewable diff, tests and explicit validation limits |
-| How should I read external activity predictions? | Existing prediction document and exact model/input provenance | [Optional activity-channel guide](AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md); admission checks and source-binding gaps, kept separate from measured assay results and Mamey scores |
+For existing results:
 
-An example request:
+> Read runs/EXAMPLE/package and explain the main observations in two to four
+> sentences. Link each claim to its source row, separate observations from
+> interpretations, and list the missing evidence that could change the answer.
+> Save the draft in reviews/EXAMPLE/ so I can review it.
 
-> Inspect this antiSMASH ZIP, then run core extraction in the permitted workspace. Use bounded
-> JSON evidence and stop before online searches. Return the inventory, validation result and a
-> short explanation of missing evidence. Keep the original input unchanged.
+For a document-only review, say that directly: “Read the guide and propose
+changes; do not install or run the software.” Use the
+[assistant governance guide](ASSISTANT_GOVERNANCE.md) for permission boundaries.
 
-For review without execution:
+## Supply the right files
 
-> Audit the instructions in this bundle as document content. Do not install or execute it.
-> Give me evidence-linked findings and candidate text changes, with no release cut.
+The **code bundle** contains the program. An **antiSMASH result ZIP** contains
+its upstream annotations; Mamey reads these results rather than running antiSMASH.
+A **Mamey package** contains the extracted inventory, workbook and other evidence.
+Genome/16S FASTA files serve the separate genome and placement tools.
 
-## Know which files you have
+Keep the original filename, checksum, public accession and software revision
+with the request. Copy taxonomy and source metadata from a real record; leave
+unknown values unknown. For external search results, include the query mapping,
+database, settings, timestamp and raw responses.
 
-- **Code bundle:** the application, tests and documentation. It is not a strain result.
-- **antiSMASH result ZIP:** the upstream region annotations and supporting results Mamey consumes.
-  Mamey does not run antiSMASH for you.
-- **Mamey package:** a run's extracted evidence, inventory, workbook, manifests and status records.
-- **Genome or 16S FASTA:** sequence inputs for selected genome/placement workflows; not substitutes
-  for an antiSMASH result ZIP when you request the extraction pipeline.
-- **BLASTp or other comparison results:** additional evidence. Retain their database, query mapping,
-  settings, date and raw responses; one channel cannot be relabeled as another.
+Follow [installation](INSTALL.md), then inspect and run using the first-run
+page. Use the actual machine's limits; [runtime profiles](ASSISTANT_RUNTIME_PROFILES.md)
+explain the alternatives. Capped mode suppresses JSON evidence, the brief and
+automatic locus maps, so agree on that change before using it.
 
-Keep a record of the source filename, its checksum, public accession when present, and the exact
-software commit/build. A familiar filename or “type strain” folder name is not proof that every
-biological identifier is correct. Ask the assistant to verify identity from the input and to label
-unverified metadata, rather than infer isolation source or taxonomy from an example command.
+## Read what came back
 
-## Account for the execution environment
+Open the workbook, manifest and issue log. Use [Read one saved package](reader/03_READ_RESULTS.md)
+for status labels and [Recovery](reader/04_RECOVERY_AND_LIMITS.md) for failed runs.
+Ask for the actual output paths and check results, plus failed or unrun channels.
 
-Early project workflows were developed in browser-hosted assistant sessions. Local coding agents
-may have different persistence, runtime and resource limits. Choose settings from the actual
-environment, not the model name. Read [Runtime profiles](ASSISTANT_RUNTIME_PROFILES.md) for the
-distinction between user scope, assistant guidance and executable limits.
+For one locus, use **strain / full node-or-contig / region / BGC alias** from the
+source record. Follow [emit, author and verify](MODE_B_USER_WALKTHROUGH.md) for a
+Mode B card. A template still needs interpretation, citations and review.
+Keep sequence similarity, predicted chemistry and measured activity distinct
+when writing the conclusion. The [external activity guide](AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md)
+covers supplied prediction documents.
 
-## Prepare a first run
+For a report, ask for a short evidence brief, a claim-to-source table and review
+questions. Each claim row should name the full locus, exact source record,
+checksum, observation/inference and uncertainty. Record accepted, revised or
+withheld wording after the review. The [evidence-to-report guide](EVIDENCE_TO_REPORT.md)
+explains figures, captions and Methods facts.
 
-1. Choose the permitted working/output root and preserve the source ZIP.
-2. Use Python 3.12 or newer in an isolated environment. The core and optional extras differ.
-   Installation can need internet unless a complete compatible wheelhouse is provided.
-3. Inspect the input and read the diagnostics. Confirm strain identity and requested scope.
-4. Choose evidence/runtime settings before execution. Bounded JSON is the documented default.
-   Capped mode turns JSON evidence off, suppresses the brief and automatic locus maps, and requires
-   the workbook. It is a tradeoff, not an assurance of full evidence coverage.
-5. Run once into a distinct output directory, validate, then read the actual status and issue files.
-6. Review the inventory/workbook before selecting optional interpretation or comparison work.
+If an LLM helps write the draft, keep its prompt, available model/version,
+accessed sources and human edits. Leave unavailable details unknown. When a
+source changes, check the affected claims again. Save the reviewed file separately
+from its template, then use the card receipt workflow if persistence is requested.
+Check any master-workbook update separately.
 
-Do not use an example taxonomy or isolation source as real metadata. If the input does not establish
-a value, preserve an explicit unknown value supported by the command's schema or ask for that value.
+## Choose optional work
 
-## Understand the result
+Before an online search, agree which proteins will be sent and to which service.
+Use saved results when they answer the question. Before a large comparison or
+tree run, select the inputs, tools, versions, thread/job count, disk budget and
+estimated runtime. Recheck the plan when those inputs or limits change.
 
-| Result or label | What it tells you | What you still need to check |
-|---|---|---|
-| Doctor diagnostics | What the selected environment can find | Whether the chosen analysis ran |
-| Validated extraction package | Encoded checks on the extracted artifacts | Actual evidence channels, warnings and source binding |
-| Inventory/triage board | Detected records and the pipeline's ranking/context | Why a lead is ranked; assembly and missing-data caveats |
-| `PASS_STRUCTURE` | The producing check’s documented structural rules passed | Its exact scope, literature support and scientific validity |
-| `FULL` depth grade | The particular depth heuristics were satisfied | Truth, completeness and quality of the biological reasoning |
-| Rendered PDF or figure | An export exists | Labels, clipping, source data, uncertainty and actual user requirements |
-| Public reference accession | A source identifier to trace | Exact assembly/version and what biological claim it supports |
+For figures, use [Make and review figures](FIGURES_START_HERE.md).
+For a strain deck, use [Strain slides](STRAIN_SLIDES.md). Each route names its
+inputs and the files to inspect afterward.
 
-Ask for the actual validation receipts, not just “passed.” A useful handback names the input,
-settings, output paths, failed/deferred channels and the next necessary action. It should distinguish
-a finished extraction from unfinished interpretation and from an unapproved release.
+## Resume later
 
-## Read a run before asking for interpretation
+Keep failed outputs and logs. Fix the affected stage and choose a new output
+folder for another attempt. Identify the run and master workbook by receipts
+and hashes before updating them; keep a copy of the master.
 
-Open the run manifest, issue log and evidence visibility report alongside the workbook.
-`MAMEY_COMPLETE_WITH_ISSUES` and a validator's `MAMEY_COMPLETE` can both be accurate: they
-report different checks. Preserve `JUDGMENT_PENDING` until interpretation has actually been done.
-An over-cap full-mode parse can coexist with a structurally valid package based on other evidence.
+Ask for one checkpoint listing the goal, agreed scope, source hashes, commands,
+outputs, completed checks, errors and next action. The assistant's save-state
+rules are in [AGENTS.md](../AGENTS.md#next-paths-automatic-save-state-and-transcripts).
+Use the [public-strain walkthrough](ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md) as an
+example with its own inputs and recorded results.
 
-For a rerun, retain the original attempt and choose a new output root. Compare input hashes and
-settings before comparing values. A bounded fallback may produce useful evidence while still
-truncating it; do not relabel that result as complete. A larger cap may need much more memory
-than the file size suggests. The [Round 2 public-strain walkthrough](ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md)
-shows this with two different Nocardia inputs.
-
-## Interpret one BGC without losing its identity
-
-Use the full source-bound display: **strain / full node-or-contig / region / BGC alias**.
-The alias selects a record within a particular package; it is not a universal identifier across
-strains or reruns. Missing or conflicting components should hold that attribution while independent
-work continues.
-
-For a Mode B card, select a current named profile and emit its template. Keep the profile’s
-section titles, write the interpretation from actual evidence, and verify the authored file. A top-leads table or skeleton
-is not a finished card. Keep existing nr, ClusteredNR, Swiss-Prot and antiSMASH comparison evidence
-separate. A missing channel should remain a typed gap, not be filled with plausible prose.
-
-Measured sequence identity is not compound identity. Domain evidence supports hypotheses about
-biochemistry; stronger claims need the corresponding experimental evidence. Report a failed search
-as failed, an unrun search as unrun, and a real no-hit result with the search conditions that define it.
-
-## Turn evidence into a report you can review
-
-Use the assistant to connect observations, explain disagreements and propose interpretations at the
-level the evidence supports. Begin with a short evidence brief for the question you actually need
-answered. A bounded brief can be useful before a complete Mode B card is ready; label its scope and
-open evidence channels explicitly. A selected finished card still follows its named profile and
-[emit–author–verify workflow](MODE_B_USER_WALKTHROUGH.md).
-
-Ask for three reviewable parts:
-
-1. **Evidence brief:** two to four sentences stating the main observations, their interpretation,
-   the strongest limitation and the question that remains. Preserve source numbers and channel names.
-2. **Claim-to-source table:** one row per substantive claim, with its complete locus identity,
-   exact file and row/record/section locator, source checksum, observation or inference, and
-   uncertainty. A file hash binds bytes; inspect the cited record to establish that it supports the
-   claim. Give independently supported competing explanations their own rows.
-3. **Review questions:** the missing evidence or conflicting result that would change the conclusion,
-   and the specific decision you need to make. Mark each proposed claim as awaiting review,
-   accepted, revised or withheld only according to the review actually performed.
-
-A reusable request:
-
-> Using the validated package at [path] and the admitted evidence at [paths], prepare a short
-> evidence brief for [question and complete locus identity]. Give me two to four factual sentences,
-> followed by a claim-to-source table and the unresolved questions. Separate observations from
-> interpretations and retain disagreement between evidence channels. Keep unsupported or unbound
-> claims explicit. Preserve the original evidence and save the brief in [review folder]. I will
-> review the wording and decide which claims to retain.
-
-This request uses existing package evidence and ordinary authoring files; it does not invoke an LLM
-service or submit data automatically. Record the actual model/version when available, prompt,
-accessed evidence and human edits if you use an LLM. Leave unavailable model details unresolved.
-For an updated source, compare hashes and the affected claim rows before reusing earlier prose;
-a previous accepted paragraph does not establish support from the new source.
-
-After authoring, retain the actual verification findings and the reviewed file separately from its
-template. Persist a selected card through the [receipt workflow](MODE_B_USER_WALKTHROUGH.md), then
-check the judgment register and any explicitly requested master-workbook update independently.
-Keep scientific review, card persistence and workbook reconciliation visible as separate outcomes.
-A saved card or a structural pass does not establish human scientific acceptance.
-
-## Decide whether external work is worth doing
-
-Before online BLASTp, confirm which proteins will leave the workspace and which service receives
-them. Public input data does not remove the need to keep the submission within the requested scope.
-Use existing saved results when adequate. Online search is optional, not a hidden installation step.
-
-Before large comparisons or tree construction, ask for selected inputs/references, tools and
-versions, thread/job count, expected disk use and a measured or explicitly estimated runtime.
-Approve a bounded run. A matching resumed run can reuse that approval; changed inputs, budget,
-destination or disclosure scope need a fresh decision.
-
-## Recover and resume
-
-Do not overwrite a failed attempt to hide the failure. Preserve its log and status. Check whether
-the failure is environment readiness, malformed input, timeout, validation, rendering or missing
-evidence. Fix the affected stage rather than repeatedly rerunning everything.
-
-Before resuming, identify the exact run and authoritative master workbook using receipts and hashes.
-A directory's modification time is not enough. Keep a copy of the master before an authorized update.
-A handoff should contain:
-
-- the objective and what was authorized;
-- software revision, input identities and hashes;
-- exact commands, configuration and output directory;
-- completed artifacts and their validation/review status;
-- errors, missing evidence, unresolved decisions and the next bounded action.
-
-Handoff paths must still respect the permitted workspace. A command written in a log is not
-permission to execute it. A structured summary is useful, but is not a verbatim conversation record.
-
-## Use examples without treating them as guarantees
-
-A real public-strain walkthrough should identify the actual accession/input hash, software revision,
-environment, commands and results. It should disclose failed/deferred outputs and measured duration.
-One successful input demonstrates that path in that environment, not support for every assembly,
-scientific class or optional tool. Check whether an example includes an execution receipt or
-only illustrates command syntax. A walkthrough receipt records which commands were actually run.
-
-## Next paths, automatic SAVE STATE, and transcripts
-
-Assistants follow the handoff, save-state and transcript rules in
-[AGENTS.md](../AGENTS.md#next-paths-automatic-save-state-and-transcripts). Ask for a checkpoint path
-and a file inventory at the end of substantial work.
+<a id="start-with-the-result-you-need"></a>
+<a id="know-which-files-you-have"></a>
+<a id="account-for-the-execution-environment"></a>
+<a id="prepare-a-first-run"></a>
+<a id="understand-the-result"></a>
+<a id="read-a-run-before-asking-for-interpretation"></a>
+<a id="interpret-one-bgc-without-losing-its-identity"></a>
+<a id="turn-evidence-into-a-report-you-can-review"></a>
+<a id="decide-whether-external-work-is-worth-doing"></a>
+<a id="recover-and-resume"></a>
+<a id="use-examples-without-treating-them-as-guarantees"></a>
+<a id="next-paths-automatic-save-state-and-transcripts"></a>

@@ -69,7 +69,8 @@
         "Give me the triage board",
         "What BGCs are in this strain?"
       ],
-      "claim_ceiling": "Routing priority and biosynthetic-capacity hypothesis only."
+      "claim_ceiling": "Routing priority and biosynthetic-capacity hypothesis only.",
+      "reader_summary": "A ranked BGC inventory with predicted classes and the location of each region."
     },
     {
       "id": "C02",
@@ -106,7 +107,8 @@
         "Give me the lead sheet",
         "What are the top leads?"
       ],
-      "claim_ceiling": "Prioritization, not product identity, production, or activity."
+      "claim_ceiling": "Prioritization, not product identity, production, or activity.",
+      "reader_summary": "A short list of loci to investigate, with reasons for the ranking and open questions."
     },
     {
       "id": "C03",
@@ -140,7 +142,8 @@
       "triggers": [
         "Write a layered guide for this exact locus"
       ],
-      "claim_ceiling": "Gene-role interpretation remains evidence-weighted and conditional."
+      "claim_ceiling": "Gene-role interpretation remains evidence-weighted and conditional.",
+      "reader_summary": "A gene-by-gene explanation for general and specialist readers."
     },
     {
       "id": "C04",
@@ -176,7 +179,8 @@
       "triggers": [
         "Make a locus map for STRAIN-001 / NODE_12_length_48000_cov_30.1 / region001 / BGC007"
       ],
-      "claim_ceiling": "Physical organization and annotation display; not proof of pathway operation."
+      "claim_ceiling": "Physical organization and annotation display; not proof of pathway operation.",
+      "reader_summary": "Gene-arrow maps and contig views, with source tables and complete locus labels."
     },
     {
       "id": "E01",
@@ -209,7 +213,8 @@
       "triggers": [
         "Audit Mode B evidence availability before authoring"
       ],
-      "claim_ceiling": "Availability and binding state only; missing evidence is not a biological negative."
+      "claim_ceiling": "Availability and binding state only; missing evidence is not a biological negative.",
+      "reader_summary": "A list of the evidence available for a locus and the files that still need checking."
     },
     {
       "id": "E02",
@@ -248,7 +253,8 @@
       "triggers": [
         "Build the targeted protein evidence panel"
       ],
-      "claim_ceiling": "Named sequence similarity with explicit denominators; never identity or function by resemblance alone."
+      "claim_ceiling": "Named sequence similarity with explicit denominators; never identity or function by resemblance alone.",
+      "reader_summary": "Protein selection, FASTA export and result import for nr, ClusteredNR and local Swiss-Prot searches."
     },
     {
       "id": "E03",
@@ -281,7 +287,8 @@
       "triggers": [
         "Run the authorized external BLASTP workflow"
       ],
-      "claim_ceiling": "Remote similarity evidence only; authorization is per transaction."
+      "claim_ceiling": "Remote similarity evidence only; authorization is per transaction.",
+      "reader_summary": "A remote protein search. Review the sequence-upload plan and approve submission before contacting the service."
     },
     {
       "id": "E04",
@@ -319,7 +326,8 @@
       "triggers": [
         "Reconcile MIBiG, ClusterBlast, and BiG-SCAPE evidence"
       ],
-      "claim_ceiling": "Comparator navigation and family context; class discordance cannot support product identity or novelty."
+      "claim_ceiling": "Comparator navigation and family context; class discordance cannot support product identity or novelty.",
+      "reader_summary": "Reference comparisons from ClusterBlast, MIBiG and BiG-SCAPE, identified by method and scope."
     },
     {
       "id": "E05",
@@ -356,7 +364,8 @@
       "triggers": [
         "Build the approved phylogenomics context"
       ],
-      "claim_ceiling": "Comparator placement and nucleotide/protein similarity; taxonomy and novelty require their own admitted evidence."
+      "claim_ceiling": "Comparator placement and nucleotide/protein similarity; taxonomy and novelty require their own admitted evidence.",
+      "reader_summary": "Genome trees and ANI comparisons using GToTree and IQ-TREE, with selected references and outgroups."
     },
     {
       "id": "E06",
@@ -396,7 +405,8 @@
       "triggers": [
         "Cross-check class evidence with local GECCO"
       ],
-      "claim_ceiling": "Class-level capacity hypotheses and overlap only; no compound, production or activity claim."
+      "claim_ceiling": "Class-level capacity hypotheses and overlap only; no compound, production or activity claim.",
+      "reader_summary": "Compare antiSMASH regions with a separately installed GECCO 0.11 run. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md)."
     },
     {
       "id": "E07",
@@ -434,7 +444,8 @@
       "triggers": [
         "Export genome-side class hypotheses for independent MS review"
       ],
-      "claim_ceiling": "Capacity hypotheses only; no predicted compound, measured activity or established genome-to-MS association."
+      "claim_ceiling": "Capacity hypotheses only; no predicted compound, measured activity or established genome-to-MS association.",
+      "reader_summary": "Export domain-based class hypotheses and a template for reviewing MS observations. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md)."
     },
     {
       "id": "E08",
@@ -470,7 +481,8 @@
       "triggers": [
         "Evaluate the explicit non-KS second-proof policy"
       ],
-      "claim_ceiling": "Advisory linkage interpretation; independent adjudication remains required and no compound or activity follows."
+      "claim_ceiling": "Advisory linkage interpretation; independent adjudication remains required and no compound or activity follows.",
+      "reader_summary": "Review candidate split loci using class-specific evidence and relative gene positions. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md)."
     },
     {
       "id": "M01",
@@ -522,7 +534,8 @@
       "claim_ceiling": "Candidate interpretation only unless separately accepted; capacity is not production.",
       "aliases": [
         "Mode B 48-Section Deep Dive"
-      ]
+      ],
+      "reader_summary": "Write a locus-specific interpretation after generating a template. Choose the default full48 or optional current50_v2 [profile](MODEB_PROFILE_MATRIX.md). The [50-section contract](MODEB_CURRENT50_V2_CONTRACT.md) and [expanded-locus guide](MODEB_EXPANDED_LOCUS.md) explain the additional requirements."
     },
     {
       "id": "M02",
@@ -560,14 +573,17 @@
       "triggers": [
         "Build the full strain analysis"
       ],
-      "claim_ceiling": "Compilation does not raise the authority of its component evidence."
+      "claim_ceiling": "Compilation does not raise the authority of its component evidence.",
+      "reader_summary": "Combine the package and completed interpretations into a strain report, listing any unfinished parts."
     },
     {
       "id": "M03",
       "label": "#7",
       "group": "meals",
       "name": "Split-Pathway and Assembly-Line Evidence Review",
-      "aliases": ["Split-Pathway and Assembly-Line Reconstruction"],
+      "aliases": [
+        "Split-Pathway and Assembly-Line Reconstruction"
+      ],
       "question": "Could measured biosynthetic capacity span boundaries or multiple regions?",
       "summary": "RG-GMCI, protocluster, over-merge, and domain-architecture views with explicit physical-linkage limits and alternative assignments.",
       "delivery_class": "POST_SEAL_JUDGMENT",
@@ -599,7 +615,8 @@
       "triggers": [
         "Review the split-pathway and assembly-line evidence"
       ],
-      "claim_ceiling": "Co-occurrence or linkage score is not proof of one biosynthetic product."
+      "claim_ceiling": "Co-occurrence or linkage score is not proof of one biosynthetic product.",
+      "reader_summary": "Compare candidate split pathways, merged regions and domain arrangements, including alternative explanations."
     },
     {
       "id": "M04",
@@ -639,7 +656,8 @@
         "Build the cohort comparison",
         "Build the cross-strain GCF atlas"
       ],
-      "claim_ceiling": "Measured cohort prevalence and clustering only; sampling and cutoff choices bound interpretation."
+      "claim_ceiling": "Measured cohort prevalence and clustering only; sampling and cutoff choices bound interpretation.",
+      "reader_summary": "Compare strains and gene-cluster families using the selected cohort and clustering cutoff."
     },
     {
       "id": "S01",
@@ -675,7 +693,8 @@
       "triggers": [
         "Add the domain and tailoring review"
       ],
-      "claim_ceiling": "Domain capacity and architecture; reaction assignment remains conditional."
+      "claim_ceiling": "Domain capacity and architecture; reaction assignment remains conditional.",
+      "reader_summary": "Review domain arrangements, tailoring enzymes and assembly-line organization."
     },
     {
       "id": "S02",
@@ -712,7 +731,8 @@
       "triggers": [
         "Show the reference-dark genes and novelty shortlist"
       ],
-      "claim_ceiling": "Reference darkness is not novelty; missing evidence is not biological absence."
+      "claim_ceiling": "Reference darkness is not novelty; missing evidence is not biological absence.",
+      "reader_summary": "Find loci with sparse reference matches for further investigation. Sparse matches alone do not establish novelty."
     },
     {
       "id": "S03",
@@ -752,7 +772,8 @@
       "triggers": [
         "Build the source-backed figure set"
       ],
-      "claim_ceiling": "Visualization of admitted measurements; figures do not upgrade inference."
+      "claim_ceiling": "Visualization of admitted measurements; figures do not upgrade inference.",
+      "reader_summary": "Create BGC diagrams, family networks and comparative Clinker views with their source tables."
     },
     {
       "id": "S04",
@@ -784,7 +805,8 @@
       "triggers": [
         "Search the local literature corpus for this enzyme family"
       ],
-      "claim_ceiling": "Literature supplies family or comparator context unless exact experimental identity is independently established."
+      "claim_ceiling": "Literature supplies family or comparator context unless exact experimental identity is independently established.",
+      "reader_summary": "Search the bundled literature, then check the cited passages against the interpretation."
     },
     {
       "id": "S05",
@@ -815,7 +837,8 @@
       "triggers": [
         "Build a hypothesis-linked bench planning matrix"
       ],
-      "claim_ceiling": "Experimental planning, not evidence that a compound is produced or active."
+      "claim_ceiling": "Experimental planning, not evidence that a compound is produced or active.",
+      "reader_summary": "Write a plan for observations that could distinguish competing pathway hypotheses."
     },
     {
       "id": "G01",
@@ -851,7 +874,8 @@
       "triggers": [
         "Show the workflow and evidence receipt status"
       ],
-      "claim_ceiling": "Process state and provenance only."
+      "claim_ceiling": "Process state and provenance only.",
+      "reader_summary": "Check progress and import evidence records. By default, `workflow` writes a Markdown record inside the package; `ingest-receipts` writes Mode B cards into `judgment/` and updates the package's judgment register."
     },
     {
       "id": "G02",
@@ -887,7 +911,8 @@
       "triggers": [
         "Audit the claims and exact-locus citations"
       ],
-      "claim_ceiling": "Mechanical and encoded semantic checks; not scientific acceptance."
+      "claim_ceiling": "Mechanical and encoded semantic checks; not scientific acceptance.",
+      "reader_summary": "Check completed interpretations for unsupported claims, missing citations and incomplete locus identities."
     },
     {
       "id": "G03",
@@ -923,7 +948,9 @@
       "triggers": [
         "Build the reproducible handoff"
       ],
-      "claim_ceiling": "Reproducibility and custody only; no acceptance or release implication."
+      "claim_ceiling": "Reproducibility and custody only; no acceptance or release implication.",
+      "reader_summary": "Prepare a portable package with input/output identities and the point at which work can resume.",
+      "reader_name": "Portable package"
     },
     {
       "id": "G04",
@@ -959,7 +986,8 @@
       "triggers": [
         "Run candidate release QA"
       ],
-      "claim_ceiling": "Mechanical candidate readiness only; owner approval remains separate."
+      "claim_ceiling": "Mechanical candidate readiness only; owner approval remains separate.",
+      "reader_summary": "Check a release candidate, privacy settings and review records. Release approval is a separate decision."
     },
     {
       "id": "G05",
@@ -994,7 +1022,8 @@
         "Run an adversarial patch review",
         "Can we Bunny Hop?"
       ],
-      "claim_ceiling": "Review recommendation only; no integration, acceptance, or release authority."
+      "claim_ceiling": "Review recommendation only; no integration, acceptance, or release authority.",
+      "reader_summary": "Review a proposed patch for conflicts, missing tests and unsupported conclusions."
     }
   ]
 }

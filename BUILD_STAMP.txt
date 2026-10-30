@@ -1,5 +1,5 @@
-version=9.7.460
-build=20261027v97460a
+version=9.7.461
+build=20261029v97461a
 engine=1.9.177
-patch=Metadata as deposited.; Mode B ingest.; No hidden package scans.; doctor; Figures.; Tests.; Generated surfaces
+patch=User documentation, rebuilt for a reader opening the bundle cold.; Wiki.; Public datasets.; Notices.; Identity kept whole.; A missing source is not an empty result.; Refusals.; Packages and commands.
 tier=code

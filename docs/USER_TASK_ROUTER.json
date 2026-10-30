@@ -13,7 +13,7 @@
       "request": "Extract and validate one strain from this antiSMASH result ZIP.",
       "inputs": [
         "antiSMASH ZIP",
-        "strain metadata",
+        "strain name; optional recorded taxonomy and isolation source",
         "permitted output root"
       ],
       "guide": "docs/reader/01_FIRST_RUN.md",
@@ -87,7 +87,7 @@
         "validated package",
         "strain ID",
         "sources JSON",
-        "fresh output destination/tag"
+        "fresh output destination; optional custom tag"
       ],
       "guide": "docs/STRAIN_SLIDES.md",
       "outputs": [
@@ -206,7 +206,7 @@
       "request": "Package this reviewed result and selected source region files for another local session.",
       "inputs": [
         "reviewed package and retained validation/source hashes",
-        "optional original antiSMASH ZIP with independently verified binding",
+        "original antiSMASH ZIP with independently verified binding for region GBKs; optional for a package-only archive",
         "new output ZIP path with existing parent"
       ],
       "guide": "docs/FILES_STORAGE_AND_HANDOFF.md",

@@ -134,26 +134,46 @@ def count_modeb_cards(paths, enforce_structure=False):
     return len(seen_bgc_ids)
 
 
-def cards_from_register(package_dir):
+def cards_from_register(package_dir, *, diagnostics=None):
     """Read the judgment register and return (cards_complete, total_bgcs).
 
     The register is the canonical post-W9 source of truth: `record_mode_b`
     flips per-BGC status to COMPLETE only after the card has been written
-    and stamped. Returns (None, None) if no register can be found.
+    and stamped. Returns (None, None) if its counts cannot be read.
+    Optional diagnostics retain the attempted path and why it is unavailable.
     """
-    pkg = package_dir
+    pkg = os.fspath(package_dir)
     candidates = []
+    expected_path = pkg if pkg.endswith("_judgment_register.json") else os.path.join(
+        pkg, "*_judgment_register.json"
+    )
+
+    def unavailable(state, path, reason):
+        if diagnostics is not None:
+            diagnostics.update(status=state, path=path, error=f"{reason}: {path}")
+        return None, None
+
     if os.path.isdir(pkg):
         candidates.extend(glob.glob(os.path.join(pkg, "*_judgment_register.json")))
-    elif os.path.isfile(pkg) and pkg.endswith("_judgment_register.json"):
+    elif pkg.endswith("_judgment_register.json"):
         candidates.append(pkg)
     if not candidates:
-        return None, None
+        return unavailable("MISSING", expected_path, "Judgment register not found")
+    register_path = candidates[0]
     try:
-        reg = _read_json(candidates[0], encoding="utf-8")
-    except (OSError, json.JSONDecodeError):
-        return None, None
-    return reg.get("complete_bgcs"), reg.get("total_bgcs")
+        reg = _read_json(register_path, encoding="utf-8")
+    except FileNotFoundError:
+        return unavailable("MISSING", register_path, "Judgment register not found")
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return unavailable("UNREADABLE", register_path, f"Judgment register could not be read ({exc})")
+    if not isinstance(reg, dict):
+        return unavailable("INVALID", register_path, "Judgment register must be a JSON object")
+    complete, total = reg.get("complete_bgcs"), reg.get("total_bgcs")
+    if any(type(count) is not int or count < 0 for count in (complete, total)):
+        return unavailable("INVALID", register_path, "Judgment register needs nonnegative integer complete_bgcs and total_bgcs")
+    if diagnostics is not None:
+        diagnostics.update(status="READ", path=register_path, error=None)
+    return complete, total
 
 
 def raw_bgc_count(package):
@@ -211,31 +231,34 @@ def main():
 
     # Card-count source priority: --register (canonical) > --modeb (legacy)
     card_source = None
-    cards = 0
+    cards = None
     register_complete = None
     register_total = None
+    register_diagnostics = {"status": "NOT_REQUESTED", "path": None, "error": None}
     card_validation_error = None
     if a.register:
-        register_complete, register_total = cards_from_register(a.register)
+        register_complete, register_total = cards_from_register(
+            a.register, diagnostics=register_diagnostics
+        )
+        cards = register_complete
         if register_complete is not None:
-            cards = register_complete
             card_source = "judgment_register"
     if card_source is None and a.modeb:
         try:
             cards = count_modeb_cards(a.modeb, enforce_structure=True)
             card_source = "file_glob_regex"
         except RuntimeError as exc:
-            cards = 0
+            cards = None
             card_source = "file_glob_structure_gate_error"
             card_validation_error = str(exc)
     if card_source is None:
-        # Neither path supplied → fall back to nothing; downstream check
-        # will report 0/N which is JUDGMENT_PENDING (correct fail-closed).
-        card_source = "none"
+        # Preserve an unavailable register as unknown, not an observed zero.
+        # A successful explicit legacy fallback above still supplies its own count.
+        card_source = "judgment_register_unavailable" if a.register else "none"
 
     spass, sfind = suite_pass(a.manifest, a.mode, here)
 
-    modeb_complete = (raw is not None and cards >= raw)
+    modeb_complete = (cards is not None and raw is not None and cards >= raw)
     # v9.7.374 (audit lane): `(not gold or modeb_complete)` was dead — `modeb_complete` is
     # already required by the first AND operand, so by the time this third clause is evaluated
     # `modeb_complete` is always True, making `not gold or modeb_complete` always True too,
@@ -254,8 +277,12 @@ def main():
         "mode": a.mode,
         "raw_bgcs": raw,
         "modeb_cards_written": cards,
+        "modeb_card_count_status": "UNKNOWN" if cards is None else "KNOWN",
         "modeb_card_source": card_source,
         "modeb_card_validation_error": card_validation_error,
+        "judgment_register_status": register_diagnostics["status"],
+        "judgment_register_path": register_diagnostics["path"],
+        "judgment_register_error": register_diagnostics["error"],
         "register_complete_bgcs": register_complete,
         "register_total_bgcs": register_total,
         "modeb_complete": modeb_complete,

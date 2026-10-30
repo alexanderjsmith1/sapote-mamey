@@ -437,6 +437,18 @@ def write_open_me_first(package_dir: str | Path) -> Path:
     findings = visibility.get("findings") or []
     evidence_detail = ", ".join(str(x) for x in findings) or "No advisory findings recorded; completeness is not established."
     issues = manifest.get("issues") or []
+    issue_log = root / "issue_log.md"
+    if issue_log.exists():
+        try:
+            issue_text = issue_log.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise ValueError(f"issue_log.md is unreadable: {exc}") from exc
+        entries = [line[2:].strip() for line in issue_text.splitlines()
+                   if line.startswith("- ") and line[2:].strip()]
+        if not entries:
+            raise ValueError("issue_log.md has no recorded issue entries")
+        issues = [entry for entry in entries
+                  if entry != "No blocking issues recorded."]
 
     raw_bgcs    = read_manifest_field("raw_bgcs", manifest=manifest, manifest_short=ms, default="?")
     corrected   = read_manifest_field("corrected_bgcs", manifest=manifest, manifest_short=ms, default="?")

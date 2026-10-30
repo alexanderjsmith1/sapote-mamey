@@ -1,9 +1,12 @@
-# Claim-safety — the language contract every output obeys
+<a id="claim-safety--the-language-contract-every-output-obeys"></a>
+# Claim safety for interpreting outputs
 
-Sapote-Mamey's outputs are **class-level hypotheses with judgment deferred**. This is not a
-disclaimer bolted on at the end — it is a contract enforced in the emitted text, the tests, and the
-review gates. If you edit any output surface, keep the language; if you write about results, use
-these framings.
+Use evidence-bound language when interpreting outputs.  
+This page is for anyone writing or reviewing results.
+
+Use class-level capacity language and defer judgment where the evidence requires it. Some output
+surfaces and tests implement claim-safety checks, but their coverage is not universal. Review the
+selected output and its source evidence before making a claim; use these framings when writing.
 
 ## The core rules
 
@@ -22,8 +25,8 @@ these framings.
 6. **Missing evidence is not absence.** Missing, unrun, failed or truncated evidence remains
    unavailable or incomplete. Only a completed, scoped search with a recorded no-hit result supports
    "not detected under these parameters"; it never establishes "the strain lacks X."
-7. **Every metric carries its denominator.** "44 novel GCFs" is meaningless without "of 1,753
-   governed"; quote counts with their scope.
+7. **Every metric carries its denominator.** Report the numerator, denominator and defined
+   search scope. Absence from a reference set does not establish novelty.
 8. **An RG-GMCI pair is a candidate link.** It is homology-guided; it does not join contigs.
 9. **Every individual BGC claim carries complete identity:** `strain / full node-or-contig / region / BGC alias`, copied from one bound source record. A locked alias or node/region-only citation is insufficient. Tree statements retain the exact tip label and bound input/gate receipt. Missing or conflicting identity is a hold.
 

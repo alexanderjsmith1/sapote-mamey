@@ -53,7 +53,7 @@ def _reviewed_parent_output_delta(name, output, reviewed=()):
             ('        --release <PUBLIC|PRIVATE> \\\n',
              '        --release PRIVATE \\\n'),
             ('    Then validate: python mamey_run.py validate <outdir>/fixture/package\n',
-             '    Then validate: python mamey_run.py validate <outdir>/fixture/package\n'
+             '    Then validate: python mamey_run.py validate runs/fixture/package\n'
              '    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.\n'
              '    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>.\n'),
         ]

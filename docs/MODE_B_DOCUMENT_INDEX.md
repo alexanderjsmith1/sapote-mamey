@@ -1,181 +1,79 @@
-# MODE_B_DOCUMENT_INDEX.md
+# Find the Mode B guide you need
 
-**Current reading map with retained historical contract lineage.** The earlier v9.7.319/Mamey 1.9.111/build 20260628v97144b stamp is historical; read current bundle/engine/build values from the selected bundle’s AGENTS.md and version owners.
+Use this index to write, check or save a Mode B card from an existing package.
+Start with one selected locus and its full identity:
+**strain / full node-or-contig / region / BGC alias**.
 
-Purpose: give ChatGPT, Claude, patch-chat reviewers, and human operators one authoritative map of where Mode B instructions live in the bundle. This file is an index, not a replacement for the source documents. Read the listed files before proposing Mode B patches or producing scientific Mode B interpretations.
+## Write one card
 
----
+1. [Choose the profile](MODEB_PROFILE_MATRIX.md): full48 is the default;
+   current50_v2 is the optional 50-section profile.
+2. Follow [the authoring walkthrough](MODE_B_USER_WALKTHROUGH.md) to prepare
+   evidence, emit a template, write it and verify the saved file.
+3. Use [preflight](MODE_B_AUTHORING_PREFLIGHT.md) to distinguish a draft with
+   recorded gaps from a finished card. [Evidence availability](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md)
+   explains what each stage needs.
+4. [Save the authored card](modules/MODE_B_WRITE.md) and its verification record.
 
-## 0. Mandatory first-read bootstrap
+For examples, use the [exemplar reader guide](reference/modeb_exemplars/README.md).
+Copy a useful writing structure, then use your own locus, gene roster and citations.
+The [full48 format example](reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md)
+has documented limits for sections 20, 39, 40, 42 and 48; read those before reusing them.
 
-Read these before any run, audit, patch, or Mode B analysis.
+## Resolve a specific problem
 
-| Priority | Path | Why it matters |
-|---:|---|---|
-| 1 | `AGENTS.md` | Root bootstrap and trusted current task entry point. Read its version owners, routing, authorization and current constraints; historical workflow notes are not a selected-profile verifier. |
-| 2 | `CLAUDE.md` | Compatibility mirror of AGENTS.md in this candidate; check parity when troubleshooting discovery, rather than treating it as another independent contract. |
-| 3 | `docs/MODEB_PROFILE_MATRIX.md` | Current named producer/verifier/profile map. Select its actual contract before using historical depth language. |
-| 4 | `README.md` | Human-facing package entry points; verify that they point to the same current workflow. |
-| 5 | `CURRENT_DOCS_INDEX.md` | Current broad documentation map. Use as orientation, but check its generated-owner/version scope against this selected bundle. |
+- **Large proteins, repeated comparator hits or conflicting evidence:** use
+  [evidence escalation](MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md).
+- **Domain architecture:** use [domain-level review](modules/DOMAIN_LEVEL_MODE_B.md).
+- **A fragmented or composite locus:** use [expanded-locus review](MODEB_EXPANDED_LOCUS.md)
+  and keep competing explanations visible.
+- **A batch of cards:** use [batch execution](modules/MODE_B_BATCH_RUN.md), checking
+  the requested roster and coverage rather than treating a top-N list as the full inventory.
+- **Supporting gene evidence:** use [support cards](MODE_B_SUPPORT_CARD_CONTRACT.md).
+- **Preparing an assistant's context:** use [context preparation](MODEB_LLM_AUTHORING_CONTEXT_HYGIENE.md).
+- **Independent checking:** use [the writer/reviewer protocol](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md).
+- **Report layout:** use [the region page layout](PER_BGC_PAGE_LAYOUT_SPEC.md) and
+  [delivery requirements](DELIVERABLE_CONTRACT.md).
 
-**ChatGPT read-proof:** if asked whether ChatGPT-specific instructions were found, emit the live read-proof required by `AGENTS.md` and include the current bundle / engine / build values from the file, not from memory.
+## Understand older instructions
 
----
+Older 8-, 10-, 20- and 30-section documents describe earlier formats or additive
+checks. Use the selected profile's current machine contract for finished-card
+requirements. The full48 contract lives in a file with `full30` in its name;
+that filename does not limit the card to 30 sections.
 
-## 1. Current Mode B workflow documents
+Ordinary full48 structure lint permits optional or conditional extensions in
+sections 31–48. A basic structure pass therefore differs from finishing the
+48-section card. Read the declared state and enabled checks with the result.
 
-These are the most relevant files for Mode B behavior in this cut.
+The outline at `SOPs/SOP-06_Mode_B_BGC_Card_Production.md` is marked as a placeholder.
+Use the authoring walkthrough above for executable steps.
 
-| Priority | Path | Status / use |
-|---:|---|---|
-| 0 | `docs/reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md` | Current §1–§48 typed-terminal format exemplar. Shows exact-locus writing, complete CDS accounting, all-stream disposition, and a typed no-BLASTP fixture without invented hits. It is not positive substantive calibration for §§20, 39, 40, 42, or 48. |
-| 0A | `docs/MODEB_LLM_AUTHORING_CONTEXT_HYGIENE.md` | Defines the minimal scientific context passed to an LLM and excludes distribution stamps and unrelated packaging state from card authoring. |
-| 1 | `docs/MODEB_CORRECTIVE_PROTOCOL.md` | Historical prose-first corrective narrative and first-20/30 lineage. Preserve its quality lessons; current exact titles/requirements come from the selected profile contract, not its old target plan. |
-| 2 | `docs/MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md` | Focused Mode B escalation workflow. Read this before interpreting large modular proteins, repeated comparator hits, split/composite loci, or comparator axes. |
-| 3 | `mamey/patches/MODEB_COMPARATOR_WORKFLOW_USER_GUIDANCE_v97143a.md` | Patch-master packet for comparator lessons. Defines Mode B as an interactive evidence-escalation workflow, not a static BLASTP table. |
-| 4 | `docs/modules/MODE_B_WRITE.md` | Persistence protocol and full card contract history. Defines the §1–§10 card, §9/§10 gate, §11–§20 enrichment floor, write-back, claim-safety placement, and workbook/judgment persistence. |
-| 5 | `docs/modules/MODE_B_BATCH_RUN.md` | Batch execution protocol for full Mode B. Defines rank-ordered batches, default batch size guidance, quality gates, resume behavior, compile gate, and fragment exceptions. |
-| 6 | `docs/modules/DOMAIN_LEVEL_MODE_B.md` | Domain-level Mode B add-on. Defines architecture confidence, domain-burden evidence, claim ceiling, safe/unsafe claim pairs, and `--with-domain-level` usage. |
-| 7 | `docs/PER_MODE_ARTIFACT_SET.md` | Retains the historical smoke/standard/gold table and explains current optional/failure boundaries. Gold is the only analysis mode; cards are on demand, and a mode label does not certify deep-data or other enrichment presence/completeness. |
-| 8 | `docs/PER_BGC_PAGE_LAYOUT_SPEC.md` | Layout contract for compiled reports: locus map + class line + Mode B card must stay together as one BGC page-unit. |
-| 9 | `docs/DELIVERABLE_CONTRACT.md` | Broader deliverable contract. Read for report packaging, per-BGC accounting, and compiled output expectations. |
+## For maintainers
 
----
+Read the [bundle instructions](../AGENTS.md) before changing implementation.
+The profile JSON files own section definitions. `mamey/modeb_structure_gate.py`
+and `mamey/mode_b_receipt.py` implement the selected checks and saving path;
+`mamey/validators/modeb_full20.py` is a legacy subset facade.
 
-## 2. Mode B implementation files
+Use `mamey/gene_by_gene.py` and `mamey/mode_b/schema.py` for gene-table fields,
+`mamey/mode_b/guards.py` for protein-length checks, and
+`mamey/mode_b/comparator_workflow.py` for comparator prompts.
+The workflow, coverage, quality-gate and receipt tests cover different behaviors;
+read the relevant implementation and test together.
 
-Read these when checking what the code actually enforces.
+When the guide, code and tests disagree, record the discrepancy before changing
+a card's completion status. The [current documentation index](../CURRENT_DOCS_INDEX.md)
+locates the wider reference material.
 
-| Path | What to inspect |
-|---|---|
-| `mamey/chatgpt_commands.py` | ChatGPT-facing commands, including `mode_b_command`, coverage behavior, and strict/top-n behavior. |
-| `mamey/gene_by_gene.py` | Gene-by-gene extraction and tabulation logic. |
-| `mamey/mode_b/schema.py` | Mode B gene-table schema. Important for preserving `protein_length_aa` and normalizing `query_length`. |
-| `mamey/mode_b/guards.py` | Large-protein misannotation guard; prevents huge SDR/oxidoreductase-labelled modular proteins from being treated as small enzymes. |
-| `mamey/mode_b/comparator_workflow.py` | Detects repeated comparator hits and renders comparator next-step guidance. |
-| `mamey/mode_b/claim_safety.py` | Split/composite status labels and conservative claim notes. |
-| `mamey/mode_b_quality_gate.py` | Priority-tier-aware depth gate; checks section presence, length floors, fragment exemptions, and enrichment sections. |
-| `mamey/mode_b_receipt.py` | Sapote Mode B persistence / receipt ingestion front door. |
-| `mamey/validators/modeb_full20.py` | Legacy first-20 facade derived from the canonical default contract. It does not validate full48/current50 finished completeness. |
-| `tools/build_modeb_deepdive.py` | Tooling for Mode B deep-dive generation. |
-
----
-
-## 3. Mode B tests and acceptance gates
-
-These tests are part of the instruction set because they encode expected behavior.
-
-| Path | Behavior encoded |
-|---|---|
-| `tests/test_modeb_workflow_v97143a.py` | AS-XXX regression lessons: `protein_length_aa` required; huge small-enzyme-labelled proteins trigger warnings; NODE_24/NODE_30 trigger NPDC041969 comparator guidance; NODE_58 must not collapse into that comparator model. |
-| `tests/test_modeb_coverage_contract.py` | Mode B coverage receipt behavior: `--top-n` is not full-inventory coverage; partial native coverage is reported; `--strict-all` fails on missing cards. |
-| `tests/test_mode_b_quality_gate.py` | Quality gate: §1–§10 presence, priority character floors, §11–§20 enrichment block, fragment exemption, and section-number parsing. |
-| `tests/test_mode_b_receipt.py` | Receipt ingestion and persistence behavior. |
-| `tests/test_mode_b_fixture.py` | Fixture-level Mode B expectations. |
-
----
-
-## 4. Resolved Mode B contract hierarchy
-
-The bundle previously contained overlapping Mode B depth language. This patch resolves the hierarchy rather than creating a new fourth contract.
-
-| Source | Reconciled status |
-|---|---|
-| `AGENTS.md` and older broad docs referring to `§1–§8` | Legacy compact/core-spine language. Must not be used as the complete Full Mode B contract. |
-| `docs/modules/MODE_B_WRITE.md` | Transitional implementation gate. The `§1–§10` card and `§11–§20` enrichment floor remain active quality/depth checks. |
-| `docs/modules/MODE_B_BATCH_RUN.md` | Transitional batch execution protocol. Its historical §1–§20 depth floor is an additive check, not a finished-card definition; name the selected full48 or current50 v2 profile explicitly. |
-| `mamey/mode_b_quality_gate.py` and `tests/test_mode_b_quality_gate.py` | Existing depth/character/fragment gate. Keep as additive quality gate, not the definition of Full Mode B. |
-| `mamey/validators/modeb_full20.py` | Legacy facade: the historical §1–§20 named-section inventory. Not the completeness definition (see the resolved policy below and `docs/MODEB_PROFILE_MATRIX.md`). |
-
-**Resolved policy:** The default Full Mode B profile uses the exact §1–§48 contract in `mamey/data/mode_b/modeb_full30_corrective_contract.json` (`modeb_corrective_full48_v1`). The older class exemplars remain historical calibration until upgraded. The generated titles and base-schema contract retain full30/30-section filenames but are derived from the selected JSON; their historical filenames are not a separate thirty-section limit. `mamey/validators/modeb_full20.py` is a legacy facade, not the current completeness definition.
-
-**Profiles:** `docs/MODEB_PROFILE_MATRIX.md` lists every profile with its producer and verifier. The opt-in 50-section card (`--contract current50_v2`) is a separate finished profile, not a replacement for the default.
-
-**Output rule:** if an assistant or report says `full Mode B`, it must satisfy the current §1–§48 contract (or the selected opt-in profile) or explicitly identify itself as partial, reference-authoring exemplar, fragment-level, or ledger-only.
-
----
-
-## 5. Placeholder / caution files
-
-| Path | Caution |
-|---|---|
-| `docs/SOPs/SOP-06_Mode_B_BGC_Card_Production.md` | Explicitly marked `PLACEHOLDER / OUTLINE ONLY`. Do not treat as completed operator instructions until that status line is removed. |
-| Older prompt files under `prompts/` and standalone docs | May be superseded by `AGENTS.md`. Use only after checking version stamps and current-start-file guidance. |
-| Historical patch notes | Useful provenance, not automatically current behavior. Prefer current tests and active docs. |
-
----
-
-## 6. Practical reading order for a new assistant session
-
-1. `AGENTS.md`
-2. `docs/MODEB_PROFILE_MATRIX.md`
-3. `CURRENT_DOCS_INDEX.md`
-4. `docs/MODEB_CORRECTIVE_PROTOCOL.md`
-5. `docs/MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md`
-6. `docs/modules/MODE_B_WRITE.md`
-7. `docs/modules/MODE_B_BATCH_RUN.md`
-8. `docs/modules/DOMAIN_LEVEL_MODE_B.md`
-9. `mamey/patches/MODEB_COMPARATOR_WORKFLOW_USER_GUIDANCE_v97143a.md`
-10. The selected profile’s `mamey/modeb_structure_gate.py` / `mamey/mode_b_receipt.py` owners; use `mamey/validators/modeb_full20.py` only for its legacy subset diagnostics
-11. The relevant tests in `tests/test_modeb_workflow_v97143a.py`, `tests/test_modeb_coverage_contract.py`, and `tests/test_mode_b_quality_gate.py`
-
-Only after this sequence should an assistant propose Mode B patches, judge whether a Mode B output is complete, or generate a full BGC interpretation.
-
----
-
-## 7. Search commands to rediscover this index manually
-
-From the repository root:
-
-```bash
-find . -type f \( \
-  -iname '*mode*b*' -o \
-  -iname '*gene*by*gene*' -o \
-  -iname '*chatgpt*' -o \
-  -iname '*start*here*' -o \
-  -iname '*workflow*' -o \
-  -iname '*contract*' -o \
-  -iname '*candidate*card*' \
-\) | sort
-```
-
-To find Mode B contract text inside files:
-
-```bash
-grep -RInE 'Mode B|MODE_B|Full Mode|§1|§10|§20|protein_length_aa|comparator|claim-safety|coverage receipt' . \
-  --include='*.md' --include='*.py' --include='*.json' --include='*.txt'
-```
-
----
-
-## 8. Minimal Mode B preflight checklist
-
-Before starting a BGC workup, confirm:
-
-- [ ] ChatGPT-specific instructions were loaded from the current cut.
-- [ ] antiSMASH class / products are visible in the card.
-- [ ] Node / contig / region locator is node-first.
-- [ ] Boundary status is recorded: Interior / Edge / Full-contig / fragment.
-- [ ] Gene table includes `protein_length_aa` in the same table as function / BLASTP evidence.
-- [ ] Huge “small enzyme” labels are checked against protein length and domain architecture.
-- [ ] Repeated comparator hits trigger a comparator workflow card.
-- [ ] Different comparator axes are not collapsed into one story.
-- [ ] Split/composite calls are labelled conservatively.
-- [ ] Mode B coverage receipt is checked; `--top-n` is not treated as full inventory coverage.
-- [ ] Completed Mode B cards are written back / persisted via the judgment or receipt path.
-- [ ] Claim boundaries are stated at the interpretation level, not repeated after every gene.
-
----
-
-## 9. One-line rule
-
-For Mode B, read the actual instructions and tests first. If the docs, code, and tests disagree, stop and make the disagreement explicit before patching or interpreting.
-
-For practical preflight, evidence availability, support-card review and context preparation also read
-`docs/MODE_B_AUTHORING_PREFLIGHT.md`, `docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md`,
-`docs/MODE_B_SUPPORT_CARD_CONTRACT.md` and `docs/MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md`.
-The fixed30 availability planner, historical first20 facade, support-card provenance screen and
-additive depth gate have different acceptance scopes. No index entry or saved PASS label runs those
-checks, grants an external search/write, or constitutes scientific acceptance.
-
-The default JSON recognizes 48 headings, but marks §31–§48 extensions optional or conditional for ordinary structure lint. Optional omissions are not errors; conditional omissions depend on supplied applicability context, and unknown applicability is warning-first. Full48 finished promotion is a stricter declared-state/review requirement. Record the intended state and actual enabled checks; a basic structure PASS is not a full48 finished receipt.
+<!-- Previous index section anchors -->
+<a id="0-mandatory-first-read-bootstrap"></a>
+<a id="1-current-mode-b-workflow-documents"></a>
+<a id="2-mode-b-implementation-files"></a>
+<a id="3-mode-b-tests-and-acceptance-gates"></a>
+<a id="4-resolved-mode-b-contract-hierarchy"></a>
+<a id="5-placeholder--caution-files"></a>
+<a id="6-practical-reading-order-for-a-new-assistant-session"></a>
+<a id="7-search-commands-to-rediscover-this-index-manually"></a>
+<a id="8-minimal-mode-b-preflight-checklist"></a>
+<a id="9-one-line-rule"></a>

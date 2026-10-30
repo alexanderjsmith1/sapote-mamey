@@ -158,8 +158,8 @@ def scan_file(path: Path, stats=None):
     """Yield finding dicts for unbound interpolated alternations in `path`."""
     try:
         tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-    except SyntaxError:
-        return
+    except SyntaxError as exc:
+        raise ValueError(f"cannot parse {path}:{exc.lineno}: {exc.msg}") from exc
     consts = _collect_str_constants(tree)
     re_args = _direct_re_arg_nodes(tree)
     seen = set()
@@ -238,7 +238,12 @@ def main(argv=None):
 
     stats = {"files": 0, "unresolved_parts": 0}
     new, known = [], []
-    for rec in collect(a.root, stats):
+    try:
+        records = list(collect(a.root, stats))
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"regex-interpolation gate: ERROR — {exc}\n")
+        return 2
+    for rec in records:
         if not a.strict and rec["file"] in ALLOWLIST:
             rec["allowlisted"] = ALLOWLIST[rec["file"]]
             known.append(rec)

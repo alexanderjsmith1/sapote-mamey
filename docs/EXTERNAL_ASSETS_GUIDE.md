@@ -1,154 +1,112 @@
-# External Assets Guide — what Sapote-Mamey can use, and how to get it
+# Find reference data for your task
 
-Choose assets for the task you intend to run. Core extraction reads supplied antiSMASH
-results in a configured Python environment; optional comparison, scanning and phylogeny
-stages need their own inputs, dependencies and reference data.
+Use this page when an optional workflow needs a database, HMM file or reference
+collection. You need the selected task and its input requirements. Core extraction
+reads an antiSMASH result ZIP; it does not require every asset listed here.
 
-The previous text is in [the historical guide](history/EXTERNAL_ASSETS_GUIDE.md).
+Start with [companion files](COMPANION_FILES.md#inputs-for-the-selected-task),
+[installation](INSTALL.md) and [prerequisites](PREREQUISITES.md). Reuse existing
+assets in place and record their path, version and SHA-256. Before downloading,
+check the source, size, terms and destination.
 
-First choose your task in [companion files](COMPANION_FILES.md#inputs-for-the-selected-task).
-Use [installation](INSTALL.md) for Python dependencies and [prerequisites](PREREQUISITES.md)
-for system tools. Then use this guide to bind the reference assets that task needs.
-Core extraction does not require you to provision every asset listed here.
+## Check the selected paths
 
-## Acquire only the assets needed for the selected task
+Run doctor from an editable program folder:
 
-Check the permitted project inventory first and reuse existing assets in place. Preserve
-their source path, version and SHA-256. Before acquiring anything, identify its source,
-size, terms and destination. Keep missing evidence recorded as unavailable rather than
-as a measured zero.
+```bash
+python mamey_run.py doctor
+```
 
-## Where assets belong
+Read its selected paths and missing capabilities. [Install](INSTALL.md#doctor-scope-and-write-probe)
+explains its temporary write probe. Keep the existing project layout:
+`Wheelhouse/` holds scanner/registry material; `wheels/` holds Python wheels.
 
-Preserve the existing project layout. `MAMEY_DATA_ROOT` can hold the registered dataset
-subdirectories below, but individual consumers have exceptions. Uppercase `Wheelhouse/`
-contains scanner and registry material; lowercase `wheels/` contains Python installation
-archives. Neither name establishes that the required assets are present.
+For generic datasets, lookup tries the dataset variable, then
+`MAMEY_DATA_ROOT` plus the subdirectory below, then the legacy bundle location.
+A candidate needs its named probe file; an invalid override can fall through.
 
-## How the engine finds an asset once it is present
-
-For generic datasets, `mamey/external_data.py` checks the dataset-specific variable,
-then `MAMEY_DATA_ROOT/<subdirectory>`, then its legacy bundle location. A candidate must
-contain the named probe; an invalid generic override can fall through.
-
-If a dataset appears missing, compare the selected directory with the probe in the
-table. For example, `MAMEY_MIBIG_DIR` must point to the directory containing
-`mibig_reference_index.bacterial.json`. If the reported path is unexpected, inspect
-both the dataset-specific variable and `MAMEY_DATA_ROOT` before changing files.
-
-| Dataset | Variable | Shared-root subdirectory | Generic probe |
+| Dataset | Variable | Subdirectory | Probe |
 |---|---|---|---|
 | MIBiG index | `MAMEY_MIBIG_DIR` | `mibig/` | `mibig_reference_index.bacterial.json` |
 | MIBiG neighborhoods | `MAMEY_MIBIG_NEIGHBORHOODS_DIR` | `mibig/neighborhoods/` | `PROVENANCE.md` |
 | Literature | `MAMEY_LITERATURE_CORPUS` | `literature/` | `literature_corpus.jsonl` |
 | NP Atlas raw source | `MAMEY_NPATLAS_DIR` | `npatlas/` | `np_atlas.json` |
-| Governance | `MAMEY_OFFICIAL_DATA` | `OFFICIAL_DATA/` | `exclusions.json` |
+| Exclusions/governance | `MAMEY_OFFICIAL_DATA` | `OFFICIAL_DATA/` | `exclusions.json` |
 
-Scanner HMMs, normalized NP Atlas references and governed exclusions have the
-consumer-specific rules below. Generic presence does not establish consumer readiness.
+For example, point `MAMEY_MIBIG_DIR` to the folder containing its index file.
+Check both that variable and `MAMEY_DATA_ROOT` if the reported path is unexpected.
+The consumers below have additional lookup rules.
 
-For environment diagnostics, read the
-[doctor write-probe boundary](INSTALL.md#doctor-scope-and-write-probe) before running
-`python mamey_run.py doctor` in an editable working installation. Review the selected
-paths and reported states; discovery alone does not validate a workflow.
+## Scanner HMMs
 
-## Assets
+Lookup tries an existing `SM_HMM_DB` path, `MAMEY_HMM_DIR`,
+`MAMEY_DATA_ROOT/hmm/`, bundle `Wheelhouse/hmm/scanner_pfam_150.hmm`, a discovered
+add-on copy, then bundle `scanner_pfam.hmm`. Within configured directories,
+the `_150` filename takes precedence. Its model-count hint is 148; the smaller
+filename's hint is 35. Check the content and hash, not just the filename.
 
-### antiSMASH results
+Set `SM_HMM_DB` to a file: its existence check also accepts directories.
+The [subset builder](447_COMPANION_RETRIEVAL_CONTROLS.md#scanner-subset-provisioning)
+uses a compatible local Pfam-A file and performs no download. Without HMM evidence,
+regex work can continue while the HMMER fields say `NEEDS_HMMER_DOMTBLOUT`.
 
-Supply the result ZIP for the selected strain. Mamey reads the results rather than
-running antiSMASH or requiring its installed databases. Follow the
-[Quick Guide](GUIDE/02_Quick_Guide.md) for intake and validation.
+## BiG-SCAPE and sequence comparisons
 
-For downstream genome FASTA recovery, see
-[companion files](COMPANION_FILES.md#recover-a-genome-from-an-antismash-zip).
+BiG-SCAPE needs full Pfam-A through `--pfam`, including the required pressed
+indexes. The scanner subset cannot replace it. For reference anchoring, supply
+selected antiSMASH-processed MIBiG GBKs with `--mibig-dir`; see the
+[cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md).
 
-### Scanner Pfam subset
+Local homology work needs BLAST+ and the chosen database. Phylogeny/outgroup
+tools read `BLAST_BIN` or PATH; database options depend on the command.
+The [local 16S guide](LOCAL_16S_DATABASE.md) covers `SAPOTE_16S_DB`.
+Keep MIBiG index data, neighborhood partitions and reference GBKs with their
+release details: they serve different readers. Use the
+[online BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md) for remote searches.
 
-The scanner recognizes `scanner_pfam_150.hmm` and `scanner_pfam.hmm`; their resolver
-model-count hints are 148 and 35. Resolution order is:
+## NP Atlas and literature
 
-1. Existing `SM_HMM_DB` path.
-2. `MAMEY_HMM_DIR`.
-3. `MAMEY_DATA_ROOT/hmm/`.
-4. Bundle-local `Wheelhouse/hmm/scanner_pfam_150.hmm`.
-5. Discovered add-on `scanner_pfam_150.hmm`.
-6. Bundle-local `Wheelhouse/hmm/scanner_pfam.hmm`.
+Raw `np_atlas.json` satisfies the generic NP Atlas probe. Named-hit enrichment
+uses `all_actinobacteria_npatlas_ref.json` and `bacteria_nonactino_npatlas_ref.json`;
+follow [NP Atlas provisioning](NPATLAS_PROVISIONING.md).
 
-Within operator directories, the 148 filename takes precedence. Set `SM_HMM_DB` to
-an actual HMM file: that explicit branch checks existence only and can mistakenly
-select a directory. Retain the selected path, tier and content hash; filenames and
-model-count hints do not validate HMM content.
+`MAMEY_NPATLAS_DIR` prioritizes the normalized files; `SM_NPATLAS_DIR` is a
+warned legacy alias. This reader does not directly use `MAMEY_DATA_ROOT/npatlas`.
+It combines readable fallback files and keeps the first record per lowercased
+name. Start a fresh process after changing references because the index is cached.
+Check raw presence, consumer counts and unreadable files separately. Review the
+release terms and the bundle's nonredistribution policy before sharing these data.
 
-For local subset construction and its receipt, use the
-[scanner provisioning contract](447_COMPANION_RETRIEVAL_CONTROLS.md#scanner-subset-provisioning).
-The builder uses a compatible local Pfam-A source and performs no download.
-Without scanner HMM evidence, regex processing may continue while HMMER fields remain
-`NEEDS_HMMER_DOMTBLOUT`; this does not establish that an HMM scan ran.
+The literature builder `mamey/data/literature/_corpus/pubmed_ingest.py` reads
+local PubMed search-result PDF exports with `pypdf`; it does not fetch records.
+Point `MAMEY_LITERATURE_CORPUS` to the resulting corpus directory. See
+[external data](EXTERNAL_DATA.md#2-literature-corpus--pmids-dois-titles-abstracts).
+Unavailable enrichment stays NOT MEASURED.
 
-### Full Pfam-A and BiG-SCAPE
+## Exclusions and other references
 
-Full Pfam-A is a separate, stage-specific input. Supply the selected file through
-`--pfam` for the BiG-SCAPE workflow; the scanner subset is not a replacement.
-Pin the source release and hashes, including required pressed indexes. For reference
-anchoring, supply the selected antiSMASH-processed MIBiG GBKs with `--mibig-dir`.
-See the [BiG-SCAPE cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md).
+An active source context can supply exclusions before environment lookup;
+see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). Otherwise,
+`MAMEY_OFFICIAL_DATA` is exclusive. With no such variable, a set
+`MAMEY_DATA_ROOT` supplies an exclusive `OFFICIAL_DATA/` candidate; with neither,
+lookup walks package parents. A missing/unusable source can fail strict checks
+or use an empty default in non-strict operation. Inspect the selected source
+before using a cohort denominator.
 
-### BLAST and reference comparisons
+For phylogenomics, use the selected reference genomes and metadata from the
+[workflow](PHYLO_AUTOPILOT_WORKFLOW.md). Binary lookup can use `MAMEY_PHYLO_BIN`,
+`PHYLO_BIN`, `PLACEMENT_BIN` or explicit options. GToTree has its own data settings.
+Choose the resources for that analysis rather than downloading all of GTDB.
 
-Local homology work needs the selected BLAST+ executables and a suitable database.
-The phylogeny/outgroup tools read `BLAST_BIN` or discover executables on `PATH`;
-database paths remain command-specific. Use
-[the local 16S database guide](LOCAL_16S_DATABASE.md) for the `SAPOTE_16S_DB` route.
+For Python extras, follow [Install](INSTALL.md). `.[addons]` requests the
+comparative/scanner stack. `.[all]` combines figures, bio, render, documents and
+slides; it excludes addons and tests. The code ZIP's three packaging wheels
+are not a complete offline runtime; see [companion installation](COMPANION_FILES.md#installation-and-companion-tool-boundaries).
 
-MIBiG index data, neighborhood partitions and reference GBKs serve different consumers.
-Bind the files required by the chosen command and retain their release provenance.
-For independent online protein searches, follow
-[the online BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md).
+For input formats and genome recovery, use [companion files](COMPANION_FILES.md).
+The [previous guide](history/EXTERNAL_ASSETS_GUIDE.md) remains in history.
 
-### NP Atlas, literature corpus and OFFICIAL_DATA
-
-**NP Atlas.** Raw `np_atlas.json` satisfies the generic presence probe. Named-compound
-enrichment instead reads `all_actinobacteria_npatlas_ref.json` and
-`bacteria_nonactino_npatlas_ref.json`. Follow
-[NP Atlas provisioning](NPATLAS_PROVISIONING.md) for normalized schemas and receipts.
-
-`MAMEY_NPATLAS_DIR` prioritizes the normalized reference directory;
-`SM_NPATLAS_DIR` is a warned legacy alias. The consumer does not directly use
-`MAMEY_DATA_ROOT/npatlas`. It also searches fallback locations and combines readable
-files, retaining the first record per lowercased name. The override is not exclusive.
-Start a fresh process after changing references because the index is cached.
-Review the reported raw presence, consumer files/counts and unreadable files separately.
-These references enrich named similarity hits; they do not identify a strain's product.
-Review the acquired release's terms and the bundle's nonredistribution policy.
-
-**Literature.** `mamey/data/literature/_corpus/pubmed_ingest.py` builds a corpus from
-authorized local PubMed search-result PDF exports using `pypdf`; it does not fetch
-PubMed records. Set `MAMEY_LITERATURE_CORPUS` to the resulting corpus directory.
-See [external data](EXTERNAL_DATA.md#2-literature-corpus--pmids-dois-titles-abstracts).
-Unavailable enrichment remains NOT MEASURED.
-
-**OFFICIAL_DATA.** An active source context can supply governance before environment
-lookup; see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). Without that
-context, the exclusions consumer treats `MAMEY_OFFICIAL_DATA` as exclusive.
-Otherwise, a set `MAMEY_DATA_ROOT` supplies an exclusive `OFFICIAL_DATA/` candidate;
-with neither set, it walks package parents. A missing or unusable binding can fail
-strict checks or use the empty default in non-strict operation. Inspect the actual
-governance source and diagnostics before using a denominator. Generic provisioning
-status alone does not establish the adopted exclusion set.
-
-### Phylogenomics and comparator genomes
-
-Use the selected workflow's reference genomes, metadata and external tools.
-[Phylogeny autopilot](PHYLO_AUTOPILOT_WORKFLOW.md) documents that route.
-Binary lookup can use `MAMEY_PHYLO_BIN`, `PHYLO_BIN`, `PLACEMENT_BIN` or explicit
-command options; GToTree has its own data configuration. A tree task does not
-automatically require downloading every GTDB resource.
-
-### Python dependencies
-
-Use the extras declared in the local `pyproject.toml` and follow
-[installation](INSTALL.md). `.[addons]` requests the comparative/scanner stack.
-`.[all]` combines figures, bio, render, documents and slides; it excludes addons
-and test dependencies. The supplied ZIP's three packaging wheels do not form a
-complete offline runtime. See [companion installation](COMPANION_FILES.md#installation-and-companion-tool-boundaries).
+<a id="acquire-only-the-assets-needed-for-the-selected-task"></a>
+<a id="where-assets-belong"></a>
+<a id="how-the-engine-finds-an-asset-once-it-is-present"></a>
+<a id="assets"></a>

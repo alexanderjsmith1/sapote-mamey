@@ -3,7 +3,7 @@
 `ingest-receipts` records Mode B cards through `judgment_store.record_mode_b`, which
 writes `<package>/judgment/<strain>_<bgc>_mode_b.md` and the package's judgment
 register. The G1 summary in `mamey/data/deliverables_registry.json` must say so,
-and the generated menu must carry the same text.
+and the generated menu must carry its reader summary with the same write locations.
 """
 from pathlib import Path
 
@@ -37,4 +37,7 @@ def test_g1_summary_says_ingest_writes_judgment_cards_into_the_package():
 
 def test_generated_menu_carries_the_g1_summary():
     menu = (ROOT / "docs" / "DELIVERABLE_MENU.md").read_text(encoding="utf-8")
-    assert _g1()["summary"] in menu
+    summary = _g1()["reader_summary"]
+    assert summary in menu
+    assert "`ingest-receipts` writes Mode B cards into `judgment/`" in summary
+    assert "package's judgment register" in summary

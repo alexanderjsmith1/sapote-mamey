@@ -30,7 +30,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
      ("render-figures", "figure-factory", "figures", "interactive-figures", "cohort-figures", "diagram", "atlas",
       "overmerge-widgets", "rggmci-widget", "assembly-line-widget", "assembly-line-pdf", "bgc-gene-map", "kcb-locusmap", "lead-pages", "render-all-figures",
       "render-widgets", "attach-bgc-overlays")),
-    ("Mode B judgment support", "Scaffolds and gates for LLM judgment; the triage table is NOT a finished card.",
+    ("Mode B judgment support", "Templates and checks for written interpretations.",
      ("mode-b", "modeb-compile", "modeb-export", "modeb-round", "verify-modeb", "write-narrative",
       "compile-report", "report-card", "guide", "verify-guide", "verify-citations", "dualpass", "surface-leads",
       # v9.7.407: the layperson guide renders plain-language prose from package-owned fields only.
@@ -60,7 +60,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
      ("workflow", "deliverables", "deliverable-queue", "ingest-receipts", "validate-finished-review-request", "list-bgcs", "literature", "lookup", "search",
       "triage-raw", "wheelhouse", "list", "clean", "add-strain", "strain-master")),
     ("Compatibility and maintainer commands", "Retained for existing scripts and specialized maintenance. "
-     "They are not additional onboarding paths.",
+     "",
      ("chatgpt-init", "codex-figure-catalog", "codex-figure-sets", "codex-figure-sources",
       "codex-bigscape-figure-sets", "codex-heatmaps")),
 ]
@@ -127,19 +127,16 @@ def render() -> str:
     from mamey import BUNDLE_VERSION, __version__
     subs = _subparsers()
     seen: set[str] = set()
-    lines = ["# Command catalog (generated)", "",
-             f"*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — "
-             f"bundle v{BUNDLE_VERSION} · engine {__version__}. Do not edit by hand; `--check` fails the build when stale.*", "",
-             "Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root "
-             "(the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take "
-             "`--package <sealed package dir>`; `run` is the only command that creates a package. "
-             "Descriptions below come from parser help. Outputs include extraction records, validation results, reports and evidence-routing artifacts; a catalog entry is not proof of execution, complete evidence or scientific acceptance.", "",
-             "## Recommended front doors", "",
-             "Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, "
-             "`validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for "
-             "the applicable figure suite, `phylo-autopilot`, optional `phylo-mlsa`, or `phylo-run` for tree workflows, `mode-b` for "
-             "the interpretation scaffold, and `workflow` for status. The catalog below includes specialist "
-             "commands so they remain discoverable; aliases are folded into their canonical command row.", ""]
+    lines = ["# Find a command", "",
+             "This catalog lists commands and their built-in help. Run from the installed "
+             "bundle directory. To see the options for extraction:", "", "```bash",
+             "python mamey_run.py run --help", "```", "",
+             "Replace `run` with another command name below. For a complete first run, "
+             "use [Your first run](reader/01_FIRST_RUN.md). "
+             "For a result to create, use [Choose an output](DELIVERABLE_MENU.md).", "",
+             f"Generated from `mamey.cli` by `tools/gen_command_catalog.py`; "
+             f"bundle v{BUNDLE_VERSION}, engine {__version__}. "
+             "Descriptions below come from the parser; aliases share their command's row.", ""]
     for title, blurb, names in GROUPS:
         lines += [f"## {title}", "", f"_{blurb}_", "", "| command | what it does |", "|---|---|"]
         for n in names:

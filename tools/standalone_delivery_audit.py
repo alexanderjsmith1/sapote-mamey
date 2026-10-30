@@ -159,6 +159,8 @@ def audit(manifest, store):
             raise ValueError("entrypoint must name a manifest HTML file: " + name)
     optional = {}
     for row in manifest.get("optional_provenance", []):
+        if not isinstance(row, dict) or not isinstance(row.get("url"), str):
+            raise ValueError("optional provenance URL must be a string")
         key = (member_path(row["from"]), row["url"])
         if key[0] not in files or not isinstance(row.get("reason"), str) or not row["reason"].strip() or key in optional or urlsplit(key[1]).scheme not in ("", "https", "http", "file"):
             raise ValueError("invalid/duplicate optional provenance declaration")

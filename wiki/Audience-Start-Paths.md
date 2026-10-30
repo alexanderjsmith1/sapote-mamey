@@ -1,6 +1,9 @@
 # Audience Start Paths
 
-*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
+Choose a guide for the file or task you have.  
+This page is for new readers and operators.
+
+*Current to bundle v9.7.461 · engine Mamey 1.9.177.*
 
 
 Choose the path that matches the object in front of you. All commands assume the current directory is the extracted Sapote–Mamey bundle root and use the bundle-local launcher, `python mamey_run.py`, so an older installed copy cannot shadow the bundle.
@@ -18,7 +21,7 @@ Choose the path that matches the object in front of you. All commands assume the
 
 You need one successful, understandable extraction before adding optional tools or post-seal interpretation.
 
-1. Read the [doctor write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe), then run `doctor` without network probes. It writes a test file under `runs/_doctor_probe/`. If that folder already exists, doctor reports its write check as FAIL. Move the folder out of `runs/` (keep it; do not delete it), then run doctor again.
+1. Read the [doctor write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe), then run `doctor` without network probes. It writes a test file under `runs/_doctor_probe/`. If that folder already exists, doctor reports its write check as FAIL. Leave the occupied folder intact and use another authorized working installation, or resolve it with the evidence owner before retrying.
 2. Run `inspect` on one raw antiSMASH output ZIP.
 3. Run gold mode with explicit taxonomy, source, and provenance metadata.
 4. Validate the unpacked package directory.

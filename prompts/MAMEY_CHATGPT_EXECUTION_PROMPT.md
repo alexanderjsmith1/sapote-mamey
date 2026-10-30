@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey / Mamey Execution Prompt — v9.7.460
+# Sapote-Mamey / Mamey Execution Prompt — v9.7.461
 
 **Role:** Mamey deterministic extraction/scoring layer.  
 **Operating contract:** `AGENTS.md`. Start an execution task with `python mamey_run.py start`.  
@@ -295,4 +295,4 @@ explicit format instruction takes precedence. Do not invent extra work to popula
 
 ---
 
-*Sapote-Mamey Bundle v9.7.460 | Operating contract: AGENTS.md | Prompt provenance only: this footer does not establish the loaded candidate release profile*
+*Sapote-Mamey Bundle v9.7.461 | Operating contract: AGENTS.md | Prompt provenance only: this footer does not establish the loaded candidate release profile*

@@ -1,5 +1,8 @@
 # Versioning — three streams, one sync tool, and the freeze scars
 
+Understand the bundle version, engine version and build stamp.  
+This page is for maintainers and readers citing a build.
+
 Sapote-Mamey tracks **three versions independently** and reconciles them at cut time. Mixing them
 up is the single most common citation error, so learn the trio:
 
@@ -38,8 +41,9 @@ they justify the machinery:
 - v9.7.371 landed the real ratchet: `sync_version.py` owns the header, `--check` fails on drift,
   and `test_docs_version_drift.py` covers it.
 
-The lesson generalizes: a version stamp that is not machine-owned WILL drift, and drift survives
-sealing. Never hand-edit a version literal; let the sync tool own every copy.
+Version stamps can drift even after sealing. Check the synchronizer's declared rules and the
+relevant tests; preserve historical version statements and handle any unowned current literal through
+the authorized cut process.
 
 ## Practical rules
 

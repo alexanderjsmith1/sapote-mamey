@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey Interpretation System Prompt — v9.7.460
+# Sapote-Mamey Interpretation System Prompt — v9.7.461
 
 **Role:** Sapote interpretation workflow. Mamey is the deterministic extraction source.
 The file name is historical. Any capable assistant can use this page; it does not authorize external agent messaging.
@@ -365,4 +365,4 @@ One common piece of prompting advice is rejected on values grounds: the "be expl
 
 ---
 
-*Sapote-Mamey Bundle v9.7.460 | Operating contract: AGENTS.md | Design reference: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.461 | Operating contract: AGENTS.md | Design reference: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*

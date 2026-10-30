@@ -116,8 +116,10 @@ fabricated key derived from `REF_NR_...`.
    placement-aware (a graft carries no tree-wide UFBoot; confidence = LWR + backbone Felsenstein bootstrap).
 5. **The prune ladder.** `--neighbors-per-query N` (figure) / `--neighbors N` (producer) renders a series:
    N=1 tight, N=3 medium, `--keep-all-refs` full. The full backbone size is always stated.
-6. **Honest labels.** Query tips = strain / host / 16S GenBank accession from the paper strain table (the
-   authoritative host source; NOT `host_common`, which had defects). Reference tips carry the
+6. **Honest labels.** Query tips = strain / host / 16S GenBank accession from the strain table.
+   The reader uses the first nonempty host field in this order: `Host`, `host_common`, `host`, `host_raw`.
+   `--allow-raw-host` moves `host_raw` ahead of `host_common` and `host`; `Host` stays first.
+   Raw fields can contain folder labels, so inspect their contents before using them. Reference tips carry the
    **deposited isolation-source text** from `--ref-source-db`, in the label form
    `[isolation source] (ACCESSION)`. The source is reported as deposited and is not binned into categories.
    A reference with no deposited source carries no source text.

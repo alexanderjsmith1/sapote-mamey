@@ -815,6 +815,24 @@ def _commit_text_file_set(package: Path, payloads: dict[Path, str],
     journal = {"state": "PREPARED", "targets": []}
     try:
         for index, target in enumerate(targets):
+            # Recovery refuses lexical symlinks. Apply the same rule before a
+            # fresh commit resolves its target: an in-package alias must not
+            # redirect a planned output into retained source evidence.
+            try:
+                lexical = target.absolute().relative_to(package.absolute())
+            except ValueError as exc:
+                raise BlastpFileSetCommitError(
+                    f"BLASTP_FILESET_COMMIT_HOLD: target escapes package: {target}"
+                ) from exc
+            if ".." in lexical.parts:
+                raise BlastpFileSetCommitError(
+                    f"BLASTP_FILESET_COMMIT_HOLD: noncanonical target: {target}"
+                )
+            current = package
+            for part in lexical.parts[:-1]:
+                current = current / part
+                _recovery_kind(current, directory=True, missing=True)
+            _recovery_kind(target, missing=True)
             try:
                 relative = target.resolve(strict=False).relative_to(package_root)
             except ValueError as exc:

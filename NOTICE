@@ -1,37 +1,45 @@
-Sapote-Mamey — third-party data notices
-========================================
+Sapote-Mamey — third-party notices
+==================================
 
-The Sapote-Mamey code is licensed under the terms in LICENSE (MIT) and the
-documentation under LICENSE-DOCS.txt (CC-BY-4.0). The bundled reference data
-below is redistributed from public sources; none of it imposes a redistribution
-restriction, but attribution and citation are provided as a courtesy and to help
-downstream users cite the original sources in their own work.
+The Sapote-Mamey code is under the MIT license (LICENSE) and the documentation
+under CC BY 4.0 (LICENSE-DOCS.txt). The bundle also carries the third-party code
+and public data below. Each entry gives its source and license so you can cite it.
 
-1. Curated Pfam HMM set — NOT bundled (operator-provisioned; see docs/EXTERNAL_ASSETS_GUIDE.md)
-   A 35-family subset of Pfam-A (models plus curated gathering cutoffs; see
-   Wheelhouse/hmm/SCANNER_PFAM_MANIFEST.md for the family list and SHA256).
-   Pfam is distributed under the Creative Commons Zero (CC0 1.0) public-domain
-   dedication by EMBL-EBI / InterPro (https://www.ebi.ac.uk/interpro/). No rights
-   reserved. Pfam is powered by the HMMER3 package (Sean Eddy and group, HHMI /
-   Harvard University; https://hmmer.org), which is not distributed here — only
-   the CC0 model data is.
-   If you use Pfam in published work, please cite the current Pfam / InterPro
-   publication (see https://www.ebi.ac.uk/interpro/).
+1. MIBiG record BGC0000055 — tests/fixtures/task40_F001_public.gbk to task40_F009_public.gbk
+   Nine test inputs derived from the MIBiG GenBank record BGC0000055
+   (Saccharopolyspora erythraea NRRL 2338). MIBiG data are released under
+   CC BY 4.0, which requires attribution. Cite MIBiG 4.0: Nucleic Acids Research,
+   doi:10.1093/nar/gkae1115. https://mibig.secondarymetabolites.org
 
-2. Micromonospora humida test fixture — tests/fixtures/micromonospora_humida_JAFEUC01.zip
-   antiSMASH region GenBank output derived from the public Micromonospora humida
-   genome assembly, GenBank/NCBI accession JAFEUC010000000 (contig JAFEUC01).
-   Public genome data; used solely as a class-architecture regression fixture.
+2. Public genome data from NCBI GenBank
+   - tests/fixtures/micromonospora_humida_JAFEUC01.zip: antiSMASH region output for
+     Micromonospora humida, accession JAFEUC010000000.
+   - tests/fixtures/rggmci_public_VWPH00000000.1_subset.zip: a subset of antiSMASH
+     regions for Saccharopolyspora hirsuta VKM Ac-666, accession VWPH00000000.1.
+   - tests/fixtures/rggmci_public_MTQP00000000.1_groups_subset.zip: a subset of
+     antiSMASH regions for Saccharothrix sp. ALI-22-I, accession MTQP00000000.1.
+   - mamey/data/phylo_seeds/*.faa: five housekeeping proteins (atpD, gyrB, recA,
+     rpoB, trpB) from Kitasatospora setae KM-6054, used as BLASTp bait.
+   NCBI places no restrictions on the use or redistribution of GenBank data.
 
-3. ijson 3.5.0 — bundled third-party code, mamey/_vendor/ijson/
+3. ijson 3.5.0 — mamey/_vendor/ijson/
    Pure-Python fallback for streaming large antiSMASH JSON files, used only when the
-   ijson package (a core dependency) is not installed. Copyright (c) 2010, Ivan
-   Sagalaev. BSD 3-Clause license; the full license text ships beside the code in
-   mamey/_vendor/ijson/LICENSE.txt. Project: https://github.com/ICRAR/ijson
+   ijson package is not installed. Copyright (c) 2010, Ivan Sagalaev. BSD 3-Clause;
+   the license text is in mamey/_vendor/ijson/LICENSE.txt.
+   https://github.com/ICRAR/ijson
 
 4. Build wheels — wheels/ (setuptools, wheel, packaging)
    Unmodified PyPI wheels that let an offline editable install succeed. Licenses,
-   sources and SHA-256 values are listed in wheels/WHEELS_MANIFEST.md.
+   sources and SHA-256 values are in wheels/WHEELS_MANIFEST.md.
 
-No third-party data in this repository is under a copyleft or share-alike license,
-and none requires a fee or permission to redistribute.
+5. Pfam accession lists — bundle_support/scanner_pfam_35_accessions.txt and
+   bundle_support/scanner_pfam_148_accessions.txt
+   Lists of Pfam accessions only. No Pfam models ship with the bundle; you supply
+   Pfam-A to build the scanner (docs/reference/SCANNER_PFAM_MANIFEST.md). Pfam is
+   released under CC0 by EMBL-EBI / InterPro. https://www.ebi.ac.uk/interpro/
+
+The other fixtures (smoke_antismash_small.zip, domain_level_minimal_antismash.zip
+and the files named synthetic_*) are synthetic and hold no third-party data.
+
+Nothing here is under a copyleft or share-alike license. The MIBiG data need
+attribution under CC BY 4.0; nothing else needs a fee or permission to redistribute.

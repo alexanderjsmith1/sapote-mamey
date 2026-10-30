@@ -26,5 +26,5 @@ def test_mode_b_document_index_does_not_call_it_unqualified_current_gold():
     text = INDEX.read_text(encoding="utf-8")
     matching = [line for line in text.splitlines() if "phosphonate_reference_full48_no_blastp_exemplar.md" in line]
     assert matching
-    assert "typed-terminal format exemplar" in matching[0]
-    assert "not positive substantive calibration" in matching[0]
+    assert "full48 format example" in matching[0]
+    assert "documented limits for sections 20, 39, 40, 42 and 48" in text

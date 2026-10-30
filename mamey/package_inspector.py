@@ -1,7 +1,7 @@
 """package_inspector.py — B4/B6/B7 CLI subcommands for exploring packages without re-running.
 
 Implements:
-  inspect  <zip>             B4: preview what Mamey sees in an antiSMASH ZIP before running
+  inspect  <zip>             B4: identify a saved package or preview antiSMASH input
   explain  <package_dir>     B6: human-readable summary of an existing result package
   list-bgcs <package_dir>    B7: quick BGC inventory extraction, table or JSON
 
@@ -26,7 +26,7 @@ import warnings
 from .exact_identity import ExactLocusIdentityError, exact_locus_from_native_inventory_row
 from .manifest_schema import read_manifest_field
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 def _inspect_strain_guess(path: Path) -> str:
@@ -108,13 +108,52 @@ def classify_antismash_zip(names: list[str]) -> dict[str, object]:
 # ---------------------------------------------------------------------------
 
 
-def _emit_shared_1(report_lines) -> None:
-    """Same line emitted at 3 call sites in this file; one emission site."""
-    emit(*report_lines, sep='\n')
+def _emit_shared_1(report_lines, *, file=None) -> None:
+    """Write one inspector report through the shared terminal emitter."""
+    emit(*report_lines, sep='\n', file=file)
+
+
+def _saved_package_manifest(zf, names):
+    """Recognize the native result format without extracting or validating it."""
+    members = [name for name in names
+               if name == "manifest.json" or name.endswith("/manifest.json")]
+    if not members:
+        return None
+    from .ziputil import duplicate_member_names
+    from .antismash_evidence import FULL_MAX_JSON_BYTES
+    if set(members).intersection(duplicate_member_names(zf)):
+        raise ValueError("PACKAGE_MANIFEST_AMBIGUOUS: duplicate manifest member")
+    found = []
+    for name in members:
+        member_path = PurePosixPath(name)
+        if member_path.is_absolute() or ".." in member_path.parts or ":" in member_path.parts[0]:
+            raise ValueError(f"PACKAGE_MANIFEST_PATH_UNSAFE: {name!r}")
+        if zf.getinfo(name).file_size > FULL_MAX_JSON_BYTES:
+            raise ValueError(f"PACKAGE_MANIFEST_TOO_LARGE: {name!r}")
+        try:
+            with zf.open(name) as handle:
+                raw = handle.read(FULL_MAX_JSON_BYTES + 1)
+            if len(raw) > FULL_MAX_JSON_BYTES:
+                raise ValueError(f"PACKAGE_MANIFEST_TOO_LARGE: {name!r}")
+            payload = json.loads(raw)
+        except (OSError, UnicodeError, json.JSONDecodeError, zipfile.BadZipFile,
+                RuntimeError, NotImplementedError, RecursionError) as exc:
+            raise ValueError(f"PACKAGE_MANIFEST_UNREADABLE: {name!r}") from exc
+        if (isinstance(payload, dict)
+                and isinstance(payload.get("workflow_version"), str)
+                and payload["workflow_version"].startswith("Mamey v")
+                and isinstance(payload.get("strain_id"), str)
+                and payload["strain_id"].strip()
+                and isinstance(payload.get("bgcs"), list)
+                and isinstance(payload.get("bgc_counts"), dict)):
+            found.append((member_path, payload))
+    if len(found) > 1:
+        raise ValueError("PACKAGE_MANIFEST_AMBIGUOUS: multiple result manifests")
+    return found[0] if found else None
 
 
 def inspect_command(args) -> int:
-    """Preview what Mamey sees in an antiSMASH ZIP before running.
+    """Identify saved result packages or preview an antiSMASH input ZIP.
 
     Reports: antiSMASH version, number of GBK region files, presence of JSON
     evidence, presence of knownclusterblast TXT files, contig count estimate,
@@ -135,6 +174,23 @@ def inspect_command(args) -> int:
     with zipfile.ZipFile(zip_path) as zf:
         from .ziputil import regular_file_names
         names = regular_file_names(zf)
+        try:
+            saved = _saved_package_manifest(zf, names)
+        except ValueError as exc:
+            _emit_shared_1([f"ERROR: {exc}"], file=sys.stderr)
+            return 1
+        if saved is not None:
+            member, payload = saved
+            report_lines = [f"Sapote-Mamey Complete Package — {zip_path.name}",
+                            f"  Strain: {json.dumps(payload['strain_id'], ensure_ascii=False)}"]
+            entry = (member.parent / "OPEN_ME_FIRST.html").as_posix()
+            if entry in names:
+                report_lines.append(f"  Extract the ZIP, then open {entry}")
+            else:
+                report_lines.append("  Extract the ZIP to review its saved tables.")
+            report_lines.append("  Read results: docs/reader/03_READ_RESULTS.md")
+            _emit_shared_1(report_lines)
+            return 0
 
     # v9.7.152: strip macOS AppleDouble/__MACOSX shadows before any counting so
     # region GBK / KCB TXT / batch-estimate all reflect real files only.
@@ -211,7 +267,7 @@ def inspect_command(args) -> int:
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
     strain_guess = _inspect_strain_guess(zip_path)
 
-    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release PRIVATE \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package'])
+    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release PRIVATE \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate {shlex.quote(str(Path("runs") / strain_guess / "package"))}'])
 
     report_lines.extend(["    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.", "    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>."])
 

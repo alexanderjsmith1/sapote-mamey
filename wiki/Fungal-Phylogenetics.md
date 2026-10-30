@@ -1,23 +1,21 @@
 # Fungal phylogenetics workflow — placing a fungal isolate (rDNA screen → genome MLSA)
 
-**Purpose.** This is the historical fungal worked-case companion to the
-[current fungal guide](../docs/PHYLO_FUNGAL_WORKFLOW.md). It records an rDNA screen and
+Review the fungal phylogenetics workflow and its limits.  
+This page is for researchers planning a fungal analysis.
+
+**Purpose.** This is a companion to the
+[current fungal guide](../docs/PHYLO_FUNGAL_WORKFLOW.md). It introduces an rDNA screen and
 genome-ortholog study design using shared tree checks. Bacterial marker/reference presets
 and the actinomycete registry cannot be reused unchanged for fungal inputs. The bundle
 does not ship a one-command fungal runner.
 
-*Status: formalized in the bundle at **v9.7.399** (`docs/PHYLO_FUNGAL_WORKFLOW.md` +
-`mamey/data/fungal_outgroup_registry.tsv`, P399 card). Developed on the workflow's founding
-case — a Vespid-wasp-associated black yeast (Chaetothyriales), referred to below as "the founding
-isolate" (internal cohort ID withheld from this page per release policy)*.
-
 ## Current scope and input boundary
 
-This page retains a historical worked-case workflow. Read the
+Read the
 [current fungal guide](../docs/PHYLO_FUNGAL_WORKFLOW.md) and
 [companion protocol](../docs/LLM_COMPANION_TOOL_PROTOCOL.md) before selecting inputs or compute.
-Recorded founding-case timings, marker identities, tool/platform behavior and biological
-interpretations are not revalidated by the current bundle stamp. Review only requires file access;
+Tool/platform behavior and biological interpretations require source-specific review.
+Review only requires file access;
 external programs, database downloads and phylogenetic compute have separate prerequisites.
 
 ## Tier 1 — rDNA screen (hours, no genome pipeline needed)
@@ -33,11 +31,9 @@ Extract the rDNA markers from the assembly and place each one independently:
 
 **Extraction.** ITSx (ITS) and Barrnap with its installed version’s fungal model (SSU/LSU; see [version guidance](../docs/BARRNAP.md)) are the dedicated tools. A
 **blastn reference-probe** against the assembly (probe with a near-neighbor operon record, slice the
-assembly by the hit coordinates, bounded by the real 18S-hit end / 28S-hit start) works with nothing but
-BLAST+. It is what the founding case actually used.
+assembly by the hit coordinates, bounded by the real 18S-hit end / 28S-hit start) uses BLAST+.
 
-**Reading discordance.** If the markers disagree on the nearest genus (founding isolate: 18S→*Bradymyces* 98.6%,
-ITS→*Knufia* ~87%, LSU→near *Trichomerium*, whole operon→longest branch in the matrix), marker discordance alone does not establish a novel lineage. Check source identity, alignment,
+**Reading discordance.** If markers disagree on the nearest genus, that discordance alone does not establish a novel lineage. Check source identity, alignment,
 reference coverage and the stated analysis scope; retain unresolved placement as a hold. A separately
 authorized genome comparison may resolve the question, but it is not automatically triggered.
 
@@ -86,8 +82,7 @@ and source binding remain a separately reviewed input decision.
 
 - **Family-wide ITS concatenation**: produces a dominating internal branch that fails the sanity gate at
   every trim setting. ITS is a within-genus tool, full stop.
-- **One bad reference record can sink a tree**: a single mis-deposited LSU accession (a 5.4-subs/site
-  terminal branch) failed a 36-taxon tree. Diagnose the accession, sequence, alignment and model before a justified, recorded exclusion. Do not automatically drop an inconvenient branch or weaken the gate.
+- **One bad reference record can sink a tree**: diagnose the accession, sequence, alignment and model before a justified, recorded exclusion. Do not automatically drop an inconvenient branch or weaken the gate.
 - **A gate FAIL can be the finding**: a long-branch failure needs source/alignment/model diagnosis and does not establish novelty. Report the numbers and unresolved reason; do not loosen a gate merely to make artwork printable.
 - **rDNA extraction without a dedicated tool is fine** *if* slice boundaries are anchored to real
   alignment ends of the flanking genes — document the coordinates.
@@ -103,3 +98,7 @@ See [External Tools & Databases](External-Tools-and-Databases.md).
 > "On rDNA markers, isolate X is a member of family F (order O). The markers disagree on the nearest
 > genus and the isolate is the most divergent taxon in a matched whole-operon matrix — placement remains unresolved under this reference/marker scope. Genus-level placement awaits the genome MLSA (single-copy-ortholog
 > tree). rDNA identity is a neighborhood statement, not a species call; judgment deferred."
+
+## Related pages
+
+For placement on a fixed reference tree, see [Phylogenetic Placement](Phylogenetic-Placement.md). The fungal guide remains the source for fungal inputs.

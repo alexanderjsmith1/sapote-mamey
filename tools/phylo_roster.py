@@ -36,6 +36,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import argparse
+import importlib.util
 import sys as _sys
 def emit(*args, sep=" ", end="\n", file=None, flush=False):
     """print-compatible stdout/stderr writer (no bare print(); keeps strict-health print_calls flat)."""
@@ -51,25 +52,14 @@ PANEL_COLS = ["candidate_id", "role", "source_path",
 
 # ---- newick (tips in leaf order) --------------------------------------------
 def tree_tips(text):
-    """Tip labels in newick leaf order. Tolerant single-pass reader."""
-    s = text.strip().rstrip(';')
-    tips, i, n = [], 0, len(s)
-    while i < n:
-        c = s[i]
-        if c in '(,':
-            # a tip starts if the next char is not '(' (i.e. not a clade open)
-            j = i + 1
-            if j < n and s[j] not in '()':
-                k = j
-                while k < n and s[k] not in '(),:;':
-                    k += 1
-                lab = s[j:k].strip().strip("'\"")
-                if lab:
-                    tips.append(lab)
-                i = k
-                continue
-        i += 1
-    return tips
+    """Exact leaf labels from the bundle's canonical Newick parser."""
+    parser_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tree_bgc_overlay.py")
+    spec = importlib.util.spec_from_file_location("sapote_roster_tree_parser", parser_path)
+    if spec is None or spec.loader is None:
+        raise ValueError("canonical Newick parser unavailable")
+    parser = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(parser)
+    return parser.tip_order(parser.parse_newick(text))
 
 
 def _role(label):
@@ -165,7 +155,7 @@ def load_hosts(path):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="numbered roster + remove-by-number")
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument('--tree')
+    g.add_argument('--tree', help='canonical Newick; comments/annotations are unsupported')
     g.add_argument('--panel')
     ap.add_argument('--strain-table', help='optional CSV to enrich with host/source')
     ap.add_argument('--remove', help='indices to drop, e.g. "30,31,36"')
@@ -175,7 +165,11 @@ def main(argv=None):
     hosts = load_hosts(args.strain_table)
     panel_rows = None
     if args.tree:
-        roster = roster_from_tips(tree_tips(open(args.tree).read()), hosts)
+        try:
+            tips = tree_tips(open(args.tree).read())
+        except ValueError as exc:
+            ap.error(f"invalid tree: {exc}")
+        roster = roster_from_tips(tips, hosts)
     else:
         panel_rows = list(csv.DictReader(open(args.panel), delimiter='\t'))
         roster = roster_from_panel(panel_rows, hosts)

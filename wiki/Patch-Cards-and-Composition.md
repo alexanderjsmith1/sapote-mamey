@@ -1,5 +1,8 @@
 # Patch Cards and Composition — how a lane hands work to the cut
 
+Prepare and compose patch cards for a cut.  
+This page is for maintainers reviewing changes.
+
 `CUT_PROTOCOL.md` covers what happens **at** the cut: the version bump, the tiers, the disclosure
 block. This page covers what happens **before** it — how a lane packages a change so the composer
 can fold it safely. That step had no written rules, and the gap produced real defects.

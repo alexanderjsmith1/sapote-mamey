@@ -127,7 +127,7 @@ def rescue_groups(rggmci, min_strong=1):
                     stack.append(y)
         comps.append(comp)
     out = []
-    for comp in sorted(comps, key=len, reverse=True):
+    for comp in sorted(comps, key=lambda group: (-len(group), sorted(group))):
         deg = {bid: len(set(y for y, _ in adj[bid])) for bid in comp}
         # hub flag: a group with one dominant high-degree node is a hub-component
         # that may over-merge; clean 2-fragment groups are the highest-confidence splits.

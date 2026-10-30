@@ -135,8 +135,11 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def main():
-    check = "--check" in sys.argv
+def main(argv=None):
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate user-facing cassette and scan catalogs.")
+    parser.add_argument("--check", action="store_true", help="check committed catalogs without writing")
+    check = parser.parse_args(argv).check
     cat = build_catalog()
     md = render_md(cat)
     js = json.dumps(cat, indent=2, ensure_ascii=False)

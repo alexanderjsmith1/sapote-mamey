@@ -1,207 +1,140 @@
-# Bioassay Figure Factory
+# Make a bioassay summary figure
 
-Bioassay figures begin with a canonical long-form observation table. Raw plate exports are not
-uniform enough to interpret by filename or column position: a separate mapping step must state
-what each well, plate, material, target, time point, replicate, and control represents.
+Turn recorded assay observations into a summary table and an R-rendered heatmap.
+You need the measurements, plate/sample mapping, controls and source hashes.
 
-## Plan before mapping
 
-The same `figure-factory` command accepts a `bioassay_project_plan_v1` config. It inventories
-hash-bound datasets as `RAW_OD`, `PRECOMPUTED_PERCENT_INHIBITION`, `MIC_TABLE`, `IN_VIVO`, or
-`OTHER`; records plate format, material scope, targets, time points, dose coverage, replication,
-controls, and availability of material amounts; then emits Markdown and JSON for user review.
+Start with the [observation template](../examples/bioassay_observations_template.tsv).
+Each row records its plate/well, material and parent, target, dose, time point,
+replicate, control state, measurement and source. Keep held/excluded rows with
+their reasons; only included rows enter the summary.
 
-The plan proposes relevant previews such as control/normalization QC, fraction-series activity,
-maximum activity within a named fraction set, activity breadth and material yield, dose response,
-MIC endpoints, target coverage, and selected tree overlays. It also asks which inputs were computed
-by the user, which rows/plates should be omitted, how ambiguous targets should resolve, what the
-caption should say, and whether descriptive summaries or a separately specified statistical model
-are appropriate. This supports mixed projects without treating fraction-discovery screens as MIC
-experiments.
+## Map the plate
 
-The current Figure Factory kind is `bioassay_observation_summary_v1`, with config schema
-`sapote.bioassay-figure-factory.v1`. It accepts a hash-bound CSV or TSV whose columns exactly match
-[`examples/bioassay_observations_template.tsv`](../examples/bioassay_observations_template.tsv).
-
-## Map a 96-well source plate into a 384-well dose layout
-
-For a 384-well assay created by printing each 96-well source position into a 2-by-2 block at
-120, 60, 30, and 15 micrograms per milliliter, use the explicit geometry profile before building
-the observation table:
+List the available geometry profiles:
 
 ```bash
 python tools/bioassay_plate_map.py list-profiles
-python tools/bioassay_plate_map.py annotate \
-  --profile 96_TO_384_QUADRANT_120_60_30_15 \
-  --input plate_reader_export.csv --well-column Well_384 \
-  --out plate_reader_export_mapped.tsv
 ```
 
-The annotator retains the parsed row count, but that is not a byte-faithful copy of every original field. Existing `mapping_profile`, `source_well`, `destination_well`, `quadrant`, `final_concentration_ug_ml` and `mapping_state` columns are replaced by the selected profile's values. Keep the raw well column under a distinct name such as `Well_384` and preserve the original input separately. Formula-leading text may receive a leading apostrophe from the spreadsheet-safe writer; plain signed numbers are retained.
-
-Input/output suffixes select the delimiter independently: `.tsv` or `.tab` means tabs, anything else means commas. Destination wells normalize case, surrounding/internal row-column whitespace and zero-padded column numbers within A–P / 1–24. A destination outside that grammar receives `mapping_state=UNMAPPED` with blank source/quadrant/concentration, and the command prints `PASS_WITH_HOLDS` while still returning zero. Header-only input with the selected well column can print `PASS` with no observations. Compare the source/output row roster and mapping states before adoption; zero exit is not a complete observed plate or source/measurement admission. Require unique nonblank headers and complete-width input rows: the current parser does not enforce those properties, and extra cells can be ignored on writing. The named profile must match the physical plate-transfer method.
-It supplies geometry and dose fields only, so sample identity, controls, exclusions, timepoints,
-targets, material lineage, and inhibition calculations still require explicit admission into the
-observation table.
-
-### Plate-map output and recovery
-
-`--out` is a replacement destination, not a fresh-only publication contract. The mapper creates its parent and writes a unique temporary sibling, flushes it, then replaces the selected file. It can overwrite an existing mapped table or even the input if both paths name the same file. Use a fresh explicit output outside source evidence and the code bundle; this mapper has no source/output separation or bundle-root guard. Ordinary caught write failures remove the temporary file, but a process crash may leave a temporary sibling. Preserve prior outputs and inspect actual files/diagnostics before retrying. No source/output hash receipt is emitted; bind the input path/hash, selected profile, well column, output hash, row count and UNMAPPED count separately.
-
-The separate `emit` command creates the profile's complete 384 source/destination-pair geometry table. `validate` checks that complete table's unique pair roster and exact profile/quadrant/concentration strings. It is not a validator for a partial assay export, repeated well measurements, sample identity or the canonical observation schema; duplicate pairs and incomplete coverage are refused. Its checks do not use `mapping_state`, so a geometry PASS cannot clear an observation hold.
-
-## Bring admitted per-well tables in
-
-When a project's readings already sit in admitted per-well tables (one row per well reading, with plate, well,
-target, material, dose, time point, percent inhibition and a calibration basis), map them into the observation table
-with a profile instead of by hand:
+Use a profile only when it matches the physical transfer. For the listed
+96-to-384 quadrant layout, with raw wells in the default `Well_384` column:
 
 ```bash
-python tools/bioassay_admitted_observations.py observations --profile profile.json --out observations.tsv
-python tools/bioassay_admitted_observations.py best-table --observations observations.tsv --out best.tsv
+python tools/bioassay_plate_map.py annotate \
+  --profile 96_TO_384_QUADRANT_120_60_30_15 \
+  --input inputs/EXAMPLE-plate.csv --out reviews/EXAMPLE-plate-mapped.tsv
 ```
 
-The profile (`sapote.bioassay-admitted-profile.v1`; see
-[`examples/bioassay_admitted_profile_example.json`](../examples/bioassay_admitted_profile_example.json)) names each
-table, its platform and the column for each field, plus the owner's declarations:
+Use a fresh output path: the mapper can overwrite an existing file, including
+its input. It replaces its mapping columns, so preserve the raw export.
+Check unique nonblank headers, complete rows, row counts and every `UNMAPPED`
+state. `PASS_WITH_HOLDS` returns zero, and an empty table can pass.
+The mapping supplies geometry and dose fields; sample identities, controls and
+measurements still need to come from the experiment records.
 
-- `material_types`: material group to material type. An unmapped group is held (`MATERIAL_GROUP_UNMAPPED`).
-- `targets`: `VERIFIED` or `AMBIGUOUS` per label; any other label stays `AS_RECORDED`.
-- `dose_states`: the dose state per platform when a dose is written; a blank dose is `UNRECORDED`.
-- `control_states`: the control state for each calibration basis, each with a written basis. A calibration the
-  profile does not name gets `UNRECORDED` and the row is held, so an expected-OD normalization is never included
-  silently.
-- `corrections`: an optional table that changes named fields on rows matched by key (for example a material
-  reclassified after the table was admitted).
+The separate `emit` and `validate` commands handle a complete geometry table.
+They do not validate a partial assay export or its measurements.
 
-Values are copied as recorded; percent inhibition is not clipped. The command refuses to overwrite its output and
-writes `<out>.receipt.json` with the profile, each table and the corrections table by SHA-256, and the counts of
-included and held rows by reason.
+## Convert existing per-well measurements
 
-`best-table` reads included rows only. Per strain, target and material it gives the higher of the best 96-well
-reading (any recorded dose) and the best 384-well reading at one final concentration (`--dose-384`, default 120),
-after a floor (`--floor`, default 0; `--no-floor` keeps negative readings). It writes both platform values, which
-platform gave the best, and the reading counts. A combination never read has no row: not tested, never zero. Held
-qualitative or unruled readings do not enter it.
+Fill a copy of the [profile example](../examples/bioassay_admitted_profile_example.json)
+with your table paths, columns, material types, target states, dose states and
+calibration/control declarations. Then use fresh outputs:
 
-## What the observation table preserves
+```bash
+python tools/bioassay_admitted_observations.py observations \
+  --profile inputs/EXAMPLE-assay-profile.json --out reviews/EXAMPLE-observations.tsv
+```
 
-- 96-well, 384-well, or explicitly declared other plate layouts;
-- experiment, plate, well, and replicate identity;
-- crude extract, flash fraction, HPLC fraction, purified compound, or other material type;
-- parent material and lineage state, so a serial “fraction plate” does not erase what the material is;
-- available material amount, stock concentration, delivered amount, final assay concentration, and
-  dose-record state; the 15/30/60/120 µg/mL series therefore remains distinct from an 80 or
-  100 µg/mL single-dose assay;
-- raw target label, target-resolution state, and a canonical target only when verified;
-- recorded time point and percent inhibition without clipping;
-- positive-control state, including missing controls, unresolved locations, and expected-OD normalization holds;
-- explicit include, exclude, or hold disposition with a required reason for held/excluded rows;
-- a portable source locator and exact input hash.
+The command preserves recorded inhibition values, including negative values,
+and writes a receipt with source/profile hashes and included/held counts.
+Unmapped materials stay held; undeclared calibrations get `UNRECORDED` and stay
+held. Check those counts
+before plotting; a missing control cannot be supplied by an assumed expected value.
 
-An included observation needs a valid or inapplicable control, numeric time point, and numeric
-inhibition measurement. A missing positive control cannot be included by silently normalizing to an
-expected value. An ambiguous *Candida* label remains ambiguous. Held and excluded observations stay
-in the admitted output and its counts, but are not averaged into the figure summary.
+If you need the existing cross-platform best-reading summary:
 
-## Build data or render with R
+```bash
+python tools/bioassay_admitted_observations.py best-table \
+  --observations reviews/EXAMPLE-observations.tsv --out reviews/EXAMPLE-best.tsv
+```
+
+Its defaults compare the best 96-well reading at any recorded dose with the best
+384-well reading at final concentration 120, then apply a zero floor. Choose
+`--dose-384` for a different selected concentration or `--no-floor` to keep
+negative readings. Missing combinations have no row; they are not measured zeros.
+
+## Build the figure
+
+Save this as `inputs/EXAMPLE-figure.json`. Replace the SHA-256 text with
+`output_sha256` from `reviews/EXAMPLE-observations.tsv.receipt.json`:
 
 ```json
 {
   "schema_version": "sapote.bioassay-figure-factory.v1",
   "figure_kind": "bioassay_observation_summary_v1",
-  "external_data_root": "/path/to/admitted/project-data",
+  "external_data_root": "reviews",
   "observations": {
-    "logical_locator": "bioassay/observations.tsv",
-    "sha256": "<exact lowercase SHA-256>"
+    "logical_locator": "EXAMPLE-observations.tsv",
+    "sha256": "PASTE_OUTPUT_SHA256_FROM_RECEIPT"
   },
-  "output_dir": "bioassay_figure",
+  "output_dir": "../reviews/EXAMPLE-bioassay",
   "render_with_r": true,
   "rscript": "Rscript",
   "profile": "DOUBLE_COLUMN",
-  "title": "Bioassay observations"
+  "title": "EXAMPLE bioassay observations"
 }
 ```
 
-Run `python mamey_run.py figure-factory --config config.json`. With `render_with_r: false`, the
-factory emits the admitted observations, grouped summary, caption/methods metadata, and receipt.
-With `render_with_r: true`, it also runs `tools/sapote_bioassay_figure.R` and emits SVG and PNG.
-The plotted canvas uses a short descriptive caption; detailed admission and interpretation states
-travel in the sidecars and receipt.
+The data root is relative to the command's working directory; the output is
+relative to the config file. Set `render_with_r` to false for data only.
+`DOUBLE_COLUMN` selects 7.2 inches; the other profile uses 4.25 inches.
 
-The current plot groups only exact strain/material/target/time-point/dose combinations. It shows the
-arithmetic mean, observation count, experiment count, and raw minimum/maximum in the sidecar. It
-does not average unlike materials or doses.
-
-## Tree and Mode B boundary
-
-The factory marks tree integration as `REQUIRES_EXPLICIT_MATERIAL_TARGET_TIMEPOINT_SELECTION`.
-That is intentional: a strain can have crude extract, flash-fraction, and HPLC-fraction results at
-several time points, and taking an unscoped maximum would bias the tree overlay. A later selection receipt
-must name the material scope, target, time point, aggregation, and included experiments before the
-result becomes a strain-level tree track. A strain may join through a verified tree-tip crosswalk
-even when only 16S, rather than a genome, is available.
-
-Add `tree_track_selection` to the Figure Factory config to emit `bioassay_tree_track.tsv`:
-
-```json
-{
-  "selection_id": "candida_auris_48h_flash",
-  "target": "Candida auris",
-  "target_state": "VERIFIED",
-  "timepoint_hours": 48,
-  "final_concentration_ug_ml": 120,
-  "material_type": "FLASH_FRACTION",
-  "aggregation": "mean_inhibition_pct",
-  "strain_roster": ["strain-1", "strain-2"],
-  "material_ids_by_strain": {
-    "strain-1": "flash-fraction-7",
-    "strain-2": "flash-fraction-12"
-  }
-}
+```bash
+python mamey_run.py figure-factory --config inputs/EXAMPLE-figure.json
 ```
 
-For `mean_inhibition_pct`, every roster strain must have one explicitly selected material ID. A
-missing measurement becomes
-`NOT_MEASURED`, while a recorded zero remains `OBSERVED` with value `0`. The emitted columns match
-the `BIOASSAY` annotation channel accepted by `tools/tree_bgc_overlay.py`; a separate exact tip
-crosswalk still binds strain IDs to a GToTree or other tree. This track can also describe a 16S-only
-strain once its EPA-ng placement is represented by a reviewed tip crosswalk.
+The factory emits observations, grouped summaries, caption/methods metadata and
+a receipt. Rendering uses `tools/sapote_bioassay_figure.R` and produces 300-DPI PNG
+plus SVG. `PASS_DATA_READY_R_NOT_REQUESTED` means data only;
+`PASS_FIGURE_FACTORY_RENDERED` means R returned zero and both files exist.
+Inspect the actual images, labels and density before using them.
 
-For a chromatography-series overview, set `aggregation` to `fraction_set_max`, provide a list of
-material IDs per strain, and declare `active_threshold_pct`. The factory selects the highest exact-
-dose material mean for the tree value and writes `bioassay_tree_selection_details.tsv` with the
-selected material, number of requested/measured/active fractions, threshold, and summed recorded
-material amount. This makes “maximum activity” reviewable while retaining the breadth and yield of
-the fraction series. A partially observed named set is refused because its apparent maximum does
-not represent the requested set; a strain with no observations remains `NOT_MEASURED`. The factory
-never compares or pools different final assay concentrations.
+Means weight observation rows equally, including rows from different experiments.
+Read observation and experiment counts with the mean and raw range.
+The summary keeps more grouping fields than the plot's row/column labels; check
+for distinct summary rows sharing a displayed cell and hold an ambiguous overplot.
 
-Mode B may cite a selected strain- or sample-level assay summary as context. It may not attribute
-that result to an individual biosynthetic locus without a separately admitted experimental link.
+Keep the raw-source mapping/hashes separately: the factory binds the admitted
+table, not every raw file named in its rows. Save the config, renderer/theme
+versions and output hashes with the receipt. Retry a failed build in a fresh
+destination after inspecting any remaining temporary files.
 
-## Current residual
+## Select values for a tree
 
-Admitted per-well tables can be brought in with `tools/bioassay_admitted_observations.py` (above). The bundle still needs mapping profiles for the project's distinct raw 96- and 384-well layouts,
-a generalized multi-target ggtree strip, an in-vivo observation schema, raw-plate mapping profiles,
-and a policy for choosing among repeated experiments before selection. The older
-`bioassay_to_activity_channel.py --recon`
-path remains a narrow adapter for its original four-dose 48-hour fraction reconstruction; its
-hard-coded assumptions must not be projected onto other assays.
+Provide `tree_track_selection` with one target and target state, time point,
+final dose, material type, strain roster and selected material IDs.
+`mean_inhibition_pct` needs one material per strain. The optional
+`fraction_set_max` view needs a named material set and `active_threshold_pct`;
+it selects among pooled material means and refuses a partly measured set.
 
-Chemical structures are a separate reference-context layer. A structure for a known class member
-or KnownClusterBlast comparator can be displayed when its source database record, structure
-identifier, license, and relationship to the current evidence are recorded. Such a display does
-not identify the assayed material or the product of a biosynthetic locus.
+The track keeps recorded zero as `OBSERVED` and missing measurement as
+`NOT_MEASURED`. Bind it to the tree through an exact tip-to-strain crosswalk;
+continue with [tree assay tracks](TREE_ASSAY_TRACK_RENDERING.md).
+Locus-level activity needs a separate experimental link.
 
-## Aggregation, display and receipt qualifications
+Raw-layout mappings, in-vivo observations and experiment-level selection need
+their own supported schemas or policies. Keep ambiguous target labels visible.
+The older `bioassay_to_activity_channel.py --recon` adapter is limited to its
+original assay layout and cannot supply a general mapping.
 
-The summary mean weights each included **observation row** equally within its exact key. Experiment and replicate counts are descriptive; this is not an equal-experiment mean or independent biological-replicate analysis. Rows have unique observation IDs, but this does not independently verify distinct physical wells or replicate independence. The key also preserves parent/lineage state, target state, dose state, stock concentration and delivered amount. Ambiguous targets can remain included under valid control/measurement rules and are visually labeled; inclusion is not organism-resolution acceptance (`mamey/bioassay_figure_factory.py:408–525`).
-
-The observation table records portable source locators and the factory binds the whole admitted-input file hash. It does not hash or read every raw file named by an observation's source locator. Retain the raw-source mapping and hashes separately; an input table's hash does not validate its source interpretation or experimental authority. Raw-column inventory and adjudication/ruling inputs, when supplied, have their own admission and hash contracts; their presence is not implied by a figure receipt.
-
-The R view uses strain/material/type as row labels and target/timepoint/final-dose as columns. Those display keys omit some distinctions retained in summary keys (parent/lineage, stock/delivered dose and most target/dose states); distinct rows can consequently occupy the same visual cell. Inspect the summary for duplicate display coordinates and hold an ambiguous overplot before adoption. The sidecar remains authoritative for the retained groups. SVG/PNG canvas width is 7.2 inches for DOUBLE_COLUMN and 4.25 inches otherwise; height is `max(3.4,1.7 +0.34 × displayed material rows)` inches, PNG 300 dpi. There is no automatic readable-column density check or visual-QA receipt (`tools/sapote_bioassay_figure.R:41–73`).
-
-`PASS_DATA_READY_R_NOT_REQUESTED` means data production without rendering. `PASS_FIGURE_FACTORY_RENDERED` means R returned 0 and both files exist; it does not test nonempty graphics, visual legibility or scientific validity. Output hashes bind emitted artifacts; the receipt excludes itself and lacks config/source-code/R-script/runtime-version hashes. Preserve those externally. The producer requires a new output directory, stages artifacts and renames it on success; exceptions remove its temporary stage. Stable inputs and a sole reviewed output writer remain assumptions, and leftover temporary stages after a process crash are not completed output (`729–812`).
-
-Tree-track `OBSERVED` and `NOT_MEASURED` are material/target/time/dose-selected states, not locus activity or strain-wide absence. Preserve track hash, selection details and exact tree-tip crosswalk independently; plotting cannot clear upstream identity, control or acquisition holds.
+<a id="plan-before-mapping"></a>
+<a id="map-a-96-well-source-plate-into-a-384-well-dose-layout"></a>
+<a id="plate-map-output-and-recovery"></a>
+<a id="bring-admitted-per-well-tables-in"></a>
+<a id="what-the-observation-table-preserves"></a>
+<a id="build-data-or-render-with-r"></a>
+<a id="tree-and-mode-b-boundary"></a>
+<a id="current-residual"></a>
+<a id="aggregation-display-and-receipt-qualifications"></a>

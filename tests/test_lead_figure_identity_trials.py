@@ -1,3 +1,4 @@
+from pathlib import Path
 import csv,json
 from types import SimpleNamespace
 import pytest
@@ -14,7 +15,9 @@ def run(tmp_path,monkeypatch,change=None,style='chatgpt-node-first'):
         w=csv.DictWriter(f,fieldnames=list(row));w.writeheader();w.writerow(row)
     seen=[];original=Figure.savefig
     def capture(fig,*a,**k):
-        ax=fig.axes[0];seen.append({'title':ax.get_title(),'labels':[t.get_text() for t in ax.get_yticklabels()],'values':[p.get_width() for p in ax.patches]});return original(fig,*a,**k)
+        if Path(a[0]).suffix.lower()=='.png':
+            ax=fig.axes[0];seen.append({'title':ax.get_title(),'labels':[t.get_text() for t in ax.get_yticklabels()],'values':[p.get_width() for p in ax.patches]})
+        return original(fig,*a,**k)
     monkeypatch.setattr(Figure,'savefig',capture)
     rc=render_figures_command(SimpleNamespace(package=str(pkg),outdir=str(tmp_path/'out'),top_n=1,style=style))
     return rc,seen
@@ -25,7 +28,7 @@ def test_title_and_full_locus(tmp_path,monkeypatch,style):
     rc,seen=run(tmp_path,monkeypatch,style=style)
     assert rc==0 and len(seen)==2
     assert all('TEST-01' in s['title'] and 'misleading_folder' not in s['title'] for s in seen)
-    assert all(s['labels']==['TEST-01 / NODE_1_length_12345_cov_20.5 / region001 / BGC001'] for s in seen)
+    assert all([label.replace('\n','') for label in s['labels']]==['TEST-01 / NODE_1_length_12345_cov_20.5 / region001 / BGC001'] for s in seen)
     assert [s['values'] for s in seen]==[[55],[30]]
 
 

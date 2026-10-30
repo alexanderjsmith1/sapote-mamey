@@ -266,7 +266,7 @@ def _receipt(out: Path, args, inputs: list[Path], outputs: list[Path], extra: di
                                                               for k, v in vars(args).items() if k != "func"},
            "display_rule": {"max_native_points": args.max_native_points, "bins": args.bins, "smoothing": "none"},
            "inputs": {str(p): _sha(p) for p in sorted(set(inputs), key=str)},
-           "outputs": {p.name: _sha(p) for p in outputs}, **extra}
+           "outputs": {p.relative_to(out).as_posix(): _sha(p) for p in outputs}, **extra}
     (out / "receipt.json").write_text(json.dumps(rec, indent=1) + "\n", encoding="utf-8")
 
 

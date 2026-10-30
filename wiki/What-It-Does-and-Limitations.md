@@ -1,6 +1,9 @@
 # What It Does and Limitations
 
-*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
+Review the software capabilities and their limits.  
+This page is for readers deciding whether a workflow fits their task.
+
+*Current to bundle v9.7.461 · engine Mamey 1.9.177.*
 
 What Sapote-Mamey does well, and where its limits are recorded. The retained strengths describe design requirements and selected demonstrated routes, not universal enforcement across every command. Current implementation gaps and source-specific holds remain controlling; this page is not a fresh benchmark or audit receipt. **Strength**
 means a capability or design choice that has produced genuine scientific, interpretive,
@@ -35,12 +38,12 @@ page itself follows.
 
 ### B. Identity and evidence binding
 
-- **The exact-locus display contract is exceptionally strong.** Every BGC is identified by
-  strain, full node or contig, region, and secondary alias. Evidence cannot drift between
-  records that share a convenient alias but represent different physical intervals.
-- **Protein sequence SHA-256 is the gene identity anchor**, more reliable than a mutable locus
-  tag; it lets the workflow recognize renamed genes while refusing stale results attached only by
-  label.
+- **The exact-locus display contract requires four fields:** strain, full node or contig,
+  region, and secondary alias. Verify each consumer's binding: records can share an alias while
+  representing different physical intervals, and a stated contract does not guarantee every join.
+- **Protein sequence SHA-256 binds sequence content**, including when a gene label changes.
+  Identical sequences can occur at different loci, so the digest does not identify a physical gene
+  by itself; retain the complete locus, coordinates and roster binding as well.
 - **Physical interval and CDS-roster reconciliation is explicit** — node, region, coordinates,
   translated CDS roster, and neighboring genes are compared directly, which has already caught
   real loose-versus-canonical source conflicts.
@@ -64,8 +67,8 @@ page itself follows.
   pathway neighborhood from unrelated homologs scattered across genomes.
 - **BiG-SCAPE is interpreted as run-relative family placement**, retained by cutoff and comparator
   corpus rather than promoted to biological identity.
-- **RG-GMCI offers a disciplined split-pathway hypothesis layer** — homology-guided linkage stays
-  separate from physical nucleotide joining, gated by a two-proof admission requirement.
+- **RG-GMCI offers a split-pathway hypothesis layer** — homology-guided candidate linkage stays
+  separate from physical nucleotide joining. Computational categories do not prove a physical join.
 - **Chitin metabolism is assessed as a strain-level system**, not forced into a BGC-local pathway
   narrative.
 - **Resistance evidence is routed into gene-oriented review**, naming genes and retaining
@@ -77,8 +80,9 @@ page itself follows.
 
 ### D. Mode B as a scientific product
 
-- **The 48-section format forces multidimensional review**, making it difficult for one
-  attractive annotation to dominate the interpretation unnoticed.
+- **Named Mode B profiles structure multidimensional review**: `full48` is the default and
+  `current50_v2` is opt-in. Mechanical checks do not establish scientific review; see
+  [Mode B](Mode-B.md) for the selected contract and evidence limits.
 - **The complete named-match gene table is a major advance** — a reader sees the actual protein,
   its length, identity, domains, channel-specific matches, and proposed role.
 - **Sections 5–7 can reconstruct biosynthetic logic rather than repeat labels**, at their best

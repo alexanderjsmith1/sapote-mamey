@@ -14,7 +14,7 @@ non-deterministic layer (see the P358-002 registry rule) and would break reprodu
 
 DEFICIT SEMANTICS (the "unmeasured flag != finding" rule — flag-vs-finding, do not confuse absence with negation):
   * PRESENT          — the channel file exists AND carries a row for this BGC.
-  * ABSENT_NO_ROWS   — the channel file exists but has no row for this BGC (scanned, none matched).
+  * ABSENT_NO_ROWS   — the channel file exists but has no retained row for this BGC; search completion is unverified.
   * ABSENT_NO_FILE   — the channel file was not produced in this package (NOT measured — never "no evidence exists").
 
 CLAIM-SAFETY (carried on every bundle): KCB/MIBiG names are class-level similarity, NOT identity; RG-GMCI /
@@ -37,6 +37,13 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable
+
+_ROOT = str(Path(__file__).resolve().parents[1])
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+from mamey.exact_identity import (  # noqa: E402
+    ExactLocusIdentityError, exact_locus_from_mapping, exact_locus_from_native_inventory_row,
+)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _wbio import atomic_write_text  # noqa: E402 -- AUDIT_374 atomic-write fix
@@ -137,7 +144,7 @@ def _channels_agree(dominant_rows: list[dict] | None, graded_rows: list[dict] | 
 
 def _unmeasured_fields(row_lists: dict[str, list[dict]]) -> list[str]:
     """`channel.column` names that are empty in an EXISTING row — a row-level gap the file-level
-    ABSENT_NO_FILE deficit cannot see ('scanned, nothing found' vs 'not scanned')."""
+    ABSENT_NO_FILE deficit cannot see. An empty field does not establish search execution."""
     out = []
     for ch, rows in row_lists.items():
         for r in rows or []:
@@ -203,8 +210,23 @@ def build_evidence_bundle(package_dir: Path | str, strain: str | None = None) ->
         gr = graded_by.get(bid, [])
         # two-proof verdict summary (advisory)
         tp_verdicts = sorted({(r.get("verdict") or "").strip() for r in tp if (r.get("verdict") or "").strip()})
+        try:
+            source_strain = next((str(row[key]).strip() for key in
+                                  ("Strain", "strain", "strain_id", "Strain_ID") if row.get(key)), "")
+            if not source_strain or source_strain != strain:
+                raise ExactLocusIdentityError("missing source strain or conflict with selected package strain")
+            if {"BGC_ID", "Contig", "Node_ID"}.issubset(row):
+                exact_locus = exact_locus_from_native_inventory_row(strain, row).exact_locus
+            else:
+                exact_locus = exact_locus_from_mapping(strain, row)
+            identity_error = None
+        except ExactLocusIdentityError as exc:
+            exact_locus = None
+            identity_error = str(exc)
         bgcs[bid] = {
             "bgc_id": bid,
+            "exact_locus": exact_locus,
+            "identity_error": identity_error,
             "identity": {k: row.get(k) for k in row if k},  # the full inventory row, verbatim
             # BB16 extensions: two-channel MIBiG reconciliation + row-level gap list (do NOT change deficit semantics)
             "channels_agree": _channels_agree(conv, gr),
@@ -235,7 +257,7 @@ def build_evidence_bundle(package_dir: Path | str, strain: str | None = None) ->
             "RG-GMCI and _4D two-proof rows are homology-guided CANDIDATES, not merges or nucleotide joins.",
             "This bundle assigns no score and promotes no tier; it re-presents the package's own evidence.",
             "channels_agree=DISAGREE means two MIBiG channels named different families — a flag to adjudicate, "
-            "not a correction; unmeasured_fields lists SCANNED-BUT-EMPTY columns (row-level gaps), distinct from "
+            "not a correction; unmeasured_fields lists empty retained columns (row-level gaps); search completion is unverified. Distinct from "
             "ABSENT_NO_FILE (channel not produced).",
         ],
     }
@@ -244,7 +266,9 @@ def build_evidence_bundle(package_dir: Path | str, strain: str | None = None) ->
 # ── output ──────────────────────────────────────────────────────────────────────────────────
 def _md_for_bgc(b: dict) -> str:
     ch = b["channels"]
-    lines = [f"## Evidence Summary — {b['bgc_id']}", ""]
+    lines = [f"## Evidence Summary — {b.get('exact_locus') or 'IDENTITY_HOLD'}", ""]
+    if not b.get("exact_locus"):
+        lines.extend([f"Identity is held: {b.get('identity_error') or 'complete source identity unavailable'}.", ""])
 
     def stat(name: str, key: str) -> str:
         return f"- **{name}:** {ch[key]['deficit']}"
@@ -268,7 +292,10 @@ def _md_for_bgc(b: dict) -> str:
 
 
 def write_evidence_bundle(bundle: dict, out_dir: Path | str) -> dict:
-    out_dir = Path(out_dir)
+    out_dir = Path(out_dir).resolve()
+    source = Path(bundle["package_dir"]).resolve()
+    if out_dir == source or source in out_dir.parents:
+        raise ValueError("EVIDENCE_OUTPUT_INSIDE_SOURCE: choose an output directory outside the source package")
     out_dir.mkdir(parents=True, exist_ok=True)
     # AUDIT_374: was a plain .write_text() -- a killed process mid-write left a
     # truncated/unparseable JSON or MD deliverable on disk with no signal it was incomplete.
@@ -276,7 +303,7 @@ def write_evidence_bundle(bundle: dict, out_dir: Path | str) -> dict:
     atomic_write_text(out_dir / f"{bundle['strain']}_evidence_bundle.json",
                        json.dumps(bundle, indent=2, sort_keys=True))
     md_parts = [f"# Evidence bundle — {bundle['strain']} ({bundle['bgc_count']} BGCs)", "",
-                "> Reader-side, non-scoring. Deficit `ABSENT_NO_FILE` = not measured, not absence of biology.", ""]
+                "> Reader-side, non-scoring. Deficit `ABSENT_NO_FILE` means no retained channel file; `ABSENT_NO_ROWS` means no retained row. Upstream search completion is unverified; neither state establishes biological absence.", ""]
     for bid in sorted(bundle["bgcs"]):
         md_parts.append(_md_for_bgc(bundle["bgcs"][bid]))
         md_parts.append("")
@@ -292,7 +319,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
     bundle = build_evidence_bundle(args.package_dir, args.strain)
-    summary = write_evidence_bundle(bundle, args.out)
+    try:
+        summary = write_evidence_bundle(bundle, args.out)
+    except ValueError as exc:
+        sys.stderr.write(f"EVIDENCE_BUNDLE_REFUSED: {exc}\n")
+        return 2
     emit(json.dumps(summary, indent=2))
     return 0
 

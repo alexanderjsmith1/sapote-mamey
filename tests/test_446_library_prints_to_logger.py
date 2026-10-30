@@ -93,7 +93,7 @@ def test_markdown_and_lookup_results_use_emit():
         "mamey/report_card.py": 'emit(res["markdown"])',
         "mamey/af_dossier.py": 'emit(res["markdown"])',
         "mamey/good_guesses.py": 'emit(res["markdown"])',
-        "mamey/blastp_availability.py": "emit(render_table(agg))",
+        "mamey/blastp_availability.py": "emit(message, file=stream)",
         "mamey/literature_lookup.py": 'emit(f"PMID {args.pmid}: not in corpus")',
         "mamey/packaging.py": "emit(f\"repro_fingerprint: {fp['fingerprint']}\")",
     }

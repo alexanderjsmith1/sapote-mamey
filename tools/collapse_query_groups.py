@@ -12,22 +12,50 @@ records every member, so nothing is hidden -- e.g. "query +2 (Bombus 3)".
 
 Writes <out_prefix>_pruned.nwk, <out_prefix>_ggtree_annotation.tsv (same columns as the producer)
 and <out_prefix>_groups.tsv, the full membership table so any collapsed tip can be expanded back.
+Output paths must be fresh; existing files and symlinks are refused.
 
 Claim-safety: grouping is by nearest reference in a 16S tree; it is a NEIGHBOURHOOD grouping, not a
 claim that the grouped strains are the same species or the same strain. Judgment deferred.
 """
 import sys, csv, re, collections
+import argparse
 from Bio import Phylo
 
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _console import emit
 
-def main():
-    nwk, ann_p, outp = sys.argv[1], sys.argv[2], sys.argv[3]
-    ann = {r["tip"]: r for r in csv.DictReader(open(ann_p), delimiter="\t")}
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Collapse query tips by their nearest supplied reference; retain a membership table.")
+    parser.add_argument("tree", help="supplied Newick tree")
+    parser.add_argument("annotation", help="tab-separated tip annotation table")
+    parser.add_argument("out_prefix", help="fresh prefix for the pruned tree, annotations and membership table")
+    args = parser.parse_args(argv)
+    nwk, ann_p, outp = args.tree, args.annotation, args.out_prefix
+    outputs = [Path(outp + suffix) for suffix in
+               ("_pruned.nwk", "_ggtree_annotation.tsv", "_groups.tsv")]
+    if any(path.exists() or path.is_symlink() for path in outputs):
+        parser.error("COLLAPSE_OUTPUT_EXISTS: output paths must be fresh; choose a new prefix")
+    ann = {}
+    with open(ann_p, newline="", encoding="utf-8-sig") as source:
+        reader = csv.DictReader(source, delimiter="\t")
+        if not reader.fieldnames:
+            parser.error("COLLAPSE_ANNOTATION_EMPTY: annotation table has no header or tip rows")
+        if not {"tip", "kind"}.issubset(reader.fieldnames):
+            parser.error("COLLAPSE_ANNOTATION_INVALID: tip and kind columns are required")
+        for row in reader:
+            tip = row.get("tip")
+            if not tip or not tip.strip() or tip in ann:
+                parser.error("COLLAPSE_ANNOTATION_INVALID: tip identifiers must be nonblank and unique")
+            ann[tip] = row
+    if not ann:
+        parser.error("COLLAPSE_ANNOTATION_EMPTY: annotation table has no tip rows")
     t = Phylo.read(nwk, "newick")
     tips = t.get_terminals()
+    if any(x.name not in ann for x in tips):
+        parser.error("COLLAPSE_ANNOTATION_INCOMPLETE: every supplied tree tip requires an annotation row")
+    if any(ann[x.name].get("kind") not in {"query", "reference", "outgroup"} for x in tips):
+        parser.error("COLLAPSE_ANNOTATION_INVALID: selected tips require query, reference or outgroup roles")
     q = [x for x in tips if ann.get(x.name, {}).get("kind") == "query"]
     refs = [x for x in tips if ann.get(x.name, {}).get("kind") == "reference"
             and "outgroup" not in (x.name or "").lower()]

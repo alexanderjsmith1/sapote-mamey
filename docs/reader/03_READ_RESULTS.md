@@ -1,106 +1,61 @@
 # Read one saved package
 
-Already have a `*Complete_Package.zip` or its extracted folder? Start here.
-The outcome is a short review note grounded in the saved evidence; a new extraction
-is not the default next step.
+Use a `Complete_Package.zip` or its extracted folder to find the region list,
+read the workbook and check warnings. You need a browser and a spreadsheet reader.
+Python is only needed for the optional fresh check below.
 
-## 1. Find the package and preserve its identity
+## Open it
 
-Use an existing reading copy, or extract the saved ZIP into a review folder.
-Find the directory containing `manifest.json`; keep its linked files together.
-Preserve the original ZIP and record its path and SHA-256. Separately record the
-input checksum and program versions declared in the manifest: the input checksum
-and the result ZIP checksum identify different objects.
+Extract the ZIP into a review folder, keeping the original ZIP. Open
+`OPEN_ME_FIRST.html` in the folder containing `manifest.json`.
+Keep that folder's files together so its links work.
 
-Open `OPEN_ME_FIRST.html` if present. If local links are blocked, open the files
-through your file browser. You can read the HTML, CSVs and workbook without Python.
-Keep sorting, annotations and any later commands away from the original evidence;
-see [files and handoff](../FILES_STORAGE_AND_HANDOFF.md).
+The examples use `EXAMPLE`; use the label on your own files.
 
-## 2. Read the saved status before the rankings
+## Check what finished
 
-| Open | Use it to answer |
-|---|---|
-| `manifest.json` and `issue_log.md` | Which input, settings and concerns belong to this run? |
-| `gate_validation.json`, when present | What did the saved run/[seal](../GLOSSARY.md#evidence-identity-portability-and-authority-vocabulary) check report, including interpretation and evidence visibility? |
-| `package_status.json`, when present | What mutable package-status receipt is currently stored? |
-| `OPEN_ME_FIRST.html` | Where are the linked outputs, and which recorded states does this entry page display? |
+Read `issue_log.md` and the saved validation results before the rankings.
+`MAMEY_COMPLETE_WITH_ISSUES` means extraction finished with warnings to read.
+`JUDGMENT_PENDING` means interpretation still needs to be written.
 
-The HTML is a snapshot, not a fresh check. A completed extraction, passing
-mechanical checks, available evidence and reviewed interpretation are separate
-questions. For example, `JUDGMENT_PENDING` does not mean extraction failed, and a
-passing package check does not establish finished interpretation.
+If counts or statuses differ, use `issue_log.md` and the terminal result; the
+entry page may have been written earlier. For a fresh check, use the command below. [Detailed results](../READING_YOUR_RESULTS.md) explains the
+other statuses and evidence files.
 
-A missing issue log does not mean a clean run.
+## Follow a region
 
-## 3. Follow one row back to its source
+Open `AS-40_5_workbook.xlsx` and start on `Triage_Board`. Match its `BGC_ID`
+to `BGC` on `BGC_Inventory` for the region's coordinates and annotations.
 
-Open `[strain]_5_workbook.xlsx` for browsing, or the CSVs directly:
+Copy the inventory fields **Strain / Node/contig ID / antiSMASH region / BGC**
+into your notes. Together they identify the strain, full contig, region and alias.
 
-- `[strain]_4_triage_board.csv` helps choose a region to inspect.
-- `[strain]_2_inventory.csv` supplies its recorded boundary, coordinates and annotations.
+The CSV versions are `AS-40_4_triage_board.csv` and `AS-40_2_inventory.csv`.
 
-Replace `[strain]` with the actual label. Match the selected triage row to one
-inventory row, then retain **strain / full node-or-contig / region / BGC alias**
-(BGC: biosynthetic gene cluster) from the same package. Locate the source region record and retain its
-path or archive-member locator and SHA-256. If identities conflict or the source
-cannot be found, record that hold before attributing evidence to the region.
+Scores help decide what to inspect; they are not measurements of antimicrobial
+activity. A reference match shows similarity, rather than identifying a compound.
+Read the channel's status beside its values: missing input, a failed check and a
+completed search with no hits mean different things.
 
-Scores order attention; they are not activity measurements or probabilities.
-A reference match suggests similarity, not an identified product. An [Interior](../GLOSSARY.md#4-edge-status)
-boundary does not prove a complete pathway, and a strain-level assay result does
-not by itself identify the responsible locus.
+## Run a fresh check if needed
 
-## 4. Separate a gap from a negative finding
+Use an installed bundle and a writable review copy because validation can update
+`package_status.json`. From the program folder, replace the path with that copy:
 
-Read each channel's recorded status and scope, including parser limits and errors.
+```bash
+python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
+```
 
-| What the record establishes | What to retain |
-|---|---|
-| Input absent or unavailable | The missing input/channel; no biological negative |
-| Operation unrequested or not run | No computed finding for that operation |
-| Failure, hold, truncation or unresolved binding | The reason and affected scope; any retained partial evidence |
-| Completed scoped check with zero results | The performed check, database/input scope and zero; no claim of universal absence |
+`--workbook-strict` makes a missing workbook or failed `WORKBOOK_CONTENT` an error.
+That check requires a nonblank, non-`PENDING` BGC ID in each of four sheets,
+scanning up to 200 data rows per sheet. Inspect the evidence tables you plan to use.
 
-Blank cells alone do not distinguish these cases. Use the channel receipts and
-full issue log; a short summary can omit warnings. Consult
-[the detailed result-reading guide](../READING_YOUR_RESULTS.md#saved-summaries-and-current-validation)
-before proposing a rerun.
+Read both the main result and `WORKBOOK_CONTENT`. If
+`package_status_receipt_write` says `FAILED`, the saved status was not refreshed
+even when validation exits successfully; keep the terminal result. If either validation check fails, follow
+[Recovery and limits](04_RECOVERY_AND_LIMITS.md).
 
-**Example review note (made up; copy your own states and paths):**
+## Save your notes
 
-~~~text
-Package: <existing review-directory path>
-Result ZIP SHA-256: <actual checksum to record>
-Saved validation: receipt available; no fresh check made in this review
-Selected channel: NOT_MEASURED
-Locus: not selected
-Decision: retain the evidence gap; inspect existing inputs before requesting new work
-~~~
-
-## 5. Save the review, or request a fresh check
-
-Save the question, package/input bindings, selected row identity, observations,
-receipt dates, unresolved evidence and one useful next action. Keep the original
-records alongside it. Files authored after the ZIP was created may sit separately;
-check the handoff inventory before concluding they are missing.
-
-If fresh mechanical validation is part of the requested review, use a compatible,
-configured bundle and an identified writable review copy. From the bundle root:
-
-~~~bash
-PACKAGE='/absolute/path/to/review/package'
-python mamey_run.py validate "$PACKAGE" --workbook-strict
-~~~
-
-This command can refresh the copy's `package_status.json`; it does not automatically
-replace the saved `gate_validation.json`. Capture stdout, stderr and the exit code
-outside the package, and inspect both the package result and `WORKBOOK_CONTENT`.
-The strict option makes a missing or nonpassing workbook check affect the exit;
-ordinary workbook findings are advisory. A successful exit remains a scoped
-software result, not scientific acceptance.
-
-See [validation write scope](../POSTSEAL_READERS.md#validation-can-update-a-mutable-status-receipt)
-before running it. For a failure or an interrupted attempt, preserve the evidence
-and follow [Recovery and limits](04_RECOVERY_AND_LIMITS.md); do not repair a receipt or
-overwrite the original package to make its status look complete.
+Write down the package path, the selected row's full identity, what you found,
+and the question you want to investigate next. Keep the notes beside the result.

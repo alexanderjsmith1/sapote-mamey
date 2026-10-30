@@ -1085,6 +1085,58 @@ def _scope_feats(feats, bgc=None, region=None, crosswalk=None):
     return out
 
 
+def _offline_ingest_instructions(args):
+    """Print an import recipe only after its required destination choices exist."""
+    import json
+    import shlex
+    import sys
+    master = getattr(args, "master", None)
+    strain = getattr(args, "strain", None)
+    package = None
+    crosswalk = getattr(args, "crosswalk", None)
+    if crosswalk:
+        candidate = Path(crosswalk).expanduser().resolve()
+        candidate = candidate if candidate.is_dir() else candidate.parent
+        manifest = candidate / "manifest.json"
+        if manifest.is_file():
+            try:
+                payload = json.loads(manifest.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+                return [f"[blastp-online] Offline import package manifest is unreadable: {manifest} ({type(exc).__name__})"]
+            recorded = payload.get("strain_id") if isinstance(payload, dict) else None
+            if not isinstance(recorded, str) or not recorded.strip():
+                return ["[blastp-online] Offline import needs a strain label in the package manifest."]
+            if strain is not None and strain != recorded:
+                return ["[blastp-online] Offline import --strain conflicts with the package manifest."]
+            strain = recorded
+            package = candidate
+    missing = []
+    if not master:
+        missing.append("--master for an existing workbook")
+    if not isinstance(strain, str) or not strain.strip():
+        missing.append("--strain for its strain label")
+    if missing:
+        return ["[blastp-online] To import saved NCBI hits, rerun this plan with "
+                + " and ".join(missing) + ". These choices only configure the offline import recipe."]
+    master = Path(master).expanduser().resolve()
+    if not master.is_file() or master.suffix.lower() != ".xlsx":
+        return [f"[blastp-online] Offline import needs an existing .xlsx workbook: {master}"]
+    hits = master.parent / "hits.csv"
+    command = [sys.executable, str(Path(__file__).resolve().parents[1] / "mamey_run.py"),
+               "ingest-blastp", "--master", str(master), "--strain", strain,
+               "--hit-table", str(hits)]
+    if package is not None:
+        command.extend(["--package", str(package)])
+    instructions = [f"[blastp-online] Save the NCBI Hit table as {hits}",
+                    "[blastp-online] Then import the saved hits:",
+                    "    " + shlex.join(command)]
+    if package is not None:
+        instructions.append("[blastp-online] Import updates the workbook and the package hit panels; use writable review copies.")
+    else:
+        instructions.append("[blastp-online] This imports workbook rows. To update package hit panels too, give --crosswalk its saved package folder.")
+    return instructions
+
+
 def blastp_online_command(args) -> int:
     """CLI: mamey blastp-online. Fail-closed and offline-safe. Emits the §4 CSV when hits
     return; prints a clear unavailable banner otherwise (never fabricates)."""
@@ -1153,15 +1205,7 @@ def blastp_online_command(args) -> int:
         f"(requested {_bs}/batch, widest batch {_widest}, hard cap {MAX_BATCH}, giants solo). "
         f"Channel is fail-closed + offline-safe.",
     ]
-    # Token-friendly route reminder: live polling is ~1-2 min/query. If NCBI BLAST results already
-    # exist (hit-table CSV [+ Alignment XML]), `mamey ingest-blastp --hit-table … [--xml …] --package …`
-    # writes the same <BGC>_online_blastp.csv panel with ZERO network. This live path is for when no
-    # pre-run results exist.
-    _preflight_lines.append(
-        "[blastp-online] note: to skip live polling, pre-run NCBI BLAST and ingest the hit-table "
-        "offline via `mamey ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` "
-        "(same panel, no network wait)."
-    )
+    _preflight_lines.extend(_offline_ingest_instructions(args))
 
     # ------------------------------------------------------------------ disclosure gate (v9.7.438)
     # Everything above this line is local. Past it, the selected protein sequences leave the

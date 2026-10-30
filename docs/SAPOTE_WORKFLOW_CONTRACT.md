@@ -19,7 +19,7 @@ scientific acceptance. Apply it only within the selected authorized workflow.
 | W7 | Selected internal or integrity-bound external compiled report, no counted placeholders | Does not run `compile-report --strict`; placeholder scan is not scientific or publication clearance |
 | W8 | Finds a Markdown DELIVERABLE_MANIFEST, then launches suite checker | Source bug: passes package `manifest.json`, not the discovered Markdown suite manifest |
 | W9 | Package manifest lacks literal JUDGMENT_PENDING; reports optional receipt filename | Does not require a receipt or validate it; an unreadable manifest becomes an empty object |
-| W10 | Always N/A: session close is behavioral | Source bug: W10 is marked mandatory, so it is always in mandatory_incomplete |
+| W10 | Always N/A: session close is behavioral | N/A counts as complete for mandatory steps, so W10 does not block `--strict` |
 
 These are implemented software checks, not the complete desired deliverable contract. A filename
 match or recorded status is weaker than current artifact verification. Obtain current Mode B
@@ -29,10 +29,10 @@ identity when invoking its verifier separately.
 
 ## Current source holds
 
-`--strict` currently cannot produce an all-mandatory-PASS result: W10 returns N/A while the
-incomplete calculation requires every mandatory step to be PASS. Do not interpret this terminal
-failure alone as a scientific defect, and do not bypass it or declare release readiness. Preserve
-the ledger’s actual step evidence and report the implementation hold for owner review.
+`--strict` exits 1 only when a mandatory step is PENDING or BLOCKED; a mandatory step reported as
+N/A (W10, session close) counts as complete. A strict failure therefore names a real unmet step: read
+the ledger's step receipts to find it. Do not bypass the gate or declare release readiness from the
+exit code alone.
 
 W8’s invoked `tools/check_deliverable_suite.py` reads numbered Markdown contract rows and gold
 Section H text. The driver locates that document but supplies the JSON package manifest instead.

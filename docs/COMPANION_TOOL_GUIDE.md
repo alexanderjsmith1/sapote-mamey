@@ -1,600 +1,283 @@
-# Companion tools: what they do and where Sapote–Mamey uses them
+# Choose a companion tool
 
-This guide explains the tools in the README's workflow table, plus the web-search and upstream
-services they connect to. Some are websites, some are local programs, and some are libraries
-used by programs. Downloading a tool from a website does not make its analysis an online
-service. You do not need all of them for a first antiSMASH extraction.
+Find the tool for your next analysis and its download link. Start with a question
+and the input files listed by that workflow. A first Mamey extraction needs only
+the [core installation](INSTALL.md); add other tools when you need their results.
 
-The integration descriptions are grounded in this bundle's code and its referenced protocols.
-The local registry requires a successful unambiguous numeric-version probe and separately reports version-policy match and review requirements. Web/manual services remain unprobed; Python probes use the current interpreter. None establishes database/model readiness or prior study execution (`mamey/companion_tools.py`). The standalone descriptions below are orientation; changing external interfaces, service rules, licenses and biological performance are not independently verified here.
+Genome assembly and antiSMASH run upstream. Protein searches, cluster comparisons
+and trees add evidence later. R libraries draw selected results. The descriptions
+below explain where each tool fits; [run contracts](COMPANION_RUN_CONTRACTS.md)
+give the detailed input and write rules.
 
-For command-specific input, mutation, resource and completion boundaries, read
-[companion run contracts](COMPANION_RUN_CONTRACTS.md). The general tool descriptions below
-do not establish that a particular local command provisioned assets or completed analysis.
-
-Use the [README download table](../README.md#tool-downloads-and-licenses) for upstream project
-links. External sites, versions, service limits and licenses change without notice. Record the
-actual installed version and database release when you use a tool.
+Use the [download table](#tool-downloads-and-licenses) for project sites and licenses.
+Record the installed version and selected database release with a run.
 
 ## Choose a stage
 
-| Stage | Tools | Relationship to Sapote–Mamey |
-|---|---|---|
-| Assemble or annotate a genome | Galaxy, SPAdes, antiSMASH | Upstream; supply their appropriate results |
-| Read antiSMASH results | Python and declared core libraries | Mamey's local extraction runtime |
-| Investigate protein evidence | NCBI web BLASTp, BLAST+, EBI, DIAMOND, HMMER, pyhmmer | Separate evidence channels; some have runners/importers |
-| Compare cluster families | BiG-SCAPE, clinker | Optional cohort computation and visualization |
-| Build or place sequences on trees | GToTree, Prodigal, MAFFT, MUSCLE, trimAl, IQ-TREE, FastTree, RAxML-NG, EPA-ng, gappa | Companion workflows with explicit inputs and configuration |
-| Compare genomes | FastANI, skani/pyskani | Genome similarity evidence, separate from a cluster score |
-| Draw selected results | R, ggplot2, ggtree, patchwork, svglite | Optional rendering stack; most core figures use Python instead |
-
 ### Python — the runtime for Mamey
 
-**Standalone.** Python runs programs and libraries; it is not itself a BGC detector. A project
-environment holds the libraries that a particular program needs. Selecting that environment
-matters because two Terminal windows can use different Python installations. An environment
-copied from another laptop may contain incompatible paths or compiled packages.
-
-**In Sapote–Mamey.** Python 3.12 or newer runs `mamey_run.py`. The core dependency list is in
-`pyproject.toml`; figure, document and biological parsing extras add capabilities. Use the local
-launcher from the chosen source folder so a previously installed `mamey` command does not select
-another version. `start` reports the loaded program, while `doctor` checks capabilities.
-
-**Keep/check.** Save the interpreter version, selected environment, installed dependency record
-and source revision with a run. Core installation is different from installing an external
-binary or database. A successful import does not demonstrate a complete analysis. Follow
-[INSTALL](INSTALL.md), rather than treating a historical wheel list as a portable recipe.
+Runs Mamey and its Python libraries. Use the environment installed for this bundle and launch from the program folder. [Install](INSTALL.md) covers setup.
 
 ### Galaxy — an upstream workflow service or local platform
 
-**Standalone.** Galaxy provides a graphical interface for running bioinformatics tools through
-histories and workflows. It is useful when the researcher prefers selecting inputs and options
-in a browser to assembling command lines. Available tools, resource quotas and data retention
-depend on the particular Galaxy installation; a tool shown in one instance is not guaranteed in
-another. A local Galaxy installation is also possible.
-
-**In Sapote–Mamey.** Galaxy is an upstream work environment, not a required Mamey component. If
-an appropriate tool is available there, it may help produce assemblies or antiSMASH results.
-Export the actual result files and the history or settings needed to explain their origin.
-Mamey's input remains the antiSMASH result archive; it does not reconstruct a Galaxy history
-from a filename or submit Galaxy jobs through the core extraction command.
-
-**Keep/check.** Retain input identities, tool/version, chosen parameters and downloaded outputs.
-Uploading sequences to a public instance is a separate sharing decision. The current local
-walkthroughs begin with existing antiSMASH archives, so they do not require Galaxy access.
+Runs upstream analysis workflows through a hosted or local Galaxy installation. Download the completed analysis files and their parameters before starting Mamey.
 
 ### SPAdes — genome assembly upstream of this program
 
-**Standalone.** SPAdes builds candidate genome assemblies from sequencing reads using a selected
-assembly workflow. The output is a set of sequence contigs and associated assembly records. It
-works upstream of annotation: obtaining contigs does not establish that every chromosome or
-plasmid is complete, correctly joined, or uncontaminated. Its suitable mode and resource needs
-depend on the sequencing input and analysis question.
-
-**In Sapote–Mamey.** SPAdes is not called by the ordinary Mamey run. A suitable assembly can be
-an input to antiSMASH, whose result archive is then supplied to Mamey. Assemblies produced by
-other appropriate methods can serve that role too; a SPAdes-specific origin is not required.
-Fragmented assemblies later affect region boundaries and the interpretation of candidate links.
-Mamey's fragment analysis does not repair the original assembly or create missing sequence.
-
-**Keep/check.** Preserve read/assembly provenance and quality assessment separately from the
-antiSMASH settings. Do not use a weighted BGC count as an assembly-quality measurement. This
-upstream context is described in the recovered assembly/gene-calling explainer; no assembly was
-performed in the Type Strain walkthroughs.
+Assembles sequencing reads into contigs. Run antiSMASH on the assembly, then give Mamey the full antiSMASH result ZIP. Save the assembly and assembly settings for later comparisons.
 
 ### antiSMASH — produces the annotated input archive
 
-**Standalone.** antiSMASH examines an assembled genome for biosynthetic-region signatures and
-writes region annotations, comparison results and visualizations. It can be run in an
-appropriate local environment or through an available web service. Selected options determine
-which comparisons and evidence channels are included. A detected region is an annotation unit;
-it is not automatically one complete pathway or one identified molecule.
-
-**In Sapote–Mamey.** This is the upstream tool whose results Mamey consumes. Supply the complete
-result ZIP where possible, including region GenBank files and available JSON/TXT evidence.
-Mamey extracts and organizes those records; it does not rerun antiSMASH detection. The inspector
-reports the archive's contents, and the run records its antiSMASH profile when available.
-Different profiles and upstream versions matter to comparisons across strains.
-
-**Keep/check.** Retain the original ZIP, hash, assembly identity, antiSMASH version and profile.
-Do not mistake the code ZIP for this biological input. Empty metadata fields require source
-review: some supplied archives put `.` in ORGANISM while useful identity remains in DEFINITION.
-See [the first-run walkthrough](MASTER_WALKTHROUGH.md).
+Finds candidate biosynthetic regions and annotates genes. Mamey reads its result archive rather than running antiSMASH itself. Download the full archive, including JSON, logs and text comparisons; see [input contents](ANTISMASH_INPUTS_CONSUMED.md).
 
 ### NCBI web BLASTp — remote protein similarity search
 
-**Standalone.** Web BLASTp searches submitted amino-acid sequences against a selected NCBI
-protein database and reports local sequence alignments. A useful result includes the query,
-subject accession, aligned region, identity, coverage, score and database context. The best
-listed hit may represent a conserved domain rather than the entire protein or its exact
-biological function. Protein length and coverage therefore matter alongside percent identity.
-
-**In Sapote–Mamey.** Mamey can export representative proteins, plan a search campaign, submit
-selected supported searches, or import saved results. `bgc-blastp-panel` is an export step;
-`blastp-round` is a plan until execution is selected. The online runner and saved-result
-importer are different operations. A representative sample of proteins is not a complete
-per-gene investigation. Keep nr and ClusteredNR as distinct recorded channels.
-
-**Keep/check.** Preserve FASTA headers, query manifest, database/date/settings, hit tables and
-alignment files. A failed submission is not a no-hit search. Submission leaves the local
-workspace and must be part of the chosen task. See [ONLINE_BLASTP_PROTOCOL](ONLINE_BLASTP_PROTOCOL.md).
+Searches protein sequences against a remote NCBI database. You can import saved results with the [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md). Live submission sends the selected sequences outside your computer; review the query list first.
 
 ### NCBI BLAST+ — the local search programs
 
-**Standalone.** BLAST+ supplies command-line search tools such as blastp and blastn, together
-with database-building utilities. Local searches use a database prepared on the analysis
-machine. Installing the executable does not install nr, Swiss-Prot or a 16S reference set.
-The query alphabet and database must match the intended operation; nucleotide and protein
-searches answer different questions.
-
-**In Sapote–Mamey.** Local BLAST supports selected protein-evidence and sequence-routing
-workflows. A local Swiss-Prot search is a curated-reference channel; it cannot be relabeled as
-an nr search. The placement workflow can use a prepared 16S database for routing before more
-detailed placement. Merely exporting proteins or reading an antiSMASH package does not require
-a BLAST+ installation.
-
-**Keep/check.** Record executable version, database construction/release, query identity,
-parameters and raw results. Use the actual database prefix expected by the command, not an
-arbitrary FASTA path. Review coverage and query mapping before importing results. See the
-[protein protocol](ONLINE_BLASTP_PROTOCOL.md) and [placement workflow](PHYLO_AUTOPILOT_WORKFLOW.md).
+Runs BLAST searches locally against a selected database. Supply the database files as well as the program. Save raw alignments, database version and query-to-locus mapping when importing results.
 
 ### EMBL-EBI Job Dispatcher — a separate remote protein-search channel
 
-**Standalone.** A Job Dispatcher service accepts a configured sequence-search job, returns a
-job identifier, and makes results available when processing finishes. Database choice is part
-of the experiment. A UniProt-based result from this service is not equivalent to an NCBI nr
-result, even when both searches use BLASTp. Service limits and required contact information
-must be checked for the actual submission.
-
-**In Sapote–Mamey.** The program has a dedicated EBI transport in `mamey/blastp_ebi.py`. It
-keeps job state so submitted queries can be tracked and requires valid contact information for
-submission. Its batching and provenance are separate from the NCBI runner. Selecting this
-channel should be explicit; the existence of an EBI option does not mean an unavailable NCBI
-search has silently been completed elsewhere.
-
-**Keep/check.** Retain query identifiers, job IDs, database, transport, settings and returned
-files. Distinguish waiting, failed, completed-with-no-hits and imported results. This guide
-explains the integration but does not execute or verify the live service. Consult the current
-CLI help and the transport source before a planned submission.
+Offers remote protein searches through EMBL-EBI. Keep its results labeled with their database and search channel when importing them; the [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md) covers supported formats.
 
 ### DIAMOND — accelerated protein comparisons
 
-**Standalone.** DIAMOND is a local protein-search/alignment program suited to larger sequence
-collections. It needs translated protein queries and an appropriate reference/database setup.
-The executable and the Python binding named diamond4py are different installation routes;
-installing an unrelated Python package with a similar name does not establish either route.
-As with BLAST, alignment evidence must be interpreted with lengths and coverage.
-
-**In Sapote–Mamey.** The `compare` selector recognizes `diamond` on PATH or an importable `diamond4py.Diamond`; neither is a completed alignment or successful version probe. When DIAMOND is not selected, it tries a one-pair pyswrd smoke operation, then a Biopython import. A selected pyswrd runtime failure can fall back to Biopython. A selected DIAMOND failure can instead return an empty hit dictionary without trying the other aligners (`mamey/compare.py`; `mamey/diamond_align.py`). The directional comparison concerns extracted CDS translations from selected archives, not necessarily complete genome proteomes or equivalent biological content.
-
-**Keep/check.** Inspect the summary selector, actual row backend, warnings and input translations. These fields are not hash-bound execution receipts and can disagree after fallback. The wrapper discards DIAMOND failure reasons and returned provenance, can label an empty result a real zero-hit search, and can publish an all-`no_hit` table with exit0 (`mamey/compare.py`). Preserve external command/log/input/output evidence before accepting a measured no-hit result. Biopython length skips and caught pair errors further limit coverage; the per-query skip note is not carried into the final CSV note. See [DIAMOND status](../sapote_addons/DIAMOND_STATUS.md)
-and [offline comparison](../sapote_addons/README_OFFLINE_ANALYSIS.md).
+Accelerates protein comparisons. Pairwise comparison selects DIAMOND when available through `diamond4py` or a command-line executable. Check the row backend and log for the aligner used. [Pairwise comparison](../sapote_addons/README_OFFLINE_ANALYSIS.md) explains inputs and coverage.
 
 ### HMMER — profile-based protein-domain search
 
-**Standalone.** HMMER compares sequences with profile models built from related sequences.
-A profile represents a family's characteristic pattern rather than one reference protein.
-`hmmscan` and `hmmsearch` arrange sequences and model collections differently; `hmmpress`
-prepares a model database for relevant search workflows. The model release, thresholds and
-alignment coverage are essential parts of the evidence.
-
-**In Sapote–Mamey.** HMM-related work can mean reading domains already reported by antiSMASH,
-running an optional independent scan, or supplying Pfam to a companion such as BiG-SCAPE.
-Those are separate operations. Reading antiSMASH domain annotations does not prove that a new
-local HMMER scan ran. Some integration paths use the Python interface pyhmmer instead of the
-standalone command-line binaries.
-
-**Keep/check.** Preserve the profile set and hash, program/version, sequence identities and
-raw domain tables. A domain hit supports a sequence/architecture hypothesis; it does not
-confirm the product of an entire region. Missing profiles should be reported as missing
-capability. See [PREREQUISITES](PREREQUISITES.md) and [external assets](EXTERNAL_ASSETS_GUIDE.md).
+Searches sequences with profile hidden Markov models, including Pfam profiles. Install the model library separately and record the model release and search thresholds.
 
 ### pyhmmer — access to HMMER operations from Python
 
-**Standalone.** pyhmmer exposes HMMER functionality through Python, allowing a script to manage
-sequences, profiles and searches directly. It is a library rather than a web service. A working
-import confirms that the library loads, but a real scan additionally needs compatible inputs,
-models and settings. Do not confuse it with a Python rewrite that has automatically validated
-all possible HMMER workflows.
-
-**In Sapote–Mamey.** The optional registry-backed HMM pass can use pyhmmer; the result must be
-identified as a performed scan or an explicit unavailable state. Relevant companions may have
-their own pyhmmer requirements and database preparation. The ordinary core run can also consume
-antiSMASH-reported domains without performing that independent scan. These sources should
-remain distinguishable in the evidence record.
-
-**Keep/check.** Record the model collection, query mapping, selected thresholds and scan receipt.
-A missing database is not a no-hit result. Historic claims that one particular curated panel
-was present do not establish today's installed assets. Use doctor and the selected scan's
-actual output. See [PREREQUISITES](PREREQUISITES.md) for the supported local setup.
+Exposes HMMER operations to Python. The selected scanner needs a working Python library and its model files. Use the scanner-specific guide to choose those inputs.
 
 ### BiG-SCAPE — gene-cluster family analysis
 
-**Standalone.** BiG-SCAPE compares annotated biosynthetic regions and groups related regions
-into gene-cluster families under a selected analysis configuration. It uses domain-level
-information and produces machine-readable results plus views suitable for inspecting family
-relationships. Changing the input cohort, reference panel or cutoff can change family
-membership. A family is not a chemical identification, and a singleton is not proof of novelty.
-
-**In Sapote–Mamey.** The `bigscape` command stages region GenBank inputs and invokes the
-external tool through `deliverable_tools/bigscape_run.py`. Pfam and the external executable
-must be supplied appropriately. A dry run stages GBKs, creates/reuses output/work directories, writes `source_staging_receipt.json` and can replace a space-free Pfam link before stopping short of clustering. It is not read-only planning (`deliverable_tools/bigscape_run.py`). Use fresh external destinations and bind the staged roster. The default runner requests four CPUs and has no subprocess timeout. After a nonzero clustering exit it can still select the newest recursively discovered `.db`, run optional widgets and let the standalone CLI exit0 because a DB exists. Require selected-run completion, exact database/input provenance and the requested widget roster independently; an old DB or successful wrapper exit cannot establish a current completed analysis.
-
-**Keep/check.** Retain exact region identities, cohort membership, tool/database versions,
-cutoffs, reference provenance, logs and the resulting database. Family identifiers belong to
-that run. For comparison, inspect edge fragments and reference composition alongside family
-assignments. See [BIGSCAPE_GCF_WORKFLOW](BIGSCAPE_GCF_WORKFLOW.md).
+Groups selected biosynthetic regions into gene-cluster families. Supply region GenBank files and the required Pfam data; [the cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md) covers staging, clustering and reading the families.
 
 ### clinker — gene-cluster comparison pictures
 
-**Standalone.** clinker draws gene-arrow comparisons from annotated cluster records, using
-sequence relationships to connect genes across the displayed regions. The useful product is
-an inspectable comparison of gene order, orientation and similarity. It is a visualization
-and comparison aid, not a chemical structure predictor. Region selection and label clarity
-strongly influence what the viewer can reasonably infer.
-
-**In Sapote–Mamey.** The BiG-SCAPE-related workflow includes a clinker view through
-`deliverable_tools/bigscape_clinker_widget.py`. A related family can provide a sensible subset
-to compare, but the actual regions and reference records still need to be identified. Keep
-the complete strain/contig/region/alias mapping rather than relying on shortened picture
-labels. A widget stage may be unavailable even when the family database exists.
-
-**Keep/check.** Preserve input GenBank files, region mapping, similarity settings and the HTML
-or image output. Review gene arrows, clipping and what sequence segments were included.
-Missing or truncated genes may reflect assembly boundaries. Consult the [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md)
-for staging and distinguish a rendered view from a fully interpreted pathway comparison.
+Draws gene-cluster comparisons with protein-similarity links. Supply the selected GenBank records and keep each label mapped to its complete locus identity. The comparison picture helps inspect gene order and shared genes.
 
 ### GToTree — coordinates a genome-marker phylogeny workflow
 
-**Standalone.** GToTree organizes several operations needed to build a phylogenomic analysis,
-such as obtaining gene information, finding a selected marker set, aligning retained markers
-and preparing tree inference. It is a workflow orchestrator with dependencies, not a single
-measurement that makes every upstream choice automatically correct. Marker choice, quality
-filters, references and missing data determine what the resulting tree represents.
-
-**In Sapote–Mamey.** The genome-phylogeny route can invoke a configured GToTree workflow and
-retain its outputs for later tree/track figures. Whole-genome FASTAs and reference metadata
-are separate inputs; an antiSMASH result ZIP is not a substitute for the required genome
-input. Installation alone is not an executed tree, and a staged command is not a completed
-phylogeny.
-
-**Keep/check.** Save the marker panel, genomes, filtering decisions, alignment/partition files,
-reference roster, tree command and logs. Inspect missing-marker and contamination concerns
-before interpreting branches. Toolchain versions must match the invoked command syntax.
-See [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md) and the current phylogenetic command help.
+Coordinates marker identification and alignment across a genome panel. [The GToTree workflow](GTOTREE_WORKFLOW.md) separates panel preparation, tree planning and execution. Choose the genomes and marker model before running it.
 
 ### Prodigal — predicts protein-coding genes
 
-**Standalone.** Prodigal predicts likely protein-coding regions in suitable prokaryotic genome
-sequences and can emit gene coordinates and translations. These are computational gene
-predictions. Sequence quality, chosen mode and biological context affect what is predicted;
-gene calling is not experimental confirmation of expression or function. Translations then
-become inputs to marker or protein-comparison workflows.
-
-**In Sapote–Mamey.** Prodigal can be a dependency of a selected genome workflow, rather than a
-mandatory component of core antiSMASH-result extraction. An antiSMASH archive already contains
-annotated region records that Mamey reads. Python bindings such as pyrodigal are related
-implementation choices, not interchangeable proof that a particular command-line stage ran.
-Specialized viral models should not be treated as a generic bacterial annotation improvement.
-
-**Keep/check.** Retain assembly identity, calling mode/version, coordinate files and protein
-FASTA headers. Gene identifiers must remain bound to the genome and downstream region mappings.
-If two annotation sets differ, resolve the crosswalk before combining their evidence. See
-[PREREQUISITES](PREREQUISITES.md) and [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md).
+Predicts protein-coding genes for workflows that need translated proteins from genome sequences. Preserve the prediction settings and identifiers linking proteins to their source genomes.
 
 ### MAFFT — aligns sequences or adds queries to an alignment
 
-**Standalone.** MAFFT constructs multiple-sequence alignments so related sequence positions can
-be compared. Different modes serve different input sizes and alignment problems. An alignment
-is a hypothesis about positional correspondence; producing aligned letters does not prove
-that every column is homologous or useful for inference. Inspect long gaps, unusual lengths
-and divergent sequences before accepting the result.
-
-**In Sapote–Mamey.** The placement workflow uses alignment operations to put query sequences
-into the reference alignment's coordinate system. That coordinate relationship is crucial:
-a placement engine expects a matching alignment, tree and model. Other configured phylogeny
-routes may use MAFFT, but its presence does not mean every workflow selects it instead of
-MUSCLE or another aligner.
-
-**Keep/check.** Preserve input FASTA identifiers, algorithm/options, reference alignment and
-resulting alignment. Adding a query should not silently replace the reference definition.
-If trimming follows, keep both pre- and post-trimming alignments. See the
-[placement workflow](PHYLO_AUTOPILOT_WORKFLOW.md) for the complete data relationship; no
-alignment or placement was run as part of the offline extraction walkthroughs.
+Aligns sequences or adds queries to an existing alignment. The chosen tree or placement workflow determines the mode and reference alignment. Inspect alignment coverage before building a tree.
 
 ### MUSCLE — another multiple-sequence alignment tool
 
-**Standalone.** MUSCLE aligns nucleotide or protein sequences for comparison and downstream
-inference. It is an alternative aligner with its own versions and command syntax, not a
-synonym for any multiple alignment. Choice of inputs, parameters and version can affect the
-alignment, especially where sequences are divergent, incomplete or contain large insertions.
-A successful process exit does not establish biological suitability of every column.
-
-**In Sapote–Mamey.** Some configured genome-marker workflows use MUSCLE as part of the
-alignment-to-tree chain. Confirm the external version expected by the actual runner. A
-historical guide showing one version's options should not be pasted into another version
-without checking its help. The ordinary Mamey antiSMASH extraction does not need MUSCLE to
-build the inventory.
-
-**Keep/check.** Save original sequences, IDs, software/version, command and alignment. Preserve
-any subsequent trimming and partition information as separate artifacts. If another aligner
-is substituted, record that change rather than silently treating the output as an exact
-reproduction. Follow [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md) for the selected companion chain.
+Builds multiple-sequence alignments. Some genome-marker routes use it as a companion; follow the selected workflow rather than substituting it for another aligner.
 
 ### trimAl — selects alignment columns for downstream analysis
 
-**Standalone.** trimAl removes or retains columns according to a selected alignment-filtering
-method. The aim is to manage gappy or unreliable alignment regions, but trimming is a
-methodological choice rather than an automatic guarantee of accuracy. Different settings can
-retain different information, especially with fragmented genomes or unequal sequence lengths.
-Keep enough evidence to see what was removed.
-
-**In Sapote–Mamey.** A configured phylogenomic workflow may trim marker alignments before
-concatenation or tree inference. The Python binding pytrimal is a separate interface to
-related operations; it does not establish that a particular external trimAl command ran.
-Trimming should remain traceable to the aligned markers and their eventual partitions.
-Core antiSMASH extraction does not require this stage.
-
-**Keep/check.** Retain the original alignment, trimmed alignment, settings, retained-site
-information where available, and sequence roster. Check whether any sequence or marker has
-become effectively uninformative. Do not compare trees while concealing changes in the sites
-used to build them. See [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md) and the selected runner's receipts.
+Selects alignment columns before tree inference. Save both original and trimmed alignments, along with the trimming settings, so the retained sites can be checked.
 
 ### IQ-TREE — maximum-likelihood tree inference
 
-**Standalone.** IQ-TREE infers trees from aligned sequence data under selected evolutionary
-models and can calculate different forms of branch support. The model, partition scheme,
-search settings and support method are part of the analysis. A support value does not turn
-an incorrect alignment, poor reference selection or taxonomic mislabel into correct data.
-Different support procedures should not be reported as interchangeable probabilities.
-
-**In Sapote–Mamey.** The genome-tree route can use IQ-TREE after marker preparation and
-alignment. The README names an expected tool generation, while historical machine notes
-mention another installed version; use the binary and syntax supported by the selected
-runner rather than assuming those are interchangeable. Later figure tools consume the tree
-and explicit strain/annotation mappings.
-
-**Keep/check.** Retain alignment, partitions, model selection, seed, command, support method,
-logs and final tree. The tree shows relationships under that analysis, not an automatic
-species or functional assignment. See [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md) and
-[phylogeny guidance](PHYLO_AUTOPILOT_WORKFLOW.md) for source and reference requirements.
+Infers maximum-likelihood trees from alignments. Record the selected model, support method, seed and thread count with the tree. The [GToTree guide](GTOTREE_WORKFLOW.md) provides the supported genome-tree route.
 
 ### FastTree — approximate maximum-likelihood tree inference
 
-**Standalone.** FastTree builds an approximate maximum-likelihood tree from an alignment,
-using methods intended to make larger analyses practical. It can be useful for exploratory
-relationships or a workflow that specifically selects it. Speed is not a substitute for
-checking alignment quality, model assumptions and the kind of support values reported.
-Do not describe its outputs as the same inference procedure as another tree program.
-
-**In Sapote–Mamey.** FastTree may be selected by a companion phylogeny or family-analysis
-workflow. Check the actual generated command and files: installing FastTree does not mean
-a Mamey extraction called it, and the presence of a network diagram does not prove that a
-family tree was inferred. Optional companion steps have separate readiness and completion
-states.
-
-**Keep/check.** Save the exact alignment, selected options, output tree, logs and taxon/region
-mapping. If using it as an exploratory tree before a different analysis, keep both methods
-explicit. Family trees concern the selected sequences and families, not necessarily whole-genome
-relationships. Consult [GTOTREE_WORKFLOW](GTOTREE_WORKFLOW.md) and [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md).
+Builds approximate maximum-likelihood trees. Some companion workflows use it for rapid tree construction; keep the method identified when comparing those trees with other inferences.
 
 ### RAxML-NG — reference-tree inference
 
-**Standalone.** RAxML-NG performs maximum-likelihood phylogenetic inference on aligned data
-under a chosen model and analysis setup. Its output is meaningful together with the alignment,
-model, search configuration and support analysis. Reference selection and outgroup choices
-remain researcher decisions; the program does not resolve inadequate sampling simply by
-finding an optimized tree.
-
-**In Sapote–Mamey.** The placement-related toolchain can use RAxML-NG to establish a reference
-backbone before placing new queries. The backbone's tree, alignment and model must remain
-compatible with the placement stage. Rebuilding the backbone is a different operation from
-adding one query to a fixed reference and may change the context of previous placements.
-
-**Keep/check.** Preserve the reference roster, source sequences, alignment, model, seed,
-commands and support records. Distinguish an inferred backbone from a rendered picture of it.
-If references or filtering change, record a new analysis identity rather than silently
-reusing old placement labels. See the [placement workflow](PHYLO_AUTOPILOT_WORKFLOW.md) for
-how the reference components feed the next stage.
+Infers reference trees used by supported phylogenetic workflows. Keep the alignment, model, tree and tip roster together so later placement uses the matching reference set.
 
 ### EPA-ng — places queries onto a fixed reference tree
 
-**Standalone.** EPA-ng evaluates where query sequences fit on branches of a supplied reference
-tree using a compatible alignment and evolutionary model. It does not build a new genome tree
-from arbitrary unaligned FASTA files. Placement can distribute support across multiple
-locations; that uncertainty should be retained rather than reduced to an unjustified single
-species name.
-
-**In Sapote–Mamey.** The placement workflow prepares query/reference alignment relationships
-and uses an existing backbone before producing placement results. MAFFT and downstream
-processing tools can be part of that sequence. For 16S, the biological interpretation is
-limited by the marker's resolution and reference sampling, even when the computation itself
-is successful.
-
-**Keep/check.** Retain the exact reference tree, reference alignment, model, aligned query IDs
-and jplace output. Check whether identifiers remained intact and whether placements are
-ambiguous. A placement result is relatedness evidence, not compound identity, activity or an
-automatic species assignment. See [PHYLO_AUTOPILOT_WORKFLOW](PHYLO_AUTOPILOT_WORKFLOW.md).
+Places aligned query sequences onto an existing reference tree. It needs the matching reference alignment, tree and model; use the [phylogeny workflow](PHYLO_AUTOPILOT_WORKFLOW.md) to select a supported route.
 
 ### gappa — processes phylogenetic placements
 
-**Standalone.** gappa provides operations for working with placement data, including handling
-jplace records and preparing derived summaries or tree-related outputs. It sits downstream of
-a placement calculation and should not be confused with the algorithm that produced the
-placements. A transformed view should preserve enough provenance to trace back to the
-original query and placement record.
-
-**In Sapote–Mamey.** The placement toolchain can use gappa to process EPA-ng results before
-later display or reporting. The exact operation depends on the configured workflow. A
-successfully generated tree-like file or figure does not prove that query uncertainty,
-reference composition and mapping have all been reviewed. Rendering and inference are
-separate completion checks.
-
-**Keep/check.** Retain original jplace files, command/options, query roster and derived outputs.
-When aggregating placements, report the aggregation choice rather than implying that all
-queries had an identical best location. Join metadata through explicit identifiers. Consult
-the [placement workflow](PHYLO_AUTOPILOT_WORKFLOW.md) and the relevant renderer's expected schema
-before handing a derived tree to a figure tool.
+Summarizes and processes phylogenetic placement files. Keep the original placement output and query mapping with the summaries used in a figure.
 
 ### FastANI — whole-genome nucleotide similarity
 
-**Standalone.** FastANI estimates average nucleotide identity between suitable genome
-assemblies using its comparison method. The estimate should be considered with aligned
-fraction or comparable coverage information, genome quality and the comparison's direction.
-A reported value without sufficient shared sequence can be misleading. Common taxonomic
-thresholds are useful context, not an automatic replacement for taxonomic evidence and reference quality.
-
-**In Sapote–Mamey.** ANI can provide genome-level context for selected comparisons or tree
-annotations. It is different from BGC similarity, a protein hit or an AB/AF score. A genome
-FASTA and a justified reference set are needed; an antiSMASH annotation table alone does not
-establish an ANI experiment. Use the actual selected companion/backend and retain its identity.
-
-**Keep/check.** Record query/reference accessions and versions, assembly hashes, method/version,
-identity and coverage outputs. Treat no reported comparison as a state to diagnose, not
-immediate evidence of unrelatedness. See [offline comparison](../sapote_addons/README_OFFLINE_ANALYSIS.md)
-and the genome workflow for the applicable integration.
+Compares whole-genome nucleotide similarity from genome FASTAs. Read alignment fraction together with ANI and confirm that both FASTAs are the intended assemblies.
 
 ### skani / pyskani — another genome-similarity route
 
-**Standalone.** skani estimates genome similarity using its own computational approach;
-pyskani provides a Python interface. These are distinct from FastANI, so method names and
-versions must remain attached to results. Fragmented assemblies and differing coverage can
-complicate interpretation even when a tool is designed to handle such inputs efficiently.
-The software cannot repair contamination or mistaken reference identities.
-
-**In Sapote–Mamey.** Optional comparison paths may use pyskani for genome-level similarity.
-Confirm the backend actually selected and executed; an importable library or a historical
-installation table is not a fresh result. Protein alignment and nucleotide similarity are
-separate parts of a comparison, and one can fail or be unavailable while the other succeeds.
-
-**Keep/check.** Save genome inputs, hashes, method/version, coverage-related outputs and
-fallback/error receipts. Do not merge ANI-like values from different methods without stating
-the distinction. Species interpretation needs appropriate references and biological context,
-not just a threshold check. See [offline comparison](../sapote_addons/README_OFFLINE_ANALYSIS.md)
-for the selected package's actual route and limitations.
+Provides another genome-similarity backend. Follow the selected comparison route and record which backend actually ran; thresholds and output fields belong to that method.
 
 ### R — the optional statistical and plotting environment
 
-**Standalone.** R runs analysis and plotting scripts using installed packages and data tables.
-It is an environment, not one figure-producing algorithm. A script's variables, grouping,
-missing-value handling and transformations determine what a plot means. Package installation
-should be separated from analysis execution so that a reader can identify which versions
-produced the result.
-
-**In Sapote–Mamey.** Several optional figure scripts use R, while core extraction figures use
-Python. The Figure Factory and bioassay workflow can prepare or consume specific table/config
-contracts for R renderers. Installing R does not automatically validate those contracts or
-turn a raw assay export into an analysis-ready table. The selected material, target, replicate
-structure and exclusions must be explicit.
-
-**Keep/check.** Retain the script, input tables, configuration, R/package versions and output
-files. Check numerical values, legends and joins independently of whether R exited normally.
-Use [R_FIGURE_WORKFLOWS](R_FIGURE_WORKFLOWS.md) to select a supported renderer and
-[BIOASSAY_FIGURE_FACTORY](BIOASSAY_FIGURE_FACTORY.md) for assay-input requirements.
+Runs the optional R analysis and plotting scripts. [R figure workflows](R_FIGURE_WORKFLOWS.md) lists supported plots and [Prerequisites](PREREQUISITES.md) lists package groups.
 
 ### ggplot2 — constructs R figures from data and mappings
 
-**Standalone.** ggplot2 turns a data table and aesthetic mappings into a layered plot. The
-researcher chooses which variables define position, grouping, color and statistical summaries.
-The library does not know whether two rows are comparable biological observations or whether
-a mean combines different materials. A polished plot can therefore still encode a bad analysis.
-
-**In Sapote–Mamey.** The optional R plotting scripts use ggplot2 for selected scientific
-figures. The input should be the workflow's admitted, traceable table rather than an arbitrary
-spreadsheet copied into a plotting command. Some renderers also rely on shared theme functions
-and other R packages; verify the specific script's dependencies.
-
-**Keep/check.** Save the underlying data, transformations, selected grouping and the script or
-config that generated the plot. Compare displayed values against the source table and inspect
-labels, legends, exclusions and missing values. Figure generation does not establish assay
-validity or BGC-level activity. See [R_FIGURE_WORKFLOWS](R_FIGURE_WORKFLOWS.md) and the relevant
-Figure Factory contract for the exact supported route.
+Builds R plots from tables and aesthetic mappings. Use the bundle renderer and theme for the selected figure, and keep the plotted table with the output.
 
 ### ggtree — displays trees with matched annotations
 
-**Standalone.** ggtree extends the R plotting approach to phylogenetic trees and associated
-annotations. It displays a supplied tree; it does not infer that tree from raw sequences.
-Annotations can be useful only when tips are matched correctly to the accompanying data.
-An attractive heatmap beside a tree is not evidence that its rows were joined correctly.
-
-**In Sapote–Mamey.** The R tree-rendering scripts can combine a completed tree with approved
-strain-level tracks or metadata. The workflow requires explicit tip mappings and source-bound
-annotation data. Placement results, genome-tree results and assay summaries have different
-provenance and should not be mixed simply because their labels look similar.
-
-**Keep/check.** Retain tree, tip roster, crosswalk, annotation table, methods and output files.
-Inspect tip order, missing taxa, label clipping, legend scales and the meaning of each track.
-Keep uncertainty and unmeasured values visible. See [R_FIGURE_WORKFLOWS](R_FIGURE_WORKFLOWS.md)
-and [BIOASSAY_FIGURE_FACTORY](BIOASSAY_FIGURE_FACTORY.md) for supported tree/assay joins; the
-Type Strain extraction walkthrough does not imply that a tree was built.
+Displays phylogenetic trees with tip annotations and tracks. Match the annotation rows to the tree tips and check missing taxa, ordering and legend scales.
 
 ### patchwork — arranges multiple R plot panels
 
-**Standalone.** patchwork combines plots into a larger composition with chosen rows, columns,
-relative sizes and guides. It is a layout tool. It does not make different panels scientifically
-comparable or verify that their legends use the same scale. Separate panels may represent
-different cohorts, normalizations or experiments that need explicit labeling.
-
-**In Sapote–Mamey.** Some optional R output paths use composite layouts to place related
-figures together. The selected renderer determines whether patchwork is needed; it is not a
-core extraction dependency. A successful single-panel plot does not guarantee that the
-assembled figure preserves readable labels, matching scales and adequate space for every panel.
-
-**Keep/check.** Retain the panel sources, arrangement script, dimensions and final export.
-Review the complete composition at the intended reading size rather than checking only
-individual panels. Captions should explain differences in sample sets or scales. Refer to
-[R_FIGURE_WORKFLOWS](R_FIGURE_WORKFLOWS.md) for the actual script and output contract, and treat
-layout review as distinct from numerical or biological validation.
+Arranges R plot panels into a combined figure. Inspect the complete layout at its intended reading size, including labels and legends.
 
 ### svglite — writes SVG graphics from R
 
-**Standalone.** svglite provides an SVG graphics device for R output. SVG can preserve vector
-lines and text for resizing or further layout work, but portability still depends on fonts,
-text handling and how another application renders the file. Choosing SVG does not repair
-clipped labels or prove that the original chart was correctly constructed.
-
-**In Sapote–Mamey.** Optional R renderers that export SVG may use svglite. It belongs to the
-rendering stage after data preparation and plot construction. The presence of an SVG file
-means an export was written; it does not establish that every companion PNG/PDF was generated
-or that the files look the same in another viewer.
-
-**Keep/check.** Save the original SVG, source data, plot script/configuration and any later
-edited version separately. Inspect text, symbols, line widths and clipping in the intended
-viewing/export application. If an editor changes labels or data presentation, retain that
-change in the figure provenance. See [R_FIGURE_WORKFLOWS](R_FIGURE_WORKFLOWS.md) for which
-renderers use this device and which sidecars belong with their exports.
+Exports R figures as SVG. Keep the source data and rendering script with the export; fonts and layout should be checked in the final viewer.
 
 ## Reference databases are a separate choice
 
-**Pfam** supplies protein-family profiles; HMMER/pyhmmer and relevant companions search those
-profiles. **MIBiG** supplies curated reference-cluster records that inform comparisons; membership
-or similarity is not a product assignment to a new strain. **UniProt/Swiss-Prot**, **nr**,
-**ClusteredNR** and **RefSeq** are different protein-reference choices with different scope and
-provenance. A local **16S reference set** must be bound to an actual release and taxon roster.
-
-Do not infer a database installation from a Python package installation. Preserve resource/version,
-retrieval date, hashes, query mappings and required attribution. Use the README's resource table
-and the selected workflow's input requirements. The recovered historical tool guide's machine
-availability table is not a current inventory of your other laptop.
+Pfam supplies protein-family models. MIBiG supplies curated cluster references.
+UniProt/Swiss-Prot, nr, ClusteredNR and RefSeq offer different protein collections.
+A local 16S workflow needs its selected reference sequences and taxon roster.
+Install the dataset required by your workflow as well as the tool that reads it.
 
 ## Before using a companion
 
-Ask: Which question requires it? Which files will it read? Does the selected command actually
-call it, or only prepare/import results? Which database and version are selected? Will data leave
-the workspace? What files and sizes are expected? What result will demonstrate that the stage
-completed? Record those answers with its receipt. A tool's availability is not authorization to
-run every downstream stage.
+Identify the question, input files, database, output folder and expected result.
+Check whether the command runs an analysis or prepares/imports files. Save the
+command, versions, input hashes and output log with the result.
 
-## Hand a selected question to a companion tool
+<a id="hand-a-selected-question-to-a-companion-tool"></a>
 
-A useful handoff carries a biological question, exact sequence identities, input files and hashes, tool/database version, output destination and interpretation limit. The examples below describe handoff content, not results.
+## Prepare the inputs
 
-**Protein similarity:** export the selected protein FASTA with a mapping back to strain, full contig, region and locus tag. Specify whether the task uses local BLAST+/DIAMOND or an online service and which database. Retain raw alignments and query/subject coverage as well as scores. Bring results back through the documented importer for that channel; do not paste an unbound top-hit name into a BGC conclusion.
+For protein and domain searches, provide query sequences with their source
+identities. For a region, use **strain / full node-or-contig / region / BGC alias**;
+for a gene, also keep its locus tag. Save coverage and search status beside scores.
 
-**Domain evidence:** supply the protein sequences and explicitly selected HMM library to HMMER or the supported pyhmmer route. Record model release, thresholds and scan status. Preserve negative results only with the tested scope. A missing database is not a zero-hit scan, and one domain match is not proof of a complete pathway.
+For cluster comparisons, select the region GenBank files and preserve their
+labels. For trees or ANI, choose the genome/sequence panel, references and any
+outgroup. Keep the alignment and tree settings with the output. For figures,
+provide the intended table, units and missing-value meanings, then inspect the
+finished plot.
 
-**Cluster comparison:** select the exact region GenBanks and map every exported label to its source package. BiG-SCAPE grouping and clinker graphics address related but different questions: family grouping versus comparative gene arrangement. Retain run settings, input membership and identifiers. A visually similar arrangement is not a validated product assignment.
+## Tool downloads and licenses
 
-**Genome/tree context:** use a defined genome or sequence panel, selected reference set and outgroup, with recorded exclusions. ANI and species-marker trees describe genome relationships; a biosynthetic-domain tree addresses the history of those sequences. Do not exchange their conclusions. Preserve alignments, trimming/model settings, tree files and support values with the figure.
+[PyYAML](https://pyyaml.org/) reads the bundle's YAML configuration and is a core dependency.
 
-**Rendering:** supply the intended evidence table, units, missing-value meanings and identity mapping. Retain that table and rendering configuration alongside PNG/PDF/SVG output. Inspect the finished figure for clipped labels and misleading scales before sharing it.
+| Tool / official download or installation page | Needed for | Upstream license |
+|---|---|---|
+| [Python](https://www.python.org/downloads/) | Required runtime, Python 3.12 or newer | [PSF License and bundled notices](https://docs.python.org/3/license.html) |
+| [antiSMASH](https://github.com/antismash/antismash#installation) | Generate the input results; a supplied result ZIP avoids a local antiSMASH installation | AGPL-3.0-or-later |
+| [NCBI BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/) | Local protein/nucleotide searches and 16S routing | [NCBI public-domain software notice](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html) |
+| [BiG-SCAPE 2](https://github.com/medema-group/BiG-SCAPE) | Optional gene-cluster family analysis; the seeded launcher `tools/bigscape_seeded.py` imports its `big_scape` Python module | AGPL-3.0 |
+| [GECCO](https://github.com/zellerlab/GECCO) | Optional independent BGC predictions; [integration and supplied-result guidance](companion_tools.md#gecco) | GPL-3.0-or-later; model/data terms separately |
+| [HMMER](https://github.com/EddyRivasLab/hmmer) | Profile searches and pressed Pfam preparation for relevant companion workflows | [BSD-3-Clause](https://github.com/EddyRivasLab/hmmer/blob/master/LICENSE) |
+| [clinker](https://github.com/gamcil/clinker#installation) | Optional gene-cluster comparison views | MIT |
+| [DIAMOND](https://github.com/bbuchfink/diamond) | Optional accelerated local protein comparisons | GPL-3.0 |
+| [BLAST+ `tblastn`](https://blast.ncbi.nlm.nih.gov/doc/blast-help/) | Optional translated search of a region's proteins against genomes, used by `tools/region_presence_survey.py` | Public domain (US government work) |
+| [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | [MIT](https://github.com/AstrobioMike/GToTree); dependencies keep their own licenses |
+| [Barrnap](https://github.com/tseemann/barrnap) | Optional rRNA annotation for marker workflows; [the bundled planner prints a recipe](BARRNAP.md) | GPL-3.0; reference data keep their own terms |
+| [SeqKit](https://github.com/shenwei356/seqkit) | Optional FASTA/FASTQ inspection and sequence-file preparation | MIT |
+| [Prodigal](https://github.com/hyattpd/Prodigal) | Gene prediction where required by the selected genome workflow | GPL-3.0 |
+| [MUSCLE](https://github.com/rcedgar/muscle) | Alignment in workflows configured for MUSCLE | [GPL-3.0 for the current upstream distribution](https://github.com/rcedgar/muscle/blob/main/LICENSE); verify the required CLI version |
+| [MAFFT](https://mafft.cbrc.jp/alignment/software/index.html) | Alignment for the placement workflow | BSD for the core distribution; bundled extensions have separate terms |
+| [trimAl](https://github.com/inab/trimal) | Alignment trimming in configured phylogenomic workflows | GPL-3.0 |
+| [IQ-TREE 2](https://github.com/iqtree/iqtree2) | Maximum-likelihood genome-marker trees | GPL-2.0 |
+| [FastTree](https://github.com/morgannprice/fasttree) | Tree inference when called by the selected companion | GPL-3.0 in the current upstream repository; check older distributions separately |
+| [RAxML-NG](https://github.com/amkozlov/raxml-ng) | Reference backbone inference for placement | AGPL-3.0 |
+| [EPA-ng](https://github.com/pierrebarbera/epa-ng) | Placement of query sequences on a reference tree | AGPL-3.0 |
+| [gappa](https://github.com/lczech/gappa) | Phylogenetic placement processing | GPL-3.0 |
+| [FastANI](https://github.com/ParBLiSS/FastANI) | Optional genome ANI comparisons | Apache-2.0 |
+| [skani](https://github.com/bluenote-1577/skani) / [pyskani](https://github.com/althonos/pyskani) | Optional genome ANI and aligned-fraction comparisons; the in-process comparison uses the Python binding, not a required skani executable | MIT for both projects; vendored dependencies keep their own terms |
+| [Pandoc](https://pandoc.org/installing.html) | Optional `md_to_docx.sh` Word route and alternate Markdown-to-PDF fallback | [GPL, see upstream COPYING](https://github.com/jgm/pandoc/blob/main/COPYING.md); PDF engines separately licensed |
+| [Cairo](https://cairographics.org/download/) | Native graphics library needed by the optional CairoSVG route; installing the Python extra alone may not supply it | [LGPL-2.1 or MPL-1.1](https://cairographics.org/), at the user's option; dependencies separately licensed |
+| [librsvg / rsvg-convert](https://gnome.pages.gitlab.gnome.org/librsvg/devel-docs/product.html) | Alternative SVG-to-PDF/PNG converter for compiled reports when the preceding CairoSVG route is unavailable | See the selected upstream release's COPYING notices; verify distribution terms |
+| [Inkscape](https://inkscape.org/release/) | Another SVG-to-PDF/PNG fallback for compiled reports; install only if selecting this conversion route | [Upstream COPYING](https://gitlab.com/inkscape/inkscape/-/blob/master/COPYING); keep selected-release and dependency notices |
+| [R](https://www.r-project.org/) | Optional R plotting scripts | [GPL-2 or GPL-3](https://www.r-project.org/Licenses/) |
+| [ITSx](https://microbiology.se/software/itsx/) | Optional fungal ITS identification/extraction in the [fungal workflow](PHYLO_FUNGAL_WORKFLOW.md) | See `license.txt` in the upstream download; dependencies separately licensed |
+| [BUSCO](https://busco.ezlab.org/) | Optional genome completeness and single-copy marker assessment in the fungal workflow | MIT software; BUSCO datasets have separate CC-BY-ND-4.0 terms |
+| [compleasm](https://github.com/huangnengCSU/compleasm) | Optional genome completeness assessment in workflows selected for compleasm; keep its own run/model receipt | Apache-2.0; dependencies/data separately licensed |
+| [NCBI Datasets CLI](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/) | Optional reference-genome and metadata retrieval for [genome-tree workflows](GTOTREE_WORKFLOW.md); supplied local references can avoid downloading | See upstream software notices; retrieved records keep their source terms |
+| [ggplot2](https://ggplot2.tidyverse.org/) | R plotting | MIT |
+| [RDKit](https://github.com/rdkit/rdkit) | Optional rendering of a characterized reference structure in the [NP Atlas workflow](NPATLAS_PROVISIONING.md); provisioning does not require it | BSD-3-Clause; dependencies separately licensed |
+| [ggtree](https://bioconductor.org/packages/release/bioc/html/ggtree.html) | R tree visualization | Artistic-2.0 |
+| [patchwork](https://patchwork.data-imaginist.com/) | R composite layouts | MIT |
+| [svglite](https://svglite.r-lib.org/) | SVG output for R renderers using ggplot2's SVG device | GPL-2.0-or-later |
+| Other R packages loaded by the shipped R scripts: ggrepel (non-overlapping labels), ggtext, ape, treeio, aplot, dplyr, tidyr, jsonlite, scales (axis and label formatting), readxl (reads the non-Streptomyces count inputs), ragg (PNG output), png (reads a rendered PNG to center bioassay panels), and ggchicklet (optional; rounded bars in the class-group figure, plain bars without it; not on CRAN, so the installer fetches its author's source archive from codeload.github.com, pinned to one commit) | `bundle_support/install_r_figure_packages.R` installs these together with the packages above; [Rscript](https://www.r-project.org/) runs every R renderer | ggrepel GPL-3; ggtext GPL-2; ape GPL-2 or GPL-3; treeio and aplot Artistic-2.0; dplyr, tidyr, jsonlite and ggchicklet MIT; ragg MIT; png GPL-2 or GPL-3 (from each package's installed DESCRIPTION) |
+| [Poppler utilities](https://poppler.freedesktop.org/) (`pdftotext`, `pdfinfo`, `pdffonts`, `pdfimages`) | Checking compiled report PDFs: text, fonts, images and page counts | See upstream COPYING |
+| `qlmanage` (macOS Quick Look, built in) | PNG preview of protein-space grid pages, rendered from the checked PDF; skipped when absent (the PDF and SVG are still written) | Part of macOS |
+| [Google Chrome or Chromium](https://www.chromium.org/getting-involved/download-chromium/), headless | Printing HTML locus reading pages, clinker views and class heatmaps to PDF or PNG | See upstream terms for the browser you install |
+| [wkhtmltopdf](https://wkhtmltopdf.org/) | One optional HTML-to-PDF fallback for briefs and chat exports | See upstream |
+| [Graphviz](https://graphviz.org/download/) (`dot`) | Drawing workflow and cause-map diagrams | See upstream |
+| [IQ-TREE 3](https://iqtree.github.io/) (`iqtree3`) | Recognized alongside IQ-TREE 2 for genome-marker trees | See upstream |
+| [CheckM2](https://github.com/chklovski/CheckM2) | Optional genome completeness and contamination checks in planned tree runs and clade decontamination | See upstream |
+| [DeepBGC](https://github.com/Merck/deepbgc) | Optional companion BGC caller, not run by the core workflow; its Pfam random-forest activity interface is declared only and is not operational | MIT (installed package metadata) |
+| [BiG-SLiCE](https://github.com/medema-group/bigslice) | Optional queries against a BiG-SLiCE database (`tools/bigslice_query.py`) | See upstream |
+| [cblaster](https://github.com/gamcil/cblaster) | Optional homologous gene-cluster search, registered as a companion tool | See upstream |
+| [RiPPER](https://github.com/streptomyces/ripper) | Optional, experimental RiPP (ribosomally synthesized and post-translationally modified peptide) discovery adapter (`tools/ripper_*`); nothing runs without explicit opt-in | See upstream |
+| [TriMap](https://github.com/eamid/trimap) | Optional alternative embedding for protein-space figures | Apache-2.0 (installed package metadata) |
+| [SPAdes](https://github.com/ablab/spades) | Not run by the bundle; contig names in SPAdes style (`NODE_…_length_…`) are parsed from assemblies made upstream | See upstream |
+| [Swift](https://www.swift.org/install/) (`swiftc`, macOS) | Optional on-device text recognition in `tools/figure_render_qc.py` | Apache-2.0 for the Swift toolchain; see upstream |
+| [curl](https://curl.se/) | Web requests in the BLASTp crawl tools and the NCBI 16S search helper | curl license (MIT-style) |
+| [pyGenomeViz](https://github.com/moshi4/pyGenomeViz) | Optional scriptable BGC locus figures (SVG/PDF), registered as a companion tool | See upstream |
+| [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) | On request only: genome taxonomy against GTDB; needs the ~100 GB GTDB reference database and network access to fetch it | See upstream |
+| [CORASON](https://github.com/nselem/corason) | Optional query-centered conserved-gene-core locus comparison; the registry pins a reviewed source and never installs or runs it | See upstream |
+| [NPLinker](https://nplinker.github.io/nplinker/latest/) | Optional linking of genome-side families with your own MS observations; links need separate review | See upstream |
+| [PRISM](https://prism.adapsyn.com/) | Optional class-level genome interpretation through its web service; no product prediction is adopted | See upstream terms |
+| [GNPS / MASST](https://ccms-ucsd.github.io/GNPSDocumentation/toolindex/) | Optional MS/MS networking and similarity that you run; Mamey submits nothing | See upstream terms |
+| [SIRIUS / CANOPUS](https://v6.docs.sirius-ms.io/) | Optional compound-class annotation of your MS/MS data; genome hypotheses are not CANOPUS predictions | See upstream terms |
+
+Python libraries the optional workflows import, and the extra that installs each (licenses are listed in
+[Third-Party Licenses](THIRD_PARTY_LICENSES.md)):
+
+| Extra | Libraries |
+|---|---|
+| `figures` | matplotlib, numpy, pandas, scipy, scikit-learn (imported as `sklearn`; t-SNE companion layout), networkx, pyshp, dna-features-viewer, pycirclize, Biopython |
+| `documents` | python-docx, lxml, pypdf, Pillow, markdown |
+| `slides` | python-pptx, matplotlib, numpy, Pillow |
+| `render` | CairoSVG |
+| `addons` | pyrodigal, pyfastani, pyswrd, pyhmmer, pyskani and the other `pyproject.toml` add-ons |
+| `test` | pytest, build, pdfplumber, psutil |
+| not in any extra; install only if wanted | pypdfium2 (PDF page images for interactive-figure bridges), certifi (extra TLS certificates for reference-metadata lookups in `tools/resolve_reference_metadata.py`), diamond4py (in-process DIAMOND alignment), RDKit (structure drawing, above) |
+
+Core Python dependencies install with `python -m pip install -e .`:
+[openpyxl](https://pypi.org/project/openpyxl/) (MIT),
+[ijson](https://pypi.org/project/ijson/) (BSD-3-Clause for current upstream; the vendored copy retains its own notice),
+[ReportLab](https://pypi.org/project/reportlab/) (BSD), and
+[PyYAML](https://pypi.org/project/PyYAML/) (MIT).
+The optional Python figures and documents packages install through the extras above; their
+license inventory is in [Third-Party Licenses](THIRD_PARTY_LICENSES.md). This table covers direct workflow tools.
+
+### External reference datasets
+
+The repository ships small, versioned lookup tables and positive-control extracts used by the
+engine. It does not ship the full Pfam, MIBiG, UniProt/Swiss-Prot, nr, ClusteredNR, RefSeq, or
+16S collections. Record the exact dataset release, download date and file hashes you used. A data
+license governs reuse; a scientific citation documents which resource informed the work. Do both
+when the resource asks for attribution.
+
+| Resource | Used for | What the terms mean for this workflow |
+|---|---|---|
+| [Pfam](https://pfam-docs.readthedocs.io/en/latest/pfam.html) | Protein-domain HMMs; obtain the release and press it with HMMER | [CC0 1.0](https://www.ebi.ac.uk/interpro/about/license/): the downloadable Pfam data can be reused without a legal attribution requirement. Cite Pfam/InterPro as scientific practice and keep the release identity. |
+| [MIBiG](https://mibig.secondarymetabolites.org/) | Experimentally supported reference biosynthetic clusters and their metadata | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): attribution is required. Cite MIBiG, link the license when redistributing adapted content, and identify changes. |
+| [UniProt / Swiss-Prot](https://www.uniprot.org/help/downloads) | Reviewed protein-reference evidence | [CC BY 4.0](https://www.uniprot.org/help/license/) applies to copyrightable database content: attribution is required. UniProt also notes that patents or other third-party rights may apply to some records. |
+| [NCBI BLAST databases](https://www.ncbi.nlm.nih.gov/books/NBK62345/) | nr, ClusteredNR, RefSeq protein, and 16S reference searches | [BLAST software is public domain](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html). Treat database content separately: keep the exact database name/date and record-level source identifiers, cite the contributing resources, and review the notices supplied with the selected database. |
+
+### Online services
+
+Some optional workflows contact these services. The core extraction runs offline. Sending sequences to a
+public service discloses them to that service. The BLASTp submission commands refuse to upload without `--confirm-public-sequence-upload`.
+
+| Service | Used for | Notes |
+|---|---|---|
+| [antiSMASH web server](https://antismash.secondarymetabolites.org/) | Producing the antiSMASH result ZIP that Mamey reads; links in package reports | Submitted by the user |
+| [MIBiG downloads](https://dl.secondarymetabolites.org/) | Fetching MIBiG reference records (`tools/fetch_mibig_reference.py`) | Record the MIBiG release used |
+| [NCBI BLAST web service](https://blast.ncbi.nlm.nih.gov/) | `blastp-online`, `auto-blastp` and the BLASTp crawl tools (nr, ClusteredNR) | Uploads selected protein sequences; requires `--confirm-public-sequence-upload` |
+| [EMBL-EBI BLAST service](https://www.ebi.ac.uk/Tools/sss/ncbiblast/) | Fallback BLASTp route (`mamey/blastp_ebi.py`) when NCBI is unreachable; one job per protein | Uploads selected protein sequences |
+| [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/) (`eutils.ncbi.nlm.nih.gov`) | Sequence and metadata lookups for references, 16S searches and alignment helpers | Follow NCBI's usage policy and rate limits |
+| [NCBI Datasets](https://www.ncbi.nlm.nih.gov/datasets/) | Reference-genome and metadata retrieval (CLI listed above) | Retrieved records keep their source terms |
+| [NP Atlas](https://www.npatlas.org/) | Optional natural-product reference records (see the NP Atlas workflow) | Record the release used |
+| [TYGS](https://tygs.dsmz.de/) (DSMZ) | Type-strain genome comparisons; the bundle reads TYGS result tables you download | Submitted by the user |
+| [BacDive](https://bacdive.dsmz.de/) (DSMZ) | Strain metadata looked up by culture-collection number | Used for display metadata only |
+| [GTDB](https://gtdb.ecogenomic.org/) | Taxonomy and marker references for genome trees (via GToTree) | Record the GTDB release used |
+
+Keep database versions and hashes with the analysis.  Run
+`python mamey_run.py doctor --companions` to check the analysis machine, and use the
+[installation guide](INSTALL.md) for the bundle setup.

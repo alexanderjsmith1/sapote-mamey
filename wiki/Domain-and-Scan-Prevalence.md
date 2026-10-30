@@ -1,5 +1,8 @@
 # Domain & scan prevalence (cohort-wide widgets)
 
+Review domain and scan prevalence using existing evidence.  
+This page is for researchers preparing a prevalence review.
+
 Turn a frozen cohort's antiSMASH domain and mamey-scan databases into a populated prevalence database, a
 ranked review queue, and an **interactive host-filterable widget** (Bees & Wasps vs all, single-strain
 drill-down, nr/ClusteredNR/Swiss-Prot evidence states, per-locus links, SVG figure export). It uses
@@ -80,3 +83,7 @@ python3 tools/domain_prevalence.py ... --out <OUT_dir> --widget   # picks up the
 Each rare Pfam family then shows its name (e.g. `DDE_Tnp_1_4` → "Transposase DDE domain group 1 [PF13701]"),
 so a mobile-element family is not mistaken for a biosynthetic novelty candidate. TIGRFAM (`TIGR#####`) names are
 not covered by Pfam and require a separate source. If the map is absent, the widget renders normally without names.
+
+## Related pages
+
+For a single locus and its evidence channels, see [Mode B](Mode-B.md).

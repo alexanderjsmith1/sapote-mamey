@@ -507,6 +507,8 @@ def _hmm_profile_count(path: Path) -> int:
 
 
 def plan(args: argparse.Namespace) -> int:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", args.run_id):
+        raise ValueError("run-id must be a single name beginning with a letter or digit; use letters, digits, _, . or -")
     if not 1 <= args.max_concurrent_cores <= DEFAULT_MAX_CONCURRENT_CORES:
         raise ValueError("max-concurrent-cores must be between 1 and 4")
     threads = int(getattr(args, "threads_per_tree", 1) or 1)

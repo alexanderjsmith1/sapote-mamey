@@ -8,6 +8,7 @@ import shlex
 import subprocess
 import sys
 import zipfile
+import pytest
 
 from mamey.package_inspector import inspect_command, _inspect_strain_guess
 from ._python_fixture_launcher import write_python_fixture
@@ -74,3 +75,28 @@ def test_leading_option_name_is_not_a_strain_flag(tmp_path, capsys):
     path = archive(tmp_path / '--help.zip')
     args = shlex.split(command(path, capsys).replace('\\\n', ''))
     assert not args[args.index('--strain') + 1].startswith('-')
+
+
+@pytest.mark.parametrize("name", ["sample with spaces.zip", "sample'quote$(touch VALIDATE_SIDE_EFFECT).zip"])
+def test_printed_validation_uses_one_safe_default_package_argument(tmp_path, capsys, name):
+    path = archive(tmp_path / "external inputs" / name)
+    assert inspect_command(argparse.Namespace(zip=str(path))) == 0
+    output = capsys.readouterr().out
+    validation = next(line.strip().removeprefix("Then validate: ")
+                      for line in output.splitlines()
+                      if line.strip().startswith("Then validate: "))
+    expected = str(Path("runs") / _inspect_strain_guess(path.resolve()) / "package")
+    fakebin = tmp_path / "bin"
+    fakebin.mkdir()
+    write_python_fixture(fakebin / "python", "import json,os,sys\n"
+                         "open(os.environ['CAPTURE_ARGV'],'w').write(json.dumps(sys.argv[1:]))\n")
+    work = tmp_path / "work with spaces"
+    work.mkdir()
+    captured = tmp_path / "validate_argv.json"
+    env = dict(os.environ, PATH=str(fakebin) + os.pathsep + os.environ['PATH'],
+               CAPTURE_ARGV=str(captured))
+    result = subprocess.run(["bash", "-c", validation], cwd=work, env=env,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(captured.read_text()) == ["mamey_run.py", "validate", expected]
+    assert not (work / "VALIDATE_SIDE_EFFECT").exists()

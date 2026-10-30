@@ -158,3 +158,40 @@ def test_node_first_label_in_md(scored_package, tmp_path):
     md = (outdir / "NOCARDIA_Mode_B_Top_Leads.md").read_text(encoding="utf-8")
     # BGC035 is on NODE_35 — that should appear in the rank-1 heading
     assert "NODE_35" in md, "node-first label must include contig node name"
+
+
+@pytest.mark.parametrize("contig", ["NODE_35.7", "NODE_35.part.7"])
+@pytest.mark.parametrize("node_first", [True, False])
+def test_prepared_lead_preserves_complete_contig_identifier(
+    scored_package, tmp_path, contig, node_first
+):
+    """Periods belong to an identifier in every prepared-lead representation."""
+    manifest_path = scored_package / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    for bgc in manifest["bgcs"]:
+        if bgc["bgc_id"] == "BGC035":
+            bgc["contig"] = contig
+    manifest_path.write_text(json.dumps(manifest))
+    board = scored_package / "NOCARDIA_4_triage_board.csv"
+    with board.open(newline="") as stream:
+        reader = csv.DictReader(stream)
+        fields = reader.fieldnames
+        rows = list(reader)
+    for row in rows:
+        if row["BGC_ID"] == "BGC035":
+            row["Contig"] = contig
+    with board.open("w", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    out = tmp_path / "prepared"
+    args = SimpleNamespace(package=str(scored_package), top_n=1,
+                           outdir=str(out), node_first=node_first)
+    assert mode_b_command(args) == 0
+    with (out / "NOCARDIA_Mode_B_Top_Leads.csv").open(newline="") as stream:
+        row = next(csv.DictReader(stream))
+    assert row["Assembly_Locator"] == f"{contig} region001"
+    locator = f"| Assembly Locator | {contig} region001 |"
+    assert locator in (out / "NOCARDIA_Mode_B_Top_Leads.md").read_text()
+    receipt = json.loads((out / "Mode_B_Coverage_Receipt.json").read_text())
+    assert locator in receipt["cards"][0]["mode_b_md"]

@@ -50,7 +50,7 @@ def test_planner_gate_and_shared_list_agree(monkeypatch, version, ok):
 def test_the_doc_states_the_same_list():
     doc = (ROOT / "docs" / "GTOTREE_WORKFLOW.md").read_text()
     for v in shared.ACCEPTED_GTOTREE_VERSIONS_TEXT:
-        assert f"| {v} |" in doc
+        assert f"`{v}`" in doc
     assert "tools/_gtotree_versions.py" in doc
 
 
@@ -63,7 +63,7 @@ def test_threads_per_tree_sets_every_thread_flag():
 
 
 def test_threads_cannot_exceed_the_core_ceiling():
-    args = SimpleNamespace(max_concurrent_cores=2, threads_per_tree=3, prepared_panel=None)
+    args = SimpleNamespace(run_id="threads_check", max_concurrent_cores=2, threads_per_tree=3, prepared_panel=None)
     with pytest.raises(ValueError, match="threads-per-tree"):
         planner.plan(args)
     parser = planner.build_parser()

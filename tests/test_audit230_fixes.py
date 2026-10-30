@@ -19,8 +19,8 @@ def test_kcb_frontpage_region_filter(monkeypatch):
     # every later kcb_frontpage consumer in the process — the triage e2e failed with kcb=None
     # whenever test_b2_registry_parity's broad mamey* purge wasn't there to accidentally
     # repair it (suite-order fragility, .398 diagnosis).
-    monkeypatch.setattr(K, "read_frontpage", lambda d: hits)
-    args = types.SimpleNamespace(strain_dir="x", top=50, region="r32", node=None, bgc=None)
+    monkeypatch.setattr(K, "read_frontpage", lambda d, **k: hits)
+    args = types.SimpleNamespace(strain_dir="x", top=50, region="r32c1", node=None, bgc=None)
     # capture stdout
     import io, contextlib
     buf = io.StringIO()

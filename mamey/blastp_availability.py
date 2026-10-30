@@ -29,11 +29,16 @@ except ImportError:
 import io
 import json
 import os
+import sys
 from pathlib import Path
 
 from . import blastp_gate as _g
 
 CHANNELS = ("nr", "clustered_nr", "swissprot", "ebi")
+
+
+class AvailabilityInputError(ValueError):
+    """The requested source location is unavailable; no availability scan occurred."""
 
 
 def strain_availability(package: str | Path, strain: str, trove_roots: dict | None = None) -> dict:
@@ -78,9 +83,13 @@ def scan(runs_dir: str | Path | None = None, package: str | Path | None = None) 
     pkgs: list[tuple[str, Path]] = []
     if package:
         p = Path(package)
+        if not p.is_dir():
+            raise AvailabilityInputError(f"BLASTP_PACKAGE_UNAVAILABLE: package directory not found: {p}")
         pkgs.append((_strain_of(p), p))
     else:
         runs = Path(runs_dir or ".")
+        if not runs.is_dir():
+            raise AvailabilityInputError(f"BLASTP_RUNS_UNAVAILABLE: runs directory not found: {runs}")
         for d in sorted(runs.iterdir()):
             pk = d / "package"
             if pk.is_dir():
@@ -165,8 +174,14 @@ def write(agg: dict, out_dir: str | Path) -> dict:
 
 
 def blastp_availability_command(args) -> int:
-    agg = scan(runs_dir=getattr(args, "runs_dir", None), package=getattr(args, "package", None))
-    emit(render_table(agg))
+    try:
+        agg = scan(runs_dir=getattr(args, "runs_dir", None), package=getattr(args, "package", None))
+        message, stream, code = render_table(agg), None, 0
+    except AvailabilityInputError as exc:
+        message, stream, code = str(exc), sys.stderr, 2
+    emit(message, file=stream)
+    if code:
+        return code
     out = getattr(args, "out", None)
     if out:
         paths = write(agg, out)

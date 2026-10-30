@@ -2,7 +2,7 @@
 
 ### Engine subsystems: triggers, architecture, KCB/RiQ, compound class, rescue, and enrichment
 
-**Version of record:** Mamey engine v1.9.177 · bundle v9.7.460 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
+**Version of record:** Mamey engine v1.9.177 · bundle v9.7.461 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volume I — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI, completeness) and *The Plumbing Reference* (CLI, workbook, figures, packaging).
 **Status:** Historical methods reference with selected current-source corrections. Named section versions and original calibration claims retain their recorded scope; the packaging version above does not certify every formula against the selected source. Corrections below are clause-scoped, with remaining owner/source and scientific evidence checks unresolved. Treat code identifiers as locators, not proof of current wiring or scientific validity.
@@ -2749,7 +2749,7 @@ Same as the concordance module (Cluster E §E.2.4): this is the raw coordinate s
 
 1. **`_ROLE_PATTERNS` matching uses bare substring, not token-bounded** (`s3_census_generator.py:_role_of` line 50): `any(k.lower() in dt.lower() for k in keys)` where `dt` is the space-joined domain string. This is the same substring-containment pattern fixed in `singleton_filter.py` (v9.7.117). Short role-bucket keys like `"KR"`, `"KS"`, `"ACP"`, `"PCP"`, `"TE"`, `"sugar"` match anywhere in the concatenated domain string. For example, `"sugar"` would match `"2-deoxysugar_GlcNAc_dehydratase"` (intended) but also any domain name containing the substring `"sugar"` regardless of context. In practice the role buckets are used only to group genes in a prose section (not for scoring or claims), so false-bucket assignments produce incorrect prose labeling rather than incorrect scores. Still, the risk of a genuine biosynthetic domain being mis-routed to the wrong role bucket should be documented and the token-boundary fix applied.
 
-2. **`_WHOLE_SET` construction iterates all three WHOLE category lists but `_PREFIX_SET` iterates `_HOUSEKEEPING_PREFIX` values** — these follow the same pattern but the `_WHOLE_SET` frozenset and `_PREFIX_SET` frozenset construction use different dict values. No bug, but note that `"ABC1"` appears in both `_HOUSEKEEPING_WHOLE["central_metabolism"]` and `_HOUSEKEEPING_WHOLE["chaperone_stress"]`, creating a duplicate entry in the source dict that collapses harmlessly in the frozenset. Worth a cleanup comment.
+2. **`_WHOLE_SET` is built from the four `_HOUSEKEEPING_WHOLE` category lists and `_PREFIX_SET` from `_HOUSEKEEPING_PREFIX`** — two parallel frozenset constructions over different dicts. No stem is duplicated: `"ABC1"` is listed only under `central_metabolism`, and `chaperone_stress` is empty.
 
 3. **`NOMINAL_REFERENCES` is a module-level tuple with a single unconfirmed entry** (`nominal_length.py`): The registry currently contains one entry (`polyoxin-class`, `confirmed=False`). All calls to `measure_bgc` that match this reference will include `[unconfirmed ref]` in the label. This is correct behavior, but the DRAFT status of the whole module should be noted in Volume II: the nominal-length subsystem is in early population and its outputs should be read as exploratory yardsticks, not validated metrics.
 

@@ -19,7 +19,6 @@ UNSTAMPED_RENDERERS = {
     "deliverable_tools/render_mlsa_tree.py",
     "deliverable_tools/stacked_locus_map.py",
     "mamey/bigscape_figures.py",
-    "mamey/chatgpt_commands.py",
     "mamey/cli.py",
     "mamey/cohort_class_heatmap.py",
     "mamey/cohort_figures_extended.py",

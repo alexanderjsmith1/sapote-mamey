@@ -107,9 +107,10 @@ def test_every_swept_module_binds_the_clamp_at_import_time() -> None:
     """An added call with a missing import is a NameError that only fires when a figure is written —
     i.e. deep in a long run. Import each swept module and check the name is bound."""
     swept = sorted(_modules_using_the_clamp())
-    # 15 importable mamey modules (.448 adds mamey/figures/locus_comparison.py). deliverable_tools/render_mlsa_tree.py is
+    # 14 importable mamey modules (.448 adds mamey/figures/locus_comparison.py; .461 moves
+    # chatgpt_commands to figure_theme.save_figure_pair, which applies the clamp itself). deliverable_tools/render_mlsa_tree.py is
     # also swept but is a __main__ script, not an importable package module, so it is checked by source above.
-    assert len(swept) == 15, f"expected the full sweep, found {len(swept)}: {swept}"
+    assert len(swept) == 14, f"expected the full sweep, found {len(swept)}: {swept}"
     for dotted in swept:
         mod = importlib.import_module(dotted)
         assert hasattr(mod, "_safe_dpi"), f"{dotted} calls _safe_dpi but does not bind it"

@@ -176,7 +176,7 @@ def test_example_profile_loads_and_code_holds_no_study_values():
 
 def test_doc_explains_the_adapter_and_the_control_state_rule():
     text = DOC.read_text()
-    assert "## Bring admitted per-well tables in" in text
-    assert "bioassay_admitted_observations.py observations --profile" in text
+    assert "## Convert existing per-well measurements" in text
+    assert "bioassay_admitted_observations.py observations --profile" in " ".join(text.replace("\\\n", " ").split())
     assert "bioassay_admitted_observations.py best-table" in text
     assert "UNRECORDED" in text and "held" in text

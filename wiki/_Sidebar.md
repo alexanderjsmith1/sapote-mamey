@@ -1,41 +1,36 @@
 **[Sapote–Mamey](Home.md)**
 
-*bundle v9.7.460 · engine 1.9.177*
+*bundle v9.7.461 · engine 1.9.177*
 
-**Start here**
-- [Task router](../docs/USER_TASK_ROUTER.md)
-- [Strain slides builder](../docs/STRAIN_SLIDES.md)
-- [Audience Start Paths](Audience-Start-Paths.md)
+**Start**
+- [What it does and limitations](What-It-Does-and-Limitations.md)
 - [Quick Guide](Quick-Guide.md)
-- [Researcher Recipes](Researcher-Recipes.md)
+- [Prerequisites](Prerequisites.md)
+- [Audience start paths](Audience-Start-Paths.md)
+
+**Run and read**
+- [Run pipeline](Run-Pipeline.md)
 - [User Manual](User-Manual.md)
-- [Concepts Q&A](Concepts-Q-and-A.md)
-- [Encyclopedia](Encyclopedia.md)
+- [Researcher recipes](Researcher-Recipes.md)
+- [Troubleshooting](Troubleshooting-Field-Notes.md)
+
+**Analyses**
+- [Mode B](Mode-B.md)
+- [BLASTp](BLASTp-Novelty.md)
+- [Gene cluster families](BiG-SCAPE-GCF-Networks.md)
+- [Phylogenetic placement](Phylogenetic-Placement.md)
+- [Fungal phylogenetics](Fungal-Phylogenetics.md)
+- [Domain and scan prevalence](Domain-and-Scan-Prevalence.md)
+- [Bioassay activity channel](Bioassay-Activity-Channel.md)
+- [Figure preflight and methods](Figure-Factory-Preflight-and-Methods-Manual.md)
 
 **Reference**
 - [Glossary](Glossary.md)
-- [Common Mistakes](Common-Mistakes.md)
-- [Claim-Safety](Claim-Safety.md)
+- [Concepts Q&A](Concepts-Q-and-A.md)
+- [Common mistakes](Common-Mistakes.md)
+- [Claim safety](Claim-Safety.md)
+- [External tools and databases](External-Tools-and-Databases.md)
+
+**For maintainers**
 - [Versioning](Versioning.md)
-- [Patch Cards & Composition](Patch-Cards-and-Composition.md)
-- [Troubleshooting Field Notes](Troubleshooting-Field-Notes.md)
-- [What It Does and Limitations](What-It-Does-and-Limitations.md)
-
-**How it works**
-- [Run Pipeline](Run-Pipeline.md)
-- [Mode B](Mode-B.md)
-- [Mode B Gene-First & 48-Section Manual](Mode-B-Gene-First-and-48-Section-Manual.md)
-- [Figure Factory Preflight & Methods](Figure-Factory-Preflight-and-Methods-Manual.md)
-- [BLASTp Novelty](BLASTp-Novelty.md)
-- [BiG-SCAPE GCF Networks](BiG-SCAPE-GCF-Networks.md)
-
-**Install**
-- [Prerequisites](Prerequisites.md)
-- [External Tools & Databases](External-Tools-and-Databases.md)
-
-**Workflows**
-- [Phylogenetic Placement](Phylogenetic-Placement.md)
-- [Fungal Phylogenetics](Fungal-Phylogenetics.md)
-
----
-*Capacity-level claims only. Similarity is not identity. Missing evidence is not absence.*
+- [Patch cards and composition](Patch-Cards-and-Composition.md)

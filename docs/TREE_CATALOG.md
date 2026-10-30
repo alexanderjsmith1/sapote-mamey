@@ -1,317 +1,125 @@
-# Tree Catalog
+# Make several views of an existing tree
 
-## What this tool does
-
-Use the Tree Catalog **after** you have a completed, validated 16S placement
-run. It makes several *views of that same tree*: for example, one, two, or
-three nearby reference tips per query, each with concise source labels or a
-different metadata display. It keeps the tree, reference choices, methods, and
-render receipts together for each view.
-
-The catalog is **not an inventory of tree files on your computer**. It does
-not search your folders, infer a new tree, download reference
-genomes, repair missing metadata, or decide which earlier figure is current.
-Map and review existing assets separately before adding a completed placement
-run to a catalog.
-
-You need the completed placement run, the query metadata table, the reference
-metadata database, and a verified roster binding the tree tips to their
-sequences and source records. Choose the cohort, taxonomic scope, reference
-panel, and desired views. Use `plan` to inspect the resulting jobs; use
-`render` only after the full series requirements and reference manifest below
-are present and pass validation.
-
-For a tree already prepared outside this placement workflow, use the
-[prepared display series](#prepared-display-series) route instead. It consumes
-declared, hashed display inputs; it does not discover or infer trees either.
+Tree Catalog plans and renders display variants of a completed 16S placement
+run. You need that run, query metadata, reference metadata and a verified
+tree/sequence roster. It reuses the selected tree.
+For an externally prepared tree, use [prepared display series](#prepared-display-series).
 
 ## Choose the output views
 
-A typical genus run can produce a compact 1:1 query-to-reference view and
-wider 1:2 and 1:3 views. The ratios are selection limits for nearby references,
-not a change to the original placement analysis. A five-level series can also
-include 1:4 and all references when the panel supports them. Select a concise
-publication view, a detailed-source view, a view without a geography strip,
-or an internal specimen-review view. The no-geography view still requires
-resolved geography in the bound metadata; it only hides that strip in the
-figure.
+Select reference quotas such as 1:1, 1:2 and 1:3, then choose concise,
+detailed-source, no-geography or internal views. Quotas apply before shared
+reference deduplication, so they do not guarantee that many unique references
+per query. A five-level series can use 1, 2, 3, 4 and `all`.
 
-The tool is intended for recurring cohort views such as bee isolates, moss
-isolates, attine-ant isolates, combined cohorts, genus-only panels, and
-rare-actinomycete panels.
-
-Each catalog entry states:
-
-- the cohort and taxonomic scope;
-- the completed placement run it consumes;
-- whether its reference panel contains type strains only or type strains plus
-  explicitly selected non-type strains;
-- one, two, or three nearest reference tips per query;
-- concise-source publication, detailed-source publication, no-geography, and
-  internal specimen-review views; and
-- optional spotlight-query intent.
-
-The tool does not infer that a type strain is representative, merge cohorts,
-choose an outgroup, or admit a non-type reference. Those decisions belong to the
-upstream placement run and its receipts. The catalog renderer refuses any nonempty `spotlight_queries` field with
-`SPOTLIGHT_REQUIRES_DECLARED_QUERY_SUBSET_RUN`; even pointing that flagged entry
-to an already subsetted run does not bypass the refusal. Prepare and review a
-separate upstream subset run, then catalog that run with an empty/omitted
-`spotlight_queries` field and its true bound query roster. The renderer does not
-silently prune a full-cohort analysis into a rarity claim.
-
-The `publication` view reduces long deposited isolation phrases to one readable
-source term while retaining the raw phrase in the metadata sidecar. The
-`publication-detailed` view keeps the deposited source wording for audit and
-specialist use. Both consume the same Newick tree and differ only in display.
-
-The `internal` view may append a bound specimen key such as `Exp 35 #12` to query
-labels and uses `_internal` in its output name. Use it to review whether several
-isolates came from the same biological sample. Treat the combined experiment and
-sample identifiers as the sampling-unit key; neither field is sufficient alone.
-An identical or near-identical marker sequence is not permission to merge
-isolates. Record a proposed collapse separately and require source-registry
-confirmation. Publication views omit these internal identifiers.
+The no-geography view still requires resolved geography; it hides the strip.
+Internal views can show recorded experiment/sample identifiers. Keep both
+identifiers when reviewing sampling units; similar sequences alone cannot
+justify merging isolates.
 
 ## Plan a catalog
 
-The following JSON is a **planning sketch**, not a render-ready catalog. It
-omits `series_requirements` and the hash-bound `reference_manifest`; the
-renderer refuses it until those fields and their actual evidence are supplied.
-The shipped example also uses placeholder paths, so replace them with files
-from your own completed run before running `plan`.
-
-```json
-{
-  "schema": "sapote.tree-catalog.v1",
-  "defaults": {
-    "views": ["publication", "publication-detailed", "publication-noloc"],
-    "reference_ratios": [1, 2, 3]
-  },
-  "trees": [
-    {
-      "id": "bee_streptomyces",
-      "run_dir": "/path/to/completed/placement-run",
-      "group": "Streptomyces",
-      "cohort_scope": ["bee"],
-      "taxonomic_scope": "Streptomyces",
-      "reference_panel": "type_only",
-      "host_table": "/path/to/query_metadata.tsv",
-      "ref_source_db": "/path/to/reference_metadata.sqlite",
-      "required_reference_table": "/path/to/query_required_reference_species.tsv",
-      "genus_roster": "/path/to/query_genus_roster.tsv"
-    }
-  ]
-}
-```
-
-Relative paths resolve from the catalog file. The shipped example uses generic
-paths because project datasets and private strain registries are not bundled.
-The optional required-reference table has `strain` and `reference_species`
-columns. A declared species must already be admitted to the placement backbone.
-It counts first within that query's 1:1, 1:2, or 1:3 quota; missing species
-refuse the display instead of being replaced silently by another neighbor.
+Start from the [catalog example](../examples/tree_catalog.example.json), replacing
+its paths and scopes with your completed run. Save it as `inputs/EXAMPLE-catalog.json`.
+Relative paths resolve from that file. The example supports planning; it lacks
+the complete render declarations described below.
 
 ```bash
-python3 tools/tree_catalog.py plan TREE_CATALOG.json --out tree_catalog_plan.json
+python tools/tree_catalog.py plan inputs/EXAMPLE-catalog.json \
+  --out reviews/EXAMPLE-tree-plan.json
 ```
 
-The planner resolves the declared run/metadata paths and requires them to exist;
-placeholder paths are not executable inputs. It creates parent directories and
-writes `--out`, overwriting that file if present. Choose a fresh planning output
-or an explicitly selected operational update path. Rendering has the stricter
-existing-directory refusal described below.
+The declared run and metadata paths must exist. Choose a fresh output file:
+planning can replace an existing one. Check job count, query scope, reference
+policy and paths. Three ratios times three views propose nine displays.
 
-The plan expands every entry across its ratios and views. Three ratios times
-three views create nine proposed displays. Inspect the job count, query scope,
-reference policy, and paths. Planning does not prove that the underlying tree,
-metadata, or references are scientifically accepted.
+Each entry needs its run directory, group, cohort/taxonomic scope, reference-panel
+choice and metadata sources. Optional required-reference species must already
+belong to the backbone and count within each query's quota.
 
-## Render after the inputs pass review
-
-Add the exact `series_requirements` and `reference_manifest` described under
-[Required series contract](#required-series-contract-and-verified-completion).
-Resolve missing source/geography metadata in the source records, then run:
-
-```bash
-python3 tools/tree_catalog.py render TREE_CATALOG.json --outdir rendered_tree_catalog
-```
-
-The renderer refuses incomplete series declarations or missing bound inputs.
-`placement_display.py` writes a display-specific Newick and annotation TSV, then
-passes both to the maintained `tools/ggtree_rect_heatmap.R` source script. The R
-script lays out the existing tree and draws labels, metadata strips, scale bar,
-PNG, and PDF; it does not infer a new topology.
-See [R figure workflows](R_FIGURE_WORKFLOWS.md) for the complete maintained R
-source inventory and the input generated for each renderer.
-
-Rendering is additive and refuses an existing output directory. Each child
-directory contains the tree, metadata, reference-selection ledger, methods,
-PNG/PDF, and receipts produced by `placement_display.py`. The catalog-level
-receipt records each command and stops after the first failed job.
-
-## Recommended project matrix
-
-Maintain separate entries for bee, moss, and attine cohorts; combined cohort
-questions; *Streptomyces*; and non-*Streptomyces* actinomycetes. For each
-scientifically admitted analysis, render 1:1, 1:2, and 1:3 query-to-reference
-views with and without geography. Treat the full 1:1 cohort tree as a compact
-overview and use declared spotlight analyses for one or a few unusual isolates.
-Keep a full-context companion tree and the complete reference-selection ledger
-beside every spotlight figure.
-
-For bee, moss, and attine datasets, add an internal companion view when the
-source registry contains experiment and sample identifiers. This view supports
-redundancy review, sample-level method counts, and interpretation of repeated
-isolations; it is not the default manuscript figure.
-
-The reference library can be a compact local 16S database, but file size is not
-its quality criterion. Every record needs a stable accession, sequence hash,
-taxon, type-status evidence, source class, admission state, and provenance.
-Type and selected non-type panels remain separate so a convenient non-type
-sequence cannot silently become a type-strain comparator.
-
+For a spotlight, prepare a separate reviewed query-subset run. The renderer
+refuses any nonempty `spotlight_queries` field, even if the named run is already
+subsetted; use that run's actual roster with the field empty or omitted.
 
 ## Required series contract and verified completion
 
-Rendering requires an explicit `series_requirements` object with nonempty lists
-`taxonomic_scopes`, `reference_panels`, `reference_ratios`, and `views`. These
-lists describe the requested Cartesian product. Missing, duplicated, or extra
-variants refuse preflight. An older catalog without this object can still be
-inspected with `plan`, but cannot be rendered as a completed series.
+Before rendering, add `series_requirements` with nonempty lists of
+`taxonomic_scopes`, `reference_panels`, `reference_ratios` and `views`.
+Their Cartesian product defines the requested series; missing, duplicate or extra
+variants fail preflight.
 
-Use `[1, 2, 3, 4, "all"]` for the five-level density series. The `"all"` value
-passes `--keep-all-references` to the maintained display producer. Numeric ratios
-are per-query selection quotas before shared-reference deduplication; they are
-not promises of that many unique references per query across the combined tree.
+Each entry also needs `reference_manifest`: a roster `path`/`sha256` plus `tree`
+and `sequences` objects, each with relative `path`/`sha256`. The TSV roster has
+`tip`, `role`, `type_status`, `accession`, `sequence_sha256`, `evidence` and
+`admission`. Roles are query/reference/outgroup; admitted records use `admitted`.
+Sequence hashes use uppercase ungapped strings. Tree, FASTA and roster must
+have exactly the same unique tip identities.
 
-Every tree entry must supply `reference_manifest`: an object with `path` and
-`sha256` for a TSV roster, and `tree` and `sequences` objects, each with a relative
-`path` and `sha256`. The roster columns are `tip`, `role`, `type_status`,
-`accession`, `sequence_sha256`, `evidence`, and `admission`. Roles are `query`,
-`reference`, or `outgroup`; admitted records use `admission=admitted`. Sequence
-hashes describe uppercase, ungapped sequence strings. The bound tree, FASTA and
-roster must have exactly the same unique tip identities. The existing stem-aware
-branch gate runs with the explicitly declared outgroup; it retains terminal and
-other-branch checks and does not offer an unrestricted exemption.
+Choose the panel that matches those records:
 
-Reference-panel distinctions are enforced:
+- `type_only`: all ingroup references have affirmative type status.
+- `type_plus_selected_non_type`: both verified type and non-type references.
+- `type_plus_selected_additional`: provisional context may include unverified status.
 
-- `type_only`: every ingroup reference has affirmative type status.
-- `type_plus_selected_non_type`: both affirmative type and affirmative non-type
-  records are present; unknown status cannot be converted into non-type status.
-- `type_plus_selected_additional`: explicitly provisional broader context that
-  can include `unverified` type status. Retain that uncertainty in the labels and
-  methods; it is not a confirmed non-type panel.
+Compact views can contain fewer reference classes; receipts record actual counts.
+Reconcile the manifest with the placement run and metadata consumed by the child
+commands, because those are checked separately.
 
-The panel designation describes the input backbone. Compact display subsets may
-contain only type references. Render receipts therefore record the actual type,
-non-type, and unverified-reference counts for each delivered variant.
+## Render after the inputs pass review
 
-Subprocess success alone is insufficient. Completion requires nonempty Newick,
-metadata, PDF and PNG outputs; exact tree/metadata tip joins; retention of all
-roster queries and outgroups; complete roster retention for `"all"`; and agreement
-of unrooted split lengths with the declared parent after pruning. The allowed
-0.0001 substitutions/site tolerance is for legacy decimal serialization, not
-biological uncertainty. Output hashes are recorded.
+```bash
+python tools/tree_catalog.py render inputs/EXAMPLE-catalog.json \
+  --outdir reviews/EXAMPLE-tree-series
+```
 
-The reference-manifest gate validates its declared tree, FASTA and roster
-independently. Catalog child commands consume the placement run and metadata
-paths, not that reference manifest. Reconcile the roster with the actual
-placement admission receipt, consumed sequences and display metadata before
-adoption. Delivery does not independently verify final root placement, metadata
-roles/type/source values against roster rows, or which sequences the producer
-consumed. These source-authority checks remain separate; internally consistent
-hashes do not establish species identity, novelty or release authority.
+Rendering refuses an existing directory. `placement_display.py` supplies Newick
+and metadata to `tools/ggtree_rect_heatmap.R`. Each child output includes tree,
+metadata, reference-selection records, methods, PNG/PDF and receipts.
+The catalog stops at the first failed job.
 
-`read_display_exclusions()` reads only the excluded `tip` and `accession` columns.
-It must never interpret a `retained_accession` representative as another exclusion.
+Completion checks nonempty outputs, tree/metadata tip joins, all query/outgroup
+tips, full roster for `all`, and agreement with the pruned parent tree's unrooted
+split lengths. The 0.0001 substitutions/site tolerance accommodates legacy
+decimal serialization. Inspect the rendered pages and upstream evidence as well.
 
-Existing projects must bind their actual reference evidence rather than inventing
-manifest rows to make these checks pass. Additional reference selection and tree
-inference remain separate upstream operations. Keep original failed attempts and
-source authority holds linked to the final series receipt.
+## Prepared display series
 
-### Prepared display series
+For an existing externally inferred tree with prepared display inputs, use:
 
-For externally inferred trees whose display inputs have already been prepared,
-`tools/render_tree_reference_series.py --config series.json --outdir new_results`
-provides an additive render path through the same series and delivery gates.
-Its JSON contains the same `series_requirements` and `trees` contracts, plus
-`display_jobs`. Each job has `job_id`, `tree_id`, `taxonomic_scope`,
-`reference_panel`, `reference_ratio`, `view`, a relative `input_dir`, and
-`input_hashes` for exactly `tree.newick`, `metadata.tsv`, `provenance.tsv`,
-`palette.tsv`, `settings.tsv` and `caption.txt`. An optional `group` organizes
-output directories. Job IDs must be unique and use the admitted characters;
-review resolved job/group destinations separately, since the character check
-alone permits dot-only path components.
+```bash
+python tools/render_tree_reference_series.py --config inputs/EXAMPLE-series.json \
+  --outdir reviews/EXAMPLE-prepared-series
+```
 
-Each prepared display job also declares an integer `series_index` and a
-descriptive, filesystem-safe `output_stem`. Indices must be contiguous from 1
-through the number of jobs, and output stems must be unique and cannot use
-generic names such as `tree` or `figure`. Delivered filenames begin with the
-zero-padded series index followed by the descriptive stem, so neighboring
-trees remain identifiable after they are copied out of their job folders.
+This config uses the same series and reference-manifest requirements, plus
+`display_jobs`. Each job supplies `job_id`, `tree_id`, taxonomic scope, reference
+panel/ratio, view, relative `input_dir`, and hashes for exactly `tree.newick`,
+`metadata.tsv`, `provenance.tsv`, `palette.tsv`, `settings.tsv` and `caption.txt`.
+Use unique job IDs, contiguous `series_index` values starting at 1 and descriptive
+unique `output_stem` values. Review resolved job/group paths; dot-only components
+can pass the character check.
 
-Prepared metadata must contain the shared contract columns: `tip`, `role`,
-`type_status`, `taxon_display`, `label_concise`, `label_experiment`, `raw_source`,
-`source_category`, `raw_geography`, `geography`, `candida_state`, `mrsa_state`,
-`assay_provenance`, `experiment_id` and `sample_id`. The renderer uses the
-concise/experiment labels rather than a legacy `label` column. Query assay states
-are explicit `positive`, `negative`, `not_tested` or `missing`, with bound assay
-provenance; reference/outgroup assay and experiment fields must be blank.
+Metadata includes tip/role/type status, taxon and concise/experiment labels,
+raw and categorized source/geography, assay states/provenance and experiment/sample
+IDs. Query assay states are positive, negative, not_tested or missing; reference
+and outgroup assay/experiment fields are blank. Keep the exact schema in
+[`tree_series_contract.py`](../tools/tree_series_contract.py) when preparing these files.
 
-`provenance.tsv` requires `tip`, `field`, `raw_value`, `source`, `evidence_sha256`
-and `status`. Bind raw source and geography for every tip, plus both assay states
-for each query. Keep unavailable assay evidence explicit; do not invent
-metadata to satisfy the contract. The palette table has `field`, `value` and
-`color`, using `source` and `geography` as field names.
+Provenance rows bind each field's raw value, source, hash and status. Palette rows
+use field/value/color; each category keeps one color across the series, and two
+categories within a field cannot share a color. Every displayed tip needs resolved
+source and geography, even in no-geography views. Hold a panel with missing query
+metadata; do not remove queries or invent values to pass.
 
-The settings table has `key` and `value`, with `view`, `title`, `layout_profile`,
-`tree_fraction`, `outgroup_tip`, `inference_program`, `model`, `support_type`,
-`support_replicates`, `support_cutoff` and `rooting`. The admitted layout profile
-is `full_genus_single_line_v1`; its tree fraction has a minimum of 0.39 (with
-the validator's numeric tolerance) and must be below 1. The method settings are
-caller declarations, not verification of the upstream inference.
+Settings record the view, title, layout, tree fraction, outgroup and inference/model/
+support/rooting details. The layout is `full_genus_single_line_v1`; tree fraction
+is at least 0.39 and below 1. Reconcile `outgroup_tip` with roster roles and the
+rooting decision, since the renderer reroots from that setting.
 
-Every displayed query, reference, and outgroup must have a nonempty label plus
-resolved `source_category` and `geography` values. Missingness sentinels such as
-`Not recorded`, `Unknown`, `Unresolved`, and `N/A` fail preflight for every role,
-including when source and geography are both absent. Resolve that metadata or
-remove the reference upstream and record it in the display-exclusion ledger.
-Never remove a query tip to make a figure pass; hold the panel instead.
-Missingness categories are also forbidden in the palette, so a gray unknown cell
-cannot appear in an admitted figure or legend.
+Prepared rendering freezes its R/geometry/palette inputs and binds output hashes.
+Keep `tree_annotation_geometry.R` and the full bundle dependencies when exporting
+the workflow. Query text uses `GG_FOCAL_COLOUR`, default black; record the actual
+display setting. Inspect all requested variants before treating the series as done.
 
-The renderer admits one shared palette contract across the entire series. A
-source or geography category must keep the same color in every job, and two
-categories in the same field cannot reuse an identical color. Any drift or
-collision fails preflight before a figure is rendered.
-
-Query tip text in both prepared-series and direct rectangular renderers uses
-`GG_FOCAL_COLOUR`, defaulting to black (`#000000`). Prepared preflight records the
-observed value; it does not enforce red (`#bb0000`) or freeze the environment
-for child execution. Bind the actual authorized display setting with the result.
-
-The direct rectangular renderer uses the maintained source-category palette.
-Its two-strip source/geography view requires complete metadata; hiding the
-geography strip does not authorize inventing an unknown geography category.
-
-Preflight verifies declared input hashes and refuses specific bee/wasp source
-labels that contradict the raw source. Rendering copies inputs into a new output
-root, freezes the R renderer, geometry helper and palette, checks those hashes
-around execution, audits plotted cells and binds delivered artifacts. It refuses
-an existing output directory. Jobs that reach the guarded worker body receive
-receipts; an earlier job-directory creation failure can occur before that guard.
-The series is complete only when the full requested matrix succeeds.
-
-Prepared R reroots on `settings.outgroup_tip`; neither preflight nor delivery
-compares that setting with roster outgroup roles or validates the scientific
-rooting decision. Reconcile the setting, recorded rooting method and roster
-before adoption. This consumer does not discover references, admit upstream
-sequences or turn provisional metadata into confirmed facts.
-
-The bundle includes `tools/tree_annotation_geometry.R`, the shared annotation-gate helper. A partial or standalone export must keep it. The
-complete extracted bundle supplies the normalizer, stem-aware gate and its
-`mamey.csv_safety` dependency. A standalone export must retain those dependencies
-rather than relying on an unrelated installed Mamey version.
+<a id="what-this-tool-does"></a>
+<a id="recommended-project-matrix"></a>

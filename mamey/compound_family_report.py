@@ -36,6 +36,7 @@ import json
 import os
 import glob
 import collections
+import statistics
 import sys
 from pathlib import Path
 from typing import Any
@@ -205,8 +206,7 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
             roll[k]["ab"].append(_fnum(r["AB"]))
 
     def _med(xs):
-        xs = sorted(xs)
-        return "" if not xs else xs[len(xs) // 2]
+        return "" if not xs else statistics.median(xs)
 
     with open(os.path.join(outd, "COMPOUND_FAMILY_ROLLUP.tsv"), "w", newline="",
               encoding="utf-8") as fh:

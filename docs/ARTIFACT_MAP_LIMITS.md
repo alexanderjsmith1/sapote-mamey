@@ -16,7 +16,7 @@ The CLI supports `deliverables list`, `deliverables explain ITEM` and `deliverab
 
 `READY` means those catalog checks found no missing or declared requirements for that item. Other states name input/dependency, judgment, external-contact authorization, human review or declared-input holds. `availability` returns 0 even when rows are not ready; inspect each state and missing/notes fields. It creates no deliverable, validates no source bytes and grants no permission for external work.
 
-Some registry summaries need source-owner corrections. In particular G1's statement that additive receipt ingestion does not mutate the sealed package is broader than current CLI behavior: receipt ingestion persists card/register state (`mamey/mode_b_receipt.py`). Other selected authoring commands can write package-side artifacts and refresh `post_seal_checksums.txt` (`mamey/cli.py`). Use the owning command's concrete write contract and retain accepted core evidence; the menu alone is not an immutability guarantee. Correct the owning registry and regenerate the menu together when this source correction is adopted.
+The G1 summary now states that `ingest-receipts` writes Mode B judgment cards into the package's `judgment/` folder and updates its judgment register (`mamey/mode_b_receipt.py`). Other selected authoring commands can write package-side artifacts and refresh `post_seal_checksums.txt` (`mamey/cli.py`). Use the owning command's concrete write contract and retain accepted core evidence; the menu alone is not an immutability guarantee. When a registry summary changes, regenerate the menu with it.
 
 ## Generated file atlas
 

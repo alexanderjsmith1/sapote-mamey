@@ -93,7 +93,7 @@ def test_claim_safety_and_write(package, tmp_path):
     out = eb.write_evidence_bundle(b, tmp_path / "out")
     assert out["bgc_count"] == 2
     md = (tmp_path / "out" / "SYNTHETIC-CASE-020_evidence_bundle.md").read_text()
-    assert "Evidence Summary — BGC018" in md and "Two-proof rescue" in md
+    assert md.count("Evidence Summary — IDENTITY_HOLD") == 2 and "Two-proof rescue" in md
 
 
 def test_not_a_package_raises(tmp_path):

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.460 stamp=20261027v97460a
+# TIER_MANIFEST tier=code version=9.7.461 stamp=20261029v97461a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -341,6 +341,7 @@
 ./docs/PROJECT_DATA_HOME.md
 ./docs/PROJECT_NAMING.md
 ./docs/PROTEIN_SPACE_STANDALONE.md
+./docs/PUBLIC_DATASETS.md
 ./docs/PUBLIC_RELEASE_DATA.md
 ./docs/PUBLIC_RELEASE_GUIDE.md
 ./docs/QUICK_GUIDE.md
@@ -469,6 +470,7 @@
 ./docs/history/SOP_MASTER_INDEX_planning_record.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.144b_CODE.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.148c_CODE.md
+./docs/history/TOOLS_REFERENCE_v9_7_460.md
 ./docs/history/V9_4_1_COMPATIBILITY_PATCH.md
 ./docs/history/VERIFICATION_REPORT_v9_7_116_to_audit.md
 ./docs/history/WORKED_EXAMPLE.md
@@ -629,8 +631,10 @@
 ./docs/reference/05_VolII_ClusterG_Figure_System.md
 ./docs/reference/06_CURRENT_SOURCE_SCOPE.md
 ./docs/reference/10_Math_Reference_GeneralAudience.md
+./docs/reference/INTAKE_AND_SMALL_COHORT_POLICY_REFERENCE.md
 ./docs/reference/METHODS_TECHNICAL_APPENDIX.md
 ./docs/reference/SCANNER_PFAM_MANIFEST.md
+./docs/reference/STRAIN_MASTER_STORAGE_REFERENCE.md
 ./docs/reference/modeb_exemplars/README.md
 ./docs/reference/modeb_exemplars/nrps_exemplar.md
 ./docs/reference/modeb_exemplars/nrps_pks_hybrid_exemplar.md
@@ -2239,6 +2243,43 @@
 ./tests/test_460_phylo_admission_missing_source_is_omitted.py
 ./tests/test_460_scan_prevalence_writes_audit_receipt.py
 ./tests/test_460_thesis_diagram_no_saturation_claim.py
+./tests/test_461_blastp_availability_input_boundary.py
+./tests/test_461_blastp_commit_alias.py
+./tests/test_461_catalog_help.py
+./tests/test_461_collapse_input_annotations.py
+./tests/test_461_collapse_output_boundary.py
+./tests/test_461_collapse_query_groups_usage.py
+./tests/test_461_comparator_locations.py
+./tests/test_461_compare_backend_provenance.py
+./tests/test_461_compound_family_median.py
+./tests/test_461_evidence_bundle_empty_semantics.py
+./tests/test_461_evidence_bundle_output_boundary.py
+./tests/test_461_evidence_bundle_public_reader.py
+./tests/test_461_family_region_index.py
+./tests/test_461_frontpage_exact_anchor.py
+./tests/test_461_hmm_missing_state.py
+./tests/test_461_hplc_receipt_paths.py
+./tests/test_461_judgment_path_components.py
+./tests/test_461_judgment_receipt_unknown.py
+./tests/test_461_kcb_confidence_admission.py
+./tests/test_461_kcb_confidence_row_binding.py
+./tests/test_461_kcb_exact_region.py
+./tests/test_461_ks_table_schema.py
+./tests/test_461_lead_group_order.py
+./tests/test_461_linter_disclaimer_content.py
+./tests/test_461_literature_store_uri.py
+./tests/test_461_npatlas_idempotence.py
+./tests/test_461_outgroup_scan_input_admission.py
+./tests/test_461_plan_run_id.py
+./tests/test_461_raw_triage_directory.py
+./tests/test_461_readme_has_no_status_paragraph.py
+./tests/test_461_realistic_count_confidence_admission.py
+./tests/test_461_regex_parse_hold.py
+./tests/test_461_relabel_cli_usage.py
+./tests/test_461_roster_tip_labels.py
+./tests/test_461_swissprot_rank_retention.py
+./tests/test_461_triage_frontpage_availability.py
+./tests/test_461_xstrain_evidence_states.py
 ./tests/test_462_panel_key_fits_page_width.py
 ./tests/test_466_multi_reference_aligned_layout.py
 ./tests/test_ab_diagnostic_triggers.py
@@ -2419,6 +2460,7 @@
 ./tests/test_blastp_novelty_workflow_doc.py
 ./tests/test_blastp_online.py
 ./tests/test_blastp_online_disclosure_gate_v97438.py
+./tests/test_blastp_online_ingest_recipe.py
 ./tests/test_blastp_online_locator_similarity_v9_7_293.py
 ./tests/test_blastp_online_ncbi_cadence_v9_7_382.py
 ./tests/test_blastp_online_outdir_outside_bundle_v97443.py
@@ -2604,7 +2646,11 @@
 ./tests/test_cohort_class_heatmap_parks_saccharide_only_v97443.py
 ./tests/test_cohort_class_heatmap_v9790.py
 ./tests/test_cohort_context_lq_strain_03.py
+./tests/test_cohort_d03_legend_identity.py
+./tests/test_cohort_d06_annotation_geometry.py
+./tests/test_cohort_d11_display_offsets.py
 ./tests/test_cohort_deliverable.py
+./tests/test_cohort_descriptive_titles.py
 ./tests/test_cohort_enzyme_neighborhoods.py
 ./tests/test_cohort_evidence_admission.py
 ./tests/test_cohort_figures_cold_import_lane06_v97452.py
@@ -2616,6 +2662,7 @@
 ./tests/test_cohort_figures_refuse_mixed_antismash_strictness_v97442.py
 ./tests/test_cohort_figures_v9792.py
 ./tests/test_cohort_figures_v9793.py
+./tests/test_cohort_integer_count_scales.py
 ./tests/test_cohort_leads_ledger.py
 ./tests/test_cohort_locator_joinkey.py
 ./tests/test_cohort_master_locator_case_insensitive.py
@@ -2999,6 +3046,7 @@
 ./tests/test_input_manifest.py
 ./tests/test_inspect_command_gold_only_v97162.py
 ./tests/test_inspect_command_path_safety.py
+./tests/test_inspect_complete_package.py
 ./tests/test_inspector_commands.py
 ./tests/test_inspector_exact_identity.py
 ./tests/test_installation_runtime_diagnostics.py
@@ -3784,6 +3832,10 @@
 ./tests/test_stage2_overlay.py
 ./tests/test_stale_exemption_negative_controls_v97421.py
 ./tests/test_standalone_delivery_audit.py
+./tests/test_standard_lead_count_titles.py
+./tests/test_standard_lead_export_dpi.py
+./tests/test_standard_lead_governed_export.py
+./tests/test_standard_lead_print_layout.py
 ./tests/test_standing_rules_b1.py
 ./tests/test_strain_bigscape_report_class_case_insensitive_bc2_399.py
 ./tests/test_strain_data_home_case_twin_v97399.py

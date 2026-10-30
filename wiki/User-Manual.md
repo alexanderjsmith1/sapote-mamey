@@ -1,542 +1,151 @@
 <!-- Mirror of docs/GUIDE/01_User_Manual.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
-# The Sapote–Mamey User Manual
+# The Sapote-Mamey User Manual
 
-Before any `doctor` example below, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation. Doctor writes a test file under `runs/_doctor_probe/`.
-If that folder already exists, doctor leaves it untouched and reports its write check as FAIL.
-Move the folder out of `runs/` (keep it; do not delete it), then run doctor again.
+Use this guide to run one strain, read its evidence and choose a next analysis.
+You need an antiSMASH result ZIP for extraction, or a saved Mamey package for
+review. For installation and the shortest command sequence, follow
+[Your first run](../docs/reader/01_FIRST_RUN.md).
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.460 / engine Mamey 1.9.177*
-*Historical sections retain their stated scope*.
+*Current to bundle v9.7.461 / engine Mamey 1.9.177*
 
-> This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](Glossary.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
+## 1 · What Sapote-Mamey is
 
----
+Mamey reads antiSMASH results and writes tables, workbooks, figures and a portable
+package. Sapote is the interpretation and writing workflow that uses those results.
 
-For a first run, follow [the maintained walkthrough](../docs/MASTER_WALKTHROUGH.md). If you already have a
-package, start with [Read your results](../docs/READING_YOUR_RESULTS.md). This longer manual also
-contains historical case studies; a current bundle stamp does not mean every example was rerun. For named requests, input requirements and completion evidence use [Choose a task](../docs/USER_TASK_ROUTER.md).
-
-## 1 · What Sapote–Mamey is
-
-Sapote–Mamey is a **two-layer genome-mining pipeline** for actinomycete (and, increasingly, fungal) natural-product discovery. It is a tool you run *on* genomes, not an environment you work inside.
-
-1. **Mamey** is the software: a deterministic Python engine (the `mamey` package). It parses antiSMASH output, builds the BGC inventory, runs the scans, computes the corrected count, and emits the triage board, manifest, briefs, and figures. *Deterministic* means rule-based extraction under a bound configuration. Whole packages may still include timestamps, paths or environment-dependent rendering, so byte-identical archives are not guaranteed. Compare the recorded inputs, versions, settings and relevant scientific fields instead.
-2. **Sapote** is the judgment layer: a structured prompt system for a language model that applies **claim-safe interpretation** on top of Mamey's deterministic facts. It writes the Mode B narrative, pathway hypotheses, and claim-safety audits.
-
-Mamey is the factual floor; Sapote is the interpretive ceiling. The contract between them keeps "what the data says" separate from "what we think it means." → Encyclopedia Vol I, Vol III.
-
-**The one rule to learn first:** every claim the pipeline makes is *capacity-level*. It reports "biosynthetic capacity consistent with class X," never "produces compound Y." A KCB hit is **similarity, not identity**. Bioactivity metadata is optional strain-level context, never pinned to one BGC without governed linkage, and absence of recorded metadata is **never** read as "inactive." → §I.3.
-
-**Durability.** Mamey's deterministic outputs are saved automatically. Sapote's *judgment* — the Mode B cards — is not, unless you write it back through the receipt path (§4.4). A card that exists only as text in a conversation is not part of the package. Ingest it into the package's judgment store so it becomes part of the durable, citable record and reconciles into the cohort workbook. This is the most common way analysis work goes missing; §4.4 is how you prevent it.
+The region inventory answers what antiSMASH found. The triage board helps choose
+what to inspect next. A Mode B card combines the evidence for one region into a
+written interpretation. [Choose a task](../docs/USER_TASK_ROUTER.md) lists other outputs.
 
 ## 2 · Setup and installation
 
-Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.177, bundle v9.7.460)*
+Use Python 3.12 or newer and the [installation guide](../docs/INSTALL.md).
+Install the core package first; add optional features when you need them.
+The [prerequisites guide](Prerequisites.md) separates Python extras from
+external programs and databases.
 
-### 2.1 · What you need
-
-**Python 3.12 or newer**, as required by `pyproject.toml`. Check with `python3 --version`.
-
-**The bundle ZIP.** Extract the archive you received and enter the directory that contains
-`pyproject.toml` and `mamey_run.py`. The archive name and the extracted directory may differ.
-Check [RELEASE MANIFEST](../RELEASE_MANIFEST.md) for the actual version and status, and
-[INSTALL](../docs/INSTALL.md) for setup. An unsealed candidate is not a signed release.
-
-**antiSMASH output for your input**, as a ZIP containing its region GenBank files and available
-evidence. The default JSON mode is `bounded`; `off` disables the main JSON walker (independent record-level paths are separate). The `full` mode has a
-size guard and is not normally needed. `--capped-session` forces JSON evidence off,
-even when `bounded` is also requested. The [Quick Guide](Quick-Guide.md) explains this tradeoff.
-
-### 2.2 · Install the engine
-
-Use an isolated environment rather than overriding system Python protections:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e .
-python -B mamey_run.py start --no-doctor
-python mamey_run.py doctor
-```
-
-On Windows, activate with `.venv\Scripts\Activate.ps1` in PowerShell. Core requirements
-are declared in `pyproject.toml`: `openpyxl`, `ijson`, `reportlab`, and `PyYAML`.
-Always use the local launcher (`python mamey_run.py`) so you do not run some other installed
-version by mistake. Optional extras and offline wheelhouse requirements are described in
-[INSTALL](../docs/INSTALL.md).
-
-### 2.3 · Optional features and external assets
-
-Core Python requirements are declared in pyproject.toml. Install figures, documents or Biopython
-through the named extras in [INSTALL](../docs/INSTALL.md). Some companion workflows also need
-external programs or databases; install only those the chosen task requires.
-
-A supplied add-on archive is a convenience, not a guarantee that every wheel matches your machine.
-Check the operating system, CPU architecture and Python version. Do not alter compatibility tags to
-force an installation. Before you say an HMM panel or companion ran, check the actual database
-inventory and the doctor/scan receipts. Historical add-on part sizes and model counts are not
-current capability guarantees.
-
-
-### 2.4 · The right bundle tier
-
-The retained release vocabulary defines five tiers (`tools/tier_vocabulary.py`). The release cutter defaults to CODE-only releases; other tiers are disabled unless explicitly enabled. The table below describes retained tier vocabulary, not a current four-tier cut requirement or permission to enable a branch. `PUBLIC-RELEASE` is a separate promotion state. See the actual release manifest and [current tier scope](../docs/TIER_DIFFERENCES.md).
-
-| Tier | Use for |
-|---|---|
-| **CODE** | The full runnable pipeline: engine code, tools, docs, examples and the Wheelhouse. Private cohort data and internal working notes removed. |
-| **CODE-analysis-free** | The code tier with worked strain-by-strain outputs also removed — the machinery without any of the analyses run through it. |
-| **COHORT-public** | The code tier plus the public reference cohort data banks. Private material still removed. (Bundles sealed up to v9.7.407 carry the retired label `SID-public` for this tier.) |
-| **MERGED-PRIVATE-scaffold** | Everything, withheld from nobody: the full internal working scaffold including any private/ tree and real strain identifiers. The operator's own copy. |
-| **PUBLIC-RELEASE** | The public release artifact. Same content as the code tier; an explicit promotion, not part of the standard cut set. |
-
-Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
-
-### 2.5 · Verify the install
-
-Reuse the setup diagnostics from §2.2; repeat `doctor` only when a changed environment
-or a specific diagnostic question calls for it. Check version consistency separately:
-
-```bash
-python3 tools/sync_version.py --check # should report `engine 1.9.177, bundle 9.7.460`
-# Developer tests are separate from first-run setup; pytest is installed separately.
-# Default pytest omits marked slow/network partitions and may skip external fixtures.
-# A green scoped test run does not establish tier integrity or release readiness.
-```
-
-The startup banner on every run also prints a dependency line:
-
-```
-  deps: openpyxl✓ | ijson(vendored)✓ JSON streaming on | figures✓ | biopython—(optional for core; shim covers GBK parsing — but triage-raw AND blastp-online need it; bundled wheel is Linux-only)
-        registry: registry_detector✓
-```
-
-If a required dependency shows ✗, install it with `python -m pip install -e .` (see [INSTALL](../docs/INSTALL.md)).
-
-→ [Prerequisites](Prerequisites.md) distinguishes core ReportLab PDF support, optional Python extras and external/native tools. Pandoc is not a core extraction requirement.
+Open a terminal in the folder containing `mamey_run.py`. Activate the environment
+you installed there. For results you already have, open `OPEN_ME_FIRST.html`
+without running Python.
 
 ## 3 · Running a strain
 
-The run command has this shape:
+Follow the [first-run commands](../docs/reader/01_FIRST_RUN.md), replacing `EXAMPLE`
+with your strain name and the input path with your antiSMASH ZIP.
+Use the whole genome's antiSMASH result from one job.
 
-```
-python mamey_run.py run \
-  --input-zip <antiSMASH_output.zip> \
-  --strain <ID> \
-  --display-name "<Genus species strain ID>" \
-  --taxonomy "<Genus species>" \
-  --source "<provenance>" \
-  --release <PUBLIC|PRIVATE> \
-  --mode <standard|gold> \
-  --json-evidence <off|bounded|full> \
-  --outdir <dir>
-```
+The default run uses gold mode and bounded JSON evidence. It writes to
+`runs/EXAMPLE/`; `--outdir` selects another parent folder. Add taxonomy and isolation
+source only when you have records for them. The [Quick Guide](Quick-Guide.md#2-choose-the-evidence-and-runtime-budget)
+explains the capped-session output tradeoff.
 
-Key flags (→ Encyclopedia §VII.7 for the full tunable surface):
-- `--release` — local **PUBLIC** or **PRIVATE** output tag, not publication or disclosure permission. With neither a privacy profile nor an override, the current resolver defaults to PRIVATE for every identifier prefix. An exact public profile assignment or an explicit PUBLIC override has a separate recorded basis; an explicit PRIVATE override wins, and applicable private guards or nonpublic profile tiers can refuse PUBLIC. Inspect `release_decision` and the selected policy. Stay within the data owner's approved custody scope; do not infer public authority from a strain prefix.
-- `--mode` — use `gold` for analysis. `standard` remains accepted as a deprecated alias to gold. Gold emits gene-level evidence and native Mode B support, not a finished authored card.
-- `--json-evidence bounded` — enables the region-mapped **RiQ** layer (streams large JSONs; RiQ is exempt from the record cap). `full` carries the richest active-site/substrate data.
-- `--source` — provenance string. **Provide it.** When absent, habitat falls to `ENGINE_DEFAULT_PLACEHOLDER`. Isolation source is a weak proxy for function in any case; never turn it into an ecological claim.
+When extraction finishes, the terminal prints the package path and workbook
+status. `MAMEY_COMPLETE_WITH_ISSUES` means the run completed with warnings.
+Read them in `issue_log.md`; validation can pass while those warnings remain.
 
-**What a completed run looks like.** The console records cohort resolution and warnings. A `NON-ACTINOMYCETE` warning means the strain is outside the project's actinomycete comparison scope; do not merge it into that denominator without explicit intent. It is not itself a command to erase the input or a validation-failure status. Inspect the actual package and issue log, then the status line. The terminal status vocabulary (v9.7.83+) is one of:
-- `MAMEY_COMPLETE` — clean run.
-- `MAMEY_COMPLETE_WITH_ISSUES` — completed, but the manifest carries `[ISSUE]` lines worth reading (MULTIBATCH, VERY_POOR assembly, PHO_CLUSTER, E-signal, etc.).
-- `VALIDATION_FAIL` — the package did not pass its integrity gate; do not use it.
-
-**The package naming convention.** Use the actual `*Complete_Package.zip` filename printed by the run. It includes the producing bundle version, engine version and antiSMASH detection profile. Read those values from the producing manifest; do not reconstruct the filename from versions remembered from this guide. An older package retains its original producing identity.
-
-**Where the outputs land.** Inside `runs/<ID>/package/`: the numbered deliverables (`_1_…` intake through the triage board `_4_triage_board.csv` and the dedicated `_4c_AB_lead_board.csv` / `_4c_AF_lead_board.csv`), the `_5_workbook.xlsx`, the `AntiSMASH_Evidence_Parse.json`, the judgment register, and — in gold mode — the gene-by-gene deep layer. `OPEN_ME_FIRST.html` is the entry point; `START_HERE.md` is the reading order; `manifest.json` is the authoritative file inventory; `run_phase_receipts.jsonl` records per-phase START/DONE receipts; `checksums_sha256.txt` seals it.
-
-**Running many strains.** For a folder of antiSMASH ZIPs, use the intake harness, `tools/intake_harness.py`, rather than one `run` per strain. It needs `--inputs`, `--outdir`, `--registry` and `--metrics`. Add `--resume` to skip inputs that already finished unchanged. Its default staged route does not update a master workbook. See [the batch directives](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
-
-**Previewing a raw antiSMASH ZIP before running:**
-- `python mamey_run.py inspect <antiSMASH.zip>` — one-screen preview of what Mamey sees in a **raw antiSMASH output ZIP** before running (positional; not a sealed-package reader — a sealed `*_Complete_Package.zip` is rejected).
-
-**Inspecting a sealed package without re-running** (v9.7.83+ read-only commands):
-- `python mamey_run.py explain <package_dir>` — narrative walkthrough of what's inside the sealed package and what to do next (positional package directory).
-- `python mamey_run.py list-bgcs <package_dir> [--axis rank|ab|af] [--top N] [--json] [--include-dropped]` — BGC inventory from the triage board (positional package directory; `--axis` default `rank`). By default it hides rows with a primary-metabolism flag or a standing-rule exclusion; `--include-dropped` shows them. `--json` emits `strain, region, exact_locus, bgc_id, contig, node_id, assembly_locator, products, boundary, ab_score, af_score, novelty_auto, …`.
+For a folder of input ZIPs, follow the [batch guide](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
+Its resume option skips matching completed inputs. It does not restart every
+partly finished step.
 
 ## 4 · Reading the output
 
-This is the chapter you will use most. The pipeline emits a triage board, a DAPR priority table, native Mode B evidence/scaffolds, and figures subject to the selected settings. Authoring and verifying a finished Mode B card is subsequent work. → Encyclopedia §VI.4, §VI.5.
-
-### 4.1 · Reading a DAPR row
+Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html`. The
+[saved-result guide](../docs/reader/03_READ_RESULTS.md) walks through the workbook
+and gives an optional strict validation check.
 
-DAPR (dual antibacterial/antifungal priority ranking) ranks leads on both axes. Read a row left to right:
+### Read the region inventory and triage board
 
-- **Rank** — order on the axis after all guards. It means *read this first*, not *confirmed*.
-- **Region** — display `strain / full node-or-contig / region / BGC alias`, bound to one source record. A bare BGC alias is only a local selector and cannot identify a locus across runs. → §4.2 (the §1 Identity bullet) on why the anchor matters.
-- **Boundary** — Interior / Edge / Full-contig / Unknown are coordinate-policy labels, not proof of biological completeness. Unknown means unavailable contig length. Full-contig means the inclusive region span covers at least 95% of the recorded contig, even on a circular replicon; otherwise circular origin is exempt and a linear/unknown-topology region within 5 kb of either end is Edge. **Since bundle v9.7.84 (engine 1.9.85), boundary status no longer lowers the score** — it lowers *confidence* (architecture grade) only. See §9.1.
-- **AB / AF** — the headline axes; Exceptional ≥85 / High ≥70 / Medium ≥50 are assigned from `max(AB, AF, novelty)`. Below 50, **Low** means a resolved non-allow-listed class token is present; **Inventory** means all resolved classes are on the governed Inventory allow-list, or the region is unresolved. These are routing priors, not activity calls.
-- **KCB** — rendered as a band with "(similarity)". Capacity consistent with the class, never an identification.
-- **CCTT** — a corroborated class trigger is *why* a region ranks above a keyword-only one.
-- **Mobile flag** — an ICE-dominated, non-class-typed region is **excluded**, with its reason.
-
-**Read the excluded list too.** It is where the engine shows its work: why a region that a raw score would rank is absent.
-
-### 4.2 · Reading a Mode B card
-
-Mode B is the per-locus authored dossier. Select the profile before reading section-specific requirements: Mode B supports the default `full48` / `FINISHED_FULL48_CURRENT_EVIDENCE` and opt-in `current50_v2` / `FINISHED_FULL50_CURRENT50_V2`. The latter places GECCO at §22, rescued-contig evidence at §26, literature relevance at §48–§49 and the full evidence table last at §50. Historical 20/30-section subsets and current50 v1 reference requirements are separate objects.
-
-Use [the profile matrix](../docs/MODEB_PROFILE_MATRIX.md) and [the maintained authoring walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md). Emit the selected template, preserve its exact titles, author from the available evidence, then verify the saved Markdown with the same `--contract`. Every locus display must include strain, full contig, region and alias. Missing evidence stays typed and source-bound.
-
-Keep edge/full-contig candidates visible and preserve assembly uncertainty throughout the relevant claims. A template, rank, length/depth score or structural pass does not establish production, activity or complete scientific review. Review the actual verifier receipt and profile-specific readiness conditions.
-
-### 4.2a · The three-channel evidence workflow (v9.7.176–182)
-
-A Mode B lead card is built on three independent evidence channels, not one. The reason is a
-real failure: BGC006 (AS-XXX) was once anchored to *colibrimycin* on a KnownClusterBlast score of
-3734, although colibrimycin shared only a handful of genes with the query. A high score is not
-cluster identity. The fix was to stop relying on any single inherited signal and reconcile three:
-
-1. **KCB front page — the named lead, with its coverage.** `python mamey_run.py kcb-frontpage <antismash_dir>`
-   reads the "Most similar known cluster" column. It reports it with a corroboration tier from
-   *both* similarity% and matching-gene count: **STRONG** (a real cluster's worth of shared genes),
-   **COINCIDENTAL** (high similarity but one or two genes — a fluke, demoted), **LARGE_GENERIC**
-   (many generic genes at trivial similarity). The rule the card enforces: never state a KCB
-   anchor without its gene coverage.
-
-2. **Online BLASTp — independent per-gene homology.** `python mamey_run.py blastp-online --package <region.gbk>` is plan-only by default; `--bgc` is a selector for a source-bound multi-region ZIP/crosswalk. Live transport requires both `--submit` (or `--run`) and `--confirm-public-sequence-upload` after sequence-disclosure review and authorization. A plan is not a completed per-gene search. The live channel reconciles returned hits against the antiSMASH domain call
-   (CONFIRM / REFINE / OVERTURN), and resolves strain taxonomy from the consensus organism. On
-   BGC006 this overturned two annotations (a "β-lactamase" that is really an esterase; a "phenol
-   hydroxylase" that is a ferritin) and placed the strain in *Amycolatopsis*. The channel is
-   **fail-closed**: if NCBI is unreachable it says so and fabricates nothing. It needs biopython
-   (the `bio` extra, or the add-on, which vendors it).
+The inventory contains the region coordinates and annotations. The triage board
+adds ranking fields. Match their rows by the same complete identity:
+**strain / full node-or-contig / region / BGC alias**.
 
-3. **HMM readout and separate adjudication API.** `python mamey_run.py hmm-adjudicate <region.gbk> --locus <lt>` prints the ordered domain names, heuristic KS count and single_module flag when the required local dependencies/database are available. It does not accept competing annotation calls or invoke the adjudication/orphan-rescue APIs. The separate `adjudicate` function compares dictionary tokens against domain names and can return SUPPORTS_BLASTP, SUPPORTS_ANTISMASH, AMBIGUOUS, INSUFFICIENT or NO_SIGNATURE_DICT. These bounded heuristics do not independently settle biological function or validate a full assembly line.
+- **Rank:** the order for closer inspection.
+- **AB / AF:** antibacterial and antifungal priority scores, rather than measured activity.
+- **Boundary:** Interior, Edge, Full-contig or Unknown describes the region's
+  position on its contig; a truncated assembly can split a pathway across contigs.
+- **KCB:** KnownClusterBlast reference matches. Compare the shared genes and
+  coverage before using the reference's product name in an interpretation.
+- **Exclusion:** why a region was left out of a ranked list. Read the excluded
+  rows as well as the lead rows.
 
-Read the HMM domain output and BLASTp alignments together, retaining their methods,
-query coverage and source bindings. They support candidate functional interpretation;
-neither establishes a product’s identity, production or novelty. Choose the current
-Mode B profile and follow its emitted template rather than treating these historical
-§4/§8 references as a universal authoring layout.
+Use [the glossary](Glossary.md) for field definitions and
+[the detailed result guide](../docs/READING_YOUR_RESULTS.md) for evidence files.
+A missing input, failed analysis and completed search with no hits are different
+states; use their recorded statuses rather than a blank cell alone.
 
-**Function and novelty.** Keep sequence-comparison observations separate from product-level evidence. A searched database and its actual query/alignment coverage bound any gene-level similarity statement; no search establishes divergence from everything sequenced. A comparator label or score alone does not establish compound identity or scientific novelty. These do not move together. BGC006 is gene-*conserved* (its genes are ~83% identical to
-known *Amycolatopsis* proteins) yet product-*novel* (no characterized compound matches at cluster
-level). "Conserved genes, unknown product" is the honest and more valuable read than a weak MIBiG
-name. See `docs/ONLINE_BLASTP_PROTOCOL.md` for the full spec and the BGC006 worked example.
+### Ask the package what it contains
 
-### 4.3 · The standing deliverables
+From the program folder, with your own strain name:
 
-Beyond the boards and cards, a run or cohort produces: the **BGC inventory** (serial then class-grouped, node/contig on every row); the **workflow status** overview (per-strain progress arrows Parse→Scans→RG-GMCI→Boards→ModeB→Banked). It also produces **Run Observations** (fixed-shape reflection, every claim tagged observed/computed/inferred/assumed) and the **cross-strain synthesis** (per-strain capacity + genus layer + a leak-clean PUBLIC cut when the cohort is PRIVATE).
+```bash
+python mamey_run.py explain runs/EXAMPLE/package
+python mamey_run.py list-bgcs runs/EXAMPLE/package --include-dropped
+```
 
-### 4.3a · Post-seal deliverable subcommands (v9.7.338)
+`explain` describes the saved package. `--include-dropped` makes the list include
+excluded rows, which it normally hides.
 
-v9.7.338 adds twelve on-demand subcommands that consume an **already-sealed package** (or a directory of them) and emit an extra deliverable. Like `render-figures` / `cohort-figures` / `ingest-receipts`, they are **post-seal and non-blocking**: they read facts the engine already computed and **never re-run the engine, move a score, or touch a published tier**. Everything they emit is capacity-level and judgment-deferred (sign-off gated); the last four are advisory helpers. Run them from the bundle root against a sealed `…/package` directory (or a runs dir):
+### Read a Mode B card
 
-**Cross-strain ledgers**
-- **`cohort-leads`** — union every sealed triage board into ONE ranked cross-strain priority-leads CSV (Exceptional+High leads). It carries a MIXED-ENGINE caution when strains span engine versions. *Non-scoring re-projection.*
-  `python mamey_run.py cohort-leads --runs-dir <runs_dir> [--out COHORT_PRIORITY_LEADS.csv]`
-- **`cohort-assemble`** — assemble many sealed packages into a cross-cohort master table (`COHORT_MASTER.csv` + siblings, optional `--xlsx`). *Non-scoring.*
-  `python mamey_run.py cohort-assemble --runs-dir <runs_dir> [--out COHORT_MASTER.csv] [--xlsx]`
+A card should identify its region, describe the available evidence and explain
+its interpretation. The [profile guide](../docs/MODEB_PROFILE_MATRIX.md) distinguishes
+short candidates from finished cards. The [authoring walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md)
+uses the same selected contract for template creation and verification:
+`full48` by default, or `current50_v2` when you choose that profile.
 
-**Evidence / false-positive layer**
-- **`comparator-coverage`** — the two-denominator MIBiG comparator-coverage evidence layer. A named-MIBiG-family "lead" that survives only one of the two coverage denominators is exposed as low-specificity rather than surfaced. This is the main false-positive filter. *Report-only, non-scoring* (its scoring wire is a future, sign-off-gated change and is NOT active).
-  `python mamey_run.py comparator-coverage <package> [--cohort-runs-dir <runs_dir>] [--out <dir>]`
+Save the written card as a file. To put it into the package, follow the
+[receipt workflow](../docs/DELIVERABLE_CONTRACT.md), which also explains master-workbook updates.
+Keep the original package ZIP when updating a working copy.
 
-**Antifungal + interpretive deliverables**
-- **`af-dossier`** — the Antifungal Lead Dossier: one row per AF-lead BGC, joining BGC capacity (class-level routing prior) against **optional** measured Candida activity (strain-level context). Capacity and measured columns are kept in separate groups so they never mix; it runs with no wet-lab input, emitting "no measured data" when the crosswalk is absent. *Report-only, non-scoring.*
-  `python mamey_run.py af-dossier <root> [--out DIR] [--activity-table CSV] [--depth N]`
-- **`good-guesses`** — the claim-safe interpretive-priors deliverable (md / csv / docx / pdf). It holds the single best claim-safe read per notable BGC, tagged **solid / rare / remarkable / notable / interesting**. Each read carries its confidence and the experiment that would resolve it. Every page carries the claim-safety footer. *Report-only, non-scoring.*
-  `python mamey_run.py good-guesses <root> [--out DIR] [--pdf] [--docx] [--depth N]`
+## 5 · Deepen the evidence
 
-**Document + figure export**
-- **`modeb-export`** — export an authored Mode B card to the requested Word `.docx` and/or ReportLab `.pdf`. The input is a card `.md`, or a package `mode_b/` directory for batch. A missing optional DOCX dependency is reported as a skip, but any requested skipped format makes the command fail; `--format both` requires both written outputs. Claim-safety refusal is separate from successful export. *Non-scoring.*
-  `python mamey_run.py modeb-export <card.md|mode_b/> [--outdir DIR] [--format docx|pdf|both]`
-- **`figures kcb-locusmap`** — an offline KnownClusterBlast comparative gene-cluster locus map (PNG + SVG + `data.csv`) from a sealed input ZIP or an extracted knownclusterblast txt. It degrades to a clear message (never a traceback) with no matplotlib. *Non-scoring figure.*
-  `python mamey_run.py figures kcb-locusmap --zip <zip> --contig <NODE> --out-dir <dir> --strain-id <ID> --bgc-id BGC### [--products "..."] [--top-n 6]`
+Choose the question before adding a tool:
 
-**Count / novelty / reference (advisory)**
-- **`domain-reference`** — emit the bundled Mode-B domain functional-context reference dictionary from sealed package(s).
-  `python mamey_run.py domain-reference --package <pkg> [--out DIR]`
-- **`realistic-count`** — an honest corrected-denominator BGC count (marginal-drop + HIGH RG-GMCI merge) beside the raw region count.
-  `python mamey_run.py realistic-count --package <pkg> [--out DIR]`
-- **`novelty-shortlist`** — a composite multi-signal novelty shortlist (KCB-dark + low recognizability + RG-GMCI + cohort-unique domain).
-  `python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out DIR]`
+- **What does a protein resemble?** Read existing [BLASTp evidence](../docs/ONLINE_BLASTP_PROTOCOL.md)
+  before starting a search. A live search uploads the selected sequences.
+- **Could a region be fragmented?** Read its reference coverage and contig
+  boundaries together. [Reference completion](../docs/COMPANION_CLASS_EVIDENCE.md)
+  and [expanded-locus evidence](../docs/MODEB_EXPANDED_LOCUS.md) describe the available checks.
+- **Which regions belong to a family?** Use the [BiG-SCAPE walkthrough](../docs/BIGSCAPE_COHORT_WALKTHROUGH.md)
+  with the chosen regions and comparison set.
+- **Where does the strain fit in a tree?** Use the [phylogeny guide](../docs/PHYLO_AUTOPILOT_WORKFLOW.md)
+  with the sequence and reference inputs it requests.
 
-**Analysis QC + Mode-B interpretation gates**
-- **`signoff`** — the "would a master's student sign off?" analysis QC gate (§8-style checks, automated). It runs objective checks on Newick trees — outgroup sanity, contaminant/label-cruft, support/thin-tree. Advisory: a valid call exits 0 even when it finds issues, and a bad option exits 2.
-  `python mamey_run.py signoff [tree.treefile ...] [--minutes N]`
-- **`verify-modeb --interp`** — adds the Mode-B **interpretation** (judgment-substance) layer to `verify-modeb`: **WARN-only** `INTERP_*` findings (`INTERP_NO_SYNTHESIS`, `INTERP_NO_TIER`, `INTERP_REFDARK_SILENT`) reading the §4 synthesis/ref-dark prose. It only *adds* warnings; the structure gate's PASS/FAIL verdict and exit code are unchanged, so a card can be structurally green and still show interp warnings. For an authoring loop that should FAIL on missing judgment, run the standalone gate `python -m mamey.modeb_interp_gate <card.md> [--strict]`.
-  `python mamey_run.py verify-modeb <authored-card.md> --package <pkg> --bgc BGC### --interp [--interp-strict]`
+A reference match supports a similarity statement; identifying a compound or
+assigning activity to a particular region needs evidence for that link.
 
-### 4.4 · Persisting Mode B judgment — the receipt path (v9.7.85)
+## 6 · Make figures
 
-**This is the step that keeps analysis from being lost**. Mode B cards must be written back into the package's judgment store. Until then they exist only as text. The flow:
+First look at the images already in the package. The brief's plots, gold figures
+and locus maps have separate file lists. Check those lists before regenerating them.
 
-1. When a Mode B batch is finished, write one **`mode_b_receipt.json`**:
-   ```json
-   {
-     "schema_version": "mode-b-receipt-1.0",
-     "strain_id": "AS-XXX",
-     "session_id": "sapote_2026-06-19_AF",
-     "cards": [
-       {"bgc_id": "BGC018", "mode_b_md": "…full §1–§48 markdown…",
-        "layperson_paragraph": "…", "fermentation_note": "…"}
-     ]
-   }
-   ```
-2. Ingest it:
-   ```
-   python mamey_run.py ingest-receipts --package runs/AS-XXX/package \
-     --receipt mode_b_receipt.json \
-     --master cohort/master_workbook.xlsx
-   ```
+[Make and review Mamey figures](../docs/FIGURES_START_HERE.md) maps each figure to its
+renderer, source tables and checks. Keep a figure with its plotted data and methods.
+For post-run rendering, use a working package copy because some commands update
+its integrity records even when images go to another folder.
 
-For nonempty cards that pass the identity and structure checks, this writes Markdown and records the register row as `COMPLETE`; unknown/conflicting identities and structure errors have separate skipped states. With `--master`, the workbook index is reconciled. Register COMPLETE is a persistence status, not current-profile or scientific completion: quality tiers are recorded without blocking ingest, so SHALLOW/STUB cards can be stored. Verify the actual authored file against the selected full48/current50_v2 contract and retain the independent quality/evidence review. The ingest structure gate checks each card against the contract named in its header, which `emit-modeb-template` writes, or named by `--contract` (`full48` or `current50_v2`, as on `verify-modeb`). A card with neither is checked against full48. A card that fails its contract, or whose header disagrees with `--contract`, is skipped with structure errors unless `--force-structure` records it with an override. It is **fail-closed** (an unknown `bgc_id` is reported and skipped, never invented) and **idempotent** (re-ingesting does not duplicate rows). → Encyclopedia §VI.8.
+Before comparing counts across strains, check that their antiSMASH detection
+settings match. Loose runs can call more regions than default runs.
 
-For cards already saved in the package as `judgment/<strain>_<BGC_ID>_mode_b.md`, run `python mamey_run.py ingest-receipts <package> --auto-detect`. It records each card whose BGC is in the register and not yet COMPLETE, and skips the rest. `--card <file>` persists one card. Use exactly one of `--receipt`, `--card` or `--auto-detect`. `--master` reconciles the workbook after any of the three. One call handles one package, so a cohort needs one call per package.
+## 7 · Keep and share results
 
-**Banking a strain into a cohort.** After a run (and after Mode B ingest), the strain's data accrues into the master workbook via the `--master` update pass. The first run creates the schema sheets. Later runs write each row by column name, so a different column order does not shift values. A column that a newer engine adds is appended to the header, and earlier rows stay blank in it. Running the same strain into the same master again replaces that strain's rows instead of adding a second set. This workbook is separate from the JSON cohort bank described in [cohort-bank publication](../docs/COHORT_BANK_TRANSACTIONS.md).
+Keep the original antiSMASH ZIP, the Complete_Package ZIP and any written cards
+or reports. The package manifest records the input and producing versions.
+[Files and storage](../docs/FILES_STORAGE_AND_HANDOFF.md) explains how to transfer a
+result while keeping its links and evidence together.
 
-## 5 · Configuration
+For reporting, use [Evidence to report](../docs/EVIDENCE_TO_REPORT.md).
+[Citation status](../docs/CITATION_COMPACT_MODE.md) explains labels used in compact reports.
 
-The pipeline's behavior is tuned through **named module constants**, not scattered magic numbers (→ Encyclopedia §VII.7 for the full file:line table):
+## 8 · Recover a failed step
 
-1. **Calibration weights** — keyword tables, `DIAGNOSTIC_BONUS` (how *strongly* a signal scores).
-2. **Geometric thresholds** — tier cutoffs (85/70/50), assembly bands (70/45/20), the flanks (5000/10000/300) (*where the lines are drawn*). **Note:** the edge/full-contig score penalty was removed in v9.7.84 (§9.1) and is no longer a tunable threshold.
-3. **Guard sets** — diagnostic-trigger / floor-exclusion / over-call lists (*which signals are load-bearing*).
-4. **Run options** — `--release`, `--mode`, `--json-evidence` (one run, not the calibration).
+Keep the output folder, command and last error. Follow
+[Recovery](../docs/reader/04_RECOVERY_AND_LIMITS.md) and use a fresh output folder for a retry.
+If an outer tool times out, check whether the process is still running before
+starting another writer.
 
-**Workflow for any change:** edit the named constant → run the suite → re-run a reference strain to see exactly what moved. A calibration you cannot see move is one you cannot trust. Re-weighting a keyword is reversible calibration; adding a class to a diagnostic-trigger set is a *guard-set* change and deserves more scrutiny. **Any change to a scoring constant breaks cross-strain comparability.** Strains scored under the old constant must be re-scored before they are compared to strains scored under the new one; the engine version is how you track which is which.
+## Reference
 
-## 6 · How the engine works (module by module)
-
-This section is the bridge to the Encyclopedia: enough of the internals to read the output critically. → Encyclopedia Vol II–VII for the full treatment.
-
-- **Parsing & the data model** (`parsers.py`, `antismash_evidence.py`). Two streams: BioPython parses the region GenBank into `BGCRecord` / `CDSFeature` / `DomainFeature` (this is where product-class labels come from). A JSON stream (via `ijson`) plus GBK `/sec_met_domain` extraction yields the diagnostic evidence (Pfam hits, NRPS/PKS consensus, RiPP cores, KCB hits). **Mamey reads what antiSMASH already computed; it never re-runs detection.** → §II.
-- **Geometry & counting.** Boundary status (Interior / Edge / Full-contig) is computed from span vs contig length; it drives the **corrected count** (Interior 1.0 + Edge 0.5 + Full-contig 0.25) and the architecture confidence grade. → §III, → Glossary "Edge status".
-- **The scans** (`source_scans.py`). The marker registry plus the **CCTT / T43** class-trigger framework run as regex over the *parsed* objects (not the raw ZIP). A corroborated T43 trigger is what lets a region floor to Medium and earn the diagnostic bonus. The supporting scans (resistance, transporter, chitinase/CGAD, TFBS, regulator) inform judgment. → §VII, → Glossary.
-- **Reconstruction (RG-GMCI).** Homology-guided shared-reference linkage across contigs: it proposes that two fragments on different contigs are one split pathway when they share MIBiG references. **It does not join contigs at the nucleotide level**, and its bonus is routing priority, not claim confidence; promiscuous-hub and distant-reference pairs are down-weighted. **As of v9.7.100 the rescue layer was reworked** to use the full ClusterBlast evidence rather than KnownClusterBlast alone. Hits are tagged by database of origin (`db_kind` — knownclusterblast vs clusterblast vs the excluded subclusterblast). Each pair records a `rescue_evidence_base` (BOTH_KCB_AND_CB / CLUSTERBLAST_ONLY / KNOWNCLUSTERBLAST_ONLY — so a novel cluster with genome neighbors but no characterized match is no longer invisible). A `functional_rescue_class` cross-checks gene-role complementarity (core vs tailoring split = real split; both-core = paralog). A **terminus-truncation rescue** flags the simplest split of all — an Edge region ending *at* its contig terminus paired with a small severed-arm contig — overriding a paralogy verdict that rests on a gene legitimately multi-copy within one cluster. All of these remain candidate inference, not contig joining. → §VIII, → Glossary "RG-GMCI rescue layer".
-- **Scoring & judgment-support** (`scoring.py`). Three axes (AB / AF / novelty), each a base floor + class-keyword credit + a gated diagnostic bonus, modulated by the guard stack (primary-metabolism / mobile-element / mis-anchor suppression; standing-rule downgrades; RiPP-fragment floor) and RG-GMCI rescue. Tier = max axis. → §IX, and §9 below for the v9.7.85 scoring change.
-- **Compound-class annotation** (`compound_class.py`, v9.7.86). A deterministic layer that records the chemotype a BGC's own evidence is consistent with (anthracycline, polyene macrolide, tetracycline, glycopeptide, phenazine, …). The chemotype is read from antiSMASH's own `t2pks.product_classes` prediction and the resolved MIBiG product line (own-evidence only; never the raw KCB anchor blob). It carries a `confidence` field (HIGH / MODERATE / LOW) and a `cytotoxic_flag`. Most chemotypes are **annotation-only** (recorded, no score impact); three well-anchored families carry a scored consequence (polyene-macrolide → AF, ionophore → AB, anthracycline → its own cytotoxic category). Surfaced in the manifest and Mode B §5.
-
-### 6.5 · The fifteen cassette families and the scans (ten core + two context)
-
-The generated catalog describes its declared cassette and scan roster. Native regeneration parity checks that the selected source inputs reproduce the document; it does not prove exhaustive scanner coverage or semantic accuracy, and the source descriptions can themselves drift:
-
-→ **`docs/USER_CATALOG.generated.md`** (cassette catalog + scan catalog; build-checked via `tools/gen_user_catalog.py --check`).
-
-The **ten core deterministic scans** are the genome-wide pre-triage layer — KCB, RG-GMCI, FLBR, CCTT, CGAD, UMED, EFLS, Resistance, bldA/TTA, TFBS (→ Concepts Q&A Bank 35). Two further **context scans**, `regulators` and `transporters`, emit their own workbook sheets but are read as context rather than triage drivers. That is why "the scans" is sometimes quoted as ten and sometimes as twelve; both are right once you separate core from context.
-
-Reading reminders carried from the catalog: a cassette count is **capacity / signal, not product or activity**; absence of a family is **not** a negative call; `siderophore_metallophore` and `transporter_resistance` are widespread and low-discrimination.
-
-## 7 · Running fungal and cyanobacterial genomes
-
-Sapote–Mamey is designed and calibrated for **actinomycete bacteria**. Fungal and cyanobacterial antiSMASH outputs run through Mamey without engine changes, but several interpretation-layer assumptions do not carry across kingdoms. The worked fungal reference is *Capronia epimyces* CBS 606.96 → Encyclopedia Volume IX.
-
-### 7.1 · What transfers across kingdoms
-
-The **structural/geometric layer is taxon-agnostic**. BGC parsing and inventory, boundary classification and the corrected count, assembly tiering, KCB/MIBiG similarity anchoring (MIBiG 4.0 includes fungal clusters), RG-GMCI geometry, package sealing, and claim-safety language all work unchanged. On the *C. epimyces* pilot the engine extracted 25 BGCs (corrected 24.5, GOOD assembly) and sealed cleanly. The structure is correct; the interpretation needs the manual review below.
-
-### 7.2 · What does not transfer — three interpretation failures
-
-1. **The CCTT framework is mostly silent.** The T43 families encode actinomycete biology; fungi build chemistry differently. On *C. epimyces* only T43-PHO fired (correctly — PEP-mutase means the same thing in both kingdoms). The other 24 BGCs fell to Inventory because the bacterial detector cannot *see* fungal chemistry. **These are under-calls, not genuine negatives.** Manual gene-by-gene Sapote review is required for any fungal BGC of interest.
-2. **bldA/TTA and TFBS scans are not applicable.** bldA/TTA is actinomycete-specific; TFBS keys on bacterial regulator motifs. Both produce numbers on a fungal genome that are meaningless. As of v9.7.86 the engine marks bldA/TTA **NOT_APPLICABLE automatically** on non-actinomycetes (keyed on organism actino-status, not on TTA presence, so a GC-poor non-actinomycete no longer gets a false T4 report). Still treat TFBS output as NOT_APPLICABLE by hand.
-3. **The CGAD chitinase scan inverts — a claim-safety hazard.** In an actinomycete, high GH18/GH19 chitinase + AA10 LPMO counts suggest fungal-cell-wall degradation (antifungal-relevant). In a fungus, GH18 chitinases are *housekeeping* enzymes for the organism's own cell wall. CGAD on a fungal genome returns high counts that, under the bacterial framework, contribute false antifungal signal. **Reinterpret all fungal CGAD output as "cell-wall chitin metabolism (self)"; do not route it into antifungal claims.** T43-NUC, chitin-*synthase* inhibition, is mechanistically distinct and may still apply.
-
-### 7.3 · Running a fungal genome — required manual steps
-
-Use the standard command (there is no `--kingdom` flag yet; the fungal patches P-F1–P-F6 are unimplemented → §IX.6). After the run, before reading output: (1) **discard the automated lead tiers** (bacterial-framework under-calls — use corrected count + assembly tier only). (2) **null the bldA/TTA section**. (3) **null the TFBS section**. (4) **re-read all CGAD output as self cell-wall biology**. (5) **run a manual gene-by-gene Sapote pass** for BGCs of interest (key fungal signatures: iterative KS, PT domain for NR-PKS, scytalone dehydratase for DHN-melanin, TRI5 for sesquiterpenoids, DMATS for indole alkaloids). (6) **T43-PHO may be trusted**. (7) **KCB similarity to fungal MIBiG is trustworthy** at capacity level.
-
-### 7.4 · Cyanobacterial genomes
-
-Processed in bacterial mode; structural handling identical. Caveats milder than fungal: T43-PHO transfers; T43-NUC may partially apply; RiPP triggers apply only with gene-level confirmation. bldA/TTA is NOT_APPLICABLE. TFBS motifs likely don't apply (treat as preliminary). CGAD does not invert (cyanobacteria aren't chitin-walled) but read it ecologically, not mechanistically. Corrected count, assembly tier, KCB, and RG-GMCI all apply normally. MIBiG-visible classes include cyanopeptolins, microcystins (flag hepatotoxicity), anabaenopeptins, cryptophycins, and RiPPs.
-
-### 7.5 · Roadmap to full cross-kingdom support
-
-A six-patch roadmap (P-F1–P-F6 → §IX.6): P-F1 adds a `--kingdom` flag (reads the antiSMASH taxon label, records kingdom in the manifest, threads it through the scan pack). Later patches gate actinomycete-only scans, fix the CGAD inversion, and add a fungal CCTT subset. Until they ship, the §7.3 manual steps are the correct procedure. Anyone implementing fungal extensions should fork the COHORT-public tier and verify a reference actinomycete run remains byte-identical before/after.
-
-## 8 · Type strain reference analyses
-
-Full analyses for public type strains are in Encyclopedia Volume XII, each BGC cited with contig + antiSMASH region (e.g. BGC057 (CP023690.1 · region057)) so reports are reproducible across detection settings:
-- ***Streptomyces spectabilis* ATCC 27465** (CP023690.1): primary calibration reference; 67 BGCs all Interior; spectinomycin BGC057 at Medium with the BGC0000715.5 anchor.
-- ***Streptomyces liangshanensis*** (CP050177.1): 45 BGCs all Interior; HSAF-class antifungal BGC026 at AF 67.0 (T43-PTM); azoxy N–N BGC027 (T43-NN).
-
-→ Encyclopedia Volume XII for complete Mode B, layperson guides, bench guides, and ecological synthesis.
-
-## 9 · Recent scoring & reconstruction changes
-
-### 9.1 · v9.7.84 — edge/full-contig penalty removed
-
-**As of engine 1.9.85 (bundle v9.7.84), the edge/full-contig fragmentation penalty is neutralized to zero**. Previously a BGC on a contig edge lost score (Edge −3.5, Full-contig −6.3 on the AB/AF axes); now boundary status does not deduct from the score at all.
-
-**Why.** An audit across the AS cohort found Edge/FC BGCs show *no truncation signature* in their base score (mean base AB was equivalent across Interior / Edge / Full-contig). So the penalty was a flat pessimism prior, not a correction for missing genes. Yet at the Medium threshold it was decisive: it flipped most near-threshold edge leads into Inventory, burying exactly the overlooked fragments the pipeline exists to surface in fragmented genomes.
-
-**What replaced it.** Truncation uncertainty is real and still recorded — as a **confidence** signal, not a score deduction. An Edge/FC region drops to architecture grade C/D and carries its boundary status in the rationale, so a reader sees "extent unconfirmed" without the lead being demoted below complete-but-trivial clusters. Boundary status still drives the **corrected count** (Interior 1.0 / Edge 0.5 / Full-contig 0.25); that is unchanged.
-
-→ See the *AB/AF Scoring Methods* document §4.7 and the selvamicin walkthrough (BGC0001773) for the full rationale and a worked case.
-
-### 9.2 · v9.7.100 — RG-GMCI contig-rescue overhaul
-
-**As of engine 1.9.98 (bundle v9.7.100), the RG-GMCI rescue layer reads the full ClusterBlast evidence rather than KnownClusterBlast alone**, and gains a physical (coordinate-based) rescue path. The ranked-pairs output (`*_4A_RGGMCI_ranked_pairs.csv`) carries new fields:
-
-- **`db_kind` / CB–KCB separation.** Each shared-reference hit is tagged by source database — knownclusterblast (characterized MIBiG cluster), clusterblast (cross-genome GenBank neighbor), or the excluded subclusterblast (sub-operon). Earlier code blind-merged all three.
-- **`rescue_evidence_base`.** BOTH_KCB_AND_CB / CLUSTERBLAST_ONLY / KNOWNCLUSTERBLAST_ONLY — so a novel cluster with real genome neighbors but no characterized match is no longer invisible to a KCB-only path.
-- **`functional_rescue_class`.** Cross-checks gene-role complementarity (core vs tailoring split = real split; both-core = paralog) by core-fraction asymmetry.
-- **Terminus-truncation rescue (`TERMINUS_TRUNCATION_SPLIT`).** The simplest split of all — an Edge region ending *at* its contig terminus, paired with a small severed-arm contig — overriding a paralogy verdict that rests on a gene legitimately multi-copy within one cluster.
-
-All remain **candidate inference, not nucleotide-level contig joining**. → §6 (RG-GMCI bullet), → Glossary "RG-GMCI rescue layer", → Encyclopedia §IV.4.
-
-### 9.3 · Comparability
-
-Scores are **not comparable across an engine boundary** without a re-score. The boundaries to date:
-
-- **1.9.84 → 1.9.85** — the edge/full-contig penalty removal (§9.1).
-- **1.9.85 → 1.9.86** — the v9.7.85 KCB-anchor keyword-contamination fix.
-- **1.9.96 → 1.9.97** — data-driven RiPP extraction (v9.7.99): RiPP families beyond the original four are no longer dropped, so any strain carrying a ranthipeptide / linaridin / thioamitide / other extra RiPP family changes; original-four-only strains are byte-identical.
-- **1.9.97 → 1.9.98** — the RG-GMCI contig-rescue overhaul (v9.7.100): new ranked-pair fields and two new package artifacts. This changes rescue *routing* and adds fields but does **not** alter the AB/AF/novelty base scores, so it is the mildest of the four — but it is still an engine boundary for cohort-pooling purposes.
-
-The boundaries above are historical examples, not a declaration that 1.9.98 is current. For a new comparison, bind each package's actual engine, registry, input profile and settings. Use the current comparison checks and re-score incompatible inputs under the selected common configuration; do not assume a remembered genus-bank version.
-
----
-
-
-### 9.4 · v9.7.445 — RG-GMCI read depth and residue tiling
-
-Each RG-GMCI ranked pair (`*_4A_RGGMCI_ranked_pairs.csv`) now ends with `depth_a`, `depth_b`, `depth_ratio` and `depth_flag`. The flag is **DEPTH_MISMATCH** when the lower read depth is below 0.67 of the higher: the two contigs may not come from the same replicon, so read that pair with more caution. The standalone `rggmci` package adds an optional residue-tiling check (`--diamond-db`). It shows whether two fragments cover different stretches of the same MIBiG proteins, which is how a gene broken across contigs differs from a paralog. Both are report-only: no score or confidence changes, so §9.3's comparability boundaries are unchanged. → Glossary "RG-GMCI read depth and residue tiling".
-
-## 10 · Figure generation
-
-This chapter is the single reference for every figure Sapote–Mamey produces: what it shows, whether it renders by default or on demand, how to trigger it, and where it lands. Two principles hold across all of them:
-
-1. **Keep each figure with its actual data and methods sidecars.** Formats vary by renderer; inspect the emitted files rather than assuming a PNG/CSV pair for every workflow. The PNG is for the eye; the CSV is the figure's data, so a figure can always be re-plotted or audited without re-running the pipeline. Strain names display as *Genus species* strain `<ID>`.
-2. **Figures carry no claim text on the canvas.** The claim ceiling (capacity, not production; KCB similarity, not identity) is recorded in the render receipt. It is not drawn on the image, and it is not written into the caption. Some older renderers still draw it. Run `tools/figure_render_qc.py` on a finished folder to find them; [Make and review Mamey figures](../docs/FIGURES_START_HERE.md) explains the check. Figures never assert compound identity.
-
-Figures fall into three groups: **default per-strain** (rendered automatically in every run), **default cohort** (rendered when you build the cohort atlas), and **optional/on-demand** (rendered when you ask for them, in-run or post-seal).
-
-### 10.1 · Default per-strain figures (with the strain brief)
-
-These render with the strain brief, into the package root (alongside `manifest.json`), and are listed in `figure_manifest_print.csv` at the package root. (The `figures/figure_manifest.csv` inside the package's `figures/` directory is the collection/metadata-figure manifest, and post-seal `render-figures` writes its own `figure_manifest.csv` into `figures_rendered/`; neither lists the five figures below.) They are skipped when the run uses `--brief none`, which `--capped-session` forces. Render them afterwards with `python mamey_run.py render-all-figures --package <pkg>`.
-
-1. **DAPR scatter** (`<strain>_8c_fig_dapr_scatter.png`) — the diagnostic landscape: every BGC placed by antibacterial vs antifungal capacity, sized/annotated by priority. The at-a-glance "what does this strain's biosynthetic potential look like" figure.
-2. **Antibacterial lead board** (`<strain>_8d_fig_ab_ranked.png`) — top BGCs ranked by AB capacity score, node/contig-anchored.
-3. **Antifungal lead board** (`<strain>_8e_fig_af_ranked.png`) — the same for AF capacity.
-4. **Funnel** (`<strain>_8f_fig_funnel.png`) — raw BGC count → corrected count → lead set, showing how fragmentation and standing-rule downgrades reduce the candidate pool.
-5. **AB/AF vertical panels** (`<strain>_8g_fig_ab_af_panels.png`) — stacked AB and AF lead boards for side-by-side reading.
-
-### 10.2 · Default per-strain locus maps (unless turned off)
-
-Deterministic gene-arrow maps render in-run into the package's `locus_maps/` directory, unless the run sets `--locus-maps off` or a capped session turns them off. They are cataloged in `locus_maps/locus_map_manifest.csv`. Each gene is an arrow drawn to bp scale, strand-aware, colored by its functional role (PepM, Ppd, NRPS module, PKS module, RiPP machinery, transport, regulation, …) from `mamey/data/locus_role_palette.json`; unrecognized genes are gray "other / hypothetical". Three triggers fire automatically:
-
-6. **Top-lead locus maps** (`<BGC>_<node>_locus.png`) — a single-BGC map for the top antibacterial lead and the top antifungal lead.
-7. **Mode B locus maps** (`<BGC>_<node>_locus.png`) — one map per Mode B BGC (gold extraction does not establish an authored or verified Mode B card).
-8. **RG-GMCI HIGH pair maps** (`<BGC_a>__<BGC_b>_pair_locus.png`) — a paired, stacked two-panel map for each RG-GMCI HIGH pair, for split-cluster / homology review. Renders only when HIGH pairs exist (it depends on the RG-GMCI HIGH set being counted correctly).
-
-The map's role labels come from the full antiSMASH `gene_functions` annotation. Because that blob is sealed into the gene context, the same maps can be re-rendered post-seal (§10.5).
-
-### 10.3 · Default cohort figures (the master atlas)
-
-Rendered by `tools/build_master_figures.py` from a populated cohort workbook (the master `.xlsx`). These are cohort-level, not per-strain.
-
-9. **Master dashboard** (`fig_master_dashboard`) — the cohort overview panel.
-10. **Dual-priority atlas** (`fig_dual_priority_atlas`) — AB and AF priorities across the whole cohort.
-11. **BGC assembly landscape** (`fig_bgc_assembly_landscape`) — BGC yield against assembly quality per strain (the "is low yield real or a fragmentation artifact" figure).
-12. **Special-bucket heatmap** (`fig_special_bucket_heatmap`) — special-review burden by strain (nucleoside priority, polyene/PTM flags, other-token rows, RG-GMCI high pairs).
-13. **Top lead boards** (`fig_top_lead_boards`) — cohort-wide top antibacterial and antifungal leads.
-14. **Strain card atlas** (`fig_strain_card_atlas`) — a per-strain summary card grid.
-
-### 10.4 · Optional / on-demand figures
-
-These are not rendered automatically; you invoke them with `render-figures --figure-set <name>` (post-seal, against a sealed package or a cohort workbook). All are non-blocking: a render failure writes a skip card and never invalidates the package.
-
-**Domain-level figure pack** — `render-figures --package <pkg> --figure-set domain-level` (runs domain-level first if its tables are absent; `render-figures` does not take `--source-antismash` — for full per-domain detail, run `domain-level --package <pkg> --source-antismash <zip>` first, then render). Lands in `domain_level/figures/`:
-
-15. **Role-burden heatmap** (`domain_role_burden_heatmap.png`) — all supplied role-count rows aggregated by shortened node/region/alias label × domain-role category; no native top-lead filter. The key omits strain, so combining packages can merge different loci. Use this figure for one package at a time.
-16. **Core biosynthetic burden** (`core_biosynthetic_domain_burden.png`) — per-BGC stacked bar splitting biosynthetic-core domains from accessory clutter. The architecture-confidence axis, separate from AB/AF.
-17. **Per-BGC domain strips** (`<Strain>_<BGC>_domain_strip.png`) — node-first domain arrows for each top lead, colored by domain role, collapsing very large BGCs with a receipt.
-
-**Cohort class-capacity heatmap** — `render-figures --figure-set cohort-class --workbook <cohort.xlsx>`. One figure:
-
-18. **Class-capacity heatmap** (`cohort_class_heatmap.png`) — strain × primary-biosynthetic-class matrix, cell = BGC count, viridis. The genome-class display parks **saccharide only**; NAPAA and fatty_acid remain eligible. This is separate from the wider genus/BiG-SCAPE comparison exclusions. Claim and interpretation text belongs in accompanying captions/methods, not on the figure. All-zero class columns are dropped to keep it legible.
-
-Compare class counts only within one antiSMASH detection strictness. A loose run calls more regions than a default run, so a cohort that mixes them makes the loose genomes look richer. `python tools/check_antismash_profile.py <runs_dir>` reports each package's strictness, and [Make and review Mamey figures](../docs/FIGURES_START_HERE.md) has the count-table tool that refuses mixed input.
-
-**Cross-strain figure suite** — `tools/build_cross_strain_figures.py --rg-dir <rggmci_dir> --out-dir <dir>`. A bundle of cohort comparison figures (class prevalence, fragmentation gradients, raw-vs-corrected BGC, genome-size-vs-BGC, and related), each with its data CSV. See the figure prompt specs under `prompts/figure_prompts/cohort/`.
-
-### 10.5 · Re-rendering figures post-seal
-
-Figure outputs and integrity records depend on the selected command. Post-seal rendering avoids rerunning extraction, but the CLI refreshes `post_seal_checksums.txt` after `render-figures` and `render-all-figures`, including when images are directed externally. To preserve an original sealed package, use a bound working copy and follow [post-seal write boundaries](../docs/POSTSEAL_READERS.md#commands-that-write-into-the-package). The figure-set examples below are selection examples; inspect outputs and validate/review the working result before accepting it:
-
-- `render-figures --figure-set standard` — the per-strain lead/diagnostic figures.
-- `render-figures --figure-set locus-maps` — re-renders the gene-arrow maps from the sealed per-CDS gene context (the K0 path). Gene roles are reconstructed from the sealed `gene_functions` blob, so role assignment matches the in-run maps. Note: the in-run maps read the region GBK directly and the post-seal maps read the overlap-keyed gene context, so the *set* of CDS shown for a given BGC can differ slightly between the two. Both are honest views of the same region.
-- `render-figures --figure-set domain-level` — the domain figure pack.
-- `render-figures --figure-set cohort-class --workbook <xlsx>` — the cohort class heatmap.
-
-### 10.6 · Where figures live (quick map)
-
-| Figure group | Directory | Trigger |
-|---|---|---|
-| Per-strain leads/diagnostics (1–5) | package root | with the strain brief; skipped by `--brief none` |
-| Per-strain locus maps (6–8) | `locus_maps/` | in-run unless locus maps are off |
-| Cohort master atlas (9–14) | atlas output dir | build the master atlas |
-| Domain-level pack (15–17) | `domain_level/figures/` | `--figure-set domain-level` |
-| Cohort class heatmap (18) | chosen out dir | `--figure-set cohort-class` |
-| Cross-strain suite | chosen out dir | `tools/build_cross_strain_figures.py` |
-
-Most figures ship a companion `_data.csv` and are registered in a figure manifest for their group. Check the emitted files rather than assuming the pair, as principle 1 says.
-
----
-
-## 11 · Useful commands — natural language that works
-
-When you work through an assistant, you can ask for what you need in plain language and it chooses the right workflow step. The [Quick Guide](Quick-Guide.md) maps each starting situation to its first useful action ([Start with the question you need answered](Quick-Guide.md#start-with-the-question-you-need-answered)) and lists the deliverable choices ([5. Select a deliverable](Quick-Guide.md#5-select-a-deliverable)). The single most useful request to know:
-
-> **"Can you work from this to get me the full deliverables?"**
-
-Name the deliverables you need and provide their inputs and output location. With an
-antiSMASH ZIP, the assistant follows the extraction route; with an existing Mamey
-package, it first reads the saved evidence and status. Use [Choose a task](../docs/USER_TASK_ROUTER.md)
-to select the requested figures, card or report and its completion evidence. A broad
-“full deliverables” request does not make a generated template a finished card or
-require rerunning an existing package.
-
-For the post-seal commands behind those deliverables (`list-bgcs`, `render-figures`, `emit-modeb-template`, `verify-modeb`), see [10. Post-seal deliverables](Quick-Guide.md#10-post-seal-deliverables) in the Quick Guide. The complete command list is the [command catalog](../docs/COMMAND_CATALOG.generated.md).
-
-### 11.1 · The evidence-channel commands (v9.7.176–182)
-
-These back the three-channel Mode B workflow (§4.2a). Their input, output and contact contracts differ. Read the [BLASTp protocol](../docs/ONLINE_BLASTP_PROTOCOL.md) and [post-seal write boundaries](../docs/POSTSEAL_READERS.md#commands-that-write-into-the-package) before executing a selected path. The current `blastp-online` default prints a disclosure plan; live submission requires both `--submit` (or `--run`) and `--confirm-public-sequence-upload` within the authorized external-search scope. Planning or a successful command is not completed BLASTp evidence:
-
-- **`python mamey_run.py kcb-frontpage <antismash_dir>`** — the named KCB leads per region, ranked, each with its
-  corroboration tier (STRONG / COINCIDENTAL / LARGE_GENERIC). Run this first on any strain; it is
-  the cheapest, highest-signal read, and it catches named compounds a scanner would spend effort
-  re-deriving.
-- **`python mamey_run.py blastp-online --package <gbk> --bgc <ID>`** — per-gene NCBI BLASTp for one BGC, with the
-  CONFIRM/REFINE/OVERTURN reconciliation and the §9 cluster reads (coherence, function, novelty).
-  Fail-closed; batches ≤10 proteins, giant proteins (>2500 aa) solo.
-- **`python mamey_run.py blastp-round --package <pkg> [--full-top 3] [--run --confirm-public-sequence-upload]`** — the phased strain plan. The plan covers full
-  per-gene BLASTp for the top-N BGCs (so complete evidence is back before their cards are authored)
-  plus one representative protein for every other BGC, saccharides included. Dry-run by default:
-  it prints the plan and the submission-time estimate; add both live-submission flags only after
-  reviewing the exact sequence disclosure receipt.
-- **`python mamey_run.py hmm-adjudicate <region.gbk> [--locus <lt>]`** — the local ordered-domain readout and optional heuristic KS/module fields. This CLI does not run the separate annotation-adjudication or orphan-rescue APIs; missing dependencies/database produce an unavailable result.
-- **`python mamey_run.py figures {diagram|atlas|ani} …`** — the three publication figures (gene-arrow diagram,
-  circular genome atlas, all-vs-all ANI heatmap). Needs the add-on figure wheels. `figures` also has
-  `gcf-network`, `clinker` and `kcb-locusmap`; check each subcommand's `--help` for its inputs.
-
-## Citation-Compact Provenance and Citation Status
-
-Sapote-Mamey uses citation-compact outputs to separate runtime evidence structure from literature verification.
-
-- **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
-- **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
-- **`PASS_STRUCTURE`** in the citation-compact producer QA means no priority-citation shape/status error and no more than one exact global caveat were reported. It does not prove package validation, manifest/checksum integrity, all report files, literature truth or complete locus binding. `citation_needed` and zero caveats can still pass. Read [citation-compact reader limits](../docs/CITATION_COMPACT_READERS.md) and retain the separate package-validation receipt.
-- **`operator_supplied`** means the citation/provenance row came from runtime evidence or comparator fields already present in the package.
-- **`citation_needed`** means literature support is missing and should be filled by a separate literature-search pass.
-- **`Literature_Search_WorkOrder.md/json`** is a safe handoff for a separate web-literature search. It is a search instruction, not a verified fact.
-
-Current compact lead tables use `interpretation_scope` for reader-facing scope. The older reader-facing scope field should not appear in current citation-compact outputs.
-
-### Tool wrapper timeout after a visible PASS
-
-An outer tool wrapper can cap a run (for example, a container with a time limit). The wrapper can time out after Mamey has already printed a terminal PASS and written the manifest and checksum files. Treat this as an audit condition, not an automatic success. Trust the run only when the package validator passes, the package ZIP or run directory opens cleanly, the required checksums verify, and `package_status.json` / `run_phase_receipts.jsonl` agree with the terminal status. If the wrapper times out during package sealing and validation cannot be completed, rerun validation or treat the package as incomplete.
-
-## Continue into authored Mode B interpretation
-
-Use [the Mode B user walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md) for package inputs, exact identity, runnable preparation and verification examples, and the choice between `full48` and `current50_v2`. The [profile matrix](../docs/MODEB_PROFILE_MATRIX.md) maps each profile's sections. A native scaffold is not a finished card.
-
----
-
-*Sapote–Mamey User Manual · current to bundle v9.7.460 / engine Mamey 1.9.177. Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+The [command catalog](../docs/COMMAND_CATALOG.generated.md) lists the full interface.
+Use the [current documentation index](../CURRENT_DOCS_INDEX.md) for specialized
+guides and the [changelog](../CHANGELOG.md) for older behavior.

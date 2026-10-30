@@ -75,12 +75,7 @@ the generated reports and receipts; a chat response alone is not a validated or 
 - An **antiSMASH result ZIP** → [Your first extraction](docs/reader/01_FIRST_RUN.md). To have an assistant run it, use [the walkthrough request](docs/MASTER_WALKTHROUGH.md#route-a-ask-your-assistant-to-run-it).
 - A **Complete_Package ZIP** from an earlier run → [Read one saved package](docs/reader/03_READ_RESULTS.md).
 - A **code ZIP** → [Install](#install) below.
-
-**Status.** The program and documentation are under active development. This build has known
-gaps in metadata handling, evidence-completeness reporting and generated-PDF layout. A run that
-finishes and validates does not close those gaps or certify a biological conclusion.
-
-The program was occasionally tested with other bacterial orders, and several basidiomycetes and ascomycetous fungi. No extensive testing or development has occurred other than to establish some degree of functionality with these other microbial groups. The bacterial-specific tools will not work as-is, but many bioinformatics tools are expected to work and the primary Mamey engine will intake antiSMASH zips from these other organisms and produce a validated evidence package.  
+- No antiSMASH ZIP yet → download one from the [public antiSMASH datasets](docs/PUBLIC_DATASETS.md) on Zenodo: 1,258 public genomes run with antiSMASH 8.0.4 at loose strictness.
 
 ## What you can do
 
@@ -143,7 +138,7 @@ folders. Compiled reports retain a source snapshot and byte-bound receipt. The c
 and can chain the results into cohort widgets. The command is integrated; you supply the
 BiG-SCAPE binary and the pressed Pfam database separately. Family membership belongs to that run
 and cutoff; read it alongside assembly fragmentation and protein evidence. See
-[the BiG-SCAPE walkthrough](docs/GUIDE/02_Quick_Guide.md#big-scape-family-analysis).
+[the BiG-SCAPE walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md).
 
 **Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
 placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo-mlsa` can plan or stage an
@@ -443,7 +438,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.460 / engine 1.9.177 · build 20261027v97460a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.461 / engine 1.9.177 · build 20261029v97461a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

@@ -1,69 +1,71 @@
-# Fungal phylogenetics workflow (Sapote-Mamey)
+# Compare a fungal isolate with references
 
-The bacterial workflows (`PHYLOGENETICS_WORKFLOW.md`, `PHYLO_PLACEMENT_WORKFLOW.md`, `GTOTREE_WORKFLOW.md`)
-do NOT apply to fungi: different loci, different alphabet, different reference world, and
-`outgroup_registry.tsv` is actinomycete-only. This is the fungal sibling — for any fungal isolate that
-turns up as a comparator (e.g. a Chaetothyriales black yeast from an insect host). There is no one-command fungal runner.
-Install the external tools and fetch references yourself.
-Bind the selected fungal input/reference scope, software and resource budget before
-execution; reference downloads are separate from local analysis.
+Choose fungal markers or genome orthologs to study an isolate's placement.
+You need a fungal assembly, selected reference records, the external tools and
+a runtime/resource plan. There is no one-command fungal runner. Use the fungal
+outgroup registry; the bacterial registry and workflows cover different inputs.
 
-## Two tiers (same philosophy as the bacterial two-tier)
-1. **rDNA screen (fast, low CPU)** — find the isolate's family/genus neighborhood.
-   - **ITS** (ITS1-5.8S-ITS2, the fungal barcode) via **ITSx**; **18S/SSU** and **28S/LSU** via **Barrnap with the installed version’s fungal model** (see [version guidance](BARRNAP.md)); or `blastn` the assembly with a reference operon when a tool is unavailable.
-   - Align per locus (MUSCLE), trim (trimAl), IQ-TREE, root on the registry outgroup, gate.
-   - **Marker design caveat:** 18S is conserved (family/genus neighborhood only); ITS resolves
-     WITHIN a genus but is UNALIGNABLE across divergent genera — never concatenate family-wide ITS.
-     A matched whole-operon (18S+ITS+28S) matrix can provide additional rDNA context
-     when alignment and source correspondence are defensible; its resolution and
-     acceptance remain dependent on the sampled records and analysis.
-2. **Genome ortholog analysis (additional resolution, CPU-heavy)** — **BUSCO** single-copy
-   orthologs (lineage `ascomycota_odb10`/`dothideomycetes_odb10`) on the query + reference genomes
-   (fetched with NCBI `datasets`), concatenate hundreds of loci → partitioned IQ-TREE → gate. Use when
-   rDNA markers disagree on genus (the usual case for a divergent/novel lineage). **compleasm** is a
-   faster drop-in for BUSCO; on macOS-arm64 BUSCO's deps often fail — run in the Linux container.
+## Choose the scale
 
-## Rooting rule (same as bacterial: prevents the #1 defect)
-Outgroup from `mamey/data/fungal_outgroup_registry.tsv` by `(taxon, scope)`, never ad hoc. A family tree
-roots on a sister-family genus one rank out; never a distant taxon; never an ingroup member.
+For an **rDNA screen**, extract ITS with ITSx and 18S/28S with the installed
+Barrnap version's fungal model; see [Barrnap](BARRNAP.md). The workflow also
+allows `blastn` against a reference operon when an extractor is unavailable.
+Align each locus with MUSCLE, trim with trimAl and infer with IQ-TREE.
 
-## Gates (identical to bacterial)
-Require a passing, outgroup-aware `tools/tree_sanity_check.py` result before rendering. Then inspect the findings and review reminders from `tools/signoff_check.py`: it is advisory and returns 0 even when it reports issues, cannot inspect a tree or finds no recent trees. Its zero exit is not a second passing gate or owner sign-off.
-A genuinely divergent/novel query can itself be the longest branch — that is a *finding*, reported with a
-proper outgroup, not hidden; but it must not dominate an artifactual alignment.
+Use 18S for broad family/genus context and ITS within a genus. Do not concatenate
+family-wide ITS across divergent genera. A matched whole-operon matrix needs
+checked source correspondence and a defensible alignment.
 
-## Claim-safety
-ITS/rDNA = family/genus neighborhood, NOT a species call; genome marker trees and appropriate genome-similarity methods provide additional
-comparison evidence. They do not automatically delimit or name species, and bacterial
-ANI thresholds are not a universal fungal naming rule. Judgment deferred. State the nearest named genus with % identity as an anchor, never as an identification.
+For **genome orthologs**, use BUSCO or compleasm with the selected lineage,
+such as `ascomycota_odb10` or `dothideomycetes_odb10`, across the query and
+references. Concatenate the orthologs for a partitioned IQ-TREE analysis.
+This is the heavier route when markers disagree. Reference acquisition with
+NCBI `datasets` is a separate step. Check installation compatibility first;
+the documented BUSCO setup uses Linux when macOS-arm64 dependencies fail.
 
-## Rules from earlier fungal trees
+## Select references and an outgroup
 
-### R1. Take the outgroup from the registry row, never from whichever comparator finished first
-The bundled `mamey/data/fungal_outgroup_registry.tsv` is a scoped reference snapshot keyed by `tree_scope` and `ingroup_taxon`, with `LOCKED`, `CONFIRM` and `BANNED` status labels. It separates rDNA marker accessions from genome assembly accessions. Some alternatives appear in rationale text or additional genome rows; it does not supply a complete approved primary/alternate pair for every scope. Bind the exact selected row, accession, source evidence and owner decision. Record unavailable or unconfirmed choices as holds rather than silently substituting another ready genome.
+Read `mamey/data/fungal_outgroup_registry.tsv` by `tree_scope` and
+`ingroup_taxon`. Check the row's LOCKED, CONFIRM or BANNED status and whether
+it supplies a marker accession or a genome assembly. Some scopes lack a complete
+confirmed primary/alternate pair; leave that choice open instead of choosing
+whichever genome is ready.
 
-### R2. Cross-check a new tree against any EXISTING marker tree for the same organism, before presenting
-A genome tree that contradicts an rDNA tree you already built is a finding that needs stating, not
-a result to publish over. State both, weigh them by evidence strength (alignment columns and locus
-conservation, not bootstrap alone — a short conserved locus can show 98/98 on very few informative
-sites), and say plainly that neither settles the question if neither does.
+Use a sister group appropriate to the tree's scope, outside the ingroup.
+Record the chosen row, accession and supporting record. Check deposited names
+as well as assembly statistics. The registry's BANNED entry for
+`[Coniosporium] apollinis CBS 100218` is a specific comparator decision;
+a bracketed name alone is not a general exclusion rule.
 
-### R3. One genome per genus for a placement tree; congeners are optional breadth
-Choose and record a comparator roster suited to the placement question and available resources. One representative per genus is a sampling choice for an initial view, not a guarantee that additional congeners cannot affect the interpretation. Record the omitted breadth and the reason for any later expansion.
+One representative per genus can give an initial placement view. Record the
+selected roster and why congeners were omitted. Expand it deliberately when
+the question requires more breadth.
 
-### R4. A high-quality assembly of a taxonomically incoherent genus is still a bad comparator
-Check deposited names and their source evidence as well as assembly statistics. The bundled registry records `[Coniosporium] apollinis CBS 100218` as a specific `BANNED` comparator in this historical workflow; that row does not independently validate a general taxonomic rule about every bracketed name. One such comparator, despite 99.58% completeness, produced a branch 79% of tree
-depth and failed the gate. The registry now carries BANNED rows for these.
+## Check and interpret the tree
 
-### R5. A gate FAIL can be the finding — report the numbers, withhold the figure
-A genuinely divergent query trips `DOMINATING_BRANCH` because it *is* divergent. Do not loosen the
-gate, do not prune the query, and do not present the figure as clean. Report the branch length and
-its fraction of tree depth, say which check failed and why, and let the number carry the claim.
+Run the outgroup-aware `tools/tree_sanity_check.py` check before rendering.
+`tools/signoff_check.py` is advisory and can exit 0 while reporting issues or
+no inspectable trees; read its findings.
 
-### R6. Never resume a partial ortholog run
-compleasm writes `miniprot.done` before hmmsearch completes; resuming after an interrupt yields a
-silently truncated ortholog set. Preserve the interrupted directory and logs as
-failure evidence; start that genome in a fresh output directory. A cleanup decision
-requires separately authorized removal and must not discard the only evidence of
-the failed run. This warning describes the recorded failure mode, not validation
-of every installed compleasm version.
+Compare a new genome tree with any existing rDNA tree for the same isolate.
+Describe disagreements and consider informative alignment sites and locus
+conservation alongside support values. Marker placement and similarity provide
+comparison context; bacterial ANI thresholds are not a fungal naming rule.
+
+If `DOMINATING_BRANCH` fails, report the branch length and its fraction of tree
+depth. Check the alignment and outgroup; do not loosen the check or prune the
+query to make the figure pass. Keep the figure unfinished while that result is
+reviewed.
+
+## Recover an interrupted ortholog run
+
+Start that genome in a fresh output directory and keep the failed run and logs.
+The recorded compleasm failure writes `miniprot.done` before hmmsearch finishes;
+resuming it can leave a truncated ortholog set. Check the installed version and
+its outputs rather than assuming that marker means the run completed.
+
+<a id="two-tiers-same-philosophy-as-the-bacterial-two-tier"></a>
+<a id="rooting-rule-same-as-bacterial-prevents-the-1-defect"></a>
+<a id="gates-identical-to-bacterial"></a>
+<a id="claim-safety"></a>
+<a id="rules-from-earlier-fungal-trees"></a>

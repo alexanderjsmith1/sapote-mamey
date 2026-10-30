@@ -83,9 +83,18 @@ def judgment_status_blocks_ingest(status: Any) -> bool:
 
 # ── File naming ─────────────────────────────────────────────────────────────
 
+def _filename_component(value: Any, label: str) -> str:
+    """Preserve an identifier only when it cannot introduce path components."""
+    if (not isinstance(value, str) or not value or value in {".", ".."}
+            or any(char in value for char in ("/", "\\", ":", "\x00"))
+            or any(ord(char) < 32 for char in value)):
+        raise ValueError(f"{label} must be a single filename component")
+    return value
+
+
 def _register_path(package_dir: str | Path) -> Path:
     pkg = Path(package_dir)
-    strain = _strain_from_pkg(pkg)
+    strain = _filename_component(_strain_from_pkg(pkg), "strain")
     return pkg / f"{strain}_judgment_register.json"
 
 
@@ -207,17 +216,18 @@ def _strain_compound_names(
 
 
 def _mode_b_path(package_dir: str | Path, bgc_id: str) -> Path:
-    strain = _strain_from_pkg(Path(package_dir))
+    strain = _filename_component(_strain_from_pkg(Path(package_dir)), "strain")
+    bgc_id = _filename_component(bgc_id, "card identifier")
     return _judgment_dir_read(package_dir) / f"{strain}_{bgc_id}_mode_b.md"
 
 
 def _laypersons_path(package_dir: str | Path) -> Path:
-    strain = _strain_from_pkg(Path(package_dir))
+    strain = _filename_component(_strain_from_pkg(Path(package_dir)), "strain")
     return _judgment_dir_read(package_dir) / f"{strain}_laypersons_section.md"
 
 
 def _fermentation_path(package_dir: str | Path) -> Path:
-    strain = _strain_from_pkg(Path(package_dir))
+    strain = _filename_component(_strain_from_pkg(Path(package_dir)), "strain")
     return _judgment_dir_read(package_dir) / f"{strain}_fermentation_section.md"
 
 

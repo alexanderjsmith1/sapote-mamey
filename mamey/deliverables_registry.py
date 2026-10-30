@@ -143,69 +143,55 @@ def _csv(values: Iterable[str]) -> str:
 
 def render_menu(registry: dict[str, Any] | None = None) -> str:
     registry = registry or load_registry()
+    kinds = {
+        "DETERMINISTIC_BUILT_IN": "Built-in output",
+        "OPTIONAL_LOCAL_ADAPTER": "Needs optional local tools or data",
+        "POST_SEAL_JUDGMENT": "Requires interpretation and writing",
+        "OPTIONAL_EXTERNAL_WORKFLOW": "Uses an external service",
+        "GOVERNANCE_AND_QA": "Checks and records",
+        "HUMAN_REVIEW_PROTOCOL": "Requires a reviewer",
+    }
+    groups = {
+        "counter": "Explore a strain", "evidence": "Inspect evidence",
+        "meals": "Build an interpretation", "sides": "Add focused comparisons",
+        "governance": "Check and share work",
+    }
+    def labels(values: Iterable[str]) -> str:
+        return ", ".join(value.replace("handoff_bundle", "transfer ZIP").replace("_", " ") for value in values) or "None"
     lines = [
-        f"# {registry['title']}",
-        "",
-        "*Choose by label, name, or plain-language request. This document is generated from "
-        "`mamey/data/deliverables_registry.json`; do not edit it by hand.*",
-        "",
-        f"**Bundle:** Sapote-Mamey v{BUNDLE_VERSION}  ",
-        f"**Engine:** Mamey {__version__}  ",
-        f"**Required exact-locus display:** `{registry['identity_contract']}`",
-        "",
-        "> " + registry["global_claim_ceiling"],
-        "",
-        "Read the questions below and choose the outcome that answers yours. Copy its **Ask for** "
-        "wording, supply its required inputs, then check the delivery class and claim ceiling. "
-        "The delivery-class key follows the offerings.",
-        "",
+        "# Choose an output", "",
+        "Find the result you need below. Each entry lists its inputs and whether it "
+        "needs extra tools, an external service or a written interpretation.", "",
+        "For the complete requirements and command names of the first entry, run "
+        "from the bundle directory:", "", "```bash",
+        "python mamey_run.py deliverables explain '#1'", "```", "",
+        "Replace the example path with your antiSMASH ZIP, then check it for that entry:", "", "```bash",
+        "python mamey_run.py deliverables availability '#1' --input-zip ~/Downloads/EXAMPLE.zip",
+        "```", "",
+        "Availability checks local files and tools; each output still needs its own "
+        "input checks. Use another entry's label to inspect its requirements.", "",
+        "For a single locus, supply its complete identity: "
+        f"`{registry['identity_contract']}`.", "",
     ]
     by_group: dict[str, list[dict[str, Any]]] = {}
     for item in registry["deliverables"]:
         by_group.setdefault(item["group"], []).append(item)
     for group in registry["groups"]:
-        lines.extend([f"## {group['title']}", ""])
+        lines.extend([f"## {groups.get(group['id'], group['title'])}", ""])
         for item in by_group.get(group["id"], []):
             lines.extend([
-                f"### {item['label']} — {item['name']}",
-                "",
-                f"*{item['question']}*",
-                "",
-                item["summary"],
-                "",
-                f"- **Delivery class:** `{item['delivery_class']}`",
-                f"- **Commands:** {_csv(item['commands'])}",
-                f"- **Required inputs:** {_csv(item['requirements'])}",
-                f"- **Optional evidence/resources:** {_csv(item['optional_inputs'])}",
-                f"- **Outputs:** {_csv(item['outputs'])}",
-                f"- **Gates:** {_csv(item['gates'])}",
-                f"- **Ask for:** {'; '.join(f'“{value}”' for value in item['triggers'])}",
-                f"- **Claim ceiling:** {item['claim_ceiling']}",
+                f"### {item['label']} — {item.get('reader_name', item['name'])}", "",
+                item.get("reader_summary", item["summary"]), "",
+                f"- **You need:** {labels(item['requirements'])}.",
+                f"- **You get:** {labels(item['outputs'])}.",
+                f"- **Work involved:** {kinds.get(item['delivery_class'], item['delivery_class'])}.",
                 "",
             ])
-    lines.extend(["## Availability language", ""])
-    for name, description in registry["delivery_classes"].items():
-        lines.append(f"- **{name}** — {description}")
     lines.extend([
-        "",
-        "Run `python mamey_run.py deliverables availability ...` for a local, read-only "
-        "preflight. It checks local presence, not source admission, gate success or completed authorship. "
-        "A listed external workflow is never authorization to contact it.",
-        "",
-        "## How to order safely",
-        "",
-        "For a single locus, always provide the complete identity in this order:",
-        "",
-        "`strain / full node-or-contig / region / BGC alias`",
-        "",
-        "If an input or adapter is unavailable, the correct result is a typed workflow state—not "
-        "an invented biological negative and not a silent omission.",
-        "",
-        "---",
-        "",
-        "*Generated from the shipped registry. Gate success is not owner acceptance, release "
-        "approval, or publication readiness.*",
-        "",
+        "---", "",
+        f"Sapote-Mamey v{BUNDLE_VERSION}; engine {__version__}. "
+        "Generated from `mamey/data/deliverables_registry.json` by "
+        "`tools/generate_deliverables_menu.py`.", "",
     ])
     return "\n".join(lines)
 

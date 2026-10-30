@@ -43,6 +43,32 @@ class DeliveryAudit(unittest.TestCase):
     def codes(self, result):
         return {r["code"] for r in result["errors"]}
 
+    def test_optional_provenance_url_types_emit_input_receipts(self):
+        delivery = self.root / "payload"
+        delivery.mkdir()
+        payload = b"<p>Synthetic delivery fixture.</p>"
+        (delivery / "index.html").write_bytes(payload)
+        manifest = {"schema": mod.SCHEMA, "entrypoints": ["index.html"],
+                    "files": [{"path": "index.html", "bytes": len(payload),
+                               "sha256": mod.digest(payload)}]}
+        manifest_path = self.root / "manifest.json"
+        for index, value in enumerate((7, 3.5, True, None, [], {})):
+            with self.subTest(url_type=type(value).__name__):
+                manifest["optional_provenance"] = [{"from": "index.html", "url": value,
+                                                     "reason": "Synthetic contract check."}]
+                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                original = manifest_path.read_bytes()
+                receipt = self.root / f"receipt_{index}.json"
+                with contextlib.redirect_stdout(io.StringIO()):
+                    status = mod.main(["--root", str(delivery), "--manifest", str(manifest_path),
+                                       "--receipt", str(receipt)])
+                self.assertEqual(status, 1)
+                result = json.loads(receipt.read_text())
+                self.assertEqual(result["status"], "FAIL_INPUT_CONTRACT")
+                self.assertEqual(result["errors"][0]["code"], "INPUT_CONTRACT_ERROR")
+                self.assertEqual((delivery / "index.html").read_bytes(), payload)
+                self.assertEqual(manifest_path.read_bytes(), original)
+
     def test_inline_only_and_fragment(self):
         r = self.check({"index.html": '<h1 id="gene">Genes</h1><a href="#gene">go</a><img src="data:image/png;base64,AA==">'})
         self.assertEqual(r["status"], "PASS_STATIC_CONTRACT")

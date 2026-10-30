@@ -1,12 +1,14 @@
-# Command catalog (generated)
+# Find a command
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.460 · engine 1.9.177. Do not edit by hand; `--check` fails the build when stale.*
+This catalog lists commands and their built-in help. Run from the installed bundle directory. To see the options for extraction:
 
-Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Descriptions below come from parser help. Outputs include extraction records, validation results, reports and evidence-routing artifacts; a catalog entry is not proof of execution, complete evidence or scientific acceptance.
+```bash
+python mamey_run.py run --help
+```
 
-## Recommended front doors
+Replace `run` with another command name below. For a complete first run, use [Your first run](reader/01_FIRST_RUN.md). For a result to create, use [Choose an output](DELIVERABLE_MENU.md).
 
-Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, `validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for the applicable figure suite, `phylo-autopilot`, optional `phylo-mlsa`, or `phylo-run` for tree workflows, `mode-b` for the interpretation scaffold, and `workflow` for status. The catalog below includes specialist commands so they remain discoverable; aliases are folded into their canonical command row.
+Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.461, engine 1.9.177. Descriptions below come from the parser; aliases share their command's row.
 
 ## Run and seal a strain
 
@@ -17,7 +19,7 @@ _Deterministic extraction — the only step that creates a package._
 | `run` | Run Mamey extraction on one or more antiSMASH ZIPs |
 | `validate` | Validate an existing package directory |
 | `seal-package` | Run all QC gates on a package and emit a seal receipt |
-| `inspect` | Preview what Mamey sees in an antiSMASH ZIP before running |
+| `inspect` | Preview an antiSMASH ZIP or identify a Complete Package |
 | `intake-captured` | Opt-in intake-only capture; writes intake.json and manifest.json |
 | `start` | Primary CLI starting point: show the five-command workflow and run the environment check |
 | `doctor` | Pre-flight environment check: Python, deps, write permissions, bundle integrity |
@@ -52,7 +54,7 @@ _Start with `render-all-figures` for one sealed package. Use `figure-factory` fo
 
 ## Mode B judgment support
 
-_Scaffolds and gates for LLM judgment; the triage table is NOT a finished card._
+_Templates and checks for written interpretations._
 
 | command | what it does |
 |---|---|
@@ -172,7 +174,7 @@ _Status, lookups and explicit maintenance actions. Check each command's write bo
 
 ## Compatibility and maintainer commands
 
-_Retained for existing scripts and specialized maintenance. They are not additional onboarding paths._
+_Retained for existing scripts and specialized maintenance. _
 
 | command | what it does |
 |---|---|

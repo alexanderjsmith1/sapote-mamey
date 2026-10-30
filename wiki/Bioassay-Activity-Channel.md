@@ -1,5 +1,8 @@
 # Bioassay screening context admission
 
+Prepare reviewed screening context for the activity channel.  
+This page is for operators with an already reviewed evidence table.
+
 `tools/bioassay_to_activity_channel.py` converts an already reviewed screening evidence CSV into
 per-strain `bioactivity_metadata_v1` objects. Read the
 [metadata contract](../docs/BIOACTIVITY_METADATA_CONTRACT.md). This is measured screening context
@@ -50,3 +53,7 @@ identified compound. Each object carries the preliminary single-replicate 384-we
 and `compound_linkage=NOT_ESTABLISHED`. No biological replication or assay validation is inferred.
 The converter's neutral-context role does not mean a subsequent extraction has no output changes.
 Keep assay observations, class-level genomic hypotheses and locus attribution separate.
+
+## Related pages
+
+For the interpretation boundary, see [Claim Safety](Claim-Safety.md); for locus-level review, see [Mode B](Mode-B.md).

@@ -33,7 +33,7 @@ def test_default_is_the_documented_restricted_search():
 
 def test_default_matches_the_workflow_doc():
     doc = (ROOT / "docs" / "GTOTREE_WORKFLOW.md").read_text()
-    m = re.search(r"-m MFP -mset (\S+) -mrate (\S+)", doc)
+    m = re.search(r"protein models\s+`([^`]+)` with rate options `([^`]+)`", doc)
     assert m, "the documented ModelFinder line is gone from docs/GTOTREE_WORKFLOW.md"
     p = _pairs(_cmd())
     assert (p["-mset"], p["-mrate"]) == (m.group(1), m.group(2))

@@ -9,8 +9,6 @@ CURRENT_USER_DOCS = [
     "CLAUDE.md",
     "docs/CITATION_COMPACT_MODE.md",
     "docs/HOW_TO_USE.md",
-    "docs/GUIDE/01_User_Manual.md",
-    "docs/GUIDE/02_Quick_Guide.md",
     "docs/GUIDE/03_Technical_Manual_Encyclopedia.html",
     "docs/DELIVERABLE_CONTRACT.md",
 ]
@@ -38,3 +36,17 @@ def test_current_user_docs_do_not_reintroduce_legacy_scope_field_name():
     root = Path(__file__).resolve().parents[1]
     for rel in CURRENT_USER_DOCS:
         assert "claim_scope" not in _read(root, rel), rel
+
+
+def test_quick_links_to_citation_reference():
+    root = Path(__file__).resolve().parents[1]
+    text = _read(root, 'docs/GUIDE/02_Quick_Guide.md')
+    assert '](../CITATION_COMPACT_MODE.md)' in text
+    assert (root / "docs/CITATION_COMPACT_MODE.md").is_file()
+
+
+def test_manual_links_to_citation_reference():
+    root = Path(__file__).resolve().parents[1]
+    text = _read(root, 'docs/GUIDE/01_User_Manual.md')
+    assert '](../CITATION_COMPACT_MODE.md)' in text
+    assert (root / "docs/CITATION_COMPACT_MODE.md").is_file()

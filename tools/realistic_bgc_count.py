@@ -36,7 +36,7 @@ boundary-weighted number; see its header cross-reference.
                        build_cohort_html.py) — a different, fractional denominator
 
 Role counts come from the banked ``*_gene_by_gene_all_bgcs.csv`` ``gene_function_inference``
-column; the merge uses ``*_4A_RGGMCI_ranked_pairs.csv`` rows whose confidence contains HIGH.
+column; graph edges use ``*_4A_RGGMCI_ranked_pairs.csv`` rows admitted by the existing HIGH-token contract.
 
 CLAIM SAFETY (mandatory): these are class-level counts of annotation *roles*, boundary status,
 and homology-guided linkage — NOT a product, activity, or nucleotide-level joining claim. Both
@@ -55,6 +55,7 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from rggmci_cohort_rollup import _is_high  # noqa: E402
 
 import argparse
 import csv
@@ -141,8 +142,7 @@ def _high_rggmci_pairs(package_dir: str) -> list[tuple[str, str]]:
         return pairs
     with open(rp, encoding="utf-8", newline="") as fh:
         for r in csv.DictReader(fh):
-            conf = (r.get("rggmci_confidence") or "").upper()
-            if "HIGH" not in conf:
+            if not _is_high(r.get("rggmci_confidence") or ""):
                 continue
             a, b = (r.get("bgc_a") or "").strip(), (r.get("bgc_b") or "").strip()
             if a and b:

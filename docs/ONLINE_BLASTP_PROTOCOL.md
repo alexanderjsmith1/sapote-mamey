@@ -1,222 +1,133 @@
-# BLASTp evidence: ingest existing results or submit a scoped query
+# Use BLASTp evidence
 
-Use existing, source-bound BLASTp results when available. `blastp-online` is an optional live
-submission command, not a staging-only tool. This guide replaces the earlier experimental recipe
-and proposed command description. Command behavior is grounded in `mamey/blastp_online.py` and the
-local CLI; historical timing observations are not service guarantees.
+Use an installed bundle to import saved results or plan an online search.
+Run the commands from its folder. Planning needs the query source; workbook
+imports need the master workbook; collection imports need the package; SQLite
+imports need an existing hits store. Keep query identifiers, protein hashes
+and original query/job receipts with the results.
 
-## Start with identity and evidence availability
+Keep nr, ClusteredNR and Swiss-Prot in separate channels. Record every locus as
+**strain / full node-or-contig / region / BGC alias**.
 
-Bind the full locus identity: `strain / full node-or-contig / region / BGC alias`. Use its region
-GenBank or a full antiSMASH ZIP with a matching crosswalk. Keep original sequences and results
-immutable. A basename, alias or result order alone is insufficient evidence of a protein join.
-Retain query identifiers and normalized sequence hashes with source receipts where available.
+## Plan a search
 
-Keep nr, ClusteredNR, local Swiss-Prot and antiSMASH comparator evidence in separate channels.
-Record the actual database and search parameters. A result from one channel cannot fill a missing
-result in another by relabelling it.
-
-## Inspect the current commands
+Select one BGC through its matching package crosswalk:
 
 ```bash
-python mamey_run.py ingest-blastp --help
-python mamey_run.py ingest-blastp-trove --help
-python tools/ingest_blastp_rollups.py --help
-python mamey_run.py blastp-online --help
-python mamey_run.py blastp-round --help
+python mamey_run.py blastp-online --package inputs/EXAMPLE.zip \
+  --bgc BGC001 --crosswalk runs/EXAMPLE/package
 ```
 
-## Ingesting existing results: choose the destination
+The default prints protein and residue counts, batches, database, endpoint and
+sequence digest. `PLAN ONLY` means nothing was sent. Check the full locus and
+query set before approving an upload. A region GBK can also supply the proteins.
 
-The package-overlay and workbook import commands write evidence. `tools/ingest_blastp_rollups.py` opens the selected existing reservoir read-only by default; `--execute` enables insertion. Before a package overlay or workbook update, preserve the original sealed package and master and select working copies explicitly. In .447 the CLI can refresh package integrity records after ingest, even when no new source was discovered. The `NO_SOURCES_DISCOVERED` guarantee below concerns ingest artifacts, not the enclosing CLI refresh wrapper. See [post-seal boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447).
+Defaults are nr and ten proteins per batch, with residue limits and separate
+batches for proteins over 2,500 residues. Choose `--database` for
+`refseq_protein` or `swissprot`; ClusteredNR uses its separate workflow.
 
+Approved submission requires both `--submit` and
+`--confirm-public-sequence-upload`. Choose `--outdir` when submitting and keep
+the RIDs, raw responses, diagnostics and submitted roster. Reconcile every batch;
+one can fail while another returns results.
 
-| Command | Accepted input | Destination |
-|---|---|---|
-| `tools/ingest_blastp_rollups.py` | Dated per-strain rollup CSVs and supported single-protein ClusteredNR top-10 CSVs | An existing BLASTp SQLite evidence reservoir |
-| `mamey_run.py ingest-blastp-trove` | Per-BGC directories containing the channel's supported per-gene CSV filenames | One selected package's channel-tagged BLASTp overlay |
-| `mamey_run.py ingest-blastp` | NCBI HitTable CSV, with optional alignment XML | Supplied master-workbook `B5_BLASTp_Hits` sheet; with `--package`, also a package overlay and binding records |
+## Import an NCBI HitTable into a workbook
 
-For completed crawl rollups, inspect a dry run against explicit source and database paths:
+Use the original **headerless outfmt 10 CSV with 12 or 13 columns**.
+Headered per-gene and runner summaries use the collection or SQLite routes below.
+Choose working copies of the master workbook and package:
 
 ```bash
-python tools/ingest_blastp_rollups.py --root <source-root> --db <existing-hits.db>
-python tools/ingest_blastp_rollups.py --root <source-root> --db <existing-hits.db> \
-  --execute --source-workspace operator-import
+python mamey_run.py ingest-blastp --master reviews/EXAMPLE-master.xlsx \
+  --strain EXAMPLE --hit-table inputs/EXAMPLE-hits.csv --package reviews/EXAMPLE/package
 ```
 
-Run the second command only when the displayed sources and destination are the intended ones and
-the ingest is authorized. The tool rescans eligible source files and inserts new hit keys atomically;
-the key includes strain, channel, gene, hit rank and subject accession, preserving multiple hits per
-gene while keeping repeated imports idempotent. Previously stored rows are not overwritten. A source
-path already present in the store does not prove that all its hit ranks were ingested. The tool
-does not create a missing database. Use completed, stable CSVs. Later completed results require
-another dry run; do not assume that a file still being written is a complete evidence source.
-Reservoir insertion alone does not establish exact-sequence or complete-locus admission for a claim.
+This updates the workbook and package overlay; there is no dry run. Read the
+admitted/quarantined and bound/unbound counts before retrying a zero-row append.
+`--source` defaults to `NCBI web-BLASTp`; choose accurate provenance for another source.
 
-Discovery is limited to `strain_data/*/blastp_nr_*/*_nr_top10_*.csv`, `strain_data/*/blastp_clustered_nr_*/*_clustered_nr_top10_*.csv`, and `Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_*/results/**/*_blastp_top10_clustered.csv` below `--root`. Other saved result layouts require their own supported importer. `SAPOTE_EXCLUDE_STRAINS`, when set, removes exact matching strain labels from consideration. The logical root does not validate that symlinked files remain inside it; confirm resolved inputs and retain their original hashes. Filename conventions determine allowed channels, and the single-protein ClusteredNR suffix supplies a channel/database default; these defaults do not authenticate the producer or query.
+Add `--xml` for matching alignment XML. The XML reader assigns records by
+submission order; verify independent query/result bindings before using an exact-gene hit.
 
-CSV read errors can be logged and skipped, and rows with blank strain or gene can be skipped. Header-only files, no discovered files, excluded rows and duplicate keys can all produce zero new rows with a zero exit. Preserve the console diagnostics and reconcile an independent intended-file/row inventory; zero new rows is neither complete-source admission nor a verified no-hit result. The importer does not issue a complete input/output hash receipt.
+## Import a per-gene collection
 
-Numeric conversion is permissive: invalid text becomes null, while non-finite and out-of-range floating values are not rejected here. The exact store schema and atomic insert protect the destination structure/transaction, not row semantics. Validate present numeric fields and distinguish producer blanks from invalid values before authorizing `--execute`. The duplicate key omits BGC alias, query sequence hash, source workspace/file and numerical measurements; reimporting a changed row with the same key does not correct the stored row. Use a separately reviewed correction/rebinding route and preserve both source versions. Bind each interpreted hit to `strain / full node-or-contig / region / BGC alias` and its query evidence outside this reservoir import. Nothing in the import resolves those missing identity components automatically.
-
-The package-overlay command accepts `<trove>/<STRAIN>/<BGC...>/` or a single-strain root with
-`BGC...` directories. `--rekey-by-locus` resolves row aliases through the selected package's CDS
-table; it does not make arbitrary gap-panel directory names discoverable. If no supported source
-files are found, the command reports `NO_SOURCES_DISCOVERED`, the directories scanned, a bounded
-sample of skipped names, and accepted filename patterns. It writes no new overlay, ledger,
-quarantine, or receipt for that empty discovery. Correct the layout or command and retry without
-deleting immutable receipts. A discovered source with zero admitted rows still retains its normal
-receipt and quarantine evidence. No discovered source is not a verified no-hit result.
-
-Strain assertions are checked for agreement rather than selected by column precedence.
-The trove readers inspect every nonblank `query_strain`, `strain`, and `strain_id`, plus
-recognizable strain declarations in every supported query column. Pipe panel headers
-(`strain|BGC...|...`) and strain-first space deflines carry strain assertions; known
-locus/contig/BGC-leading legacy titles do not acquire an invented strain assertion.
-Conflicting assertions produce a row-level `QUERY_STRAIN_CONFLICT` quarantine in both
-strict and locus-rekey modes and in channel top-10 installation. A consistently foreign
-strain remains `FOREIGN_STRAIN`. Locus rekeying may resolve historical BGC aliases; it
-never authorizes changing a source strain.
-
-The manual hit-table route applies the same source-assertion collector to the raw CSV
-query and available XML query title, then compares those claims with the selected strain.
-Any explicit conflict refuses the whole input before workbook or package publication,
-including when no package was supplied. Legacy titles without a strain assertion retain
-their existing admission requirements; absence of a claim is not identity proof.
-
-Immutable quarantine/receipt collisions are checked before replacing or deleting channel
-outputs. Unchanged valid sources retain their earlier receipt bytes; the new conflict
-counter appears only when nonzero. Re-evaluating previously admitted conflicting evidence
-can require a hold at an immutable artifact collision. Existing normalized overlays may
-already have lost the contradictory raw header, and overlay destination changes can also
-produce a separate receipt. This guard prevents new admission; it does not retrospectively
-cleanse old packages. Retain the original source and receipts and use a separately reviewed
-fresh rebuild before adopting evidence whose earlier binding is uncertain.
-
-`ingest-blastp` accepts existing hit-table evidence. Use the selected working master, and the matching working package when exact binding and the package overlay are requested:
+Use supported filenames under `EXAMPLE/BGC.../`, or a single-strain root
+containing `BGC...` directories. Preserve the original package:
 
 ```bash
-python mamey_run.py ingest-blastp --master '/path/to/working-master.xlsx' \
-  --strain '<strain>' --hit-table '/path/to/saved-hit-table.csv' \
-  --package '/path/to/working-package' --xml '/path/to/saved-alignment.xml'
+python mamey_run.py ingest-blastp-trove --trove inputs/EXAMPLE-results \
+  --package reviews/EXAMPLE/package --channel nr
 ```
 
-XML is optional; omit its flag when unavailable and retain that evidence gap. `--source` defaults to `NCBI web-BLASTp`; set transport-accurate provenance for other channels. Without a supplied package, sealed-context binding is not validated and no package overlay is written. Inspect admitted/quarantined and bound/unbound query counts, rather than only appended rows. Duplicate rows may be skipped; a zero-row append is not a verified no-hit result. An empty-BGC warning can accompany a zero exit after a workbook update, so inspect the prior/current workbook and receipt before retrying. This command has no dry-run flag.
+Choose the actual channel. `--rekey-by-locus` resolves historical aliases through
+the current CDS table; a conflicting source strain stops with `QUERY_STRAIN_CONFLICT`.
 
-For a preorganized channel-specific trove:
+`NO_SOURCES_DISCOVERED` lists accepted layouts. It creates no ingest overlay or
+receipt, although the CLI can refresh package integrity files. A discovered
+source with zero admitted rows has different receipt/quarantine evidence.
+
+## Import runner rollups into SQLite
+
+Point `--root` at a directory containing these supported layouts:
+
+```text
+strain_data/EXAMPLE/blastp_nr_*/*_nr_top10_*.csv
+strain_data/EXAMPLE/blastp_clustered_nr_*/*_clustered_nr_top10_*.csv
+Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_*/results/EXAMPLE/**/*_blastp_top10_clustered.csv
+```
+
+The existing database needs the canonical 22-column `hits` schema. Start read-only:
 
 ```bash
-python mamey_run.py ingest-blastp-trove --trove '/path/to/saved-trove' \
-  --package '/path/to/working-package' --channel nr --rekey-by-locus
+python tools/ingest_blastp_rollups.py --root inputs/EXAMPLE-rollups \
+  --db reviews/EXAMPLE-hits.db
 ```
 
-Choose the actual channel explicitly; do not label ClusteredNR or Swiss-Prot results as nr. This command also has no dry-run flag. Use its discovery/admission status and source receipts to assess what was written. `blastp-round` supports phased planning; submission requires both `--run`
-and `--confirm-public-sequence-upload` after reviewing the disclosed sequence count and digest.
-The following command prints the selected-protein disclosure plan without submitting sequences.
-Review the resolved locus and query digest. Live submission requires both `--submit` (or `--run`)
-and `--confirm-public-sequence-upload`, within the user-authorized external-search scope:
+Check the found file/row inventory, numeric values and resolved source paths.
+Read errors, empty files, excluded strains and duplicate keys can give zero new rows.
 
+After that review, repeat the command with
+`--execute --source-workspace EXAMPLE-results`. The required portable label records
+where the imported rows came from; replace it with your logical source name.
+Inserts are atomic and repeated keys are skipped. The key uses strain, channel,
+gene, rank and subject accession; changed measurements under that key do not
+correct an earlier row.
+
+## Check protein bindings
+
+Make a fresh index of the package's BGC-member proteins:
 
 ```bash
-python mamey_run.py blastp-online   --package inputs/query.region001.gbk   --database nr --batch-size 10 --outdir analysis/blastp
+python -m mamey.protein_signature --package runs/EXAMPLE/package \
+  --out reviews/EXAMPLE-bgc-protein-signature.json
 ```
 
-For a full ZIP, select `--bgc` with the matching `--crosswalk` (a crosswalk CSV or sealed package
-directory), or use the explicit `--region` locator. Confirm the resolved locus before submission.
-The supported database choices for this command are `nr`, `refseq_protein` and `swissprot`;
-ClusteredNR belongs to its separate workflow and ledger.
+It records gene identities, protein hashes and the source ZIP hash. Keep the
+saved query/job receipt to bind a search result. For per-strain exports from a
+22-column store, `mamey.blastp_strain_db` keeps separate held/unbound rows and
+one consistent source snapshot; budget one extra database size and fresh outputs.
+Length agreement alone cannot supply the store's missing query-protein hash.
 
-## Batching and execution
+## Read the result
 
-The command defaults to ten proteins per batch and caps the requested count at thirty. Its batcher
-also applies a residue budget and isolates proteins longer than 2,500 residues. Do not treat the
-old ten-protein experiment as a universal service limit or fixed turnaround promise.
+Keep accession, organism, identity, coverage, E-value, bitscore and database/query
+provenance for each hit. Missing translation, failed search and completed no-hit
+results are separate states. Compare `blastp-followup` query IDs with the submitted
+roster to find missing queries.
 
-Use the bundled runner's pacing and recorded states rather than copying the retired ad hoc URL-API
-snippets. Retain RIDs, terminal diagnostics, raw responses and the precise submitted sequence set.
-Do not turn an unavailable, incomplete or failed search into a tested-negative observation.
+Treat a named homolog as a hypothesis to check with domain and reference evidence. Use
+`blastp_tag_position_audit.py` for historical locator checks. For stored RID
+retrieval, read [retrieval controls](447_COMPANION_RETRIEVAL_CONTROLS.md) and check
+ledger states even when the runner returns zero.
 
-## Outputs and interpretation
+Continue with [channel-separated comparison](BLASTP_NOVELTY_WORKFLOW.md) or
+[result parsing](SOPs/SOP-05_BLASTP_Result_Upload_Parse_Reprioritize.md).
 
-The command writes a scoped `*_online_blastp.csv` panel and `*_cluster_reads.json` under `--outdir`
-(or the working directory if omitted). The prefix follows the requested locus selector; retain
-complete identity in the associated record. Inspect the actual panel and cluster-read fields.
-Live output can be partial: failed batches are reported to the console and omitted, while any successful batch can still lead to a panel and exit 0. Reconcile the submitted roster and batch outcomes before reporting completeness. The XML reader checks the query count, then assigns records by submission order; it does not independently verify each returned query identifier or sequence hash. Preserve independent query/result bindings before exact-gene use. A file's existence or an exit status alone does not verify its scientific interpretation.
-
-For each cited hit preserve accession, organism, percent identity, query coverage, E-value,
-bitscore, query identity and source/database provenance. Retain missing translations and queries
-without admitted results as distinct states. Map results using identifiers and sequence evidence,
-not submission index alone.
-
-Some stored result sets name a gene by its position inside its antiSMASH region, written as a
-contig-prefixed tag (`ctg16_18` for the 18th CDS of a region on contig 16), and carry BGC numbers
-from an earlier engine. A join by tag or BGC number then attaches the hit to another gene. `tools/blastp_tag_position_audit.py` records `TAG_OK`, `REGION_POSITION` (one matching
-region-position/length locator) or a typed hold without changing the source rows. Sequence-bound readers can hold a query mismatch. Tag-and-length checks hold detectable label/length conflicts, but equal length cannot prove current-query identity. `TAG_OK` and `REGION_POSITION` are locator checks, not saved-result admission; retain the query-sequence and result-job receipt before using either as exact-current evidence.
-
-Compare hits with domains and comparator evidence when authoring a card. A named homolog is a
-functional hypothesis; numerical similarity thresholds alone do not prove a specific function.
-No hit does not establish novel chemistry, and a shared reference family does not prove compound
-identity. Use the selected Mode B profile's current section map rather than historical section
-numbers embedded in an old recipe.
-
-For RiPP analyses, retain the actual precursor sequence and evidence for leader/core boundaries.
-Short or low-complexity sequences require explicit uncertainty; do not calculate a confident
-mature-product mass from an unbound core assignment.
-
-## Optional per-strain BLASTp databases
-
-When two antiSMASH assemblies of one strain carry different labels or contig numbering, compare their complete protein FASTAs before binding saved BLASTp evidence. The optional signature tool records raw FASTA hashes, an order-independent digest of `gene label + protein SHA-256`, and a separate sequence-only multiset digest:
-
-Mamey already writes `<strain>_proteins.faa` and `<strain>_cds_table.csv` into each package. These are **BGC-member proteins**, not every protein in the genome. To make a portable, assembly-specific JSON index of the existing FASTA, including each gene's full contig, region, BGC alias, protein hash, and the antiSMASH input-ZIP hash, run:
-
-```bash
-python -m mamey.protein_signature --package <run>/<strain>/package \
-  --out <analysis>/<strain>-bgc-protein-signature.json
-```
-
-The examples select outputs outside the sealed package. The signature CLI requires a fresh destination but does not enforce that external boundary; keep `--out` outside all preserved input packages. Use the same external-output discipline for per-strain database exports. Keep the JSON beside BLASTp query and result receipts. A matching BGC-protein signature is not proof that the whole assemblies are identical.
-
-```bash
-python -m mamey.protein_signature <package-A-proteins.faa> <package-B-proteins.faa> \
-  --out analysis/protein-signature-comparison.json
-```
-
-`EXACT_GENE_AND_SEQUENCE` means the normalized FASTA records agree despite row order. `SAME_SEQUENCE_MULTISET_RELABELED` means the proteins agree but gene labels differ. `LEFT_GENE_SEQUENCE_SUBSET` says every protein in the first FASTA occurs under the same gene label in the second, while the second has additional genes; it does not equate whole assemblies. `PARTIAL_OR_DIFFERENT` requires an assembly-level review before carrying results across. Repeated protein sequences remain counted; duplicate gene labels refuse the comparison. The output identifies a compatible **query source**, not whether a saved BLASTp hit came from that query. Full result admission still needs a query/RID receipt that binds each hit to its submitted protein sequence hash.
-
-If you have a saved 22-column BLASTp hits SQLite store, you can export one database per strain. The source can be a cohort store or an existing per-strain database. The source is opened read-only. The selected Mamey package supplies the **current** gene, full contig, region, and BGC-alias roster; the source hit's possibly stale BGC alias remains visible as provenance but is never used to join coverage.
-
-From the extracted bundle root:
-
-```bash
-python -m mamey.blastp_strain_db inspect --db <existing>/<strain>_blastp.db
-python -m mamey.blastp_strain_db build --source-db <saved-hits.db> \
-  --package <runs>/<strain>/package --out <output-root>
-```
-
-For a cohort, pass multiple package directories after `--package` (for example, a shell glob over one package per strain). The command makes **one transactionally consistent SQLite backup**, including committed WAL rows, and reuses that snapshot for every requested strain. It keeps the content-addressed `source_snapshot_<sha256>.sqlite` under the output root so the receipt remains verifiable later. This consumes approximately one extra source-database size of disk space; budget for that when exporting hundreds of strains. The command writes `<output-root>/<strain>_blastp.db`. It refuses duplicate strain packages and existing outputs; `--replace` atomically replaces a strain output only after the new database passes integrity checks. No source database or sealed package is changed.
-
-The package's `manifest.json` strain must match the source hits' strain. If a reviewed package uses a different label, provide a two-column TSV with `package_strain` and `source_strain`, then pass `--strain-map <map.tsv>`. The original hit strain stays in the raw `hits` table and both labels are recorded in `source_receipt`. An unrecognized source strain refuses the whole batch **before any per-strain database is written**; an empty result requires explicit `--allow-empty`. Do not infer a mapping from a version suffix, filename, or changing BGC alias.
-
-The new database retains every raw source row in `hits` and records the selected package's current full contig, region, and BGC alias in `locus_identity`. `hit_binding` gives every row a typed state: `LOCUS_BOUND`, `NONCURRENT_LOCUS`, `ZERO_OR_BLANK_AA_LENGTH`, `QUERY_CURRENT_AA_LENGTH_MISMATCH`, or `PROVENANCE_SUSPECT`. `held_hits` and `unbound_hits` keep rejected rows visible. Only `locus_bound_hits` contributes to separate nr/ClusteredNR/Swiss-Prot columns in `coverage` and to `clustered_gap`. `source_receipt` names and hashes the retained SQLite snapshot and package identity files. A gene with no locus-bound hit is a **missing or held evidence state**, not a tested negative. Length agreement is only a locus-binding check: the 22-column store lacks a query-protein sequence hash, so this export alone does **not** authorize a full Mode B BLASTp admission or a compound claim.
-
-An existing per-strain database may be inspected without rebuilding. To rebind it to a newer package's physical loci, use it as `--source-db` and choose a different output root. Compare `raw_hits`, `locus_bound_hits`, `held_hit_rows`, the per-state hold counts, and the current-gene counts before using it in a report. Source BGC aliases can change across Mamey versions; the source alias is audit data, not the join key. The command does not submit BLASTp queries or infer compound identity.
-
-## Related workflows
-
-- [Channel-separated BLASTp workflow](BLASTP_NOVELTY_WORKFLOW.md): downstream comparison policy;
-  distinguish workflow hypotheses from experimentally established results.
-- [BLASTp batching SOP](SOPs/SOP-04_Iterative_NCBI_BLASTP_Batching.md).
-- [Result upload and parsing SOP](SOPs/SOP-05_BLASTP_Result_Upload_Parse_Reprioritize.md).
-- [Mode B authoring context](MODEB_LLM_AUTHORING_CONTEXT_HYGIENE.md).
-
-Historical raw examples remain in their original release snapshot. Their absence from this operating
-guide does not change the runtime scoring, inference thresholds or result vocabulary.
-
-## RID-runner completion and stored-result admission
-
-For the separate stored RID workflow, use [companion retrieval controls](447_COMPANION_RETRIEVAL_CONTROLS.md). The runner's `run` operation returns zero even when it ends with failures, expired requests or saved in-flight RIDs. Its `rebuild` operation consumes only admitted fetched ledger rows and can return zero after rebuilding zero result groups. Capture the actual operation counts and ledger state; neither exit code proves the requested channel is complete.
-
-A fetched label alone is insufficient admission. The source checks query-file/raw-result/database hashes, exact query roster and result-generation bindings before treating stored retrieval as admitted. Preserve held, unsubmitted, in-flight and fetched-but-unverified states separately. A rebuilt empty table and a query-bound no-significant-hit result are different evidence states; do not infer the latter from a missing artifact.
-
-`blastp-followup` summaries cover query IDs observed in the input hit rows. Query IDs absent from that input are not automatically emitted as tested no-hit rows. Reconcile summaries against the original submitted query roster and its receipts before reporting query completeness. See [result parsing and reprioritization](SOPs/SOP-05_BLASTP_Result_Upload_Parse_Reprioritize.md). This is a stored-evidence accounting rule, not authorization to submit new searches.
+<a id="start-with-identity-and-evidence-availability"></a>
+<a id="inspect-the-current-commands"></a>
+<a id="ingesting-existing-results-choose-the-destination"></a>
+<a id="batching-and-execution"></a>
+<a id="outputs-and-interpretation"></a>
+<a id="optional-per-strain-blastp-databases"></a>
+<a id="related-workflows"></a>
+<a id="rid-runner-completion-and-stored-result-admission"></a>

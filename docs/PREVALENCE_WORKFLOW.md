@@ -18,7 +18,7 @@ Optional evidence maps join by `(locus_key,locus_tag)` after reading saved bindi
 
 Host classes can be heuristically inferred from source text or supplied via a host TSV/override. Substring classification is not host-taxonomy validation. Conflicting repeated host TSV rows keep the last recognized value. The domain tool defaults to `--host-source-col source`; selecting an explicit class column requires clearing the source-column choice so the class branch is used. Host class values are not controlled by an enum.
 
-A current domain-tool bug inserts an unknown/excluded `--host-override` key into `hostmap` with a null value, even though the denominator strain list excludes it. Features from such a strain can re-enter scope, alter counts, or fail index lookup. **Only override IDs already in the admitted, nonexcluded denominator.** Scan prevalence ignores unknown override keys. Review exclusions and the final host map rather than assuming the two consumers are identical (`domain_prevalence.py:46–63`; `scan_prevalence.py:30–40`). These are engineering holds; no host enrichment is inferred here.
+Both prevalence tools ignore a `--host-override` ID that is not in the admitted, nonexcluded denominator: the domain tool prints a `WARN --host-override` line to stderr, and scan prevalence ignores it silently. Check the log if an override seems to have had no effect. Review exclusions and the final host map rather than assuming the two consumers are identical (`domain_prevalence.py:46–63`; `scan_prevalence.py:30–40`). These are engineering holds; no host enrichment is inferred here.
 
 ## Output and recovery boundary
 

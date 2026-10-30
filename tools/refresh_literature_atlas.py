@@ -74,7 +74,7 @@ def source_reports(root: Path, *, require_docx: bool) -> list[tuple[str, Path, P
 
 
 def open_store(path: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    connection = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
     required = {"current_locus", "owner_record", "locus_binding", "document", "metadata"}
     present = {row[0] for row in connection.execute("select name from sqlite_master where type='table'")}

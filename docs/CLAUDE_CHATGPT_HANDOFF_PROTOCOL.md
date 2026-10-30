@@ -1,5 +1,5 @@
 # Claude ↔ ChatGPT Handoff Protocol
-**Version:** 1.1 · Mamey v1.9.177 / Sapote v9.7.460  
+**Version:** 1.1 · Mamey v1.9.177 / Sapote v9.7.461  
 **File location:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`
 
 ---

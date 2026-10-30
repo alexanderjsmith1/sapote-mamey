@@ -667,6 +667,31 @@ def _identity_map(strain: str, inventory: list[dict], groups: list[list[dict]], 
     return identities
 
 
+def _bind_domain_rows(rows: list[dict], identities: dict) -> list[dict]:
+    """Bind the native full-locus key before projecting or counting domain rows."""
+    full_aliases = {identity["full_identity"]: alias
+                    for alias, identity in identities.items()}
+    bound = []
+    for row in rows:
+        aliases = {_text(row.get(key)) for key in ("BGC_ID", "bgc_id")
+                   if _text(row.get(key))}
+        if len(aliases) > 1:
+            raise ValueError("WIDGET_IDENTITY_CONFLICT: domain alias columns disagree")
+        alias = next(iter(aliases), "")
+        exact = _text(row.get("exact_locus"))
+        if exact:
+            matched = full_aliases.get(exact)
+            if matched is None:
+                raise ValueError("WIDGET_IDENTITY_UNBOUND: exact_locus absent from inventory")
+            if alias and alias != matched:
+                raise ValueError("WIDGET_IDENTITY_CONFLICT: exact_locus and domain alias disagree")
+            alias = matched
+        if alias not in identities:
+            raise ValueError("WIDGET_IDENTITY_UNBOUND: domain row absent from inventory")
+        bound.append(dict(row, bgc_id=alias))
+    return bound
+
+
 def _domain_coverage(inventory: list[dict], domains: list[dict], sidecar: str | None) -> dict:
     inventory_ids = [_text(row.get("BGC_ID") or row.get("bgc_id")) for row in inventory]
     domain_ids = [_text(row.get("bgc_id") or row.get("BGC_ID")) for row in domains]
@@ -721,7 +746,10 @@ def _load_model(source: PackageSource) -> dict:
     policy = resolve_package_privacy_records([manifest, intake, compact], strain)
     effective_release = policy["effective_release"]
     version = _text(manifest.get("workflow_version") or "unknown")
-    identities = _identity_map(strain, inventory, [triage, domains, genes], rggmci)
+    identities = _identity_map(strain, inventory, [triage, genes], rggmci)
+    domains = _bind_domain_rows(domains, identities)
+    # Preserve the existing checks on explicit strain, contig and region columns.
+    _identity_map(strain, inventory, [domains], [])
     gene_evidence, gene_evidence_receipt = _gene_evidence_rows(
         strain=strain,
         genes=genes,

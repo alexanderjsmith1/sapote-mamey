@@ -1,11 +1,16 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.460 · engine Mamey 1.9.177.*
+Find task-based recipes with inputs, outputs and failure states.  
+This page is for researchers running the bundle.
+
+*Current to bundle v9.7.461 · engine Mamey 1.9.177.*
 
 Each recipe gives inputs, the command, outputs, the states you should see, and the usual failure. None of these results establishes compound identity, production, activity, novelty or publication readiness; that is stated once here and not repeated.
 
 
 Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document. `inspect` classifies ZIP member names: a region-GBK count or recognized shape is a preview, not parsed GenBank content, extraction success or scientific input admission. Retain actual run/validation outcomes separately.
+
+Before any `doctor` command in these recipes, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe). If the probe folder is occupied, leave it intact and use an authorized working installation or resolve it with its owner.
 
 ## Recipe 1 — first successful run
 
@@ -328,7 +333,7 @@ Treating a doctor's optional warning as a failed extraction, or treating an abse
 
 ### Inputs
 
-- An exact unpacked package directory.
+- An exact unpacked package directory with permission for mutable status writes. When the original must remain byte-preserved, use an identified working copy: `validate` normally updates `package_status.json`.
 - Its manifest, checksum file, gate validation, package-status receipt, judgment register, and any recovery markers.
 - A new additive path for the workflow ledger.
 
@@ -366,8 +371,10 @@ Running `resume` first and treating its briefing as a package-integrity check. `
 
 ## Exact-locus inventory example
 
-An individual row must be able to display the complete identity. For example:
+An individual row must be able to display the complete identity from a bound source record:
 
-`reference-isolate-001 / NODE_7_length_50000_cov_20.5 / region001 / BGC001`
+`<strain> / <full node-or-contig> / <region> / <BGC alias>`
+
+The placeholders describe fields; they are not an example locus.
 
 The normalized table may store those values in separate `strain`, `full_node`, `region`, and `bgc` columns. If any field is unavailable, the row is held; no recipe authorizes a fallback to the alias alone.

@@ -1637,7 +1637,15 @@ def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, 
     ax.set_yticks(range(ny)); ax.set_yticklabels(rows,fontsize=8.5); ax.tick_params(length=0)
     ax.set_xlim(-0.6,nx-0.4); ax.set_ylim(ny-0.4,-0.8); ax.grid(alpha=0.15)
     soft_div_x(ax,order,-0.65)
+    integer_color_counts = (color_is_count and np.all(np.isfinite(counts))
+                            and np.all(counts >= 0) and np.all(counts == np.floor(counts)))
+    if integer_color_counts:
+        sc.set_clim(0, max(1, float(counts.max())))
     cb=fig.colorbar(sc,ax=ax,fraction=0.024,pad=0.012); cb.set_label(clab,fontsize=9)
+    if integer_color_counts:
+        from matplotlib.ticker import MaxNLocator
+        cb.locator = MaxNLocator(integer=True, min_n_ticks=1)
+        cb.update_ticks()
     # size legend
     for cv in sorted({int(cmax),max(1,int(cmax/2)),1}):
         ax.scatter([],[],s=40+(cv/cmax)*smax,c="#bbb",edgecolor="#333",label=f"{cv}")
@@ -1701,7 +1709,7 @@ def build(S, order, OUT):
             d03.append([s,bid,L[(s,bid)],ys[-1]])
         priv=is_private(s, S)
         ax.scatter(xs,ys,s=70 if priv else 26,marker="D" if priv else "o",color=pal[gi],alpha=0.75,
-                   edgecolor="#222",linewidth=0.8 if priv else 0.3,label=f"{genus(s).split()[0]} {s}"+(" (PRIV)" if priv else ""))
+                   edgecolor="#222",linewidth=0.8 if priv else 0.3,label=f"{s}"+(" (PRIV)" if priv else ""))
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("domains per BGC")
     ax.set_title("Per-BGC architecture landscape — size vs domain richness",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
@@ -1733,7 +1741,7 @@ def build(S, order, OUT):
         ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)")
-    ax.set_title("KCB reference-similarity vs BGC size, by boundary status\n(truncated Edge/Full-contig BGCs trend to weaker / absent hits)",pad=12); ax.grid(alpha=0.2,which="both")
+    ax.set_title("KCB reference-similarity vs BGC size, by boundary status",pad=12); ax.grid(alpha=0.2,which="both")
     ax.legend(fontsize=8,title="boundary",title_fontsize=8)
     fn=stamp_d(fig,"scatter_kcb_vs_size"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","boundary","region_length_kb","kcb_rank1_score"],d04)
@@ -1763,25 +1771,27 @@ def build(S, order, OUT):
     fig,ax=plt.subplots(figsize=(max(9,1.3*len(order)+3),6.2))
     rng=np.random.default_rng(7)
     _pos_kcb=False
+    nohit_counts={}
     d06=[[s,r.get("BGC_ID"),KCB.get((s,r.get("BGC_ID"))) or ""] for s in order for r in inv[s]]  # "" = no KCB hit
     for j,s in enumerate(order):
         ys=[KCB[(s,r.get("BGC_ID"))] for r in inv[s] if KCB.get((s,r.get("BGC_ID")))]
         if any(v>0 for v in ys): _pos_kcb=True
-        nohit=sum(1 for r in inv[s] if not KCB.get((s,r.get("BGC_ID"))))
+        nohit_counts[s]=sum(1 for r in inv[s] if not KCB.get((s,r.get("BGC_ID"))))
         xs=j+rng.uniform(-0.18,0.18,size=len(ys))
         ax.scatter(xs,ys,s=20,marker="D" if is_private(s, S) else "o",
                    color=TCOLOR.get(S[s]["ms"]["assembly_tier"],"#999"),alpha=0.6,edgecolor="#222",linewidth=0.2)
-        ax.text(j,1.5,f"{nohit} no-hit",ha="center",fontsize=6.5,color="#777",rotation=90)
     # no positive KCB score anywhere -> log scale would raise; stay linear and note it
     if _pos_kcb:
         ax.set_yscale("log")
     else:
         ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
-    ax.set_xticks(range(len(order))); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
+    ax.set_xticks(range(len(order))); ax.set_xticklabels([f"{lab(s)}\n{nohit_counts[s]} no-hit" for s in order],fontsize=8)
     ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)"); ax.tick_params(length=0)
     soft_div_x(ax,order,ax.get_ylim()[1])
     ax.set_title("KCB reference-similarity distribution per strain (one dot = one BGC with a hit;\n'no-hit' count noted, incl. truncated BGCs)",pad=12); ax.grid(alpha=0.2,axis="y",which="both")
+    # Keep all tick-label lines above the native footer stamp.
+    fig.subplots_adjust(bottom=0.22)
     fn=stamp_d(fig,"strip_kcb_per_strain"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","kcb_rank1_score"],d06)
 
@@ -1800,7 +1810,10 @@ def build(S, order, OUT):
         pts.append((raw,len(rare_tr),s)); d07.append([s,raw,len(rare_tr),";".join(sorted(rare_tr))])
     place_labels(ax,pts)
     ax.set_xlabel("raw BGC count"); ax.set_ylabel("# distinct rare chemistry triggers")
-    ax.set_title("Rare-chemistry richness vs genome BGC content\n(strains above the trend punch above their weight in rare chemistry)",pad=12); ax.grid(alpha=0.2)
+    from matplotlib.ticker import MaxNLocator
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
+    ax.set_title("Distinct diagnostic-trigger types vs BGC count per strain",pad=12); ax.grid(alpha=0.2)
     fn=stamp_d(fig,"scatter_rarechem_vs_bgcs"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","raw_bgcs","rare_trigger_count","rare_triggers"],d07)
 
@@ -1861,7 +1874,11 @@ def build(S, order, OUT):
         ax.scatter(xs,ys,s=55 if priv else 20,marker="D" if priv else "o",color=pal[gi],alpha=0.7,
                    edgecolor="#222",linewidth=0.6 if priv else 0.2,label=f"{s}"+(" (PRIV)" if priv else ""))
     ax.set_xlabel("megasynthase modules per BGC (PKS-KS + NRPS-C)"); ax.set_ylabel("TTA codons per BGC (bldA-dependency)")
-    ax.set_title("bldA-dependency vs megasynthase modularity, per BGC",pad=12); ax.grid(alpha=0.2)
+    from matplotlib.ticker import MaxNLocator
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
+    ax.set_title("bldA-dependency vs megasynthase modularity, per BGC\n"
+                 "Counts are integers; dots are offset by up to 0.2 per axis.",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
     fn=stamp_d(fig,"scatter_tta_vs_modularity"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","megasynthase_modules","tta_codons"],d11)
@@ -2009,8 +2026,10 @@ def batch1(S, order, OUT):
     present={k:sum(1 for s in order if pc[k].get(s,0)>0) for k in pc}
     rare=[k for k in pc if present[k]<=4 and present[k]>=1]
     rare=sorted(rare,key=lambda k:(present[k],-sum(pc[k].values())))
+    class_title = ("Product classes in one strain — BGC counts" if len(order) == 1 else
+                   f"Product classes recorded in ≤{min(4, len(order))} of {len(order)} strains — BGC counts")
     hmap([[pc[k].get(s,0) for s in order] for k in rare],[f"{k}  (in {present[k]})" for k in rare],order,
-         "Rare product classes (present in \u22644 of %d strains) — BGC counts" % len(order),
+         class_title,
          "rare_product_classes",OUT,cbar="BGC count",cmap="viridis",row_raw=rare)
 
     # G03 KCB reference-similarity strength (similarity, not identity)
@@ -2346,7 +2365,7 @@ CAPTIONS = {
 
     # ---- G-series (complementary) ----
     "rare_chemistry_triggers": "Rare diagnostic-chemistry triggers per strain with the two ubiquitous triggers (halogenase, lanthipeptide) removed, so uncommon capacity (diketopiperazine/CDPS, indolocarbazole, lassopeptide, nucleoside, n-n-bond) stands out.",
-    "rare_product_classes": "Product classes present in at most four strains (BGC counts) — isolates the unusual chemistry (metallophores, nucleosides, NAPAA, RRE-containing/lanthipeptide RiPP subtypes, indole) from the common backbone classes.",
+    "rare_product_classes": "BGC counts by product class and strain. Includes classes recorded in at most four strains; the title gives the number of strains shown.",
     "kcb_similarity_strength": "Per-strain distribution of BGCs by KnownClusterBlast reference-similarity strength, including a 'no-hit' (novelty-leaning) bin. KCB is similarity, not identity; the no-hit bin partly conflates true novelty with truncation of fragmented BGCs.",
     "bgc_boundary_status": "BGC boundary status per strain (Interior / Edge / Full-contig) — the components of the corrected BGC count (Interior + 1/2*Edge + 1/4*Full-contig), making assembly fragmentation explicit.",
     "bgc_size_distribution": "Per-strain BGC counts binned by region length (kb). Larger regions tend to host modular megasynthases; many small regions indicate fragmentation.",
@@ -2365,10 +2384,10 @@ CAPTIONS = {
     "bubble_productclass_size_length": "Product class x strain bubble matrix: dot area = BGC count, color = mean BGC length (kb). Small dark dots flag many short (often truncated) BGCs; large warm dots flag intact multi-class capacity.",
     "bubble_rare_triggers": "Rare diagnostic-chemistry triggers x strain as a bubble plot (dot area = BGC count) — a sparse-friendly view where single-occurrence rare chemistry reads clearly instead of vanishing in a zero-filled grid.",
     "scatter_size_vs_domains": "Per-BGC architecture landscape: region length (kb) vs domains per BGC, one dot per BGC, colored by strain (PRIVATE = diamonds). The upper-right tail are large, domain-rich modular clusters.",
-    "scatter_kcb_vs_size": "KCB reference-similarity (top bitscore, log) vs BGC length, colored by boundary status. Truncated Edge/Full-contig BGCs trend toward weaker or absent hits — the caveat behind the KCB novelty bin.",
+    "scatter_kcb_vs_size": "KCB rank-1 cumulative BLAST score vs BGC region length, colored by recorded boundary status. Each plotted point is a BGC with a recorded score.",
     "scatter_raw_vs_corrected": "Strain summary: raw vs corrected BGC count (dot area = domain hits, color = tier). Distance below the raw=corrected line shows how much fragmentation discounts the count.",
     "strip_kcb_per_strain": "Per-strain KCB strength distribution (one dot = one BGC with a hit; the 'no-hit' count is annotated). Shows the spread of dereplication strength, not just a summary.",
-    "scatter_rarechem_vs_bgcs": "Rare-chemistry richness (distinct rare triggers) vs total BGC content per strain. Strains above the trend punch above their weight in rare chemistry relative to genome size.",
+    "scatter_rarechem_vs_bgcs": "Distinct diagnostic-trigger types, after the stated common-trigger exclusions, vs raw BGC count per strain.",
     "bubble_tailoring": "Tailoring enzyme x strain bubble matrix (dot area = domain count): halogenases, chitinase, P450, glycosyl-/methyltransferases, radical SAM, siderophore synthetase, prenyltransferase.",
     "bubble_regulators": "Regulator family x strain bubble matrix (dot area = domain count). TetR: efflux/antibiotic-responsive repressors; GntR: metabolic repressors; LysR: dual activator/repressors; MarR: multidrug-resistance regulators; sigma-70: alternative sigma factors; HTH: generic DNA-binding regulators.",
     "scatter_bgc_by_class": "Per-BGC length vs domain count, colored by dominant product class — the chemical-architecture landscape, showing how class relates to size/complexity.",

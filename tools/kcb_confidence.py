@@ -24,9 +24,8 @@ from _console import emit  # noqa: E402
 import re, glob, os
 
 _ROW_RE = re.compile(
-    r'data-anchor="#(?P<anchor>r\d+c\d+)".*?'                        # region anchor (e.g. r2c1)
-    r'<td class="similarity-text"[^>]*>(?P<conf>High|Medium|Low)</td>',
-    re.S)
+    r'<tr\b[^>]*data-anchor="#(?P<anchor>r\d+c\d+)"[^>]*>(?P<body>.*?)</tr>', re.S)
+_CONF_RE = re.compile(r'<td class="similarity-text"[^>]*>(High|Medium|Low)</td>')
 _CLUSTER_RE = re.compile(r'similarity-text[^>]*>(?:High|Medium|Low)</td>\s*'
                          r'<td[^>]*>\s*(?:<a[^>]*>)?\s*(?P<cluster>[^<]+?)\s*(?:</a>|<)', re.S)
 
@@ -39,15 +38,16 @@ def extract_kcb_confidence(antismash_dir: str) -> list[dict]:
     if not html_path:
         return []
     html = open(html_path, encoding="utf-8", errors="replace").read()
-    confs = [(m.group("anchor"), m.group("conf")) for m in _ROW_RE.finditer(html)]
-    clusters = [m.group("cluster").strip() for m in _CLUSTER_RE.finditer(html)]
     out, seen = [], set()
-    for i, (anchor, conf) in enumerate(confs):
-        if anchor in seen:      # v8 HTML renders the overview table twice (per-record + global) — dedup by anchor
+    for match in _ROW_RE.finditer(html):
+        anchor, body = match.group("anchor"), match.group("body")
+        confidence = _CONF_RE.search(body)
+        if not confidence or anchor in seen:
             continue
         seen.add(anchor)
-        out.append({"region_anchor": anchor, "confidence": conf,
-                    "known_cluster": clusters[i] if i < len(clusters) else ""})
+        cluster = _CLUSTER_RE.search(body)
+        out.append({"region_anchor": anchor, "confidence": confidence.group(1),
+                    "known_cluster": cluster.group("cluster").strip() if cluster else ""})
     return out
 
 
@@ -58,8 +58,19 @@ def confidence_summary(rows: list[dict]) -> dict:
             "Medium": c.get("Medium", 0), "Low": c.get("Low", 0)}
 
 
-if __name__ == "__main__":
-    import sys, json
-    d = sys.argv[1]
+def main(argv=None):
+    import argparse, json
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("antismash_dir", help="existing antiSMASH output directory containing index.html")
+    args = parser.parse_args(argv)
+    d = args.antismash_dir
+    html = glob.glob(os.path.join(d, "**", "index.html"), recursive=True) or glob.glob(os.path.join(d, "index.html"))
+    if not os.path.isdir(d) or not html:
+        parser.error("KCB_CONFIDENCE_SOURCE_UNAVAILABLE: existing directory with index.html required")
     rows = extract_kcb_confidence(d)
     emit(json.dumps({"summary": confidence_summary(rows), "regions": rows[:60]}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

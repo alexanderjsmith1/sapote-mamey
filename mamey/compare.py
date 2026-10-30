@@ -457,7 +457,7 @@ def compare_command(args) -> int:
               f"(A={len(genes_a)}, B={len(genes_b)}) — need antiSMASH ZIPs with CDS features")
         return 1
 
-    emit(f"[gemini] backend={backend} · strain A {len(genes_a)} genes · strain B {len(genes_b)} genes")
+    emit(f"[gemini] selected backend={backend} · strain A {len(genes_a)} genes · strain B {len(genes_b)} genes")
 
     # S2 ANI when genome FASTAs supplied
     ani = None
@@ -481,10 +481,46 @@ def compare_command(args) -> int:
               "pyswrd/biopython, then re-run (see bundle_support/install_sapote_addons.sh)")
         return 1
     if not hits:
-        # A working backend that finds no shared genes is an HONEST 0-hit result, not a broken
-        # install: write the (all-no_hit) S5 table + summary below and say so plainly.
-        emit(f"[gemini] backend={backend}: 0 of strain A's {len(genes_a)} genes matched strain B "
-              f"at reportable similarity — a real 0-hit result, not a missing dependency")
+        # An empty result has no per-query backend provenance. Do not turn an availability
+        # selection into evidence that a particular aligner produced those rows.
+        emit(f"[gemini] no per-gene alignment rows returned (selected backend={backend}); "
+              "the effective backend is unrecorded")
+
+    def _result_backend(hit):
+        value = hit.get("backend")
+        if (isinstance(value, str) and value.strip()
+                and value.strip().lower() not in {"none", "unknown", "unavailable", "not_computed"}):
+            return value
+        return "unknown"
+
+    backend_counts = {}
+    missing_results, unattributed_results, unmeasured_results, not_computed = [], [], [], []
+    for qid, _ in genes_a:
+        hit = hits.get(qid)
+        if not hit:
+            missing_results.append(qid)
+        elif hit.get("pident") is None:
+            if str(hit.get("note") or "").startswith("alignment skipped:"):
+                not_computed.append(qid)
+            else:
+                unmeasured_results.append(qid)
+        else:
+            actual = _result_backend(hit)
+            if actual == "unknown":
+                unattributed_results.append(qid)
+            else:
+                backend_counts[actual] = backend_counts.get(actual, 0) + 1
+    effective_backends = sorted(backend_counts)
+    if effective_backends:
+        effective_backend = effective_backends[0] if len(effective_backends) == 1 else "mixed"
+        if missing_results or unattributed_results or unmeasured_results or not_computed:
+            backend_status = "PARTIAL"
+        else:
+            backend_status = "MIXED" if len(effective_backends) > 1 else "OBSERVED"
+    elif len(not_computed) == len(genes_a):
+        effective_backend, backend_status = "not_computed", "NOT_COMPUTED"
+    else:
+        effective_backend, backend_status = "unknown", "UNOBSERVED"
 
     # S5 output: one row per strain-A gene with its best strain-B match
     s5_path = os.path.join(out, "S5_gene_level_similarity.csv")
@@ -496,17 +532,33 @@ def compare_command(args) -> int:
     for qid, _ in genes_a:
         h = hits.get(qid)
         if not h:
-            w.writerow([qid, "", "", "", "no_hit", backend, ""])
+            w.writerow([qid, "", "", "", "no_hit", "unknown",
+                        "no per-query result returned; effective backend unrecorded"])
             continue
         call = classify_gene(h.get("pident"), h.get("qcovhsp"))
-        note = "similarity not identity; sub-70% = candidate, not absent" if call == "divergent_candidate" else ""
-        w.writerow([qid, h["sseqid"], h["pident"], h.get("qcovhsp"), call, h["backend"], note])
+        notes = [str(h["note"])] if h.get("note") else []
+        if call == "divergent_candidate":
+            notes.append("similarity not identity; sub-70% = candidate, not absent")
+        actual_backend = _result_backend(h)
+        if actual_backend == "unknown":
+            notes.append("effective backend unrecorded")
+        w.writerow([qid, h["sseqid"], h["pident"], h.get("qcovhsp"), call, actual_backend, "; ".join(notes)])
     _atomic_write_text(s5_path, _s5_buf.getvalue())
 
     present = sum(1 for qid, _ in genes_a
                   if hits.get(qid) and classify_gene(hits[qid].get("pident"), hits[qid].get("qcovhsp")) == "present")
     summary = {
-        "backend": backend,
+        "backend": effective_backend,
+        "backend_selected": backend,
+        "backend_provenance": {
+            "status": backend_status,
+            "effective_backends": effective_backends,
+            "effective_backend_counts": {name: backend_counts[name] for name in effective_backends},
+            "missing_result_genes": missing_results,
+            "unattributed_result_genes": unattributed_results,
+            "unmeasured_result_genes": unmeasured_results,
+            "not_computed_genes": not_computed,
+        },
         "alignment_threads": alignment_threads,
         "strain_a_genes": len(genes_a),
         "strain_b_genes": len(genes_b),
@@ -518,7 +570,9 @@ def compare_command(args) -> int:
             "sub-70% calls are divergent_candidate, never asserted absent (BGC050 false-negative guard)",
             "Edge/Full-contig low conservation may be truncation, not divergence",
         ],
-        "diamond_status": "pyswrd/biopython backend (proven); DIAMOND fast-path is optional and auto-detected if on PATH",
+        "diamond_status": ("effective backend(s) observed in measured result rows: "
+                           + ", ".join(effective_backends) if effective_backends else
+                           "effective backend unrecorded; inspect backend_provenance and per-row notes"),
     }
     if ani and ani.get("ok"):
         summary["ani"] = {"value": ani["ani"], "aligned_fraction": ani["aligned_fraction"],

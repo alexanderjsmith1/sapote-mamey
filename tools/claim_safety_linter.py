@@ -129,21 +129,19 @@ def _identity_context(text: str, start: int, end: int) -> str:
 
 
 _STANDARD_DISCLAIMER_LINE_RE = re.compile(
-    r"^\s*>?\s*(?:Claim-safety:|KCB comparisons are similarity signals, not identity\.|Bioactivity links are mechanistic hypotheses requiring experimental validation\.)(?:\s|$)",
+    r"^\s*>?\s*(?:Claim-safety:|All class assignments are bioinformatic predictions\.|KCB comparisons are similarity signals, not identity\.|Bioactivity links are mechanistic hypotheses requiring experimental validation\.)(?:\s|$)",
     re.IGNORECASE,
 )
 
 
 def _remove_standard_disclaimer_lines(text: str) -> str:
-    """Remove generated safety boilerplate before linting.
-
-    The boilerplate is itself the identity ceiling. Flagging it as an
-    identity_overclaim creates noisy false positives on generated Mode B cards.
-    """
-    return "\n".join(
-        line for line in text.splitlines()
-        if not _STANDARD_DISCLAIMER_LINE_RE.search(line)
-    )
+    """Remove known boilerplate prefixes, preserving any following assertion."""
+    lines = []
+    for line in text.splitlines():
+        while (match := _STANDARD_DISCLAIMER_LINE_RE.match(line)) is not None:
+            line = line[match.end():]
+        lines.append(line)
+    return "\n".join(lines)
 
 
 # Emphasis / quote wrappers that sit INSIDE a sentence and carry no segmentation meaning for this

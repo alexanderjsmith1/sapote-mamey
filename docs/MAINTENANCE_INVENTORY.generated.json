@@ -2,7 +2,7 @@
   "counts": {
     "command": 119,
     "companion": 22,
-    "document": 556,
+    "document": 560,
     "generated": 21,
     "optional-hook": 8,
     "tool": 562
@@ -12,14 +12,14 @@
     "ENGINEERING_RECORD": 3,
     "GENERATED_OR_MANAGED_SURFACE": 22,
     "OPTIONAL_GUIDE": 4,
-    "RETAINED_HISTORY": 143,
-    "UNCLASSIFIED_REVIEW_HOLD": 245
+    "RETAINED_HISTORY": 144,
+    "UNCLASSIFIED_REVIEW_HOLD": 248
   },
   "inputs": [
     {
       "bytes": 21582,
       "path": "CURRENT_DOCS_INDEX.md",
-      "sha256": "55a008ec651b9ca147522e4c9322cda0918a0fc43e56485f62e619e3e368b7a7"
+      "sha256": "b8984d7056fcada78cf34f4cae09d705a030a47853e71b35d05a5fd97049f535"
     },
     {
       "bytes": 8058,
@@ -27,34 +27,34 @@
       "sha256": "359a51fea210df20b44899e7853c0265f3d75d5ecbaca980a6cb1a7493f01f30"
     },
     {
-      "bytes": 12242,
+      "bytes": 4959,
       "path": "docs/COMMON_MISTAKES.md",
-      "sha256": "b0a4a4e0d24ee9095dc98d9959ae46881f91bf81ad6f6fa9819500cec6926f02"
+      "sha256": "c0572c3b71637958b84bf65748bae4390f092df340ddcafec3bd893de0d71811"
     },
     {
       "bytes": 15107,
       "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-      "sha256": "6beab4637dec99bfab29819d1eeb7425a6804b08cf12fa83bcbcd4bb4b9bd42a"
+      "sha256": "1d834d24439f3e3414997fa52599a2c4712a37935e0e8bd0b9f722b7c413ed4b"
     },
     {
-      "bytes": 92306,
+      "bytes": 68091,
       "path": "docs/GLOSSARY.md",
-      "sha256": "113726cffd12c8492588629b5a5c21f28dddb4c9e9c88914b90d40177e0a64e2"
+      "sha256": "072d9151a340e57713568ac48877599fd0ab2fe5ec3d3a03a21b1816cd67c2bd"
     },
     {
-      "bytes": 61832,
+      "bytes": 7150,
       "path": "docs/GUIDE/01_User_Manual.md",
-      "sha256": "e2fc2c5d0221d2a9322f0ae8e6d6a8762044f54d5ef696bcd6415f7397f6f00c"
+      "sha256": "fc910a4db94046f1c37cfb3a3b61ee4e94977b836b1bde39420a30bb15a0eb36"
     },
     {
-      "bytes": 27372,
+      "bytes": 3181,
       "path": "docs/GUIDE/02_Quick_Guide.md",
-      "sha256": "a075a450eea55a48a9ad677320ec80a02742e9b20a1e68dedb00baf5027d727f"
+      "sha256": "5bd43c8d770dfe8d4df18ee1dbdb8901049c44d10fcd2966c841baba5de25972"
     },
     {
-      "bytes": 99716,
+      "bytes": 41456,
       "path": "docs/GUIDE/06_Concepts_QandA.md",
-      "sha256": "a6e93de7c88502640bd4627e8620a963bef38927e0d808927790764c09e578bb"
+      "sha256": "f1ef7db947dbf76d168a9c21c05c38f77e4502d6eb99116d771bcb1ba431206a"
     },
     {
       "bytes": 7602,
@@ -62,9 +62,9 @@
       "sha256": "de7df6abacc6aaa2801cab3a3b39fe5e0912d1fc5d416174652c6d81fbef7109"
     },
     {
-      "bytes": 11633,
+      "bytes": 4877,
       "path": "docs/PREREQUISITES.md",
-      "sha256": "086ab65a2b137df46ed7cc3ce6806439637cdcbc986ef073a04bf05ea72878e7"
+      "sha256": "e785adfda955e8d28d2447a43a84422b5ab12a95d7955287cae85bbed8a86976"
     },
     {
       "bytes": 4298,
@@ -72,9 +72,9 @@
       "sha256": "2b9ebf3c0cfa26a1eae56f7787182ac4a0679575fd1bdb7d054aeca5866e9e22"
     },
     {
-      "bytes": 546162,
+      "bytes": 546519,
       "path": "mamey/cli.py",
-      "sha256": "20ea6c4e2d48bbbc14a7d8f0da0a84a892bdf898a1e52ab2cb3afa7611b9f34c"
+      "sha256": "e15b9f098c1692cb038f4790ddfb99c18edb88ae3d3e05e4e6bf5a41ff50c2eb"
     },
     {
       "bytes": 12938,
@@ -92,9 +92,9 @@
       "sha256": "dff09b1835e7bb9e48520d2863e5b1879d8592fa7c631e060d19c95a81fbd463"
     },
     {
-      "bytes": 33796,
+      "bytes": 37440,
       "path": "mamey/data/deliverables_registry.json",
-      "sha256": "e3d28720610e9fafbfacb14ee93dc0701a626eadea8ade5a914980afbb329aba"
+      "sha256": "d165a4c0bda7d389698883ca273f3672f0fe083db28507187ca9497d4162637d"
     },
     {
       "bytes": 14748,
@@ -117,9 +117,9 @@
       "sha256": "7babd29360c2e50cfb83f8ec2d504e8cc2c4f84fba8347b6b821873176fd8d42"
     },
     {
-      "bytes": 11159,
+      "bytes": 10349,
       "path": "tools/gen_command_catalog.py",
-      "sha256": "c9fc3f87030ba23e4dd6fcd097b2984c90b2884ba800cd26b14ee23e71307a09"
+      "sha256": "904a1f12abdb3044d8d616302fb1b7bc3a362eaef8fdd352c79b787bf73ce614"
     },
     {
       "bytes": 6099,
@@ -137,9 +137,9 @@
       "sha256": "2c3a26b5b0630bd85581e385036e10eee057ee1c1c2b4cebb83b375258b76108"
     },
     {
-      "bytes": 7805,
+      "bytes": 8048,
       "path": "tools/gen_user_catalog.py",
-      "sha256": "006925b9baf885036b8425444ee0742e853d53108843755ad99c3d8946086c89"
+      "sha256": "c1bb2fc2c9f1f1cd80977d10fbc3463a8fa46ff3d3c96f3c48d57e23a113f151"
     },
     {
       "bytes": 2138,
@@ -162,9 +162,9 @@
       "sha256": "cb01b5ca28b68d2e82094e328c13adbc6660228a7607c8d910436e5f2889eee8"
     },
     {
-      "bytes": 40457,
+      "bytes": 39594,
       "path": "tools/sync_version.py",
-      "sha256": "fcf8c26b7914660c0c2ad2761805e951550938bd730bfb6283f5050d221718b3"
+      "sha256": "65d2d295c67fc69616cf01353aabd8f55e1fc8d253ea70c1474744f225f7e635"
     },
     {
       "bytes": 4129,
@@ -1257,7 +1257,7 @@
     {
       "aliases": [],
       "availability": "NOT_PROBED",
-      "description": "Preview what Mamey sees in an antiSMASH ZIP before running",
+      "description": "Preview an antiSMASH ZIP or identify a Complete Package",
       "group": "Run and seal a strain",
       "id": "command:inspect",
       "kind": "command",
@@ -2395,9 +2395,9 @@
       "path": "CHANGELOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 80218,
+        "bytes": 83702,
         "path": "CHANGELOG.md",
-        "sha256": "c7c4f489df2b97be7723587b810816f20ab970523aeeb2a39242d975855016a5"
+        "sha256": "9e4bc3950b8dd23e85e9507e26b495333c6a449566e3cff701d5fb49f582455f"
       }
     },
     {
@@ -2441,7 +2441,7 @@
       "source": {
         "bytes": 21582,
         "path": "CURRENT_DOCS_INDEX.md",
-        "sha256": "55a008ec651b9ca147522e4c9322cda0918a0fc43e56485f62e619e3e368b7a7"
+        "sha256": "b8984d7056fcada78cf34f4cae09d705a030a47853e71b35d05a5fd97049f535"
       }
     },
     {
@@ -2607,9 +2607,9 @@
       "path": "docs/ANTISMASH_INPUTS_CONSUMED.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 11325,
+        "bytes": 5499,
         "path": "docs/ANTISMASH_INPUTS_CONSUMED.md",
-        "sha256": "0492170780e0efddc6acc0c31d7401b8ba1dde1f0f2b73bd6fd072c5853120df"
+        "sha256": "31c8c8d392d659a9f8d10fe4f77d16b3d9566da5dc56bf9d2e63cf1fcc98e9c9"
       }
     },
     {
@@ -2655,9 +2655,9 @@
       "path": "docs/ARTIFACT_MAP_LIMITS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5263,
+        "bytes": 5138,
         "path": "docs/ARTIFACT_MAP_LIMITS.md",
-        "sha256": "76f4a570d5c3a80cc1296059c4cbb8f5d4c55fcde7a98b8636cf13ea147f3120"
+        "sha256": "7ccb0a860e52c92835f8cfa069d7b6b41c9cf92f8850139f09e7e293813e4c63"
       }
     },
     {
@@ -2703,9 +2703,9 @@
       "path": "docs/ASSISTANT_USER_GUIDE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 14433,
+        "bytes": 5390,
         "path": "docs/ASSISTANT_USER_GUIDE.md",
-        "sha256": "200a7edafa045762727a07ed24abbc28845aa15d3216b916bd3ea6e9252edaec"
+        "sha256": "0ed10f597b61298dc291d95fc8b6342ad850975b38ca199c656447663bbd123a"
       }
     },
     {
@@ -2735,9 +2735,9 @@
       "path": "docs/BARRNAP.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 2111,
+        "bytes": 1838,
         "path": "docs/BARRNAP.md",
-        "sha256": "57d540e05a57cf5bfbaa613ce8609f19c7fefa957b505480fbf75bc81ef63c42"
+        "sha256": "f60b20ad660dbf3aa835d9d9db18f401bf7e232cc4dc740050b8bb2431a25447"
       }
     },
     {
@@ -2879,9 +2879,9 @@
       "path": "docs/BIGSCAPE_COHORT_WALKTHROUGH.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 14121,
+        "bytes": 3994,
         "path": "docs/BIGSCAPE_COHORT_WALKTHROUGH.md",
-        "sha256": "1413369ea79108aa95a1b007ff78f05c99b8b84b69015c76ca4e7829feb4fcb2"
+        "sha256": "37a8fe00c33ef129bc938f92be0a5ad1b9ee2087a384ef9287041feeeb28fb09"
       }
     },
     {
@@ -2911,9 +2911,9 @@
       "path": "docs/BIGSCAPE_GCF_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 15778,
+        "bytes": 5341,
         "path": "docs/BIGSCAPE_GCF_WORKFLOW.md",
-        "sha256": "c45900cdfbb7562c3b4228b062109b68014301ddb7313e6dca19bcd1c0060e68"
+        "sha256": "c95f11ce36fea861fda056ec6fdd96757d14fb62088dd1faea9a9f30a17419ba"
       }
     },
     {
@@ -3007,9 +3007,9 @@
       "path": "docs/BIOASSAY_FIGURE_FACTORY.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 16172,
+        "bytes": 6099,
         "path": "docs/BIOASSAY_FIGURE_FACTORY.md",
-        "sha256": "f90cecded93f657b7bda2f9f1a12f3122df54d22a9840f89b0a020c306d9f85f"
+        "sha256": "52516633b6478e2412def0b9cd6ec8335601e2a760eb7b49ba86d3b7d54297ea"
       }
     },
     {
@@ -3223,9 +3223,9 @@
       "path": "docs/CITATION_COMPACT_MODE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6202,
+        "bytes": 2271,
         "path": "docs/CITATION_COMPACT_MODE.md",
-        "sha256": "05c3ead7c08802da8efd438dc9a01314e173d1416844ad646968d8602cf556c9"
+        "sha256": "61ad162a6041f568a75d6f21eaed0119d566c6065ecead4f4cd2b73f545a0177"
       }
     },
     {
@@ -3273,7 +3273,7 @@
       "source": {
         "bytes": 7657,
         "path": "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md",
-        "sha256": "6124bddce00b01b08c50d066bf029b0827a6d76893cfd291d215311ad29add8b"
+        "sha256": "d582c2b2efadc73cb2c683e90506801af9fefa0778869ea5fc4f15cccb6b3007"
       }
     },
     {
@@ -3459,9 +3459,9 @@
       "path": "docs/COMMON_MISTAKES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 12242,
+        "bytes": 4959,
         "path": "docs/COMMON_MISTAKES.md",
-        "sha256": "b0a4a4e0d24ee9095dc98d9959ae46881f91bf81ad6f6fa9819500cec6926f02"
+        "sha256": "c0572c3b71637958b84bf65748bae4390f092df340ddcafec3bd893de0d71811"
       }
     },
     {
@@ -3475,9 +3475,9 @@
       "path": "docs/COMPANION_CLASS_EVIDENCE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 18645,
+        "bytes": 6853,
         "path": "docs/COMPANION_CLASS_EVIDENCE.md",
-        "sha256": "993251f90526763bef7987c86eb8f1424e56044f6871dfbcea2f424fd5d2bb21"
+        "sha256": "85f5a9456d7f56e114c7cfc03a052962871d968bc479dc5cf4888b8f4c3e448b"
       }
     },
     {
@@ -3491,9 +3491,9 @@
       "path": "docs/COMPANION_FILES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6377,
+        "bytes": 3576,
         "path": "docs/COMPANION_FILES.md",
-        "sha256": "a51d5a9408cd768ea27e643b5c8c9ee4d9be4596299bc52e578745c1504240bc"
+        "sha256": "c31267ebd20e8a9b1ed8996d6b7f842d419603789e4abe985752d6ac9f2a5391"
       }
     },
     {
@@ -3523,9 +3523,9 @@
       "path": "docs/COMPANION_TOOL_GUIDE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 43180,
+        "bytes": 26170,
         "path": "docs/COMPANION_TOOL_GUIDE.md",
-        "sha256": "f1e15ee0a2c6d6f3a9820b07045ec839d3f880ab00c8c70170b7fe449f978dc4"
+        "sha256": "d997c91bb9a7dbde686f56f576c9fb8d4d24da72d1b4efb2dfb7190a8e71e774"
       }
     },
     {
@@ -3635,9 +3635,9 @@
       "path": "docs/DATA_HOME.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 17185,
+        "bytes": 2925,
         "path": "docs/DATA_HOME.md",
-        "sha256": "256ea977740eb0e3966ba534957713c94a5374f37951653df6e9f4c4b0cbbcdb"
+        "sha256": "478c10ee2c20bffbd6abb8635f44f22981fcf587bc6cf084dfaf067f5b318007"
       }
     },
     {
@@ -3667,9 +3667,9 @@
       "path": "docs/DELIVERABLE_CONTRACT.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 40974,
+        "bytes": 16854,
         "path": "docs/DELIVERABLE_CONTRACT.md",
-        "sha256": "9775e8c28d9cd6e4005dd1caeb551b67f2fb6d7365bc7d8535235a360327a786"
+        "sha256": "e7701f9279026fa36191ea168c10d13eb22f22995c295bf04c109c377fe6f561"
       }
     },
     {
@@ -3771,9 +3771,9 @@
       "path": "docs/DOCUMENTATION_MAP.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 12436,
+        "bytes": 3696,
         "path": "docs/DOCUMENTATION_MAP.md",
-        "sha256": "56b92ba5cae868ee2a28df3ff5bfba3f9271c6a5c1ba4079c7d82413dccb85ac"
+        "sha256": "e9c81a1830cfc61d690e6bc92bd060e49066a6ed6b4212f6f5a69a97073fb24e"
       }
     },
     {
@@ -3867,9 +3867,9 @@
       "path": "docs/EPA_NG_PLACEMENT_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 24797,
+        "bytes": 25005,
         "path": "docs/EPA_NG_PLACEMENT_WORKFLOW.md",
-        "sha256": "6d8cd639f9cf636af61b2abe99b925a040175a47efefbb2927389fff91e6463b"
+        "sha256": "1b90430a366a18a759edfe075eee9bd927d3e1e9e3966689bb5e99f9c8858b02"
       }
     },
     {
@@ -3915,9 +3915,9 @@
       "path": "docs/EVIDENCE_TO_REPORT.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7573,
+        "bytes": 3914,
         "path": "docs/EVIDENCE_TO_REPORT.md",
-        "sha256": "425c41d3e839e14d67e6dc6ab127b5cd56cf948525f3514d2277b3ff2aba0eda"
+        "sha256": "76432916f1336f6b6baa4d178a306e81bd95c5bec4428e749147a395d6c84c36"
       }
     },
     {
@@ -3931,9 +3931,9 @@
       "path": "docs/EXTERNAL_ASSETS_GUIDE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 8393,
+        "bytes": 5953,
         "path": "docs/EXTERNAL_ASSETS_GUIDE.md",
-        "sha256": "66d4bd305115e0525a4577dcbad9cd6684845889e833c0fb32211eb43180da00"
+        "sha256": "49677e670d51e492b130a3859671c5cbe7d6380dc9c4c979dde7ff8d3f56fee2"
       }
     },
     {
@@ -3965,7 +3965,7 @@
       "source": {
         "bytes": 15107,
         "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-        "sha256": "6beab4637dec99bfab29819d1eeb7425a6804b08cf12fa83bcbcd4bb4b9bd42a"
+        "sha256": "1d834d24439f3e3414997fa52599a2c4712a37935e0e8bd0b9f722b7c413ed4b"
       }
     },
     {
@@ -4043,9 +4043,9 @@
       "path": "docs/FIGURES_START_HERE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 25709,
+        "bytes": 12411,
         "path": "docs/FIGURES_START_HERE.md",
-        "sha256": "562006b0645107ffc3d3906362658a46dc77cf2e3a4c0bfdf3c8a23b3a41aecf"
+        "sha256": "3bfaff8eeff7aaae53be27dfa57605af989c67ade19714e9db868b1a2a8d7b08"
       }
     },
     {
@@ -4171,9 +4171,9 @@
       "path": "docs/FILES_STORAGE_AND_HANDOFF.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 9947,
+        "bytes": 4796,
         "path": "docs/FILES_STORAGE_AND_HANDOFF.md",
-        "sha256": "59d12cb850dad3e2463af7589908485e2e58b7e844cec6c9ecc137661a4fe026"
+        "sha256": "c25c218e68ea9f023c38f1ff58c32555c33a7a0d3e59ef39f34ab5ce5c092f03"
       }
     },
     {
@@ -4263,9 +4263,9 @@
       "path": "docs/GLOSSARY.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 92306,
+        "bytes": 68091,
         "path": "docs/GLOSSARY.md",
-        "sha256": "113726cffd12c8492588629b5a5c21f28dddb4c9e9c88914b90d40177e0a64e2"
+        "sha256": "072d9151a340e57713568ac48877599fd0ab2fe5ec3d3a03a21b1816cd67c2bd"
       }
     },
     {
@@ -4327,9 +4327,9 @@
       "path": "docs/GTOTREE_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 24567,
+        "bytes": 5500,
         "path": "docs/GTOTREE_WORKFLOW.md",
-        "sha256": "a948e479c38c827c8cca9a496513a8dc4852f91102850d0ab15c536d54680a71"
+        "sha256": "acf722a01dcfc7a53bb5898ad9c6d3948d4806df5348b85ab3a90e7446ad464c"
       }
     },
     {
@@ -4345,7 +4345,7 @@
       "source": {
         "bytes": 2148,
         "path": "docs/GUIDE/00_README.md",
-        "sha256": "f60247171693a8add95816951fe1a6d508deb6540737eeb91d013289b7c582a5"
+        "sha256": "7cb167b519de9617aa1ba274fc245e9179b5b4b45c822edf28e8c8f5ee63767b"
       }
     },
     {
@@ -4359,9 +4359,9 @@
       "path": "docs/GUIDE/01_User_Manual.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 61832,
+        "bytes": 7150,
         "path": "docs/GUIDE/01_User_Manual.md",
-        "sha256": "e2fc2c5d0221d2a9322f0ae8e6d6a8762044f54d5ef696bcd6415f7397f6f00c"
+        "sha256": "fc910a4db94046f1c37cfb3a3b61ee4e94977b836b1bde39420a30bb15a0eb36"
       }
     },
     {
@@ -4375,9 +4375,9 @@
       "path": "docs/GUIDE/02_Quick_Guide.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 27372,
+        "bytes": 3181,
         "path": "docs/GUIDE/02_Quick_Guide.md",
-        "sha256": "a075a450eea55a48a9ad677320ec80a02742e9b20a1e68dedb00baf5027d727f"
+        "sha256": "5bd43c8d770dfe8d4df18ee1dbdb8901049c44d10fcd2966c841baba5de25972"
       }
     },
     {
@@ -4391,9 +4391,9 @@
       "path": "docs/GUIDE/04_Glossary.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 478,
+        "bytes": 201,
         "path": "docs/GUIDE/04_Glossary.md",
-        "sha256": "55835f2d1068939fa917fefcdfa8c3763714d409ba07ffbb660936939b27ce65"
+        "sha256": "85f915d7d4a14d861fa331e44226497f674fa3047fff2fa4306432c1e52b90a8"
       }
     },
     {
@@ -4423,9 +4423,9 @@
       "path": "docs/GUIDE/06_Concepts_QandA.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 99716,
+        "bytes": 41456,
         "path": "docs/GUIDE/06_Concepts_QandA.md",
-        "sha256": "a6e93de7c88502640bd4627e8620a963bef38927e0d808927790764c09e578bb"
+        "sha256": "f1ef7db947dbf76d168a9c21c05c38f77e4502d6eb99116d771bcb1ba431206a"
       }
     },
     {
@@ -4457,7 +4457,7 @@
       "source": {
         "bytes": 5318,
         "path": "docs/HOW_TO_USE.md",
-        "sha256": "833f8735e54f8a67fdbf56523aaacc98a69b1ab525a39fdee14c99899e0f0b72"
+        "sha256": "e5450202b3dac122ff7f1f52c4eeed4fd350c734d2bb1ff85c08df1423df3d7b"
       }
     },
     {
@@ -4519,9 +4519,9 @@
       "path": "docs/INSTALL.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 17357,
+        "bytes": 4611,
         "path": "docs/INSTALL.md",
-        "sha256": "a079753ad8b767528ed65927002334afa89eb940c3489a2861e24038c89bc164"
+        "sha256": "088746c6b82598e50f76473334e62170a0267d39e64791c6a24cdf4ac9d9b32f"
       }
     },
     {
@@ -4535,9 +4535,9 @@
       "path": "docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 8945,
+        "bytes": 2955,
         "path": "docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md",
-        "sha256": "f34d9553f59929e1fff5a9558fc33776f4a9fea5ae01e58781422fd1bbe06135"
+        "sha256": "22803aec92093830458f3bffca2a4ced6171ad686ee0e8db2c99305f4b64d30c"
       }
     },
     {
@@ -4783,9 +4783,9 @@
       "path": "docs/MASTER_WALKTHROUGH.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 17731,
+        "bytes": 3042,
         "path": "docs/MASTER_WALKTHROUGH.md",
-        "sha256": "d7233f397e8a7e1642f25b9639161ec8c74bea084b8f26f0c8c0b5f48a36e3b4"
+        "sha256": "7398c5d50fa722c2b37075b70668b03cabc62287e2e8755820d45df717dc142d"
       }
     },
     {
@@ -4943,9 +4943,9 @@
       "path": "docs/MODEB_EXPANDED_LOCUS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 9980,
+        "bytes": 4889,
         "path": "docs/MODEB_EXPANDED_LOCUS.md",
-        "sha256": "9a14511f9c6db69c6d486533662dc3e4ce204538949df7ec079bcffa21540141"
+        "sha256": "ee0f2a17646339286fc17ded227694825588ef472e47a2f40b33af09aa414517"
       }
     },
     {
@@ -4991,9 +4991,9 @@
       "path": "docs/MODEB_GAP_RESCUE_READER.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6147,
+        "bytes": 3195,
         "path": "docs/MODEB_GAP_RESCUE_READER.md",
-        "sha256": "7015c5af62d2b356143440d4bc51e944878d85e543ec4d3c27ece598d4d26e3c"
+        "sha256": "2401977415a4648fc6187f6e11341bd66e8650595f675f88989d52e39a23279e"
       }
     },
     {
@@ -5087,9 +5087,9 @@
       "path": "docs/MODEB_PROFILE_MATRIX.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4835,
+        "bytes": 2935,
         "path": "docs/MODEB_PROFILE_MATRIX.md",
-        "sha256": "d526e7ebae2a2deae73645054aa53d2e3dbcaebef0fda5fb6f2f0a096bf840a8"
+        "sha256": "95b81889de35c53bdc9e4005437a8ddbd9959f49d17001119243b9cf7a4b10e0"
       }
     },
     {
@@ -5167,9 +5167,9 @@
       "path": "docs/MODE_B_AUTHORING_PREFLIGHT.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10001,
+        "bytes": 5340,
         "path": "docs/MODE_B_AUTHORING_PREFLIGHT.md",
-        "sha256": "1160d8845a2afbede1803639ed2f248376869613c0626709656d5d69e1b88e50"
+        "sha256": "5565567359a5aca4ab4a146fa2d82849948603e6cfbdad6230a80a8979b6c42d"
       }
     },
     {
@@ -5199,9 +5199,9 @@
       "path": "docs/MODE_B_DOCUMENT_INDEX.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 13157,
+        "bytes": 4284,
         "path": "docs/MODE_B_DOCUMENT_INDEX.md",
-        "sha256": "c17c862f90f5e993e8f591f57ae96a5e54307dae0bc431ca1014a5970f40854e"
+        "sha256": "ab08865e35ad09436f4cf7e41ca11ab2d76dee687af287762d498338bb7ce747"
       }
     },
     {
@@ -5247,9 +5247,9 @@
       "path": "docs/MODE_B_USER_WALKTHROUGH.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10128,
+        "bytes": 5594,
         "path": "docs/MODE_B_USER_WALKTHROUGH.md",
-        "sha256": "b25bfc027b4731a3ee148b37319762753eb73798a3eef821087868f6b1f77e45"
+        "sha256": "22cc4df8e769695ced76ed5e21b77ddc15daac6ff23b3220d956dbdeb76900f2"
       }
     },
     {
@@ -5311,9 +5311,9 @@
       "path": "docs/NPATLAS_PROVISIONING.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10223,
+        "bytes": 3212,
         "path": "docs/NPATLAS_PROVISIONING.md",
-        "sha256": "a123c602247fe7d1d3aada87a2cc75b2b63d761f20d59273116bf880f3c64baf"
+        "sha256": "230c32b52e097a503fd22ec866ca127475d97851c709ad7bae2a87c5bd2e1a1c"
       }
     },
     {
@@ -5343,9 +5343,9 @@
       "path": "docs/ONLINE_BLASTP_PROTOCOL.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 21617,
+        "bytes": 5794,
         "path": "docs/ONLINE_BLASTP_PROTOCOL.md",
-        "sha256": "687f6477312d32dd22d3ff5321c6aff292954089c1ed41a5156856fb50f4c396"
+        "sha256": "4bf52626a0bcd72712ae816b2cfddf67d5beebe9834e6f90d89430b672d31752"
       }
     },
     {
@@ -5599,9 +5599,9 @@
       "path": "docs/PHYLO_AUTOPILOT_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 9722,
+        "bytes": 2920,
         "path": "docs/PHYLO_AUTOPILOT_WORKFLOW.md",
-        "sha256": "b4ba6ed3f4a6c54f3a4a9d640e30f788409b05a97c0a210197600bee7db51bd9"
+        "sha256": "78ee2854b2382cba3aa6de0d9175dcfe57de6285de06e974561a726dda94f9c3"
       }
     },
     {
@@ -5615,9 +5615,9 @@
       "path": "docs/PHYLO_FUNGAL_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6362,
+        "bytes": 3634,
         "path": "docs/PHYLO_FUNGAL_WORKFLOW.md",
-        "sha256": "98fceea0877d63362d6a0bd10107ad59a859dfe63c42165adfb965e99db26db5"
+        "sha256": "c3aa91f10838f31052f0155275bd171216aa0ee7ed0e380a455e5e6e3cbeee66"
       }
     },
     {
@@ -5697,7 +5697,7 @@
       "source": {
         "bytes": 6746,
         "path": "docs/PLAYBOOK.md",
-        "sha256": "5c7c037327d8d0f9ae9c600af34ca2807b440c787cc4ee1c8da32074416a2de7"
+        "sha256": "be713bee640d460098f3347410646f779479938e8d81fe8af904babfeb27b151"
       }
     },
     {
@@ -5727,9 +5727,9 @@
       "path": "docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4514,
+        "bytes": 2678,
         "path": "docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md",
-        "sha256": "7842d1db9f318fb5170c8371d88d7a64bbc0a8401ffdefbff8403b3df3829cc2"
+        "sha256": "a4bf29a32684e561092c28def156c2b5092d520f3ee4fc68e5d35a4d24ee360d"
       }
     },
     {
@@ -5743,9 +5743,9 @@
       "path": "docs/POSTSEAL_READERS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 8877,
+        "bytes": 4573,
         "path": "docs/POSTSEAL_READERS.md",
-        "sha256": "f79e3fde7675e7e375f679158db56d4fe306302cf84b9ffe4e7690a0ffbc2cb0"
+        "sha256": "6aa1fb53144ba33d5fecb8321011c62ba2ee36552c0e7dcaae377b7a46d20583"
       }
     },
     {
@@ -5759,9 +5759,9 @@
       "path": "docs/PREREQUISITES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 11633,
+        "bytes": 4877,
         "path": "docs/PREREQUISITES.md",
-        "sha256": "086ab65a2b137df46ed7cc3ce6806439637cdcbc986ef073a04bf05ea72878e7"
+        "sha256": "e785adfda955e8d28d2447a43a84422b5ab12a95d7955287cae85bbed8a86976"
       }
     },
     {
@@ -5775,9 +5775,9 @@
       "path": "docs/PREVALENCE_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6560,
+        "bytes": 6463,
         "path": "docs/PREVALENCE_WORKFLOW.md",
-        "sha256": "4e6673e55ffd5fda44dc0dd7afbbe5d3753ec469a560a3a7a2912616cd4a7111"
+        "sha256": "2619b171c19a7d8a2d0c0438146e1ce2b2427ccc7ee0e447b1dd6217f5ff4baf"
       }
     },
     {
@@ -5791,9 +5791,9 @@
       "path": "docs/PRODUCT_MAP.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7287,
+        "bytes": 1560,
         "path": "docs/PRODUCT_MAP.md",
-        "sha256": "f6b9d13e9f37561963463d8ec10e8ad5d5cc57ec4caf69b33b8e29c1c06aeda3"
+        "sha256": "26a78a3bbdf2432a850d6bc5f1ccf7d6ed841bec00508e4ab84808c4a5a79846"
       }
     },
     {
@@ -5807,9 +5807,9 @@
       "path": "docs/PROJECT_CATALOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10336,
+        "bytes": 5066,
         "path": "docs/PROJECT_CATALOG.md",
-        "sha256": "d6815b698a908fe322bf8276ea9b15a3574acaa25a6ae2b7defa8b9c53c0b948"
+        "sha256": "b003f99e8f0f5741fe26dea31783a5c33740f02b14e73e3e3368b8d28e35c51f"
       }
     },
     {
@@ -5823,9 +5823,9 @@
       "path": "docs/PROJECT_DATA_HOME.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 2258,
+        "bytes": 1233,
         "path": "docs/PROJECT_DATA_HOME.md",
-        "sha256": "47f662e66a0fa2f0679a820df33c1a6d26cdcc533cd1d17ccb45d75941170ffc"
+        "sha256": "38e953b1f829329900f02f03ae673f0b5ce49273377ab44a27f1dd38858d3ebf"
       }
     },
     {
@@ -5858,6 +5858,22 @@
         "bytes": 2967,
         "path": "docs/PROTEIN_SPACE_STANDALONE.md",
         "sha256": "f49f21e5b06ec2ddf4346f6fbf5c07dddff48563d7457487f21b00a1d670383a"
+      }
+    },
+    {
+      "id": "document:docs/PUBLIC_DATASETS.md",
+      "kind": "document",
+      "lifecycle": "UNCLASSIFIED_REVIEW_HOLD",
+      "linked_from_current_index": false,
+      "owner_paths": [
+        "docs/PUBLIC_DATASETS.md"
+      ],
+      "path": "docs/PUBLIC_DATASETS.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 2985,
+        "path": "docs/PUBLIC_DATASETS.md",
+        "sha256": "da45b3a6db1e317a3e5356d6f777bf28ab593ba4e8b5cc55a78f1cfc5bcaaff4"
       }
     },
     {
@@ -5935,9 +5951,9 @@
       "path": "docs/READER_START_HERE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3430,
+        "bytes": 816,
         "path": "docs/READER_START_HERE.md",
-        "sha256": "c3450e9d0a3aff2073dd9e389d50b11f532bb7137785a1c0081b43ed3248a882"
+        "sha256": "24d1158fefca0d165d4a20e7bdeb2163903c594ebf5de9a57b70a1717d7c581a"
       }
     },
     {
@@ -5951,9 +5967,9 @@
       "path": "docs/READING_YOUR_RESULTS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 16414,
+        "bytes": 6408,
         "path": "docs/READING_YOUR_RESULTS.md",
-        "sha256": "67df3efd06820e6d0ee8e884840d1b2e0c890dad9e05dee78e8f85b56bf47fa6"
+        "sha256": "4768e3778169e25f97305f18daf5eba2a3fa26d095fda2b34a482758d09f4f2f"
       }
     },
     {
@@ -6001,7 +6017,7 @@
       "source": {
         "bytes": 12208,
         "path": "docs/RELEASE_CHECKLIST_v9.md",
-        "sha256": "1930b07a2486a0dba97961b6f5c43a385b54200f1616a2842e74e8517ab7c87b"
+        "sha256": "6d756f6b72422503617b3d6fcbc5ec54836c10797bd3dc4efb822b48e48cd6ec"
       }
     },
     {
@@ -6223,9 +6239,9 @@
       "path": "docs/R_FIGURE_WORKFLOWS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 8081,
+        "bytes": 4061,
         "path": "docs/R_FIGURE_WORKFLOWS.md",
-        "sha256": "3db5f640fdc746fe5652f7d22d75350208ea424a577b46186b52f0f6affa130f"
+        "sha256": "c66c2b4be16db46860df65bed26b904cfcec2216bd733108bba592b440744b06"
       }
     },
     {
@@ -6319,9 +6335,9 @@
       "path": "docs/SAPOTE_WORKFLOW_CONTRACT.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5184,
+        "bytes": 5126,
         "path": "docs/SAPOTE_WORKFLOW_CONTRACT.md",
-        "sha256": "78fddfada84ecd22c9e1406e14884eb89d3f0ab4b626f83db596700944a10402"
+        "sha256": "4d6ea38c5e5b802d925b97fe9d15dc557e7aacad50dde23e0123f233dc1ea7d0"
       }
     },
     {
@@ -6415,9 +6431,9 @@
       "path": "docs/SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4842,
+        "bytes": 1900,
         "path": "docs/SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md",
-        "sha256": "d0ac90ed58107f5cd92b9bed6b91e783024ed4ac0d53adc05ccd8468e2172f32"
+        "sha256": "0eca8e700b47d01b94d13cd29809033b77aa46f9cd58f2b0a23c20afc5b027a4"
       }
     },
     {
@@ -6783,9 +6799,9 @@
       "path": "docs/STRAIN_SLIDES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 19526,
+        "bytes": 6988,
         "path": "docs/STRAIN_SLIDES.md",
-        "sha256": "460607d75b3828573264d3f176d17cdc5e473d740cfa6f08ec472f693bb20101"
+        "sha256": "99da35c9d98881b5a3a9dcb7b52a671c3e8d32632050593c6ef66d5849511c4d"
       }
     },
     {
@@ -6865,7 +6881,7 @@
       "source": {
         "bytes": 272,
         "path": "docs/TIER_NOTE_CODE.md",
-        "sha256": "10356b0e40601bd892266842785c9159a9055ba589717a46a8f6e041b5257fa5"
+        "sha256": "52bb034b55143fdd18fec896f27ebe2c60ed155492885cc8352e552cfe1e02de"
       }
     },
     {
@@ -6881,7 +6897,7 @@
       "source": {
         "bytes": 7759,
         "path": "docs/TIER_SET_EXPLAINER.md",
-        "sha256": "9eb38ddccbfb53647fba1065ad2802b682a30723c70e5bd192df737778664b32"
+        "sha256": "e38630687fe5048705e3a291c4cc22f9d6c5b222ef41ba2c152d13a9d4c50eee"
       }
     },
     {
@@ -6987,9 +7003,9 @@
       "path": "docs/TREE_CATALOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 17725,
+        "bytes": 6271,
         "path": "docs/TREE_CATALOG.md",
-        "sha256": "8066e38753afca9e0bdbeddb2fc3d5cf6e6cbd83c56121853b34589bad39b25e"
+        "sha256": "5bd52e5ea7b2d4245bede7c36bcce90ef34c1ba37407adfcc046048848c66ac7"
       }
     },
     {
@@ -7067,9 +7083,9 @@
       "path": "docs/TYPE_STRAIN_WALKTHROUGHS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 20813,
+        "bytes": 17289,
         "path": "docs/TYPE_STRAIN_WALKTHROUGHS.md",
-        "sha256": "60be990a1c83f6b88c756b992cfbcf5bb339f08b83bde1dc52511658a408a1b3"
+        "sha256": "6902c74603a2ca95d225459ac47febf67f418d185a3df7b796cae7ef3dd1bcd5"
       }
     },
     {
@@ -7095,9 +7111,9 @@
       "path": "docs/USER_TASK_ROUTER.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 8255,
+        "bytes": 4602,
         "path": "docs/USER_TASK_ROUTER.md",
-        "sha256": "e9a02b4b8eab0ef8daa607de7522c4e484d4e000df8e649962a5ff372c1c4610"
+        "sha256": "bbdef2d12371653fcbf69edb2a09f44e8f44b854673807a4a132c0120aa483c4"
       }
     },
     {
@@ -7111,9 +7127,9 @@
       "path": "docs/WIDGET_DELIVERABLES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6572,
+        "bytes": 4577,
         "path": "docs/WIDGET_DELIVERABLES.md",
-        "sha256": "bb1d0ba7385306e037c391f6b16b24313542754f58b1911d69ef1a6a1f085f70"
+        "sha256": "71028c799376cfd0c7364f125eb4b0cc9fac7cf560f423e9f3c21b1953293b6d"
       }
     },
     {
@@ -7271,9 +7287,9 @@
       "path": "docs/companion_tools.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 9295,
+        "bytes": 5046,
         "path": "docs/companion_tools.md",
-        "sha256": "0fc4d413ef35166ef00fb56bd7fbdfd3f341457dff4c39f6e2d7c6d6db8bfa75"
+        "sha256": "55f920edf7804185558b943b2143f016bf0cfff627f051c3911665aec5b93614"
       }
     },
     {
@@ -7305,7 +7321,7 @@
       "source": {
         "bytes": 7684,
         "path": "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
-        "sha256": "a3dcaf5e4810ac5eaa8752bff8b77e6cbbe9280f9041509d682a8e6bbcbd8568"
+        "sha256": "0019bc1fde814cf08e7acaeffe53783c499aaefbc23640a8845aae18b11df87b"
       }
     },
     {
@@ -7754,6 +7770,22 @@
         "bytes": 1125,
         "path": "docs/history/TIER_PATCH_RECEIPT_v9.7.148c_CODE.md",
         "sha256": "957a73210c12e0de59f04759f8ea38a3d35a9de92a4ecacd0bf7e10fff848b5e"
+      }
+    },
+    {
+      "id": "document:docs/history/TOOLS_REFERENCE_v9_7_460.md",
+      "kind": "document",
+      "lifecycle": "RETAINED_HISTORY",
+      "linked_from_current_index": false,
+      "owner_paths": [
+        "docs/history/TOOLS_REFERENCE_v9_7_460.md"
+      ],
+      "path": "docs/history/TOOLS_REFERENCE_v9_7_460.md",
+      "regeneration_rule": "Retain in place; preserve links. Changes or migration need review. No automatic retirement.",
+      "source": {
+        "bytes": 53340,
+        "path": "docs/history/TOOLS_REFERENCE_v9_7_460.md",
+        "sha256": "2a03415c3276ffa908b4b6cda84576b1bbbd900cc6d20026687af306808f1ff3"
       }
     },
     {
@@ -10039,9 +10071,9 @@
       "path": "docs/reader/01_FIRST_RUN.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6255,
+        "bytes": 2404,
         "path": "docs/reader/01_FIRST_RUN.md",
-        "sha256": "8489ec90e34143b03aea4d1900ffde73c234e40b8dec8300fda8b3c4fc0e6f38"
+        "sha256": "341750e61c7271c02c691fdf88d22b5f95cdec8ce76b999058eaec30d215974f"
       }
     },
     {
@@ -10055,9 +10087,9 @@
       "path": "docs/reader/02_INPUTS_AND_SETUP.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6181,
+        "bytes": 1870,
         "path": "docs/reader/02_INPUTS_AND_SETUP.md",
-        "sha256": "eb9a26197f52669e3aab7f2615baa0820a59026df14ad2f18cbc5d15ab7a1e24"
+        "sha256": "cd8b9a303d9a0f8cedd5320a1011a5ffcdfd36c0897b0173859bc2513d3cbccc"
       }
     },
     {
@@ -10071,9 +10103,9 @@
       "path": "docs/reader/03_READ_RESULTS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5571,
+        "bytes": 2713,
         "path": "docs/reader/03_READ_RESULTS.md",
-        "sha256": "e8c2416e13f62a1c4ce7a89320f00b3b872dfb745eaa55a68a652854fa024d70"
+        "sha256": "c2dad3214219051340526bc7cdd9507151e3999d9a243c6a3189370e6507e153"
       }
     },
     {
@@ -10087,9 +10119,9 @@
       "path": "docs/reader/04_RECOVERY_AND_LIMITS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5524,
+        "bytes": 2667,
         "path": "docs/reader/04_RECOVERY_AND_LIMITS.md",
-        "sha256": "2f74f105b15921bb608952c2de4b206d1a69955cbe3aacb817417caeb7ad51e8"
+        "sha256": "5c79a872a03b564af336990f37a5c554550cf1e9aa8614dc86bfaf49912393e7"
       }
     },
     {
@@ -10121,7 +10153,7 @@
       "source": {
         "bytes": 35759,
         "path": "docs/reference/01_Math_Reference_VolI.md",
-        "sha256": "9f1ae6d7a3cd4d838381dfe94c3a75f68acea720ac562f338798859d95f79f60"
+        "sha256": "f0de5359c717f018a3a78518a48c77b6dc45501b3ff3f34c6696a2592047471d"
       }
     },
     {
@@ -10135,9 +10167,9 @@
       "path": "docs/reference/02_Math_Reference_VolII.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 164326,
+        "bytes": 164107,
         "path": "docs/reference/02_Math_Reference_VolII.md",
-        "sha256": "e8ec4efae38be1dc4425cf6524b2f8679e2c831cfd0ead270659f0bafcb5534a"
+        "sha256": "9a20f64cc1c29e42dd4e0e42d77ce70750a72e49caf9ca0efaf0c1ab25052ea4"
       }
     },
     {
@@ -10153,7 +10185,7 @@
       "source": {
         "bytes": 391,
         "path": "docs/reference/03_Plumbing_Reference.md",
-        "sha256": "500f4b33532d5a23ee5234e32e79108bcd7e6eb430a25b4c102cfeb9f3cb7651"
+        "sha256": "8ac6e243eac895dbcce2e7bd8f49b974478c7cdb49b3986ed8721a26e6398277"
       }
     },
     {
@@ -10221,6 +10253,22 @@
       }
     },
     {
+      "id": "document:docs/reference/INTAKE_AND_SMALL_COHORT_POLICY_REFERENCE.md",
+      "kind": "document",
+      "lifecycle": "UNCLASSIFIED_REVIEW_HOLD",
+      "linked_from_current_index": false,
+      "owner_paths": [
+        "docs/reference/INTAKE_AND_SMALL_COHORT_POLICY_REFERENCE.md"
+      ],
+      "path": "docs/reference/INTAKE_AND_SMALL_COHORT_POLICY_REFERENCE.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 9127,
+        "path": "docs/reference/INTAKE_AND_SMALL_COHORT_POLICY_REFERENCE.md",
+        "sha256": "f94fa7266682439be1c975cdb80cc6673a51ad4c22d14b23078c0e62052f3b18"
+      }
+    },
+    {
       "id": "document:docs/reference/METHODS_TECHNICAL_APPENDIX.md",
       "kind": "document",
       "lifecycle": "CURRENT_NAVIGATION_DECLARED",
@@ -10233,7 +10281,7 @@
       "source": {
         "bytes": 7266,
         "path": "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
-        "sha256": "0bd8e75b32700cc261b5518676ff689e0e026477b837b73c535d644bcee50453"
+        "sha256": "fff8a5b702d9025123b2f9d3e3e65a283c0bf728e068d6a86ae1bb1059645771"
       }
     },
     {
@@ -10250,6 +10298,22 @@
         "bytes": 6928,
         "path": "docs/reference/SCANNER_PFAM_MANIFEST.md",
         "sha256": "9289ce7009b59570326718339fac454132dd8bf0d73191ebdbacfcc4e7189f05"
+      }
+    },
+    {
+      "id": "document:docs/reference/STRAIN_MASTER_STORAGE_REFERENCE.md",
+      "kind": "document",
+      "lifecycle": "UNCLASSIFIED_REVIEW_HOLD",
+      "linked_from_current_index": false,
+      "owner_paths": [
+        "docs/reference/STRAIN_MASTER_STORAGE_REFERENCE.md"
+      ],
+      "path": "docs/reference/STRAIN_MASTER_STORAGE_REFERENCE.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 17329,
+        "path": "docs/reference/STRAIN_MASTER_STORAGE_REFERENCE.md",
+        "sha256": "a7e1271f9a346bdb25c820f1a7cf66eb84518e89661f4ac025f1ba2b75db6903"
       }
     },
     {
@@ -10425,7 +10489,7 @@
       "source": {
         "bytes": 2462,
         "path": "docs/standalone/CHATGPT_BATCH_PROTOCOL.md",
-        "sha256": "d685ed386eec6c6a088cce66f00be94de7e557ccef8f9a85378a3e9daedde513"
+        "sha256": "7f642dfca81ff165d3da1fa9f690c61379325821a9441da35fe29080b27d1de2"
       }
     },
     {
@@ -10457,7 +10521,7 @@
       "source": {
         "bytes": 2386,
         "path": "docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
-        "sha256": "790daa44004db66a09d9980c1266b807ff77812309c7a38eb13686d16886cfac"
+        "sha256": "c6ec6941435d25b65b3a6b53742127df4113644c1f03b082db266f61de27a21a"
       }
     },
     {
@@ -10473,7 +10537,7 @@
       "source": {
         "bytes": 8417,
         "path": "docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
-        "sha256": "1a803e25e188fe82c5a54a699680332839465291f83556eb9744abfb6dc8c5b7"
+        "sha256": "3c90c548c0ff1006d3ecfad6a71f34b8591e6c1324ab70017feac272a4a33f9c"
       }
     },
     {
@@ -10697,7 +10761,7 @@
       "source": {
         "bytes": 373,
         "path": "docs/user_guides/comprehensive_glossary.md",
-        "sha256": "ee3338b96f875ac949716820ac98ced5254a54dde793cdb46fe59799ef87852a"
+        "sha256": "9dc2f69a8b7326cb7c50d1d03dbda72359618fa6ef75299966bb3f9ba9fb4a0b"
       }
     },
     {
@@ -10729,7 +10793,7 @@
       "source": {
         "bytes": 396,
         "path": "docs/user_guides/operational_reference.md",
-        "sha256": "7078ea7e80c6961e49d70c8a120fc6fd662d32f89584de095da5c233f05e6d6a"
+        "sha256": "2a11e233f2e96bf9e137e9fa1d92f8d0808c331a7a94e3d954ef309c77782fa1"
       }
     },
     {
@@ -10745,7 +10809,7 @@
       "source": {
         "bytes": 3319,
         "path": "docs/user_guides/sapote_kernel_guide.md",
-        "sha256": "18b0846e41b42af5ee6db5f03a6672fd9074d0db32bb9ab6cd0bfa1e7eba8ed7"
+        "sha256": "6541e382c8b6a9fb0cb09ab28b0edd3a52c0d1a84fc09f72213b0bc8e34f014d"
       }
     },
     {
@@ -10775,9 +10839,9 @@
       "path": "docs/user_guides/tools_reference.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 53182,
+        "bytes": 4039,
         "path": "docs/user_guides/tools_reference.md",
-        "sha256": "41b65c4ccd2276fdd8981b3486986ca679d3eaf227479f6bb50d0ed759a606f9"
+        "sha256": "f2097a0bccf211fb981fe85f4781b0bfb2f93ecc7fd7ca6bff3e84d692ee3650"
       }
     },
     {
@@ -10791,9 +10855,9 @@
       "path": "wiki/Audience-Start-Paths.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6039,
+        "bytes": 6186,
         "path": "wiki/Audience-Start-Paths.md",
-        "sha256": "6c225e3b3605f42beb4b744c6ff5b194aaa0f7206bb5191ab2e0d4daf822d3f6"
+        "sha256": "8d440572b8448f01d68cc95d2e89a1e993a0d1ca4674b8a69e515f2ebc212c4e"
       }
     },
     {
@@ -10807,9 +10871,9 @@
       "path": "wiki/BLASTp-Novelty.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5513,
+        "bytes": 6016,
         "path": "wiki/BLASTp-Novelty.md",
-        "sha256": "1f01e5d425c04652de1c2c0f1d6844b29b48b88fe8768fd6989144825b2cb939"
+        "sha256": "9ff6aa309206085e92dee0aa7b7b74eeee78452eb4c08c1fce6a471b1a3d2a25"
       }
     },
     {
@@ -10823,9 +10887,9 @@
       "path": "wiki/BiG-SCAPE-GCF-Networks.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3533,
+        "bytes": 3809,
         "path": "wiki/BiG-SCAPE-GCF-Networks.md",
-        "sha256": "4ac1fa2dbed492b4178b5c702a0c96889f5cdc6b65fad9af63c7df9df61d3c27"
+        "sha256": "b00bf3887c875fa05756986b4dcad27682bce880d743cb0883f69a5d024b22d7"
       }
     },
     {
@@ -10839,9 +10903,9 @@
       "path": "wiki/Bioassay-Activity-Channel.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3256,
+        "bytes": 3526,
         "path": "wiki/Bioassay-Activity-Channel.md",
-        "sha256": "466309e1b15329e3562a97f4a414a459975d356ac9ee7311fa04e3cf6f5301ce"
+        "sha256": "ccae9973fcb6d9b5a429eba202526a0caa80d92ac2d01673eba87b38bace3dc7"
       }
     },
     {
@@ -10855,9 +10919,9 @@
       "path": "wiki/Claim-Safety.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4521,
+        "bytes": 4691,
         "path": "wiki/Claim-Safety.md",
-        "sha256": "11a15535832020028fc60b12e32db2368a75d535f8a5c009941e06faa6d7fdcb"
+        "sha256": "97f741ac79674b3f9cc47a5689743be7d1d491c91effea702f02f779590181e9"
       }
     },
     {
@@ -10895,9 +10959,9 @@
       "path": "wiki/Domain-and-Scan-Prevalence.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5715,
+        "bytes": 5927,
         "path": "wiki/Domain-and-Scan-Prevalence.md",
-        "sha256": "ed620e6822169a73a96e6b6fdd6f5381402872f8cd84fa91ae1b1dc162239cdb"
+        "sha256": "7187d2b0655a6f59a8c55b56a13d54858ce03488328e0b7e1c084a54eb59e2cf"
       }
     },
     {
@@ -10911,9 +10975,9 @@
       "path": "wiki/Encyclopedia.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 607,
+        "bytes": 725,
         "path": "wiki/Encyclopedia.md",
-        "sha256": "bac332b992580d2e0f32d863c8b80054452586dc2db439dcf55a57faa9040c5a"
+        "sha256": "c73b97669602fa5d9265730f94492d4608b396c3e8348e5eb7b26e36399fad09"
       }
     },
     {
@@ -10939,9 +11003,9 @@
       "path": "wiki/Figure-Factory-Preflight-and-Methods-Manual.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4206,
+        "bytes": 4329,
         "path": "wiki/Figure-Factory-Preflight-and-Methods-Manual.md",
-        "sha256": "bf250aefc169705ffc3ad80d097947f8315dface6e4ea76ffd719a97d0bfb4af"
+        "sha256": "b40ea40d18ab73483efca7bf6b7e8c2dffd28bfb0a004ab23df03ba5407fb830"
       }
     },
     {
@@ -10955,9 +11019,9 @@
       "path": "wiki/Fungal-Phylogenetics.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7490,
+        "bytes": 6973,
         "path": "wiki/Fungal-Phylogenetics.md",
-        "sha256": "72f06086ae5a8369d894b1f75f391e11408817eadfded84f1bc6e261c0494b02"
+        "sha256": "3f7c6a803ce4603391d2c90fafae4e4f55d6c8a10e19a8c89617f59c588f0d43"
       }
     },
     {
@@ -10983,9 +11047,9 @@
       "path": "wiki/Home.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4705,
+        "bytes": 1362,
         "path": "wiki/Home.md",
-        "sha256": "3cf316f63083cf836365b7eb5e6be774e29b1967c6ee5bab899a78c1a31c3a06"
+        "sha256": "d8067b807438fbeb7958ad9f4bf975265a60a6084e4b502662c30e07a6ff7066"
       }
     },
     {
@@ -10999,9 +11063,9 @@
       "path": "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 15163,
+        "bytes": 1197,
         "path": "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
-        "sha256": "82441d51502967a9586ef274e26fecc62821bf12f6af068bb7c34a897c537799"
+        "sha256": "dc277392ae3e1ff53770c7d771fc3f137c362a58a252fdcdf67703769c172de6"
       }
     },
     {
@@ -11015,9 +11079,9 @@
       "path": "wiki/Mode-B.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5465,
+        "bytes": 20916,
         "path": "wiki/Mode-B.md",
-        "sha256": "c1cb010a5e6e11c1d968bb820f425084332012e1f4305c401f3ff746d5d5456d"
+        "sha256": "b25eaff64647feae0d8411fc669acbbaf8395e0484b531011c985b30e975598b"
       }
     },
     {
@@ -11031,9 +11095,9 @@
       "path": "wiki/Patch-Cards-and-Composition.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7847,
+        "bytes": 7941,
         "path": "wiki/Patch-Cards-and-Composition.md",
-        "sha256": "eb2b17266c1e2d2d63f5833c22ea44f0bcb59f9a17e89d18b9dbd27c5fef6aa6"
+        "sha256": "e001298607ec9ade2aaf646e3aeda1ff1c0d35d424b5e91ac13fa14a78469632"
       }
     },
     {
@@ -11083,9 +11147,9 @@
       "path": "wiki/Researcher-Recipes.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 19149,
+        "bytes": 19752,
         "path": "wiki/Researcher-Recipes.md",
-        "sha256": "4ddd45b085afeb39f33948d49ff8fc6be5416a19669a78caf346a2150837d362"
+        "sha256": "d61a748906bdaed87f5447178d3af7b2b0ab41bee04bd98c1b52e4c340f8ed84"
       }
     },
     {
@@ -11099,9 +11163,9 @@
       "path": "wiki/Run-Pipeline.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4777,
+        "bytes": 4978,
         "path": "wiki/Run-Pipeline.md",
-        "sha256": "e9115db12212462907a90ab043f9b5bd9c64303ebd8d7b47213b1639637476ed"
+        "sha256": "c164b1fcbd3695d8df61d5b80a164c88f1fad6837534617597f3db6a15bc1d8b"
       }
     },
     {
@@ -11115,9 +11179,9 @@
       "path": "wiki/Troubleshooting-Field-Notes.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5469,
+        "bytes": 5512,
         "path": "wiki/Troubleshooting-Field-Notes.md",
-        "sha256": "ede52177399a24a8cec1b17714f91f248f6128abb495e0709173111a8f776aaa"
+        "sha256": "485f4f00ee76de5344e72b290d3f6f5d8a22963428d96eea11a396dff296bb2d"
       }
     },
     {
@@ -11143,9 +11207,9 @@
       "path": "wiki/Versioning.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3532,
+        "bytes": 3703,
         "path": "wiki/Versioning.md",
-        "sha256": "e2dac521d658f68e0db9d0c1fa1b6a48a7d14f867c9ac5a294006b59cd677397"
+        "sha256": "9c476592c1449e5e8fdeff6431aa0c6004de36ea748378263067e2ef94f233c1"
       }
     },
     {
@@ -11159,9 +11223,9 @@
       "path": "wiki/What-It-Does-and-Limitations.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10155,
+        "bytes": 10468,
         "path": "wiki/What-It-Does-and-Limitations.md",
-        "sha256": "39f32365973d8fdaf237979abd2f38e116f9f08d40a796bbd302c1c47ff5bcab"
+        "sha256": "164b699f732af2782fe035bed885b492aa8821854d8d2f67f49ccb234043d93f"
       }
     },
     {
@@ -11175,9 +11239,9 @@
       "path": "wiki/_Sidebar.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 1416,
+        "bytes": 1204,
         "path": "wiki/_Sidebar.md",
-        "sha256": "e547baca45ec4ee854dd34e834e36de08646e15b050f8c1b2f792d7c0e631270"
+        "sha256": "185a2b9be36417dc240dae2c78f62fd9f05a6b0052aeb183be99ad10712f5fa4"
       }
     },
     {
@@ -12095,9 +12159,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 13481,
+        "bytes": 14190,
         "path": "tools/add_xstrain_sheets.py",
-        "sha256": "d8206d12461dc6b73bd6c8c6e4536f4f27bedbd1649778b7424b8dbd18d1dc86"
+        "sha256": "5eea1f23e2bfd2bb86d86facfa99d7dcb735a0e0400c50d9aeed63ea9a923976"
       }
     },
     {
@@ -13677,9 +13741,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 11230,
+        "bytes": 11255,
         "path": "tools/build_lead_detail.py",
-        "sha256": "deb94a229fc7031b2a30d0771528d45074111e42391e10074fcfa68c6954ce8c"
+        "sha256": "2ec5ff80a37b883b2d0458d8305ca98aee4a52b37adced99f3165650f6b64dcb"
       }
     },
     {
@@ -14559,9 +14623,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 12286,
+        "bytes": 12532,
         "path": "tools/check_regex_interpolation.py",
-        "sha256": "fc5848f7a2ec3c25b370a62da514ee97259c2256ea5c0e7da8bbff2554a544dc"
+        "sha256": "fb55beaac7d45cefefebc07ed1fc140f163ee14e7dd32aa38edce37bcba6fb8d"
       }
     },
     {
@@ -14727,9 +14791,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 44260,
+        "bytes": 44271,
         "path": "tools/claim_safety_linter.py",
-        "sha256": "226fe61dc345581eb8d2ad8f1d7ddbdc5952d497be45f9e16d182b420c239aa0"
+        "sha256": "559e2d86677b1506404f678c92823a4f198bb528b5dffcbe32591f83ab7dfb08"
       }
     },
     {
@@ -14979,9 +15043,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 4454,
+        "bytes": 6311,
         "path": "tools/collapse_query_groups.py",
-        "sha256": "1b2473b7b69961ad4c8108568e66af264474ed378b407eb92fcf7785a47d37fe"
+        "sha256": "448e12b4fd6a99bab69b2bf8ae9581f4f9fd578b89eef1fc9f748a3d9cdb89fc"
       }
     },
     {
@@ -15343,9 +15407,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 15329,
+        "bytes": 17119,
         "path": "tools/evidence_bundle.py",
-        "sha256": "e7146abc3d7827f89e0b0831e4a60d814475935d400b39f5f179eb16843806dc"
+        "sha256": "6d363dfb9c64707ff4dbffed1d09ca288c0aaefe267bedcbbaa03fa86f477aae"
       }
     },
     {
@@ -15483,9 +15547,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 16017,
+        "bytes": 16217,
         "path": "tools/family_rarity_by_window.py",
-        "sha256": "3264ebc5235948a67fc68f7684e4f9da1714707bb13aa8658009e1400e8e6307"
+        "sha256": "8233e6b108567754dec8a063169d2b629159fcd07b9714f864f59e5e9d0b192d"
       }
     },
     {
@@ -15819,9 +15883,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 11159,
+        "bytes": 10349,
         "path": "tools/gen_command_catalog.py",
-        "sha256": "c9fc3f87030ba23e4dd6fcd097b2984c90b2884ba800cd26b14ee23e71307a09"
+        "sha256": "904a1f12abdb3044d8d616302fb1b7bc3a362eaef8fdd352c79b787bf73ce614"
       }
     },
     {
@@ -15931,9 +15995,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 7805,
+        "bytes": 8048,
         "path": "tools/gen_user_catalog.py",
-        "sha256": "006925b9baf885036b8425444ee0742e853d53108843755ad99c3d8946086c89"
+        "sha256": "c1bb2fc2c9f1f1cd80977d10fbc3463a8fa46ff3d3c96f3c48d57e23a113f151"
       }
     },
     {
@@ -16141,9 +16205,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 27617,
+        "bytes": 27640,
         "path": "tools/hplc_trace_panels.py",
-        "sha256": "3f4ee9493199bca17e74b4c8a00cf22eb7c9b509c8730c07d3f0b83ab20facdf"
+        "sha256": "491ff8fd66a951a6f0a4fc3b53c5f7b510071f123b5503a82ed4ed13a89d3de2"
       }
     },
     {
@@ -16239,9 +16303,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 7158,
+        "bytes": 7554,
         "path": "tools/ingest_swissprot_local.py",
-        "sha256": "6f2a2a7e03b56e739aa4560cdd828d4ae9159d25aeaadc07b8501bf4b536169f"
+        "sha256": "f3196bcc1a92ffb6aab60500b250f10544db7de8b588a89657caee1c92a7174f"
       }
     },
     {
@@ -16295,9 +16359,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 3455,
+        "bytes": 3918,
         "path": "tools/kcb_confidence.py",
-        "sha256": "dd3948957c7ea017d22ee5bce629eddec380b97b8f01506dc4d8b98a85770afa"
+        "sha256": "ba3e0233bfe4e7aff66655a688047f07e16531dd52e89fa8009a5228f8d796e4"
       }
     },
     {
@@ -16309,9 +16373,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 7457,
+        "bytes": 7989,
         "path": "tools/ks_burden_table.py",
-        "sha256": "8e60c114b7285f96f984a54f70bf18e294764d7dd947ad9c5eadae7e503afc16"
+        "sha256": "ca756d1aec021fc8d9d3a3c47789ece7f22554e91cd3ef47d2ac61be18e349da"
       }
     },
     {
@@ -16729,9 +16793,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 10210,
+        "bytes": 10641,
         "path": "tools/mlsa_outgroup_scan.py",
-        "sha256": "7fcceda1e4b21555dc322f59ca36a991e4613cbe1c66dec7771c46f16ecf5563"
+        "sha256": "1b2f66a8129ee27684be41823c6c43e2c0d102b607719f218a0880c84f8f37a5"
       }
     },
     {
@@ -17303,9 +17367,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 9022,
+        "bytes": 9107,
         "path": "tools/phylo_roster.py",
-        "sha256": "d07f903f0ac44846be22ca69eff74ef8bec3229a02a736e055b9c1631ddc4720"
+        "sha256": "04e1f6d08fa178001d1c037a459e0bd43833f2c492435d14e56cfd743ff611e6"
       }
     },
     {
@@ -17443,9 +17507,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 55982,
+        "bytes": 56173,
         "path": "tools/plan_gtotree_iqtree.py",
-        "sha256": "02462167c2a40971138f1fa546807f65a4341fbf84d7bdc20c52ff5a89d343ec"
+        "sha256": "10ea68966522f7d136ae4f32f1a2af7dfea675320c6612b52609bc4895024da4"
       }
     },
     {
@@ -17793,9 +17857,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 15552,
+        "bytes": 15589,
         "path": "tools/realistic_bgc_count.py",
-        "sha256": "436d601510aeb18be9032d1b0b07baa722827a4ff6854e7f231281cf153171e5"
+        "sha256": "09b1bcaedee8baf03e1a6300b56e7fa79f984c2f4d334e1105a94f21ce1ae76d"
       }
     },
     {
@@ -17877,9 +17941,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 21197,
+        "bytes": 21217,
         "path": "tools/refresh_literature_atlas.py",
-        "sha256": "88503b9cfe63ce93d50be2645730d86ee2d480de8eec787d18767ed6f07e9c96"
+        "sha256": "5443d480921c175790dc9d7ed6d6ca16edb908bd59103ebfc2b60d75e177fc6c"
       }
     },
     {
@@ -18017,9 +18081,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 8438,
+        "bytes": 8852,
         "path": "tools/relabel_and_render.py",
-        "sha256": "446596c876e1e14debba9e6b7a23d21f2321d24a2e1aab46c5792422fb3aba7c"
+        "sha256": "f2f065750ebe6be95a8754d9e1b46f388170435c556e986e74c4444db557ab7a"
       }
     },
     {
@@ -18647,9 +18711,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 12654,
+        "bytes": 14350,
         "path": "tools/sapote_judgment_receipt.py",
-        "sha256": "d535d2c9509147d79aa9d55154a414a8de15be62276b74d7162952bb442166c4"
+        "sha256": "912cc9807d27df89f708c156a08a7a034a2effa0c072fc11fb369bc835754dd8"
       }
     },
     {
@@ -18913,9 +18977,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 13884,
+        "bytes": 14034,
         "path": "tools/standalone_delivery_audit.py",
-        "sha256": "a80dcfeb04e1ba57955ede1fbfd19bd21b34ea090ef9179adabaeafb2fccd4f1"
+        "sha256": "c8c56bcc7f0485ce9f3eb93151d9ca3ca95e38b719b91e2e6549f72e7e4dbeb9"
       }
     },
     {
@@ -19025,9 +19089,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 40457,
+        "bytes": 39594,
         "path": "tools/sync_version.py",
-        "sha256": "fcf8c26b7914660c0c2ad2761805e951550938bd730bfb6283f5050d221718b3"
+        "sha256": "65d2d295c67fc69616cf01353aabd8f55e1fc8d253ea70c1474744f225f7e635"
       }
     },
     {

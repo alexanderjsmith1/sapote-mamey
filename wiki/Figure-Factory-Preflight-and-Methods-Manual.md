@@ -1,5 +1,8 @@
 # Figure Factory preflight and methods
 
+Choose and check the appropriate figure preparation route.  
+This page is for researchers preparing or reviewing figures.
+
 Choose a route in [Figures start here](../docs/FIGURES_START_HERE.md). Use the
 [aggregate coverage guide](../docs/FIGURE_FACTORY_NEXT.md) specifically when you
 have prepared metrics and a cohort manifest. This page explains what to verify

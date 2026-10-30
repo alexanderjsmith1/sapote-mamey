@@ -47,18 +47,28 @@ def _corroboration_tier(similarity, n_genes):
     return "LOW"
 
 
-def read_frontpage(strain_dir):
+class FrontpageSourceError(ValueError):
+    """The requested front-page source was unavailable or could not be parsed."""
+
+
+def read_frontpage(strain_dir, *, strict=False):
     jsf = [f for f in glob.glob(f"{strain_dir}/**/regions.js", recursive=True)
            if "MACOSX" not in f]
     if not jsf:
+        if strict:
+            raise FrontpageSourceError("FRONTPAGE_SOURCE_UNAVAILABLE: regions.js not found")
         return []
     txt = open(jsf[0], encoding="utf-8", errors="ignore").read()
     m = re.search(r'var\s+resultsData\s*=\s*(\{.*\});?\s*$', txt, re.DOTALL)
     if not m:
+        if strict:
+            raise FrontpageSourceError("FRONTPAGE_SOURCE_INVALID: resultsData object not found")
         return []
     try:
         rd = json.loads(m.group(1))
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        if strict:
+            raise FrontpageSourceError("FRONTPAGE_SOURCE_INVALID: resultsData is not valid JSON") from exc
         return []
 
     def find_kcb(d):
@@ -96,9 +106,14 @@ def read_frontpage(strain_dir):
 
 
 def frontpage_command(args):
-    hits = read_frontpage(args.strain_dir)
+    failure = None
+    try:
+        hits = read_frontpage(args.strain_dir, strict=True)
+    except FrontpageSourceError as exc:
+        hits, failure = [], str(exc)
     if not hits:
-        emit("No KnownClusterBlast hits found (is this an antiSMASH output dir with regions.js?)")
+        emit(failure or "No KnownClusterBlast hits found (is this an antiSMASH output dir with regions.js?)",
+             file=_sys.stderr if failure else None)
         return 1
     # v9.7.230 (audit #5): region/node/bgc filtering for card authoring — the reader returned every
     # region, forcing manual grep. --region matches the region label (e.g. r32c1 or region001); --node
@@ -119,7 +134,7 @@ def frontpage_command(args):
                   f"its NODE·region with `<strain>_2b_bgc_crosswalk.csv` first.", file=_sys.stderr)
             return 2
     if _reg:
-        hits = [h for h in hits if _reg.lower() in str(h.get("region", "")).lower()]
+        hits = [h for h in hits if _reg.lower() == str(h.get("region", "")).lower()]
     if not hits:
         emit(f"No KnownClusterBlast hits after filter (region={_reg}).")
         return 1

@@ -3941,7 +3941,7 @@ def _write_package(run: MameyRun, package_dir: Path,
     # F3 (v9.7.198): record the source antiSMASH ZIP path so post-seal automated paths
     # (render-all-figures -> domain-level) can re-open it for aSModule_count detail; the sealed
     # gene-context alone has no aSModule features and yields 0. Path dependency, not embedded data.
-    manifest_data["input_zip"] = Path(run.context.input_zip).name
+    manifest_data["input_zip"] = str(Path(run.context.input_zip).expanduser().resolve())
     # release_review .384: record the source ZIP's SHA-256 next to its path so dedup and
     # provenance are self-contained from the manifest (path proves which file; digest
     # proves which bytes). None if the ZIP is unavailable at seal time.
@@ -7394,8 +7394,8 @@ def build_parser():
 
     # --- inspect (B4) ---
     ins = sub.add_parser("inspect",
-                         help="Preview what Mamey sees in an antiSMASH ZIP before running")
-    ins.add_argument("zip", help="Path to antiSMASH output ZIP")
+                         help="Preview an antiSMASH ZIP or identify a Complete Package")
+    ins.add_argument("zip", help="Path to an antiSMASH ZIP or a Complete Package ZIP")
     ins.set_defaults(func=inspect_command)
 
     # --- ingest-blastp (v9.7.163): append NCBI BLASTp top-N hits to B5_BLASTp_Hits ---
@@ -8159,6 +8159,10 @@ def build_parser():
                     help="path to *_2b_bgc_crosswalk.csv or the sealed package dir (needed to scope --bgc on a full ZIP; auto-discovered from a sibling package if omitted)")
     bo.add_argument("--region", default=None,
                     help="explicit NODE·contig / regionNNN locator to scope by (alternative to --bgc)")
+    bo.add_argument("--master", default=None,
+                    help="Existing workbook for the printed offline-import recipe; planning does not modify it")
+    bo.add_argument("--strain", default=None,
+                    help="Strain label for offline import when a saved-package crosswalk does not supply it")
     bo.add_argument("--database", default="nr", choices=["nr", "refseq_protein", "swissprot"])
     bo.add_argument("--evalue", default="1e-5")
     bo.add_argument("--batch-size", type=int, default=10, dest="batch_size",

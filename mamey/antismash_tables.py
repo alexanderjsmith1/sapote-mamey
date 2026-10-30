@@ -71,7 +71,7 @@ TABLE_COLUMNS = {
 }
 
 
-def build_hmm_table(zip_path, bgcs, precomputed_hits=None) -> list[dict[str, Any]]:
+def build_hmm_table(zip_path, bgcs, precomputed_hits=None, *, propagate_errors=False) -> list[dict[str, Any]]:
     """First-class PFAM (sec_met_domain) + diagnostic TIGRFAM HMM hits.
 
     These live only in the antiSMASH region GBKs / JSON and were previously not
@@ -85,6 +85,8 @@ def build_hmm_table(zip_path, bgcs, precomputed_hits=None) -> list[dict[str, Any
         regression guarded by tests/test_record_pass_count.py. Falls back to a fresh
         extract+merge only when nothing was threaded in (direct/standalone callers, or
         a run whose GBK-Pfam extraction failed before the merge).
+    propagate_errors lets a state-aware caller retain extraction failure. The
+    legacy rows-only API still records degradation and returns an empty list.
     """
     from .antismash_evidence import (
         extract_gbk_pfam_hits,
@@ -107,12 +109,12 @@ def build_hmm_table(zip_path, bgcs, precomputed_hits=None) -> list[dict[str, Any
                 extract_gbk_pfam_hits(zip_path), extract_tigrfam_hits(zip_path)
             )
     except Exception as exc:
-        # v9.7.371 fix: was a bare swallow. build_hmm_table's OWN caller (build_structured_tables)
-        # only appends to parse_errors if build_hmm_table itself raises -- this inner except let
-        # build_hmm_table return normally (rows=[]) on a genuine extraction failure, indistinguishable
-        # downstream from "this strain genuinely has no PFAM/TIGRFAM hits".
+        # Retain the degradation event and propagate it so the structured-table
+        # caller can distinguish unavailable extraction from a successful no-hit result.
         from . import degradation as _degradation
         _degradation.record("antismash_tables.build_hmm_table.merge", exc, zip_path=str(zip_path))
+        if propagate_errors:
+            raise
         merged = {}
     rows: list[dict[str, Any]] = []
     for region_key, hits in (merged or {}).items():
@@ -584,12 +586,17 @@ def build_structured_tables(zip_path, evidence, bgcs):
     _assign_row_ids("RIP", ripp_motifs, RIPP_MOTIF_COLUMNS)
     _assign_row_ids("MOT", motifs, MOTIF_COLUMNS)
 
+    hmm_error = False
     try:
         # Thread the run's already-merged Pfam+TIGRFAM hits so the HMM table does not
         # trigger a second tigrfam record pass (test_record_pass_count regression).
-        hmm = build_hmm_table(zip_path, bgcs, precomputed_hits=evidence.get("gbk_pfam_hits"))
+        hmm = build_hmm_table(
+            zip_path, bgcs, precomputed_hits=evidence.get("gbk_pfam_hits"),
+            propagate_errors=True,
+        )
     except Exception as exc:
         hmm = []
+        hmm_error = True
         parse_errors.append({"surface": "HMM_pfam_tigrfam", "error": type(exc).__name__})
 
     counts = {
@@ -615,7 +622,10 @@ def build_structured_tables(zip_path, evidence, bgcs):
         "rrefinder_status": rre_state["state"],
         "rrefinder_evidence_state": rre_state,
         "json_evidence_state": project_json_state(evidence),
-        "hmm_status": "PASS" if hmm else "NULL_NO_PFAM_TIGRFAM_HITS",
+        "hmm_status": (
+            "UNAVAILABLE_HMM_EXTRACTION_ERROR" if hmm_error
+            else "PASS" if hmm else "NULL_NO_PFAM_TIGRFAM_HITS"
+        ),
         "antismash_version": antismash_version,
         "table_columns": TABLE_COLUMNS,
         "counts": counts,

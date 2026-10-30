@@ -1,5 +1,8 @@
 # Troubleshooting field notes — real failures, real fixes
 
+Use historical failure observations as diagnostic leads.  
+This page is for operators investigating a problem.
+
 These are dated project observations, not a guarantee about current external programs, operating
 systems, service limits or every installation. Start with [current recovery guidance](Common-Mistakes.md)
 and the actual command/input receipt. Preserve evidence before repair; a historical fix is a
@@ -61,8 +64,7 @@ Doc headers and version literals that are not machine-owned drift silently acros
 
 ## One bad reference record can fail a whole tree
 
-A single mis-deposited GenBank record (a 5.4-subs/site terminal branch in a 36-taxon LSU tree)
-trips the sanity gate for the entire figure. **Check:** verify reference identity, alignment, model and record provenance. Exclude only with a documented source-backed reason and record the altered denominator; do not weaken the gate to hide a failure. And distinguish that case from a genuinely divergent *query*, where the gate FAIL is a quality-control observation requiring interpretation, not proof of novelty: report numbers, withhold the figure.
+A mis-deposited reference record can cause a tree sanity gate to fail. **Check:** verify reference identity, alignment, model and record provenance. Exclude only with a documented source-backed reason and record the altered denominator; do not weaken the gate to hide a failure. And distinguish that case from a genuinely divergent *query*, where the gate FAIL is a quality-control observation requiring interpretation, not proof of novelty: report numbers, withhold the figure.
 
 ## IQ-TREE outgroup crash
 

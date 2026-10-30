@@ -1,5 +1,8 @@
 # BiG-SCAPE GCF networks — grouping clusters without over-claiming
 
+Learn how to prepare and interpret gene cluster family networks.  
+This page is for researchers using BiG-SCAPE with existing evidence.
+
 *Source of truth: `docs/BIGSCAPE_GCF_WORKFLOW.md`, under `docs/LLM_COMPANION_TOOL_PROTOCOL.md`.
 BiG-SCAPE clustering has separate outputs, and its families are **run-specific similarity groups, not compound identities**. Optional Mamey ingestion can rewrite Mode B cards in place; it is not an immutable overlay. Preserve the original package/cards and use a separately bound working copy for any selected integration. See [integration limits](../docs/BIGSCAPE_MAMEY_INTEGRATION.md).*
 
@@ -54,3 +57,7 @@ contig breaks — fragmented assemblies + global alignment inflate distances and
 
 *Claim-safety: GCF membership is a similarity statement under one parameterization of one run.
 Judgment — including any novelty read — is deferred and requires the declared reference context.*
+
+## Related pages
+
+For individual-locus review, continue to [Mode B](Mode-B.md); for protein comparisons, see [BLASTp](BLASTp-Novelty.md).

@@ -41,6 +41,12 @@ DIAGNOSTICS = {
 }
 
 
+def _has_kcb_hit_recorded(row):
+    """Report a top-hit label, without inferring search completion or novelty."""
+    value = row.get("kcb_top")
+    return (isinstance(value, str) and value.strip().upper() not in
+            {"", "UNRESOLVED", "UNKNOWN_KCB", "NOT_APPLICABLE", "UNBOUND", "MISSING"})
+
 
 def _bank_reader_scope(func):
     import sys as _bank_sys
@@ -133,13 +139,13 @@ def main(argv=None) -> int:
             return "UNIQUE"
         return "ACCESSORY"
 
-    zero_kcb_total = sum(1 for row in bgcs if not row["kcb_top"])
+    zero_kcb_total = sum(1 for row in bgcs if not _has_kcb_hit_recorded(row))
     context = {}
     for strain in strain_order:
         classes = strain_classes[strain]
         shared = sum(1 for product in classes if prevalence[product] > 1)
         unique = sum(1 for product in classes if prevalence[product] == 1)
-        zero_kcb = sum(1 for row in bgcs if row["sid"] == strain and not row["kcb_top"])
+        zero_kcb = sum(1 for row in bgcs if row["sid"] == strain and not _has_kcb_hit_recorded(row))
         diagnostics = list(tigrfam.get(strain, {}).get("present", {}))
         context[strain] = {
             "rank": rank[strain],
@@ -147,8 +153,11 @@ def main(argv=None) -> int:
             "n_classes": len(classes),
             "shared": shared,
             "unique": unique,
+            # Compatibility keys count absent labels, never zero-valued KCB scores.
             "zero_kcb": zero_kcb,
             "zk_share": f"{zero_kcb} of {zero_kcb_total}",
+            # Bank rows do not establish not-searched versus searched-no-hit.
+            "kcb_missing_hit_search_state": "UNKNOWN",
             "diagnostics": ",".join(sorted(diagnostics)) if diagnostics else "none",
         }
 
@@ -213,8 +222,8 @@ def main(argv=None) -> int:
         (3, "Universal non-discriminating classes", f"universal classes ({denominator}/{denominator})", ",".join(universal_present) if universal_present else "none", "GROUNDED", "classes universal in this cohort are not suitable for shared/novelty claims"),
         (4, "Core ecological signal", "ectoine / NI-siderophore", f"{prevalence.get('ectoine', 0)}/{denominator} / {prevalence.get('NI-siderophore', 0)}/{denominator}", "GROUNDED, presence-only", "presence-only genome-mining signal; not an assay of ecological function"),
         (5, "hglE-like class prevalence", "computed class names containing hgl", hgle_summary, "GROUNDED, collection-specific", "computed from the current class-prevalence table; no hard-coded strain list"),
-        (6, "NAPAA exclusion basis", "strains with NAPAA (this set)", f"{napaa_count}/{denominator}", "GROUNDED, collection-specific", "exclude from headline ecological/comparative claims when treated as housekeeping-adjacent/non-discriminating"),
-        (7, "Novelty floor", "fully KCB-dark BGCs", f"{zero_kcb_total}/{len(bgcs)} ({zero_kcb_pct}%)", "GROUNDED floor", "KCB-dark is a lower-bound novelty signal and can be inflated by fragmented assemblies"),
+        (6, "NAPAA family/deck scope", "strains with NAPAA (this set)", f"{napaa_count}/{denominator}", "SCOPED POLICY", "NAPAA is excluded from family analyses and strain decks; neutral elsewhere. This label does not apply an engine exclusion."),
+        (7, "No KnownClusterBlast hit recorded", "regions without a top-hit label", f"{zero_kcb_total}/{len(bgcs)} ({zero_kcb_pct}%)", "FIELD SUMMARY", "Search state UNKNOWN: these bank fields do not establish not searched versus searched with no hit. Missing values are not novelty results."),
         (8, "KCB field caveat", "kcb_cumulative", "cumulative SCORE, not % identity", "METHOD CAVEAT", "do not label KCB score as percent identity or product identity"),
         (9, "Thiopeptide diagnostic", "TIGR03604 strains", f"{len(diagnostic_strains.get('TIGR03604', []))}/{denominator}", "GROUNDED", "diagnostic panel presence only; validate exact regions before product claims"),
         (10, "Enediyne diagnostic", "TIGR03828 strains", f"{len(diagnostic_strains.get('TIGR03828', []))}/{denominator}", "PRIORITY/VERIFY", "warhead-scaffold candidates require exact-region and accessory-gene review before assertion"),
@@ -235,12 +244,12 @@ def main(argv=None) -> int:
             sheet.cell(row, column).alignment = Alignment(wrap_text=True, vertical="top")
 
     sheet = workbook.create_sheet("Strain_Cohort_Context")
-    sheet.append(["strain", "corrected_rank", "tier", "n_classes", "shared_classes", "unique_classes", "zero_KCB_regions", "zero_KCB_share_of_cohort", "diagnostics_present"])
+    sheet.append(["strain", "corrected_rank", "tier", "n_classes", "shared_classes", "unique_classes", "no_KCB_hit_recorded_regions", "no_KCB_hit_recorded_share", "diagnostics_present", "missing_KCB_search_state"])
     for strain in strain_order:
         row = context[strain]
-        sheet.append([strain, row["rank"], row["tier"], row["n_classes"], row["shared"], row["unique"], row["zero_kcb"], row["zk_share"], row["diagnostics"]])
-    style_header(sheet, 9)
-    for column, width in zip("ABCDEFGHI", [10, 14, 6, 11, 14, 14, 16, 22, 30]):
+        sheet.append([strain, row["rank"], row["tier"], row["n_classes"], row["shared"], row["unique"], row["zero_kcb"], row["zk_share"], row["diagnostics"], row["kcb_missing_hit_search_state"]])
+    style_header(sheet, 10)
+    for column, width in zip("ABCDEFGHIJ", [10, 14, 6, 11, 14, 14, 26, 26, 30, 26]):
         sheet.column_dimensions[column].width = width
 
     required = {"A2_Strain_Registry", "B4_Cross_Strain_Scans", "D1_RGGMCI_All_Strains", "C1_DAPR_Antibacterial", "C2_DAPR_Antifungal"}

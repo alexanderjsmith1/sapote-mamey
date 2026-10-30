@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.460 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.461 CODE archive
 
-**Cut/build date:** 2026-10-27
+**Cut/build date:** 2026-10-29
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.460`  
-**Authoritative bundle version:** `9.7.460`  
+**Bundle version:** `sapote-mamey-v9.7.461`  
+**Authoritative bundle version:** `9.7.461`  
 **Engine:** Mamey v1.9.177  
-**Build stamp:** 20261027v97460a  
+**Build stamp:** 20261029v97461a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,7 +21,7 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (22771 passed, 297 skipped; receipt-bound log) |
+| Full pytest suite | PASS (23071 passed, 297 skipped; receipt-bound log) |
 | Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
 | Strict repository health | PASS (1250 observed direct print calls; enforced ceiling 1255; no waiver. The ceiling's history is in `PRINT_WARN_THRESHOLD`, `tools/repo_health.py`.) |
 | Version synchronization | PASS |
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261027v97460a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261029v97461a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.460) |
+| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.461) |
 
-All tracked version anchors at v9.7.460 / Mamey 1.9.177.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.460.
+All tracked version anchors at v9.7.461 / Mamey 1.9.177.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.461.

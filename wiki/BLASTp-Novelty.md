@@ -1,5 +1,8 @@
 # BLASTp → novelty workflow — four unmixed channels and one honest rank
 
+Review how the BLASTp workflow separates evidence channels and ranking.  
+This page is for researchers interpreting protein comparisons.
+
 *Source of truth: `docs/BLASTP_NOVELTY_WORKFLOW.md`. Post-seal, advisory doctrine:
 the ranking doctrine is advisory. Actual ingestion and search commands can author package overlays
 and refresh post-seal checksums; consult [the command write contracts](../docs/ONLINE_BLASTP_PROTOCOL.md)
@@ -10,13 +13,13 @@ and work on a package copy when original bytes must remain fixed.*
 Everything this workflow produces is a **class-level capacity hypothesis**: similarity ≠ identity;
 a per-gene reference hit ≠ product identity; **high nr %id ≠ "known"** (nr is dominated by
 taxonomy genomes never assayed for natural products — closeness means a close *sequence* exists,
-not that the product is characterized); nr distance is a novelty *prior*, not activity.
+not that the product is characterized); nr divergence is scoped to the search and does not establish taxonomic or chemical novelty.
 
 ## Keep homology channels and questions separate
 
 | channel | database | the ONE question it answers |
 |---|---|---|
-| **nr** | NCBI nr (remote, paced RID crawl) | taxonomic novelty prior — how far is each gene from anything deposited anywhere? |
+| **nr** | NCBI nr (remote, paced RID crawl) | sequence similarity within the declared database, query, and result scope; not a taxonomic assignment |
 | **KnownClusterBlast / MIBiG** | antiSMASH known-cluster results (in the bound package) | resemblance to a characterized reference family, under its recorded comparison scope |
 | **ClusterBlast** | antiSMASH cluster comparison results (in the bound package) | similarity to deposited genome clusters; this is not the characterized MIBiG reference channel |
 | **Swiss-Prot** | local curated BLAST DB | curated per-gene function sanity — a reviewed, named homolog (corroborating channel, sparse for BGC genes) |
@@ -44,19 +47,20 @@ Print the honest form `Ng @ X% → <family>`. Never print `= <compound>`.
 
 ## The lead signal: anchor × nr-distance
 
-The highest-value lead is **real machinery in a novel background** — a STRONG anchor that is also
-nr-distant (nr-distance = 100 − median nr %id across the BGC's genes; rank STRONG-anchored BGCs
-most-divergent-first). Two mandatory honesty rules:
+The retained advisory ranking combines a family anchor with nr divergence under the declared
+search scope. These signals can prioritize review; they do not establish taxonomic, chemical or
+pathway novelty. Two mandatory honesty rules:
 
 1. **Denominator honesty** — always carry the gene count behind the median; an nr median over <~5
    genes is *soft* and must say so.
 2. **Over-merge caveat** — a fused antiSMASH region (COMPOSITE_SEPARABLE) confounds both axes;
    verify the split before trusting either number.
 
-**Merging split fragments is by gene evidence, not by RG-GMCI score:** collapse two RG-GMCI-linked
-fragments into one lead only for a gene-confirmed COMPLEMENTARY_SPLIT where both fragments carry
-core biosynthesis. A HIGH score whose shared genes are ACCESSORY_ONLY (MbtH, MFS transporter,
-PPTase…) is NOT one pathway.
+**Candidate split interpretation:** retain both complete locus identities and review the recorded
+channel, reference, geometry and contradictory evidence separately. Computational support can
+prioritize a candidate relationship; it does not establish physical adjacency, a single complete
+pathway or the exclusion of paralogy. Do not collapse loci or subtract a candidate rescue from a
+biological BGC count.
 
 ## Remote-channel discipline (nr + ClusteredNR share one NCBI budget)
 
@@ -71,11 +75,16 @@ a tested biological no-hit. Preserve the request/status/error receipt and use th
 
 - **Phylogeny overlay** — per-strain novelty load painted onto tree tips (keyed to exact leaf
   labels, under the tree sign-off gate).
-- **Mode B admission** — an anchored lead is only promoted once its per-gene channel is fresh
-  (U = 0 uncovered anchor genes) and the card carries OBSERVATION / INFERENCE / ALTERNATIVE /
-  FALSIFIER structure. Thin evidence is a HOLD, not a lead.
+- **Mode B admission** — reconcile freshness and coverage against the selected card contract,
+  independently binding the roster and query/result receipts. The text lint alone does not verify
+  those bindings. Carry OBSERVATION / INFERENCE / ALTERNATIVE / FALSIFIER structure and retain
+  typed holds for unresolved evidence; see [Mode B](Mode-B.md) for the promotion boundary.
 - **Exclusions carry through** — use the selected cohort pack and actual
   `mamey/exclusions.py` accessors: hard exclusions, raw-assembly voids and audit-only
   QC holds are different states. The shipped generic default is empty; the accessor
   does not diagnose contamination or automatically identify chimeras. Pin the
   actual exclusion source and apply the reader's required scope.
+
+## Related pages
+
+[Mode B](Mode-B.md) puts protein comparisons into a locus-level evidence review.

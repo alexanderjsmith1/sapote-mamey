@@ -380,7 +380,7 @@ def normalize_record(record: dict) -> dict[str, Any]:
             "genus": org.get("genus"),
             "species": org.get("species"),
             "type": org.get("type"),
-            "taxon_name": taxon.get("name"),
+            "taxon_name": taxon.get("name", org.get("taxon_name")),
         }
     return out
 

@@ -35,7 +35,7 @@ OUTPUT (--out DIR, must not exist)
 
 Homology only: genes found together are not the same cluster or the same product.
 Refusals (exit 2): an input missing, no region file in the zip, a genome table row without genome_acc/genus/family,
-DIAMOND missing (never replaced), --out existing.
+DIAMOND missing (never replaced), --out existing, --region-index outside the available range.
 """
 from __future__ import annotations
 
@@ -88,6 +88,8 @@ def read_regions(zip_path, only=None):
                        and not os.path.basename(n).startswith("._"))
         if not names:
             raise Refusal(f"no *.regionNNN.gbk file in {zip_path}")
+        if only is not None and not 0 <= only < len(names):
+            raise Refusal(f"--region-index {only} outside available range 0..{len(names) - 1}")
         out = []
         for i, n in enumerate(names):
             if only is not None and i != only:

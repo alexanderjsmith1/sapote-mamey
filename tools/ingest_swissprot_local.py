@@ -4,7 +4,8 @@
 The default is a read-only dry run.  ``--execute`` requires an explicit portable
 ``--source-workspace`` provenance label and performs one atomic named-column insert.
 Missing or look-alike databases are typed holds and are never created.  Imported
-similarity remains on the separate ``local_swissprot`` channel.
+similarity remains on the separate ``local_swissprot`` channel. Source hit ranks
+and distinct subject accessions are retained; repeated identical hits are skipped.
 
 Usage:
   python tools/ingest_swissprot_local.py
@@ -98,9 +99,12 @@ def main(argv=None) -> int:
         cursor = connection.cursor()
         have = set(
             cursor.execute(
-                "SELECT strain, channel, gene FROM hits WHERE channel=?", (CHANNEL,)
+                "SELECT strain, channel, gene, hit_rank, COALESCE(subject_acc, '') FROM hits WHERE channel=?", (CHANNEL,)
             )
         )
+        ingested_source_files = {
+            str(row[0]) for row in cursor.execute("SELECT DISTINCT source_file FROM hits")
+        }
         scan_roots = (
             root / "Local Blastp RESULTS (SwissProt)",
             root / "Blastp RESULTS" / "_SWISSPROT_RETRY",
@@ -114,17 +118,15 @@ def main(argv=None) -> int:
         files = sorted(path for path in set(files) if is_target(path))
 
         added: defaultdict[str, int] = defaultdict(int)
-        newkeys: set[tuple[str, str, str]] = set()
+        newkeys: set[tuple[str, str, str, int | None, str]] = set()
         batch: list[tuple[object, ...]] = []
-        skipped_source_file = 0
+        previously_seen_files = 0
         unreadable = 0
         for path in files:
             rel = os.path.relpath(path, root)
-            if cursor.execute(
-                "SELECT 1 FROM hits WHERE source_file=? LIMIT 1", (rel,)
-            ).fetchone():
-                skipped_source_file += 1
-                continue
+            if rel in ingested_source_files:
+                # A stored source path does not prove that every hit rank was imported.
+                previously_seen_files += 1
             mtime = time.strftime(
                 "%Y-%m-%d %H:%M:%S", time.localtime(path.stat().st_mtime)
             )
@@ -140,7 +142,9 @@ def main(argv=None) -> int:
                 gene = (row.get("gene") or "").strip()
                 if not strain or not gene or strain in EXCLUDE_STRAINS:
                     continue
-                key = (strain, CHANNEL, gene)
+                hit_rank = _num(row.get("hit_rank"), int)
+                subject_acc = (row.get("subject_acc") or "").strip()
+                key = (strain, CHANNEL, gene, hit_rank, subject_acc)
                 if key in have or key in newkeys:
                     continue
                 newkeys.add(key)
@@ -154,8 +158,8 @@ def main(argv=None) -> int:
                         _num(row.get("aa_length"), int),
                         row.get("role") or "",
                         row.get("domains") or "",
-                        _num(row.get("hit_rank"), int),
-                        (row.get("subject_acc") or "").strip(),
+                        hit_rank,
+                        subject_acc,
                         row.get("subject_organism") or "",
                         row.get("subject_def") or "",
                         (row.get("subject_db") or SUBJECT_DB).strip() or SUBJECT_DB,
@@ -172,7 +176,7 @@ def main(argv=None) -> int:
                     )
                 )
 
-        emit(f'swissprot local csv files: {len(files)}  | skipped already-ingested source_files: {skipped_source_file}  | unreadable: {unreadable}', f"NEW (strain,'{CHANNEL}',gene) rows to add: {len(batch)}  across {len(added)} strains", sep="\n")
+        emit(f'swissprot local csv files: {len(files)}  | previously-seen source_files rechecked: {previously_seen_files}  | unreadable: {unreadable}', f"NEW (strain,'{CHANNEL}',gene,hit_rank,subject_acc) rows to add: {len(batch)}  across {len(added)} strains", sep="\n")
         for strain in sorted(added):
             emit(f"   {strain}: +{added[strain]}")
         if args.execute:
