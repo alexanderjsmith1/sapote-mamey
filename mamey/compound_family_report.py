@@ -131,6 +131,20 @@ def _strain_of(package_dir: str | os.PathLike, board: str) -> str:
     return os.path.basename(board).split("_4_triage_board")[0]
 
 
+def _admit_report_outputs(directory: str, names: list[str]) -> None:
+    """Refuse linked/nonregular output leaves before any report write."""
+    for name in names:
+        target = Path(directory) / name
+        if target.is_symlink():
+            raise ValueError(f"COMPOUND_OUTPUT_LINK_HOLD: {target}")
+        try:
+            info = target.stat()
+        except FileNotFoundError:
+            continue
+        if not target.is_file() or info.st_nlink != 1:
+            raise ValueError(f"COMPOUND_OUTPUT_LINK_HOLD: regular single-link file required: {target}")
+
+
 # ---- main --------------------------------------------------------------------------------------------
 def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None,
         with_structures: bool = True) -> dict[str, Any]:
@@ -152,6 +166,11 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     # Preserve the unsealed low-level assembly API used while constructing a run.
     root = output_directory(package_dir, "compound-families", out_dir) if sealed else Path(out_dir or package_dir)
     outd = str(output_directory(package_dir, "compound-families", root / "COMPOUND_FAMILIES") if sealed else root / "COMPOUND_FAMILIES")
+    excluded = strain.strip().upper() in {s.upper() for s in EXCLUDE_STRAINS}
+    names = (["EXCLUDED.txt"] if excluded else
+             ["ANCHORED_BGC_COMPOUND_FAMILIES.tsv", "COMPOUND_FAMILY_ROLLUP.tsv"]
+             + (["ANCHOR_STRUCTURES.tsv"] if with_structures else []))
+    _admit_report_outputs(outd, names)
     os.makedirs(outd, exist_ok=True)
 
     # v9.7.374 fix: was case-sensitive (same gap fixed for p450_tailoring.py at v9.7.371).
@@ -160,7 +179,7 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     # fallback, neither normalized. A differently-cased strain id silently bypassed this
     # whole-strain exclude gate and emitted a full compound-family report for a strain that
     # OFFICIAL_DATA/EXCLUSIONS.md policy says should produce none.
-    if strain.strip().upper() in {s.upper() for s in EXCLUDE_STRAINS}:
+    if excluded:
         note = f"strain {strain} is on the whole-strain exclude list (contaminated/chimeric) — no family map emitted"
         with open(os.path.join(outd, "EXCLUDED.txt"), "w", encoding="utf-8") as fh:
             fh.write(note + "\n")

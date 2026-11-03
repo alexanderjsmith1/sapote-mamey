@@ -82,3 +82,18 @@ def test_malformed_nominated_manifest_refuses(tmp_path,manifest):
     with zipfile.ZipFile(p,"w") as z:z.writestr("package/manifest.json",json.dumps(manifest))
     authority(tmp_path,str(p))
     assert s.resolve_mamey_package("TST-1",str(tmp_path)) is None
+
+
+def test_authority_reads_strain_id_written_by_sealed_packages(tmp_path):
+    p=tmp_path/"clean/TST-1_SapoteMamey_v9.7.999_engine1.9.177_loose_Complete_Package.zip";p.parent.mkdir(parents=True)
+    with zipfile.ZipFile(p,"w") as z:
+        z.writestr("package/manifest.json",json.dumps({"strain_id":"TST-1","assembly":{"contigs":2,"genome_bp":900},"antismash_profile":"loose"}))
+    authority(tmp_path,"clean/"+p.name)
+    assert s.resolve_mamey_package("TST-1",str(tmp_path),"loose")==str(p)
+
+def test_authority_refuses_package_named_for_another_strain(tmp_path):
+    p=tmp_path/"clean/TST-1_v30_SapoteMamey_v9.7.999_engine1.9.177_loose_Complete_Package.zip";p.parent.mkdir(parents=True)
+    with zipfile.ZipFile(p,"w") as z:
+        z.writestr("package/manifest.json",json.dumps({"strain_id":"TST-1_v30","assembly":{"contigs":2,"genome_bp":900},"antismash_profile":"loose"}))
+    authority(tmp_path,"clean/"+p.name)
+    assert s.resolve_mamey_package("TST-1",str(tmp_path)) is None

@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.461 / engine Mamey 1.9.177
+**Version:** v9.7.462 / engine Mamey 1.9.178
 
 Use this page to find the next step for an antiSMASH ZIP or a saved Mamey package.
 For a first extraction, use [Your first run](../reader/01_FIRST_RUN.md).

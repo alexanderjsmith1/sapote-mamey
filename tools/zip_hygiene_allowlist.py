@@ -13,21 +13,44 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import sys, pathlib
+import sys, pathlib, stat
 
 DEFAULT_LIMIT = 5 * 1024 * 1024  # 5 MB
 
 def load_allowlist(path):
     allow = {}
+    seen = {}
     p = pathlib.Path(path)
-    if not p.exists():
-        return allow
-    for ln in p.read_text().splitlines():
+    try:
+        text = p.read_text()
+    except FileNotFoundError as exc:
+        # Inspect path components without following each final component, so
+        # a broken parent link cannot masquerade as an absent optional file.
+        for component in reversed((p, *p.parents)):
+            try:
+                info = component.lstat()
+            except FileNotFoundError:
+                return allow
+            if stat.S_ISLNK(info.st_mode):
+                try:
+                    component.stat()
+                except FileNotFoundError:
+                    raise ValueError(f"ZIP_ALLOWLIST_UNREADABLE: {p}: dangling path component") from exc
+        raise ValueError(f"ZIP_ALLOWLIST_UNREADABLE: {p}: selected path cannot be read") from exc
+    for line_number, ln in enumerate(text.splitlines(), 1):
         if ln.startswith("#") or not ln.strip():
             continue
         parts = ln.split("\t")
-        if len(parts) >= 3:
-            allow[parts[0].strip()] = (int(parts[1]), parts[2].strip())
+        if len(parts) < 3:
+            raise ValueError(f"ZIP_ALLOWLIST_ROW_INVALID: {p}:{line_number}: expected relpath, max_bytes and reason")
+        key = parts[0].strip()
+        # The ZIP preflight accepts both x and ./x. Treat those spellings as
+        # one declaration so a later row cannot silently change a bound.
+        identity = key[2:] if key.startswith("./") else key
+        if identity in seen:
+            raise ValueError(f"ZIP_ALLOWLIST_DUPLICATE: {p}:{line_number}: duplicate of line {seen[identity]}")
+        seen[identity] = line_number
+        allow[key] = (int(parts[1]), parts[2].strip())
     return allow
 
 def check_oversized(relpath, size_bytes, allow, limit=DEFAULT_LIMIT):

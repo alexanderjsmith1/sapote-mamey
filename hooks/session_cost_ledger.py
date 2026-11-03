@@ -59,37 +59,44 @@ def identify(path):
     return c.most_common(1)[0][0] if c else "?"
 
 
+class TranscriptReadHold(ValueError):
+    """The transcript cannot be counted completely."""
+
+
 def scan(path):
     tok = Counter()
     turns = 0
     agents = 0
     files = set()
-    for line in open(path, errors="replace"):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rec = json.loads(line)
-        except Exception:
-            continue
-        msg = rec.get("message") or {}
-        if msg.get("role") != "assistant":
-            continue
-        u = msg.get("usage") or {}
-        if u:
-            turns += 1
-            for k in ("input_tokens", "cache_creation_input_tokens",
-                      "cache_read_input_tokens", "output_tokens"):
-                tok[k] += u.get(k, 0) or 0
-        for b in (msg.get("content") or []):
-            if not isinstance(b, dict) or b.get("type") != "tool_use":
+    with open(path, encoding="utf-8", errors="strict") as fh:
+        for line_number, line in enumerate(fh, 1):
+            line = line.strip()
+            if not line:
                 continue
-            if b.get("name") in ("Agent", "Task"):
-                agents += 1
-            elif b.get("name") in ("Write", "Edit", "NotebookEdit"):
-                fp = (b.get("input") or {}).get("file_path")
-                if fp:
-                    files.add(fp)
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise TranscriptReadHold(f"line {line_number}: malformed JSON") from exc
+            if not isinstance(rec, dict):
+                raise TranscriptReadHold(f"line {line_number}: record is not an object")
+            msg = rec.get("message") or {}
+            if msg.get("role") != "assistant":
+                continue
+            u = msg.get("usage") or {}
+            if u:
+                turns += 1
+                for k in ("input_tokens", "cache_creation_input_tokens",
+                          "cache_read_input_tokens", "output_tokens"):
+                    tok[k] += u.get(k, 0) or 0
+            for b in (msg.get("content") or []):
+                if not isinstance(b, dict) or b.get("type") != "tool_use":
+                    continue
+                if b.get("name") in ("Agent", "Task"):
+                    agents += 1
+                elif b.get("name") in ("Write", "Edit", "NotebookEdit"):
+                    fp = (b.get("input") or {}).get("file_path")
+                    if fp:
+                        files.add(fp)
     return tok, turns, agents, files
 
 
@@ -101,12 +108,16 @@ def main():
 
     path = payload.get("transcript_path")
     sid = (payload.get("session_id") or "?")[:8]
-    if not path or not os.path.exists(path):
+    if not path:
         return 0
 
     try:
         tok, turns, agents, files = scan(path)
-    except Exception:
+    except Exception as exc:
+        # Keep the advisory hook nonblocking without publishing partial totals
+        # or exposing transcript content in the diagnostic.
+        detail = str(exc) if isinstance(exc, TranscriptReadHold) else type(exc).__name__
+        sys.stderr.write(f"SESSION_COST_HOLD: transcript not counted ({detail})\n")
         return 0
     if not turns:
         return 0

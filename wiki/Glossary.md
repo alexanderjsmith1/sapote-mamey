@@ -708,7 +708,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.177.*
+*Maintenance note: version-sync marker for the installed engine 1.9.178.*
 
 ---
 

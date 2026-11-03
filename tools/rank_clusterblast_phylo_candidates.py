@@ -43,6 +43,7 @@ import sys
 import zipfile
 from collections import defaultdict
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
 from typing import Iterable
 import sys as _sys
@@ -262,16 +263,22 @@ def inventory_region_map(path: Path) -> tuple[dict[str, str], int]:
     with path.open(newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.DictReader(fh))
     mapping = {}
-    for row in rows:
+    for line_number, row in enumerate(rows, 2):
         bgc = _pick(row, ("BGC_ID", "bgc_id"))
         contig = _pick(row, ("Contig", "contig"))
         region = _pick(row, ("Region", "region_number"))
         if not (bgc and contig and region):
             continue
         try:
-            region = str(int(float(region)))
-        except ValueError:
-            continue
+            number = Decimal(region)
+            if not number.is_finite() or number != number.to_integral_value():
+                raise ValueError("region must be a finite integer")
+            # Bound expansion before converting exponent notation to a decimal key.
+            if number and number.adjusted() >= 4300:
+                raise ValueError("region value exceeds the supported identifier length")
+            region = str(int(number))
+        except (InvalidOperation, ValueError, OverflowError) as exc:
+            raise CandidateError(f"inventory line {line_number}: invalid region value {region!r}") from exc
         key = f"{contig}_c{region}"
         if key in mapping and mapping[key] != bgc:
             raise CandidateError(f"inventory region key maps to multiple BGCs: {key}")

@@ -7,6 +7,7 @@ searched /mnt/user-data/uploads for wheels to install.
 """
 import glob as _glob
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -25,9 +26,12 @@ def _load(name):
 
 @pytest.fixture
 def patterns(monkeypatch):
+    # Every path a discovery function searches, whether it globs or walks with os.scandir.
     seen = []
     real = _glob.glob
     monkeypatch.setattr(_glob, "glob", lambda p, *a, **k: seen.append(str(p)) or real(p, *a, **k))
+    real_scandir = os.scandir
+    monkeypatch.setattr(os, "scandir", lambda p=".", *a, **k: seen.append(str(p)) or real_scandir(p, *a, **k))
     return seen
 
 

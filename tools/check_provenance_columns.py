@@ -81,7 +81,9 @@ def _sniff(path: Path):
     other_delim = "," if suffix_delim == "\t" else "\t"
 
     def _read(delim):
-        with path.open(encoding="utf-8", newline="") as fh:
+        # Decode the optional file-start BOM before comment-banner detection.
+        # Header normalization alone cannot recover a header hidden by a BOM banner.
+        with path.open(encoding="utf-8-sig", newline="") as fh:
             lines = fh.readlines()
         # v9.7.409 (CLAUDE_409 provenance anchors, Defect A): skip a leading `#`-comment banner.
         # Mamey figure-data CSVs lead with a `# provenance,...` line; csv.DictReader took that

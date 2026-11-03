@@ -17,7 +17,7 @@ Usage:
   python Tools/save_transcript.py --max-result-chars 4000
 """
 from __future__ import annotations
-import argparse, json, os, sys, datetime as dt
+import argparse, json, os, stat, sys, datetime as dt
 from pathlib import Path
 
 ROOT = Path(os.environ.get("SAPOTE_ROOT", os.environ.get("MAMEY_DATA_ROOT", os.getcwd())))
@@ -46,11 +46,16 @@ def chat_dir(root: Path, color: str) -> Path | None:
     try:
         seen: dict[tuple[int, int], Path] = {}
         for entry in sorted(root.iterdir()):
-            if not entry.is_dir():
+            try:
+                st = entry.stat()
+            except FileNotFoundError:
+                raise OSError("entry disappeared during chat discovery") from None
+            if not stat.S_ISDIR(st.st_mode):
                 continue
-            if not (entry / color / "STATE.md").exists():
+            try:
+                (entry / color / "STATE.md").stat()
+            except FileNotFoundError:
                 continue
-            st = entry.stat()
             seen.setdefault((st.st_dev, st.st_ino), entry)
         if len(seen) == 1:
             return next(iter(seen.values()))
@@ -61,7 +66,8 @@ def chat_dir(root: Path, color: str) -> Path | None:
                   f"set $SAPOTE_CHAT_DIR to disambiguate", file=sys.stderr)
             return None
     except OSError:
-        pass
+        print("save_transcript: WARNING chat directory discovery failed; refusing to guess", file=sys.stderr)
+        return None
     return root / "sessions"
 
 
@@ -70,13 +76,15 @@ def newest_jsonl() -> Path | None:
     return js[0] if js else None
 
 
-def resolve_jsonl(color: str, session: str | None) -> tuple[Path | None, str]:
+_CHAT_DIR_UNSET = object()
+
+def resolve_jsonl(color: str, session: str | None, *, chat_directory=_CHAT_DIR_UNSET) -> tuple[Path | None, str]:
     """Pick the right transcript. Priority: explicit --session > color-folder `.session_id`
     pin > newest. Newest-mtime is UNSAFE here — multiple color chats write concurrently, so
     it often points at a neighbor's session. The pin file is the reliable anchor."""
     if session:
         return PROJECTS / f"{session}.jsonl", "explicit"
-    cdir = chat_dir(ROOT, color)
+    cdir = chat_dir(ROOT, color) if chat_directory is _CHAT_DIR_UNSET else chat_directory
     if cdir is not None:
         pin = cdir / color / ".session_id"
         if pin.exists():
@@ -163,29 +171,43 @@ def render(jsonl: Path, max_result_chars: int) -> tuple[str, dict]:
     return "\n".join(out), stats
 
 
+def _write_snapshot(outdir: Path, session_stem: str, stamp: str, body: str) -> Path:
+    """Keep each snapshot without overwriting one saved in the same minute."""
+    for n in range(1, 10001):
+        suffix = "" if n == 1 else f"_{n}"
+        snap = outdir / f"transcript_{session_stem}_{stamp}{suffix}.md"
+        try:
+            handle = snap.open("x")
+        except FileExistsError:
+            continue
+        with handle:
+            handle.write(body)
+        return snap
+    raise FileExistsError("no unused transcript snapshot name available")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--color", default="the roster lane")
     ap.add_argument("--session", default=None, help="session id (jsonl stem); default = newest")
     ap.add_argument("--max-result-chars", type=int, default=3000)
     a = ap.parse_args()
-    jsonl, how = resolve_jsonl(a.color, a.session)
-    if not jsonl or not jsonl.exists():
-        print(f"save_transcript: no jsonl found ({jsonl})"); return 1
-    print(f"save_transcript: source = {jsonl.name} [{how}]")
     cdir = chat_dir(ROOT, a.color)
     if cdir is None:
         print(f"save_transcript: cannot determine chat dir for color {a.color!r} -- "
-              f"ambiguous discovery (see warning above); set $SAPOTE_CHAT_DIR to disambiguate",
+              f"discovery failed or is ambiguous (see warning above); check the root or set $SAPOTE_CHAT_DIR",
               file=sys.stderr)
         return 1
+    jsonl, how = resolve_jsonl(a.color, a.session, chat_directory=cdir)
+    if not jsonl or not jsonl.exists():
+        print(f"save_transcript: no jsonl found ({jsonl})"); return 1
+    print(f"save_transcript: source = {jsonl.name} [{how}]")
     outdir = cdir / a.color / "TRANSCRIPTS"
     outdir.mkdir(parents=True, exist_ok=True)
     body, stats = render(jsonl, a.max_result_chars)
     stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
-    snap = outdir / f"transcript_{jsonl.stem}_{stamp}.md"
+    snap = _write_snapshot(outdir, jsonl.stem, stamp, body)
     latest = outdir / "transcript_latest.md"
-    snap.write_text(body)
     latest.write_text(body)
     kb = len(body.encode()) / 1024
     print(f"save_transcript: wrote {snap.name} ({kb:.0f} KB) + transcript_latest.md")

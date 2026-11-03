@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.461 · engine 1.9.177 · build 20261029v97461a
+# Current Docs Index — v9.7.462 · engine 1.9.178 · build 20261102v97462a
 
 Each listed entry starts with its status. The status is `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted page may be current or historical; check its banner and the [maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md).
 

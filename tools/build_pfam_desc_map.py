@@ -31,12 +31,30 @@ def main():
     if not os.path.exists(a.hmm):
         sys.exit(f"Pfam-A.hmm not found: {a.hmm}")
     keep=None
-    if a.labels and os.path.exists(a.labels):
-        keep={x.strip() for x in open(a.labels) if x.strip()}
-    m=extract(a.hmm, keep)
-    os.makedirs(a.out, exist_ok=True)
+    if a.labels is not None:
+        try:
+            with open(a.labels, encoding="utf-8") as labels:
+                keep={x.strip() for x in labels if x.strip()}
+        except (OSError, UnicodeError) as exc:
+            ap.error(f"cannot read labels file {a.labels!r}: {exc}")
     outp=os.path.join(a.out,"pfam_desc_map.json")
-    json.dump(m, open(outp,"w"))
+    for source in (a.hmm, a.labels):
+        if source is None:
+            continue
+        same_path = os.path.realpath(outp) == os.path.realpath(source)
+        try:
+            same_file = os.path.samefile(outp, source)
+        except FileNotFoundError:
+            same_file = False
+        if same_path or same_file:
+            ap.error("output must not alias the HMM or labels input")
+    try:
+        m=extract(a.hmm, keep)
+    except OSError as exc:
+        ap.error(f"cannot read HMM file {a.hmm!r}: {exc}")
+    os.makedirs(a.out, exist_ok=True)
+    with open(outp, "w") as output:
+        json.dump(m, output)
     print(f"wrote {len(m)} Pfam descriptions -> {outp}")
 
 if __name__=="__main__":

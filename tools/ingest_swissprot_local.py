@@ -131,9 +131,9 @@ def main(argv=None) -> int:
                 "%Y-%m-%d %H:%M:%S", time.localtime(path.stat().st_mtime)
             )
             try:
-                with path.open(newline="", encoding="utf-8", errors="replace") as handle:
+                with path.open(newline="", encoding="utf-8") as handle:
                     rows = list(csv.DictReader(handle))
-            except (OSError, csv.Error) as exc:
+            except (OSError, csv.Error, UnicodeDecodeError) as exc:
                 emit(f"  ! skip {rel}: {exc}", file=sys.stderr)
                 unreadable += 1
                 continue

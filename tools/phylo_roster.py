@@ -162,6 +162,19 @@ def main(argv=None):
     ap.add_argument('--out', help='edited panel TSV (with --panel) or keep-list (with --tree)')
     args = ap.parse_args(argv)
 
+    if args.remove and args.out:
+        # Reject both path aliases and hard links before any destination is opened.
+        for source in (args.tree, args.panel, args.strain_table):
+            if not source:
+                continue
+            same_path = os.path.realpath(args.out) == os.path.realpath(source)
+            try:
+                same_file = os.path.samefile(args.out, source)
+            except FileNotFoundError:
+                same_file = False
+            if same_path or same_file:
+                ap.error("output must not alias a tree, panel, or strain-table input")
+
     hosts = load_hosts(args.strain_table)
     panel_rows = None
     if args.tree:
@@ -171,7 +184,10 @@ def main(argv=None):
             ap.error(f"invalid tree: {exc}")
         roster = roster_from_tips(tips, hosts)
     else:
-        panel_rows = list(csv.DictReader(open(args.panel), delimiter='\t'))
+        with open(args.panel, newline='') as fh:
+            panel_rows = list(csv.DictReader(fh, delimiter='\t'))
+        if not panel_rows:
+            ap.error("panel has no rows; no output written")
         roster = roster_from_panel(panel_rows, hosts)
 
     emit(format_roster(roster),

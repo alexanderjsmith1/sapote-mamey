@@ -1,5 +1,5 @@
-version=9.7.461
-build=20261029v97461a
-engine=1.9.177
-patch=User documentation, rebuilt for a reader opening the bundle cold.; Wiki.; Public datasets.; Notices.; Identity kept whole.; A missing source is not an empty result.; Refusals.; Packages and commands.
+version=9.7.462
+build=20261102v97462a
+engine=1.9.178
+patch=Circular contigs.; Joined locations.; TFBS scan.; Gap rescue.; Status and validation.; Refusals instead of silent output.; Source gates.; Hooks and transcripts.
 tier=code

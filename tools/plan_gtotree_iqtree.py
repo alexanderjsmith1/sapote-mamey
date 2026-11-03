@@ -29,6 +29,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.ziputil import regular_file_names
 import hashlib
 import json
 import os
@@ -156,6 +157,10 @@ def _read_local_assembly(row: PanelRow) -> tuple[bytes, dict]:
                 raise FileNotFoundError(
                     f"ARCHIVE_MEMBER_NOT_FOUND: {source}::{row.archive_member}"
                 ) from exc
+            if row.archive_member not in regular_file_names(archive):
+                raise ValueError(
+                    f"ARCHIVE_MEMBER_NOT_REGULAR_DATA: {source}::{row.archive_member}"
+                )
             data = archive.read(info)
         meta = {
             "source_type": "zip_member",

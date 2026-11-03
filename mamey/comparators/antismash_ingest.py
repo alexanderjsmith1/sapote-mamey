@@ -30,18 +30,24 @@ from ..ziputil import safe_extract_all
 
 
 def _atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
-    """AUDIT_374: tmp-sibling + os.replace, so a crash mid-write never leaves a
-    truncated comparator-ingest deliverable on disk (matches mamey/packaging.py's helper)."""
+    """Publish text through a private sibling stage; never touch a foreign .tmp."""
+    from ..packaging import _unique_tmp, _discard_tmp
+    import stat
     path = Path(path)
-    tmp = str(path) + ".tmp"
+    tmp = _unique_tmp(path)
     try:
         with open(tmp, "w", encoding=encoding, newline="") as fh:
             fh.write(text)
+        try:
+            previous = path.lstat()
+        except FileNotFoundError:
+            previous = None
+        if previous is not None and stat.S_ISREG(previous.st_mode):
+            os.chmod(tmp, stat.S_IMODE(previous.st_mode))
+        os.replace(tmp, path)
     except BaseException:
-        if os.path.exists(tmp):
-            os.remove(tmp)
+        _discard_tmp(tmp)
         raise
-    os.replace(tmp, str(path))
 
 DOMAIN_KEYS = ("aSDomain", "domain", "label", "aSModule")
 DOMAIN_ALIASES = {

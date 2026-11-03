@@ -138,9 +138,12 @@ def iter_json_records(path: str, *, root_prefix: str | None = None) -> Iterator[
             "at mamey/_vendor/ijson) -- cannot stream a large NP Atlas JSON without it.")
     prefix = detect_json_root_prefix(path, root_prefix)
     with open(path, "rb") as fh:
-        for rec in _ijson.items(fh, prefix, use_float=True):
-            if isinstance(rec, dict):
-                yield rec
+        for number, rec in enumerate(_ijson.items(fh, prefix, use_float=True), 1):
+            if not isinstance(rec, dict):
+                raise NpatlasProvisionError(
+                    f"NPATLAS_PROVISION_REFUSAL: JSON record {number} at {prefix!r} "
+                    "is not an object; record counts are unavailable")
+            yield rec
 
 
 def iter_sdf_records(path: str) -> Iterator[dict]:

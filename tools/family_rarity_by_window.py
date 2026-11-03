@@ -62,6 +62,8 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
+from mamey.ziputil import regular_file_names
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from locus_rarity_by_genus import BASES, assembly_keys, read_tsv, sha256, write_tsv  # noqa: E402  (one assembly rule)
 
@@ -84,7 +86,7 @@ def qualifier(key, text):
 def read_regions(zip_path, only=None):
     """Sorted region files of an antiSMASH zip -> [dict(contig, region, products, contig_edge, genes, core=[(locus_tag, aa)])]."""
     with zipfile.ZipFile(zip_path) as z:
-        names = sorted(n for n in z.namelist() if REGION_RE.search(os.path.basename(n)) and "__MACOSX" not in n
+        names = sorted(n for n in regular_file_names(z) if REGION_RE.search(os.path.basename(n)) and "__MACOSX" not in n
                        and not os.path.basename(n).startswith("._"))
         if not names:
             raise Refusal(f"no *.regionNNN.gbk file in {zip_path}")

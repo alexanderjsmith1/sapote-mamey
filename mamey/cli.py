@@ -4757,6 +4757,15 @@ def validate_command(args) -> int:
         emit("WORKBOOK_CONTENT:", json.dumps(
             {"status": "FAIL_WORKBOOK_MISSING", "reason": "--workbook-strict: no *_5_workbook.xlsx found"}
             if wb_blocks else {"status": "SKIP", "reason": "no *_5_workbook.xlsx found"}))
+    elif len(xlsx_candidates) > 1:
+        # DREL-016: checking only the first sorted match let a second, failing workbook pass
+        # unseen. Several matches are ambiguous: report every one and let strict mode refuse.
+        wb_blocks = bool(getattr(args, "workbook_strict", False))
+        # sys.stdout.write keeps repo_health's print_calls ratchet at its signed ceiling.
+        _sys.stdout.write("WORKBOOK_CONTENT: " + json.dumps(
+            {"status": "FAIL_WORKBOOK_AMBIGUOUS",
+             "reason": f"{len(xlsx_candidates)} *_5_workbook.xlsx files match; keep exactly one",
+             "candidates": [p.name for p in xlsx_candidates]}, indent=2) + "\n")
     else:
         wb_result = validate_workbook_content(xlsx_candidates[0])
         emit("WORKBOOK_CONTENT:", json.dumps(wb_result, indent=2))
@@ -6827,8 +6836,10 @@ def build_parser():
     from .render_all_figures import render_all_figures_command, DEFAULT_SETS, ALL_SETS
     raf = sub.add_parser(
         "render-all-figures",
-        help="Run every applicable figure module against a sealed package "
-             "and record per-module outcomes without changing the sealed package",
+        help="Run every applicable figure module against a sealed package and record "
+             "per-module outcomes. Writes figures inside the package (locus_maps/, "
+             "figures_rendered/, domain_level/) and refreshes post_seal_checksums.txt; "
+             "run it on a working copy to keep the original byte-identical",
     )
     raf.add_argument("--package", required=True,
                      help="Path to sealed package directory (containing manifest.json)")

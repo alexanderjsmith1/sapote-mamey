@@ -64,38 +64,50 @@ def _strictness_from_text(text: str):
     return m.group(1) if m and m.group(1) in VALID_STRICTNESS else None
 
 
+# Returned when an input's JSON files declare more than one strictness (DREL-049).
+CONFLICTING = "CONFLICTING"
+
+
+def _one_strictness(found):
+    """One declared flavor, CONFLICTING when declarations disagree, or None when there are none."""
+    flavors = set(found)
+    if len(flavors) > 1:
+        return CONFLICTING
+    return flavors.pop() if flavors else None
+
+
 def detect_strictness_zip(zip_path):
-    """Read the antiSMASH run JSON inside a ZIP and return its strictness, or None."""
+    """Read every antiSMASH JSON inside a ZIP and return its strictness, CONFLICTING, or None."""
+    found = []
     try:
         with zipfile.ZipFile(zip_path) as z:
             jsons = [m for m in z.namelist()
                      if m.lower().endswith(".json") and not os.path.basename(m).startswith("._")]
-            # antiSMASH writes one big run JSON; scan largest-first for the field.
-            for m in sorted(jsons, key=lambda n: -z.getinfo(n).file_size):
-                head = z.read(m).decode("utf-8", "replace")
-                s = _strictness_from_text(head)
+            for m in jsons:
+                s = _strictness_from_text(z.read(m).decode("utf-8", "replace"))
                 if s:
-                    return s
+                    found.append(s)
     except Exception:
         return None
-    return None
+    return _one_strictness(found)
 
 
 def detect_strictness_dir(d):
-    """Best-effort strictness for a package/dir: look for an antiSMASH JSON beside the GBKs."""
+    """Strictness for a package/dir from its antiSMASH JSONs: one flavor, CONFLICTING, or None."""
+    found = []
     for j in glob.glob(os.path.join(d, "**", "*.json"), recursive=True):
         if os.path.basename(j).startswith("._"):
             continue
         try:
             s = _strictness_from_text(open(j, encoding="utf-8", errors="replace").read())
             if s:
-                return s
+                found.append(s)
         except Exception:
             continue
-    return None
+    return _one_strictness(found)
 
 
-def _stage_region(data, destination, strain, source_locator, minimum, excluded_regions):
+def _stage_region(data, destination, strain, source_locator, minimum, excluded_regions, written=None):
     n_cds = len(re.findall(rb"(?m)^     CDS +", data))
     if minimum and n_cds < minimum:
         excluded_regions.append(dict(strain=strain, source_locator=source_locator,
@@ -106,6 +118,8 @@ def _stage_region(data, destination, strain, source_locator, minimum, excluded_r
         raise ValueError("STAGING_COLLISION: duplicate destination basename")
     with open(destination, "wb") as handle:
         handle.write(data)
+    if written is not None:
+        written.append(destination)
     return 1
 
 
@@ -114,7 +128,8 @@ def _record_id(name):
     return re.sub(r"\.region\d+\.gbk$", "", os.path.basename(name))
 
 
-def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None):
+def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None,
+              written=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     with zipfile.ZipFile(zip_path) as z:
@@ -126,11 +141,12 @@ def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, d
                     continue
                 destination = os.path.join(out, f"{strain}_{os.path.basename(member)}")
                 n += _stage_region(z.read(member), destination, strain, member,
-                                   min_query_genes, excluded_regions)
+                                   min_query_genes, excluded_regions, written)
     return n
 
 
-def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None):
+def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None,
+              written=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     for source in sorted(glob.glob(os.path.join(d, "**", "*.gbk"), recursive=True)):
@@ -142,7 +158,7 @@ def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_con
             with open(source, "rb") as handle:
                 data = handle.read()
             n += _stage_region(data, os.path.join(out, f"{strain}_{os.path.basename(source)}"),
-                               strain, os.path.relpath(source, d), min_query_genes, excluded_regions)
+                               strain, os.path.relpath(source, d), min_query_genes, excluded_regions, written)
     return n
 
 
@@ -216,6 +232,7 @@ def main():
             items.append(inp)
 
     total = 0
+    input_errors = []  # DREL-034: requested inputs that could not be read
     manifest = []  # (strain, detected, state, n, source)
     flavors_staged = set()
     for it in items:
@@ -234,7 +251,21 @@ def main():
         if strain != _orig_strain:
             emit(f"  [sanitized strain id] {_orig_strain!r} -> {strain!r}", file=sys.stderr)
         is_dir = os.path.isdir(it)
+        # DREL-034: a requested input must be accounted for. A missing path or an unreadable
+        # ZIP is an input error (exit 2), not a silent drop or an "undetectable strictness" skip.
+        if not os.path.exists(it):
+            manifest.append((strain, "-", "ERROR:MISSING_INPUT", 0, it))
+            input_errors.append(it)
+            sys.stderr.write(f"  {strain}: ERROR — input not found: {it}\n")
+            continue
         if not is_dir and not it.lower().endswith(".zip"):
+            manifest.append((strain, "-", "SKIP_UNSUPPORTED_INPUT", 0, it))
+            sys.stderr.write(f"  {strain}: SKIP — not a .zip or directory: {it}\n")
+            continue
+        if not is_dir and not zipfile.is_zipfile(it):
+            manifest.append((strain, "-", "ERROR:UNREADABLE_ZIP", 0, it))
+            input_errors.append(it)
+            sys.stderr.write(f"  {strain}: ERROR — not a readable ZIP: {it}\n")
             continue
 
         # Ruled hard-excluded strains never stage (unless --allow-excluded): their BGCs must not
@@ -246,6 +277,12 @@ def main():
             continue
 
         detected = detect_strictness_zip(it) if not is_dir else detect_strictness_dir(it)
+        if detected == CONFLICTING:
+            # DREL-049: never let one member's declaration silently win over another's.
+            manifest.append((strain, CONFLICTING, "ERROR:CONFLICTING_STRICTNESS", 0, it))
+            input_errors.append(it)
+            sys.stderr.write(f"  {strain}: ERROR — its JSON files declare different strictness values\n")
+            continue
         assumed = False
         if detected is None and a.assume_strictness:
             detected, assumed = a.assume_strictness, True
@@ -263,13 +300,26 @@ def main():
                 emit(f"  {strain}: SKIP — {detected} != requested {a.strictness}", file=sys.stderr)
                 continue
 
+        written = []
         try:
             minimum = a.min_query_genes if strain in set(a.query_strain) else 0
             n = (stage_dir if is_dir else stage_zip)(it, a.out, strain, minimum, small_regions,
-                                                     drop.get(strain), dropped)
+                                                     drop.get(strain), dropped, written)
         except Exception as e:
+            # DREL-032: a failed input must not leave part of itself staged. The output started
+            # empty, so every file it wrote in this run is its own; remove them, and fail the run.
+            left = []
+            for path in written:
+                try:
+                    os.remove(path)
+                except OSError as rm_exc:
+                    left.append(f"{path} ({rm_exc})")
+            if left:
+                sys.stderr.write(f"  {strain}: could not remove partly staged file(s): {'; '.join(left)}\n")
             manifest.append((strain, detected or "UNKNOWN", f"ERROR:{type(e).__name__}", 0, it))
-            emit(f"  {strain}: SKIP ({type(e).__name__}: {e})", file=sys.stderr)
+            input_errors.append(it)
+            emit(f"  {strain}: ERROR ({type(e).__name__}: {e}); removed {len(written)} partly staged file(s)",
+                 file=sys.stderr)
             continue
 
         state = "STAGED" + ("(assumed_flavor)" if assumed else "")
@@ -321,6 +371,10 @@ def main():
     if len(flavors_staged) > 1:
         emit(f"** WARNING: staged a MIXED-strictness set: {sorted(flavors_staged)}. "
               f"A BiG-SCAPE clustering over this dir is NOT flavor-consistent. **", file=sys.stderr)
+        return 2
+    if input_errors:
+        sys.stderr.write(f"** INPUT_ERRORS: {len(input_errors)} requested input(s) could not be read or staged; see "
+                         f"ERROR rows in {mpath}. The staged set does not cover the request. **\n")
         return 2
     if flavors_staged:
         emit(f"single-flavor set: {sorted(flavors_staged)[0]}  (safe for one BiG-SCAPE run)")

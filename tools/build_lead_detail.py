@@ -152,6 +152,24 @@ def rescue_groups(rggmci, min_strong=1):
     return out
 
 
+def source_gbk_for(b, gbk_dir):
+    """Resolve the existing manifest-note GBK selection without changing its rule."""
+    for nstr in (b.get("notes") or []):
+        if "source_gbk" in nstr:
+            base = os.path.basename(nstr.split("=", 1)[-1])
+            hits = glob.glob(os.path.join(gbk_dir, base))
+            return hits[0] if hits else None
+    return None
+
+
+def refuse_output_aliases(out, sources):
+    """Keep the generated JSON from replacing an input file or its alias."""
+    for source in sources:
+        if (os.path.realpath(out) == os.path.realpath(source)
+                or (os.path.exists(out) and os.path.samefile(out, source))):
+            raise ValueError(f"output aliases retained input: {out} -> {source}")
+
+
 def lead_detail(manifest, rggmci, gbk_dir, leads):
     by_id = {b["bgc_id"]: b for b in manifest["bgcs"]}
     groups = rescue_groups(rggmci)
@@ -159,21 +177,13 @@ def lead_detail(manifest, rggmci, gbk_dir, leads):
     for gi, g in enumerate(groups):
         for f in g["fragments"]:
             group_of[f] = gi
-    # map BGC -> source gbk basename via manifest notes
-    def gbk_for(b):
-        for nstr in (b.get("notes") or []):
-            if "source_gbk" in nstr:
-                base = os.path.basename(nstr.split("=", 1)[-1])
-                hits = glob.glob(os.path.join(gbk_dir, base))
-                return hits[0] if hits else None
-        return None
     cards = []
     for bid in leads:
         b = by_id.get(bid)
         if not b:
             cards.append({"bgc_id": bid, "error": "not in manifest"})
             continue
-        gpath = gbk_for(b)
+        gpath = source_gbk_for(b, gbk_dir)
         genes = parse_region_gbk(gpath) if gpath else []
         cls = classify_genes(genes)
         gi = group_of.get(bid)
@@ -224,8 +234,19 @@ def main():
     rgf = glob.glob(os.path.join(a.package, "*RGGMCI_full.json"))
     rggmci = _read_json(rgf[0]) if rgf else {"ranked_pairs": []}
     leads = [x.strip() for x in a.leads.split(",") if x.strip()]
-    result = lead_detail(manifest, rggmci, a.gbk_dir, leads)
     out = a.out or os.path.join(a.package, "lead_detail.json")
+    sources = [os.path.join(a.package, "manifest.json")] + rgf[:1]
+    by_id = {b["bgc_id"]: b for b in manifest["bgcs"]}
+    for bid in leads:
+        if bid in by_id:
+            gpath = source_gbk_for(by_id[bid], a.gbk_dir)
+            if gpath:
+                sources.append(gpath)
+    try:
+        refuse_output_aliases(out, sources)
+    except ValueError as exc:
+        ap.error(str(exc))
+    result = lead_detail(manifest, rggmci, a.gbk_dir, leads)
     atomic_dump_json(result, out, indent=2)
     emit(f"wrote {out}",
          f"rescue groups: {len(result['rescue_groups'])} | leads detailed: {len(result['leads'])}",

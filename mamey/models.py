@@ -39,6 +39,7 @@ class CDSFeature:
     translation: str = ""
     nucleotide_seq: str = ""
     qualifiers: dict[str, Any] = field(default_factory=dict)
+    location_parts: tuple[tuple[int, int], ...] = ()  # joined CDS segments, 1-based inclusive
 
 
 @dataclass
@@ -56,6 +57,7 @@ class DomainFeature:
     substrate_consensus: str = ""   # A-domain '/specificity=substrate consensus: <aa>' (Patch F)
     qualifiers: dict[str, Any] = field(default_factory=dict)
     source_file: str = ""           # archive member; retained for coordinate-frame provenance
+    location_parts: tuple[tuple[int, int], ...] = ()  # 1-based inclusive; empty for legacy/simple features
 
 
 # ---------------------------------------------------------------------------
@@ -194,9 +196,13 @@ class BGCRecord:
             "products": self.products,
         }
 
+    # Populated only for an original antiSMASH cross-origin region whose
+    # circular topology, bounds, contig length and region sequence length agree.
+    validated_circular_span_bp: int | None = None
+
     @property
     def length_kb(self) -> float:
-        return round(max(0, self.end - self.start) / 1000, 2)
+        return round((self.validated_circular_span_bp if self.validated_circular_span_bp is not None else max(0, self.end - self.start)) / 1000, 2)
 
 
 
@@ -403,7 +409,9 @@ class MameyRun:
                         _blda_tier_by_id[_bid] = _rec.get("bldA_tier")
 
         def _bgc_record(b):
-            d = {**asdict(b), "length_kb": round((b.end - b.start) / 1000, 2)}
+            d = {**asdict(b), "length_kb": b.length_kb}
+            if b.validated_circular_span_bp is None:
+                d.pop("validated_circular_span_bp", None)
             t = _triage_by_id.get(b.bgc_id)
             if t is not None:
                 d["ab_score"] = t.ab_score

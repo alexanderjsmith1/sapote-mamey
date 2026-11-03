@@ -779,7 +779,13 @@ def derive_compound_names_from_package(package_dir) -> set[str]:
     names: set[str] = set()
     try:
         with triage_paths[0].open(encoding="utf-8") as f:
-            for row in _csv.DictReader(f):
+            reader = _csv.DictReader(f)
+            fields = reader.fieldnames or []
+            if "KCB_top" not in fields or len(fields) != len(set(fields)):
+                raise _csv.Error("triage table requires unique headers including KCB_top")
+            for row in reader:
+                if None in row or any(value is None for value in row.values()):
+                    raise _csv.Error("triage table has a non-rectangular row")
                 kcb_top = (row.get("KCB_top") or "").strip()
                 parts = [p.strip() for p in kcb_top.split("|")]
                 if len(parts) != 3:

@@ -15,7 +15,7 @@ run_receipt.json.
 CLI:
   python tools/gap_rescue_all_regions.py --zip <antiSMASH.zip> --label <strain> --out <dir> \
          --mibig-dir <MIBiG gbk folder> --mibig-db <MIBiG proteins .dmnd> [--mibig-names <index.json|tsv>] \
-         [--pfam <Pfam-A.hmm>] [--edge-only] [--sensitivity ultra-sensitive] [--threads 4] [--no-figure]
+         [--pfam <Pfam-A.hmm>] [--edge-only] [--sensitivity ultra-sensitive] [--threads 4] [--no-figure] [--no-gene-table] [--no-gene-table-figure]
 
 Claim-safety: homology is similarity, not product identity; a chosen reference is the closest characterised cluster
 by protein homology, not the product; no contigs are joined.
@@ -81,9 +81,12 @@ def begin_attempt(out, label, zip_path):
     if os.path.lexists(prior):
         superseded = f"run_receipt.superseded.{attempt_id}.json"
         prior.replace(out / superseded)
+    aggregate_name = f"{label}_all_locus_maps.pdf"
+    old_aggregate = aggregate_name if os.path.lexists(out / aggregate_name) else ""
     attempt = {"tool": "gap_rescue_all_regions", "label": label, "zip": Path(zip_path).name,
                "attempt_id": attempt_id, "status": "IN_PROGRESS", "superseded_receipt": superseded,
-               "map_pdfs": [], "combined_map_pdf": ""}
+               "map_pdfs": [], "combined_map_pdf": "",
+               "preexisting_aggregate_map_unverified": old_aggregate}
     _write_run_receipt(out, attempt)
     return attempt
 
@@ -94,20 +97,22 @@ def fail_attempt(out, attempt, exc):
 
 
 def run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=None, edge_only=False,
-            sensitivity=gdr.SENSITIVITY_DEFAULT, threads=4, figure=True, discovery_hits=None, *, _attempt=None):
+            sensitivity=gdr.SENSITIVITY_DEFAULT, threads=4, figure=True, discovery_hits=None, *, gene_table=True, render_gene_table=True, _attempt=None):
     out = Path(out)
     gdr.assert_output_outside_bundle(out, __file__)
+    if not gene_table or not render_gene_table:
+        gdr.assert_no_stale_table_figures(out, batch=True)
     attempt = begin_attempt(out, label, zip_path) if _attempt is None else _attempt
     try:
         return _run_all(zip_path, label, out, mibig_dir, mibig_db, names, pfam, edge_only,
-                        sensitivity, threads, figure, discovery_hits, attempt)
+                        sensitivity, threads, figure, discovery_hits, attempt, gene_table, render_gene_table)
     except BaseException as exc:
         fail_attempt(out, attempt, exc)
         raise
 
 
 def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=None, edge_only=False,
-             sensitivity=gdr.SENSITIVITY_DEFAULT, threads=4, figure=True, discovery_hits=None, attempt=None) -> list[dict]:
+             sensitivity=gdr.SENSITIVITY_DEFAULT, threads=4, figure=True, discovery_hits=None, attempt=None, gene_table=True, render_gene_table=True) -> list[dict]:
     prots, regions = gdr.load_genome(zip_path, label)
     out.mkdir(parents=True, exist_ok=True)
     (out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
@@ -146,7 +151,8 @@ def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=No
         ref, name, source = chosen[ident]
         folder = out / f"{ident.split(' / ')[3]}_vs_{Path(ref).stem}"
         rc = gdr.analyse_region(label, prots, regions, core, ref, name, source, folder, None, threads, sensitivity,
-                                mibig_db, pfam, figure, write_proteins=False, compounds=names)
+                                mibig_db, pfam, figure, write_proteins=False, compounds=names, gene_table=gene_table,
+                                **({"render_gene_table": False} if not render_gene_table else {}))
         splits = rc["split_genes"]
         rows.append({"bgc": ident, "contig_edge": core.get("edge"), "check": "run", "reference": Path(ref).stem,
                      "reference_name": name, "reference_source": source, "reference_genes": rc["reference_genes"],
@@ -188,8 +194,10 @@ def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=No
         "by_kcb": sum(1 for r in rows if r.get("reference_source") == "KnownClusterBlast rank 1"),
         "by_discovery": sum(1 for r in rows if str(r.get("reference_source", "")).startswith("DIAMOND")),
         "sensitivity": sensitivity, "mibig_db": str(mibig_db or ""), "pfam": str(pfam or ""),
+        "gene_table_enabled": gene_table, "gene_table_figure_enabled": bool(gene_table and render_gene_table),
         "map_pdfs": [path.relative_to(out).as_posix() for path in pdfs],
-        "combined_map_pdf": combined_map_pdf})
+        "combined_map_pdf": combined_map_pdf,
+        "preexisting_aggregate_map_unverified": "" if combined_map_pdf else attempt["preexisting_aggregate_map_unverified"]})
     return rows
 
 
@@ -205,16 +213,20 @@ def main(argv=None, *, _attempt=None) -> int:
     ap.add_argument("--edge-only", action="store_true", help="skip regions antiSMASH does not mark as on a contig edge")
     ap.add_argument("--sensitivity", default=gdr.SENSITIVITY_DEFAULT)
     ap.add_argument("--threads", type=int, default=4)
-    ap.add_argument("--no-figure", action="store_true")
+    ap.add_argument("--no-figure", action="store_true", help="skip locus-map drawings; gene tables are controlled separately")
+    ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.* outputs")
+    ap.add_argument("--no-gene-table-figure", action="store_true", help="keep gene-table TSVs but skip table images and map/table composites")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     gdr.assert_output_outside_bundle(a.out, __file__)
+    if a.no_gene_table or a.no_gene_table_figure:
+        gdr.assert_no_stale_table_figures(a.out, batch=True)
     attempt = begin_attempt(a.out, a.label, a.zip) if _attempt is None else _attempt
     try:
         if not a.mibig_dir:
             raise SystemExit("--mibig-dir (or SAPOTE_MIBIG_GBK_DIR) is required: the folder of MIBiG <accession>.gbk files")
         rows = run_all(a.zip, a.label, a.out, a.mibig_dir, a.mibig_db, gdr.load_mibig_names(a.mibig_names), a.pfam,
-                       a.edge_only, a.sensitivity, a.threads, not a.no_figure, _attempt=attempt)
+                       a.edge_only, a.sensitivity, a.threads, not a.no_figure, gene_table=not a.no_gene_table, render_gene_table=not a.no_gene_table_figure, _attempt=attempt)
         _LOG.info("[gap_rescue_all_regions] %s: %d regions, %d run -> %s", a.label, len(rows),
                   sum(r["check"] == "run" for r in rows), a.out)
         return 0

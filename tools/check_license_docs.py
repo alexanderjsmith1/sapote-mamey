@@ -31,42 +31,104 @@ def main(argv=None) -> int:
     if not LIC.is_file():
         emit("check_license_docs: LICENSE-DOCS.txt missing", file=sys.stderr)
         return 2
-    text = LIC.read_text(encoding="utf-8")
-    body = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("#"))
+    try:
+        lines = LIC.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        emit(f"check_license_docs: could not read LICENSE-DOCS.txt: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 2
+
+    # Shipped prose surrounds a grant list. In compact list-only inputs, each
+    # non-comment line is a grant. Unknown entries must never disappear.
+    marker = "The following files are licensed under CC-BY-4.0:"
+    markers = [i for i, line in enumerate(lines) if line.strip() == marker]
+    boundary_error = None
+    if len(markers) > 1:
+        boundary_error = "ambiguous grant-list header"
+        entries = []
+    elif markers:
+        start = markers[0] + 1
+        ends = [i for i in range(start, len(lines)) if lines[i].strip().startswith("Copyright (c)")]
+        if not ends:
+            boundary_error = "missing grant-list end boundary"
+            entries = []
+        else:
+            entries = list(enumerate(lines[start:ends[0]], start + 1))
+    else:
+        entries = list(enumerate(lines, 1))
 
     declared_files: list[str] = []
     declared_globs: list[tuple[str, str]] = []
-    for line in body.splitlines():
-        s = line.strip()
-        gm = _GLOB_RE.match(s)
+    unrecognized: list[tuple[int, str]] = []
+    for number, line in entries:
+        text = line.strip()
+        if not text or text.startswith("#"):
+            continue
+        gm = _GLOB_RE.fullmatch(text)
         if gm:
             declared_globs.append((gm.group(1), gm.group(2)))
             continue
-        fm = _FILE_RE.match(s)
+        fm = _FILE_RE.fullmatch(text)
         if fm:
             declared_files.append(fm.group(1))
+            continue
+        unrecognized.append((number, text))
     declared_files = list(dict.fromkeys(declared_files))
     declared_globs = list(dict.fromkeys(declared_globs))
 
-    missing = [d for d in declared_files if not (ROOT / d).is_file()]
-    for dirpath, ext in declared_globs:
-        d = ROOT / dirpath
-        if not d.is_dir() or not any(d.glob(f"*.{ext}")):
-            missing.append(f"{dirpath}*.{ext}")
+    root = ROOT.resolve()
+    def contained(relative):
+        logical = pathlib.PurePosixPath(relative)
+        if logical.is_absolute() or ".." in logical.parts:
+            return False
+        try:
+            return root in (ROOT / relative).resolve().parents
+        except (OSError, RuntimeError, ValueError):
+            return False
+
+    missing = []
+    unsafe = []
+    for name in declared_files:
+        if not contained(name):
+            unsafe.append(name)
+        elif not (ROOT / name).is_file():
+            missing.append(name)
+    for directory, ext in declared_globs:
+        pattern = f"{directory}*.{ext}"
+        if not contained(directory):
+            unsafe.append(pattern)
+            continue
+        path = ROOT / directory
+        matched_file = False
+        if path.is_dir():
+            for match in path.glob(f"*.{ext}"):
+                if not contained(match.relative_to(ROOT).as_posix()):
+                    unsafe.append(match.relative_to(ROOT).as_posix())
+                elif match.is_file():
+                    matched_file = True
+        if not matched_file:
+            missing.append(pattern)
 
     total = len(declared_files) + len(declared_globs)
-    emit(f"LICENSE-DOCS: {total} grant(s) declared "
-          f"({len(declared_files)} file(s), {len(declared_globs)} dir-glob(s)), {len(missing)} absent")
-    if total == 0:   # a grant file whose lines no pattern recognizes is not a pass
-        sys.stdout.write("check_license_docs: FAIL — no grants recognized in LICENSE-DOCS.txt\n")  # direct write keeps the strict-health print_calls ratchet flat
-        return 1
+    messages = [f"LICENSE-DOCS: {total} grant(s) declared "
+                f"({len(declared_files)} file(s), {len(declared_globs)} dir-glob(s)), {len(missing)} absent"]
+    if boundary_error:
+        messages.append("check_license_docs: FAIL — " + boundary_error)
+    if total == 0:
+        messages.append("check_license_docs: FAIL — no grants recognized in LICENSE-DOCS.txt")
+    if unrecognized:
+        messages.append("check_license_docs: FAIL — unrecognized grant-list entries:")
+        messages.extend(f"  - line {number}: {entry}" for number, entry in unrecognized)
+    if unsafe:
+        messages.append("check_license_docs: FAIL — unsafe grant paths outside the bundle:")
+        messages.extend(f"  - {name}" for name in unsafe)
     if missing:
-        emit("check_license_docs: FAIL — granted but not shipped:")
-        for m in missing:
-            emit(f"  - {m}")
-        return 1
-    emit("check_license_docs: PASS")
-    return 0
+        messages.append("check_license_docs: FAIL — granted but not shipped:")
+        messages.extend(f"  - {name}" for name in missing)
+    failed = bool(boundary_error or total == 0 or unrecognized or unsafe or missing)
+    if not failed:
+        messages.append("check_license_docs: PASS")
+    emit("\n".join(messages))
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

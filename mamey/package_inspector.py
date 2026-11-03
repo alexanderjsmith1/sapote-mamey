@@ -181,6 +181,18 @@ def inspect_command(args) -> int:
             return 1
         if saved is not None:
             member, payload = saved
+            # DREL-047: recognizing the package manifest says nothing about the other members.
+            # Run the extractor's own all-members preflight (no writes, against a destination
+            # that does not exist) before recommending extraction.
+            from .ziputil import safe_extract_all
+            import tempfile as _tempfile, uuid as _uuid
+            probe = Path(_tempfile.gettempdir()) / f"mamey-inspect-preflight-{_uuid.uuid4().hex}"
+            try:
+                safe_extract_all(zf, probe, dry_run=True)
+            except ValueError as exc:
+                _emit_shared_1([f"Sapote-Mamey Complete Package — {zip_path.name}",
+                                f"  DO NOT EXTRACT: {exc}"], file=sys.stderr)
+                return 1
             report_lines = [f"Sapote-Mamey Complete Package — {zip_path.name}",
                             f"  Strain: {json.dumps(payload['strain_id'], ensure_ascii=False)}"]
             entry = (member.parent / "OPEN_ME_FIRST.html").as_posix()

@@ -29,10 +29,12 @@ import argparse, csv, re, sys, os
 from pathlib import Path
 try:
     from mamey.canonical_write_guard import guard_canonical_write
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
 except ImportError:  # bare-script run: bundle root is one level up
     import os as _g_os, sys as _g_sys
     _g_sys.path.insert(0, _g_os.path.dirname(_g_os.path.dirname(_g_os.path.abspath(__file__))))
     from mamey.canonical_write_guard import guard_canonical_write
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
 
 ROOT = Path(os.environ.get("MAMEY_DATA_ROOT", os.getcwd()))
 MASTER = ROOT / "strain_data"
@@ -240,6 +242,25 @@ def main() -> int:
     if not strains:
         ap.error("give --strain or --strains")
     targets = [Path(a.out)] if a.out else None
+    # Preflight every output before the first build, including explicit paths
+    # and any existing output-file symlinks into the bundle.
+    destinations = []
+    if targets is None:
+        destinations.append(OUTDIR)
+    for strain in strains:
+        for directory in (targets if targets is not None else (MASTER / strain, OUTDIR)):
+            destinations.extend((directory, directory / f"{strain}_ModeB_compilation.md"))
+            if not a.no_docx:
+                destinations.append(directory / f"{strain}_ModeB_compilation.docx")
+    for destination in destinations:
+        try:
+            assert_output_outside_bundle(destination, __file__, kind="Mode B compilation output")
+        except OutputInsideBundle:
+            raise OutputInsideBundle(
+                f"OUTPUT_INSIDE_BUNDLE: refusing to write Mode B compilation output inside "
+                f"the code bundle. Set MAMEY_DATA_ROOT to a workspace outside the bundle, "
+                f"or pass --out with an external path. Resolved: {destination.resolve()}"
+            ) from None
     if targets is None:
         OUTDIR.mkdir(parents=True, exist_ok=True)
     for s in strains:

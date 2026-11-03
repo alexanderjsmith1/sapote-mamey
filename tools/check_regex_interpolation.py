@@ -51,6 +51,8 @@ Exit 0 = clean. Exit 1 = finding(s). Exit 2 = usage error / missing root / empty
 from __future__ import annotations
 import argparse
 import ast
+import io
+import tokenize
 import json
 import sys
 from pathlib import Path
@@ -154,12 +156,18 @@ def _direct_re_arg_nodes(tree) -> set:
     return out
 
 
+def _decode_source(data: bytes) -> str:
+    """Decode Python source strictly using its declared encoding."""
+    encoding, _ = tokenize.detect_encoding(io.BytesIO(data).readline)
+    return data.decode(encoding, errors="strict")
+
+
 def scan_file(path: Path, stats=None):
     """Yield finding dicts for unbound interpolated alternations in `path`."""
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-    except SyntaxError as exc:
-        raise ValueError(f"cannot parse {path}:{exc.lineno}: {exc.msg}") from exc
+        tree = ast.parse(_decode_source(path.read_bytes()))
+    except (SyntaxError, UnicodeDecodeError) as exc:
+        raise ValueError(f"cannot parse {path}: {exc}") from exc
     consts = _collect_str_constants(tree)
     re_args = _direct_re_arg_nodes(tree)
     seen = set()

@@ -116,7 +116,7 @@ def derive(rows):
         v=np.array([float(r[f'cls_{c}']) for r in rows])
         if v.sum()<5: continue
         with np.errstate(all='ignore'):
-            rr=float(np.corrcoef(v,lc)[0,1]) if v.std()>0 else 0.0
+            rr=float(np.corrcoef(v,lc)[0,1]) if v.std()>0 else float('nan')
         regime=regime_of(rr)
         ranking.append({'class':c,'n_total':int(v.sum()),'corr_fragmentation':finite_or_blank(rr),'regime':regime})
         row={'class':c,'raw':finite_or_blank(rr)}

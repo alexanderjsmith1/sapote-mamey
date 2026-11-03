@@ -33,5 +33,15 @@ if [ -f "$latest" ]; then
   [ $(( now - mt )) -lt "$THROTTLE_SECONDS" ] && exit 0
 fi
 
-"$ROOT/Tools/bin/python3" "$ROOT/Tools/save_transcript.py" --color "$color" --session "$sid" --latest-only >/dev/null 2>&1 || true
+# Call the save_transcript.py shipped beside this hook, with flags it accepts. The old call named a
+# workspace-only Tools/ copy and a --latest-only flag the bundled script lacks, and its silence hid that
+# no transcript was written. A failure now leaves one stderr line; the hook still never blocks the turn.
+here=$(cd "$(dirname "$0")" && pwd)
+script="$here/save_transcript.py"
+[ -f "$script" ] || script="$ROOT/Tools/save_transcript.py"
+py="$ROOT/Tools/bin/python3"
+[ -x "$py" ] || py=python3
+if ! err=$(SAPOTE_ROOT="$ROOT" SAPOTE_CHAT_DIR=sessions "$py" "$script" --color "$color" --session "$sid" 2>&1 >/dev/null); then
+  echo "save_transcript_stop: transcript not saved for $color: $(printf '%s' "$err" | tail -n 1)" >&2
+fi
 exit 0

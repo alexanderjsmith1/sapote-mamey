@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import tempfile
 import sys
 import sys as _sys
 def emit(*args, sep=" ", end="\n", file=None, flush=False):
@@ -108,25 +109,20 @@ def materialize(root: str, strains: list[str], apply: bool) -> None:
         rel_dest = os.path.relpath(dest, root)
         if apply:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
-            # v9.7.374 fix: shutil.copy2(src, dest) writes DIRECTLY to the canonical path. A kill
-            # (SIGTERM/disk-full/OSError) partway through leaves a truncated/corrupt file AT dest --
-            # and the only completeness check anywhere in this tool is `os.path.exists(dest)` (see
-            # the skip branch above), with no size/hash verification. A future run then reports that
-            # strain "already canonical" and skips it FOREVER, silently poisoning the canonical slot
-            # "every downstream tool can find [data] in one predictable place" trusts (this file's own
-            # docstring). Copy to a sibling .tmp in the same destination dir, then os.replace() into
-            # place -- the same crash-safe temp+rename discipline tools/_wbio.py already establishes
-            # for text/JSON/workbook writes, applied here to a raw file copy: dest only ever appears
-            # via one atomic rename of a COMPLETE copy; an interrupted copy leaves only a stray .tmp,
-            # never a corrupt file at the canonical path itself.
-            tmp = dest + ".tmp"
+            # Stage privately, then publish complete bytes without replacing a
+            # canonical slot created by another writer during the copy.
+            fd, tmp = tempfile.mkstemp(prefix="." + os.path.basename(dest) + ".",
+                                       suffix=".tmp", dir=os.path.dirname(dest))
+            os.close(fd)
             try:
                 shutil.copy2(src, tmp)
-            except BaseException:
-                if os.path.exists(tmp):
-                    os.remove(tmp)
-                raise
-            os.replace(tmp, dest)
+                os.link(tmp, dest)
+            finally:
+                try:
+                    os.unlink(tmp)
+                except FileNotFoundError:
+                    import logging
+                    logging.getLogger(__name__).warning("MATERIALIZE_STAGE_MISSING: %s", tmp)
             emit(f"  STAGED             {strain}: {rel_src} -> {rel_dest}")
         else:
             emit(f"  WOULD STAGE        {strain}: {rel_src} -> {rel_dest}")

@@ -2,6 +2,22 @@
 
 What changed in the Mamey engine at each version bump, and whether outputs stay comparable. Newest first. Each bump also has a CHANGELOG entry.
 
+## Engine 1.9.178 — first bundle: v9.7.462
+
+A region that wraps the origin of a circular contig keeps its true span, `validated_circular_span_bp`, instead of a zero or inverted length. BGC length, the manifest, the architecture grade, the lead board, gene exports, source scans and RG-GMCI core records all use it. One rank output can change: an origin-wrapping RiPP-family region is floored to the Low tier only when its true span is below the fragment limit (`mamey/scoring.py`).
+
+Also in 1.9.178:
+- Joined (compound) domain and CDS locations keep their parts. Overlap with a region is checked per segment, so an internal gap no longer counts as overlap. The mis-anchor guard checks every segment of a joined CDS.
+- The TFBS upstream scan reports shortened windows and missing contigs. Each hit gets 1-based inclusive bounds on the input sequence and its orientation. Motif calls are unchanged.
+- Gap rescue:
+  - It refuses a reference row with no outcome, and malformed precomputed hits.
+  - It refuses hits whose identifiers fall outside the selected inputs.
+  - It keeps the source strand when inferring contig ends. An unknown strand no longer falls back to forward, so a split call can change where the strand was unknown.
+  - Receipts record the hit rules and mark pre-existing map files as unverified.
+  - Split rows show the base hit's assessment.
+
+RG-GMCI scores, ranks and thresholds, and KCB values, are unchanged. Packages from 1.9.177 and 1.9.178 are not directly poolable for the tiers of origin-wrapping RiPP regions or for split calls on unknown-strand proteins. Existing outputs are not rewritten.
+
 ## Engine 1.9.177 — first bundle: v9.7.455
 
 The split-cluster second proof is routed by class (`class_routed_v1`, the default policy). A member’s observed KS count or a PKS/polyketide/transAT product token keeps the pair on the KS route. The core-completion branch requires positively observed non-KS core evidence on at least one member, no KS-route state on either, and different contigs. On that eligible non-KS branch, CONFLICT or APART_CLOSE vetoes; a nonempty `core_completion` value, a HIGH RG-GMCI call and the existing logic gate can yield TWO_PROOF_RESCUE. A CONSISTENT position alone does not promote under this policy. These are helper admission rules, not independent scientific proof of a complete class core or physical linkage. `_4D` adds `core_completion`; the CLI accepts `--input-zip`, and the in-run route can read the run’s input ZIP.

@@ -490,15 +490,17 @@ def _write_recovery_receipt(path, payload):
     tmp = path + ".tmp"
     if os.path.exists(tmp):
         raise OSError(f"stale recovery receipt staging file {os.path.basename(tmp)!r}")
+    created = False
     try:
         with open(tmp, "x", encoding="utf-8") as handle:
+            created = True
             json.dump(payload, handle, indent=2, sort_keys=True)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(tmp, path)
     except Exception:
-        if os.path.exists(tmp):
+        if created and os.path.exists(tmp):
             os.unlink(tmp)
         raise
 

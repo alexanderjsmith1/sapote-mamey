@@ -500,11 +500,37 @@ def _scan_patterns(cds_list: list[CDSFeature], patterns: dict[str, list[str]]) -
         h = _hay(cds)
         for group, pats in compiled.items():
             if any(p.search(h) for p in pats):
-                buckets[group].append({"contig": cds.contig, "start": cds.start, "end": cds.end, "strand": cds.strand, "locus_tag": cds.locus_tag, "product": cds.product})
+                hit = {"contig": cds.contig, "start": cds.start, "end": cds.end, "strand": cds.strand, "locus_tag": cds.locus_tag, "product": cds.product}
+                if getattr(cds, "location_parts", ()):
+                    hit["location_parts"] = cds.location_parts
+                buckets[group].append(hit)
     return {"status": "SOURCE_DERIVED", "counts": {k: len(v) for k, v in buckets.items()}, "hits": buckets, "claim_safety": "Annotation/keyword-derived first pass; confirm with HMMER/BLAST before manuscript use."}
 
 def _bgc_overlap_or_near(cds: CDSFeature, bgc: BGCRecord, flank: int = 10000) -> bool:
-    return cds.contig == bgc.contig and not (cds.end < bgc.start - flank or cds.start > bgc.end + flank)
+    if cds.contig != bgc.contig:
+        return False
+    parts = getattr(cds, "location_parts", ())
+    if parts:
+        # Joined feature segments represent one annotation, not its bounding box.
+        # Test the parts separately and count the feature at most once per BGC.
+        if flank < 0:
+            raise ValueError("CIRCULAR_NEGATIVE_FLANK")
+        # Parts are 1-based inclusive; BGC source bounds are 0-based half-open.
+        if getattr(bgc, "validated_circular_span_bp", None) is not None:
+            left = max(0, bgc.start - flank)
+            right = min(bgc.contig_length, bgc.end + flank)
+            return left <= right or any(end > left or start <= right
+                                        for start, end in parts)
+        return any(end > bgc.start - flank and start <= bgc.end + flank
+                   for start, end in parts)
+    if getattr(bgc, "validated_circular_span_bp", None) is not None:
+        if flank < 0:
+            raise ValueError("CIRCULAR_NEGATIVE_FLANK")
+        # BGC uses 0-based half-open origin bounds; CDS uses 1-based inclusive.
+        left = max(0, bgc.start - flank)
+        right = min(bgc.contig_length, bgc.end + flank)
+        return left <= right or cds.end > left or cds.start <= right
+    return not (cds.end < bgc.start - flank or cds.start > bgc.end + flank)
 
 def _bgc_key(bgc, record_key=None):
     """Keep legacy alias keys by default; native attribution supplies a physical key."""
@@ -525,7 +551,7 @@ def bgc_coupling(bgcs: list[BGCRecord], scan_hits: dict[str, Any], flank: int = 
     by_bgc = defaultdict(list)
     for group, hits in scan_hits.get("hits", {}).items():
         for h in hits:
-            fake = CDSFeature(h["contig"], h["start"], h["end"], h.get("strand", 0), h.get("locus_tag"), h.get("product"), None, {})
+            fake = CDSFeature(h["contig"], h["start"], h["end"], h.get("strand", 0), h.get("locus_tag"), h.get("product"), None, {}, location_parts=tuple(h.get("location_parts", ())))
             for bgc in bgcs:
                 if _bgc_overlap_or_near(fake, bgc, flank=flank):
                     by_bgc[_bgc_key(bgc, _record_key)].append(group)
@@ -733,9 +759,12 @@ def motif_to_regex(motif: str) -> str:
 
 def scan_tfbs(contigs: dict[str, str], cds_list: list[CDSFeature], upstream_bp: int = 300) -> dict[str, Any]:
     hits = []
+    short_windows = []
+    missing_contig_count = 0
     for cds in cds_list:
         seq = contigs.get(cds.contig)
         if not seq:
+            missing_contig_count += 1
             continue
         if cds.strand >= 0:
             s, e = max(0, cds.start - upstream_bp - 1), max(0, cds.start - 1)
@@ -743,14 +772,27 @@ def scan_tfbs(contigs: dict[str, str], cds_list: list[CDSFeature], upstream_bp: 
         else:
             s, e = min(len(seq), cds.end), min(len(seq), cds.end + upstream_bp)
             window, window_start = reverse_complement(seq[s:e]).upper(), s + 1
+        if len(window) < upstream_bp:
+            short_windows.append({"contig": cds.contig, "target_locus": cds.locus_tag,
+                                  "strand": cds.strand, "available_bp": len(window)})
         for motif_name, motifs in TFBS_MOTIFS.items():
             for motif in motifs:
                 for m in re.finditer(motif_to_regex(motif), window):
-                    hits.append({"motif": motif_name, "pattern": motif, "contig": cds.contig, "approx_position": window_start + m.start(), "target_locus": cds.locus_tag, "target_product": cds.product, "strand": cds.strand})
+                    # Match bounds are 1-based inclusive on the exact input sequence.
+                    # Keep the legacy approximation for readers that already consume it.
+                    if cds.strand >= 0:
+                        input_start = s + m.start() + 1
+                        input_end = s + m.end()
+                        input_orientation = "forward" if cds.strand > 0 else "forward_assumed_unknown_target_strand"
+                    else:
+                        input_start = e - m.end() + 1
+                        input_end = e - m.start()
+                        input_orientation = "reverse_complement"
+                    hits.append({"motif": motif_name, "pattern": motif, "contig": cds.contig, "approx_position": window_start + m.start(), "input_sequence_start_1based": input_start, "input_sequence_end_1based": input_end, "motif_orientation_on_input": input_orientation, "target_locus": cds.locus_tag, "target_product": cds.product, "strand": cds.strand})
     counts = defaultdict(int)
     for h in hits:
         counts[h["motif"]] += 1
-    return {"status": "MOTIF_SCAN_PRELIMINARY", "upstream_bp": upstream_bp, "counts": dict(counts), "hits": hits[:1000], "total_hits": len(hits), "claim_safety": "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use."}
+    return {"status": "MOTIF_SCAN_PRELIMINARY", "upstream_bp": upstream_bp, "counts": dict(counts), "hits": hits[:1000], "total_hits": len(hits), "upstream_window_short_count": len(short_windows), "upstream_window_short_examples": short_windows[:1000], "missing_contig_count": missing_contig_count, "coverage_note": "Short windows are clipped to available sequence; circular topology and other missing context are not resolved.", "claim_safety": "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use."}
 
 def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: str = "", *, _record_key=None) -> dict[str, Any]:
     # v9.7.87 Item A: bldA-dependent translational control is actinomycete-specific. On a
@@ -994,14 +1036,29 @@ def scan_orphan_megasynthase_motifs(cds_list: list[CDSFeature], bgcs: list[BGCRe
     """Candidate megasynthase fragments on orphan contigs (CDS outside every called BGC core ±20 kb flank),
     detected by conserved active-site motifs. Annotation-independent; claim-safe. Tiered by motif specificity:
     KS-bearing (evidential) vs AT-only (alpha/beta-hydrolase-ambiguous, NOT a megasynthase claim)."""
-    ranges: dict[str, list[tuple[int, int]]] = {}
+    ranges: dict[str, list[BGCRecord]] = {}
     for b in bgcs:
-        ranges.setdefault(_contig_key(b.contig), []).append((b.start, b.end))
+        ranges.setdefault(_contig_key(b.contig), []).append(b)
 
     def _in_or_flanking_bgc(cds: CDSFeature) -> bool:
-        for s, e in ranges.get(_contig_key(cds.contig), []):
-            # widen the core window by the antiSMASH region flank on both sides, so flank CDS aren't orphans
-            if cds.start < e + _ORPHAN_FLANK and cds.end > s - _ORPHAN_FLANK:
+        for bgc in ranges.get(_contig_key(cds.contig), []):
+            # The normalized contig key above intentionally accepts legacy coverage spellings.
+            parts = getattr(cds, "location_parts", ())
+            if parts:
+                if getattr(bgc, "validated_circular_span_bp", None) is not None:
+                    left = max(0, bgc.start - _ORPHAN_FLANK)
+                    right = min(bgc.contig_length, bgc.end + _ORPHAN_FLANK)
+                    if left <= right or any(end > left or start <= right for start, end in parts):
+                        return True
+                elif any(end > bgc.start - _ORPHAN_FLANK and start <= bgc.end + _ORPHAN_FLANK for start, end in parts):
+                    return True
+                continue
+            if getattr(bgc, "validated_circular_span_bp", None) is not None:
+                left = max(0, bgc.start - _ORPHAN_FLANK)
+                right = min(bgc.contig_length, bgc.end + _ORPHAN_FLANK)
+                if left <= right or cds.end > left or cds.start <= right:
+                    return True
+            elif cds.start < bgc.end + _ORPHAN_FLANK and cds.end > bgc.start - _ORPHAN_FLANK:
                 return True
         return False
 
@@ -1087,7 +1144,7 @@ def scan_domain_architecture(bgcs: list[BGCRecord], domains: list[DomainFeature]
             if dom.domain in _known_core:
                 _misfiled_core[dom.domain] = _misfiled_core.get(dom.domain, 0) + 1
         for record_index, bgc in enumerate(bgcs):
-            if dom.contig == bgc.contig and not (dom.end < bgc.start or dom.start > bgc.end):
+            if _bgc_overlap_or_near(dom, bgc, flank=0):
                 for rec in (per_bgc[bgc.bgc_id], native[record_index]["architecture"]):
                     # v9.7.335: parsers.py extracts "aSModule" (it even says so in a comment); this
                     # tested "module" and so counted ZERO for every BGC in every manifest — the
@@ -1761,7 +1818,13 @@ def scan_misanchor_guards(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> 
         by_contig.setdefault(c.contig, []).append(c)
     per_bgc = {}
     for b in bgcs:
-        own = [c for c in by_contig.get(b.contig, []) if c.start < b.end and c.end > b.start]
+        if getattr(b, "validated_circular_span_bp", None) is not None:
+            own = [c for c in by_contig.get(b.contig, []) if _bgc_overlap_or_near(c, b, flank=0)]
+        else:
+            own = [c for c in by_contig.get(b.contig, [])
+                   if (_bgc_overlap_or_near(c, b, flank=0)
+                       if len(getattr(c, "location_parts", ())) > 1
+                       else c.start < b.end and c.end > b.start)]
         # the ANCHOR is the KCB similarity hit; the product class is used only for the diagnostic check below
         kcb_anchor = " ".join([b.kcb_top or "", b.closest_candidate_kcb_product or ""]).lower()
         products_txt = " ".join(b.products).lower()

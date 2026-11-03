@@ -30,7 +30,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _wbio import atomic_save
+from _wbio import atomic_save, atomic_open
 
 
 def _read_json(_path, *, encoding="utf-8"):
@@ -183,10 +183,8 @@ def main():
                "seq_priority", "activation_priority", "isolation_priority", "dereplication_priority",
                "score_breakdown", "skip_notes"]
     fieldnames = list(rows[0].keys()) if rows else _FIELDS
-    _tmp = csv_path + ".tmp"
-    with open(_tmp, "w", newline="") as f:
+    with atomic_open(csv_path, "w", encoding=None, newline="") as f:
         w = _SafeDictWriter(f, fieldnames=fieldnames); w.writeheader(); w.writerows(rows)
-    os.replace(_tmp, csv_path)
 
     try:
         import openpyxl
@@ -194,8 +192,8 @@ def main():
         ws.append(fieldnames)
         for r in rows: ws.append([(", ".join(v) if isinstance(v,list) else v) for v in (r[k] for k in fieldnames)])
         xlsx_path = os.path.join(a.out_dir, f"{strain}_WetLab_Decision_Matrix.xlsx")
-        # v9.7.371 fix: was a bare wb.save(xlsx_path) -- the CSV sibling written 4 lines above
-        # correctly hand-rolls the tmp+os.replace() pattern; this XLSX write did not, so a process
+        # v9.7.371 fix: was a bare wb.save(xlsx_path) -- the CSV sibling now uses
+        # atomic_open's unique sibling staging; this XLSX write did not, so a process
         # killed mid-save left a truncated/corrupt .xlsx (tools/_wbio.py's own docstring: "corrupts
         # the workbook into an unreadable BadZipFile") sitting next to its intact CSV sibling in
         # the deliverables directory. atomic_save is the same tmp+os.replace helper already used

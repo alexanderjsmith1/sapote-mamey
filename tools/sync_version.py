@@ -411,6 +411,11 @@ RULES = [
     ("wiki/What-It-Does-and-Limitations.md",
      re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
      f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
+    # v9.7.462: the wiki sidebar stamp had no owner. Each cut restored it by hand (the .461 baseline card), and a
+    # cut that bumps the bundle before its suites failed test_sidebar_version_stamped_and_current_v97401.
+    ("wiki/_Sidebar.md",
+     re.compile(r"(?m)^\*bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine \d+(?:\.\d+)*[a-z]*\*$"),
+     f"*bundle v{BUNDLE} \u00b7 engine {ENGINE}*"),
 ]
 
 # v9.7.445: a wiki page mirrored by tools/sync_wiki_mirrors.py gets every rule of its source doc, so a cut re-stamps

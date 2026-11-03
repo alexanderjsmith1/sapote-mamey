@@ -1,3 +1,51 @@
+# v9.7.462 — unsealed cut candidate · build 20261102v97462a
+
+Build 20261102v97462a; engine 1.9.178.
+
+Builds on the sealed v9.7.461 (CODE zip, build 20261029v97461a), with 96 cards. The engine moves to 1.9.178 because one ranked output can change: a RiPP-family region that wraps the origin of a circular contig is floored to the Low tier using its true span. RG-GMCI scores, ranks and thresholds, and KCB values, are unchanged. `docs/ENGINE_LINEAGE.md` says what is not poolable across 1.9.177 and 1.9.178.
+
+- **Circular contigs.**
+  - A region that wraps the origin keeps its true span, `validated_circular_span_bp`, instead of a zero or inverted length.
+  - BGC length, the manifest, the architecture grade, the lead board, gene exports, source scans and RG-GMCI core records use it.
+  - RG-GMCI refuses a circular core record whose span does not match its coordinates.
+- **Joined locations.** Compound domain and CDS locations keep their parts. Overlap with a region is checked per segment, so an internal gap no longer counts as overlap. The mis-anchor guard checks every segment of a joined CDS.
+- **TFBS scan.** The upstream scan reports shortened windows and missing contigs. Each hit gets 1-based inclusive bounds on the input sequence and its orientation. Motif calls are unchanged.
+- **Gap rescue.**
+  - A reference row with no outcome stops gene-table generation, instead of showing as "not found".
+  - Malformed, nonfinite or out-of-selection precomputed hits are refused before any output.
+  - Contig-end inference keeps the source strand.
+  - Receipts record the hit rules, and mark pre-existing map files as unverified.
+  - `--no-gene-table` and `--no-gene-table-figure` give data-only runs, and refuse folders that hold old images.
+  - Split rows and captions explain the base hit's flags.
+- **Status and validation.**
+  - A fresh validator FAIL outranks a saved package label.
+  - Only the listed success tokens count, so `PASS_BUT_FAILED` is not success.
+  - `validate` refuses ambiguous workbooks.
+  - `inspect` checks every ZIP member before telling the reader to extract.
+  - Status receipts use an exclusive temporary file.
+- **Refusals instead of silent output.** These are now refused, or held with a clear message:
+  - output paths that alias their own inputs, across roster, Pfam, KS burden, atlas, lead-detail, registry-export and handoff writers;
+  - malformed UTF-8;
+  - unreadable channel inputs;
+  - malformed register shapes;
+  - empty panels;
+  - non-integral region IDs;
+  - unsupported BiG-SCAPE prep inputs, which are recorded as `SKIP_UNSUPPORTED_INPUT`.
+
+  Writers stage privately and leave other processes' temporary files alone.
+- **Source gates.** The regex, duplicate-key and silent-exit gates decode source by its declared encoding and refuse undecodable bytes on every Python version.
+- **Hooks and transcripts.**
+  - The stop hook calls the bundled transcript tool.
+  - Transcript accounting holds partial or undecodable records instead of appending a misleading total.
+  - Link checks refuse unverified fallback roots.
+- **Licenses.** Every license target must be recognized, present and inside the bundle; every grant entry is accounted for.
+- **Release surfaces.** `tools/sync_version.py` propagates the engine version and now also owns the wiki sidebar's version stamp, which earlier cuts restored by hand. The generated catalogs, atlas and inventories are regenerated once, by the last card.
+
+Known limits, for later:
+- Codex's PDF-conversion chain, clinker checks, GECCO name wording and phylogeny guidance are not in this build. Their tests need fixes first.
+- The matrix-figure renderers wait for visual review.
+- Circular TFBS windows are not reconstructed across the origin.
+
 # v9.7.461 — unsealed cut candidate · build 20261029v97461a
 
 Build 20261029v97461a; engine 1.9.177.

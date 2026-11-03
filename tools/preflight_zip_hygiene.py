@@ -67,20 +67,21 @@ LARGE_LIMIT = 5 * 1024 * 1024
 ALLOWLIST_TSV = Path(__file__).resolve().parent / "zip_hygiene_allowlist.tsv"
 
 
+class ZipPolicyError(ValueError):
+    """A selected ZIP-size policy is unavailable or invalid."""
+
+
+class ZipArchiveIOError(Exception):
+    """A ZIP metadata scan encountered an operating-system I/O failure."""
+
+
 def _load_path_allowlist(tsv: Path = ALLOWLIST_TSV) -> dict:
-    """Load the path-bound allowlist. Missing/unreadable file -> {} (gate simply stays strict)."""
-    try:
-        from zip_hygiene_allowlist import load_allowlist  # same tools/ dir
-    except Exception:
-        try:
-            sys.path.insert(0, str(Path(__file__).resolve().parent))
-            from zip_hygiene_allowlist import load_allowlist
-        except Exception:
-            return {}
+    """Missing optional file retains legacy behavior; unavailable policy is a hold."""
+    from zip_hygiene_allowlist import load_allowlist
     try:
         return load_allowlist(tsv)
-    except Exception:
-        return {}
+    except (OSError, ValueError) as exc:
+        raise ZipPolicyError(f"ZIP_HYGIENE_ALLOWLIST_HOLD: {tsv}: {type(exc).__name__}: {exc}") from exc
 
 
 def _oversized(name: str, size: int, allow: dict) -> bool:
@@ -122,15 +123,23 @@ def scan(zip_path: Path) -> dict:
     return result
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], *, _cli_archive_errors: bool = False) -> int:
     if len(argv) != 2:
-        emit("usage: preflight_zip_hygiene.py <release.zip>", file=sys.stderr)
+        error = "usage: preflight_zip_hygiene.py <release.zip>"
+    elif not Path(argv[1]).exists():
+        error = f"ERROR: zip not found: {Path(argv[1])}"
+    else:
+        error = None
+    if error is not None:
+        emit(error, file=sys.stderr)
         return 2
     zp = Path(argv[1])
-    if not zp.exists():
-        emit(f"ERROR: zip not found: {zp}", file=sys.stderr)
-        return 2
-    r = scan(zp)
+    try:
+        r = scan(zp)
+    except OSError as exc:
+        if not _cli_archive_errors:
+            raise
+        raise ZipArchiveIOError(f"{type(exc).__name__}: {exc}") from exc
     problems = r["cache"] or r["hidden"] or r["large"]
     if not problems:
         emit(f"OK: {zp.name} is clean (no cache / unexpected hidden / oversized entries)")
@@ -146,4 +155,12 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    try:
+        exit_code = main(sys.argv, _cli_archive_errors=True)
+    except (ZipPolicyError, ZipArchiveIOError, zipfile.BadZipFile) as exc:
+        message = (str(exc) if isinstance(exc, ZipPolicyError) else
+                   f"ZIP_HYGIENE_ARCHIVE_HOLD: {exc}" if isinstance(exc, ZipArchiveIOError) else
+                   f"ZIP_HYGIENE_ARCHIVE_HOLD: {type(exc).__name__}: {exc}")
+        emit(message, file=sys.stderr)
+        exit_code = 2
+    raise SystemExit(exit_code)

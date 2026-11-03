@@ -121,6 +121,7 @@ def main(argv=None) -> int:
         newkeys: set[tuple[str, str, str, int | None, str]] = set()
         batch: list[tuple[object, ...]] = []
         previously_seen_files = 0
+        unreadable = 0
         for path in files:
             rel = os.path.relpath(path, root)
             if rel in ingested_source_files:
@@ -131,10 +132,11 @@ def main(argv=None) -> int:
                 "%Y-%m-%d %H:%M:%S", time.localtime(path.stat().st_mtime)
             )
             try:
-                with path.open(newline="", encoding="utf-8", errors="replace") as handle:
+                with path.open(newline="", encoding="utf-8") as handle:
                     rows = list(csv.DictReader(handle))
-            except (OSError, csv.Error) as exc:
+            except (OSError, csv.Error, UnicodeDecodeError) as exc:
                 emit(f"  ! skip {rel}: {exc}", file=sys.stderr)
+                unreadable += 1
                 continue
             allowed = _allowed_channels(path)
             implied = _implied_channel(path)
@@ -187,7 +189,7 @@ def main(argv=None) -> int:
                     )
                 )
 
-        emit(f'rollup files found: {len(files)}  (previously seen sources rescanned: {previously_seen_files})', f'NEW (strain,channel,gene,hit_rank,subject_acc) rows to add: {len(batch)}  across {len(added)} strains', sep="\n")
+        emit(f'rollup files found: {len(files)}  (previously seen sources rescanned: {previously_seen_files})  | unreadable: {unreadable}', f'NEW (strain,channel,gene,hit_rank,subject_acc) rows to add: {len(batch)}  across {len(added)} strains', sep="\n")
         for strain in sorted(added):
             emit(f"   {strain}: +{added[strain]}")
         if args.execute:

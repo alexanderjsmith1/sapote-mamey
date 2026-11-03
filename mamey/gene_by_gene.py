@@ -537,6 +537,8 @@ def build_gene_by_gene_table(
                 "end": r.get("end"),
                 "strand": "+" if (r.get("strand") in (1, "+", None)) else "-",
                 "length_bp": r.get("length_bp"),
+                "coordinate_scope": r.get("coordinate_scope", ""),
+                "location_parts": r.get("location_parts", []),
                 "product": r.get("product", ""),
                 "translation_length": r.get("aa_length"),
                 "sec_met_domains": r.get("sec_met_domains", []),
@@ -579,11 +581,19 @@ def build_gene_by_gene_table(
 
         if cds_records:
             # Filter to CDS within BGC coordinates
-            bgc_cds = [c for c in cds_records
-                       if bgc_start is None or bgc_end is None
-                       or (c["start"] is not None and c["end"] is not None
-                           and c["start"] <= bgc_end and c["end"] >= bgc_start)]
+            if bgc.get("validated_circular_span_bp") is not None:
+                # Bounds were validated during region intake; CDS coordinates
+                # are 1-based inclusive and region bounds 0-based half-open.
+                bgc_cds = [c for c in cds_records if c["start"] is not None and c["end"] is not None
+                           and (c["end"] > bgc_start or c["start"] <= bgc_end)]
+            else:
+                bgc_cds = [c for c in cds_records
+                           if bgc_start is None or bgc_end is None
+                           or (c["start"] is not None and c["end"] is not None
+                               and c["start"] <= bgc_end and c["end"] >= bgc_start)]
             if not bgc_cds:
+                if bgc.get("validated_circular_span_bp") is not None:
+                    raise ValueError(f"CIRCULAR_GENE_COORDINATES_UNRESOLVED: {bgc_id}")
                 bgc_cds = cds_records  # fallback: use all if coordinate filter yields nothing
         else:
             # No GBK available: emit one synthetic summary row per BGC
@@ -637,6 +647,8 @@ def build_gene_by_gene_table(
                 "bgc_products":          _cap_qualifier(prods_str),
                 "ab_score":              _score(triage_row, "AB_auto"),
                 "af_score":              _score(triage_row, "AF_auto"),
+                "coordinate_scope":      cds.get("coordinate_scope", ""),
+                "location_parts_1based_inclusive": json.dumps(cds.get("location_parts", [])),
             })
 
     # --- Write CSV ---

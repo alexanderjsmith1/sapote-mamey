@@ -27,7 +27,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     import os, sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from mamey.console import emit
-import csv, glob, zipfile
+import csv, glob, os, tempfile, zipfile
 from pathlib import Path
 
 from .packaging import _package_files_fail_closed, _zip_compression
@@ -66,7 +66,12 @@ def _top_n_bgcs(package_dir: Path, n: int) -> list[str]:
         return []
     rows = []
     with tb.open(newline="", encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
+        reader = csv.DictReader(fh)
+        # DREL-035: a present-but-blank Corrected_rank marks an engine-excluded row
+        # (the rule compile_report.py applies). Raw Rank is used only when the column
+        # is absent, as in a legacy package; excluded rows never compete on raw Rank.
+        has_corrected = "Corrected_rank" in (reader.fieldnames or [])
+        for row in reader:
             bid = (row.get("BGC_ID") or "").strip()
             # v9.7.371 fix: was Rank-first. Rank is the raw score-sorted position over ALL BGCs
             # including standing-rule-excluded/primary-metabolism rows; Corrected_rank is the
@@ -77,16 +82,30 @@ def _top_n_bgcs(package_dir: Path, n: int) -> list[str]:
             # strain_modeb.py, session_resume.py, widget_deliverable.py) -- this file alone had
             # it backwards, so an excluded/downgraded BGC with a high raw Rank could win the sort
             # and ship as a "top-N lead" region GBK while a genuine top lead was omitted.
-            rank = row.get("Corrected_rank") or row.get("Rank") or ""
+            rank = (row.get("Corrected_rank") if has_corrected else row.get("Rank")) or ""
             try:
                 rk = float(rank)
             except (TypeError, ValueError):
-                rk = float("inf")
+                continue
             if bid:
                 rows.append((rk, bid))
     rows.sort(key=lambda t: t[0])
     return [bid for _, bid in rows[:n]]
 
+
+
+def _refuse_source_alias(out_zip: Path, package_dir: Path, package_files, input_zip) -> None:
+    """Refuse an output path that is, or lies inside, a handoff source."""
+    out = out_zip.resolve()
+    pkg = package_dir.resolve()
+    if out == pkg or pkg in out.parents:
+        raise ValueError(f"handoff output must be outside the package directory: {out_zip}")
+    sources = [Path(p) for p in package_files]
+    if input_zip is not None and Path(input_zip).exists():
+        sources.append(Path(input_zip))
+    for src in sources:
+        if src.resolve() == out or (out.exists() and os.path.samefile(src, out)):
+            raise ValueError(f"handoff output aliases a source file: {out_zip}")
 
 def build_handoff(package_dir: str | Path, input_zip: str | Path | None,
                   out_zip: str | Path, top_n: int | None = None) -> dict:
@@ -133,28 +152,37 @@ def build_handoff(package_dir: str | Path, input_zip: str | Path | None,
     # left NEITHER the old handoff.zip (already unlinked) NOR a valid new one (no central directory
     # yet) -- worse than an ordinary overwrite, which at least fails closed on the old content. Build
     # into a tmp sibling and only replace the real target after the archive is fully written and closed.
-    tmp_out_zip = out_zip.with_name(out_zip.name + ".tmp")
-    if tmp_out_zip.exists():
-        tmp_out_zip.unlink()
-    with zipfile.ZipFile(tmp_out_zip, "w", _zip_compression()) as z:
-        for p in package_files:
-            z.write(p, Path("package") / p.relative_to(package_dir))
-        for name, data in region_gbks:
-            z.writestr(f"region_gbks/{name}", data)
-        readme = (
-            "SAPOTE-MAMEY PORTABLE HANDOFF\n"
-            "=============================\n"
-            "package/       - sealed Mamey package (explain, list-bgcs, resume, emit-modeb-template,\n"
-            "                 guide skeletons, cross-strain, ingest all run on this directly).\n"
-            "region_gbks/   - antiSMASH region GBKs so `mamey blastp-online` can author Mode B\n"
-            "                 §4/§8/§27/§28 without the raw antiSMASH ZIP.\n\n"
-            f"region GBKs included: {len(region_gbks)}"
-            + (f" (top-{top_n} leads: {', '.join(selected_bgcs)})" if (top_n and selected_bgcs and wanted_basenames is not None) else " (all regions)")
-            + "\n"
-            + (f"NOTE: {note}\n" if note else "")
-        )
-        z.writestr("HANDOFF_README.txt", readme)
-    tmp_out_zip.replace(out_zip)
+    # DREL-036: the output and its temporary file must never alias an input. The old fixed
+    # ``<out>.tmp`` sibling was unlinked first, so an input at that path was deleted; an output
+    # equal to an input replaced the input's bytes. Refuse aliases, then write a unique temp.
+    _refuse_source_alias(out_zip, package_dir, package_files, input_zip)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{out_zip.name}.", suffix=".tmp", dir=out_zip.parent)
+    os.close(fd)
+    tmp_out_zip = Path(tmp_name)
+    os.chmod(tmp_out_zip, 0o644)  # mkstemp creates 0600; keep the old archive mode
+    try:
+        with zipfile.ZipFile(tmp_out_zip, "w", _zip_compression()) as z:
+            for p in package_files:
+                z.write(p, Path("package") / p.relative_to(package_dir))
+            for name, data in region_gbks:
+                z.writestr(f"region_gbks/{name}", data)
+            readme = (
+                "SAPOTE-MAMEY PORTABLE HANDOFF\n"
+                "=============================\n"
+                "package/       - sealed Mamey package (explain, list-bgcs, resume, emit-modeb-template,\n"
+                "                 guide skeletons, cross-strain, ingest all run on this directly).\n"
+                "region_gbks/   - antiSMASH region GBKs so `mamey blastp-online` can author Mode B\n"
+                "                 §4/§8/§27/§28 without the raw antiSMASH ZIP.\n\n"
+                f"region GBKs included: {len(region_gbks)}"
+                + (f" (top-{top_n} leads: {', '.join(selected_bgcs)})" if (top_n and selected_bgcs and wanted_basenames is not None) else " (all regions)")
+                + "\n"
+                + (f"NOTE: {note}\n" if note else "")
+            )
+            z.writestr("HANDOFF_README.txt", readme)
+        os.replace(tmp_out_zip, out_zip)
+    except BaseException:
+        tmp_out_zip.unlink(missing_ok=True)
+        raise
 
     return {"out_zip": str(out_zip), "region_gbks": len(region_gbks),
             "top_n": top_n, "selected_bgcs": selected_bgcs, "note": note,

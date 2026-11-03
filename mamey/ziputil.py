@@ -111,7 +111,7 @@ def _portable_extraction_key(dest_abs: Path, target: Path) -> tuple[str, ...]:
     )
 
 
-def safe_extract_all(z: zipfile.ZipFile, dest: Path | str) -> None:
+def safe_extract_all(z: zipfile.ZipFile, dest: Path | str, *, dry_run: bool = False) -> None:
     """Extract ordinary files/directories after an all-members safety preflight.
 
     Validation completes before the first write.  Absolute/traversal paths,
@@ -207,5 +207,8 @@ def safe_extract_all(z: zipfile.ZipFile, dest: Path | str) -> None:
                 raise ValueError(f"unsafe existing zip file/directory collision: {member.filename}")
             if not member.is_dir() and not stat.S_ISREG(mode):
                 raise ValueError(f"unsafe existing non-regular zip target: {member.filename}")
+    if dry_run:
+        # Preflight only: every refusal above has run, nothing has been written (DREL-047).
+        return
     for member in members:
         z.extract(member, dest_abs)

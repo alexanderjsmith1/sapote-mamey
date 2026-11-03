@@ -1653,8 +1653,17 @@ def prepare_archive_inputs(zip_path: str | Path, *, core_snapshot: dict | None =
         records, diagnostics = _open_region_core_snapshot(core_snapshot, checksum)
     aliases = set()
     for record in records:
-        if set(record) != set(RGGMCI_CORE_RECORD_FIELDS):
+        fields = set(record)
+        required_fields = set(RGGMCI_CORE_RECORD_FIELDS)
+        if fields not in (required_fields, required_fields | {"validated_circular_span_bp"}):
             raise ValueError("RGGMCI_CORE_SNAPSHOT_FIELD_MISMATCH")
+        if "validated_circular_span_bp" in record:
+            span = record["validated_circular_span_bp"]
+            start, end, contig_length = record["start"], record["end"], record["contig_length"]
+            if (not isinstance(span, int) or not isinstance(start, int) or not isinstance(end, int)
+                    or not isinstance(contig_length, int) or not 0 <= end < start < contig_length
+                    or span != contig_length - start + end):
+                raise ValueError("RGGMCI_CIRCULAR_SPAN_INVALID")
         if not record["bgc_id"] or record["bgc_id"] in aliases or not record["contig"] or not record["source_gbk"]:
             raise ValueError("RGGMCI_CORE_IDENTITY_UNRESOLVED")
         aliases.add(record["bgc_id"])

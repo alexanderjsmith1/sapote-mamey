@@ -518,7 +518,8 @@ def _manifest_matches_authority(path: str, strain: str, authority: dict, flavor:
         if not isinstance(manifest, dict) or not isinstance(manifest.get("assembly"), dict):
             return False
         asm = manifest["assembly"]
-        return (manifest.get("strain") == strain
+        # Sealed packages write strain_id; older fixtures wrote strain.
+        return ((manifest.get("strain_id") or manifest.get("strain")) == strain
                 and int(asm.get("contigs", -1)) == int(authority["authoritative_contigs"])
                 and int(asm.get("genome_bp", -1)) == int(authority["authoritative_genome_bp"])
                 and (flavor is None or manifest.get("antismash_profile") == flavor))

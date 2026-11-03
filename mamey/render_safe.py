@@ -228,16 +228,23 @@ def safe_kcb_display(record, *, max_chars: int = 80) -> str:
     safe = str(_get("closest_candidate_kcb_product") or _get("closest_kcb_product") or "").strip()
 
     if prov == "MIBIG_REFERENCE_LINE" and raw:
-        out = f"{raw} (similarity)"
+        prefix, anchor, qualifier = "", raw, " (similarity)"
     elif safe and safe.upper() != "UNRESOLVED":
-        out = f"~{safe} (similarity anchor only)"
+        prefix, anchor, qualifier = "~", safe, " (similarity anchor only)"
     elif raw and prov in ("KCB_TOP_FIELD", "", None):
-        out = f"~{raw} (source-derived similarity anchor only; not product identity)"
+        prefix, anchor, qualifier = "~", raw, " (source-derived similarity anchor only; not product identity)"
     elif raw:
-        out = f"{raw} (similarity)"
+        prefix, anchor, qualifier = "", raw, " (similarity)"
     else:
         return "unresolved"
-    return out if len(out) <= max_chars else out[: max_chars - 1] + "\u2026"
+    out = prefix + anchor + qualifier
+    if len(out) <= max_chars:
+        return out
+    # The qualifier is the claim boundary; shorten only the supplied anchor.
+    budget = max_chars - len(prefix) - len(qualifier)
+    if budget < 2:
+        raise ValueError("KCB_DISPLAY_LIMIT_TOO_SMALL: cannot retain anchor and qualifier")
+    return prefix + anchor[:budget - 1] + "\u2026" + qualifier
 
 
 def locus_label(value, *, max_chars: int = 42) -> str:

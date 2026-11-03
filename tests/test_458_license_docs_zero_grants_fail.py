@@ -24,8 +24,10 @@ def test_no_recognized_grant_is_a_failure(tmp_path, capsys):
     assert "no grants recognized" in capsys.readouterr().out
 
 
-def test_a_recognized_grant_still_passes(tmp_path):
+def test_a_recognized_grant_still_passes(tmp_path, monkeypatch):
     mod = _load()
+    monkeypatch.setattr(mod, "ROOT", tmp_path)
+    (tmp_path / "README.md").write_text("synthetic readme\n", encoding="utf-8")
     lic = tmp_path / "LICENSE-DOCS.txt"
     lic.write_text("# Docs are CC-BY-4.0.\nREADME.md\n", encoding="utf-8")
     mod.LIC = lic

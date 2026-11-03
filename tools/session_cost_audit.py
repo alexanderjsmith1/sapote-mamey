@@ -30,15 +30,19 @@ PROJ = os.path.expanduser(f"~/.claude/projects/{_slug}")
 
 
 def iter_records(path):
-    with open(path, "r", errors="replace") as fh:
-        for line in fh:
+    with open(path, "r", errors="surrogateescape") as fh:
+        for line_number, line in enumerate(fh, 1):
             line = line.strip()
             if not line:
                 continue
             try:
-                yield json.loads(line)
+                # Surrogate escapes identify undecodable source bytes; literal U+FFFD is valid.
+                line.encode(fh.encoding, errors="strict")
+                record = json.loads(line)
             except Exception:
+                sys.stderr.write(f"SESSION_COST_PARTIAL: {str(path)!r}:{line_number}: skipped unreadable JSON record; totals cover readable records only\n")
                 continue
+            yield record
 
 
 def identify(path):

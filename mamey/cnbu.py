@@ -179,4 +179,11 @@ def cnbu_from_inventory_csv(inventory_csv_path: str, **kwargs) -> dict[str, Any]
     import csv
     with open(inventory_csv_path, newline="", encoding="utf-8") as f:
         bgcs = list(csv.DictReader(f))
+    # Native inventory lengths are already kb, matching the direct API.
+    for number, bgc in enumerate(bgcs, 2):
+        for native, api in (("Length_kb", "length_kb"), ("Products", "products")):
+            if native in bgc:
+                if api in bgc and bgc[api] != bgc[native]:
+                    raise ValueError(f"CNBU_INVENTORY_FIELD_CONFLICT: row {number}: {native}/{api}")
+                bgc[api] = bgc[native]
     return compute_cnbu(bgcs, **kwargs)

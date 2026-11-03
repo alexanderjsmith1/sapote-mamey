@@ -8,6 +8,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 import json
+import os
+import tempfile
 
 PACKAGE_STATUS_VALUES = (
     "MAMEY_COMPLETE",
@@ -36,6 +38,21 @@ def detect_recovery_marker(package_dir: str | Path) -> str:
     return "none"
 
 
+
+# Exact success tokens. A prefix test admitted look-alikes such as PASS_BUT_FAILED,
+# PASSWORD or MAMEY_COMPLETE_FAILED as success.
+_SUCCESS_TOKENS = frozenset({"PASS", "PASS_WITH_ISSUES", "MAMEY_COMPLETE",
+                             "MAMEY_COMPLETE_WITH_ISSUES", "OK", "COMPLETE"})
+
+
+def _is_success_status(value: str) -> bool:
+    return value.strip().upper() in _SUCCESS_TOKENS
+
+
+def _is_fresh_failure(validator_status: str | None) -> bool:
+    vs = str(validator_status or "").strip()
+    return bool(vs) and not _is_success_status(vs)
+
 def infer_package_status(
     package_dir: str | Path,
     *,
@@ -49,6 +66,10 @@ def infer_package_status(
     """
     root = Path(package_dir)
     manifest = manifest or {}
+    # DREL-043: a fresh validator verdict passed by the caller outranks a saved label. An
+    # explicit MAMEY_COMPLETE or a recovery marker file must not survive a fresh FAIL.
+    if _is_fresh_failure(validator_status):
+        return "PARTIAL_FAILED"
     explicit = str(manifest.get("package_status") or "").strip()
     if explicit in PACKAGE_STATUS_VALUES:
         return explicit
@@ -70,7 +91,7 @@ def infer_package_status(
     vs = validator_status.upper()
     if not vs:
         return "MAMEY_COMPLETE"
-    if vs.startswith(("PASS", "MAMEY_COMPLETE")) or vs in {"OK", "COMPLETE"}:
+    if _is_success_status(vs):
         return "MAMEY_COMPLETE"
     return "PARTIAL_FAILED"
 
@@ -100,6 +121,13 @@ def package_status_receipt(
         "validator_status": validator_status or manifest.get("validator_status") or manifest.get("status", ""),
         "terminal_status": _terminal_status,
         "issue_count": _issue_count,
+        # The saved label a fresh validator FAIL overrode, if any; empty when they agree.
+        "status_conflict": (
+            str(manifest.get("package_status") or "")
+            if _is_fresh_failure(validator_status)
+            and str(manifest.get("package_status") or "") not in ("", "PARTIAL_FAILED")
+            else ""
+        ),
         "merge_semantics": (
             "normal_complete_with_issues" if status == "MAMEY_COMPLETE" and _issue_count else
             "normal_complete" if status == "MAMEY_COMPLETE" else
@@ -132,7 +160,17 @@ def write_package_status_receipt(
     # surfacing the interrupted seal. Duplicated locally (not imported from packaging.py) because
     # packaging.py already imports write_package_status_receipt from this module -- importing
     # back would be circular.
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
-    tmp.replace(path)
+    # DREL-044: a fixed ``.tmp`` sibling was opened by name, so an existing file was consumed
+    # and a symlink planted there was followed outside the package. mkstemp creates a new,
+    # uniquely named file with O_EXCL, so neither can be reused.
+    fd, tmp_name = tempfile.mkstemp(prefix=".package_status.", suffix=".tmp", dir=root)
+    tmp = Path(tmp_name)
+    os.chmod(tmp, 0o644)  # mkstemp creates 0600; keep the old receipt mode
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(receipt, indent=2))
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return path

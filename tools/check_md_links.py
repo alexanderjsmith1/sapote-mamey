@@ -95,11 +95,18 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     targets = []
-    if args.dir:
-        for root, _, files in os.walk(args.dir):
+    requested = [f for f in args.files if f.endswith(".md")]
+    for path in requested:
+        if not os.path.exists(path):
+            ap.error(f"requested Markdown input is unavailable: {path}")
+    if args.dir is not None:
+        if not os.path.isdir(args.dir):
+            ap.error(f"requested directory is unavailable or not a directory: {args.dir}")
+        def walk_error(exc):
+            ap.error(f"cannot enumerate requested directory: {exc}")
+        for root, _, files in os.walk(args.dir, onerror=walk_error):
             targets += [os.path.join(root, f) for f in files if f.endswith(".md")]
-    targets += [f for f in args.files if f.endswith(".md")]
-    targets = [t for t in targets if os.path.exists(t)]
+    targets += requested
     if not targets:
         ap.error("no .md files given")
 

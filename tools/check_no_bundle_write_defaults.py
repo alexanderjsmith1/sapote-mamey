@@ -164,6 +164,10 @@ def _sinks(tree: ast.AST):
             continue
         f = n.func
         fname = f.id if isinstance(f, ast.Name) else (f.attr if isinstance(f, ast.Attribute) else "")
+        # Bound Path.mkdir writes to its receiver; positional arguments are modes.
+        # The existing root-class filter ignores non-root receivers such as os.
+        if fname == "mkdir" and isinstance(f, ast.Attribute):
+            yield (n, "mkdir() receiver", f.value)
         # 1) open(path, mode)
         if fname == "open" and n.args:
             mode = None
@@ -192,10 +196,46 @@ def main() -> int:
     a = ap.parse_args()
     root = pathlib.Path(a.root)
     files = []
+    unavailable = []
+    def walk_error(exc):
+        unavailable.append(getattr(exc, "filename", None) or str(exc))
     for d in SCAN_DIRS:
         base = root / d
-        if base.is_dir():
-            files += sorted(base.rglob("*.py"))
+        try:
+            mode = base.stat().st_mode
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            walk_error(exc)
+            continue
+        import stat
+        if not stat.S_ISDIR(mode):
+            continue
+        pending = [base]
+        while pending:
+            directory = pending.pop()
+            try:
+                with _os.scandir(directory) as entries:
+                    for entry in entries:
+                        candidate = pathlib.Path(entry.path)
+                        try:
+                            if entry.is_symlink():
+                                if entry.is_dir(follow_symlinks=True):
+                                    unavailable.append(f"unscanned directory symlink: {candidate}")
+                                elif entry.name.endswith(".py"):
+                                    files.append(candidate)
+                            elif entry.is_dir(follow_symlinks=False):
+                                pending.append(candidate)
+                            elif entry.name.endswith(".py"):
+                                files.append(candidate)
+                        except OSError as exc:
+                            unavailable.append(f"entry classification failed: {candidate}: {type(exc).__name__}: {exc}")
+            except OSError as exc:
+                walk_error(exc)
+    if unavailable:
+        sys.stderr.write(f"WRITE-DEFAULT CHECK COULD NOT SCAN directories: {sorted(unavailable)}\n")
+        return 2
+    files.sort()
     if not files:
         sys.stderr.write(f"WRITE-DEFAULT CHECK REFUSED — scanned 0 files under {root}. Check the ROOT arg.\n")
         return 2
@@ -203,8 +243,8 @@ def main() -> int:
     for path in files:
         try:
             text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError as e:
-            sys.stderr.write(f"WRITE-DEFAULT CHECK COULD NOT READ {path}: {e}\n")
+        except (OSError, UnicodeDecodeError) as e:
+            sys.stderr.write(f"WRITE-DEFAULT CHECK COULD NOT READ {path}: {type(e).__name__}: {e}\n")
             return 2
         if "getcwd" not in text and "workspace_root" not in text:
             continue  # no cwd-fallback root can exist in this file

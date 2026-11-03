@@ -343,6 +343,30 @@ def write_tsv(path: Path, rows: list[dict], fields: list[str]) -> None:
         writer.writerows(rows)
 
 
+def check_output_targets(root: Path, targets: list[Path], sources: list[Path]) -> None:
+    """Refuse output aliases of retained inputs before any output is written."""
+    source_paths = {source.resolve() for source in sources}
+    for target in targets:
+        relative = target.relative_to(root)
+        current = root
+        for part in relative.parts:
+            current = current / part
+            if current.is_symlink():
+                raise ValueError(f"output path must not contain symlinks: {current}")
+        if target.resolve() in source_paths or any(
+            target.exists() and source.exists() and target.samefile(source)
+            for source in sources
+        ):
+            raise ValueError(f"output aliases retained input: {target}")
+        if target.exists() and not target.is_file():
+            raise ValueError(f"output target is not a regular file: {target}")
+        for parent in target.parents:
+            if parent == root:
+                break
+            if parent.exists() and not parent.is_dir():
+                raise ValueError(f"output parent is not a directory: {parent}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--legacy-strain-reports", type=Path, required=True)
@@ -372,6 +396,17 @@ def main() -> int:
         raise ValueError("--artifact-tag must contain only letters, numbers, dot, underscore, or hyphen")
     if output_root == legacy_root or legacy_root in output_root.parents:
         raise ValueError("output root must be additive and outside the immutable legacy report root")
+    reports = source_reports(legacy_root, require_docx=args.emit_docx)
+    sources = [store] + [path for _, md, docx in reports for path in (md, docx) if path is not None]
+    targets = [output_root / name for name in (
+        "REFRESH_INDEX.tsv", "LOCUS_REFRESH_LEDGER.tsv", "UNBOUND_REPORT_HOLDS.tsv", "REFRESH_SUMMARY.json"
+    )]
+    for strain, _, _ in reports:
+        stem = f"{strain}_CURRENT_EVIDENCE_LITERATURE_ATLAS_{args.artifact_tag}"
+        targets.append(output_root / "strain_reports" / strain / f"{stem}.md")
+        if args.emit_docx:
+            targets.append(output_root / "strain_reports" / strain / f"{stem}.docx")
+    check_output_targets(output_root, targets, sources)
     output_root.mkdir(parents=True, exist_ok=True)
     store_hash = digest(store)
     connection = open_store(store)
@@ -379,7 +414,7 @@ def main() -> int:
     authority = metadata.get("authority_ceiling", "UNDECLARED")
 
     index_rows, locus_rows, hold_rows = [], [], []
-    for strain, markdown_path, docx_path in source_reports(legacy_root, require_docx=args.emit_docx):
+    for strain, markdown_path, docx_path in reports:
         markdown = markdown_path.read_text(encoding="utf-8")
         resolved, unresolved = resolve_report(connection, markdown)
         if unresolved:

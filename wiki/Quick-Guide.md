@@ -1,7 +1,7 @@
 <!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.461 / engine Mamey 1.9.177
+**Version:** v9.7.462 / engine Mamey 1.9.178
 
 Use this page to find the next step for an antiSMASH ZIP or a saved Mamey package.
 For a first extraction, use [Your first run](../docs/reader/01_FIRST_RUN.md).

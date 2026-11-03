@@ -275,6 +275,7 @@ def lane_owner():
     """OS-held lane ownership is released on process exit; the PID is advisory only."""
     try: import fcntl
     except ImportError as exc: raise ValueError("exclusive lane ownership requires POSIX flock; runner held on this platform") from exc
+    assert_output_outside_bundle(BASE, __file__, kind="BLASTp lane folder")
     BASE.mkdir(parents=True, exist_ok=True)
     lockpath = BASE / "_runner.lock"
     if lockpath.is_symlink(): raise ValueError("lane lock symlink refused")
@@ -294,6 +295,8 @@ def iso_to_epoch(s: str) -> float:
     except Exception: return time.time()
 
 def log(msg):
+    assert_output_outside_bundle(BASE, __file__, kind="BLASTp lane folder")
+    assert_output_outside_bundle(LOG, __file__, kind="BLASTp lane log")
     BASE.mkdir(parents=True, exist_ok=True)
     line = f"[{now_iso()}] {msg}"; print(line, flush=True)
     with LOG.open("a") as fh: fh.write(line + "\n")
@@ -536,6 +539,8 @@ def load_ledger() -> dict:
     return out
 
 def save_ledger(led: dict):
+    assert_output_outside_bundle(BASE, __file__, kind="BLASTp lane folder")
+    assert_output_outside_bundle(LEDGER, __file__, kind="BLASTp lane ledger")
     BASE.mkdir(parents=True, exist_ok=True)
     stream = io.StringIO(newline="")
     w = SafeDictWriter(stream, fieldnames=LEDGER_COLS); w.writeheader()

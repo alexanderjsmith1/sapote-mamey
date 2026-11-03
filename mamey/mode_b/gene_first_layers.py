@@ -231,10 +231,12 @@ def build_layer_c(layer_b: Mapping[str, Any], cohort_manifest: Mapping[str, Any]
         members = cohort_manifest.get("members")
         if not isinstance(members, list) or not members:
             holds.append("LAYER_C_MEMBERSHIP_HOLD")
-        elif any(_PREFIX_ONLY.match(str(m)) for m in members):
-            holds.append("LAYER_C_MEMBERSHIP_HOLD")  # a prefix or glob is not a member list
+        elif (any(not isinstance(m, str) or not m.strip() for m in members)
+              or len(set(members)) != len(members)
+              or any(_PREFIX_ONLY.match(m) for m in members)):
+            holds.append("LAYER_C_MEMBERSHIP_HOLD")  # distinct, nonblank exact member strings only
         denominator = cohort_manifest.get("denominator")
-        if not isinstance(denominator, int) or denominator <= 0:
+        if isinstance(denominator, bool) or not isinstance(denominator, int) or denominator <= 0:
             holds.append("LAYER_C_DENOMINATOR_HOLD")
         elif isinstance(members, list) and len(members) != denominator:
             holds.append("LAYER_C_DENOMINATOR_HOLD")

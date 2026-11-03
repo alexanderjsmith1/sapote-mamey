@@ -101,8 +101,21 @@ def build_gene_context(bgcs: Iterable[Any], cds_list: Iterable[Any],
         same_contig_bgcs = bgcs_by_contig.get(c_contig, [])
         if not same_contig_bgcs:
             continue
-        hit_bgcs = [b for b in same_contig_bgcs
-                    if _overlaps(c_start, c_end, getattr(b, "start", None), getattr(b, "end", None))]
+        def _overlaps_region(b):
+            parts = getattr(cds, "location_parts", ())
+            if parts:
+                from .source_scans import _bgc_overlap_or_near
+                return _bgc_overlap_or_near(cds, b, flank=0)
+            start, end = getattr(b, "start", None), getattr(b, "end", None)
+            span = getattr(b, "validated_circular_span_bp", None)
+            if span is not None:
+                # antiSMASH original region bounds are 0-based half-open;
+                # CDS coordinates here are 1-based inclusive.
+                if None in (c_start, c_end, start, end):
+                    return False
+                return c_end > start or c_start <= end
+            return _overlaps(c_start, c_end, start, end)
+        hit_bgcs = [b for b in same_contig_bgcs if _overlaps_region(b)]
         if not hit_bgcs:
             continue
 
@@ -114,7 +127,9 @@ def build_gene_context(bgcs: Iterable[Any], cds_list: Iterable[Any],
         if not doms and locus == "":
             doms = [d for d in domains
                     if (getattr(d, "contig", "") or "") == c_contig
-                    and _overlaps(c_start, c_end, getattr(d, "start", None), getattr(d, "end", None))]
+                    and any(_overlaps(cs, ce, ds, de)
+                            for cs, ce in (getattr(cds, "location_parts", ()) or ((c_start, c_end),))
+                            for ds, de in (getattr(d, "location_parts", ()) or ((getattr(d, "start", None), getattr(d, "end", None)),)))]
         sec_met = sorted({getattr(d, "domain", "") for d in doms if getattr(d, "domain", "")})
 
         # v9.7.90: capture the antiSMASH gene_functions/sec_met_domain/note blob so the post-seal
@@ -124,14 +139,18 @@ def build_gene_context(bgcs: Iterable[Any], cds_list: Iterable[Any],
                             + _q.get("note", []))
         _gene_kind = (_q.get("gene_kind", [""]) or [""])[0]  # P-CBDB v9.7.100: kept for functional-role profiling
 
+        parts = getattr(cds, "location_parts", ())
+        source_length = sum(end - start + 1 for start, end in parts) if parts else ((c_end - c_start + 1) if c_start is not None and c_end is not None else None)
         row = {
             "locus_tag": locus or None,
             "contig": c_contig,
             "start": c_start,
             "end": c_end,
             "strand": getattr(cds, "strand", None),
-            "length_bp": (c_end - c_start + 1) if (c_start is not None and c_end is not None) else None,
-            "aa_length": _aa_length(translation, c_start, c_end),
+            "length_bp": source_length,
+            "location_parts": [list(part) for part in parts],
+            "coordinate_scope": "longest_part" if parts else "complete_interval",
+            "aa_length": (len(translation) if translation else max(0, source_length // 3 - 1)) if parts else _aa_length(translation, c_start, c_end),
             "product": getattr(cds, "product", "") or "",
             "sec_met_domains": sec_met,
             "gene_functions": _gf_blob,
@@ -206,7 +225,7 @@ def write_gene_context(package_dir: str | Path, strain_id: str,
         cols = ["strain", "assembly_locator", "region",
                 "bgc_id", "contig", "locus_tag", "order", "start", "end", "strand",
                 "length_bp", "length_aa", "product", "sec_met_domains", "gene_functions",
-                "tta_codons"]
+                "tta_codons", "coordinate_scope", "location_parts_1based_inclusive"]
         tmp_csv = pdir / f"{strain_id}_cds_table.csv.tmp"
         with open(tmp_csv, "w", newline="", encoding="utf-8") as cf:
             w = _SafeWriter(cf)
@@ -220,7 +239,8 @@ def write_gene_context(package_dir: str | Path, strain_id: str,
                                 r.get("strand", ""), r.get("length_bp", ""),
                                 r.get("aa_length", ""), r.get("product", ""),
                                 "; ".join(r.get("sec_met_domains", [])),
-                                (r.get("gene_functions", "") or "")[:300], r.get("tta_codons", 0)])
+                                (r.get("gene_functions", "") or "")[:300], r.get("tta_codons", 0),
+                                r.get("coordinate_scope", ""), json.dumps(r.get("location_parts", []))])
         _os.replace(tmp_csv, csv_path)
 
         # v9.7.325+ (Blue F-domdata): carry the FULL antiSMASH domain annotation + BGC protein

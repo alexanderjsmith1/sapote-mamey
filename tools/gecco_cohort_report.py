@@ -167,11 +167,18 @@ def build(genomes, aliases=None, names=None, group_order=None):
             r.update(strain=strain, group=group,
                      identity=f"{strain} / {r['contig']} / {r['region']} / {a}" if a else
                      f"{strain} / {r['contig']} / {r['region']} / alias not supplied", calls=[])
-        with open(g["gecco_clusters"], newline="") as fh:
-            cl = list(csv.DictReader(fh, delimiter="\t"))
         need = {"sequence_id", "cluster_id", "start", "end", "type", "max_p", "average_p", "proteins", "domains"}
-        if cl and not need <= set(cl[0]):
-            raise ReportError(f"{g['gecco_clusters']}: not a GECCO 0.11 clusters table")
+        with open(g["gecco_clusters"], newline="") as fh:
+            reader = csv.DictReader(fh, delimiter="\t")
+            if not reader.fieldnames or not need <= set(reader.fieldnames):
+                raise ReportError(f"{g['gecco_clusters']}: not a GECCO 0.11 clusters table")
+            if len(reader.fieldnames) != len(set(reader.fieldnames)):
+                raise ReportError(f"{g['gecco_clusters']}: duplicate cluster-table columns")
+            cl = []
+            for row in reader:
+                if None in row or any(value is None for value in row.values()):
+                    raise ReportError(f"{g['gecco_clusters']}: malformed cluster-table row near line {reader.line_num}")
+                cl.append(row)
         cmap = _gecco_contig_map({c["sequence_id"] for c in cl}, {r["contig"] for r in regs})
         by_contig = defaultdict(list)
         for r in regs:
@@ -472,15 +479,19 @@ def _main_summary(a, out):
         _OUT.error(f"refused: --group-order {order} does not name every isolate group")
         return 2
     out.mkdir(parents=True)
-    figures = fig_calls_vs_references(summary, order, out / "calls_vs_references", per_mb=a.per_mb)
-    from _min_text_check import text_sizes
-    for p in figures:
-        if p.suffix == ".pdf":
-            sizes = text_sizes(str(p))
-            if not sizes or min(sizes)[0] < MIN_PT - 0.05:
-                _OUT.error(f"refused: {p.name} has text below {MIN_PT} pt ({min(sizes) if sizes else None})")
-                return 2
+    if a.no_figures:
+        write_tsv(out / "summary_by_genome.tsv", summary, list(summary[0]))
+    else:
+        figures = fig_calls_vs_references(summary, order, out / "calls_vs_references", per_mb=a.per_mb)
+        from _min_text_check import text_sizes
+        for p in figures:
+            if p.suffix == ".pdf":
+                sizes = text_sizes(str(p))
+                if not sizes or min(sizes)[0] < MIN_PT - 0.05:
+                    _OUT.error(f"refused: {p.name} has text below {MIN_PT} pt ({min(sizes) if sizes else None})")
+                    return 2
     receipt = dict(tool=TOOL, schema="sapote.gecco-cohort-report.v1", mode="summary", per_mb=a.per_mb,
+                   figures_requested=not a.no_figures,
                    inputs_sha256={a.summary: sha256(a.summary)}, group_order=order, genomes=len(summary),
                    overlap_rule="as computed by the summary's producer; must be: a call and a region overlap when they share at least one base on the same contig",
                    outputs_sha256={str(p.relative_to(out)): sha256(p) for p in sorted(out.rglob("*")) if p.is_file()})

@@ -74,9 +74,10 @@ OTHER_DOCUMENTED = "Other documented"
 
 def bin_source(text):
     t = (text or "").strip()
-    if not t or t.lower() in ("not recorded", "missing", "n/a", "na", "none", "unknown", "not applicable", "not collected"):
+    # Host is a field label, not evidence; normalize it before testing missing values.
+    body = re.sub(r"^host:\s*", "", t, flags=re.I).strip()
+    if not body or body.lower() in ("not recorded", "missing", "n/a", "na", "none", "unknown", "not applicable", "not collected"):
         return "", False
-    body = re.sub(r"^host:\s*", "", t, flags=re.I)
     for cat, rx in SOURCE_RULES:
         if re.search(rx, body, re.I):
             return cat, True

@@ -4,7 +4,7 @@ Use this page to understand what the pipeline evidence means and where an interp
 Definitions are in the [glossary](../GLOSSARY.md).
 Detailed implementation context is in the [Encyclopedia](03_Technical_Manual_Encyclopedia.html).
 
-*Current to bundle v9.7.461 / engine Mamey 1.9.177.*
+*Current to bundle v9.7.462 / engine Mamey 1.9.178.*
 
 ## Contents
 
@@ -757,4 +757,4 @@ Retain the alternative explanations.
 
 ---
 
-*Sapote–Mamey Concepts Q&A · current to bundle v9.7.461 / engine Mamey 1.9.177.*
+*Sapote–Mamey Concepts Q&A · current to bundle v9.7.462 / engine Mamey 1.9.178.*

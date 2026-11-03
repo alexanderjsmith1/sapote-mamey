@@ -15,6 +15,7 @@ convention, not the index).
 import os, re, sys, glob
 
 WORKSPACE = os.environ.get("SAPOTE_WORKSPACE_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+_LAST_DISCOVERY_WARNING = None
 
 
 def deliverable_hub_root(workspace):
@@ -40,10 +41,16 @@ def deliverable_hub_root(workspace):
          match.
       4. Otherwise, refuse (None) -- nothing to check.
     """
+    global _LAST_DISCOVERY_WARNING
+    _LAST_DISCOVERY_WARNING = None
     explicit = os.environ.get("SAPOTE_DELIVERABLE_ROOT")
     if explicit:
         p = explicit if os.path.isabs(explicit) else os.path.join(workspace, explicit)
-        return p if os.path.isdir(p) else None
+        if os.path.isdir(p):
+            return p
+        _LAST_DISCOVERY_WARNING = "link_check: configured deliverable root unavailable; link check skipped.\n"
+        sys.stderr.write(_LAST_DISCOVERY_WARNING)
+        return None
 
     # Dedup by (st_dev, st_ino) -- the same physical directory reached via a symlink alias
     # (e.g. a workaround symlink pointing a legacy path name at the real canonical folder,
@@ -67,16 +74,19 @@ def deliverable_hub_root(workspace):
             if key is not None:
                 seen_inodes.add(key)
             structural.append(p)
-    except OSError:
-        pass
+    except OSError as exc:
+        _LAST_DISCOVERY_WARNING = f"link_check: deliverable-hub discovery unavailable ({type(exc).__name__}); no root selected.\n"
+        sys.stderr.write(_LAST_DISCOVERY_WARNING)
+        return None
 
     if len(structural) == 1:
         return structural[0]
     if len(structural) > 1:
-        sys.stderr.write(
+        _LAST_DISCOVERY_WARNING = (
             "link_check: ambiguous deliverable-hub root -- %d distinct-inode subdirectories "
             "each own a WHERE_THINGS_LIVE.md: %s. Set $SAPOTE_DELIVERABLE_ROOT to disambiguate.\n"
             % (len(structural), structural))
+        sys.stderr.write(_LAST_DISCOVERY_WARNING)
         return None
 
     legacy = os.path.join(workspace, "strain_data")
@@ -86,6 +96,7 @@ def deliverable_hub_root(workspace):
 
 
 DELIVERABLE_HUB_ROOT = deliverable_hub_root(WORKSPACE)
+_INITIAL_DISCOVERY_WARNING = _LAST_DISCOVERY_WARNING
 
 def is_deliverable_hub(path):
     b = os.path.basename(path)
@@ -104,7 +115,8 @@ def main():
     if not root:
         return 0
     index = os.path.join(root, "WHERE_THINGS_LIVE.md")
-    if not os.path.isdir(root) or not os.path.exists(index):
+    if not os.path.isdir(root) or not os.path.isfile(index):
+        sys.stderr.write("link_check: selected deliverable root or index unavailable; link check skipped.\n")
         return 0
     index_text = open(index, errors="replace").read()
     orphans = []
@@ -132,6 +144,10 @@ def _run_visible():
     buf, real = io.StringIO(), sys.stderr
     sys.stderr = buf
     try:
+        # Discovery happened at import, before stderr was captured. Surface
+        # the original warning rather than rerunning a potentially changed scan.
+        if _INITIAL_DISCOVERY_WARNING:
+            sys.stderr.write(_INITIAL_DISCOVERY_WARNING)
         rc = main()
     except Exception:
         rc = 0  # advisory: fail open

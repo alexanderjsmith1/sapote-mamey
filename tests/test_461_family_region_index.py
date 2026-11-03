@@ -1,5 +1,6 @@
 """Index admission over ZIP-name metadata only; payload validity is outside scope."""
 import pytest
+import zipfile
 
 from tools import family_rarity_by_window as tool
 
@@ -16,6 +17,8 @@ def metadata_zip(monkeypatch):
             pass
         def namelist(self):
             return ["software_first.region001.gbk", "software_second.region002.gbk"]
+        def infolist(self):
+            return [zipfile.ZipInfo(name) for name in self.namelist()]
         def read(self, name):
             reads.append(name)
             return b""

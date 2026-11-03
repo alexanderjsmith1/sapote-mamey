@@ -130,8 +130,10 @@ def _read_channel_store(pkg: Path, channel: str) -> dict[tuple[str, str], dict]:
                     if key in out:
                         continue  # store is already rank-1 per gene
                     out[key] = r
-            except OSError:
-                continue
+            except OSError as exc:
+                raise ValueError(
+                    f"ROSTER_CHANNEL_READ_ERROR: {channel}: {f}: {type(exc).__name__}: {exc}"
+                ) from exc
 
     # unmixed TOP10 store: blastp_<channel>/<BGC>_top10.csv, sorted (gene, hit_rank) at write
     # time so the first row seen per gene is rank-1.
@@ -150,8 +152,10 @@ def _read_channel_store(pkg: Path, channel: str) -> dict[tuple[str, str], dict]:
                     if key in out:
                         continue  # canonical/overlay evidence keeps precedence
                     out[key] = r
-            except OSError:
-                continue
+            except OSError as exc:
+                raise ValueError(
+                    f"ROSTER_CHANNEL_READ_ERROR: {channel}: {f}: {type(exc).__name__}: {exc}"
+                ) from exc
     return out
 
 

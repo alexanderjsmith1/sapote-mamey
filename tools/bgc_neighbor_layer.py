@@ -46,15 +46,23 @@ def tip_key(genome_file: str) -> str:
 def build_layer(rows, strain_filter=None, type_names=None):
     type_names = {t.strip().lower() for t in (type_names or []) if t.strip()}
     out = []
-    for r in rows:
+    for number, r in enumerate(rows, 2):
         strain = r.get("strain", "")
+        if not isinstance(strain, str) or not strain.strip():
+            raise ValueError(f"row {number}: nonblank strain required for layer identity")
         if strain_filter and strain != strain_filter:
             continue
         org = (r.get("related_organism") or "").strip()
         gf = r.get("genome_file", "")
         status = (r.get("status") or "").strip()
-        # the strain's own genome (query) vs neighbors
-        if gf.startswith(strain) or org == strain or tip_key(gf) == strain:
+        if not isinstance(gf, str) or not gf.strip() or not tip_key(gf).strip():
+            raise ValueError(f"row {number}: nonblank genome tip required for layer identity")
+        # Exact existing filename-tip or organism matches identify the query.
+        # A decorated/prefix-only filename is ambiguous without an exact mapping.
+        exact_query = org == strain or tip_key(gf) == strain
+        if not exact_query and tip_key(gf).startswith(strain):
+            raise ValueError(f"row {number}: ambiguous query-prefix tip {tip_key(gf)!r} for {strain!r}")
+        if exact_query:
             layer = "query"
         elif org.lower() in type_names:
             layer = "type_16S"
@@ -79,7 +87,10 @@ def main(argv=None):
         sys.exit(f"csv not found: {csv_path}")
     rows = list(csv.DictReader(csv_path.open()))
     type_names = Path(a.types).read_text().splitlines() if a.types and Path(a.types).exists() else []
-    layer = build_layer(rows, a.strain, type_names)
+    try:
+        layer = build_layer(rows, a.strain, type_names)
+    except ValueError as exc:
+        ap.error(str(exc))
 
     # summary
     from collections import Counter

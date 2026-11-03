@@ -81,7 +81,13 @@ def main():
     except Exception:
         return 0
     tpath = payload.get("transcript_path")
-    if not tpath or not os.path.isfile(tpath):
+    if not tpath:
+        return 0
+    if not os.path.isfile(tpath):
+        try:
+            print(json.dumps({"systemMessage": "SELF-AUDIT: transcript unavailable; check skipped."}))
+        except OSError:
+            return 0
         return 0
     text = last_assistant_text(tpath)
     if not text or not RISK.search(text) or RECEIPT.search(text):

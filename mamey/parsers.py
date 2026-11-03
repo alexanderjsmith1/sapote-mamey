@@ -939,7 +939,9 @@ RGGMCI_CORE_RECORD_FIELDS = (
 
 def project_rggmci_records(bgcs) -> list[dict]:
     """Copy the ordered common record projection without sharing mutable evidence lists."""
-    return [{field: copy.deepcopy(getattr(bgc, field)) for field in RGGMCI_CORE_RECORD_FIELDS}
+    return [{**{field: copy.deepcopy(getattr(bgc, field)) for field in RGGMCI_CORE_RECORD_FIELDS},
+             **({"validated_circular_span_bp": bgc.validated_circular_span_bp}
+                if getattr(bgc, "validated_circular_span_bp", None) is not None else {})}
             for bgc in bgcs]
 
 
@@ -1027,7 +1029,17 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
         if key in seen:
             continue
         seen.add(key)
+        validated_circular_span_bp = None
+        if is_region_record and name in orig_bounds and start > end:
+            if not (is_circular and contig_len > 0 and 0 <= end < start < contig_len):
+                raise ValueError(f"CIRCULAR_REGION_METADATA_UNRESOLVED: {name}")
+            candidate_span = contig_len - start + end
+            if candidate_span != len(rec.seq):
+                raise ValueError(f"CIRCULAR_REGION_LENGTH_MISMATCH: {name}")
+            validated_circular_span_bp = candidate_span
         edge = _edge_status(start, end, contig_len, is_circular=is_circular)
+        if validated_circular_span_bp is not None and validated_circular_span_bp >= 0.95 * contig_len:
+            edge = "Full-contig"
         admitted += 1
         fields = dict(
             bgc_id=f"BGC{admitted:03d}", contig=contig_id,
@@ -1035,6 +1047,8 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
             contig_length=contig_len, products=products, edge_status=edge,
             source_gbk=name, subcluster_hits=[],
         )
+        if validated_circular_span_bp is not None:
+            fields["validated_circular_span_bp"] = validated_circular_span_bp
         context = dict(is_region_record=is_region_record,
                        has_original_bounds=(is_region_record and name in orig_bounds),
                        embedded=embedded)
@@ -1084,7 +1098,7 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         edge, region_num, contig_id = fields["edge_status"], fields["region_number"], fields["contig"]
         # Pre-evidence grade: provides initial values for BGCRecord construction.
         # Overwritten post-evidence (line ~392) once kcb_cumulative is available.
-        grade, rationale = architecture_grade(edge, products, end - start + 1,
+        grade, rationale = architecture_grade(edge, products, fields.get("validated_circular_span_bp") if fields.get("validated_circular_span_bp") is not None else end - start + 1,
                                               has_chemical_hybrid=(hybrid_cc > 0))
         notes=[f"source_gbk={name}"]
         if context["has_original_bounds"]:
@@ -1117,7 +1131,7 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         evidence = parse_antismash_evidence(zip_path, json_mode=json_mode)
     apply_evidence_to_bgcs(bgcs, evidence)
     for b in bgcs:
-        grade, rationale = architecture_grade(b.edge_status, b.products, (b.end - b.start + 1),
+        grade, rationale = architecture_grade(b.edge_status, b.products, b.validated_circular_span_bp if b.validated_circular_span_bp is not None else (b.end - b.start + 1),
                                               b.kcb_cumulative, has_chemical_hybrid=b.has_chemical_hybrid)
         b.architecture_confidence = grade
         b.architecture_rationale = rationale
@@ -1144,9 +1158,15 @@ def extract_cds_features(zip_path: str | Path) -> list[CDSFeature]:
         for f in rec.features:
             if f.type != "CDS":
                 continue
+            if not hasattr(f.location, "parts"):
+                raise ValueError("CDS_LOCATION_SEGMENTS_UNAVAILABLE: use a full GenBank parser")
+            if any(getattr(part, "ref", None) or getattr(part, "ref_db", None)
+                   for part in f.location.parts):
+                raise ValueError("CDS_REMOTE_LOCATION_UNSUPPORTED")
             try:
                 _loc = f.location
-                _parts = list(getattr(_loc, "parts", []) or [])
+                _parts = list(_loc.parts)
+                location_parts = tuple((int(p.start) + 1 + off, int(p.end) + off) for p in _parts) if len(_parts) > 1 else ()
                 if len(_parts) > 1:
                     # v9.7.105 fix: origin-spanning / compound location (circular genome).
                     # The naive min..max span brackets the whole contig and false-overlaps
@@ -1179,11 +1199,11 @@ def extract_cds_features(zip_path: str | Path) -> list[CDSFeature]:
                 nucleotide_seq = str(f.extract(rec.seq)).upper()
             except Exception:
                 nucleotide_seq = None
-            key = (contig_id, start, end, strand, locus)
+            key = (contig_id, start, end, strand, locus, location_parts)
             if key in seen:
                 continue
             seen.add(key)
-            cds.append(CDSFeature(contig_id, start, end, strand, locus, product, translation, nucleotide_seq, q))
+            cds.append(CDSFeature(contig_id, start, end, strand, locus, product, translation, nucleotide_seq, q, location_parts))
     return cds
 
 def extract_contig_sequences(zip_path: str | Path) -> dict[str, str]:
@@ -1275,12 +1295,19 @@ def extract_domain_features(zip_path: str | Path) -> list[DomainFeature]:
         for f in rec.features:
             if f.type not in wanted:
                 continue
+            if not hasattr(f.location, "parts"):
+                raise ValueError("DOMAIN_LOCATION_SEGMENTS_UNAVAILABLE: use a full GenBank parser")
             try:
                 start = int(f.location.start) + 1 + off
                 end = int(f.location.end) + off
                 strand = int(f.location.strand or 0)
+                parts = tuple((int(part.start) + 1 + off, int(part.end) + off)
+                              for part in f.location.parts)
             except Exception:
                 continue
+            if any(getattr(part, "ref", None) or getattr(part, "ref_db", None)
+                   for part in f.location.parts):
+                raise ValueError("DOMAIN_REMOTE_LOCATION_UNSUPPORTED")
             q = {k: [str(x) for x in v] for k, v in f.qualifiers.items()}
             locus = _qual_first(q, ["locus_tag", "protein_id", "gene"])
             domain = _qual_first(q, ["aSDomain", "domain", "label", "description", "product", "tool", "database"])
@@ -1295,13 +1322,14 @@ def extract_domain_features(zip_path: str | Path) -> list[DomainFeature]:
                 if "substrate consensus:" in s.lower():
                     substrate = s.split(":", 1)[1].strip()
                     break
-            key = (contig_id, start, end, strand, f.type, domain, locus)
+            key = (contig_id, start, end, strand, f.type, domain, locus, parts)
             if key in seen:
                 continue
             seen.add(key)
             domains.append(DomainFeature(
                 contig_id, start, end, strand, f.type, locus, domain, db,
                 bitscore, evalue, substrate, q, source_file=name,
+                location_parts=parts if len(parts) > 1 else (),
             ))
     return domains
 

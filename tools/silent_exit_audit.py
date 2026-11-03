@@ -23,8 +23,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
+import tokenize
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _console import emit  # noqa: E402  the tools/ terminal-emission seam (v9.7.407)
@@ -129,11 +132,18 @@ def _classify(cond: str, in_handler: bool) -> tuple[str, str]:
     return "UNCLASSIFIED", "condition not recognised — read it before trusting the silence"
 
 
-def scan_file(path: str) -> list[dict]:
-    try:
-        tree = ast.parse(open(path, encoding="utf-8", errors="replace").read())
-    except SyntaxError:
-        return []
+def _decode_source(data: bytes) -> str:
+    """Decode Python source strictly using its declared encoding."""
+    encoding, _ = tokenize.detect_encoding(io.BytesIO(data).readline)
+    return data.decode(encoding, errors="strict")
+
+
+def scan_file(path: str, *, tree=None) -> list[dict]:
+    if tree is None:
+        try:
+            tree = ast.parse(_decode_source(Path(path).read_bytes()))
+        except (SyntaxError, UnicodeDecodeError):
+            return []
     out: list[dict] = []
 
     class V(ast.NodeVisitor):
@@ -236,23 +246,57 @@ def main(argv=None) -> int:
     files = 0
     missing: list[str] = []     # a mistyped scope walked nothing and reported a clean 0
     unparsed: list[str] = []    # a syntax error was counted as a scanned, clean file
+    unavailable: list[str] = []
+    unreadable: list[str] = []
+    symlink_dirs: list[str] = []
+    def walk_error(error):
+        unavailable.append(f"{error.filename}: {type(error).__name__}: {error}")
+    def walk_entries(base):
+        pending = [base]
+        while pending:
+            directory = pending.pop()
+            dirs, names = [], []
+            try:
+                with os.scandir(directory) as entries:
+                    for entry in entries:
+                        if entry.name == "__pycache__":
+                            continue
+                        try:
+                            if entry.is_symlink():
+                                if entry.is_dir(follow_symlinks=True):
+                                    symlink_dirs.append(entry.path)
+                                else:
+                                    names.append(entry.name)
+                            elif entry.is_dir(follow_symlinks=False):
+                                dirs.append(entry.path)
+                            else:
+                                names.append(entry.name)
+                        except OSError as exc:
+                            unavailable.append(f"{entry.path}: {type(exc).__name__}: {exc}")
+            except OSError as exc:
+                walk_error(exc)
+                continue
+            yield directory, names
+            pending.extend(reversed(dirs))
     for scope in a.scope:
         base = os.path.join(a.root, scope)
         if not os.path.isdir(base):
             missing.append(scope)
             continue
-        for dp, dn, fn in os.walk(base):
-            dn[:] = [d for d in dn if d != "__pycache__"]
+        for dp, fn in walk_entries(base):
             for f in sorted(fn):
                 if f.endswith(".py"):
                     path = os.path.join(dp, f)
                     try:
-                        ast.parse(open(path, encoding="utf-8", errors="replace").read())
-                    except SyntaxError:
+                        tree = ast.parse(_decode_source(Path(path).read_bytes()))
+                    except (SyntaxError, UnicodeDecodeError):
                         unparsed.append(os.path.relpath(path, a.root))
                         continue
+                    except OSError as exc:
+                        unreadable.append(f"{os.path.relpath(path, a.root)}: {type(exc).__name__}: {exc}")
+                        continue
                     files += 1
-                    rows.extend(scan_file(path))
+                    rows.extend(scan_file(path, tree=tree))
 
     order = ("REVIEW", "UNCLASSIFIED", "FAIL_OPEN", "DISPATCH", "EMPTY")
     counts = {c: sum(1 for r in rows if r["cls"] == c) for c in order}
@@ -272,18 +316,28 @@ def main(argv=None) -> int:
                  f"{'/'.join(a.scope)}/: " + ", ".join(f"{counts[c]} {c}" for c in order))
     lines.append("REVIEW is not a defect list — it is the set where an operator cannot tell "
                  "'nothing to report' from 'not looking'.")
+    if not a.scope:
+        lines.append("NOT SCANNED: no scope folders selected")
+    elif files == 0:
+        lines.append("NOT SCANNED: no Python files were parsed")
     if missing:
         lines.append(f"NOT SCANNED: scope folder(s) not found under {a.root}: {', '.join(missing)}")
     if unparsed:
         lines.append(f"NOT SCANNED: {len(unparsed)} file(s) could not be parsed: {', '.join(unparsed)}")
+    if unavailable:
+        lines.append("NOT SCANNED: directory traversal failed: " + "; ".join(unavailable))
+    if unreadable:
+        lines.append("NOT SCANNED: source file read failed: " + "; ".join(unreadable))
+    if symlink_dirs:
+        lines.append("NOT SCANNED: directory symlink(s): " + "; ".join(symlink_dirs))
     over = a.ceiling is not None and counts["REVIEW"] > a.ceiling
     if over:
         lines.append(f"FAIL: REVIEW count {counts['REVIEW']} exceeds ceiling {a.ceiling}")
-    incomplete = a.ceiling is not None and bool(missing or unparsed)
+    incomplete = a.ceiling is not None and bool(not a.scope or files == 0 or missing or unparsed or unavailable or unreadable or symlink_dirs)
     if incomplete:
         lines.append("FAIL: the scan is incomplete, so the REVIEW count cannot be certified")
     emit("\n".join(lines))
-    return 1 if over or incomplete else 0
+    return 2 if unreadable or symlink_dirs else 1 if over or incomplete else 0
 
 
 if __name__ == "__main__":

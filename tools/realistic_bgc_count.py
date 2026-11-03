@@ -97,7 +97,7 @@ def _read_regions(package_dir: str) -> dict[str, dict]:
     inv = _find_one(package_dir, "_2_inventory.csv")
     regions: dict[str, dict] = {}
     if not inv:
-        return regions
+        raise FileNotFoundError(f"required inventory missing: {package_dir}/*_2_inventory.csv")
     with open(inv, encoding="utf-8", newline="") as fh:
         for r in csv.DictReader(fh):
             bid = (r.get("BGC_ID") or "").strip()
@@ -261,7 +261,10 @@ def main(argv=None) -> int:
     for pkg in a.package:
         if not os.path.isdir(pkg):
             ap.error(f"not a directory: {pkg}")
-    rows = [score_package(p) for p in a.package]
+    try:
+        rows = [score_package(p) for p in a.package]
+    except FileNotFoundError as exc:
+        ap.error(str(exc))
     rows.sort(key=lambda r: -r["Inflation_pct"])
     try:
         out_dir = _reader_out_dir(a.out, a.package[0], "_realistic_count")

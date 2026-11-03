@@ -87,7 +87,7 @@ def build_lead_board(run, cctt_coupling: dict, antismash_evidence: dict) -> list
         signals = sorted(set(signals))
         if not signals:
             continue
-        length_kb = round((getattr(b, "end", 0) - getattr(b, "start", 0)) / 1000, 1)
+        length_kb = round(b.validated_circular_span_bp / 1000, 1) if getattr(b, "validated_circular_span_bp", None) is not None else round((getattr(b, "end", 0) - getattr(b, "start", 0)) / 1000, 1)
         # marker-bearing signals (everything except the bare 'interior' tag)
         markers = [s for s in signals if s != "interior"]
         rows.append({

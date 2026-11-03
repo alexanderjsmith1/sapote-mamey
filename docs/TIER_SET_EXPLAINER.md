@@ -1,6 +1,6 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.461 · build 20261029v97461a · engine Mamey 1.9.177**
+**Bundle v9.7.462 · build 20261102v97462a · engine Mamey 1.9.178**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.

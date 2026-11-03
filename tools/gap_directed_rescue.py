@@ -180,6 +180,7 @@ def load_genome(zip_path: Path, label: str) -> tuple[dict, list]:
                 doms = [d.split(" (")[0] for d in f.qualifiers.get("sec_met_domain", [])]
                 prots[pid] = {"contig": cid, "shown": f"{label} / {shown}", "start": int(f.location.start),
                               "end": int(f.location.end), "strand": f.location.strand or 1,
+                              "source_strand": f.location.strand,
                               "tag": f.qualifiers.get("locus_tag", [pid])[0], "aa": f.qualifiers["translation"][0],
                               "contig_len": len(rec.seq), "kind": f.qualifiers.get("gene_kind", [""])[0],
                               "missing_stop": lacks_stop(str(f.extract(rec.seq)[-3:])),
@@ -220,15 +221,32 @@ def run_diamond(ref: list, prots: dict, threads: int, sensitivity: str | None = 
 
 
 def read_hits(path: Path) -> list[dict]:
+    import math
     out = []
-    for line in open(path, encoding="utf-8"):
-        p = line.rstrip("\n").split("\t")
-        if len(p) >= 5:
-            h = {"qseqid": p[0], "sseqid": p[1], "pident": float(p[2]), "qcovhsp": float(p[3]), "bitscore": float(p[4])}
-            if len(p) >= 7 and p[5].strip() and p[6].strip():
-                h.update(qstart=int(p[5]), qend=int(p[6]))
-            if len(p) >= 8 and p[7].strip():
-                h["evalue"] = float(p[7])
+    with open(path, encoding="utf-8") as handle:
+        for number, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            p = line.rstrip("\r\n").split("\t")
+            try:
+                if len(p) < 5 or len(p) == 6 or not p[0].strip() or not p[1].strip():
+                    raise ValueError("missing columns or identifier")
+                h = {"qseqid": p[0], "sseqid": p[1], "pident": float(p[2]), "qcovhsp": float(p[3]), "bitscore": float(p[4])}
+                if any(not math.isfinite(h[k]) for k in ("pident", "qcovhsp", "bitscore")) or not (0 <= h["pident"] <= 100 and 0 <= h["qcovhsp"] <= 100 and h["bitscore"] >= 0):
+                    raise ValueError("invalid alignment value")
+                if len(p) >= 7:
+                    if bool(p[5].strip()) != bool(p[6].strip()):
+                        raise ValueError("incomplete reference coordinates")
+                    if p[5].strip():
+                        h.update(qstart=int(p[5]), qend=int(p[6]))
+                        if h["qstart"] <= 0 or h["qend"] <= 0:
+                            raise ValueError("invalid reference coordinates")
+                if len(p) >= 8 and p[7].strip():
+                    h["evalue"] = float(p[7])
+                    if not math.isfinite(h["evalue"]) or h["evalue"] < 0:
+                        raise ValueError("invalid e-value")
+            except ValueError as exc:
+                raise ValueError(f"GAP_RESCUE_HIT_ROW_INVALID: {path}:{number}: {exc}") from exc
             out.append(h)
     return out
 
@@ -322,13 +340,48 @@ def choose_reference(zip_path, core, prots, reference=None, reference_name="", m
     return d["reference"], reference_name or names.get(d["reference"].stem, ""), source
 
 
+def validate_precomputed_hit_binding(hits, ref, prots):
+    """Reject rows incompatible with the selected reference and genome.
+
+    Identifiers and bounds can detect incompatible inputs, but do not prove
+    that a search was actually run or that the sequences match a prior run.
+    """
+    reference_lengths = {g["id"]: len(g["aa"]) for g in ref}
+    for number, hit in enumerate(hits, 1):
+        q, s = hit.get("qseqid"), hit.get("sseqid")
+        if q not in reference_lengths or s not in prots:
+            raise ValueError(f"GAP_RESCUE_HIT_BINDING_INVALID: row {number}: unknown reference or protein id")
+        start, end = hit.get("qstart"), hit.get("qend")
+        if (start is None) != (end is None):
+            raise ValueError(f"GAP_RESCUE_HIT_BINDING_INVALID: row {number}: incomplete reference coordinates")
+        if start is not None and not (1 <= int(start) <= int(end) <= reference_lengths[q]):
+            raise ValueError(f"GAP_RESCUE_HIT_BINDING_INVALID: row {number}: reference coordinates outside sequence or reversed")
+
+
+def assert_no_stale_table_figures(out, *, batch=False):
+    """Preserve old figures and refuse data-only output that could look current."""
+    import os
+    out = Path(out)
+    folders = sorted(out.glob("*_vs_*")) if batch and out.exists() else ([out] if not batch else [])
+    names = ("gene_table.png", "gene_table.pdf", "map_and_table.png", "map_and_table.pdf")
+    for folder in folders:
+        for name in names:
+            path = folder / name
+            if os.path.lexists(path):
+                raise ValueError(f"GAP_RESCUE_STALE_TABLE_FIGURE: {path}; choose a fresh output folder")
+
+
 def analyse_region(label, prots, regions, core, reference, ref_name, source, out, hits=None, threads=4,
                    sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True,
-                   anchor=None, gene_table=True, compounds=None, print_width="double", row_label=None) -> dict:
+                   anchor=None, gene_table=True, compounds=None, print_width="double", row_label=None, render_gene_table=True) -> dict:
     """Search one core region against one reference and write every output; returns the receipt. `compounds` (accession
     -> compound names, as load_mibig_names gives) lets the partner check count sibling MIBiG entries of the reference's
     compound as its family."""
+    if not render_gene_table:
+        assert_no_stale_table_figures(out)
     ref, desc = load_reference(reference)
+    if hits is not None:
+        validate_precomputed_hit_binding(hits, ref, prots)
     out.mkdir(parents=True, exist_ok=True)
     if write_proteins:  # the ids the hit tables use; the all-regions runner writes one shared copy instead
         (out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
@@ -359,13 +412,37 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
         for p in partners:
             w.writerow([p[c] for c in PARTNER_COLS])
     st = Counter(r["status"] for r in rows)
+    # Report missing strand evidence without implying that any particular split
+    # would otherwise pass the alignment, overlap or contig-end filters.
+    unknown_strand = {pid for pid, p in prots.items()
+                      if p.get("source_strand", p.get("strand")) not in (1, -1)}
+    unknown_with_hits = {h["sseqid"] for h in hits if h.get("sseqid") in unknown_strand}
     receipt = {"tool": "gap_directed_rescue", "label": label, "core": core["identity"], "reference": Path(reference).name,
                "reference_name": ref_name or desc, "reference_source": source, "reference_genes": len(rows),
                **{k.lower(): st[k] for k in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR", "MISSING_FOUND_AMBIGUOUS",
                                               "MISSING_NOT_FOUND")},
                "partners": partners, "homology": homology, "partner_checks": checks,
                "forward_alignment": forward_alignment,
-               "split_gene_check": split_check, "map_outputs": [],
+               "reference_match_policy": {
+                   "reference_coverage_metric": "qcovhsp_percent_per_alignment",
+                   "minimum_reference_coverage_percent": _rc.MIN_COV,
+                   "minimum_identity_percent": _rc.MIN_ID,
+                   "core_alternate_minimum_identity_percent": _rc.MIN_ID_CORE,
+                   "core_alternate_maximum_evalue": _rc.MAX_EVALUE_CORE,
+                   "outside_clear_minimum_identity_percent": _rc.CLEAR_ID,
+                   "outside_clear_minimum_bitscore_ratio_if_rival": _rc.CLEAR_RATIO,
+                   "not_found_interpretation": "No qualifying reference-gene match was recorded under this rule; partial alignments may exist. Check the separate split-gene result and search provenance.",
+                   "search_completeness": "Not established by this policy record; precomputed inputs require their own provenance."
+               },
+               "split_gene_check": split_check,
+               "split_strand_evidence": {
+                   "proteins_with_unknown_source_strand": len(unknown_strand),
+                   "proteins_with_unknown_source_strand_and_any_hit": len(unknown_with_hits),
+                   "interpretation": "Unknown strand cannot establish a facing contig end. Any-hit counts are not counts of eligible or missed split candidates."
+               },
+               "map_outputs": [],
+               "preexisting_map_files_unverified": [name for name in ("gap_rescue.png", "gap_rescue.pdf")
+                                                   if (out / name).exists() or (out / name).is_symlink()],
                "split_genes": [{c: s[c] for c in SPLIT_COLS} for s in splits],
                "non_claims": ["homology is similarity, not product identity",
                               "a partner contig is a candidate missing piece; no contigs are joined",
@@ -400,12 +477,14 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
                     raise ValueError(f"GAP_RESCUE_MAP_OUTPUT_UNREADABLE: {path}") from exc
                 receipt["map_outputs"].append({"path": path.name, "sha256": hashlib.sha256(payload).hexdigest(),
                                                "bytes": len(payload)})
+            receipt["preexisting_map_files_unverified"] = []
             (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     if gene_table:   # the per-gene table, paired with the map (gene_table.*, map_and_table.*)
         from gap_rescue_gene_table import edge_shares, protein_families, write_gene_table
         fams = protein_families(prots)
         write_gene_table(out, rows, splits, core["identity"], label, reference, fams, ref_name or desc,
-                         edge_shares(rows, prots, core), pair_map=bool(receipt["map_outputs"]), prots=prots)
+                         edge_shares(rows, prots, core), pair_map=bool(receipt["map_outputs"]), prots=prots,
+                         **({"render": False} if not render_gene_table else {}))
     return receipt
 
 
@@ -625,7 +704,10 @@ def main(argv=None) -> int:
                     help="DIAMOND search mode (default ultra-sensitive; 'default' uses DIAMOND's own fast mode)")
     ap.add_argument("--no-figure", action="store_true")
     ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.*")
+    ap.add_argument("--no-gene-table-figure", action="store_true", help="keep gene-table TSVs but skip table images and map/table composites")
     a = ap.parse_args(argv)
+    if a.redraw and a.no_gene_table_figure:
+        raise SystemExit("--no-gene-table-figure is for fresh analysis, not --redraw")
     if a.map_height is not None:
         if not (4.0 <= a.map_height <= 20.0):
             ap.error("--map-height must be between 4 and 20 inches")
@@ -687,7 +769,8 @@ def main(argv=None) -> int:
     receipt = analyse_region(a.label, prots, regions, core, reference, name, source, a.out,
                              read_hits(a.hits) if a.hits else None, a.threads, a.sensitivity, a.mibig_db, a.pfam,
                              not a.no_figure, anchor=a.anchor, gene_table=not a.no_gene_table, compounds=names,
-                             print_width=None if a.print_width == "none" else a.print_width, row_label=a.row_label)
+                             print_width=None if a.print_width == "none" else a.print_width, row_label=a.row_label,
+                             render_gene_table=not a.no_gene_table_figure)
     _say(summary_line(receipt, a.out))
     return 0
 

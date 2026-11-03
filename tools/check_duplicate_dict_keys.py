@@ -45,6 +45,8 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse
 import ast
+import io
+import tokenize
 import collections
 import json
 import sys
@@ -62,10 +64,11 @@ from _safe_walk import safe_walk_files  # v9.7.400: shared unreadable-dir-aware 
 ALLOWLIST: dict[str, str] = {}
 
 SKIP_PARTS = {"__pycache__", "_vendor", ".git", "node_modules", "build", "dist"}
+_NON_CONSTANT = object()
 
 
 def _const_key(node):
-    """Comparable key for a constant dict key; None for computed keys / ** expansion.
+    """Comparable key for a constant dict key; private sentinel for computed keys / ** expansion.
 
     v9.7.374: returns the raw constant value itself, not a (type_name, value) tuple. The old
     tuple form made e.g. 1 (int), True (bool), and 1.0 (float) compare as three DIFFERENT keys
@@ -81,18 +84,16 @@ def _const_key(node):
     negative-number keys (`-1` parses as UnaryOp) — both are real runtime collisions (last
     binding wins, earlier entries vanish) that this gate reported nothing for. literal_eval
     covers every literal form with Python's own semantics; anything non-literal or unhashable
-    (a genuinely computed key) still returns the None sentinel and is skipped as before.
-    Known residual: a literal `None` key still conflates with the sentinel and is not tracked.
+    (a genuinely computed key) still returns a private sentinel and is skipped as before.
+    Literal `None` is a real key; the private sentinel distinguishes it from skipped nodes.
     """
     if node is None:  # ** expansion
-        return None
+        return _NON_CONSTANT
     try:
         v = ast.literal_eval(node)
         hash(v)
     except Exception:
-        return None
-    if v is None:
-        return None
+        return _NON_CONSTANT
     return v
 
 
@@ -100,16 +101,22 @@ class Unparsed(Exception):
     """A file that could not be parsed was not scanned; the gate must not count it as clean."""
 
 
+def _decode_source(data: bytes) -> str:
+    """Decode Python source strictly using its declared encoding."""
+    encoding, _ = tokenize.detect_encoding(io.BytesIO(data).readline)
+    return data.decode(encoding, errors="strict")
+
+
 def scan_file(path: Path):
     """Yield dicts describing each offending dict literal in `path`. Raises Unparsed on a SyntaxError."""
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-    except SyntaxError as e:
-        raise Unparsed(f"{path.as_posix()}:{e.lineno}") from e
+        tree = ast.parse(_decode_source(path.read_bytes()))
+    except (SyntaxError, UnicodeDecodeError) as e:
+        raise Unparsed(f"{path.as_posix()}:{getattr(e, 'lineno', None)}") from e
     for node in ast.walk(tree):
         if not isinstance(node, ast.Dict):
             continue
-        const = [k for k in (_const_key(k) for k in node.keys) if k is not None]
+        const = [k for k in (_const_key(k) for k in node.keys) if k is not _NON_CONSTANT]
         if not const:
             continue
         counts = collections.Counter(const)

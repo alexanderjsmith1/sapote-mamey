@@ -520,6 +520,18 @@ def record_batch_complete(
 
 # ── Read paths (for render_brief and PDF compilation) ────────────────────────
 
+def _validate_register_shape(value: Any, label: str) -> dict[str, Any]:
+    """Reject unreadable container shapes without interpreting judgment content."""
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} root must be a JSON object")
+    if "bgcs" in value:
+        entries = value["bgcs"]
+        if (not isinstance(entries, dict)
+                or any(not isinstance(row, dict) for row in entries.values())):
+            raise ValueError(f"{label} bgcs must be an object mapping to entry objects")
+    return value
+
+
 def read_register(package_dir: str | Path) -> dict[str, Any]:
     """Return the judgment register dict. Returns a stub if not initialised.
 
@@ -535,9 +547,7 @@ def read_register(package_dir: str | Path) -> dict[str, Any]:
         }
     try:
         loaded = json.loads(reg_path.read_text(encoding="utf-8"))
-        if not isinstance(loaded, dict):
-            raise ValueError("register root must be a JSON object")
-        return loaded
+        return _validate_register_shape(loaded, "register")
     except (OSError, UnicodeDecodeError, json.JSONDecodeError,
             RecursionError, ValueError) as primary_exc:
         # Preserve the unreadable file before any caller's next write can silently
@@ -576,9 +586,7 @@ def read_register(package_dir: str | Path) -> dict[str, Any]:
         if last_good.exists():
             try:
                 recovered = json.loads(last_good.read_text(encoding="utf-8"))
-                if not isinstance(recovered, dict):
-                    raise ValueError("last-good register root must be a JSON object")
-                recovered = dict(recovered)
+                recovered = dict(_validate_register_shape(recovered, "last-good register"))
                 recovered["register_recovery"] = {
                     "status": "RECOVERED_FROM_LAST_GOOD",
                     "load_errors": load_errors,

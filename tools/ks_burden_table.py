@@ -134,6 +134,7 @@ def build(package_dirs: list[str | Path], out_path: str | Path, receipt_path: st
     rows: list[dict[str, object]] = []
     packages: list[dict[str, object]] = []
     seen: set[str] = set()
+    source_paths: list[Path] = []
     for package in package_dirs:
         row, sources = package_row(package)
         strain = str(row["strain"])
@@ -142,11 +143,20 @@ def build(package_dirs: list[str | Path], out_path: str | Path, receipt_path: st
         seen.add(strain)
         rows.append(row)
         packages.append({"strain": strain, "sources": sources})
+        source_paths.extend(Path(package) / source["logical_locator"] for source in sources)
     rows.sort(key=lambda row: str(row["strain"]))
     packages.sort(key=lambda row: str(row["strain"]))
 
     out = Path(out_path)
     receipt = Path(receipt_path)
+    def aliases(left: Path, right: Path) -> bool:
+        return (left.resolve() == right.resolve()
+                or (left.exists() and right.exists() and left.samefile(right)))
+    if aliases(out, receipt):
+        raise KSBurdenHold("KS_OUTPUT_ALIAS_HOLD", "output and receipt must be distinct")
+    for destination in (out, receipt):
+        if any(aliases(destination, source) for source in source_paths):
+            raise KSBurdenHold("KS_OUTPUT_ALIAS_HOLD", f"destination aliases bound input: {destination}")
     out.parent.mkdir(parents=True, exist_ok=True)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as handle:

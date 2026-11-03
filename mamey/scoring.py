@@ -770,7 +770,8 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         _end = getattr(bgc, "end", 0) or 0
         _start = getattr(bgc, "start", 0) or 0
         _clen = getattr(bgc, "contig_length", 0) or 0
-        _span_kb = abs(_end - _start) / 1000.0 if _end else _clen / 1000.0
+        _span_kb = (bgc.validated_circular_span_bp / 1000.0 if getattr(bgc, "validated_circular_span_bp", None) is not None
+                    else (abs(_end - _start) / 1000.0 if _end else _clen / 1000.0))
         if (_is_ripp and getattr(bgc, "edge_status", "") in ("Edge", "Full-contig")
                 and 0 < _span_kb < RIPP_FRAGMENT_MAX_KB and tier in ("Exceptional", "High", "Medium")):
             tier = bottom_tier(bgc); ripp_floored = True   # RiPP-family -> 'Low' (specialized), not 'Inventory'

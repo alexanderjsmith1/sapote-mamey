@@ -21,3 +21,4 @@ class BGCRecord:
     edge_status: str = "Unknown"     # Interior | Edge | Full-contig | Unknown
     source_gbk: str = ""             # region GBK path inside the ZIP
     subcluster_hits: list = field(default_factory=list)  # filled by the scorer (top-5 SubClusterBlast)
+    validated_circular_span_bp: int | None = None  # attested cross-origin source region span

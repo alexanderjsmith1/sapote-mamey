@@ -8,7 +8,7 @@ python mamey_run.py run --help
 
 Replace `run` with another command name below. For a complete first run, use [Your first run](reader/01_FIRST_RUN.md). For a result to create, use [Choose an output](DELIVERABLE_MENU.md).
 
-Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.461, engine 1.9.177. Descriptions below come from the parser; aliases share their command's row.
+Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.462, engine 1.9.178. Descriptions below come from the parser; aliases share their command's row.
 
 ## Run and seal a strain
 
@@ -48,7 +48,7 @@ _Start with `render-all-figures` for one sealed package. Use `figure-factory` fo
 | `assembly-line-pdf` | print-ready PDF of a strain's NRPS/PKS assembly lines, 4 or 6 per page |
 | `bgc-gene-map` | print-ready PDF gene map of EVERY region in a strain (all classes, not only NRPS/PKS) |
 | `lead-pages` | Render lead-only §31-40 enrichment + related-genomes dossier pages from a sealed package |
-| `render-all-figures` | Run every applicable figure module against a sealed package and record per-module outcomes without changing the sealed package |
+| `render-all-figures` | Run every applicable figure module against a sealed package and record per-module outcomes. Writes figures inside the package (locus_maps/, figures_rendered/, domain_level/) and refreshes post_seal_checksums.txt; run it on a working copy to keep the original byte-identical |
 | `render-widgets` | Render portable interactive widgets + publication handoff from a sealed package/ZIP |
 | `attach-bgc-overlays` | Attach locator-first, hash-bound scientific-review overlays additively |
 

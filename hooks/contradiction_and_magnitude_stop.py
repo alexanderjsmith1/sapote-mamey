@@ -111,7 +111,13 @@ def main() -> int:
     except Exception:
         return 0
     tpath = payload.get("transcript_path")
-    if not tpath or not os.path.isfile(tpath):
+    if not tpath:
+        return 0
+    if not os.path.isfile(tpath):
+        try:
+            print(json.dumps({"systemMessage": "CONTRADICTION-CHECK: transcript unavailable; check skipped."}))
+        except OSError:
+            return 0
         return 0
     user_txt, asst_txt = _last_messages(tpath)
     if not asst_txt:

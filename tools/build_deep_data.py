@@ -4,6 +4,13 @@ from _console import emit  # noqa: E402
 import os
 
 
+def _within_realpath(root, path):
+    try:
+        return os.path.commonpath((root, path)) == root
+    except ValueError:
+        return False
+
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -17,6 +24,10 @@ def _read_json(_path, *, encoding="utf-8"):
             return _d  # no external/ambient identity lookup
         _mp = os.path.join(os.path.dirname(str(_path)) or ".", "manifest.json")
         if os.path.isfile(_mp):
+            package_root = os.path.realpath(os.path.dirname(str(_path)) or ".")
+            resolved_manifest = os.path.realpath(_mp)
+            if not _within_realpath(package_root, resolved_manifest):
+                raise ValueError(f"DEEP_DATA_SNAPSHOT_ALIAS_HOLD: manifest escapes snapshot folder: {_mp}")
             with open(_mp, encoding=encoding) as _fh:
                 return _json.load(_fh)
     return _d
@@ -48,29 +59,95 @@ def extract_bounded_finer(sid, snap, evpath):
     to the SSOT extractor in mamey.deep_data (the run path passes the dict directly)."""
     try:
         e = _read_json(evpath) if evpath else {}
-    except Exception:
-        e = {}
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"DEEP_DATA_EVIDENCE_READ_HOLD: {evpath}: {type(exc).__name__}: {exc}") from exc
     return extract_finer(sid, snap, e)
 
+def _evidence_paths(directory):
+    """Match the existing non-hidden recursive namespace, but surface scan errors."""
+    paths = []
+    boundary = os.path.realpath(directory or ".")
+    def visit(parent, ancestors):
+        try:
+            identity = os.stat(parent)
+            key = (identity.st_dev, identity.st_ino)
+            if key in ancestors:
+                raise OSError(f"directory traversal cycle: {parent}")
+            with os.scandir(parent) as entries:
+                for entry in entries:
+                    if entry.name.startswith('.'):
+                        continue
+                    if (entry.is_symlink() and (entry.is_dir() or entry.name.endswith('AntiSMASH_Evidence_Parse.json'))
+                            and not _within_realpath(boundary, os.path.realpath(entry.path))):
+                        raise OSError(f"symlink escapes discovery root: {entry.path}")
+                    if entry.name.endswith('AntiSMASH_Evidence_Parse.json'):
+                        paths.append(entry.path)
+                    if entry.is_dir():
+                        visit(entry.path, ancestors | {key})
+        except OSError as exc:
+            raise ValueError(f"DEEP_DATA_DISCOVERY_HOLD: {parent}: {type(exc).__name__}: {exc}") from exc
+    visit(directory or '.', set())
+    return sorted(paths)
+
+
+def admitted_evidence(snap_path):
+    """Admit one selected receipt; absent optional evidence keeps the legacy route."""
+    paths = _evidence_paths(os.path.dirname(snap_path))
+    if not paths:
+        return 'unknown', None, {}
+    if len(paths) != 1:
+        raise ValueError(f"DEEP_DATA_MODE_HOLD: EVIDENCE_RECEIPT_AMBIGUOUS: {paths}")
+    path = paths[0]
+    try:
+        evidence = _read_json(path)
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"DEEP_DATA_EVIDENCE_READ_HOLD: {path}: {type(exc).__name__}: {exc}") from exc
+    if not isinstance(evidence, dict):
+        raise ValueError(f"DEEP_DATA_MODE_HOLD: {path}: receipt must be an object")
+    if ('json_mode_effective' in evidence and 'json_mode' in evidence
+            and evidence['json_mode_effective'] != evidence['json_mode']):
+        raise ValueError(f"DEEP_DATA_MODE_HOLD: {path}: JSON_EFFECTIVE_MODE_CONFLICT")
+    mode = evidence.get('json_mode_effective', evidence.get('json_mode'))
+    if mode not in ('off', 'bounded', 'full'):
+        raise ValueError(f"DEEP_DATA_MODE_HOLD: {path}: unrecognized or missing effective mode: {mode!r}")
+    return mode, path, evidence
+
+
 def json_mode_of(snap_path):
-    """offline ('off') vs bounded — the 4 finer sheets (active_sites/substrates/ripp/class_pred)
-    require bounded antiSMASH JSON; an offline run does not capture that data."""
-    d=os.path.dirname(snap_path)
-    ev=glob.glob(f'{d}/**/*AntiSMASH_Evidence_Parse.json', recursive=True)
-    if not ev: return 'unknown'
-    try: return _read_json(ev[0]).get('json_mode','unknown')
-    except Exception: return 'unknown'
+    return admitted_evidence(snap_path)[0]
 
 def find_snaps():
     # MAMEY_PACKAGES (os.pathsep-separated dirs, set by mamey_intake) only. Shared /tmp and upload
     # folders are never scanned: another run's packages must not enter this bank unasked.
     out={}
     env=[p for p in os.environ.get('MAMEY_PACKAGES','').split(os.pathsep) if p]
+    boundary = None
+    def visit(parent, ancestors):
+        try:
+            stat = os.stat(parent)
+            key = (stat.st_dev, stat.st_ino)
+            if key in ancestors:
+                raise OSError(f"directory traversal cycle: {parent}")
+            with os.scandir(parent) as entries:
+                for entry in entries:
+                    if entry.name.startswith("."):
+                        continue
+                    if (entry.is_symlink() and (entry.is_dir() or entry.name.endswith("Project_Memory_Snapshot.json"))
+                            and not _within_realpath(boundary, os.path.realpath(entry.path))):
+                        raise OSError(f"symlink escapes discovery root: {entry.path}")
+                    if entry.name.endswith("Project_Memory_Snapshot.json"):
+                        match = SID_RE.search(entry.name)
+                        sid = match.group(0) if match else os.path.basename(parent)
+                        if sid in out:
+                            raise ValueError(f"DEEP_DATA_SNAPSHOT_AMBIGUOUS: {sid}: {out[sid]} and {entry.path}")
+                        out[sid] = entry.path
+                    if entry.is_dir():
+                        visit(entry.path, ancestors | {key})
+        except OSError as exc:
+            raise ValueError(f"DEEP_DATA_SNAPSHOT_DISCOVERY_HOLD: {parent}: {type(exc).__name__}: {exc}") from exc
     for root in env:
-        for sp in glob.glob(f'{root}/**/*Project_Memory_Snapshot.json', recursive=True):
-            m=SID_RE.search(os.path.basename(sp))
-            sid=m.group(0) if m else os.path.basename(os.path.dirname(sp))
-            out.setdefault(sid, sp)
+        boundary = os.path.realpath(root)
+        visit(root, set())
     if not env:
         sys.stderr.write("build_deep_data: MAMEY_PACKAGES is not set; no package folders searched\n")
     return out
@@ -115,12 +192,16 @@ def _main_stage():
     snaps=find_snaps()
     P=[]; A=[]; H=[]; ACT=[]; CLS=[]; SUBS=[]; RIPP=[]; done=set()
     bindings = dict(deep.get("bgc_identity_contracts", {}))
-    bounded=set(); offline=set()
+    bounded=set(); offline=set(); unknown=set()
     for sid,sp in snaps.items():
         if sid not in all_sids: continue
-        try: s=_read_json(sp)
-        except Exception: continue
-        if 'source_scans' not in s: continue
+        try:
+            s = _read_json(sp)
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"DEEP_DATA_SNAPSHOT_READ_HOLD: {sp}: {type(exc).__name__}: {exc}") from exc
+        if not isinstance(s, dict) or not isinstance(s.get("source_scans"), dict):
+            raise ValueError(f"DEEP_DATA_SNAPSHOT_SCHEMA_HOLD: {sp}: snapshot must contain a source_scans object")
+        jm, evidence_path, evidence = admitted_evidence(sp)
         from mamey.gold_bgc_identity import GoldBGCIdentityError, SCHEMA, load_gold_identity_context
         context = None
         try:
@@ -129,11 +210,9 @@ def _main_stage():
         except GoldBGCIdentityError as exc:
             bindings[sid] = {"schema_version": SCHEMA, "status": "HOLD", "reason": str(exc)}
         p,a,h=extract(sid,s,identity_context=context); P+=p; A+=a; H+=h; done.add(sid)
-        jm=json_mode_of(sp)
-        (offline if jm=='off' else bounded if jm!='unknown' else offline).add(sid)
+        (offline if jm=='off' else bounded if jm!='unknown' else unknown).add(sid)
         if jm!='off':  # only bounded runs carry the finer-sheet data
-            evp=glob.glob(f'{os.path.dirname(sp)}/**/*AntiSMASH_Evidence_Parse.json',recursive=True)
-            act,cls,subs,ripp=extract_bounded_finer(sid, s, evp[0] if evp else None)
+            act,cls,subs,ripp=extract_finer(sid, s, evidence)
             ACT+=act; CLS+=cls; SUBS+=subs; RIPP+=ripp
     deep['bgc_identity_contracts'] = gene['bgc_identity_contracts'] = bindings
     deep['bgc_profile']=merge_section(deep.get('bgc_profile',[]), P, done)
@@ -149,7 +228,7 @@ def _main_stage():
     _atomic_dump(deep, os.path.join(banked,'deep_data.json'))
     _atomic_dump(gene, os.path.join(banked,'gene_data.json'))
     prof_sids={r['sid'] for r in deep['bgc_profile']}
-    emit(f"deep_data banked for {len(done)} strains from packages", f"  bgc_profile now covers {len(prof_sids & all_sids)}/{len(all_sids)} strains ({len(deep['bgc_profile'])} records)", f"  domain_hits {len(deep['domain_hits'])} records | domain_arch {len(gene['domain_arch'])} records", f"  json-evidence: {len(bounded)} bounded, {len(offline)} offline", sep="\n")
+    emit(f"deep_data banked for {len(done)} strains from packages", f"  bgc_profile now covers {len(prof_sids & all_sids)}/{len(all_sids)} strains ({len(deep['bgc_profile'])} records)", f"  domain_hits {len(deep['domain_hits'])} records | domain_arch {len(gene['domain_arch'])} records", f"  json-evidence: {len(bounded)} bounded/full, {len(offline)} offline, {len(unknown)} unknown", sep="\n")
     if offline:
         emit(f"  OFFLINE ({len(offline)} strains): substrates/active_sites/class_pred are GBK-recoverable "
               f"offline (antiSMASH writes them to region GBKs regardless of json mode) — run the GBK recovery; "

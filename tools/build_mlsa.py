@@ -203,13 +203,25 @@ def _checked_fasta(path):
 
 
 def _write_status(out, status, detail):
-    path = os.path.join(out, "run_status.json")
-    pending = path + ".tmp"
-    with open(pending, "w") as fh:
-        json.dump({"status": status, "detail": detail,
-                   "scope": "mechanical MLSA build only; judgment deferred"}, fh, indent=2)
-        fh.write("\n")
-    os.replace(pending, path)
+    from mamey.packaging import _unique_tmp, _discard_tmp
+    import stat
+    path = Path(out) / "run_status.json"
+    pending = _unique_tmp(path)
+    try:
+        with open(pending, "w") as fh:
+            json.dump({"status": status, "detail": detail,
+                       "scope": "mechanical MLSA build only; judgment deferred"}, fh, indent=2)
+            fh.write("\n")
+        try:
+            previous = path.lstat()
+        except FileNotFoundError:
+            previous = None
+        if previous is not None and stat.S_ISREG(previous.st_mode):
+            os.chmod(pending, stat.S_IMODE(previous.st_mode))
+        os.replace(pending, path)
+    except BaseException:
+        _discard_tmp(pending)
+        raise
 
 
 

@@ -866,6 +866,8 @@ def count_sentence(c: dict, where: str = "the core") -> str:
     if c["set_aside"]:
         s += (f". Of these, {c['set_aside']} {'was' if c['set_aside'] == 1 else 'were'} set aside by partner checks "
               "(housekeeping or paralog family)")
+    if c["split"] and c["set_aside"]:
+        s += ". Partner-check flags refer to the original match, not necessarily to both displayed split pieces"
     if c["split"]:
         # the gene table lists both pieces together in one row per reference gene (table_rows), so say exactly that
         s += (f". {c['split']} reference gene{' is' if c['split'] == 1 else 's are'} split across contigs, with both "

@@ -56,7 +56,9 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        if args.registry.resolve() == args.output.resolve():
+        if (args.registry.resolve() == args.output.resolve()
+                or (args.registry.exists() and args.output.exists()
+                    and args.registry.samefile(args.output))):
             raise ValueError("output must differ from the source JSON")
         content = render_csv(json.loads(args.registry.read_text(encoding="utf-8")))
         args.output.write_text(content, encoding="utf-8", newline="")

@@ -46,7 +46,8 @@ def screen_query_records(records, *, fragment_threshold: int = 1200,
     seen = set()
     rows = []
     for header, sequence in records:
-        query_id = (header or "").split()[0]
+        header_tokens = (header or "").split()
+        query_id = header_tokens[0] if header_tokens else ""
         seq = re.sub(r"\s+", "", sequence or "").upper()
         ungapped = seq.replace("-", "").replace(".", "")
         unsupported = "".join(sorted(set(seq) - _IUPAC_DNA))

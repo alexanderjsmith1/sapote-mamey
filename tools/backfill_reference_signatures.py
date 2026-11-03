@@ -42,6 +42,7 @@ def _read_json(_path, *, encoding="utf-8"):
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from reference_panel_ledger import ledger_for_zip  # reuse the canonical extractor
+from _wbio import atomic_open
 
 ACC_RE = re.compile(r'BGC\d+|[A-Z]{2}\d{6}')
 T43_RE = re.compile(r'T43-[A-Z]+')
@@ -155,14 +156,10 @@ def main():
         return
     if patched:
         bak = args.lib + ".bak"
-        _bak_tmp = bak + ".tmp"
-        with open(_bak_tmp, "w", encoding="utf-8") as _f, open(args.lib, encoding="utf-8") as _lib:
+        with atomic_open(bak, "w", encoding="utf-8") as _f, open(args.lib, encoding="utf-8") as _lib:
             json.dump(json.load(_lib), _f, indent=2)
-        os.replace(_bak_tmp, bak)
-        _lib_tmp = args.lib + ".tmp"
-        with open(_lib_tmp, "w") as _f:
+        with atomic_open(args.lib, "w", encoding=None) as _f:
             json.dump(lib, _f, indent=2)
-        os.replace(_lib_tmp, args.lib)
         emit(f"\nwrote {args.lib} (backup -> {bak})")
     else:
         emit("\nno matching zips; nothing written.")

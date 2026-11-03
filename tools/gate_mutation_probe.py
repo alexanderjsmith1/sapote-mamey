@@ -100,6 +100,12 @@ def run_one(root: Path, row: dict[str, str], logs: Path) -> dict[str, str]:
                          "remediation": note, "exit_code": exit_code, "log": log}
     if not tests:
         return hold("UNPAIRED", "HOLD_MUTATION_TABLE_ENTRY_REQUIRED")
+    if logs.resolve().is_relative_to(root.resolve()):
+        return hold("HOLD_UNSAFE_LOGS", "log directory must be outside the source tree")
+    log_name = row["id"].replace(":", "__").replace("/", "_").replace("\\", "_")
+    if any(os.path.lexists(logs / f"{log_name}.{phase}.{suffix}")
+           for phase in ("baseline", "mutated") for suffix in ("xml", "log")):
+        return hold("HOLD_EXISTING_LOGS", "preserve existing log files; choose a fresh directory")
     source = Path(row["source"])
     if not row["source"].strip() or source.is_absolute() or ".." in source.parts:
         return hold("HOLD_UNSAFE_SOURCE", "source must be a relative file within the copied tree")
@@ -227,10 +233,25 @@ def main() -> int:
     root = args.source_root.resolve()
     if not (root / "mamey" / "validate.py").is_file():
         raise SystemExit("--source-root must be a Sapote-Mamey source tree")
+    logs = args.output.parent / "probe_logs"
+    if args.output.is_symlink():
+        parser.error("MUTATION_OUTPUT_SYMLINK: linked report destinations are refused")
+    if any(destination.resolve().is_relative_to(root) for destination in (args.output, logs)):
+        parser.error("MUTATION_OUTPUT_INSIDE_SOURCE: report and probe logs must be outside the source tree")
+    if args.output.resolve() == args.mutation_table.resolve():
+        parser.error("MUTATION_OUTPUT_INPUT_ALIAS: report must not replace the selected mutation table")
+    try:
+        output_stat = args.output.stat()
+    except FileNotFoundError:
+        output_stat = None
+    if output_stat is not None and output_stat.st_nlink > 1:
+        parser.error("MUTATION_OUTPUT_LINKED: multiply linked report destinations are refused")
     table = read_table(args.mutation_table)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    logs = args.output.parent / "probe_logs"
-    logs.mkdir(exist_ok=True)
+    try:
+        logs.mkdir()
+    except FileExistsError:
+        parser.error("MUTATION_LOGS_EXISTS: preserve existing probe_logs; choose a fresh output directory")
     results = [run_one(root, row, logs) for row in table]
     results.extend(inventory_results(root, table, results, inventory(root)))
     fields = ["id", "kind", "source", "tests", "consequence", "classification", "mutation_status", "remediation", "exit_code", "log", "baseline_exit_code", "baseline_log", "baseline_tests", "mutation_tests", "paired_mutation_ids"]

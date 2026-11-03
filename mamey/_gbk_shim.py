@@ -9,6 +9,15 @@ class _Location:
     start: int = 0
     end: int = 0
     strand: int = 1  # 1 = forward, -1 = complement
+    simple_location_verified: bool = False
+
+    @property
+    def parts(self):
+        # The lightweight parser cannot reconstruct compound/remote locations.
+        # It may expose one segment only for a complete simple expression.
+        if not self.simple_location_verified:
+            raise ValueError("GENBANK_LOCATION_SEGMENTS_UNAVAILABLE: use a full GenBank parser")
+        return [self]
 
     def extract(self, seq):
         """Extract subsequence (mimics Biopython)."""
@@ -114,9 +123,16 @@ def _parse_features(text: str) -> list[_Feature]:
         if end < start:
             end = start
 
+        simple = loc_str
+        if simple.startswith("complement(") and simple.endswith(")"):
+            simple = simple[len("complement("):-1]
+        simple_match = re.fullmatch(r"[<>]?(\d+)(?:\.\.[<>]?(\d+))?", simple)
+        simple_verified = bool(simple_match and int(simple_match.group(1)) >= 1
+                               and int(simple_match.group(2) or simple_match.group(1)) >= int(simple_match.group(1)))
         qualifiers = _parse_qualifiers(lines[1:])
         features.append(_Feature(type=ftype, qualifiers=qualifiers,
-                                 location=_Location(start=start, end=end, strand=strand)))
+                                 location=_Location(start=start, end=end, strand=strand,
+                                                    simple_location_verified=simple_verified)))
     return features
 
 

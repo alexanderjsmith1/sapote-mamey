@@ -186,9 +186,11 @@ def _open_end_distance(p: dict, terminus: str) -> int | None:
     """bp from a protein's N- or C-terminal end to the contig end that terminus faces, where the rest of the gene
     would lie: a forward gene's C-terminal end faces the contig's right end and its N-terminal end the left end, a
     reverse gene's the opposite. None when the strand is not 1 or -1: the facing end is then unknown."""
-    if p.get("strand") not in (1, -1):
+    # load_genome retains a legacy display fallback; do not use it to infer a biological open end.
+    strand = p.get("source_strand", p.get("strand"))
+    if strand not in (1, -1):
         return None
-    right = (terminus == "C") == (p["strand"] == 1)
+    right = (terminus == "C") == (strand == 1)
     return p["contig_len"] - p["end"] if right else p["start"]
 
 

@@ -364,10 +364,10 @@ def main():
         emit(json.dumps(receipt, indent=2))
     else:
         emit(f"Compilation gate — {receipt['gate']}", f"  Mode B: {receipt['mode_b_cards']}/{receipt['scorable_bgcs']} cards", sep="\n")
-        if receipt["page_count"] is not None:
-            emit(f"  Pages: {receipt['page_count']} (floor {receipt['page_floor']})")
-        else:
-            emit(f"  Page floor: {receipt['page_floor']} (pre-render; G3 deferred)")
+        page_message = (f"  Pages: {receipt['page_count']} (floor {receipt['page_floor']})"
+                        if receipt["page_count"] is not None else
+                        f"  Page floor: {receipt['page_floor']} (pre-render; G3 deferred)")
+        emit(page_message)
         post = receipt.get("post_render", receipt.get("page_count") is not None)
         g3_state = receipt.get("g3_state", "CHECKED" if post else "DEFERRED_PRE_RENDER")
         naming = receipt.get("naming", "_PARTIAL_" if receipt["gate"] != "PASS"

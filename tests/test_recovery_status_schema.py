@@ -64,5 +64,9 @@ def test_validate_package_surfaces_package_status(tmp_path):
     (pkg / "recovery_receipt.json").write_text('{"status":"RECOVERY_VALIDATED"}', encoding="utf-8")
     write_manifest(pkg)
     result = validate_package(pkg, gold_aware=False)
-    assert result["package_status"] == "RECOVERY_VALIDATED"
-    assert result["package_status_receipt"]["merge_semantics"] == "validated_recovery_not_uninterrupted"
+    # DREL-043: this minimal fixture fails file_presence, so the fresh FAIL outranks the
+    # recovery label; the overridden label is kept in status_conflict.
+    assert result["status"] == "FAIL"
+    assert result["package_status"] == "PARTIAL_FAILED"
+    assert result["package_status_receipt"]["merge_semantics"] == "partial_or_failed_do_not_merge_as_complete"
+    assert result["package_status_receipt"]["status_conflict"] == "RECOVERY_VALIDATED"

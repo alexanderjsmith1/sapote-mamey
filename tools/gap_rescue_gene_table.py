@@ -269,6 +269,10 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
     split whose pieces are not both in it is not shown as one. With `positions` (gene_positions), each dict also has the
     POSITION_COLS keys."""
     rows = sorted(rows, key=lambda r: int(r.get("reference_gene") or 0))
+    # An absent outcome is not a negative search result. Refuse before any
+    # table is written, including rows that happen to contain a stale best hit.
+    if any(not isinstance(r.get("status"), str) or not r["status"].strip() for r in rows):
+        raise ValueError("GAP_RESCUE_STATUS_MISSING: every reference row needs a recorded outcome")
     core_bgc = core_identity.split(" / ")[-1] if core_identity else "core"
     cc = [r.get("best_contig") for r in rows if r.get("status") == "PRESENT_IN_CORE"]
     core_contig = max(set(cc), key=cc.count) if cc else ""
@@ -310,6 +314,13 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
                         "Reference annotation": annotations.get(r.get("name", "")) or r.get("reference_product", ""),
                         "Identity (%)": f"{_num(x.get('piece1_identity_pct'))} / {_num(x.get('piece2_identity_pct'))}",
                         "Location": "split across " + " + ".join(_piece(x, k) for k in ("piece1", "piece2"))})
+            # These labels describe the base best-hit row, not either split piece.
+            base_status = (r.get("status") or "").strip()
+            base_verdict = (r.get("partner_verdict") or "").strip()
+            if base_status == "MISSING_FOUND_AMBIGUOUS":
+                out[-1]["Location"] += "; base hit ambiguous"
+            if base_verdict and base_verdict != "SUPPORTED":
+                out[-1]["Location"] += "; base-hit partner verdict: " + base_verdict.lower().replace("_", " ")
             if positions is not None:
                 # each piece is checked against the contig of its saved region identity (audit F02)
                 pieces = [_bound_position(x.get(k + "_locus", ""), positions, "", _identity_contig(x.get(k + "_region_identity", "")))
@@ -422,7 +433,7 @@ def pair_with_map(out: Path) -> list[Path]:
 
 def write_gene_table(out, rows, splits, core_identity: str, label: str, reference, families: dict,
                      ref_name: str = "", edge: dict | None = None, known_tags=None, *, pair_map: bool = True,
-                     prots: dict | None = None) -> dict:
+                     prots: dict | None = None, render: bool = True) -> dict:
     """Write table outputs; returns {"rows": n, "files": [...]}, counts and captions.
 
     pair_map keeps saved-map pairing for standalone replay by default. A fresh caller
@@ -449,7 +460,7 @@ def write_gene_table(out, rows, splits, core_identity: str, label: str, referenc
         w = _SafeDictWriter(fh, fieldnames=list(counts), delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerow(counts)
     files.append(out / "gene_table_counts.tsv")
-    if _draw(table, title, label, out / "gene_table.png", out / "gene_table.pdf", rendered_caption):
+    if render and _draw(table, title, label, out / "gene_table.png", out / "gene_table.pdf", rendered_caption):
         files += [out / "gene_table.png", out / "gene_table.pdf"]
         # The table must be current, and its caller must admit the map separately.
         if pair_map:
