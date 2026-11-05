@@ -765,7 +765,7 @@ def build_family(con, fid, cutoff, fam, annot_for=None, trees_dir=None, locus_di
 
 
 def render_families(db=DB_DEFAULT, cutoff=0.3, families=None, outdir=HERE, trees_dir=None,
-                    locus_map=None):
+                    locus_map=None, run_id=None):
     """Render clinker-style within-GCF alignment pages + an index. Returns a result dict.
 
     families: iterable of int family ids; default = curated flagship set.
@@ -776,7 +776,7 @@ def render_families(db=DB_DEFAULT, cutoff=0.3, families=None, outdir=HERE, trees
     """
     con = sqlite3.connect(db)
     try:
-        fam = family_members(con, cutoff)
+        fam = family_members(con, cutoff, run_id=run_id)
         annot_for = sm_annotation_index()  # AS-track Sapote/Mamey verdict lookup (reader-side join)
         fids = list(families) if families else CURATED
         locus_display_map = load_locus_display_map(locus_map)
@@ -864,9 +864,10 @@ def main():
                     help="TSV binding each GBK basename to strain, full_node_or_contig, region, "
                          "and bgc_alias. When supplied, every member must bind or rendering "
                          "fails closed.")
+    ap.add_argument("--run-id", default=None, help="BiG-SCAPE run to read; required when the database holds more than one")
     a = ap.parse_args()
     res = render_families(db=a.db, cutoff=a.cutoff, families=a.family, outdir=a.outdir,
-                          trees_dir=a.gcf_trees_dir, locus_map=a.locus_map)
+                          trees_dir=a.gcf_trees_dir, locus_map=a.locus_map, run_id=a.run_id)
     for m in res["families"]:
         tree = f", tree={m['tree_leaves']} tips" if m.get("has_tree") else ""
         emit(f"fam {m['family_id']}: {m['tracks']} tracks, {m['n_shared']} shared "

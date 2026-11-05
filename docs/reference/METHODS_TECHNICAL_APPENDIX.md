@@ -1,6 +1,6 @@
 # Methods technical appendix
 
-**Version of record:** Mamey engine v1.9.178 · bundle v9.7.462  
+**Version of record:** Mamey engine v1.9.179 · bundle v9.7.463  
 **Scope:** implementation-oriented reporting reference. This appendix documents software behavior and claim ceilings; it is not evidence that a study used every module.
 
 ## Release-sensitive parameter register

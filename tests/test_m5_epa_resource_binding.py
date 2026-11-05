@@ -37,6 +37,7 @@ def test_actual_place_handler_binds_epa_and_provenance(tmp_path, monkeypatch, th
     ref = tmp_path / 'refpkg'; ref.mkdir()
     (ref / '_provenance.json').write_text(json.dumps({'group': 'streptomyces', 'molecule': 'nucleotide'}))
     (ref / 'labelmap.tsv').write_text('safe\toriginal\nREF\tREF\n')
+    (ref / 'ref.bestModel').write_text('GTR{1/1/1/1/1/1}+FU{0.25/0.25/0.25/0.25}+G4m{1}, noname = 1-4\n')
     (ref / 'ref.aln.fasta').write_text('>REF\nACGT\n')
     (ref / 'ref.tree').write_text('(REF:0.1);\n')
     query = tmp_path / 'query.fa'; query.write_text('>Q\n' + 'ACGT' * 350 + '\n')

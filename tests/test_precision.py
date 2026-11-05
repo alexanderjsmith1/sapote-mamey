@@ -8,6 +8,10 @@ def test_similarity_bands():
     assert P.similarity_band(10) == "low"
     assert P.similarity_band(0) == "none"
     assert P.similarity_band(None) == "unresolved"
+    assert P.similarity_band(100) == "high"
+    assert P.similarity_band(101) == "unresolved"      # not a percent
+    assert P.similarity_band(3439.0) == "unresolved"   # a KCB cumulative score
+    assert P.similarity_band(-1) == "unresolved"
 
 
 def test_identity_rounds_to_nearest_5():

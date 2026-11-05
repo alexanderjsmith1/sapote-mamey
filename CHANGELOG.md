@@ -1,3 +1,42 @@
+# v9.7.463 — unsealed cut candidate · build 20261104v97463a
+
+Build 20261104v97463a; engine 1.9.179.
+
+Builds on the sealed v9.7.462 (CODE zip, build 20261102v97462a), with 33 cards. The engine moves to 1.9.179 because published fields change: `kcb_similarity_band`, terminal-PKS split flags and tab-reconcile ledger counts. RG-GMCI scores, ranks and thresholds, and KCB cumulative values, are unchanged. `docs/ENGINE_LINEAGE.md` says what is not poolable across 1.9.178 and 1.9.179.
+
+- **KCB similarity band.** `kcb_similarity_band` in `verdicts.json` came from the KnownClusterBlast cumulative BLAST score, which is not a percent. In one real package all 17 BGCs with a hit read "high". The band now comes only from a per-BGC percent, `kcb_similarity_pct`. No intake path sets it yet, so the band reads `unresolved`. `similarity_band` returns `unresolved` for any value outside 0–100.
+- **Split detector.** It reads `/contig_edge` and the region's original start. A terminal-PKS split flag needs the region to touch a contig end, so interior regions no longer raise one.
+- **Tab-reconcile ledger.** TFBS, Pfam, TIGRFAM, NRPS/PKS, active-site, tailoring and TTA evidence is counted for the requested region only, not for the whole record. A missing module reads `MODULE_ABSENT`, and a TTA scan skipped for low GC reads `NOT_RUN_LOW_GC`, instead of 0 hits.
+- **Identity holds.**
+  - A region request that does not resolve to one region stops with `IDENTITY_HOLD`. ClusterBlast evidence is taken from the entry with that region number, else `NO_RESULTS_FOR_REGION`.
+  - Seal and judgment refuse a package with two or more triage boards (`AMBIGUOUS_TRIAGE_BOARDS`).
+  - The strain package fallback matches `<strain>.zip`, `<strain>_` or `<strain>.` only, not any name that contains the strain.
+- **BiG-SCAPE.** The matrix and clinker widgets, `bigscape_clinker_html` and `bigscape_family_figures` read one finished run. A database with several runs needs `--run-id`; an unfinished run is refused (`RUN_UNFINISHED`). `bigscape_combined_run` prints families per run.
+- **Trees and placement.**
+  - Tree launchers require a complete IQ-TREE run: the wall-clock line in the log and support values on the treefile.
+  - `place` passes epa-ng a fitted model and refuses a FreeRate model (`EPA_MODEL_NOT_REPRESENTABLE`). The nucleotide fallback restricts ModelFinder to rate models epa-ng can read.
+  - The tree-trust audit adds a same-snapshot diagnostic with explicit unverified states.
+- **antiSMASH shapes.** Diagnostic domain names match antiSMASH (`Lant_dehydr_N`, `Lant_dehydr_C`, `t2clf`). The thiopeptide and lanthipeptide motif reader accepts the list shape.
+- **clinker.** A run needs fresh, nonempty HTML and alignment output, or it is reported incomplete. The dispatcher contract documents that outcome.
+- **Refusals instead of silent output.**
+  - Malformed distance matrices are refused before downstream use.
+  - The regex gate reports an unreadable directory instead of a short search.
+  - PCoA page and minimum-text requests check for pypdf before output work begins.
+- **GECCO.** Cohort reports name the Pfam names available from the supplied source, do not read a missing name as absence, and record the source's presence and integrity.
+- **BLASTp ingest.** Full-nr runner lanes (`_STRAINGAP_SINGLE_NR_*`) are admitted as `ncbi_nr` / `nr`.
+- **Docs.**
+  - First-run commands drop `-B`, and `INSTALL.md` explains the bytecode refusal.
+  - IQ-TREE and epa-ng refusals, the BiG-SCAPE one-run rule, the KCB percent band and the evidence states are documented. The glossary gains an evidence-state table.
+  - New `docs/TRIMAP_RUNS.md` covers the TriMap install, the numba threading crash and the duplicate-point divergence.
+  - Fungal and algal/cyanobacterial intake guidance is updated.
+- **Tests.** The graeca test skips when its local ZIP is absent, which failed Linux CI on .462.
+- **Release surfaces.** The engine version is propagated by `tools/sync_version.py`. The generated catalogs, atlas and inventories are regenerated once, by the last card.
+
+Known limits, for later:
+- KCB novelty and claim-ceiling cut-offs in `scoring.py`, `parsers.py`, `master_workbook.py`, `chatgpt_commands.py` and `package_addons.py` still compare the cumulative score with fixed values. They wait for a ruling on the percent similarity.
+- Codex's 18-patch PDF-conversion chain is not in this build. It is not packaged as cards yet.
+- The claim-safety hook exempts any path containing `/scratchpad`, `guardrail` or `claim_safety`.
+
 # v9.7.462 — unsealed cut candidate · build 20261102v97462a
 
 Build 20261102v97462a; engine 1.9.178.

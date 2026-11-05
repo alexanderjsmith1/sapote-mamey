@@ -36,9 +36,10 @@ V2_REMOVED_GENOMES = os.path.join("run-files", "removed-genomes.tsv")
 V2_GENOME_SUMMARY = "genomes-summary-info.tsv"
 V2_SCG_HIT_COUNTS = "SCG-hit-counts.tsv"
 V2_NO_REMOVAL_LINE = "No genomes were removed due to having too few SCG hits"
-WALL_CLOCK_MARKER = "Total wall-clock time"
-# ")95:" / ")95/99:" / ")0.98:" — a numeric label directly after a close-paren = support present.
-_SUPPORT_RE = re.compile(r"\)\s*[0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?\s*:")
+from mamey.phylo_evidence import (  # noqa: E402  one completion rule for every IQ-TREE launcher
+    IQTREE_WALL_CLOCK_MARKER as WALL_CLOCK_MARKER, IQTREE_SUPPORT_LABEL_RE as _SUPPORT_RE,
+    iqtree_prefix_completion as _prefix_completion, iqtree_support_node_count as support_node_count,
+)
 # One shared list with the planner and the workflow doc (tools/_gtotree_versions.py).
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _gtotree_versions import (  # noqa: E402
@@ -117,48 +118,10 @@ def _iqtree_prefix(prefix_or_dir):
     return p
 
 
-def support_node_count(tree_text):
-    return len(_SUPPORT_RE.findall(tree_text))
-
-
 def iqtree_completion(prefix_or_dir):
-    """Typed completion status for one IQ-TREE run. Never raises for a missing/partial run.
-
-    Returns ``{"status": "COMPLETE" | "INTERRUPTED" | "MISSING", "prefix", "reasons": [...],
-    "support_nodes", "last_log_line", "treefile", "contree", "log"}``.
-    COMPLETE requires ALL of: non-empty .contree, numeric support labels on .treefile,
-    "Total wall-clock time" in .log. Anything else is INTERRUPTED (or MISSING when there is
-    no .treefile at all).
-    """
-    prefix = _iqtree_prefix(prefix_or_dir)
-    treefile = Path(str(prefix) + ".treefile")
-    contree = Path(str(prefix) + ".contree")
-    log = Path(str(prefix) + ".log")
-    reasons, support_nodes, last_line = [], 0, ""
-    if not treefile.is_file() or treefile.stat().st_size == 0:
-        reasons.append(f"TREEFILE_MISSING: {treefile}")
-    else:
-        support_nodes = support_node_count(treefile.read_text(encoding="utf-8", errors="replace"))
-        if support_nodes == 0:
-            reasons.append(f"TREEFILE_NO_SUPPORT: {treefile.name} has no numeric internal-node labels "
-                           "(ML topology written before the bootstrap finished)")
-    if not contree.is_file() or contree.stat().st_size == 0:
-        reasons.append(f"CONTREE_MISSING: {contree} absent or empty (bootstrap did not finish)")
-    if not log.is_file():
-        reasons.append(f"LOG_MISSING: {log}")
-    else:
-        lines = [ln.rstrip("\n") for ln in log.read_text(encoding="utf-8", errors="replace").splitlines() if ln.strip()]
-        last_line = lines[-1] if lines else ""
-        if not any(WALL_CLOCK_MARKER in ln for ln in lines):
-            reasons.append(f"LOG_NO_WALLCLOCK: '{WALL_CLOCK_MARKER}' not in {log.name}; last line: {last_line!r}")
-    if not reasons:
-        status = "COMPLETE"
-    elif any(r.startswith("TREEFILE_MISSING") for r in reasons):
-        status = "MISSING"
-    else:
-        status = "INTERRUPTED"
-    return {"status": status, "prefix": str(prefix), "reasons": reasons, "support_nodes": support_nodes,
-            "last_log_line": last_line, "treefile": str(treefile), "contree": str(contree), "log": str(log)}
+    """Typed completion status for one IQ-TREE run (see `mamey.phylo_evidence.iqtree_prefix_completion`). Accepts a
+    prefix or a GToTree output dir. Never raises for a missing/partial run."""
+    return _prefix_completion(_iqtree_prefix(prefix_or_dir))
 
 
 # ----------------------------------------------------------------------------------------------

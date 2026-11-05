@@ -192,6 +192,7 @@ DIAGNOSTIC_SEC_MET_DOMAINS = {
     # Enediyne
     "HMGL-like":      ("PF00682", "HMGL-like — enediyne pathway enzyme"),
     "CLF":            ("PF14765", "chain length factor — type II PKS/enediyne context"),
+    "t2clf":          (None,      "chain length factor — type II PKS (antiSMASH t2clf profile)"),
     "Radical_SAM":    ("PF04055", "radical SAM enzyme — enediyne/RiPP/thioamide context"),
     "PF04055":        ("PF04055", "radical SAM enzyme"),
     # Lanthipeptide
@@ -212,8 +213,9 @@ DIAGNOSTIC_SEC_MET_DOMAINS = {
     "Trp_halogenase": ("PF04820", "tryptophan halogenase — flavin-dependent HAL"),
     "Flavoprotein":   ("PF01494", "FAD-dependent oxidoreductase — halogenase context"),
     "RRE_domain":     ("PF13575", "RiPP recognition element"),
-    "lant_dehyd_N":   ("PF04738", "lanthipeptide dehydratase N-terminus — class I LanB"),
-    "lant_dehyd_C":   ("PF14028", "lanthipeptide dehydratase C-terminus — class I LanB"),
+    # antiSMASH writes these profiles as Lant_dehydr_N / Lant_dehydr_C (8.0.4 region GBKs).
+    "Lant_dehydr_N":  ("PF04738", "lanthipeptide dehydratase N-terminus — class I LanB"),
+    "Lant_dehydr_C":  ("PF14028", "lanthipeptide dehydratase C-terminus — class I LanB"),
     "DUF4218":        ("PF13927", "thiopeptide radical SAM enzyme"),
 }
 
@@ -227,7 +229,7 @@ _TIER1_DOMAIN_NAMES: frozenset[str] = frozenset({
     "DUF4135", "PF13575",
     "HMGL-like", "PF00682",
     "AMP-binding", "PF00501",   # A-domain: enables Stachelhaus substrate prediction
-    "lant_dehyd_N", "lant_dehyd_C",  # class I lanthipeptide dehydratase
+    "Lant_dehydr_N", "Lant_dehydr_C",  # class I lanthipeptide dehydratase
     "DUF4218", "PF13927",       # thiopeptide radical SAM
     "Trp_halogenase", "PF04820",
     # TIGRFAM diagnostics (v9.4.1-tigrfix): these live in the JSON
@@ -607,11 +609,29 @@ def _ripp_from_rec(rec, name, out):
         if not mod_key.startswith(_RIPP_MODULE_PREFIX) or not isinstance(mod_val, dict):
             continue
         motifs = mod_val.get("motifs", {})
-        if not isinstance(motifs, dict) or not motifs:
+        if not motifs:
             continue
         family = mod_key[len(_RIPP_MODULE_PREFIX):]
-        for locus, motif_list in motifs.items():
-            items = motif_list if isinstance(motif_list, list) else [motif_list]
+        if isinstance(motifs, dict):
+            groups = [(str(locus), motif_list if isinstance(motif_list, list) else [motif_list])
+                      for locus, motif_list in motifs.items()]
+        elif isinstance(motifs, list):
+            # antiSMASH thiopeptides writes a flat list of Prepeptide objects; each carries its own
+            # locus_tag, named "<CDS>_<peptide_class>". Group by the CDS so rows join to genes.
+            groups = []
+            for motif in motifs:
+                if not isinstance(motif, dict):
+                    continue
+                raw = str(motif.get("locus_tag") or "")
+                suffix = "_" + str(motif.get("peptide_class") or "")
+                cds = raw[:-len(suffix)] if suffix != "_" and raw.endswith(suffix) else raw
+                if groups and groups[-1][0] == cds:
+                    groups[-1][1].append(motif)
+                else:
+                    groups.append((cds, [motif]))
+        else:
+            continue
+        for locus, items in groups:
             for idx, motif in enumerate(items):
                 if not isinstance(motif, dict):
                     continue
@@ -623,7 +643,7 @@ def _ripp_from_rec(rec, name, out):
                     "record_id": rec_id,
                     "module": f"antismash.modules.{family}",
                     "ripp_family": family,
-                    "locus_tag": str(locus),
+                    "locus_tag": locus,
                     "motif_index": idx,
                     "core": core,
                     "core_sequence": core,

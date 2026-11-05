@@ -62,6 +62,11 @@ def _triage_rows(package_dir: Path) -> tuple[dict[str, dict], str | None]:
     boards = sorted(package_dir.glob("*_4_triage_board.csv"))
     if not boards:
         return rows, None
+    if len(boards) > 1:
+        # v9.7.463: the first board in sort order used to be read silently. Two boards means two
+        # runs (or a stray copy) in one package; which one the cards came from cannot be told.
+        return rows, ("AMBIGUOUS_TRIAGE_BOARDS: " + ", ".join(b.name for b in boards)
+                      + " -- keep exactly one board in the package")
     try:
         with open(boards[0], newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
@@ -189,7 +194,7 @@ def _gate_locator(
             "locator_reconciliation",
             "FAIL",
             True,
-            detail=("triage board present but unreadable; locator cannot be "
+            detail=("triage board present but not loadable; locator cannot be "
                     f"reconciled ({triage_load_error})"),
         )
     bgcs = list_complete_bgcs(package_dir)

@@ -18,18 +18,18 @@ Tool/platform behavior and biological interpretations require source-specific re
 Review only requires file access;
 external programs, database downloads and phylogenetic compute have separate prerequisites.
 
-## Tier 1 — rDNA screen (hours, no genome pipeline needed)
+## Tier 1 — rDNA screen
 
 Extract the rDNA markers from the assembly and place each one independently:
 
 | marker | resolves | honest limits |
 |---|---|---|
-| **18S (SSU)** | family / broad neighborhood | highly conserved — 98%+ identity spans several genera |
-| **ITS** (ITS1–5.8S–ITS2) | species **within** a genus | **unalignable across divergent genera** — never build a family-wide ITS tree, and never concatenate family-wide ITS into a supermatrix |
-| **LSU (28S, D1/D2)** | genus-spanning family trees | the workhorse for a "many strains" family tree |
-| **whole operon** (18S+ITS+28S, *matched* records only) | strongest rDNA statement | only for taxa with full-operon accessions — a matched matrix, never a gap-patched one |
+| **18S (SSU)** | broad context | Often conserved; resolution and reference coverage depend on the sampled group. |
+| **ITS** (ITS1–5.8S–ITS2) | finer-scale comparison | Review alignment and reference coverage within the chosen scope; do not concatenate divergent family-wide ITS as a default. A match alone is not a species determination. |
+| **LSU (28S, D1/D2)** | additional rDNA context | Resolution and coverage depend on the sampled taxa and region. |
+| **whole operon** (18S+ITS+28S) | linked rDNA evidence | Use only records with reviewed source correspondence and an appropriate alignment; report missing loci and sampling rather than silently substituting records. |
 
-**Extraction.** ITSx (ITS) and Barrnap with its installed version’s fungal model (SSU/LSU; see [version guidance](../docs/BARRNAP.md)) are the dedicated tools. A
+**Extraction.** ITSx (ITS) and Barrnap with an available model appropriate to the installed version (SSU/LSU; see [version guidance](../docs/BARRNAP.md)) are the dedicated tools. A
 **blastn reference-probe** against the assembly (probe with a near-neighbor operon record, slice the
 assembly by the hit coordinates, bounded by the real 18S-hit end / 28S-hit start) uses BLAST+.
 
@@ -37,18 +37,14 @@ assembly by the hit coordinates, bounded by the real 18S-hit end / 28S-hit start
 reference coverage and the stated analysis scope; retain unresolved placement as a hold. A separately
 authorized genome comparison may resolve the question, but it is not automatically triggered.
 
-## Tier 2 — genome MLSA (the fungal GToTree equivalent)
+## Tier 2 — genome ortholog comparison
 
-GToTree is bacterial. The fungal equivalent is **single-copy-ortholog phylogenomics** from BUSCO gene
-sets:
+The bundle’s GToTree presets do not establish a fungal workflow. One separate fungal route is
+**single-copy-ortholog phylogenomics** using a reviewed BUSCO lineage dataset:
 
-1. Run **BUSCO** (lineage `ascomycota_odb10` / `dothideomycetes_odb10`) — or **compleasm**, the faster
-   drop-in reimplementation (miniprot + hmmsearch; runs where BUSCO's metaeuk/augustus stack won't
-   install, e.g. macOS-arm64) — on the query genome and on reference genomes for the family/order
-   (fetched with NCBI `datasets`, one per genus where available, RefSeq-preferred).
-2. Keep single-copy orthologs present in ~all taxa → per-gene align (MUSCLE/MAFFT) → trim (trimAl) →
-   concatenate with a partition model. Hundreds of loci — far more signal than 3–4 hand-picked MLSA genes.
-3. Partitioned **IQ-TREE** (`-m MFP -B 1000 -alrt 1000`), rooted on a sister-family outgroup genome.
+1. Plan **BUSCO** or **compleasm** for the query and reviewed reference genomes. The bundle lists `ascomycota_odb10` and `dothideomycetes_odb10` as examples, not universal fungal datasets. Review installed versions, lineage data, platform support and outputs; tool outputs are not assumed interchangeable. Reference selection and any retrieval require separate source and authorization review.
+2. Review ortholog identity, duplication, missingness and taxon occupancy before selecting loci. Per-gene alignment (MUSCLE/MAFFT), trimming (trimAl), concatenation and partitioning require an explicit plan; a larger locus count alone does not establish a reliable tree.
+3. Plan a partitioned **IQ-TREE** analysis with justified model, support settings and resource budget. Review the outgroup genome for the actual taxonomic scope; do not treat a previously used command or support setting as an approved preset.
 4. **Gates**: inspect the outgroup-aware tree sanity result before rendering. Its CLI returns 0
    for a pass and 2 for a failure. `tools/signoff_check.py` is advisory and returns 0 even when
    it lists issues or cannot inspect a tree; read its per-tree report and complete the human checks.
@@ -80,8 +76,7 @@ and source binding remain a separately reviewed input decision.
 
 ## Known failure modes (learned the hard way — do not repeat)
 
-- **Family-wide ITS concatenation**: produces a dominating internal branch that fails the sanity gate at
-  every trim setting. ITS is a within-genus tool, full stop.
+- **Family-wide ITS concatenation**: a historical example produced a dominating internal branch despite different trim settings. Review ITS alignment and resolution for the specific taxa and question.
 - **One bad reference record can sink a tree**: diagnose the accession, sequence, alignment and model before a justified, recorded exclusion. Do not automatically drop an inconvenient branch or weaken the gate.
 - **A gate FAIL can be the finding**: a long-branch failure needs source/alignment/model diagnosis and does not establish novelty. Report the numbers and unresolved reason; do not loosen a gate merely to make artwork printable.
 - **rDNA extraction without a dedicated tool is fine** *if* slice boundaries are anchored to real

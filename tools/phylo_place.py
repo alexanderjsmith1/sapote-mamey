@@ -1101,7 +1101,7 @@ def cmd_build_ref(a):
             sys.exit("raxml-ng failed")
         shutil.copy(pre + ".raxml.bestTree", ref_tree)
         bestmodel = pre + ".raxml.bestModel"
-    else:  # fall back to IQ-TREE (house standard) — epa-ng re-evaluates the model from ref.aln + tree
+    else:  # fall back to IQ-TREE (house standard); epa-ng later reads the fitted model from ref.iq.iqtree
         iq = _which("iqtree3", PHYLO_BIN) or _which("iqtree", PHYLO_BIN) or _which("iqtree2", PHYLO_BIN)
         if not iq:
             sys.exit("neither raxml-ng nor iqtree found")
@@ -1109,9 +1109,18 @@ def cmd_build_ref(a):
         mset = "GTR" if not prot else "LG,WAG,JTT"
         cmd = [iq, "-s", ref_aln, "-m", "MFP", "-mset", mset, "-B", str(max(1000, a.bootstrap)),
                "-T", str(a.threads), "-seed", "12345", "-redo", "-pre", pre]
-        sys.stdout.write(("[build-ref] iqtree ML tree (raxml-ng absent; epa-ng will re-evaluate model)…") + "\n")
+        if not prot:
+            # epa-ng's IQ-TREE model reader understands +I and +G only; a FreeRate (+R) pick would be
+            # read with no rate heterogeneity at all. Keep ModelFinder to rate models epa-ng can read.
+            cmd[cmd.index("-mset") + 2:cmd.index("-mset") + 2] = ["-mrate", "E,I,G,I+G"]
+        sys.stdout.write(("[build-ref] iqtree ML tree (raxml-ng absent; epa-ng reads the fitted model from ref.iq.iqtree)…") + "\n")
         if subprocess.call(cmd, env=_env(PHYLO_BIN, a.threads)) != 0:
             sys.exit("iqtree failed")
+        from mamey.phylo_evidence import require_complete_iqtree as require_complete
+        try:
+            require_complete(pre, "build-ref")   # a .treefile alone means interrupted
+        except ValueError as exc:
+            sys.exit(str(exc))
         shutil.copy(pre + ".treefile", ref_tree)
         bestmodel = ""
     with open(os.path.join(outdir, "MODEL"), "w") as fh:
@@ -1230,6 +1239,35 @@ def _assert_epa_executable_unchanged(epa, admission):
                  "retain any partial placement outputs for review")
 
 
+def _epa_model_arg(refpkg, ref_prot):
+    """The --model value for epa-ng, or a typed refusal.
+
+    epa-ng does not optimize model parameters. Given a bare name such as GTR+G it places with
+    default rates and frequencies (epa-ng src/main.cpp). It needs fitted parameters: a raxml-ng
+    bestModel, or an IQ-TREE report it parses itself (src/util/parse_model.hpp, +I and +G only).
+    """
+    bm = os.path.join(refpkg, "ref.bestModel")
+    if os.path.exists(bm):
+        return bm
+    iq = os.path.join(refpkg, "ref.iq.iqtree")
+    if os.path.exists(iq):
+        sub = next((l.split(":", 1)[1].strip() for l in open(iq, encoding="utf-8", errors="replace")
+                    if l.startswith("Model of substitution:")), "")
+        if sub.startswith("GTR"):
+            if re.search(r"\+R\d*", sub):
+                sys.exit(f"EPA_MODEL_NOT_REPRESENTABLE: {iq} selected {sub}; epa-ng reads +I and +G only and "
+                         f"would drop the FreeRate (+R) component. Rebuild the refpkg with this version of "
+                         f"build-ref (it limits ModelFinder to E,I,G,I+G) or with raxml-ng.")
+            return iq
+    model = open(os.path.join(refpkg, "MODEL")).read().strip() if \
+        os.path.exists(os.path.join(refpkg, "MODEL")) else ""
+    if not ref_prot and "{" not in model:
+        sys.exit(f"EPA_MODEL_UNFITTED: {refpkg} has no ref.bestModel or ref.iq.iqtree, and MODEL "
+                 f"({model or 'missing'}) carries no fitted parameters. epa-ng would place with default "
+                 f"rates. Rebuild the refpkg.")
+    return model or "LG+G"
+
+
 def cmd_place(a):
     threads = _positive_threads(getattr(a, "threads", 1))
     prov = json.load(open(os.path.join(a.refpkg, "_provenance.json")))
@@ -1243,6 +1281,7 @@ def cmd_place(a):
         sys.exit("epa-ng not found; install the placement env first (see docs/INSTALL.md)")
     epa = os.path.realpath(os.path.abspath(epa))
     epa_admission = _epa_version_admission(epa, threads)
+    epa_model = _epa_model_arg(a.refpkg, ref_prot)
     ref_aln = os.path.join(a.refpkg, "ref.aln.fasta")
     ref_tree = os.path.join(a.refpkg, "ref.tree")
     outdir = a.outdir or os.path.join(a.refpkg, "..", "placements")
@@ -1278,13 +1317,7 @@ def cmd_place(a):
     q_aln = _align_queries(mafft, epa, ref_aln, a.query, outdir, a.fragmentary, threads=threads)
 
     cmd = [epa, "--redo", "--threads", str(threads), "--tree", ref_tree, "--ref-msa", ref_aln, "--query", q_aln, "--outdir", outdir]
-    bm = os.path.join(a.refpkg, "ref.bestModel")
-    if os.path.exists(bm):                       # raxml-ng bestModel = optimized params epa-ng needs
-        cmd += ["--model", bm]
-    else:                                        # iqtree fallback: give epa-ng the generic model to optimize
-        model = open(os.path.join(a.refpkg, "MODEL")).read().strip() if \
-            os.path.exists(os.path.join(a.refpkg, "MODEL")) else "GTR+G"
-        cmd += ["--model", model]
+    cmd += ["--model", epa_model]                # fitted parameters only; see _epa_model_arg
     sys.stdout.write(("[place] epa-ng placing queries onto the fixed reference backbone…") + "\n")
     _assert_epa_executable_unchanged(epa, epa_admission)
     if subprocess.call(cmd, env=_env(PLACEMENT_BIN, threads)) != 0:

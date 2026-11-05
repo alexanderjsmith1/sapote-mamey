@@ -153,7 +153,11 @@ A run is `COMPLETE` only after all of the following are recorded:
 5. membership/leaf denominators and exclusion reasons are reported;
 6. portable exports exist and have checksums;
 7. the handoff names the exact files a second agent should read;
-8. all warnings remain visible.
+8. all warnings remain visible;
+9. for an IQ-TREE build: `<prefix>.contree` exists, `<prefix>.treefile` carries support labels, and
+   `<prefix>.log` says "Total wall-clock time". A `.treefile` alone means the run was interrupted.
+   `build_mlsa.py`, `domain_tree` and `phylo_place.py build-ref` stop with
+   `IQTREE_INCOMPLETE (<launcher>): <status>; <reasons>` when any part is missing.
 
 Zero exit is necessary, not sufficient for a requested figure: `phylo_place.py report`
 can return zero while holding a figure, skipping a caption or omitting an unavailable

@@ -173,7 +173,7 @@ before you run doctor. Then run:
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
-python -B mamey_run.py start --no-doctor
+python mamey_run.py start --no-doctor
 python mamey_run.py doctor
 ```
 
@@ -438,7 +438,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.462 / engine 1.9.178 · build 20261102v97462a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.463 / engine 1.9.179 · build 20261104v97463a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

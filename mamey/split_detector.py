@@ -39,7 +39,18 @@ def _profile(gbk):
                               "lt":f.qualifiers.get("locus_tag",["?"])[0],"seq":tr})
         bio=[g for g in genes if g["dom"]]
         if not bio: return None
-        return {"L":L,"prod":prod,"genes":sorted(genes,key=lambda g:g["s"]),"bio":bio}
+        # v9.7.463: a region GBK is a slice of its contig, so a gene near the slice end is not
+        # near the contig end. antiSMASH records the truth: /contig_edge on the region feature
+        # and "Orig. start" in the antiSMASH-Data comment. None = not an antiSMASH region GBK.
+        edges=[q for f in rec.features if f.type=="region" for q in f.qualifiers.get("contig_edge",[])]
+        contig_edge=None if not edges else any(str(e).strip().lower()=="true" for e in edges)
+        orig=(rec.annotations.get("structured_comment") or {}).get("antiSMASH-Data") or {}
+        try:
+            orig_start=int(str(orig.get("Orig. start")).strip())
+        except (TypeError, ValueError):
+            orig_start=None
+        return {"L":L,"prod":prod,"genes":sorted(genes,key=lambda g:g["s"]),"bio":bio,
+                "contig_edge":contig_edge,"orig_start":orig_start}
 
 def _terminal_pks_gene(p, edge_bp=3000):
     """Return the PKS/NRPS gene that sits AT a contig terminus (the split point), or None."""
@@ -48,6 +59,14 @@ def _terminal_pks_gene(p, edge_bp=3000):
             continue
         at_start = g["s"] <= edge_bp
         at_end   = (p["L"]-g["e"]) <= edge_bp
+        if p.get("contig_edge") is not None:
+            # Only a region antiSMASH marks as touching the contig edge can hold a terminus. Its
+            # slice start is the contig start only when it begins at base 0. Its slice end can be
+            # the contig end either way (a region may cover a whole short contig), and the contig
+            # length is not in a region GBK, so the slice end still counts on an edge region.
+            if not p["contig_edge"]:
+                return None
+            at_start = at_start and p.get("orig_start") in (0, None)
         if at_start or at_end:
             return {"gene":g, "which":"start" if at_start else "end",
                     "dist": min(g["s"], p["L"]-g["e"])}

@@ -157,7 +157,9 @@ def resolve_antismash_zip(strain: str, root: str = ".", flavor: str | None = Non
         return next(iter(canon.values())) if len(digests) == 1 else None
     # Package-embedded fallback: newest sealed package first, never alphabetical —
     # the old sorted-by-path walk returned the OLDEST seal (v9.7.335 beat v9.7.339).
-    fallback = [p for p in _package_zip_index(root) if strain in os.path.basename(p)]
+    # v9.7.463: the strain must be the file's leading token. `strain in basename` let a short ID
+    # match a longer one (TST-1 inside TST-10_...) and return another genome's package.
+    fallback = [p for p in _package_zip_index(root) if _names_strain(os.path.basename(p), strain)]
     for path in sorted(set(fallback), key=lambda p: (_package_version_key(p), p), reverse=True):
         if zip_has_antismash_json(path):
             return path
@@ -254,6 +256,17 @@ _ESTATE_CACHE: dict = {}
 def clear_strain_data_cache() -> None:
     """Drop the cached package-home walk (call after adding/moving package ZIPs)."""
     _ESTATE_CACHE.clear()
+
+
+def _names_strain(basename: str, strain: str) -> bool:
+    """True when *basename* is ``<strain>.zip`` or starts with ``<strain>_`` / ``<strain>.``.
+
+    Package and result ZIP names lead with the strain and then a separator; a longer strain
+    that merely starts with the same characters (``TST-10`` for ``TST-1``) does not match."""
+    if not strain or not basename.startswith(strain):
+        return False
+    rest = basename[len(strain):]
+    return rest == ".zip" or rest[:1] in ("_", ".")
 
 
 def _package_zip_index(root: str) -> list[str]:

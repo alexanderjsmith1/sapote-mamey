@@ -58,6 +58,14 @@ Say "private among placed records" and give both numbers. Never compute a privat
 **Family ids differ between two runs of the same input.**
 Family ids can differ. They are local to one database and run. Join on the source run ID, the cutoff and the complete locus identity. Never use local family IDs or the FAM labels on a figure as identity across runs.
 
+**A widget or figure stops with `RUN_AMBIGUOUS`, `RUN_NOT_IN_DB` or `RUN_UNFINISHED`.**
+One database can hold several BiG-SCAPE runs, and each run writes its own family rows. The matrix and
+clinker widgets, `tools/bigscape_clinker_html.py` and `tools/bigscape_family_figures.py` read one run.
+`RUN_AMBIGUOUS` means more than one finished run is present: pass `--run-id` with the run you
+reviewed. `RUN_NOT_IN_DB` means that run has no families here. `RUN_UNFINISHED` means the run has no
+`end_time`: it was interrupted after writing some families, so its families are not a result. Rerun it,
+or choose a finished run.
+
 **The same accession appears under two layers.**
 The staging copied one genome into two layers. An example is a type strain that is also in a second reference set
 under a different assembly. Check the staging manifest by sha256 before the run. If you miss it, the family verdicts

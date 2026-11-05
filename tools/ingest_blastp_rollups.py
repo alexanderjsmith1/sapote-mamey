@@ -41,6 +41,9 @@ PATTERNS = (
     # nr_rid_runner single-protein ClusteredNR lanes.  The suffix is the durable
     # channel signal; lane names may change, but the runner owns this filename.
     "Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_*/results/**/*_blastp_top10_clustered.csv",
+    # nr_rid_runner single-protein full-nr lanes (RID_DATABASE=nr).  Same runner, so the
+    # suffix again owns the channel; these CSVs carry no channel column.
+    "Blastp RESULTS/_STRAINGAP_SINGLE_NR_*/results/**/*_blastp_top10.csv",
 )
 EXCLUDE_STRAINS = {
     value.strip()
@@ -66,6 +69,10 @@ def _implied_channel(path: Path) -> tuple[str, str] | None:
     """Return suffix-owned channel metadata for runner CSVs that omit it."""
     if path.name.endswith("_blastp_top10_clustered.csv"):
         return "ncbi_clustered_nr", "nr_cluster_seq"
+    if path.name.endswith("_blastp_top10.csv") and any(
+        part.startswith("_STRAINGAP_SINGLE_NR_") for part in path.parts
+    ):
+        return "ncbi_nr", "nr"
     return None
 
 

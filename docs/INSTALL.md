@@ -65,6 +65,14 @@ it, then run doctor again.
 The startup command also runs doctor. To see only the version and workflow,
 use `python mamey_run.py start --no-doctor`.
 
+### Bytecode refusal
+
+Tests and `tools/` scripts can leave a `mamey/__pycache__` the launcher cannot trust.
+A normal launch clears it and recompiles. With `python -B` or `PYTHONDONTWRITEBYTECODE=1`,
+the launcher leaves the tree alone and stops with `BYTECODE_WRITES_DISABLED`. In a working
+copy, run the same command once without `-B`, or add `--purge-bytecode` to clear the cache
+first. Do not do this inside a sealed release folder; use a fresh extraction instead.
+
 ## 5. Inspect and run an input
 
 Continue with [Your first run](reader/01_FIRST_RUN.md), using the same environment.

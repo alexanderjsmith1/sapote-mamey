@@ -185,6 +185,15 @@ def _strain_compound_names(
     candidates = sorted(pkg.glob("*_4_triage_board.csv"))
     if not candidates:
         return set()
+    if len(candidates) > 1:
+        # v9.7.463: never pick the first of two boards silently; the names could be another run's.
+        if load_errors is not None:
+            load_errors.append({
+                "stage": "read_triage_compound_names",
+                "error_type": "AMBIGUOUS_TRIAGE_BOARDS",
+                "message": ", ".join(c.name for c in candidates),
+            })
+        return set()
     names: set = set()
     try:
         with open(candidates[0], newline="", encoding="utf-8") as _f:

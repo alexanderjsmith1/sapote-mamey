@@ -75,8 +75,9 @@ def verdicts_payload(strain: str, triage: list,
             "ab_score": t.ab_score,
             "af_score": t.af_score,
             "novelty_score": t.novelty_score,
-            # W26: a coarse similarity band travels instead of a false-precise number.
-            "kcb_similarity_band": similarity_band(kcb_cumulative),
+            # W26: a coarse similarity band travels instead of a false-precise number. The band
+            # needs antiSMASH's percent similarity; the cumulative BLAST score is not a percent.
+            "kcb_similarity_band": similarity_band(getattr(t, "kcb_similarity_pct", None)),
             # C1 v9.7.58: concordance verdict wired from SourceScanBundle.concordance_per_bgc
             "concordance_verdict": getattr(t, "concordance_verdict", "") or "",
             # v9.7.62: MATURATION_GAP when RiPP/nucleoside BGC has no nearby maturation genes

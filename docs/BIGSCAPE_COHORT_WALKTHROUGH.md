@@ -69,11 +69,13 @@ can already have family rows.
 
 ## Draw selected families
 
-Use a database with one unambiguous completed run; this legacy batch has no
-run-ID filter:
+Pass the same completed run ID. The figure tool reads one run: it refuses an
+interrupted run, and it refuses a database with more than one finished run unless
+`--run-id` names one:
 
 ```bash
 python tools/bigscape_family_figures.py --db reviews/EXAMPLE-bigscape/out/EXAMPLE.db \
+  --run-id 1 \
   --gbk-dir reviews/EXAMPLE-bigscape/gbk_input \
   --identity-glob 'runs/EXAMPLE/package/*_2_inventory.csv' \
   --out reviews/EXAMPLE-bigscape/figures \

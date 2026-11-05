@@ -1,7 +1,7 @@
-# How to Use Sapote-Mamey v9.7.462
+# How to Use Sapote-Mamey v9.7.463
 
 The [README](../README.md) is the human landing page. For orientation, run
-`python -B mamey_run.py start --no-doctor` from the extracted bundle root for the current
+`python mamey_run.py start --no-doctor` from the extracted bundle root for the current
 command sequence. A plain `start` also runs `doctor`; first read its
 [reserved write-probe boundary](INSTALL.md#doctor-scope-and-write-probe) and use a writable
 working installation, leaving an occupied `runs/_doctor_probe` untouched. The [Quick Guide](GUIDE/02_Quick_Guide.md)

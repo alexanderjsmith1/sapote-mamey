@@ -434,3 +434,60 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+# --- IQ-TREE completion -------------------------------------------------------------------
+# A run is complete only when <prefix>.contree exists, <prefix>.treefile carries numeric support
+# labels, and <prefix>.log says "Total wall-clock time". A .treefile alone means the run was
+# interrupted. Shared by tools/gtotree_execution_gate.py and every IQ-TREE launcher.
+IQTREE_WALL_CLOCK_MARKER = "Total wall-clock time"
+# ")95:" / ")95/99:" / ")0.98:" — a numeric label directly after a close-paren = support present.
+IQTREE_SUPPORT_LABEL_RE = re.compile(r"\)\s*[0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?\s*:")
+
+
+def iqtree_support_node_count(tree_text):
+    return len(IQTREE_SUPPORT_LABEL_RE.findall(tree_text))
+
+
+def iqtree_prefix_completion(prefix):
+    """Never raises for a missing/partial run.
+
+    Returns ``{"status": "COMPLETE" | "INTERRUPTED" | "MISSING", "prefix", "reasons": [...],
+    "support_nodes", "last_log_line", "treefile", "contree", "log"}``.
+    """
+    prefix = Path(prefix)
+    treefile = Path(str(prefix) + ".treefile")
+    contree = Path(str(prefix) + ".contree")
+    log = Path(str(prefix) + ".log")
+    reasons, support_nodes, last_line = [], 0, ""
+    if not treefile.is_file() or treefile.stat().st_size == 0:
+        reasons.append(f"TREEFILE_MISSING: {treefile}")
+    else:
+        support_nodes = iqtree_support_node_count(treefile.read_text(encoding="utf-8", errors="replace"))
+        if support_nodes == 0:
+            reasons.append(f"TREEFILE_NO_SUPPORT: {treefile.name} has no numeric internal-node labels "
+                           "(ML topology written before the bootstrap finished)")
+    if not contree.is_file() or contree.stat().st_size == 0:
+        reasons.append(f"CONTREE_MISSING: {contree} absent or empty (bootstrap did not finish)")
+    if not log.is_file():
+        reasons.append(f"LOG_MISSING: {log}")
+    else:
+        lines = [ln.rstrip("\n") for ln in log.read_text(encoding="utf-8", errors="replace").splitlines() if ln.strip()]
+        last_line = lines[-1] if lines else ""
+        if not any(IQTREE_WALL_CLOCK_MARKER in ln for ln in lines):
+            reasons.append(f"LOG_NO_WALLCLOCK: '{IQTREE_WALL_CLOCK_MARKER}' not in {log.name}; last line: {last_line!r}")
+    if not reasons:
+        status = "COMPLETE"
+    elif any(r.startswith("TREEFILE_MISSING") for r in reasons):
+        status = "MISSING"
+    else:
+        status = "INTERRUPTED"
+    return {"status": status, "prefix": str(prefix), "reasons": reasons, "support_nodes": support_nodes,
+            "last_log_line": last_line, "treefile": str(treefile), "contree": str(contree), "log": str(log)}
+
+
+def require_complete_iqtree(prefix, who):
+    """Raise ``ValueError("IQTREE_INCOMPLETE: ...")`` unless the run at ``prefix`` is complete."""
+    res = iqtree_prefix_completion(prefix)
+    if res["status"] != "COMPLETE":
+        raise ValueError(f"IQTREE_INCOMPLETE ({who}): {res['status']}; " + "; ".join(res["reasons"]))
+    return res

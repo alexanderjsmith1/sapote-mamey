@@ -439,8 +439,11 @@ def _run_pipeline_worker(genomes, out, seeds_dir, bins, threads, log, say, *,
     _sh([bins["iqtree"], "-s", sm, "-p", partf, "-m", "MFP",
          "-B", "1000", "-alrt", "1000", "-seed", "12345", "-T", threads,
          "-redo", "-pre", pre], log=log)
-    if not os.path.isfile(pre + ".treefile") or os.path.getsize(pre + ".treefile") == 0:
-        raise ValueError("OUTPUT_INVALID: IQ-TREE produced no nonempty treefile")
+    from mamey.phylo_evidence import require_complete_iqtree as require_complete
+    try:
+        require_complete(pre, "build_mlsa")   # a .treefile alone means interrupted
+    except ValueError as exc:
+        raise ValueError(f"OUTPUT_INVALID: {exc}") from exc
     say(f"TREE_OK -> {pre}.treefile")
     say("  now run: python tools/signoff_check.py " + pre + ".treefile")
 

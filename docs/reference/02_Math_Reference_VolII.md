@@ -2,7 +2,7 @@
 
 ### Engine subsystems: triggers, architecture, KCB/RiQ, compound class, rescue, and enrichment
 
-**Version of record:** Mamey engine v1.9.178 · bundle v9.7.462 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
+**Version of record:** Mamey engine v1.9.179 · bundle v9.7.463 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volume I — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI, completeness) and *The Plumbing Reference* (CLI, workbook, figures, packaging).
 **Status:** Historical methods reference with selected current-source corrections. Named section versions and original calibration claims retain their recorded scope; the packaging version above does not certify every formula against the selected source. Corrections below are clause-scoped, with remaining owner/source and scientific evidence checks unresolved. Treat code identifiers as locators, not proof of current wiring or scientific validity.
@@ -1023,7 +1023,7 @@ None               → UNKNOWN
 
 ### 5. `precision.py` — KCB Similarity Bands (W26)
 
-**`similarity_band(score)`** — bins a KCB cumulative score into:
+**`similarity_band(score)`** — bins a KCB percent similarity (0–100) into:
 
 | Band | Score range |
 |---|---|
@@ -1031,7 +1031,11 @@ None               → UNKNOWN
 | moderate | 40 ≤ score < 70 |
 | low | 0 < score < 40 |
 | none | score ≤ 0 |
-| unresolved | None or failed numeric conversion |
+| unresolved | None, failed numeric conversion, or a value above 100 |
+
+The KCB cumulative score is a sum of BLAST scores, not a percentage. Real values run into the
+thousands, so it must not be binned with these cut-offs. `serialize.py` passes
+`kcb_similarity_pct`; until that field is filled, the band reads `unresolved`.
 
 These bands describe finite numeric inputs. The helper bins the supplied value
 directly without normalization or a finiteness check: NaN falls through to `none`,

@@ -138,17 +138,32 @@ def pfam_names(names_tsv=None, hmm=None):
         with open(hmm, errors="replace") as fh:
             for line in fh:
                 if line.startswith("NAME "):
-                    name = line.split(None, 1)[1].strip()
+                    fields = line.split(None, 1)
+                    if len(fields) != 2 or not fields[1].strip():
+                        raise ReportError(f"{hmm}: malformed Pfam NAME line")
+                    name = fields[1].strip()
                 elif line.startswith("ACC ") and name:
-                    names[line.split(None, 1)[1].strip().split(".")[0]] = name
+                    fields = line.split(None, 1)
+                    if len(fields) != 2 or not fields[1].strip():
+                        raise ReportError(f"{hmm}: malformed Pfam ACC line")
+                    names[fields[1].strip().split(".")[0]] = name
                     name = None
         return names
     return {}
 
 
+def _pfam_name(names, accession, source_supplied):
+    """Separate an absent name source from a missing entry in a supplied mapping."""
+    value = names.get(accession.split(".")[0])
+    if isinstance(value, str) and value.strip():
+        return value
+    return "Pfam name not found in supplied mapping" if source_supplied else "Pfam name not supplied"
+
+
 def build(genomes, aliases=None, names=None, group_order=None):
     """Tables only (no drawing): calls, regions, per-genome summary."""
     from gap_rescue_locus_map import _gecco_contig_map
+    source_supplied = names is not None
     names = names or {}
     alias = {(r["strain"], r["contig"], r["region"]): r["bgc_alias"] for r in (aliases or [])}
     seen = set()
@@ -200,7 +215,7 @@ def build(genomes, aliases=None, names=None, group_order=None):
                 gecco_type=c["type"] or "Unknown", drawn_type=gecco_type(c["type"]),
                 max_p=c["max_p"], average_p=c["average_p"], **{k: c.get(k, "") for k in PROB_COLS},
                 n_genes=len([p for p in (c.get("proteins") or "").split(";") if p]),
-                pfam_domains="; ".join(f"{d} ({names.get(d.split('.')[0], 'not in the supplied Pfam release')})" + (f" x{n}" if n > 1 else "")
+                pfam_domains="; ".join(f"{d} ({_pfam_name(names, d, source_supplied)})" + (f" x{n}" if n > 1 else "")
                                        for d, n in sorted(dcount.items())),
                 state="OVERLAPS_REGION" if hit else "NO_REGION_OVERLAP",
                 overlapping_regions=" | ".join(r["identity"] for r in hit),
@@ -524,8 +539,22 @@ def main(argv=None):
     try:
         genomes = read_tsv(a.genomes, ["strain", "group", "antismash_zip", "gecco_clusters"])
         aliases = read_tsv(a.aliases, ["strain", "contig", "region", "bgc_alias"]) if a.aliases else None
-        names = pfam_names(a.pfam_names, a.pfam_hmm)
+        # Preserve the existing TSV-over-HMM precedence while recording what was used.
+        name_kind = "tsv" if a.pfam_names else "hmm" if a.pfam_hmm else "none"
+        name_path = a.pfam_names if a.pfam_names else a.pfam_hmm
+        name_digest = sha256(name_path) if name_path else None
+        names = pfam_names(a.pfam_names, a.pfam_hmm) if name_path else None
+        if name_path and sha256(name_path) != name_digest:
+            raise ReportError("Pfam name source changed during parsing")
         calls, regions, summary, order = build(genomes, aliases, names, a.group_order.split(",") if a.group_order else None)
+        if name_path and sha256(name_path) != name_digest:
+            raise ReportError("Pfam name source changed during report preparation")
+        name_source = dict(kind=name_kind, path=name_path, sha256=name_digest,
+                           state=("not_supplied" if not name_path else
+                                  "mapping_loaded" if names else "mapping_empty"),
+                           entries=len(names) if names else 0,
+                           ignored_hmm=a.pfam_hmm if a.pfam_names and a.pfam_hmm else None,
+                           release=None)
     except (ReportError, OSError, zipfile.BadZipFile) as e:
         _OUT.error(f"refused: {e}")
         return 2
@@ -566,14 +595,24 @@ def main(argv=None):
                 if not sizes or smallest[0] < MIN_PT - 0.05:
                     _OUT.error(f"refused: {p.name} has text below {MIN_PT} pt ({smallest})")
                     return 2
+    if name_path:
+        try:
+            if sha256(name_path) != name_digest:
+                raise ReportError("Pfam name source changed before receipt")
+        except (OSError, ReportError) as e:
+            _OUT.error(f"refused: {e}")
+            return 2
     inputs = {}
     for g in genomes:
         for k in ("antismash_zip", "gecco_clusters"):
             inputs[g[k]] = sha256(g[k])
-    for p in (a.genomes, a.aliases, a.pfam_names):
+    for p in (a.genomes, a.aliases):
         if p:
             inputs[p] = sha256(p)
+    if name_path:
+        inputs[name_path] = name_digest
     receipt = dict(tool=TOOL, schema="sapote.gecco-cohort-report.v1", inputs_sha256=inputs, pfam_hmm=a.pfam_hmm,
+                   pfam_name_source=name_source,
                    text_check=locals().get("text_check", {}), min_text_pt=MIN_PT,
                    group_order=order, genomes=len(genomes), calls=len(calls), regions=len(regions),
                    overlap_rule="a call and a region overlap when they share at least one base on the same contig",

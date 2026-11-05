@@ -416,13 +416,25 @@ band satisfying both limits wins:
 Report raw region counts, weighted counts and these tiers together.
 The core corrected-count definition explains the weighting and its limits.
 
+## Evidence-ledger and identity states
+
+| State | Where | Meaning |
+|---|---|---|
+| `MODULE_ABSENT` | tab-reconcile ledger | The antiSMASH module's output is missing from the record. Nothing was searched; this is not a negative result. |
+| `NOT_RUN_LOW_GC` | tab-reconcile ledger, TTA row | antiSMASH skipped the TTA codon scan because genome GC is below its threshold. An empty list here is not "no TTA codons". |
+| `NO_RESULTS_FOR_REGION` | tab-reconcile ledger, ClusterBlast rows | The ClusterBlast JSON has no entry for the requested region. Another region's entry is never used in its place. |
+| `IDENTITY_HOLD` | tab-reconcile | The requested region is not on the chosen record. The command stops instead of reporting another region's evidence. |
+| `AMBIGUOUS_TRIAGE_BOARDS` | seal-package, claim-safety names | The package holds more than one `*_4_triage_board.csv`. Keep exactly one board per package. |
+| `RUN_AMBIGUOUS` / `RUN_NOT_IN_DB` / `RUN_UNFINISHED` | BiG-SCAPE widgets and figures | The database holds more than one finished run, the named run has no families, or the run has no `end_time`. Pass `--run-id` with a finished run. |
+
 ---
 
 ## Key metrics
 
 | Term | Meaning |
 |---|---|
-| KCB cumulative score | Sum of KnownClusterBlast protein hit scores vs MIBiG; higher = closer match to a known cluster |
+| KCB cumulative score | Sum of KnownClusterBlast protein hit scores vs MIBiG. It grows with the number and length of matched proteins, so it is not a percent similarity and does not compare across clusters of different size. antiSMASH records percent similarity as a separate field. |
+| KCB similarity band | high / moderate / low / none from a percent similarity (70 and 40 cut-offs); `unresolved` when no percent similarity is available |
 | KCB protein hits | Number of proteins with significant KCB hits; more hits = more complete match |
 | MIBiG | Minimum Information about a Biosynthetic Gene cluster database; reference collection of known BGCs |
 | Corrected BGC count | Interior + 0.5 × Edge + 0.25 × Full-contig; the defensible BGC inventory figure |
@@ -708,7 +720,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.178.*
+*Maintenance note: version-sync marker for the installed engine 1.9.179.*
 
 ---
 

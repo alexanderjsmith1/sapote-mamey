@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.462 · engine 1.9.178 · build 20261102v97462a
+# Current Docs Index — v9.7.463 · engine 1.9.179 · build 20261104v97463a
 
 Each listed entry starts with its status. The status is `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted page may be current or historical; check its banner and the [maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md).
 
@@ -43,6 +43,7 @@ Other assistants need AGENTS through their supported instruction mechanism.
 - `current` [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
 
 - `current` [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and integration roles.
+- `current` [TriMap runs](docs/TRIMAP_RUNS.md): TriMap and t-SNE installation, smoke test, the numba threading-layer crash, duplicate points and the settings to reuse.
 - `reference` [JGI public reference context](docs/SMC_PUBLIC_REFERENCE_CONTEXT.md): historical IMG-ABC provenance and optional manual SMC references; automated retrieval is not implemented.
 - `current` [Companion run contracts](docs/COMPANION_RUN_CONTRACTS.md): planner, runner and placement receipts and writes.
 - `current` [Multi-Cohort Comparison Toolkit](deliverable_tools/README.md): named roster/dossier/cohort tools, per-tool dependencies and writes.
@@ -89,6 +90,7 @@ Other assistants need AGENTS through their supported instruction mechanism.
 - `current` [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file. Each deck has the complete region inventory and gene tables. Selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix. The deck also has protein PCoA panels per strain.
 - `current` [Local 16S database](docs/LOCAL_16S_DATABASE.md): build the NCBI 16S type-strain BLAST database fully or for chosen genera, the optional SQLite store, and the shared lookup every 16S tool uses.
 - `current` [Isolate neighborhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
+- `current` [Green-algal and cyanobacterial phylogeny](docs/PHYLO_ALGAL_CYANO_WORKFLOW.md): lineage-specific planning and evidence holds.
 - `current` [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
 - `current` [Figure house rules](docs/FIGURE_HOUSE_RULES.md): the rules every figure meets (format, caption and methods, page wording, material labels, provenance) and what checks each one.

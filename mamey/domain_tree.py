@@ -217,6 +217,11 @@ def build_tree(staged_fasta: Path | str, outdir: Path | str, approved_by: str,
     pre = str(outdir / (Path(staged_fasta).stem + ".iq"))
     run(["iqtree", "-s", str(aln), "-m", "MFP", "-B", "1000", "-T", str(threads),
          "-seed", "12345", "-redo", "-pre", pre])
+    from .phylo_evidence import require_complete_iqtree as require_complete
+    try:
+        require_complete(pre, "domain_tree")   # a .treefile alone means interrupted
+    except ValueError as exc:
+        raise DomainTreeError(str(exc)) from exc
     return pre + ".treefile"
 
 

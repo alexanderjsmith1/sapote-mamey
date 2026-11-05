@@ -2,13 +2,13 @@
   "counts": {
     "command": 119,
     "companion": 22,
-    "document": 560,
+    "document": 562,
     "generated": 21,
     "optional-hook": 8,
-    "tool": 562
+    "tool": 567
   },
   "document_lifecycles": {
-    "CURRENT_NAVIGATION_DECLARED": 139,
+    "CURRENT_NAVIGATION_DECLARED": 141,
     "ENGINEERING_RECORD": 3,
     "GENERATED_OR_MANAGED_SURFACE": 22,
     "OPTIONAL_GUIDE": 4,
@@ -17,9 +17,9 @@
   },
   "inputs": [
     {
-      "bytes": 21582,
+      "bytes": 21888,
       "path": "CURRENT_DOCS_INDEX.md",
-      "sha256": "7823a88fa30806524a56b334992226bc440d8ca6b641c0dc77d2ca0a6c978414"
+      "sha256": "4030247ac874a725e8c240c3d58ffd17d863eec6db1574b82de22f7c88c9c76d"
     },
     {
       "bytes": 8058,
@@ -34,32 +34,32 @@
     {
       "bytes": 15107,
       "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-      "sha256": "43ef22f7f57c7d0069892bced852862d287e4cdc0e2543e75955ae10111e2243"
+      "sha256": "159fc5a34f4f33be6f70e8d206fbc8ed6d7b26107cc4b40215a9c2d6fc9e58f1"
     },
     {
-      "bytes": 68091,
+      "bytes": 69560,
       "path": "docs/GLOSSARY.md",
-      "sha256": "f81e741642d37969816d47e616337f90f64f0470f6e4af8ff66bcd04dd2a8624"
+      "sha256": "41c3c28f09cb9ad5b14a86414a06479b420b6b2124f226424e6b1494eeb87875"
     },
     {
       "bytes": 7150,
       "path": "docs/GUIDE/01_User_Manual.md",
-      "sha256": "8905d675f7c28fb365a432eb84e1abd466021a33f331e7f8cb15ba7e1e420ff9"
+      "sha256": "1b6fe1e9dfd2f3c298f31ea37c8b1e293f25611950b28c10d935c29859ed0268"
     },
     {
       "bytes": 3181,
       "path": "docs/GUIDE/02_Quick_Guide.md",
-      "sha256": "8531c48c81d2db60778845f1c4f3fdad3c68030bb47df0e8dbbb67c4915e5842"
+      "sha256": "cfaaf4824b2cb18e367fff5fa2b0ae01f13b74ece721079fff6afbe3082318be"
     },
     {
       "bytes": 41456,
       "path": "docs/GUIDE/06_Concepts_QandA.md",
-      "sha256": "ebd8ce48361f112c02c023b8d7decb1cf2b38c4c74cf41c16d380f54ebc855c9"
+      "sha256": "63aa014ed1ea1e791e6f57fa95d7510ccc3c5b184ab5d5e9161361edc6c6c858"
     },
     {
-      "bytes": 7602,
+      "bytes": 8124,
       "path": "docs/PHYLO_PLACEMENT_WORKFLOW.md",
-      "sha256": "de7df6abacc6aaa2801cab3a3b39fe5e0912d1fc5d416174652c6d81fbef7109"
+      "sha256": "445cc113139beec2c54c57405d8ca7d8fac7b2e433821c48bfaf1bba28afe168"
     },
     {
       "bytes": 4877,
@@ -2395,9 +2395,9 @@
       "path": "CHANGELOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 87436,
+        "bytes": 91963,
         "path": "CHANGELOG.md",
-        "sha256": "5df23c2f42546a97b133861a4bec863cbbf7f9fa2a3a780cc0e4353564fa5fc2"
+        "sha256": "f58ba4540e44f28a6768a81f22178fc67e33bb97c8a9c410b73ab55f770ad44a"
       }
     },
     {
@@ -2439,9 +2439,9 @@
       "path": "CURRENT_DOCS_INDEX.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 21582,
+        "bytes": 21888,
         "path": "CURRENT_DOCS_INDEX.md",
-        "sha256": "7823a88fa30806524a56b334992226bc440d8ca6b641c0dc77d2ca0a6c978414"
+        "sha256": "4030247ac874a725e8c240c3d58ffd17d863eec6db1574b82de22f7c88c9c76d"
       }
     },
     {
@@ -2879,9 +2879,9 @@
       "path": "docs/BIGSCAPE_COHORT_WALKTHROUGH.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3994,
+        "bytes": 4099,
         "path": "docs/BIGSCAPE_COHORT_WALKTHROUGH.md",
-        "sha256": "37a8fe00c33ef129bc938f92be0a5ad1b9ee2087a384ef9287041feeeb28fb09"
+        "sha256": "1c877000499cced78a00dcb761578dee4c94114d4280f9e8b75376cd61516184"
       }
     },
     {
@@ -2895,9 +2895,9 @@
       "path": "docs/BIGSCAPE_FIGURES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6270,
+        "bytes": 6478,
         "path": "docs/BIGSCAPE_FIGURES.md",
-        "sha256": "2fb18ea6e3c17d69db8841c75cfb17544660a43dfa0297c9bf24a612e4811508"
+        "sha256": "708eb7a9ee5acda7dd4b24184e00264215b2b8b8851279233ff37a53d87b6c54"
       }
     },
     {
@@ -3273,7 +3273,7 @@
       "source": {
         "bytes": 7657,
         "path": "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md",
-        "sha256": "6c38e5e6332fdb3eaeab033d070f5e9abaa1817195aae89d69ba9c3fc74c1f42"
+        "sha256": "4d5661f4ce7cd7ee475cbf5e860309243c2b268564fb0f4fed1ec4f2c2f6a412"
       }
     },
     {
@@ -3523,9 +3523,9 @@
       "path": "docs/COMPANION_TOOL_GUIDE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 26170,
+        "bytes": 26240,
         "path": "docs/COMPANION_TOOL_GUIDE.md",
-        "sha256": "d997c91bb9a7dbde686f56f576c9fb8d4d24da72d1b4efb2dfb7190a8e71e774"
+        "sha256": "d223b0197d4c45200dceafc47288019bc378cdfa8321ee046e4980a8150c03f9"
       }
     },
     {
@@ -3835,9 +3835,9 @@
       "path": "docs/ENGINE_LINEAGE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 25819,
+        "bytes": 27162,
         "path": "docs/ENGINE_LINEAGE.md",
-        "sha256": "499ece78d0b603e338ffee216cc5e507e253df7ed8e0e53463fdb651657b877c"
+        "sha256": "7fe7901dc53cc86e23f8c8c6c3797475368a728bd9ecb721801a6975922e302b"
       }
     },
     {
@@ -3965,7 +3965,7 @@
       "source": {
         "bytes": 15107,
         "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-        "sha256": "43ef22f7f57c7d0069892bced852862d287e4cdc0e2543e75955ae10111e2243"
+        "sha256": "159fc5a34f4f33be6f70e8d206fbc8ed6d7b26107cc4b40215a9c2d6fc9e58f1"
       }
     },
     {
@@ -4045,7 +4045,7 @@
       "source": {
         "bytes": 12411,
         "path": "docs/FIGURES_START_HERE.md",
-        "sha256": "eb253dd13ec9c66a94ce7f6b834709d64c72c229983dbaf0baf3df876aa2eb2b"
+        "sha256": "405e0031de434e304c8bd9ce4638dfd5e04242faf694b3abf0213a7d33aaa3be"
       }
     },
     {
@@ -4263,9 +4263,9 @@
       "path": "docs/GLOSSARY.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 68091,
+        "bytes": 69560,
         "path": "docs/GLOSSARY.md",
-        "sha256": "f81e741642d37969816d47e616337f90f64f0470f6e4af8ff66bcd04dd2a8624"
+        "sha256": "41c3c28f09cb9ad5b14a86414a06479b420b6b2124f226424e6b1494eeb87875"
       }
     },
     {
@@ -4345,7 +4345,7 @@
       "source": {
         "bytes": 2148,
         "path": "docs/GUIDE/00_README.md",
-        "sha256": "1440300ac59a75dd4005467ca12846879c13886fb9e07ddfcc69d0fe7b394802"
+        "sha256": "e2ac8b8948dd26991d41961aae5f06becc89f4ba0049ecdd05d477fa9361b941"
       }
     },
     {
@@ -4361,7 +4361,7 @@
       "source": {
         "bytes": 7150,
         "path": "docs/GUIDE/01_User_Manual.md",
-        "sha256": "8905d675f7c28fb365a432eb84e1abd466021a33f331e7f8cb15ba7e1e420ff9"
+        "sha256": "1b6fe1e9dfd2f3c298f31ea37c8b1e293f25611950b28c10d935c29859ed0268"
       }
     },
     {
@@ -4377,7 +4377,7 @@
       "source": {
         "bytes": 3181,
         "path": "docs/GUIDE/02_Quick_Guide.md",
-        "sha256": "8531c48c81d2db60778845f1c4f3fdad3c68030bb47df0e8dbbb67c4915e5842"
+        "sha256": "cfaaf4824b2cb18e367fff5fa2b0ae01f13b74ece721079fff6afbe3082318be"
       }
     },
     {
@@ -4425,7 +4425,7 @@
       "source": {
         "bytes": 41456,
         "path": "docs/GUIDE/06_Concepts_QandA.md",
-        "sha256": "ebd8ce48361f112c02c023b8d7decb1cf2b38c4c74cf41c16d380f54ebc855c9"
+        "sha256": "63aa014ed1ea1e791e6f57fa95d7510ccc3c5b184ab5d5e9161361edc6c6c858"
       }
     },
     {
@@ -4455,9 +4455,9 @@
       "path": "docs/HOW_TO_USE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 5318,
+        "bytes": 5315,
         "path": "docs/HOW_TO_USE.md",
-        "sha256": "bc826f2a7201963d71aa92ba46c3fb3d78b65bd53c8b921220ebc273d56b7d0d"
+        "sha256": "c092cef2ffc06ef1a971eda63471c329029f70a01789bdd1a0aab760a180a236"
       }
     },
     {
@@ -4519,9 +4519,9 @@
       "path": "docs/INSTALL.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4611,
+        "bytes": 5079,
         "path": "docs/INSTALL.md",
-        "sha256": "088746c6b82598e50f76473334e62170a0267d39e64791c6a24cdf4ac9d9b32f"
+        "sha256": "f0bf5bfd894239321d1cb3543dc0eaaae3dfed3637c4fe38c993a7894dc4cd4a"
       }
     },
     {
@@ -4631,9 +4631,9 @@
       "path": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 15030,
+        "bytes": 15387,
         "path": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
-        "sha256": "795cdf864ff1891f3a96bf4d823a97c4fa18655125e3de6f705ac9135d898967"
+        "sha256": "709c39f801117e8ce107464ee6b397e0917e312c6cc7f61a197d9a42b5655187"
       }
     },
     {
@@ -5551,9 +5551,9 @@
       "path": "docs/PHYLOGENETICS_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 14611,
+        "bytes": 14878,
         "path": "docs/PHYLOGENETICS_WORKFLOW.md",
-        "sha256": "a515da6943fee1632746699dd5d89bc2c635672dcc946246cb73508cb1deb66a"
+        "sha256": "b6d3b7de2c61ec6ffb88afc47cfe5a1f1da832a4cadac8a0b87d28e05d03dd79"
       }
     },
     {
@@ -5589,6 +5589,22 @@
       }
     },
     {
+      "id": "document:docs/PHYLO_ALGAL_CYANO_WORKFLOW.md",
+      "kind": "document",
+      "lifecycle": "CURRENT_NAVIGATION_DECLARED",
+      "linked_from_current_index": true,
+      "owner_paths": [
+        "docs/PHYLO_ALGAL_CYANO_WORKFLOW.md"
+      ],
+      "path": "docs/PHYLO_ALGAL_CYANO_WORKFLOW.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 16527,
+        "path": "docs/PHYLO_ALGAL_CYANO_WORKFLOW.md",
+        "sha256": "12619e75b90679219001756bb392893edcf8bdc9db0d532ec8c9036109599f21"
+      }
+    },
+    {
       "id": "document:docs/PHYLO_AUTOPILOT_WORKFLOW.md",
       "kind": "document",
       "lifecycle": "CURRENT_NAVIGATION_DECLARED",
@@ -5615,9 +5631,9 @@
       "path": "docs/PHYLO_FUNGAL_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 3634,
+        "bytes": 7626,
         "path": "docs/PHYLO_FUNGAL_WORKFLOW.md",
-        "sha256": "c3aa91f10838f31052f0155275bd171216aa0ee7ed0e380a455e5e6e3cbeee66"
+        "sha256": "6d6203d8438523abd88c306d06a25cccc47c4fad9bf53d1ece70d45c4e394f60"
       }
     },
     {
@@ -5631,9 +5647,9 @@
       "path": "docs/PHYLO_PLACEMENT_WORKFLOW.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7602,
+        "bytes": 8124,
         "path": "docs/PHYLO_PLACEMENT_WORKFLOW.md",
-        "sha256": "de7df6abacc6aaa2801cab3a3b39fe5e0912d1fc5d416174652c6d81fbef7109"
+        "sha256": "445cc113139beec2c54c57405d8ca7d8fac7b2e433821c48bfaf1bba28afe168"
       }
     },
     {
@@ -5697,7 +5713,7 @@
       "source": {
         "bytes": 6746,
         "path": "docs/PLAYBOOK.md",
-        "sha256": "6c357dffef226d411f7ea5cd83ca8a66d9b76b4e3e39c2dd88ba534d203c5904"
+        "sha256": "5c3cd678f05804a8e3ee5ffa5e61cf5538e19e574fcce75aae6d6d76c5220354"
       }
     },
     {
@@ -5903,9 +5919,9 @@
       "path": "docs/PUBLIC_RELEASE_GUIDE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 7461,
+        "bytes": 7458,
         "path": "docs/PUBLIC_RELEASE_GUIDE.md",
-        "sha256": "49cb969e54270862459fe74085dc35b91bdda72c5d96d319de24615db401eef2"
+        "sha256": "f4cc0de2c2c0a1fdf2be235085ab34eec37acf74d02ad450147cff52cf565d0c"
       }
     },
     {
@@ -6017,7 +6033,7 @@
       "source": {
         "bytes": 12208,
         "path": "docs/RELEASE_CHECKLIST_v9.md",
-        "sha256": "4b8b7e798f17c58d573f51a6c3b919441356a0cdb4496a2121b00f260affff63"
+        "sha256": "8c177842384b978a7c68e72cefc92ed5671feea9485d748d7c641389d8aaaf44"
       }
     },
     {
@@ -6881,7 +6897,7 @@
       "source": {
         "bytes": 272,
         "path": "docs/TIER_NOTE_CODE.md",
-        "sha256": "be84f368375e89e56e6c57bfec20b9788162b9a59a225976dea43c7a8539461a"
+        "sha256": "c6b1463c98e609b48226b18d3b08922bab319b89dbc88ca4bdcd69f596934756"
       }
     },
     {
@@ -6897,7 +6913,7 @@
       "source": {
         "bytes": 7759,
         "path": "docs/TIER_SET_EXPLAINER.md",
-        "sha256": "539b24874bcec926cac28bf781628efc5da3749257ec16629c19723003fd0e72"
+        "sha256": "28f285084c8f3ede734e5174f039034e092ce04302fa915247b1ea2dcf98b776"
       }
     },
     {
@@ -7057,6 +7073,22 @@
       }
     },
     {
+      "id": "document:docs/TRIMAP_RUNS.md",
+      "kind": "document",
+      "lifecycle": "CURRENT_NAVIGATION_DECLARED",
+      "linked_from_current_index": true,
+      "owner_paths": [
+        "docs/TRIMAP_RUNS.md"
+      ],
+      "path": "docs/TRIMAP_RUNS.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 6169,
+        "path": "docs/TRIMAP_RUNS.md",
+        "sha256": "adf743acad2725183f027b2a03e38f6c9a7406f8da850402adb37c302cc4d18a"
+      }
+    },
+    {
       "id": "document:docs/TWO_STAGE_MODULAR_BGC_REPORTS.md",
       "kind": "document",
       "lifecycle": "CURRENT_NAVIGATION_DECLARED",
@@ -7111,9 +7143,9 @@
       "path": "docs/USER_TASK_ROUTER.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4602,
+        "bytes": 5089,
         "path": "docs/USER_TASK_ROUTER.md",
-        "sha256": "bbdef2d12371653fcbf69edb2a09f44e8f44b854673807a4a132c0120aa483c4"
+        "sha256": "f42e2881d47db262b5c592cc69e7eeef4fbec5214606b4a774a34ce49114e3aa"
       }
     },
     {
@@ -7321,7 +7353,7 @@
       "source": {
         "bytes": 7684,
         "path": "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
-        "sha256": "e9bd774d00a429111f2e07946f6bcc889971aacbebccc8ead693eccaa2cf93b0"
+        "sha256": "a05504024296b0559cb22f79fcca16be807bdc6d05b4fa3bd45a3232acf71799"
       }
     },
     {
@@ -10153,7 +10185,7 @@
       "source": {
         "bytes": 35759,
         "path": "docs/reference/01_Math_Reference_VolI.md",
-        "sha256": "fd0287ac12fab4840c64297d223cf31b46208ffaf6737c28b74d8292d4bf4bf5"
+        "sha256": "6384d3e89e8b19baf9ae1a1e3b94a7f719ec9e24b63a9de36e055985e3e2edaa"
       }
     },
     {
@@ -10167,9 +10199,9 @@
       "path": "docs/reference/02_Math_Reference_VolII.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 164107,
+        "bytes": 164392,
         "path": "docs/reference/02_Math_Reference_VolII.md",
-        "sha256": "094f5e54b0974beef7eeb13538d20ee5b5daf5f8e5b6375168c73676b5564fb1"
+        "sha256": "42b7fb7b3ed9e99d3bf736b58e174dd0db06752b13f1b8e12ceba1f190c33eea"
       }
     },
     {
@@ -10185,7 +10217,7 @@
       "source": {
         "bytes": 391,
         "path": "docs/reference/03_Plumbing_Reference.md",
-        "sha256": "3b9dc966209e3d5a44edbaf5f6f69895f6061227e8ff59e28798fdc161787a11"
+        "sha256": "9d97e18de8f111b31b100bd70ff5c961fabb8e0f8a5d7db33f142552c8fa473f"
       }
     },
     {
@@ -10281,7 +10313,7 @@
       "source": {
         "bytes": 7266,
         "path": "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
-        "sha256": "ad27107ffc97f29ba247c0435ccc4eae322ae5ef021102e2c116bf8b2960feb0"
+        "sha256": "c5b0e8abc750fb96cad4c365efcc60c2046d5d65e87468e06fb2ca561b13914b"
       }
     },
     {
@@ -10489,7 +10521,7 @@
       "source": {
         "bytes": 2462,
         "path": "docs/standalone/CHATGPT_BATCH_PROTOCOL.md",
-        "sha256": "dafa06bf99821112693708dd61ffbdb74ee79b10a5bca71b950ad31cd83cd3b3"
+        "sha256": "bf88742fdf9ef36ee107a6b9b771105c711d2bf4e40ebdfd239ebab74d0e41a3"
       }
     },
     {
@@ -10505,7 +10537,7 @@
       "source": {
         "bytes": 3046,
         "path": "docs/standalone/MAMEY_STANDALONE_CHATGPT_README.md",
-        "sha256": "4f5f725581bc38f2bdeba27aad87fe17c28fce67ffbfce08dec84e12063fd969"
+        "sha256": "71704aeaaeba3900975bd5c3b19d737b7c5f1f7104e39215c9937bed78af188a"
       }
     },
     {
@@ -10521,7 +10553,7 @@
       "source": {
         "bytes": 2386,
         "path": "docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
-        "sha256": "74f64ee623206c0207656bd0820298dc5efc5c95de2d7c0b5980ae9fb89f8656"
+        "sha256": "448d8638740fdbea9e6f308b73d3d670f0886b41c6b958354185cdf457602199"
       }
     },
     {
@@ -10537,7 +10569,7 @@
       "source": {
         "bytes": 8417,
         "path": "docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
-        "sha256": "273c91b244647adf5688ad68d042b138cbae012db2b69842b68b214827663c58"
+        "sha256": "f251c8074e95aa74d3d09a0d227d7b33fc6147925d1e70d31ca3e6d7c1093e12"
       }
     },
     {
@@ -10567,9 +10599,9 @@
       "path": "docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 9951,
+        "bytes": 10570,
         "path": "docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md",
-        "sha256": "e20ac95de1c2a1181fac1cfe228f1ae0eb7cc89dadf4ade37251b7e2fe3a5f63"
+        "sha256": "84a62c93232d66edaf062f81ca45557e3b4031ae26bbb06ef0e77806b4ad1aaa"
       }
     },
     {
@@ -10711,9 +10743,9 @@
       "path": "docs/user_guides/FIRST_RUN_ORIENTATION.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 4634,
+        "bytes": 4631,
         "path": "docs/user_guides/FIRST_RUN_ORIENTATION.md",
-        "sha256": "5d78562581a7094d71c897231a9254f383e37f25f31874eb9356c464953461a5"
+        "sha256": "5ddb2205b00d718bbb8ff5a0375b906ba762a8833fb9dc744fb70ea37d3c3176"
       }
     },
     {
@@ -10761,7 +10793,7 @@
       "source": {
         "bytes": 373,
         "path": "docs/user_guides/comprehensive_glossary.md",
-        "sha256": "2c3fcfc8a9908ed6bbcbd95d35f284920cf047cf6fec34c7524c9508118c65fd"
+        "sha256": "6a3a588a2a6f9fc6807d721cf953c6a6a7653a96e41a3e83f6144be50967e8e0"
       }
     },
     {
@@ -10793,7 +10825,7 @@
       "source": {
         "bytes": 396,
         "path": "docs/user_guides/operational_reference.md",
-        "sha256": "343190ab3b411e30d7fb84cf7489f4755a37d13743c1bc50bc5360110b384b52"
+        "sha256": "bd238e507c2ff0e37f807f16305b76b269f8aec02ebcb63170b37ee6f7ac0c80"
       }
     },
     {
@@ -10809,7 +10841,7 @@
       "source": {
         "bytes": 3319,
         "path": "docs/user_guides/sapote_kernel_guide.md",
-        "sha256": "306b58ad5186a4bded27bfd0e2a5f224c6523a0cd6caf66f7b01fb2c65728894"
+        "sha256": "5e956bb52ad9b484722ded886de749b5aa7ef6cdf46bb62419174071867f1219"
       }
     },
     {
@@ -10857,7 +10889,7 @@
       "source": {
         "bytes": 6186,
         "path": "wiki/Audience-Start-Paths.md",
-        "sha256": "5eb1e30cc56f77e202c69cdb177f710cdb9a26e208ed11eac5c337251f8c3bc4"
+        "sha256": "f5dbc139a984f7b4207034e233c6981cd70e477ef334a89442c9abccd0ff43d6"
       }
     },
     {
@@ -10977,7 +11009,7 @@
       "source": {
         "bytes": 725,
         "path": "wiki/Encyclopedia.md",
-        "sha256": "e139281b7b5f8fd0de0c348593acd3b4b03d9e5ffa379912604601d64e726f06"
+        "sha256": "3a4b48106ed5f1f82da5c3bea843f7ecc42b8473cc4f19e756a3d9db98843a7c"
       }
     },
     {
@@ -11019,9 +11051,9 @@
       "path": "wiki/Fungal-Phylogenetics.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 6973,
+        "bytes": 7335,
         "path": "wiki/Fungal-Phylogenetics.md",
-        "sha256": "3f7c6a803ce4603391d2c90fafae4e4f55d6c8a10e19a8c89617f59c588f0d43"
+        "sha256": "6132f0cf08deeb43bad38adac5b0d3164a4895564fe831beccf9fd3e6ae59d1e"
       }
     },
     {
@@ -11081,7 +11113,7 @@
       "source": {
         "bytes": 20916,
         "path": "wiki/Mode-B.md",
-        "sha256": "0cf36021aa610ba9397a306810e00fceb5599099be0ce1bfe8ffeb767a5e7735"
+        "sha256": "efb49be996c4f21757f7617372a628494e361c46a63db370985618da7caac100"
       }
     },
     {
@@ -11149,7 +11181,7 @@
       "source": {
         "bytes": 19752,
         "path": "wiki/Researcher-Recipes.md",
-        "sha256": "24aacf811d78bc4adfdf512e9f9856cc8ef5cd8c2df8ea20b13a3fa214a2c38b"
+        "sha256": "0cc9ee4198f03e21dca1f624e190acc0fdd37032399a4a6ee4711a680809e79e"
       }
     },
     {
@@ -11225,7 +11257,7 @@
       "source": {
         "bytes": 10468,
         "path": "wiki/What-It-Does-and-Limitations.md",
-        "sha256": "6bc835d7aa08c1891e14c809de5e438ec7563212281ecdf7fc695ddc3f267916"
+        "sha256": "ff290fc12120f5a1340af23c609f6ac131d9ec4ce46bba53f805429c59bd5c01"
       }
     },
     {
@@ -11241,7 +11273,7 @@
       "source": {
         "bytes": 1204,
         "path": "wiki/_Sidebar.md",
-        "sha256": "fc6c396815377cdb2bc24998ece6fe4d29dca6eaa78b07153875995b511b4c18"
+        "sha256": "74f0803112fbde773948e80c006d43a69b5a574470c53cc647871f2011f35766"
       }
     },
     {
@@ -12579,9 +12611,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 30282,
+        "bytes": 30835,
         "path": "tools/bigscape_clinker_html.py",
-        "sha256": "472f52b7bf6434d83264084d06b56f7defaf916eaec325fc9d2365f30b8de16f"
+        "sha256": "c429a8fe7f62c1df4f6108bced01f0e1e8b562824d0d1d31bfc612c1c3821e53"
       }
     },
     {
@@ -12607,9 +12639,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 11298,
+        "bytes": 11488,
         "path": "tools/bigscape_combined_run.py",
-        "sha256": "28059b438a391b5ce8e9f9ea71160678c66abf95e661ddbc4ce140fcd96cd865"
+        "sha256": "b42a9ec9df5f3229a75f962c15670cd4a010e0032cb4e9af05e06778e0373f3c"
       }
     },
     {
@@ -12649,9 +12681,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 11443,
+        "bytes": 11863,
         "path": "tools/bigscape_family_figures.py",
-        "sha256": "c31d19213a7e721e02c2cebf3e9260b6b96bd63d628cedf266d24ab34348e604"
+        "sha256": "457f2dab6c0ea43c0615b554f15556c3ce8c8ab7cfac1c22cbae677d2a4d94c9"
       }
     },
     {
@@ -13825,9 +13857,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 22881,
+        "bytes": 22974,
         "path": "tools/build_mlsa.py",
-        "sha256": "c9e512c8971f3bcaed913390eacbde29f75ce1603d4909b4b1e51abddf687606"
+        "sha256": "3498d10f7f94cb68eae2c7c86e3f144a51505f25c9a5c6390265a22b360d6c60"
       }
     },
     {
@@ -14623,9 +14655,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 12777,
+        "bytes": 13445,
         "path": "tools/check_regex_interpolation.py",
-        "sha256": "4492ee2bc66d205ca6cd16d3bdf5054ec3d2f8064766c1277cfa74f87eb3d584"
+        "sha256": "1baebc2fda188f0b4369c50750e0ee9d9911c897f196b9c42947d460c207747a"
       }
     },
     {
@@ -15847,6 +15879,34 @@
       }
     },
     {
+      "id": "tool:tools/gate_snapshot_contract.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/gate_snapshot_contract.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 3158,
+        "path": "tools/gate_snapshot_contract.py",
+        "sha256": "b90bc31d2afcb0cbb0303ce6e17bb4ad8159b5495fc427f28f331f95d2cdfd56"
+      }
+    },
+    {
+      "id": "tool:tools/gate_snapshot_invocation.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/gate_snapshot_invocation.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 3246,
+        "path": "tools/gate_snapshot_invocation.py",
+        "sha256": "d421101a2d7dcd8d85e923315eb8d0ceb62a16e20b68c0a728d2038468c98853"
+      }
+    },
+    {
       "id": "tool:tools/gate_stem_aware.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -15861,6 +15921,20 @@
       }
     },
     {
+      "id": "tool:tools/gate_structured_snapshot.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/gate_structured_snapshot.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 5433,
+        "path": "tools/gate_structured_snapshot.py",
+        "sha256": "b04c4959377ce7f8b9bdda4bf2772ef3793f739c239105d001ca3513932af67a"
+      }
+    },
+    {
       "id": "tool:tools/gecco_cohort_report.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -15869,9 +15943,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 36366,
+        "bytes": 38473,
         "path": "tools/gecco_cohort_report.py",
-        "sha256": "0d22898d4b9f7ae876f1f38590ea7f920c5fece54290f6cf38378c70524920c3"
+        "sha256": "118e9e14ea750947246b88a7c3c14371acfbfda2b597d874ed9e4a8ad778eed3"
       }
     },
     {
@@ -16163,9 +16237,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 19817,
+        "bytes": 17937,
         "path": "tools/gtotree_execution_gate.py",
-        "sha256": "393972de85a0032a1da66653d23b5559b650af5c0af32df3227f9894643abc8f"
+        "sha256": "a3ddb52ec9b47b901b23a2b257511582c45eedb42ccf3ace99b4e6de01fab79b"
       }
     },
     {
@@ -16261,9 +16335,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 8299,
+        "bytes": 8702,
         "path": "tools/ingest_blastp_rollups.py",
-        "sha256": "80e98522ae2a8dda999145285df3c620c400aa7f386aa73d3632992c7c06154f"
+        "sha256": "d3b5268e22d90f35a0f08257ba58b70c3e3e6312f4ab75087e58996ac99a7824"
       }
     },
     {
@@ -17247,6 +17321,20 @@
       }
     },
     {
+      "id": "tool:tools/phylo_crossgroup_intake.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/phylo_crossgroup_intake.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 32231,
+        "path": "tools/phylo_crossgroup_intake.py",
+        "sha256": "e70409c63934af7455b1bbd6a46a28fe62005ee00ad0d0fca1e55ff9544c33a6"
+      }
+    },
+    {
       "id": "tool:tools/phylo_display_contract.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -17311,9 +17399,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 122853,
+        "bytes": 124703,
         "path": "tools/phylo_place.py",
-        "sha256": "4791ba9d7c30210b20079da1a89ee2e4f091839c504b7c6f262f7c1b9b1d7ab6"
+        "sha256": "233b6e5be65771f809366a2185d3101fdefe546921b121945556e2747d4d1aed"
       }
     },
     {
@@ -17703,9 +17791,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 111576,
+        "bytes": 112125,
         "path": "tools/protein_pcoa_render.py",
-        "sha256": "543f52fab6c917c82a515a4c78928bff7599649328e5d75cf2ff4dd6e54fd65d"
+        "sha256": "3b5e07c1b45a4631d9a94f7ed27f717a172350303868682e2b34318a48170058"
       }
     },
     {
@@ -19397,9 +19485,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 8627,
+        "bytes": 15572,
         "path": "tools/tree_trust_audit.py",
-        "sha256": "55749cc2d4c7a42c2575bb2e69c64b35a90fe5ac59f79d5fc228364f0babed07"
+        "sha256": "40e5fefccdfcdce88ff7c09c7e27dfaa963b4091d55a398e9063cec6f894e685"
       }
     },
     {
@@ -19428,6 +19516,20 @@
         "bytes": 3801,
         "path": "tools/typed_class_rules.py",
         "sha256": "ccc91bda8c2b364a5bcfc6175fdf02d429a89e5791c838086f2622c6927f9d28"
+      }
+    },
+    {
+      "id": "tool:tools/validate_bgc_distance_input.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/validate_bgc_distance_input.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 3122,
+        "path": "tools/validate_bgc_distance_input.py",
+        "sha256": "2c867eed1bd06279149972859e3bd0469280fa065049d50303bcfac71d6fcbba"
       }
     },
     {

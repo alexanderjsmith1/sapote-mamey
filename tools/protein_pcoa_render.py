@@ -1472,6 +1472,17 @@ def main(argv=None) -> int:
             label_selection_metadata(a.quantile)
         except ValueError as exc:
             raise RenderRefusal(str(exc)) from exc
+        # Check the selected PDF text-validation dependency before output writes.
+        if a.page or a.min_text_pt:
+            try:
+                from tools import _min_text_check  # noqa: F401
+            except ModuleNotFoundError as exc:
+                if exc.name != "pypdf":
+                    raise
+                raise RenderRefusal(
+                    f"print-size validation needs pypdf in active Python interpreter "
+                    f"{sys.executable}; select the documented environment with pypdf"
+                ) from exc
         out = Path(a.out)
         kit = Path(a.kit)
         set_kits = {k: Path(v) for k, v in (x.split("=", 1) for x in a.set_kit)}   # m5_452_protein_pcoa_multiset_grid: per-set kit

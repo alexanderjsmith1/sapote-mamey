@@ -270,7 +270,12 @@ def clinker_figure(gbks, out="clinker.html"):
         return {"status": "SKIPPED_NO_CLINKER", "detail": "clinker CLI not on PATH (pip install clinker)"}
     if len(gbks) < 2:
         return {"status": "NEED_2_GBKS", "detail": "clinker needs >=2 region GBKs"}
-    aln = str(out).replace(".html", "_alignments.txt")
+    # Change the final name only; replacing in the whole path can alter parent directories.
+    html = Path(out)
+    aln = str(html.with_name(html.stem + "_alignments.txt"))
+    # Existing outputs cannot establish that this invocation produced either artifact.
+    if os.path.lexists(str(out)) or os.path.lexists(aln):
+        return {"status": "CLINKER_FAILED", "detail": "HTML or alignment output already exists; use a fresh path"}
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     _timeout = _subprocess_timeout_sec()
     try:
@@ -283,7 +288,13 @@ def clinker_figure(gbks, out="clinker.html"):
         return {"status": "CLINKER_TIMEOUT",
                 "detail": f"clinker exceeded MAMEY_SUBPROCESS_TIMEOUT_SEC={_timeout:.0f}s over "
                           f"{len(gbks)} GBKs; skipped this figure"}
-    if r.returncode != 0 or not Path(out).exists():
+    if r.returncode != 0:
         return {"status": "CLINKER_FAILED", "detail": (r.stderr or r.stdout)[-300:]}
+    if not Path(out).is_file() or Path(out).stat().st_size == 0:
+        return {"status": "CLINKER_FAILED", "detail": "HTML output missing or empty after clinker"}
+    if not Path(aln).is_file() or Path(aln).stat().st_size == 0:
+        return {"status": "CLINKER_INCOMPLETE_OUTPUT", "out": str(out),
+                "detail": "alignment output missing or empty after clinker; inspect diagnostic",
+                "diagnostic": (r.stderr or r.stdout or "")[-300:]}
     return {"status": "WRITTEN", "out": str(out), "alignments": aln,
             "note": "gene links are similarity, not identity"}

@@ -57,6 +57,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _safe_walk import safe_walk_files
+
 try:
     from re import _parser as _sre_parse   # py3.11+
 except ImportError:                         # pragma: no cover
@@ -214,10 +217,17 @@ def scan_file(path: Path, stats=None):
                            "fix": f"wrap the interpolation: (?:{{{name}}})"}
 
 
-def collect(roots, stats=None):
+def collect(roots, stats=None, unreadable_out=None):
     for root in roots:
         rp = Path(root)
-        files = [rp] if rp.is_file() else sorted(rp.rglob("*.py"))
+        if rp.is_file():
+            files = [rp]
+        else:
+            files, unreadable = safe_walk_files(rp, suffix=".py", skip_dirs=SKIP_PARTS)
+            if unreadable and unreadable_out is None:
+                raise OSError(f"directories could not be scanned: {sorted(set(unreadable))}")
+            if unreadable_out is not None:
+                unreadable_out.extend(unreadable)
         for f in files:
             if any(part in SKIP_PARTS for part in f.parts):
                 continue
@@ -246,10 +256,15 @@ def main(argv=None):
 
     stats = {"files": 0, "unresolved_parts": 0}
     new, known = [], []
+    unreadable = []
     try:
-        records = list(collect(a.root, stats))
+        records = list(collect(a.root, stats, unreadable))
     except (OSError, ValueError) as exc:
         sys.stderr.write(f"regex-interpolation gate: ERROR — {exc}\n")
+        return 2
+    if unreadable:
+        sys.stderr.write(f"regex-interpolation gate: ERROR — directories could not be scanned: "
+                         f"{sorted(set(unreadable))}\n")
         return 2
     for rec in records:
         if not a.strict and rec["file"] in ALLOWLIST:

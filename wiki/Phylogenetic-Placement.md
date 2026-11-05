@@ -41,7 +41,11 @@ method EPA-ng was built for.
    `placement_to_docx --auto` finds both locations.
 3. **`place`** — align the lab 16S into the reference coordinate system (`mafft --add --keeplength`, or
    `mafft --addfragments --keeplength` via `--fragmentary` for short Sanger reads) → **epa-ng** →
-   `epa_result.jplace`. The autopilot writes `query_qc.tsv` and selects fragment mode when any
+   `epa_result.jplace`. epa-ng does not fit model parameters, so `place` passes the fitted model from
+   the reference package: `ref.bestModel` (raxml-ng), or `ref.iq.iqtree` (IQ-TREE, GTR family). It
+   stops with `EPA_MODEL_NOT_REPRESENTABLE` when the IQ-TREE model uses FreeRate, and with
+   `EPA_MODEL_UNFITTED` when a nucleotide package holds only a model name. Rebuild the reference
+   package with the current `build-ref` in either case. The autopilot writes `query_qc.tsv` and selects fragment mode when any
    routed query is shorter than 1,200 bp; unsupported symbols and reads shorter than 200 bp are held.
    The placement reader keeps identical sequences with distinct query IDs, but repeated IDs keep only the first record with a warning, without proving that repeated sequences agree. Reconcile the exact input/retained roster and resolve conflicting IDs before placement; a reduced query count is not an accepted isolate merge. The separate sequence-admission gate is not automatically run by this step.
 4. **`report`** — `gappa examine graft` (a tree with the queries attached = the figure) + a
@@ -71,8 +75,9 @@ python tools/phylo_place.py report --refpkg "$PLACEMENT_OUT/refpkg" \
 ## How to state the result (claim-safe)
 Replace all example paths and the approval placeholder with selected inputs and recorded authority.
 Use the actual inference receipt for software, model and support method: the RAxML-NG route uses
-classical bootstraps and a `GTR+I+G` nucleotide model; the IQ-TREE fallback selects a model and uses
-ultrafast bootstraps. Backbone support is separate from EPA-ng query LWR. Do not relabel one method
+classical bootstraps and a `GTR+I+G` nucleotide model; the IQ-TREE fallback selects a model among
+`+I`, `+G` and `+I+G` rate variants and uses ultrafast bootstraps. FreeRate (`+R`) is excluded
+because epa-ng cannot read it. Backbone support is separate from EPA-ng query LWR. Do not relabel one method
 as the other or claim that this workflow's example text verifies type status.
 
 > "On the selected 16S reference backbone (n=NN, software/model/support method from the receipt), isolate QUERY places within the

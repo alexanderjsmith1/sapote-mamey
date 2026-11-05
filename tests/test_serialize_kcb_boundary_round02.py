@@ -47,7 +47,17 @@ def test_write_boundary_uses_source_kcb_without_mutating_frozen_triage(tmp_path)
     )
 
     verdict = json.loads(verdict_path.read_text(encoding="utf-8"))["verdicts"][0]
-    assert verdict["kcb_similarity_band"] == "high"
+    # A cumulative BLAST score is not a percent similarity, so it never sets the band.
+    assert verdict["kcb_similarity_band"] == "unresolved"
+
+
+def test_real_scale_cumulative_score_is_not_binned_as_a_percent(tmp_path):
+    # 281-3439 are the KCB cumulative scores of one real package; 37992 is cited in the engine.
+    bgcs = [_bgc(f"BGC00{i}", s) for i, s in enumerate((281.0, 3439.0, 37992.0), 1)]
+    triage = [FrozenTriage(b.bgc_id) for b in bgcs]
+    _, verdict_path = write_boundary_payloads(tmp_path, "GENERIC-TEST", bgcs, triage)
+    verdicts = json.loads(verdict_path.read_text(encoding="utf-8"))["verdicts"]
+    assert {v["kcb_similarity_band"] for v in verdicts} == {"unresolved"}
 
 
 def test_unmatched_triage_remains_unresolved(tmp_path):

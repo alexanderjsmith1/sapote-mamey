@@ -11,6 +11,8 @@ IS the region number, and CDS locations look like `[635:3869](+)`).
 """
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import pytest
+
 from mamey.tab_reconcile import _region_index, _gene_overview_summary, _feature_in_span
 
 REC = {
@@ -34,7 +36,8 @@ def test_region_label_maps_to_area_index():
     assert _region_index(REC, "3") == 2
     assert _region_index(REC, "region001") == 0
     assert _region_index(REC, None) == 0            # unrequested -> first, as before
-    assert _region_index(REC, "region099") == 0     # out of range -> clamp, never IndexError
+    with pytest.raises(SystemExit, match="IDENTITY_HOLD"):   # v9.7.463: out of range is a hold, not region001
+        _region_index(REC, "region099")
 
 
 def test_requested_region_reports_its_own_span_and_products():

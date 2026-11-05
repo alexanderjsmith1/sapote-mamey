@@ -84,8 +84,10 @@ def test_cpu_run_requires_approval_and_pins_the_seed(tmp_path):
 
     def fake_run(cmd, **kw):
         calls.append(cmd)
-        if cmd[0] == "iqtree":
-            Path(str(tmp_path / "s.iq") + ".treefile").write_text("(a:0.1,b:0.1);")
+        if cmd[0] == "iqtree":   # a complete run: supports, contree, wall-clock log
+            for ext in (".treefile", ".contree"):
+                Path(str(tmp_path / "s.iq") + ext).write_text("((a:0.1,b:0.1)100:0.0);")
+            Path(str(tmp_path / "s.iq") + ".log").write_text("Total wall-clock time used: 1.0 sec\n")
 
     tre = DT.build_tree(fa, tmp_path, approved_by="Someone", runner=fake_run)
     assert calls[0][0] == "mafft" and calls[1][0] == "iqtree"

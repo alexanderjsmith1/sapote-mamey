@@ -47,7 +47,10 @@ def test_successful_iqtree_rebuild_clears_old_raxml_model(tmp_path, monkeypatch)
             kw["stdout"].write(fasta.read_text())
             kw["stdout"].flush()
         else:
-            Path(cmd[cmd.index("-pre") + 1] + ".treefile").write_text("(RefA:0.1,RefB:0.2);")
+            pre = cmd[cmd.index("-pre") + 1]   # a complete run: supports, contree, wall-clock log
+            for ext in (".treefile", ".contree"):
+                Path(pre + ext).write_text("((RefA:0.1,RefB:0.2)100:0.0);")
+            Path(pre + ".log").write_text("Total wall-clock time used: 1.0 sec\n")
         return 0
     monkeypatch.setattr(pp.subprocess, "call", call)
     args = SimpleNamespace(group="streptomyces", approved_by="generic test", ref_fasta=str(fasta),

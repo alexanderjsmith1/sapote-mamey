@@ -1,7 +1,7 @@
 <!-- Mirror of docs/EXTERNAL_TOOL_INVENTORY.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # External tool & database inventory
 
-**Bundle v9.7.462 · engine Mamey 1.9.178 · compiled 2026-11-02**
+**Bundle v9.7.463 · engine Mamey 1.9.179 · compiled 2026-11-04**
 
 This page lists the external bioinformatics tools and reference databases the Sapote-Mamey
 workflow depends on. Each comes with the version of record, the run-defining parameters, and a

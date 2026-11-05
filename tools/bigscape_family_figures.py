@@ -33,6 +33,8 @@ except ImportError:  # bare-script run outside an editable install
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
+from mamey.bigscape_namespace import select_family_run
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 try:
@@ -42,12 +44,14 @@ except ImportError:
 TOOL = os.path.join(HERE, "render_gcf_synteny_tree.py")
 
 
-def family_table(db, cutoff):
+def family_table(db, cutoff, run_id=None):
     con = _open_db_ro(db)
     fam = collections.defaultdict(list)
+    run = select_family_run(con, run_id)   # one BiG-SCAPE run; a multi-run database needs --run-id
+    clause, extra = (" and f.run_id=?", (run,)) if run is not None else ("", ())
     for fid, rid, path, prod in con.execute(
             "select f.id, r.id, g.path, r.product from family f join bgc_record_family bf on bf.family_id=f.id "
-            "join bgc_record r on r.id=bf.record_id join gbk g on g.id=r.gbk_id where abs(f.cutoff-?)<1e-6 and r.record_type='region'", (cutoff,)):
+            "join bgc_record r on r.id=bf.record_id join gbk g on g.id=r.gbk_id where abs(f.cutoff-?)<1e-6 and r.record_type='region'" + clause, (cutoff, *extra)):
         fam[fid].append((rid, os.path.basename(path), prod or ""))
     con.close()
     return fam
@@ -108,7 +112,7 @@ def query_strains(members, query_rx):
 
 
 def job_private(a, log):
-    fam = family_table(a.db, a.cutoff)
+    fam = family_table(a.db, a.cutoff, a.run_id)
     root = Path(a.out) / "private_families"; allp = root / "_all"; allp.mkdir(parents=True, exist_ok=True)
     fids = [int(r["family_id"]) for r in csv.DictReader(open(a.private_tsv, encoding="utf-8"), delimiter="\t") if r.get("verdict", "QUERY_PRIVATE").startswith("QUERY_PRIVATE")]
     index = []
@@ -132,8 +136,8 @@ def job_private(a, log):
 
 
 def job_focus(a, log):
-    fam_main = family_table(a.db, a.cutoff)
-    fam_fb = family_table(a.db, a.fallback_cutoff) if a.fallback_cutoff else {}
+    fam_main = family_table(a.db, a.cutoff, a.run_id)
+    fam_fb = family_table(a.db, a.fallback_cutoff, a.run_id) if a.fallback_cutoff else {}
     r2f_main = {rid: fid for fid, ms in fam_main.items() for rid, _b, _p in ms}
     r2f_fb = {rid: fid for fid, ms in fam_fb.items() for rid, _b, _p in ms}
     failed = 0
@@ -180,6 +184,7 @@ def main(argv=None):
     ap.add_argument("--db", required=True); ap.add_argument("--gbk-dir", action="append", required=True)
     ap.add_argument("--identity-glob", action="append", default=[], help="glob(s) for Mamey *_2_inventory.csv files")
     ap.add_argument("--out", required=True); ap.add_argument("--cutoff", type=float, default=0.3); ap.add_argument("--fallback-cutoff", type=float, default=None)
+    ap.add_argument("--run-id", default=None, help="BiG-SCAPE run to read; required when the database holds more than one")
     ap.add_argument("--max-tips", type=int, default=40); ap.add_argument("--query-regex", default=r"^([A-Za-z]+-\d+)_")
     ap.add_argument("--layer-prefix", action="append", default=None)
     ap.add_argument("--private-tsv"); ap.add_argument("--focus", action="append", default=[]); ap.add_argument("--log")

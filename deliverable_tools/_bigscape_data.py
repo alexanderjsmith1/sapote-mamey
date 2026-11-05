@@ -30,6 +30,7 @@ _bundle_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bundle_root not in _sys.path:
     _sys.path.insert(0, _bundle_root)
 from mamey.bigscape_namespace import strain_from_gbk_name as _canonical_strain
+from mamey.bigscape_namespace import select_family_run
 
 # Documented default location of the BiG-SCAPE 2.x cohort DB. Override with --db on any
 # generator (run standalone: `python deliverable_tools/bigscape_matrix_widget.py --db <path>`).
@@ -98,8 +99,13 @@ def gbk_index(con):
     return idx
 
 
-def family_members(con, cutoff=0.3):
-    """family_id -> list of dicts {record_id, gbk_id, product, nt_start, nt_stop, strain, cls}."""
+def family_members(con, cutoff=0.3, run_id=None):
+    """family_id -> list of dicts {record_id, gbk_id, product, nt_start, nt_stop, strain, cls}.
+
+    Families come from one BiG-SCAPE run (``select_family_run``); a multi-run database
+    needs ``run_id``.
+    """
+    run = select_family_run(con, run_id)
     idx = gbk_index(con)
     fam = collections.defaultdict(list)
     q = """select bf.family_id, r.id, r.gbk_id, r.product, r.nt_start, r.nt_stop
@@ -107,7 +113,11 @@ def family_members(con, cutoff=0.3):
            join family f on f.id = bf.family_id
            join bgc_record r on r.id = bf.record_id
            where f.cutoff = ?"""
-    for fid, rid, gbkid, prod, a, b in con.execute(q, (cutoff,)):
+    params = (cutoff,)
+    if run is not None:
+        q += " and f.run_id = ?"
+        params += (run,)
+    for fid, rid, gbkid, prod, a, b in con.execute(q, params):
         s, cl = idx.get(gbkid, ("?", "?"))
         fam[fid].append(dict(record_id=rid, gbk_id=gbkid, product=prod or "",
                              nt_start=a, nt_stop=b, strain=s, cls=cl))

@@ -276,8 +276,10 @@ def main():
             sys.stdout.write((f"  total BGC records: {cur.fetchone()[0]}") + "\n")
             cur.execute("SELECT COUNT(*) FROM distance")
             sys.stdout.write((f"  total distances: {cur.fetchone()[0]}") + "\n")
-            cur.execute("SELECT COUNT(*) FROM family")
-            sys.stdout.write((f"  total families: {cur.fetchone()[0]}") + "\n")
+            # A database can hold several runs; a bare COUNT(*) would add their families together.
+            cur.execute("SELECT run_id, COUNT(*) FROM family GROUP BY run_id ORDER BY run_id")
+            for run_id, n_fam in cur.fetchall():
+                sys.stdout.write((f"  families in run {run_id}: {n_fam}") + "\n")
             db.close()
         sys.stdout.write((f"\n[next] Run Sapote-Mamey tools on the combined DB:") + "\n")
         sys.stdout.write((f"  python tools/bigscape_cross_strain.py --db {out_db} --out cross_strain_GCFs.tsv") + "\n")

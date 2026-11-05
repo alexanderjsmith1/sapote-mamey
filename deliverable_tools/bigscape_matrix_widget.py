@@ -31,7 +31,7 @@ from _console import emit  # noqa: E402
 import argparse, json, os, sys, collections, re
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _bigscape_data import DB_DEFAULT, family_members  # noqa: E402
+from _bigscape_data import DB_DEFAULT, family_members, select_family_run  # noqa: E402
 import sqlite3  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -156,10 +156,14 @@ init();
 </script></body></html>"""
 
 
-def build_payload(con, cutoff=0.3):
+def build_payload(con, cutoff=0.3, run_id=None):
     """Read the cohort DB and return the JSON-serialisable matrix payload dict."""
-    run_label = con.execute("select label from run limit 1").fetchone()[0]
-    fam = family_members(con, cutoff)
+    run = select_family_run(con, run_id)
+    if run is None:
+        run_label = con.execute("select label from run limit 1").fetchone()[0]
+    else:
+        run_label = con.execute("select label from run where id = ?", (run,)).fetchone()[0]
+    fam = family_members(con, cutoff, run_id=run)
 
     # query-cohort strain columns: AS then SID, ordered
     as_strains, sid_strains = set(), set()
@@ -209,14 +213,14 @@ def build_payload(con, cutoff=0.3):
                 n_private=n_private, n_ge2=n_ge2)
 
 
-def render_matrix(db=DB_DEFAULT, cutoff=0.3, outdir=HERE, min_members=2):
+def render_matrix(db=DB_DEFAULT, cutoff=0.3, outdir=HERE, min_members=2, run_id=None):
     """Render the strain x GCF-family matrix HTML. Returns a result dict with the output path.
 
     Self-contained: writes a single stdlib-generated HTML file (no external assets).
     """
     con = sqlite3.connect(db)
     try:
-        payload = build_payload(con, cutoff)
+        payload = build_payload(con, cutoff, run_id=run_id)
     finally:
         con.close()
     os.makedirs(outdir, exist_ok=True)
@@ -241,8 +245,9 @@ def main():
     ap.add_argument("--min-members", type=int, default=2,
                     help="default value of the in-widget min-members filter")
     ap.add_argument("--outdir", default=HERE)
+    ap.add_argument("--run-id", default=None, help="BiG-SCAPE run to read; required when the database holds more than one")
     a = ap.parse_args()
-    res = render_matrix(db=a.db, cutoff=a.cutoff, outdir=a.outdir, min_members=a.min_members)
+    res = render_matrix(db=a.db, cutoff=a.cutoff, outdir=a.outdir, min_members=a.min_members, run_id=a.run_id)
     emit(f"{res['families']} families, {res['strains']} query strains (AS+SID), "
           f"{res['n_private']} AS-private -> {res['path']}")
 

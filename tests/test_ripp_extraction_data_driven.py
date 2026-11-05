@@ -36,7 +36,9 @@ def test_previously_dropped_family_now_captured():
 def test_multiple_families_in_one_record():
     out = []
     _ripp_from_rec(_rec({
-        "antismash.modules.thiopeptides": {"motifs": {"ctg1_2": [_motif("SCTTCV")]}},
+        # antiSMASH ThioResults.to_json writes "motifs" as a flat list of Prepeptide objects.
+        "antismash.modules.thiopeptides": {"motifs": [dict(_motif("SCTTCV"), locus_tag="ctg1_2_thiopeptide",
+                                                           peptide_class="thiopeptide")]},
         "antismash.modules.lipolanthines": {"motifs": {"ctg1_7": [_motif("MAGKLA")]}},
     }), "f.gbk", out)
     fams = {h["ripp_family"] for h in out}
@@ -50,4 +52,23 @@ def test_non_ripp_modules_excluded():
         "antismash.modules.nrps_pks": {"motifs": {"ctg1_1": [{"consensus": "ala-val"}]}},  # no core
         "antismash.modules.clusterblast": {"results": []},
     }), "f.gbk", out)
+    assert out == []
+
+
+def test_thiopeptide_list_shape_keeps_every_core_and_joins_to_the_cds():
+    """antiSMASH thiopeptides: motifs is a list; each Prepeptide names "<CDS>_<peptide_class>"."""
+    out = []
+    mk = lambda core, tag: dict(_motif(core), locus_tag=tag, peptide_class="thiopeptide")
+    _ripp_from_rec(_rec({"antismash.modules.thiopeptides": {
+        "record_id": "ctg1", "protoclusters with motifs": [1],
+        "motifs": [mk("SCTTCV", "ctg1_2_thiopeptide"), mk("SCTTCA", "ctg1_2_thiopeptide"),
+                   mk("TCGSTC", "ctg1_5_thiopeptide")]}}), "f.json", out)
+    assert [(h["locus_tag"], h["motif_index"], h["core"]) for h in out] == [
+        ("ctg1_2", 0, "SCTTCV"), ("ctg1_2", 1, "SCTTCA"), ("ctg1_5", 0, "TCGSTC")]
+    assert out[0]["motif"]["locus_tag"] == "ctg1_2_thiopeptide"
+
+
+def test_thiopeptide_empty_list_gives_no_rows():
+    out = []
+    _ripp_from_rec(_rec({"antismash.modules.thiopeptides": {"motifs": []}}), "f.json", out)
     assert out == []

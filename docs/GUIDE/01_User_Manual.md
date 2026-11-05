@@ -5,7 +5,7 @@ You need an antiSMASH result ZIP for extraction, or a saved Mamey package for
 review. For installation and the shortest command sequence, follow
 [Your first run](../reader/01_FIRST_RUN.md).
 
-*Current to bundle v9.7.462 / engine Mamey 1.9.178*
+*Current to bundle v9.7.463 / engine Mamey 1.9.179*
 
 ## 1 · What Sapote-Mamey is
 

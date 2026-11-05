@@ -175,11 +175,17 @@ def _region_index(rec: dict[str, Any], wanted_region) -> int:
     areas = rec.get("areas") or []
     if not wanted_region or not areas:
         return 0
-    m = re.search(r"(\d+)", str(wanted_region))
-    if not m:
-        return 0
-    idx = int(m.group(1)) - 1
-    return idx if 0 <= idx < len(areas) else 0
+    # v9.7.463: the first run of digits used to be taken, so "LGED01000002.1.region003" read as
+    # region 1000002, and any out-of-range request fell back to region001 with no warning. The
+    # ledger then reported region001's evidence under the requested name. Now only a
+    # `regionNNN` token (the last one) or a bare number is read, and anything else is a hold.
+    text = str(wanted_region).strip()
+    tokens = re.findall(r"region(\d+)", text, flags=re.I)
+    number = int(tokens[-1]) if tokens else (int(text) if text.isdigit() else None)
+    if number is None or not 1 <= number <= len(areas):
+        raise SystemExit(f"IDENTITY_HOLD: region {wanted_region!r} is not one of the {len(areas)} region(s) "
+                         f"on record {rec.get('id', '?')}; refusing to report another region's evidence.")
+    return number - 1
 
 
 def _choose_record(data: dict[str, Any], *, bgc: str | None, node: str | None, region: str | None,
@@ -366,7 +372,17 @@ def _clusterblast_json_summary(rec: dict[str, Any], key: str, area_idx: int = 0)
     results = block.get("results") or []
     if not results:
         return 0, "NO_HITS" if key == "subcluster" else "NO_RESULTS"
-    region_result = results[area_idx] if 0 <= area_idx < len(results) else results[0]
+    # Pick the entry by its own region_number; never another region's result.
+    numbered = [r for r in results if isinstance(r, dict) and "region_number" in r]
+    if numbered:
+        matches = [r for r in numbered if r.get("region_number") == area_idx + 1]
+        if not matches:
+            return 0, "NO_RESULTS_FOR_REGION"
+        region_result = matches[0]
+    elif 0 <= area_idx < len(results):
+        region_result = results[area_idx]
+    else:
+        return 0, "NO_RESULTS_FOR_REGION"
     labels=[]
     def walk_hits(x):
         if isinstance(x, dict):
@@ -381,10 +397,47 @@ def _clusterblast_json_summary(rec: dict[str, Any], key: str, area_idx: int = 0)
     return (1 if labels else 0), "; ".join(labels[:3]) or "NO_HITS"
 
 
-def _nrps_pks_summary(rec: dict[str, Any]) -> tuple[int, str, dict[str, int]]:
+def _region_scope(rec: dict[str, Any], area_idx: int) -> dict[str, Any] | None:
+    """Span, region number and CDS locus tags of the requested area; None when the record has no
+    usable area. v9.7.463: the module summaries below counted the whole record, so every region on
+    a contig showed the contig's TFBS, Pfam, TIGRFAM, NRPS/PKS, active-site, tailoring and TTA totals
+    (a 42-region chromosome: 609 TFBS hits on every region instead of region001's 13)."""
+    areas = rec.get("areas") or []
+    if not (0 <= area_idx < len(areas)):
+        return None
+    start, end = areas[area_idx].get("start"), areas[area_idx].get("end")
+    if not isinstance(start, int) or not isinstance(end, int):
+        return None
+    tags = {_feature_qual(f, "locus_tag") for f in _cds_features(rec) if _feature_in_span(f, start, end)}
+    tags.discard("")
+    return {"region_number": area_idx + 1, "start": start, "end": end, "tags": tags}
+
+
+def _hit_in_scope(hit: dict[str, Any], scope: dict[str, Any] | None) -> bool:
+    """A Pfam/TIGRFAM hit belongs to the region when its CDS does (or, without a locus tag, its span)."""
+    if scope is None:
+        return True
+    tag = _q(hit.get("locus_tag"))
+    if tag:
+        return tag in scope["tags"]
+    return _feature_in_span(hit, scope["start"], scope["end"])
+
+
+def _domain_key_in_scope(key: str, scope: dict[str, Any] | None) -> bool:
+    """nrps_pks keys read `nrpspksdomains_<locus_tag>_<domain>.<n>`."""
+    if scope is None:
+        return True
+    return any(str(key).startswith(f"nrpspksdomains_{tag}_") for tag in scope["tags"])
+
+
+def _module_absent(rec: dict[str, Any], name: str) -> bool:
+    return name not in (rec.get("modules") or {})
+
+
+def _nrps_pks_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str, dict[str, int]]:
     mod = rec.get("modules", {}).get("antismash.modules.nrps_pks", {})
-    preds = mod.get("domain_predictions") or {}
-    consensus = mod.get("consensus") or {}
+    preds = {k: v for k, v in (mod.get("domain_predictions") or {}).items() if _domain_key_in_scope(k, scope)}
+    consensus = {k: v for k, v in (mod.get("consensus") or {}).items() if _domain_key_in_scope(k, scope)}
     dom_counts = Counter()
     for key in preds:
         for tok in ["PKS_KS", "PKS_AT", "PKS_KR", "PKS_DH", "PKS_ER", "ACP", "PKS_PP", "Thioesterase", "Docking"]:
@@ -398,33 +451,50 @@ def _nrps_pks_summary(rec: dict[str, Any]) -> tuple[int, str, dict[str, int]]:
     return len(preds), raw or "NO_NRPS_PKS_DOMAINS", dict(dom_counts)
 
 
-def _active_site_summary(rec: dict[str, Any]) -> tuple[int, str]:
+def _active_site_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str]:
     mod = rec.get("modules", {}).get("antismash.modules.active_site_finder", {})
-    pairs = mod.get("pairings") or []
+    pairs = [p for p in (mod.get("pairings") or [])
+             if isinstance(p, (list, tuple)) and p and _domain_key_in_scope(p[0], scope)]
     return len(pairs), f"{len(pairs)} active-site pairings" if pairs else "NO_ACTIVE_SITE_HITS"
 
 
-def _tfbs_summary(rec: dict[str, Any]) -> tuple[int, str]:
+def _tfbs_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str]:
+    if _module_absent(rec, "antismash.modules.tfbs_finder"):
+        return 0, "MODULE_ABSENT"
     mod = rec.get("modules", {}).get("antismash.modules.tfbs_finder", {})
     hits_by_region = mod.get("hits_by_region") or {}
     hits=[]
-    for rs in hits_by_region.values():
-        hits.extend(rs or [])
+    if scope is not None:   # hits_by_region is keyed by the 1-based region number
+        hits.extend(hits_by_region.get(str(scope["region_number"])) or [])
+    else:
+        for rs in hits_by_region.values():
+            hits.extend(rs or [])
     if not hits:
         return 0, "NO_TFBS_HITS"
     names = [f"{h.get('name','?')}({h.get('confidence','?')})" for h in hits[:6]]
     return len(hits), "; ".join(names)
 
 
-def _tta_summary(rec: dict[str, Any]) -> tuple[int, str]:
+def _tta_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str]:
+    if _module_absent(rec, "antismash.modules.tta"):
+        return 0, "MODULE_ABSENT"
     mod = rec.get("modules", {}).get("antismash.modules.tta", {})
+    gc, threshold = mod.get("gc_content"), mod.get("threshold")
+    if isinstance(gc, (int, float)) and isinstance(threshold, (int, float)) and gc < threshold:
+        # antiSMASH skips the TTA scan below its GC threshold; an empty list is not "no codons".
+        return 0, f"NOT_RUN_LOW_GC (GC {gc:.3f} < threshold {threshold})"
     codons = mod.get("TTA codons") or []
+    if scope is not None:
+        codons = [c for c in codons if isinstance(c, dict) and isinstance(c.get("start"), int)
+                  and scope["start"] <= c["start"] < scope["end"]]
     return len(codons), f"{len(codons)} TTA codons" if codons else "NO_TTA_CODONS"
 
 
-def _tigrfam_summary(rec: dict[str, Any]) -> tuple[int, str]:
+def _tigrfam_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str]:
+    if _module_absent(rec, "antismash.detection.tigrfam"):
+        return 0, "MODULE_ABSENT"
     mod = rec.get("modules", {}).get("antismash.detection.tigrfam", {})
-    hits = mod.get("hits") or []
+    hits = [h for h in (mod.get("hits") or []) if _hit_in_scope(h, scope)]
     if not hits:
         return 0, "NO_HITS"
     labels = []
@@ -433,8 +503,11 @@ def _tigrfam_summary(rec: dict[str, Any]) -> tuple[int, str]:
     return len(hits), "; ".join(labels)
 
 
-def _pfam_summary(rec: dict[str, Any]) -> tuple[int, str, Counter]:
-    hits = rec.get("modules", {}).get("antismash.detection.cluster_hmmer", {}).get("hits") or []
+def _pfam_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str, Counter]:
+    if _module_absent(rec, "antismash.detection.cluster_hmmer"):
+        return 0, "MODULE_ABSENT", Counter()
+    hits = [h for h in (rec.get("modules", {}).get("antismash.detection.cluster_hmmer", {}).get("hits") or [])
+            if _hit_in_scope(h, scope)]
     if not hits:
         return 0, "NO_HITS", Counter()
     counts = Counter(h.get("domain") or h.get("label") or h.get("description") or "domain" for h in hits)
@@ -442,10 +515,12 @@ def _pfam_summary(rec: dict[str, Any]) -> tuple[int, str, Counter]:
     return len(hits), top, counts
 
 
-def _tailoring_summary(rec: dict[str, Any]) -> tuple[int, str]:
+def _tailoring_summary(rec: dict[str, Any], scope: dict[str, Any] | None = None) -> tuple[int, str]:
     terms = ["p450", "P450", "Glycos", "glycos", "Methyl", "methyl", "halogen", "Halogen", "Polysacc", "transf"]
     rows=[]
     for f in _domain_features(rec):
+        if scope is not None and not _feature_in_span(f, scope["start"], scope["end"]):
+            continue
         qual = f.get("qualifiers") or {}
         text = " ".join(_q(qual.get(k)) for k in ("label", "description", "locus_tag", "domain_id"))
         if any(t in text for t in terms):
@@ -455,6 +530,8 @@ def _tailoring_summary(rec: dict[str, Any]) -> tuple[int, str]:
     for proto in rr.get("cds_by_protocluster", []) or []:
         if len(proto) > 1:
             for cds in proto[1]:
+                if scope is not None and cds.get("cds_name") not in scope["tags"]:
+                    continue
                 for dom in cds.get("domains", []) or []:
                     name = str(dom[0]) if dom else ""
                     if any(t.lower() in name.lower() for t in terms):
@@ -469,7 +546,9 @@ def _gene_overview_summary(rec: dict[str, Any], area_idx: int = 0) -> tuple[int,
     products = []
     areas = rec.get("areas") or []
     if areas:
-        area = areas[area_idx] if 0 <= area_idx < len(areas) else areas[0]
+        if not 0 <= area_idx < len(areas):
+            raise SystemExit(f"IDENTITY_HOLD: area index {area_idx} is not on record {rec.get('id', '?')}")
+        area = areas[area_idx]
         products = area.get("products") or []
         start, end = area.get("start"), area.get("end")
     else:
@@ -571,8 +650,9 @@ def build_tab_reconciliation(antismash: str | Path, outdir: str | Path, *, bgc: 
         kcb_txt = _clusterblast_txt(root, "knownclusterblast", rec_id, area_idx)
         scb_txt = _clusterblast_txt(root, "subclusterblast", rec_id, area_idx)
 
+        scope = _region_scope(rec, area_idx)
         gene_n, gene_raw = _gene_overview_summary(rec, area_idx)
-        tail_n, tail_raw = _tailoring_summary(rec)
+        tail_n, tail_raw = _tailoring_summary(rec, scope)
         mibig_n, mibig_raw = _cluster_compare_summary(rec)
         cb_n, cb_raw_json = _clusterblast_json_summary(rec, "general", area_idx)
         cb_txt_n, cb_txt_raw = _summarize_clusterblast_txt(cb_txt)
@@ -585,12 +665,12 @@ def build_tab_reconciliation(antismash: str | Path, outdir: str | Path, *, bgc: 
             # Significant hits block is empty, treat query-protein scaffolding present in
             # JSON as zero significant hits.
             scb_n, scb_raw_json = 0, "NO_HITS"
-        tfbs_n, tfbs_raw = _tfbs_summary(rec)
-        pfam_n, pfam_raw, pfam_counts = _pfam_summary(rec)
-        tigr_n, tigr_raw = _tigrfam_summary(rec)
-        nrps_n, nrps_raw, nrps_counts = _nrps_pks_summary(rec)
-        active_n, active_raw = _active_site_summary(rec)
-        tta_n, tta_raw = _tta_summary(rec)
+        tfbs_n, tfbs_raw = _tfbs_summary(rec, scope)
+        pfam_n, pfam_raw, pfam_counts = _pfam_summary(rec, scope)
+        tigr_n, tigr_raw = _tigrfam_summary(rec, scope)
+        nrps_n, nrps_raw, nrps_counts = _nrps_pks_summary(rec, scope)
+        active_n, active_raw = _active_site_summary(rec, scope)
+        tta_n, tta_raw = _tta_summary(rec, scope)
 
         raw_by_tab = {
             "Gene overview": (gene_n, gene_raw, source_gbk),

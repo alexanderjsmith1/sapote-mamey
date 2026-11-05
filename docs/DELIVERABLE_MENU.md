@@ -238,4 +238,4 @@ Review a proposed patch for conflicts, missing tests and unsupported conclusions
 
 ---
 
-Sapote-Mamey v9.7.462; engine 1.9.178. Generated from `mamey/data/deliverables_registry.json` by `tools/generate_deliverables_menu.py`.
+Sapote-Mamey v9.7.463; engine 1.9.179. Generated from `mamey/data/deliverables_registry.json` by `tools/generate_deliverables_menu.py`.

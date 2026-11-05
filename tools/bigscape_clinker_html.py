@@ -33,6 +33,8 @@ except ImportError:  # bare-script run outside an editable install
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
+from mamey.bigscape_namespace import select_family_run
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from _console import emit
@@ -205,11 +207,17 @@ def gbk_index(con, query_rx, prefixes, labels=None):
     return {gid: classify(os.path.basename(path or ""), org, query_rx, prefixes, labels) for gid, path, org in con.execute("select id, path, organism from gbk")}
 
 
-def family_members(con, cutoff, idx):
+def _run_clause(run):
+    """SQL filter and parameters that keep a family query inside one BiG-SCAPE run."""
+    return (" and f.run_id=?", (run,)) if run is not None else ("", ())
+
+
+def family_members(con, cutoff, idx, run=None):
     fam = collections.defaultdict(list)
+    clause, extra = _run_clause(run)
     for fid, rid, gbkid, prod, a, b in con.execute(
             "select bf.family_id, r.id, r.gbk_id, r.product, r.nt_start, r.nt_stop from bgc_record_family bf join family f on f.id=bf.family_id "
-            "join bgc_record r on r.id=bf.record_id where abs(f.cutoff-?)<1e-6 and r.record_type='region'", (cutoff,)):
+            "join bgc_record r on r.id=bf.record_id where abs(f.cutoff-?)<1e-6 and r.record_type='region'" + clause, (cutoff, *extra)):
         s, cl = idx.get(gbkid, ("?", "REF"))
         fam[fid].append(dict(record_id=rid, gbk_id=gbkid, product=prod or "", nt_start=a, nt_stop=b, strain=s, cls=cl))
     return fam
@@ -366,13 +374,14 @@ def write_page(payload, title, outp):
     Path(outp).write_text(page, encoding="utf-8")
 
 
-def strain_family_map(con, strain, cutoff):
+def strain_family_map(con, strain, cutoff, run=None):
     recs = [r[0] for r in con.execute("select r.id from bgc_record r join gbk g on g.id=r.gbk_id where r.record_type='region'")
             if True]
     names = dict(con.execute("select r.id, g.path from bgc_record r join gbk g on g.id=r.gbk_id where r.record_type='region'").fetchall())
     recs = [rid for rid in recs if os.path.basename(names[rid]).startswith(strain + "_")]
     q = ",".join("?" * len(recs)) or "NULL"
-    m = dict(con.execute(f"select bf.record_id, f.id from bgc_record_family bf join family f on f.id=bf.family_id where abs(f.cutoff-?)<1e-6 and bf.record_id in ({q})", (cutoff, *recs)).fetchall())
+    clause, extra = _run_clause(run)
+    m = dict(con.execute(f"select bf.record_id, f.id from bgc_record_family bf join family f on f.id=bf.family_id where abs(f.cutoff-?)<1e-6 and bf.record_id in ({q})" + clause, (cutoff, *recs, *extra)).fetchall())
     return recs, m
 
 
@@ -380,6 +389,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--db", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--cutoff", type=float, default=0.3); ap.add_argument("--fallback-cutoff", type=float, default=None)
+    ap.add_argument("--run-id", default=None, help="BiG-SCAPE run to read; required when the database holds more than one")
     ap.add_argument("--family", type=int, nargs="*", default=None); ap.add_argument("--focus", action="append", default=[])
     ap.add_argument("--query-regex", default=r"^([A-Za-z]+-\d+)_", help="regex on the staged GBK basename; group 1 becomes the track label. MUST contain one capture group, e.g. '^(SYN-[0-9]+)'")
     ap.add_argument("--layer-prefix", action="append", default=None)
@@ -398,15 +408,16 @@ def main(argv=None):
         ap.error(f"--query-regex {a.query_regex!r} has no capture group; group 1 is the track label (try '^(SYN-[0-9]+)')")
     prefixes = tuple(a.layer_prefix) if a.layer_prefix else ("SID_", "TYPE_")
     con = _open_db_ro(a.db); idx = gbk_index(con, query_rx, prefixes, load_labels(a.labels))
-    fams = {a.cutoff: family_members(con, a.cutoff, idx)}
+    run = select_family_run(con, a.run_id)
+    fams = {a.cutoff: family_members(con, a.cutoff, idx, run)}
     if a.fallback_cutoff:
-        fams[a.fallback_cutoff] = family_members(con, a.fallback_cutoff, idx)
+        fams[a.fallback_cutoff] = family_members(con, a.fallback_cutoff, idx, run)
     jobs = []   # (out dir, cutoff, fid, strain label, strain record ids)
     for fid in a.family or []:
         jobs.append((Path(a.out), a.cutoff, fid, "", []))
     for strain in a.focus:
-        recs, m_main = strain_family_map(con, strain, a.cutoff)
-        m_fb = strain_family_map(con, strain, a.fallback_cutoff)[1] if a.fallback_cutoff else {}
+        recs, m_main = strain_family_map(con, strain, a.cutoff, run)
+        m_fb = strain_family_map(con, strain, a.fallback_cutoff, run)[1] if a.fallback_cutoff else {}
         todo = collections.OrderedDict()
         for rid in recs:
             if rid in m_main: todo.setdefault((a.cutoff, m_main[rid]), []).append(rid)

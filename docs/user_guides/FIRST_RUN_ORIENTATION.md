@@ -30,7 +30,7 @@ not require every companion tool.
   from the program folder. Replace its example paths and metadata with your own.
 
 During setup, inspect the diagnostics before proceeding. The walkthrough uses
-`python -B mamey_run.py start --no-doctor` for orientation, then `doctor` separately.
+`python mamey_run.py start --no-doctor` for orientation, then `doctor` separately.
 Before `doctor`, read its [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe)
 and leave an occupied `runs/_doctor_probe` untouched. Plain `start` also invokes that diagnostic.
 A successful orientation exit does not prove the chosen analysis will work.

@@ -1,0 +1,60 @@
+{
+  "schema": "cross-group-phylo-intake-v1",
+  "group": "fungi",
+  "question": "REPLACE with the fungal placement question",
+  "lineage": "REPLACE with the reviewed fungal lineage",
+  "tree_scope": "REPLACE with the intended scale",
+  "method_description": "REPLACE with the reviewed marker or ortholog method",
+  "data_kind": "marker",
+  "marker": "REPLACE with the selected marker",
+  "records": [
+    {
+      "id": "query",
+      "role": "query",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "",
+      "kind": "marker",
+      "path": "/absolute/path/to/query",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    },
+    {
+      "id": "reference",
+      "role": "ingroup",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "REPLACE",
+      "kind": "marker",
+      "path": "/absolute/path/to/reference",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    },
+    {
+      "id": "outgroup",
+      "role": "outgroup",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "REPLACE",
+      "kind": "marker",
+      "path": "/absolute/path/to/outgroup",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    }
+  ],
+  "fungal_registry": {
+    "path": "/absolute/path/to/fungal_outgroup_registry.tsv",
+    "sha256": "REPLACE with registry SHA-256",
+    "selection": {
+      "tree_scope": "REPLACE with exact registry row scope",
+      "ingroup_taxon": "REPLACE with exact registry row ingroup",
+      "accession": "REPLACE with exact registry row accession"
+    }
+  }
+}

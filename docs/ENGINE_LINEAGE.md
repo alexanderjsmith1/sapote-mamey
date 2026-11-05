@@ -2,6 +2,18 @@
 
 What changed in the Mamey engine at each version bump, and whether outputs stay comparable. Newest first. Each bump also has a CHANGELOG entry.
 
+## Engine 1.9.179 — first bundle: v9.7.463
+
+`kcb_similarity_band` in `verdicts.json` is no longer computed from the KnownClusterBlast cumulative BLAST score. It is taken from a per-BGC percent, `kcb_similarity_pct`, and no intake path sets that percent yet, so every band now reads `unresolved`. A band that read high, moderate or low under 1.9.178 came from a score, not a percent.
+
+Also in 1.9.179:
+- The split detector reads `/contig_edge` and the region's original start. A terminal-PKS split flag needs the region to touch a contig end, so interior regions no longer raise one. Split calls can change.
+- The tab-reconcile ledger counts TFBS, Pfam, TIGRFAM, NRPS/PKS, active-site, tailoring and TTA evidence for the requested region only, not the whole record. A missing module reads `MODULE_ABSENT`; a TTA scan skipped for low GC reads `NOT_RUN_LOW_GC`.
+- A region request that does not resolve to one region stops with `IDENTITY_HOLD`. ClusterBlast evidence is taken from the entry with that region number.
+- BiG-SCAPE family readers stay inside one finished run.
+
+RG-GMCI scores, ranks and thresholds, and KCB cumulative values, are unchanged. Packages from 1.9.178 and 1.9.179 are not directly poolable for `kcb_similarity_band`, for terminal-PKS split flags, or for tab-reconcile ledger counts. Existing outputs are not rewritten.
+
 ## Engine 1.9.178 — first bundle: v9.7.462
 
 A region that wraps the origin of a circular contig keeps its true span, `validated_circular_span_bp`, instead of a zero or inverted length. BGC length, the manifest, the architecture grade, the lead board, gene exports, source scans and RG-GMCI core records all use it. One rank output can change: an origin-wrapping RiPP-family region is floored to the Low tier only when its true span is below the fragment limit (`mamey/scoring.py`).

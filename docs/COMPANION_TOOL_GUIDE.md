@@ -212,7 +212,7 @@ finished plot.
 | [BiG-SLiCE](https://github.com/medema-group/bigslice) | Optional queries against a BiG-SLiCE database (`tools/bigslice_query.py`) | See upstream |
 | [cblaster](https://github.com/gamcil/cblaster) | Optional homologous gene-cluster search, registered as a companion tool | See upstream |
 | [RiPPER](https://github.com/streptomyces/ripper) | Optional, experimental RiPP (ribosomally synthesized and post-translationally modified peptide) discovery adapter (`tools/ripper_*`); nothing runs without explicit opt-in | See upstream |
-| [TriMap](https://github.com/eamid/trimap) | Optional alternative embedding for protein-space figures | Apache-2.0 (installed package metadata) |
+| [TriMap](https://github.com/eamid/trimap) | Optional alternative embedding for protein-space figures; install, smoke test and known crash in [TriMap runs](TRIMAP_RUNS.md) | Apache-2.0 (installed package metadata) |
 | [SPAdes](https://github.com/ablab/spades) | Not run by the bundle; contig names in SPAdes style (`NODE_…_length_…`) are parsed from assemblies made upstream | See upstream |
 | [Swift](https://www.swift.org/install/) (`swiftc`, macOS) | Optional on-device text recognition in `tools/figure_render_qc.py` | Apache-2.0 for the Swift toolchain; see upstream |
 | [curl](https://curl.se/) | Web requests in the BLASTp crawl tools and the NCBI 16S search helper | curl license (MIT-style) |

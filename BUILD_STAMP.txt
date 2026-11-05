@@ -1,5 +1,5 @@
-version=9.7.462
-build=20261102v97462a
-engine=1.9.178
-patch=Circular contigs.; Joined locations.; TFBS scan.; Gap rescue.; Status and validation.; Refusals instead of silent output.; Source gates.; Hooks and transcripts.
+version=9.7.463
+build=20261104v97463a
+engine=1.9.179
+patch=KCB similarity band.; Split detector.; Tab-reconcile ledger.; Identity holds.; BiG-SCAPE.; Trees and placement.; antiSMASH shapes.; clinker.
 tier=code

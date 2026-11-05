@@ -14,16 +14,20 @@ SIMILARITY_DISCLAIMER = "similarity, not identity"
 
 
 def similarity_band(score: float | int | None) -> str:
-    """Bin a KnownClusterBlast-style cumulative/percent score into high/moderate/low.
-    Returns 'unresolved' for None. Bands are deliberately coarse — the point is to
-    stop a 2-significant-figure number implying 2-significant-figure certainty."""
+    """Bin a KnownClusterBlast percent similarity (0-100) into high/moderate/low.
+
+    Takes antiSMASH's per-hit similarity percent, never the cumulative BLAST score (often in
+    the thousands). A value outside 0-100 is not a percent and returns 'unresolved'.
+    Bands are deliberately coarse — the point is to stop a 2-significant-figure number
+    implying 2-significant-figure certainty."""
     if score is None:
         return "unresolved"
     try:
         s = float(score)
     except (TypeError, ValueError):
         return "unresolved"
-    # Normalise: KCB cumulative scores are often 0–100-ish percents; clamp sanely.
+    if not 0 <= s <= 100:
+        return "unresolved"
     if s >= 70:
         return "high"
     if s >= 40:

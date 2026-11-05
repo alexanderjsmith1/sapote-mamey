@@ -110,6 +110,46 @@ def normalize_run_id(value: object) -> int:
     return int(value)
 
 
+def select_family_run(connection, run_id: object = None) -> int | None:
+    """Return the BiG-SCAPE run a family reader must stay inside.
+
+    One database can hold several runs, each with its own ``family`` rows. A
+    reader that filters on cutoff alone pools them and repeats every family once
+    per run. With ``run_id`` given, that run must have families in the
+    database. With none, the database must hold exactly one finished run; two or
+    more is refused. A run whose ``run.end_time`` is empty was interrupted:
+    BiG-SCAPE writes family rows before the run ends, so such a run is refused
+    when named and left out when choosing. ``None`` is returned only when the
+    ``family`` table has no ``run_id`` column or no families, so there is
+    nothing to scope.
+    """
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(family)")}
+    if "run_id" not in columns:
+        return None
+    runs = sorted({int(row[0]) for row in connection.execute(
+        "SELECT DISTINCT run_id FROM family WHERE run_id IS NOT NULL")})
+    run_columns = {row[1] for row in connection.execute("PRAGMA table_info(run)")}
+    unfinished = set()
+    if "end_time" in run_columns:
+        ended = {int(row[0]) for row in connection.execute(
+            "SELECT id FROM run WHERE end_time IS NOT NULL AND trim(end_time) != ''")}
+        unfinished = {run for run in runs if run not in ended}
+    if run_id is not None:
+        run = normalize_run_id(run_id)
+        if run not in runs:
+            raise NamespaceError("RUN_NOT_IN_DB", f"run_id {run} has no families in this database (runs: {runs})")
+        if run in unfinished:
+            raise NamespaceError("RUN_UNFINISHED", f"run_id {run} has no end_time; it was interrupted")
+        return run
+    finished = [run for run in runs if run not in unfinished]
+    if len(finished) > 1:
+        raise NamespaceError("RUN_AMBIGUOUS",
+                             f"database holds {len(finished)} finished BiG-SCAPE runs {finished}; pass --run-id to choose one")
+    if not finished and runs:
+        raise NamespaceError("RUN_UNFINISHED", f"no finished BiG-SCAPE run in this database (runs: {runs})")
+    return finished[0] if finished else None
+
+
 def normalize_cutoff(value: object) -> str:
     if isinstance(value, bool) or value is None:
         raise NamespaceError("CUTOFF_INVALID", "cutoff must be an exact Decimal in (0,1]")

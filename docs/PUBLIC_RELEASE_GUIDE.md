@@ -32,7 +32,7 @@ and leave an occupied `runs/_doctor_probe` untouched. If you have not already co
 orientation and then the diagnostic once from the bundle root:
 
 ```bash
-python -B mamey_run.py start --no-doctor
+python mamey_run.py start --no-doctor
 python mamey_run.py doctor
 ```
 

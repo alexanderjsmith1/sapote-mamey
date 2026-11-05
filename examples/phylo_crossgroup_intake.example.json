@@ -1,0 +1,51 @@
+{
+  "schema": "cross-group-phylo-intake-v1",
+  "group": "algae",
+  "question": "REPLACE with the actual question",
+  "lineage": "REPLACE with the reviewed lineage",
+  "tree_scope": "REPLACE with the intended taxon scope",
+  "method_description": "REPLACE with a reviewed method and compartment",
+  "data_kind": "marker",
+  "marker": "REPLACE with selected marker",
+  "records": [
+    {
+      "id": "query",
+      "role": "query",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "",
+      "kind": "marker",
+      "path": "/absolute/path/to/query",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    },
+    {
+      "id": "reference",
+      "role": "ingroup",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "REPLACE",
+      "kind": "marker",
+      "path": "/absolute/path/to/reference",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    },
+    {
+      "id": "outgroup",
+      "role": "outgroup",
+      "taxon_label": "REPLACE",
+      "source": "REPLACE",
+      "accession": "REPLACE",
+      "kind": "marker",
+      "path": "/absolute/path/to/outgroup",
+      "sha256": "REPLACE",
+      "compartment": "unknown",
+      "file_scope": "unknown",
+      "sequence_extent": "unknown"
+    }
+  ]
+}

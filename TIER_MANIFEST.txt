@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.462 stamp=20261102v97462a
+# TIER_MANIFEST tier=code version=9.7.463 stamp=20261104v97463a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -324,6 +324,7 @@
 ./docs/PHYLOGENETICS_WORKFLOW.md
 ./docs/PHYLOGENOMIC_TREES_METHOD.md
 ./docs/PHYLO_16S_DATA_CONTRACT.md
+./docs/PHYLO_ALGAL_CYANO_WORKFLOW.md
 ./docs/PHYLO_AUTOPILOT_WORKFLOW.md
 ./docs/PHYLO_FUNGAL_WORKFLOW.md
 ./docs/PHYLO_PLACEMENT_WORKFLOW.md
@@ -419,6 +420,7 @@
 ./docs/TREE_DISPLAY_RECEIPTS.md
 ./docs/TREE_FIGURE_GRAMMAR.md
 ./docs/TRIGGER_ROUTING.md
+./docs/TRIMAP_RUNS.md
 ./docs/TWO_STAGE_MODULAR_BGC_REPORTS.md
 ./docs/TYPE_STRAIN_WALKTHROUGHS.md
 ./docs/USER_CATALOG.generated.json
@@ -692,6 +694,8 @@
 ./examples/judgment_18strain/Lit_Verification_Routed_Out.md
 ./examples/layperson_guide_exemplar.md
 ./examples/locus_comparison_synthetic.json
+./examples/phylo_crossgroup_intake.example.json
+./examples/phylo_fungal_intake.example.json
 ./examples/phylo_panel_candidates.template.tsv
 ./examples/privacy/strain_evidence_registry.example.tsv
 ./examples/privacy/strain_privacy_profile.example.json
@@ -2314,6 +2318,16 @@
 ./tests/test_462_stop_hook_calls_bundled_transcript.py
 ./tests/test_462_sync_version_owns_sidebar.py
 ./tests/test_462_validate_ambiguous_workbooks.py
+./tests/test_463_bigscape_readers_one_run.py
+./tests/test_463_diagnostic_domain_names_match_antismash.py
+./tests/test_463_epa_model_must_be_fitted.py
+./tests/test_463_ingest_full_nr_lane.py
+./tests/test_463_seal_refuses_two_triage_boards.py
+./tests/test_463_split_detector_reads_contig_edge.py
+./tests/test_463_strain_package_fallback_exact_token.py
+./tests/test_463_tab_reconcile_counts_one_region.py
+./tests/test_463_tab_reconcile_region_is_a_hold.py
+./tests/test_463_tree_launchers_require_complete_iqtree.py
 ./tests/test_466_multi_reference_aligned_layout.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
@@ -2664,8 +2678,11 @@
 ./tests/test_clear_match_finder_v97434.py
 ./tests/test_cli_parser_no_biopython_v9_7_268.py
 ./tests/test_cli_version_flag.py
+./tests/test_clinker_alignment_contract_v9463.py
 ./tests/test_clinker_dark_protein_link_v9_7_384.py
+./tests/test_clinker_documented_status_v9463.py
 ./tests/test_clinker_figure_cleanup_v9_7_383.py
+./tests/test_clinker_fresh_html_v9463.py
 ./tests/test_clinker_queue_repairs_v97441.py
 ./tests/test_cluster_alignment_label_placement_v9_7_155.py
 ./tests/test_cluster_brief.py
@@ -3014,6 +3031,8 @@
 ./tests/test_gbk_shim.py
 ./tests/test_gbk_shim_lint_e2.py
 ./tests/test_gcf_network_run_help_names_exact_run_v9_7_458.py
+./tests/test_gecco_missing_pfam_names.py
+./tests/test_gecco_name_source_receipt.py
 ./tests/test_gen_cut_receipt.py
 ./tests/test_gen_release_manifest_fixed_point_v97405.py
 ./tests/test_gen_release_manifest_red_log_v97250.py
@@ -3508,13 +3527,17 @@
 ./tests/test_patch_queue_relative_paths_candidate.py
 ./tests/test_patches.py
 ./tests/test_pathway_believability.py
+./tests/test_pcoa_pypdf_preflight_v9463.py
 ./tests/test_personal_matcher_line_scope_v97407.py
 ./tests/test_phantom_locus_format_v97410.py
 ./tests/test_phantom_locus_v97246.py
 ./tests/test_phylo_autopilot.py
 ./tests/test_phylo_bioassay_shared_contract_v97426.py
+./tests/test_phylo_crossgroup_cli_end_to_end.py
+./tests/test_phylo_crossgroup_intake.py
 ./tests/test_phylo_dot_gap_canonical_form_v97430.py
 ./tests/test_phylo_evidence_producer_v97406.py
+./tests/test_phylo_fungal_intake_example.py
 ./tests/test_phylo_mafft_quiet_and_palette_v97428.py
 ./tests/test_phylo_metadata_display_contract_v97426.py
 ./tests/test_phylo_metadata_georgia_display_v97431.py
@@ -3664,6 +3687,7 @@
 ./tests/test_refpkg_containment_execution_v97441.py
 ./tests/test_refresh_figure_source_manifest_cache_v97433.py
 ./tests/test_regen_modeb_contract_docs.py
+./tests/test_regex_unreadable_walk_review.py
 ./tests/test_region_table_identity_and_zero_drop_codex_v97442.py
 ./tests/test_region_table_one_setting_v97442.py
 ./tests/test_register_compute_output.py
@@ -4019,6 +4043,7 @@
 ./tests/test_transcript_snapshot_collision.py
 ./tests/test_transparency_contract.py
 ./tests/test_tree_annotation_gates.py
+./tests/test_tree_audit_snapshot_binding.py
 ./tests/test_tree_bgc_overlay.py
 ./tests/test_tree_bgc_overlay_group_denominators_v97412.py
 ./tests/test_tree_bgc_overlay_margin_repair_v97403.py
@@ -4034,6 +4059,7 @@
 ./tests/test_tree_sanity_outgroup_aware_vgp_398.py
 ./tests/test_tree_series_contract.py
 ./tests/test_tree_track_adapter_v97441.py
+./tests/test_tree_trust_analysis_display.py
 ./tests/test_tree_trust_explicit_workflow.py
 ./tests/test_trees_432_16S_database_provenance_and_genus_string_defects.py
 ./tests/test_trees_432_amycolatopsis_refpkg_two_headers_one_line.py
@@ -4081,6 +4107,7 @@
 ./tests/test_v9_7_338_rg02_gate_fire_known_bad.py
 ./tests/test_v9_7_338_seal03_reciprocal_checksums.py
 ./tests/test_v9_7_338_verdict_gates.py
+./tests/test_validate_bgc_distance_input.py
 ./tests/test_validate_depth_floor_bites_v97407.py
 ./tests/test_validate_timing_receipt_parity.py
 ./tests/test_validator_terminal_success_p0.py
@@ -4461,7 +4488,10 @@
 ./tools/gate_mutation_probe.py
 ./tools/gate_mutation_table.tsv
 ./tools/gate_registry.tsv
+./tools/gate_snapshot_contract.py
+./tools/gate_snapshot_invocation.py
 ./tools/gate_stem_aware.py
+./tools/gate_structured_snapshot.py
 ./tools/gecco_cohort_report.py
 ./tools/gen_command_catalog.py
 ./tools/gen_cut_receipt.py
@@ -4569,6 +4599,7 @@
 ./tools/phylo_16s_rank.py
 ./tools/phylo_16s_validate_db.py
 ./tools/phylo_autopilot.py
+./tools/phylo_crossgroup_intake.py
 ./tools/phylo_display_contract.py
 ./tools/phylo_display_palette.tsv
 ./tools/phylo_mlsa_from_antismash.py
@@ -4764,6 +4795,7 @@
 ./tools/typed_class_rules.py
 ./tools/upstream_gtotree2/COMPATIBILITY_PATCH_NOTES.md
 ./tools/upstream_gtotree2/gtotree2-input-sanity-and-env-compat.patch
+./tools/validate_bgc_distance_input.py
 ./tools/validate_portfolio_config.py
 ./tools/validate_portfolio_registry.py
 ./tools/validate_timing_receipt_parity.py

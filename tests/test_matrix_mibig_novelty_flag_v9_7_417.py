@@ -35,7 +35,7 @@ def _member(cls, strain, product="NRPS"):
 
 def _payload(fam):
     con = _con()
-    M.family_members = lambda con, cutoff=0.3: fam   # monkeypatch the imported symbol
+    M.family_members = lambda con, cutoff=0.3, **_k: fam   # monkeypatch the imported symbol
     return M.build_payload(con)
 
 

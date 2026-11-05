@@ -25,6 +25,7 @@ def _fixture(tmp_path, monkeypatch, banner="EPA-ng v0.3.8\n", rc=0):
         "ref.aln.fasta": ">REF\nACGT\n",
         "ref.tree": "(REF:0.1);\n",  # no asserted proof of unrooted input
         "MODEL": "GTR+G\n",
+        "ref.bestModel": "GTR{1/1/1/1/1/1}+FU{0.25/0.25/0.25/0.25}+G4m{1}, noname = 1-4\n",
     }
     for name, content in inputs.items():
         (ref / name).write_text(content)
@@ -106,7 +107,7 @@ def test_actual_place_uses_same_admitted_executable_model_budget_and_stamps_bind
     assert "--tree" not in calls[0]["argv"]
     argv = calls[1]["argv"]
     assert argv[argv.index("--tree") + 1] == str(ref / "ref.tree")
-    assert argv[argv.index("--model") + 1] == "GTR+G"
+    assert argv[argv.index("--model") + 1] == str(ref / "ref.bestModel")
     assert argv[argv.index("--threads") + 1] == "2" and "--redo" in argv
     for call in calls:
         assert set(call["environment"].values()) == {"2"}

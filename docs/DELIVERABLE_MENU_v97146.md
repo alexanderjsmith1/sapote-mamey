@@ -2,7 +2,7 @@
 
 Choose the output you need in the [current deliverable menu](DELIVERABLE_MENU.md). This older address remains available for existing links.
 
-Current bundle: Sapote-Mamey v9.7.462; engine: Mamey 1.9.178.
+Current bundle: Sapote-Mamey v9.7.463; engine: Mamey 1.9.179.
 
 Menu #5 distinguishes default full48, opt-in current50_v2 and source-bound expanded-locus work orders. Emitted templates are scaffolds, not finished authored cards.
 

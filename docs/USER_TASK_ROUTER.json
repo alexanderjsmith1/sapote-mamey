@@ -133,6 +133,40 @@
       "completion_limit": "Read the companion protocol and resource preflight before compute; external submissions need matching user scope."
     },
     {
+      "id": "fungal_phylogeny",
+      "name": "Fungal phylogeny",
+      "request": "Review a fungal isolate against a selected reference scope.",
+      "inputs": [
+        "source-bound records and question",
+        "reference and outgroup decisions",
+        "resource scope and tool/version requirements"
+      ],
+      "guide": "docs/PHYLO_FUNGAL_WORKFLOW.md",
+      "outputs": [
+        "source and reference inventory",
+        "reviewed comparison scope or explicit holds",
+        "technical reports when run"
+      ],
+      "completion_limit": "This route is planning and review navigation, not compute authorization or scientific identification; follow the companion protocol and applicable figure controls."
+    },
+    {
+      "id": "algal_cyanobacterial_phylogeny",
+      "name": "Green-algal or cyanobacterial phylogeny",
+      "request": "Plan or review a comparison for the selected lineage.",
+      "inputs": [
+        "source-bound records and question",
+        "lineage, source compartment and reference decisions",
+        "outgroup and resource scope"
+      ],
+      "guide": "docs/PHYLO_ALGAL_CYANO_WORKFLOW.md",
+      "outputs": [
+        "source and reference inventory",
+        "lineage-specific decisions or explicit holds",
+        "technical reports when run"
+      ],
+      "completion_limit": "This route is planning and review navigation; marker choice, compute authorization and scientific adoption require separate review."
+    },
+    {
       "id": "stored_blastp",
       "name": "Stored BLASTp evidence",
       "request": "Inspect and reuse saved BLASTp evidence for the bound queries.",

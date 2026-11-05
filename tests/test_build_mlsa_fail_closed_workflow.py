@@ -44,7 +44,10 @@ elif name == 'muscle':
     shutil.copyfile(value('-align'),value('-output'))
     if empty: pathlib.Path(value('-output')).write_text('')
 elif name == 'iqtree':
-    if not empty: pathlib.Path(value('-pre')+'.treefile').write_text('(a:1,b:1);\n')
+    if not empty:  # a complete run: supported treefile, contree, wall-clock line in the log
+        for ext in ('.treefile', '.contree'):
+            pathlib.Path(value('-pre')+ext).write_text('((a:1,b:1)100:0);\n')
+        pathlib.Path(value('-pre')+'.log').write_text('Total wall-clock time used: 1.0 sec\n')
 if fail:
     sys.stderr.write('forced tool failure with partial output\n')
     sys.exit(9)
