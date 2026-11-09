@@ -183,8 +183,11 @@ def main():
         sys.stderr.write(("no matching session") + "\n")
         return 1
 
+    # Any filter (including --since) reads up to 200 files; no filter reads the newest 25.
+    cap = 200 if (a.session or a.color or since) else 25
+    omitted = max(len(paths) - cap, 0)
     rows = []
-    for p in paths[: (200 if (a.session or a.color) else 25)]:
+    for p in paths[:cap]:
         r = audit(p, a.verbose, since=since)
         t = r["tokens"]
         total = t["in"] + t["cw"] + t["cr"] + t["out"]
@@ -192,7 +195,10 @@ def main():
 
     rows.sort(reverse=True)
     win = f"since {since.isoformat(timespec='minutes')}" if since else "LIFETIME (no --since)"
-    sys.stdout.write((f"window: {win}\n") + "\n")
+    scope = (f"files: read the newest {cap} of {len(paths)} matching session file(s); "
+             f"{omitted} older file(s) NOT READ, so totals are partial\n" if omitted
+             else f"files: read all {len(paths)} matching session file(s)\n")
+    sys.stdout.write((f"window: {win}\n{scope}") + "\n")
     sys.stdout.write((f"{'total':>8} {'cache_read':>10} {'output':>8} {'turns':>6} {'tok/turn':>9}  "
           f"{'sub':>3}  {'files':>5}  {'age_d':>6}  chat") + "\n")
     for total, sid, color, r in rows:

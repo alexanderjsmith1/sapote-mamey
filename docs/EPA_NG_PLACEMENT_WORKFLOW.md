@@ -1,9 +1,7 @@
 # EPA-ng 16S placement: candidate workflow and mechanical gates
 
-**Lane:** The phylogeny lane · **Engine:** sapote-mamey ≥ v9.7.411 (needs the 411 patches) · **Status:** shipped companion stages; execution, complete output coverage and scientific acceptance require separate receipts.
-Read alongside the corrected `docs/PHYLO_PLACEMENT_WORKFLOW.md`, which referenced a producer (an older unpackaged producer script)
-that was never packaged, leaving the ggtree renderer orphaned. This workflow is self-contained: every step
-is a shipped tool.
+**Lane:** The phylogeny lane · **Bundle:** v9.7.411 or later · **Status:** shipped companion stages; execution, complete output coverage and scientific acceptance require separate receipts.
+Read alongside [the placement workflow](PHYLO_PLACEMENT_WORKFLOW.md). Every step on this page is a shipped tool.
 
 > **Claim-safety (governing).** 16S rRNA is a phylogenetic **anchor / clade-neighbourhood** indicator, **not**
 > a species assignment. A placement states the genus/clade neighbourhood a query falls into on a FIXED
@@ -42,7 +40,8 @@ These are prospective command shapes. Run from the selected bundle root with its
 python tools/phylo_place.py all <ref_16S.fasta> --group <Genus> --query <queries.fasta> \
      --reference-metadata <ref_16S_meta.tsv> \
      --add-outgroup <Genus> --approved-by "<recorded-approval>" --one-per-species --bootstrap 10 --outdir <run>/placement
-     # build-ref (mafft → raxml-ng GTR+G, rooted on the registry outgroup) → EPA-ng place → gappa graft → report
+     # build-ref (mafft → raxml-ng GTR+I+G, rooted on the registry outgroup) → EPA-ng place → gappa graft → report
+     # the model actually used is in the run's inference receipt
      # driver interpreter: Tools/bin/python3 (Biopython); binaries: miniconda3/envs/placement/bin
      # → epa_result.jplace, epa_result.newick, <Genus>_placements.tsv, <Genus>_neighborhoods.tsv, refpkg/
 
@@ -106,7 +105,7 @@ fabricated key derived from `REF_NR_...`.
 
 ## Governing rules (baked into the tools)
 1. **Source separation.** One genus/cohort per tree. `--group` is required and stamped into every output;
-   a single genus is the strictest separation (EGGPLANT_411 per-genus patch).
+   a single genus is the strictest separation.
 2. **Registry outgroup, rooted.** The outgroup is looked up in `OFFICIAL_DATA/OUTGROUP_REGISTRY.tsv`
    (e.g. Actinomadura → *Actinocorallia herbida* GCF_003751225.1 / NR_115631.1, LOCKED — sister genus, not
    *Spirillospora* which nests inside Actinomadura). build-ref appends it and roots the backbone on it.
@@ -114,8 +113,10 @@ fabricated key derived from `REF_NR_...`.
    records are stripped before inference (they otherwise dominate the tree and FAIL sanity).
 4. **Gates before render.** `tree_sanity_check` (outgroup-aware) must PASS. `phylo_postflight` P3 is
    placement-aware (a graft carries no tree-wide UFBoot; confidence = LWR + backbone Felsenstein bootstrap).
-5. **The prune ladder.** `--neighbors-per-query N` (figure) / `--neighbors N` (producer) renders a series:
-   N=1 tight, N=3 medium, `--keep-all-refs` full. The full backbone size is always stated.
+5. **The prune ladder.** `placement_display.py --neighbors-per-query N` or
+   `build_placement_ggtree_inputs.py --neighbors N` renders a series: N=1 tight, N=3 medium, and full with
+   `placement_display.py --keep-all-references` or `build_placement_ggtree_inputs.py --keep-all-refs`.
+   The full backbone size is always stated.
 6. **Honest labels.** Query tips = strain / host / 16S GenBank accession from the strain table.
    The reader uses the first nonempty host field in this order: `Host`, `host_common`, `host`, `host_raw`.
    `--allow-raw-host` moves `host_raw` ahead of `host_common` and `host`; `Host` stays first.
@@ -126,8 +127,9 @@ fabricated key derived from `REF_NR_...`.
    A project strain accession found in the reference role is a hard refusal; the display reports how
    many project accessions were checked. Project strains are references only in a separately declared,
    receipt-bound analysis with an explicit role ledger.
-7. **Methods travel with the figure.** `GG_METHODS` prints a wrapped methods block below the tree, so a bare
-   image is still a complete, sourced deliverable.
+7. **Methods travel with the figure.** `GG_METHODS` prints a wrapped methods block below the tree. That
+   block is a display policy. It does not prove that a bare image carries complete provenance, so keep the
+   receipts with the figure.
 
 ## Confidence reading
 LWR is the relative weight of a placement edge among the retained alternatives, not a bootstrap,
@@ -146,9 +148,10 @@ query, alignment and reference scope before interpretation.
   logs/                            build log, tool provenance (versions)
 ```
 
-## Version-matched tools
-raxml-ng 2.0.2 · EPA-ng 0.3.8 · gappa 0.9.0 · mafft 7.526 · Biopython 1.87 · ggtree 4.2.0 / R 4.6.0 ·
-Sapote-Mamey phylo_place (engine 1.9.149). Cite the exact installed versions (`mamey doctor`).
+## Tool versions
+This page does not pin versions. `python mamey_run.py doctor` reports whether `mafft`, `raxml-ng`,
+`epa-ng` and `gappa` are found; it does not report their versions. Cite the version each tool
+prints for your run, and keep it in the run's `logs/` and `METHODS.md`.
 
 
 ## Overlay a binary bioassay summary
@@ -226,7 +229,7 @@ The TSV columns are `strain`, `host`, `region`, `accession`; `strain` receives t
 
 The adapter refuses an existing output and uses exclusive creation, preventing a concurrent replacement. It writes the TSV directly, so a late write failure can leave a partial file that a retry refuses. Preserve the partial and use a fresh destination after correcting the cause. Success exits 0; caught JSON/validation/I/O errors log a refusal and exit 2. The standalone script does not configure INFO logging, so its success message is normally suppressed. Inspect the output and exit status; no JSON completion receipt or input/output hash inventory is emitted. Record those hashes separately.
 
-Pass the TSV explicitly as `--aux-table` only after checking its keys against the selected annotation consumer. That consumer fills empty host/region/accession fields and refuses conflicting nonempty values; it does not use blank auxiliary cells to erase prior metadata. Its recognized AS tip IDs can be normalized to `AS-<digits>`, whereas this exporter preserves the exact tip spelling. Reconcile any key spelling/role mismatch with source-bound metadata instead of assuming an exported row joined the displayed query. Conflicts remain subject to the annotation builder's existing checks.
+Pass the TSV explicitly as `--aux-table` only after checking its keys against the selected annotation consumer. That consumer fills empty host/region/accession fields and refuses conflicting nonempty values; it does not use blank auxiliary cells to erase prior metadata. It can normalize recognized project tip IDs to one canonical spelling, whereas this exporter preserves the exact tip spelling. Reconcile any key spelling/role mismatch with source-bound metadata instead of assuming an exported row joined the displayed query. Conflicts remain subject to the annotation builder's existing checks.
 
 Representative grouping labels report the observed maximum nucleotide differences and minimum
 shared unambiguous sites. They do not label threshold-based grouping as sequence identity.
@@ -248,9 +251,9 @@ Every query must have a valid GenBank accession in the selected host or auxiliar
 
 The source guards `build-ref` with a nonempty `--approved-by` record and, when its bundle stamp is present, refuses the resolved refpkg destination inside the executing code bundle. The all-stage example must bind actual approval and an external candidate output. The field records supplied authorization; a nonempty string does not authenticate a scientific owner decision (`tools/phylo_place.py`). Registry authority comes from a selected governed external registry, not the bundled reference-only rows; historical named outgroups in this page are illustrations, not authority for a new tree. See [outgroup/refset limits](OUTGROUP_AND_REFSET_WORKFLOW.md).
 
-`all` reuses a supplied `--refpkg` when its `ref.tree` exists; otherwise it builds a reference package (`tools/phylo_place.py`). Bind the complete input/model/tree/version/approval record first; existence alone is not freshness or panel identity. Current reporting produces source-bound numerical length evidence before admitting neighborhood distances or rendering; unverified length evidence holds those products. Inspect `<group>_REPORT_ATTEMPT.json`: report completion requires admitted lengths and, when requested, strips in RENDERED or RENDERED_WITH_OMISSIONS state. A strip/length hold returns2. An optional diagnostic-render failure can still be caught without blocking a report whose other completion conditions pass. Check the requested deliverable roster independently.
+`all` reuses a supplied `--refpkg` when its `ref.tree` exists; otherwise it builds a reference package (`tools/phylo_place.py`). Bind the complete input/model/tree/version/approval record first; existence alone is not freshness or panel identity. Current reporting produces source-bound numerical length evidence before admitting neighborhood distances or rendering; unverified length evidence holds those products. Inspect `<group>_REPORT_ATTEMPT.json`: report completion requires admitted lengths and, when requested, strips in RENDERED or RENDERED_WITH_OMISSIONS state. A strip or length hold returns 2. An optional diagnostic-render failure can still be caught without blocking a report whose other completion conditions pass. Check the requested deliverable roster independently.
 
-The native diagnostic renderer writes PNG200dpi, SVG and labels JSON. The label JSON binds the input tree and stores the labelmap/roles, while the returned render descriptor separately hashes PNG, SVG and labels JSON. It is no longer accurate to describe the current report path as lacking any rendered-artifact binding; those hashes still do not establish biological correctness or visual usability.
+The native diagnostic renderer writes a PNG at 200 dpi, an SVG and a labels JSON. The label JSON binds the input tree and stores the labelmap/roles, while the returned render descriptor separately hashes PNG, SVG and labels JSON. It is no longer accurate to describe the current report path as lacking any rendered-artifact binding; those hashes still do not establish biological correctness or visual usability.
 
 Outgroup role tokens are preferred; when absent, the native diagnostic renderer retains a modal-organism-genus heuristic (`tools/phylo_place.py`). A mechanical gate or display-root convention does not establish biological outgroup suitability. Detailed alternatives are exported to `<group>_placement_alternatives.tsv`, with retained LWR sum/count, without renormalization; `<group>_placements.tsv` is the separate best-hit table. `uncertainty_measure` explicitly reads `LWR_NOT_BOOTSTRAP_OR_SPECIES_PROBABILITY`.
 

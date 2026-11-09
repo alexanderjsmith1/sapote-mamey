@@ -186,7 +186,7 @@ class SemanticBindingTests(unittest.TestCase):
     def test_ambiguous_cds_nucleotide_refused(self):
         start=int(self.record.features[0].location.start)
         self.record.seq=self.record.seq[:start+6]+Seq('N')+self.record.seq[start+7:]
-        self.refuse('UNAMBIGUOUS_ATG_CDS_REQUIRED')
+        self.refuse('UNAMBIGUOUS_CDS_REQUIRED: subject CDS')
 
     def test_internal_stop_refused(self):
         start=int(self.record.features[0].location.start)
@@ -206,7 +206,7 @@ class SemanticBindingTests(unittest.TestCase):
     def test_unsupported_start_codon_refused(self):
         start=int(self.record.features[0].location.start)
         self.record.seq=self.record.seq[:start]+Seq('GTG')+self.record.seq[start+3:]
-        self.refuse('UNAMBIGUOUS_ATG_CDS_REQUIRED')
+        self.refuse('CDS_TRANSLATION_INVALID: subject CDS')
 
     def test_empty_cds_inventory_refused_before_publication(self):
         self.record.features=[];self.refuse('GENBANK_STRUCTURE_INVALID')

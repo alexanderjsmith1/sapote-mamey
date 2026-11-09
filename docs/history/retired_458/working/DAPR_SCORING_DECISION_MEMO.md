@@ -13,7 +13,7 @@ Treat framework vocabulary and computed scoring separately; see [current DAPR cl
 
 # DECISION MEMO — DAPR documented-but-unscored classes
 
-**From:** Patch Chat · **Date:** 2026-06-20 · **For:** the Developer or User (scoring decision)
+**From:** the patch workstream · **Date:** 2026-06-20 · **For:** the Developer or User (scoring decision)
 **Status:** analysis only — **no scoring code touched.** Wiring any of these is a scoring boundary.
 
 ---

@@ -1,109 +1,110 @@
-# Tree annotation Figure Factory consumer
+# Draw a tree with BGC and assay strips
 
-`tools/tree_bgc_overlay.py` is the publication-gated renderer for existing MLSA and
-GToTree/IQ-TREE outputs. It is not a third phylogeny engine and does not run alignment, tree
-inference, relabeling, ANI, BGC, domain, or Mode B analysis.
+`tools/tree_bgc_overlay.py` draws a finished phylogenetic tree with one colored strip of values per strain beside it. The strips can hold ANI, BGC counts, domain counts, Mode B calls, assembly numbers or assay values. The tool only draws. It does not build a tree, align sequences, or run ANI, BGC, domain or Mode B analysis. See the [glossary](GLOSSARY.md) for terms.
 
-The accepted tree channels are deliberately separate:
+It accepts three kinds of tree, and keeps them apart:
 
-- `MLSA_PROTEIN5` — the five protein-coding loci built by `build_mlsa.py`;
-- `MLSA_16S_SEPARATE` — the separately extracted 16S evidence channel; and
-- `CORE_GENOME_GTOTTREE_IQTREE` — the GToTree core-gene alignment followed by recorded IQ-TREE
-  inference.
+- `MLSA_PROTEIN5`: five protein-coding genes, built by `build_mlsa.py`.
+- `MLSA_16S_SEPARATE`: a separate 16S tree.
+- `CORE_GENOME_GTOTTREE_IQTREE`: a GToTree core-gene alignment, then IQ-TREE. The spelling `GTOTTREE` is exact.
 
-The renderer never forces agreement between these topologies. Visual proximity does not establish
-product identity, activity, horizontal transfer, ancestry direction, or topology equivalence.
+It never forces two trees to agree. Closeness on the page does not show product identity, activity, horizontal transfer, direction of ancestry, or that two topologies match.
 
-## Hash-bound interface
+## What you need
 
-A `sapote.tree-figure-factory.v1` configuration binds exactly one file for every role below:
+- A finished tree in plain Newick with a semicolon at the end. Quoted labels are fine. Comments in square brackets are refused.
+- The alignment that built the tree.
+- Three small JSON receipts: tree workflow, model, seed.
+- Four TSV files: the outgroup, the tip roster, the tip crosswalk, and the annotation matrix (formats below).
+- The figures extra for plotting: `pip install ".[figures]"` from the program folder. See [install](INSTALL.md).
 
-| Role | Required content |
+## Input files
+
+Every file has a role. The config names each file once.
+
+| Role | Content |
 |---|---|
-| `tree` | final canonical Newick tree |
-| `alignment` | the exact alignment used for that tree |
-| `tree_workflow_receipt` | JSON carrying matching `tree_channel` and `tool` |
-| `model_receipt` | JSON carrying the selected `model` |
-| `seed_receipt` | JSON carrying the exact `seed` |
-| `outgroup_roster` | TSV with exactly one included `newick_label` |
-| `final_tip_roster` | TSV: `newick_label`, `state`, `reason`; state is `INCLUDED` or `OMITTED` |
+| `tree` | final Newick tree |
+| `alignment` | the alignment used for that tree |
+| `tree_workflow_receipt` | JSON with `tree_channel` and `tool` |
+| `model_receipt` | JSON with `model` |
+| `seed_receipt` | JSON with `seed` |
+| `outgroup_roster` | TSV with a `newick_label` column and exactly one row, a tip that is in the tree |
+| `final_tip_roster` | TSV: `newick_label`, `state`, `reason`. `state` is `INCLUDED` or `OMITTED`. Every row needs a reason. |
 | `tip_crosswalk` | TSV: `newick_label`, `strain`, `display_label`, `role`, `genus` |
-| `annotation_matrix` | adapter-owned TSV: `strain`, `channel`, `feature`, `value`, `state` |
+| `annotation_matrix` | TSV: `strain`, `channel`, `feature`, `value`, `state` |
 
-Every locator is relative to a configured data root and every input carries an exact lowercase
-SHA-256. Crosswalk labels and strains are each one-to-one; duplicates refuse. Crosswalk rows cover
-the complete final roster, while tree tips must equal the `INCLUDED` roster exactly. There is no
-prefix inference and no silent tip dropping. `OMITTED` rows travel in a typed omission receipt.
+Rules the tool enforces:
 
-The accepted strain-aggregate annotation channels are `ANI`, `BGC`, `DOMAIN`, `MODE_B`,
-`ASSEMBLY` and `BIOASSAY`. For assay values, use the
-[admitted Figure Factory selection](BIOASSAY_FIGURE_FACTORY.md#tree-and-mode-b-boundary),
-retain target/material/time/dose/aggregation receipts, and supply an exact tree-tip
-crosswalk. Drawing the supplied BIOASSAY value does not admit raw assay data, pool
-experiments or attribute activity to a locus. It owns all domain semantics and exact-locus validation; the renderer does not
-reconstruct inventories or judgments. A locus-specific future adapter must carry the complete
-`strain / full node-or-contig / region / BGC alias` identity and fail if any part is unavailable.
+- The tree tips must equal the `INCLUDED` rows exactly. Nothing is inferred from name prefixes and no tip is dropped silently. `OMITTED` rows are written to a separate omission file.
+- The crosswalk has one row for every roster row. Each `newick_label` and each `strain` appears once.
+- Crosswalk `role` is `STUDY`, `REFERENCE`, `OUTGROUP` or `EXTERNAL_BENCHMARK`, in capitals. Exactly one row is `OUTGROUP`, and it is the outgroup roster tip. Other tree tools use lowercase roles. To convert a table from [display receipts](TREE_DISPLAY_RECEIPTS.md), map `query` to `STUDY`, `reference` to `REFERENCE` and `outgroup` to `OUTGROUP`.
+- `channel` is one of `ANI`, `BGC`, `DOMAIN`, `MODE_B`, `ASSEMBLY`, `BIOASSAY`. Each `(strain, channel, feature)` appears once, and the strain must be in the crosswalk.
+- `state` is `OBSERVED` (a finite number in `value`), or `MISSING`, `NOT_MEASURED`, `NOT_APPLICABLE` (blank `value`). A strain with no row for a feature is drawn as `MISSING`. The tool keeps these four states apart and never turns one into another. In the figure, an `OBSERVED` cell is colored by value; `MISSING` is a gray cell marked `?`; `NOT_MEASURED` is a white cell with a gray border marked `×`; `NOT_APPLICABLE` is a pale cell marked `–`. The key is printed under the tree. The plot-data table holds the same state names.
 
-## Build the explicit configuration
+For assay values, use the [admitted selection](BIOASSAY_FIGURE_FACTORY.md#tree-and-mode-b-boundary) and give an exact tip crosswalk. Drawing a value does not admit raw assay data, pool experiments, or tie activity to a locus. A locus-level strip would have to carry the full `strain / full node-or-contig / region / BGC alias` identity. The tool does not build that.
 
-Invoke the renderer from the selected bundle environment after the input tree and
-annotations are prepared:
+## Write the config
+
+Save this as `tree_figure.json`. The example has four tips, named `tipA`, `tipB`, `tipC` and `tipOut`. Replace the values with yours.
+
+```json
+{
+  "schema_version": "sapote.tree-figure-factory.v1",
+  "tree_channel": "MLSA_PROTEIN5",
+  "annotation_scope": "STRAIN_AGGREGATE_ONLY",
+  "external_data_root": "/path/to/data",
+  "output_dir": "out",
+  "figure_question": "How many BGC regions does each strain carry?",
+  "inputs": [
+    {"role": "tree", "logical_locator": "tree.nwk", "sha256": "<64 hex digits>"},
+    {"role": "alignment", "logical_locator": "alignment.fasta", "sha256": "<64 hex digits>"},
+    {"role": "tree_workflow_receipt", "logical_locator": "tree_workflow.json", "sha256": "<64 hex digits>"},
+    {"role": "model_receipt", "logical_locator": "model.json", "sha256": "<64 hex digits>"},
+    {"role": "seed_receipt", "logical_locator": "seed.json", "sha256": "<64 hex digits>"},
+    {"role": "outgroup_roster", "logical_locator": "outgroup.tsv", "sha256": "<64 hex digits>"},
+    {"role": "final_tip_roster", "logical_locator": "roster.tsv", "sha256": "<64 hex digits>"},
+    {"role": "tip_crosswalk", "logical_locator": "crosswalk.tsv", "sha256": "<64 hex digits>"},
+    {"role": "annotation_matrix", "logical_locator": "annotations.tsv", "sha256": "<64 hex digits>"}
+  ],
+  "methods": {
+    "tool": "IQ-TREE",
+    "model": "LG+G",
+    "seed": "12345",
+    "outgroup": "tipOut",
+    "support": "ultrafast bootstrap",
+    "source_release": "EXAMPLE release",
+    "software_versions": "IQ-TREE 2.x"
+  }
+}
+```
+
+Field notes:
+
+- The key is `schema_version`, not `schema`. `figure_question` is required and must not be empty.
+- `external_data_root` is an absolute path to the folder that holds all nine files. Each `logical_locator` is a path inside that folder.
+- `output_dir` must not exist yet. A relative path resolves from the folder that holds the config file.
+- Fill each `sha256` from the file itself, in lowercase: `shasum -a 256 tree.nwk`. A wrong digest is refused.
+- `tool`, `model` and `seed` in `methods` must equal the values in the three receipts. The example receipts are `{"tree_channel": "MLSA_PROTEIN5", "tool": "IQ-TREE"}`, `{"model": "LG+G"}` and `{"seed": 12345}`. The tool checks that these fields agree. It does not rerun the inference.
+
+## Run it
 
 ```bash
 python tools/tree_bgc_overlay.py --config /path/to/tree_figure.json
 ```
 
-The JSON uses `schema_version`, not `schema`. Required top-level fields are:
+Success: exit code 0. The tool prints one line of JSON, the run receipt, and creates the `output_dir` folder. The receipt shows `"status": "PASS_ENGINEERING_CANDIDATE"`. That means the build finished, not that anyone accepted the science.
 
-| Field | Required value or shape |
-|---|---|
-| `schema_version` | `sapote.tree-figure-factory.v1` |
-| `tree_channel` | One of the three exact channel names above; retain the shipped `GTOTTREE` spelling |
-| `annotation_scope` | `STRAIN_AGGREGATE_ONLY` |
-| `external_data_root` | Explicit existing data root for all bound input locators |
-| `output_dir` | New output directory; relative paths resolve from the config file, not the input root |
-| `inputs` | Nine objects, exactly one for each role above; each contains `role`, `logical_locator`, `sha256` |
-| `methods` | Nonempty `tool`, `model`, `seed`, `outgroup`, `support`, `source_release`, `software_versions` |
+Failure: exit code 2. Nothing is written to `output_dir`. One line goes to standard error, starting `tree_bgc_overlay: REFUSED:` and naming the failed check, for example a digest mismatch or a tip missing from the roster.
 
-Each `logical_locator` is a relative file path contained in `external_data_root`.
-Each `sha256` binds actual bytes, not an example digest. The workflow/model/seed
-receipts must agree with the corresponding `methods` values. The renderer checks
-those supplied fields; it does not reconstruct or independently verify the inference.
+## What you get
 
-Crosswalk roles are exactly `STUDY`, `REFERENCE`, `OUTGROUP` or `EXTERNAL_BENCHMARK`.
-This differs from the lowercase `query/reference/outgroup` roles used by other
-tree consumers; perform an explicit schema adaptation instead of copying a table
-unchanged. A crosswalk row needs all five columns and a distinct strain value.
+In `output_dir`:
 
-Annotation keys are unique `(strain, channel, feature)` tuples. `OBSERVED` requires
-a finite numeric value. `MISSING`, `NOT_MEASURED` and `NOT_APPLICABLE` require a blank
-value. An annotation strain outside the included tree roster refuses. These rules
-check transport and typed missingness; the upstream adapter owns biological semantics.
+- `tree_bgc_overlay_single_column` and `tree_bgc_overlay_double_column`, each as SVG and 300-DPI PNG.
+- `tree_bgc_overlay_plotdata.tsv`, the plotted values, and `tree_bgc_overlay_omitted_tips.tsv`.
+- `tree_bgc_overlay_caption_methods.json`, a caption and methods record that cites the hashes of every input.
+- `tree_bgc_overlay_owner_notes.json`, notes that stay out of the printed caption.
+- `tree_bgc_overlay_receipt.json`, which lists the hash of every file above.
 
-The figures extra is needed for matplotlib rendering. A fresh output is required;
-existing output directories are refused. Keep the configuration, source receipts
-and emitted `tree_bgc_overlay_receipt.json` with the artwork, then inspect the actual
-figure at its intended reading width before claiming visual review.
-
-## Output contract
-
-The renderer transactionally writes:
-
-- live-text, vector-geometry SVG and native 300-DPI PNG at both single- and double-column widths;
-- deterministic recorded topology, branch lengths, support labels, and explicit display labels;
-- accessible, channel-distinct annotation cells without cross-channel normalization or pooling;
-- exact plot-data and omitted-tip TSV receipts;
-- a dynamic caption/method JSON binding tree, alignment, tool, model, seed, outgroup, roster,
-  crosswalk, and annotation hashes;
-- separate owner-notes metadata that is not printed as a scientific caption; and
-- a complete output/hash receipt.
-
-At each declared publication width, every visible annotation-track x-axis tick label is measured
-after the final layout pass and must be disjoint from the annotation axes data rectangle. A label
-that touches or enters the data region is a hard refusal even when no two labels collide.
-
-Canonical IQ-TREE Newick with quoted labels is accepted. Comments or extended annotation syntax are
-refused so unsupported Newick cannot be misrendered. Any later PDF compilation must preserve the SVG
-as vector artwork or pass the native-pixel fallback gate, then verify physical-width text legibility.
-
-A successful render does not sign off the tree or reconcile MLSA with core-genome topology.
+The figure shows your tree's topology and branch lengths and your labels. It never pools channels. The tool refuses any tick label that touches the strip area. Open each figure at its intended print width and check the labels yourself. Keep the config and the receipts with the figure.

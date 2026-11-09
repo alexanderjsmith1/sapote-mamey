@@ -1,6 +1,6 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.463 · build 20261104v97463a · engine Mamey 1.9.179**
+**Bundle v9.7.464 · build 20261108v97464a · engine Mamey 1.9.180**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.
@@ -40,11 +40,12 @@ The directory rules below explain the retained branches in `tools/make_public_ti
 - **code / public**: remove `private/`, `cohort/`, `merged_cohort/`, `data/`, `release2_source_library/`, `docs/legacy/`, `offline_deps/`, plus internal working docs (session handoffs, freeze-triage notes, `PRIVATE_DO_NOT_PUBLISH.txt`, and similar).
 - **clean**: everything code removes, and *also* the worked outputs — `deliverables/deep_dives`, `deliverables/analyses`, `deliverables/reports`, `figures/`, and the example ledgers.
 - **cohort**: removes `private/`, `merged_cohort/`, and `docs/legacy/`, but keeps the `cohort/` banks — that is the whole point of this tier, to ship the public cohort data alongside the tool.
-- **merged**: strips nothing. Full scaffold.
+- **merged**: no tier-specific removals, and the source-bound file holds are not applied. The shared stage steps still run on the copy: the author correspondence note `tools/upstream_gtotree2/NOTE_TO_GTOTREE_AUTHOR.md`, `.git`, `__pycache__`, `.pytest_cache` and `.DS_Store` are removed, and backup or editor debris stops the build. So a merged scaffold is not a byte-for-byte copy or a verified backup of the source tree.
 
-The historical cut used an AS_SCRUB setting and its recorded cohort disclosure decision. In the
-current builder the automatic identifier-rewriting pass was removed; AS_SCRUB controls retained
-identifier audit checks and cannot be treated as a universal redaction toggle. Other documentation
+The historical cut used an AS_SCRUB setting and its recorded cohort disclosure decision. That
+switch is retired: no current cut script reads `AS_SCRUB`, so setting it does nothing, and the
+builder has no automatic identifier-rewriting pass. See the
+[privacy guide](CUSTOM_PRIVACY_TIERS.md) for the current `private_identifiers` policy. Other documentation
 redaction, policy and leak-audit gates have separate scopes. See the current privacy guide and actual
 cut logs rather than transferring this old “no redaction runs” assertion to a new candidate.
 

@@ -16,7 +16,12 @@ This is POST-SEAL. It never blocks the deterministic package seal. Two input pat
      existing extract_domain_features parser — the complete view.
   2. sealed package only: falls back to the v9.7.88 gene context (`gene_context.jsonl`), which
      carries domain NAMES per CDS but not descriptions/evalues — a LIMITED view, clearly marked.
-On any failure it writes a domain-level failure receipt and leaves the core package valid.
+For the handled cases (missing rules, no manifest, no eligible BGCs, no domain context, a source
+archive whose digest does not match the package) it writes a named failure card and receipt. Other
+errors (an unreadable manifest or triage board, a write error) raise, and files written before the
+error stay in the output folder. The source archive is used only when its SHA-256 matches the
+package manifest's `input_zip_sha256`. The output folder must not already hold any of the files
+this command writes; an occupied folder is refused before anything is written.
 
 CLAIM SAFETY
 ------------
@@ -391,14 +396,12 @@ def _top_bgcs_from_package(pkg: Path, top_n: int) -> tuple[str, list[dict]]:
     if triage:
         with open(triage[0], newline="", encoding="utf-8") as fh:
             for r in csv.DictReader(fh):
-                # AUDIT_379: mirror scoring.is_lead_excluded()'s 3-flag lead-exclusion gate.
-                # The triage CSV has no Mobile_element_flag column (cli.py triage_headers), but the
-                # manifest bgcs (bgcs_by_id, loaded above) carry mobile_element_flag (models.py:369,
-                # v9.7.374). Without this third check a BGC the engine demoted PURELY for mobile/IS-
-                # element dominance (no standing-rule, no primary-metabolism flag) still enters the
-                # domain-level top-N and receives a full figure/table set as if it were a ranked lead.
-                if (r.get("Standing_rule") or r.get("Primary_metab_flag") == "YES"
-                        or bgcs_by_id.get(r.get("BGC_ID", ""), {}).get("mobile_element_flag")):
+                # AUDIT_379: the engine's 3-flag lead exclusion. The triage board and the manifest
+                # bgcs both carry the mobile-element flag; a BGC is excluded when EITHER says so, so a
+                # board and manifest that disagree fail closed rather than promote the BGC.
+                from .scoring import is_lead_excluded
+                if (is_lead_excluded(r)
+                        or is_lead_excluded(bgcs_by_id.get(r.get("BGC_ID", ""), {}))):
                     continue
                 def _f(c):
                     try: return float(r.get(c) or 0)
@@ -426,15 +429,72 @@ def _write_csv(path: Path, rows: list[dict], cols: list[str]) -> None:
             w.writerow({c: r.get(c, "") for c in cols})
 
 
+# Every file run_domain_level can write into its output folder. All of them are checked before
+# the first write, so a rerun cannot replace an earlier run's tables, cards or receipt.
+OUTPUT_NAMES = (
+    "domain_rows_long.csv", "domain_complexity_metrics_by_bgc.csv", "domain_safe_unsafe_claims.csv",
+    "domain_role_counts_by_bgc.csv", "ordered_domain_architectures_by_bgc.csv",
+    "antismash_module_summary_by_bgc.csv", "OPEN_ME_FIRST_Domain_Level_ModeB.md",
+    "MODE_B_LIMITED_DOMAIN_CONTEXT.md", "DOMAIN_LEVEL_CLAIM_SAFETY_RULES_MISSING.md",
+    "DOMAIN_LEVEL_LIMITED_PACKAGE_ONLY.md", "DOMAIN_LEVEL_SKIPPED_NO_GBK.md",
+    "DOMAIN_LEVEL_SOURCE_ZIP_MISMATCH.md", "domain_level_receipt.json",
+)
+
+
+def _source_digest(source: str | Path) -> str | None:
+    """SHA-256 of the selected source archive (the captured snapshot during a run), or None."""
+    from .source_context import captured_digest
+    captured = captured_digest(source)
+    if captured:
+        return captured
+    path = Path(source)
+    if not path.is_file():
+        return None
+    import hashlib
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _manifest_input_digest(pkg: Path) -> str | None:
+    try:
+        manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    value = manifest.get("input_zip_sha256") if isinstance(manifest, dict) else None
+    return value if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) else None
+
+
 def run_domain_level(package_dir: str | Path, source_antismash: str | Path | None = None,
                      top_n: int = 10, outdir: str | Path | None = None) -> dict[str, Any]:
-    """Post-seal domain-level enrichment. Never raises — on failure writes a receipt and returns
-    a status dict, leaving the core package valid. Returns the receipt dict."""
+    """Post-seal domain-level enrichment. Returns the receipt dict.
+
+    Handled failures write a named card and a receipt and leave the core package valid. An
+    occupied output folder is refused with status REFUSED and nothing is written. Unhandled
+    errors raise; files already written stay in place."""
     pkg = Path(package_dir)
     out = Path(outdir) if outdir else pkg / "domain_level"
+    from .output_transaction import preflight_output_roster
+    _protected = [pkg / "manifest.json"] + ([Path(source_antismash)] if source_antismash else [])
+    try:
+        preflight_output_roster([out / name for name in OUTPUT_NAMES], protected_paths=_protected)
+    except ValueError as exc:
+        if ".." in Path(out).parts:
+            # A traversal refusal is about the path's form, not about earlier outputs.
+            reason = "refused: --out contains '..' (parent traversal is not admitted); choose a direct path"
+        else:
+            occupied = sorted(name for name in OUTPUT_NAMES if (out / name).exists())
+            reason = (f"output folder {out} is not fresh ({exc}); occupied: "
+                      f"{', '.join(occupied) or 'none'}. Choose a new --out folder; earlier "
+                      f"outputs are kept.")
+        return {"command": "domain-level", "status": "REFUSED", "mode": "none", "reason": reason,
+                "files": [], "warnings": [], "core_package_valid": True}
     out.mkdir(parents=True, exist_ok=True)
     receipt: dict[str, Any] = {"command": "domain-level", "package": ".",
                                "source_antismash": Path(source_antismash).name if source_antismash else None,
+                               "source_antismash_sha256": None, "source_binding": None,
                                "top_n": top_n, "files": [], "warnings": [],
                                "core_package_valid": True}
 
@@ -463,10 +523,40 @@ def run_domain_level(package_dir: str | Path, source_antismash: str | Path | Non
     if not bgcs:
         return _fail("DOMAIN_LEVEL_LIMITED_PACKAGE_ONLY.md", "no eligible top BGCs in triage board", "none")
 
+    # Bind the selected source archive to the package before using it: the archive's features are
+    # joined to BGCs by contig name and coordinates, so a different archive that shares contig names
+    # would be assigned to this package silently.
+    if source_antismash:
+        from .source_context import source_exists
+        if not source_exists(source_antismash):
+            receipt["source_binding"] = "SOURCE_ZIP_UNAVAILABLE"
+            receipt["warnings"].append("SOURCE_ZIP_UNAVAILABLE: the selected source archive was not "
+                                       "found; it was not used")
+            source_antismash = None
+        else:
+            observed = _source_digest(source_antismash)
+            expected = _manifest_input_digest(pkg)
+            receipt["source_antismash_sha256"] = observed
+            if observed and expected and observed != expected:
+                receipt["source_binding"] = "SOURCE_ZIP_DIGEST_MISMATCH"
+                return _fail("DOMAIN_LEVEL_SOURCE_ZIP_MISMATCH.md",
+                             "SOURCE_ZIP_DIGEST_MISMATCH: the selected source archive's SHA-256 does not "
+                             "match the package manifest's input_zip_sha256, so its features cannot be "
+                             "assigned to this package. Pass the archive the package was built from.",
+                             "none")
+            if not (observed and expected):
+                receipt["source_binding"] = "SOURCE_ZIP_DIGEST_UNBOUND"
+                receipt["warnings"].append(
+                    "SOURCE_ZIP_DIGEST_UNBOUND: the source archive or the package manifest has no "
+                    "SHA-256 to compare, so the archive was not used")
+                source_antismash = None
+            else:
+                receipt["source_binding"] = "MATCHES_MANIFEST_INPUT_ZIP_SHA256"
+
     # choose the input path: full source zip if given, else the sealed gene context (limited)
     mode = "full_source"
     domains_by_bgc: dict[str, list[dict]] = {}
-    if source_antismash and Path(source_antismash).exists():
+    if source_antismash:
         try:
             domains_by_bgc = domains_from_source_zip(source_antismash, bgcs)
         except Exception as e:
@@ -537,7 +627,7 @@ def run_domain_level(package_dir: str | Path, source_antismash: str | Path | Non
         receipt["warnings"].append(f"architecture templates unavailable: {_arch_e}")
     try:
         mods_by_bgc = {}
-        if source_antismash and Path(source_antismash).exists():
+        if source_antismash:
             mods_by_bgc = modules_from_source_zip(source_antismash, bgcs)
         module_rows = build_module_summary(bgcs, mods_by_bgc)
         _write_csv(out / "antismash_module_summary_by_bgc.csv", module_rows,

@@ -58,6 +58,8 @@ A **lane** is *one issue = one folder* under `for-cut/`, containing exactly:
 A folder under `for-cut/` missing any of the three **is not a lane** and is not cut-selectable. It is
 either unfinished (finish it) or not a patch at all (move it to `reports/` or `scratch/`).
 
+A review packet is a different thing. The [packet preflight](PATCH_PACKET_POLICY.md) does not require a test, so a packet can reach owner review with a stated reason in place of tests. That makes it a review candidate, not a lane. It becomes cut-selectable only after it meets the three requirements above, and the lane check and the packet preflight are assessed separately before cut selection. Any exception to the test requirement is the cut owner's decision; record it rather than assume it.
+
 This is the completeness check `patch_packet_preflight.py` does not do: preflight rejects a packet
 that contains junk; `check_patch_lane.py` rejects a lane that is *missing* its card, its test, or its
 diff — or a stream folder that has loose material with no disposition.
@@ -65,11 +67,9 @@ diff — or a stream folder that has loose material with no disposition.
 ## Naming
 
 **Every versioned name uses the full `v9.7.N` form — never a bare number, and there is NO exemption
-for lane slugs.** `408`/`410` is ambiguous (a build? a port? a count? a *strain*? — this project has a
-strain named 410); `v9.7.410` is thousands of times less likely to collide. A folder called
+for lane slugs.** `408`/`410` is ambiguous (a build? a port? a count?); `v9.7.410` is thousands of times less likely to collide. A folder called
 `deep-audit-408/` fails this rule, and so does a lane folder `CLAUDE_410_<slug>` — a lane is a unit
-that gets copied and shared on its own, so the bare number travels with it wherever it goes. An earlier draft of this convention exempted lane slugs on the theory that the author prefix
-disambiguates — that was wrong (the prefix says *who*, not *which version*) and is corrected here.
+that gets copied and shared on its own, so the bare number travels with it wherever it goes. The author prefix says *who*, not *which version*, so it does not stand in for the version.
 
 - Lane folder: `<AUTHOR>_v9.7.<N>_<slug>` — e.g. `CLAUDE_v9.7.410_modeb_heading_regex`. When the slug
   itself references another release, that reference is also full form
@@ -101,23 +101,20 @@ Exit 0 means the selected mode recorded no implemented structural findings; it d
 Passing this check does not accept, integrate, seal, or scientifically validate anything — like the
 preflight, it is a mechanical gate. See `CUT_PROTOCOL.md` for the confirm-before-cut handshake.
 
-## Mechanical checks are narrower than the policy
+## What the checker does not check
 
-`tools/check_patch_lane.py` recursively looks for patch files, a card and matching test filenames. It does not enforce exactly one diff, validate card/test content, apply `patch -p1 --fuzz=0`, or execute tests. Its tests/ diff check is a text-marker check; despite the message saying “soft”, that finding participates in a nonzero result. Verify baseline hash, applyability and meaningful validation separately before selection.
+`tools/check_patch_lane.py` is narrower than the policy above. Verify these yourself before selecting a lane:
 
-Naming policy above uses complete versions. The implemented bare-number regex only recognizes 400–419, and naming checks run on stream child names rather than standalone `--lane` names. A clean exit therefore does not certify all names obey policy. Report checks require Base/Disposition tokens and some full version or explicit unstated marker in the first three lines; they do not parse or require a valid Audited date. Empty report directories can also pass without an audited report.
+- **Diff content.** It looks recursively for patch files, a card and matching test filenames. It does not enforce exactly one diff, validate card or test content, apply `patch -p1 --fuzz=0`, or run tests. Its tests/ diff check is a text-marker check: patch text containing `+++ b/tests/` can pass without valid hunks. Despite the message saying "soft", that finding counts toward a nonzero result.
+- **File roles.** Recursive card and test name matches can be directories rather than readable files. A directory named `*.patch` produces a read finding.
+- **Names.** The bare-number regex recognizes only 400 to 419, and naming checks run on stream child names, not on a standalone `--lane` name. A clean exit does not show that every name follows the policy.
+- **Reports.** Report checks need Base and Disposition tokens and a full version or the explicit unstated marker in the first three lines. They do not parse or require a valid Audited date, and a full version elsewhere in those lines can satisfy the check even when the Base field is invalid. `README.md` and `INDEX.md` files are skipped at every depth. An empty report folder can pass.
+- **Skipped material.** For `--stream`, dot-prefixed children, `__pycache__` and underscore-prefixed folders are skipped, and top-level `.md`, `.tsv`, `.json` and `.txt` files get no content or disposition check.
+- **Paths.** Diff-path screening splits `---`/`+++` headers on whitespace and checks for a leading slash or a `..` component. Quoted absolute or parent paths and drive-qualified paths are not fully parsed or refused. It is not a filesystem containment or archive safety check.
+- **Records.** Results go to the terminal. There is no saved input roster, hash receipt or report-output option. Save the mode, path, exit status, full output and source hashes in a fresh receipt. If a read or traversal error stops the check, keep its output and rerun after fixing the input.
+- **Authority.** Neither a `for-cut/` location nor a zero exit authorizes applying, publishing, deleting or moving anything. Keep evidence at its source path with SHA-256 locators, and keep logs and transcripts under `scratch/` until their retention is decided.
 
-The checker inspects selected structures and diff-header paths; it is not a filesystem containment or archive safety certificate. Neither a for-cut location nor a zero exit authorizes applying, publishing, deleting or moving evidence. Keep evidence at its source path with SHA-256 locators, use one staged candidate for modified files, and maintain the authoritative workspace index. Logs/transcripts may be unique evidence even under scratch; preserve them until their actual retention disposition is authorized.
-
-Check the actual input roles before selecting a lane. Recursive card/test name matches can be directories rather than readable regular files, and patch text containing the `+++ b/tests/` marker can pass without valid unified-diff hunks. A directory named `*.patch` instead produces a read finding. Independently verify the intended file roster, regular/readable payloads, meaningful card/test content and valid diff syntax.
-
-Diff-path screening tokenizes `---`/`+++` headers by non-whitespace text and checks a leading slash or a `..` component. Quoted absolute/parent paths and drive-qualified paths are not fully parsed or refused by that test. Have the selected patch tool and a separate reviewed target/containment check resolve every actual touched path before application; a clean structural result is not permission to apply a diff.
-
-For `--reports`, every recursively discovered Markdown file named `README.md` or `INDEX.md` is skipped, including nested files. Other reports are read in full, but only the first three lines are examined; a full version elsewhere in those lines can satisfy the test even when the Base field itself is invalid. For `--stream`, dot-prefixed children, `__pycache__` and underscore-prefixed directories are omitted, while top-level `.md`, `.tsv`, `.json` and `.txt` files receive no content/disposition check. Reconcile intended, inspected and skipped material independently.
-
-Results go to the terminal; there is no saved input roster, content/hash receipt or report-output option. Preserve the selected mode/path, actual exit status, full diagnostics and source hashes in a fresh disjoint receipt. If a read/traversal failure interrupts the check, preserve its diagnostics and rerun only after the input issue is resolved; neither a leftover log nor its absence establishes a completed check.
-
-See [packet-content scope](PATCH_PACKET_POLICY.md). Record checker execution and any authorized application, move or deletion separately.
+See [packet-content scope](PATCH_PACKET_POLICY.md). Record checker runs and any authorized application, move or deletion separately.
 
 ## Optional composition-screen scope
 
@@ -135,5 +132,5 @@ Text drops use ordered line comparison, including repeats and line endings. A re
 
 Diff checks run native `git apply --check` and strict forward `patch -p1 --dry-run --fuzz=0`, sometimes a reverse dry-run, each with a 60-second timeout. Missing tools or initial command exceptions/timeouts return `DIFF_APPLY_NOT_CHECKED`/`WARN` with an apply-check-skipped note; applicability is unverified, not OK. Both the text display and `--json` show that entry and its note. Review skipped checks explicitly and retain tool versions, full diagnostics and input hashes. A reverse-check failure after forward rejection can instead be informational. A pristine-base failure does not establish that a patch is valid after another patch, and disagreement between apply tools requires a reviewed choice or regenerated patch.
 
-Exit 0 is advisory even with WARN findings; only a non-directory queue/base is explicitly refused with exit 2. Unexpected traversal/read errors can raise. JSON goes to stdout and has no source hashes, tool-status receipt or saved report transaction; shell redirection can itself overwrite evidence, so use a fresh disjoint report path. Text totals count finding entries, including synthetic collision/working-tree rows; its file-drop count also includes several non-drop codes. Use exact per-entry codes and the independent roster rather than these totals as a denominator.
+Exit 0 is advisory even with WARN findings; only a non-directory queue/base is explicitly refused with exit 2. Unexpected traversal/read errors can raise. JSON goes to stdout. Each text file-drop row carries `_sha`, the SHA-256 of the dropped file; if the file cannot be read, `_sha` is blank and that row drops out of the cross-card collision check (`tools/patch_queue_composition_audit.py:237-257`). Diff rows carry no digest, and recognized binary drops produce no row. There is no baseline hash, complete source roster, tool-status receipt or saved report transaction; shell redirection can itself overwrite evidence, so use a fresh disjoint report path. Text totals count finding entries, including synthetic collision/working-tree rows; its file-drop count also includes several non-drop codes. Use exact per-entry codes and the independent roster rather than these totals as a denominator.
 

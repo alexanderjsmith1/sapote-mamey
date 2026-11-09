@@ -47,12 +47,11 @@ def test_cdr_fallback_blocked_when_overlapping_subjects_also_present():
 
 
 def test_cdr_fallback_still_fires_when_clean_no_overlap():
-    # Backward-compat pin: cd>=3 with genuinely ZERO overlapping evidence (the shape
-    # test_rescue_two_proof.py::test_logic_proof_gate already exercises, where
-    # overlapping_subject_refs is simply absent from the row) still passes.
+    # cd>=3 with a measured zero overlap passes. A row with no overlap column at all is
+    # unmeasured and does not pass (owner ruling 6 Nov 2026, superseding the 14 Oct read-as-zero pin).
     row = {"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "BOTH_CORE",
            "complementary_disjoint_refs": "3"}
-    assert _logic_proof(row)
+    assert not _logic_proof(row)
     row_explicit_zero = {"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "BOTH_CORE",
                           "complementary_disjoint_refs": "3", "overlapping_subject_refs": "0"}
     assert _logic_proof(row_explicit_zero)

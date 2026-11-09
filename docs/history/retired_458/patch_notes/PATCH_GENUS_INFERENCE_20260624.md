@@ -10,7 +10,7 @@ The frequency thresholds and worked example below are a June reporting heuristic
 **Patch ID:** GENUS_INFERENCE_20260624
 **Applies to:** Sapote (Claude / LLM judgment tier) — intake and session-start procedure
 **Bundle version:** v9.7.122+
-**Status:** ACTIVE
+**Status:** RETIRED (historical record; was ACTIVE when written)
 
 ## Problem
 When a strain's genus is PENDING in the handoff, Sapote was accepting PENDING as final
@@ -35,6 +35,8 @@ KCB appears only as a step-3 cross-check, never the primary signal. The two are 
 conflict — "genus never from KCB" forbids KCB-chemistry-driven genus calls, which this
 patch also avoids.
 
+Historical: do not apply this. Do not infer a genus from ClusterBlast counts and pass it to `--taxonomy`. If taxonomy is unconfirmed, keep it as unconfirmed (see [AGENTS.md](../../../../AGENTS.md)).
+
 ## Application
 Apply the inferred genus at session start, before Mode B, to all card headers, the
 COMPLETE header, layperson guide, ecology synthesis, and the Mamey `--taxonomy` flag.
@@ -44,10 +46,8 @@ frequency, N% actinomycete CB hits; pending 16S confirmation)"; MODERATE → "pr
 Never use the inferred genus in ecological comparative claims unless HIGH and coherent.
 Never fabricate a genus — if inference fails, hold at PENDING.
 
-## AS-XXX worked example
-ORGANISM blank → ClusterBlast scan: *Streptomyces* 2,880/3,392 hits = 84.9% → HIGH.
-KCB top hits (kirromycin, bottromycin, skyllamycin, microtermolide) confirm *Streptomyces*
-as dominant producer class. Profile coherent. Inferred: *Streptomyces* sp. AS-XXX (HIGH).
-Consistent with Master_Strain_List_v3 (AS-XXX = Streptomyces/Vespidae/Wisconsin).
+## Worked example (omitted)
+
+The original example named a real strain, its host, its state and an internal master list. It is omitted here.
 
 *Genus Inference Patch v1.0 · Sapote–Mamey v9.7.122 · 2026-06-24*

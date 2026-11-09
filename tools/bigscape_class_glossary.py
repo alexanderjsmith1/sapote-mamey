@@ -15,11 +15,11 @@ def render(vocabulary_path=DEFAULT_VOCABULARY):
     lines = [
         "# BiG-SCAPE Class Glossary",
         "",
-        "This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary drives the TSV fields, report headings, network labels, and visible legends.",
+        "This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary sets the `class_code` and `class_nickname` columns of `BIGSCAPE_GCF_SUMMARY.tsv` (`tools/bigscape_cohort_report.py`). The network widget uses it for each family heading's class code, the visible class legend and the expandable full key. Node labels show strain and BGC alias text and do not use it.",
         "",
         "## How to read a network",
         "",
-        "1. Start with the GCF number and cutoff. They identify one run-specific family, not a universal biological name.",
+        "1. Start with the GCF number, the cutoff and the BiG-SCAPE run ID. Only the three together identify one family; the same number and cutoff in another run or database is a different family, and none of them is a universal biological name. The widget heading shows the number and cutoff; the run ID is in `BIGSCAPE_COHORT_REPORT_RECEIPT.json`.",
         "2. Expand the class code with the table below. Treat it as a broad routing label from source antiSMASH annotations.",
         "3. Hover or click a node and record the complete strain, node or contig, region, and BGC alias identity.",
         "4. Read the boundary state. CONTIG_EDGE is a caution that the called region touches a contig boundary.",

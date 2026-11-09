@@ -101,15 +101,25 @@ def global_identity(al, s1, s2):
 
 
 def prefilter(clusters, min_id):
-    """Optional pyswrd prefilter: returns set of (ci,gi,cj,gj) candidate pairs; None => all."""
+    """pyswrd prefilter: returns the set of (ci,gi,cj,gj) candidate pairs.
+
+    Called only when pyswrd was requested. If it cannot be imported or cannot run, the request is
+    refused: falling back to the exhaustive comparison would leave metadata and methods text naming
+    an engine that did not run."""
     try:
         import pyswrd
-    except Exception:
-        return None
+    except Exception as exc:
+        raise RuntimeError("CLUSTER_GENE_COMPARE_ENGINE_UNAVAILABLE: --engine pyswrd was requested but "
+                           f"pyswrd cannot be imported ({type(exc).__name__}: {exc}). Install it, or rerun "
+                           "with --engine biopython.") from exc
     flat = [(ci, gi, g["aa"]) for ci, (_, genes) in enumerate(clusters) for gi, g in enumerate(genes)]
     seqs = [x[2] for x in flat]
     keep = set()
-    hits = list(pyswrd.search(seqs, seqs, max_evalue=1.0, max_alignments=25))
+    try:
+        hits = list(pyswrd.search(seqs, seqs, max_evalue=1.0, max_alignments=25))
+    except RuntimeError as exc:
+        raise RuntimeError("CLUSTER_GENE_COMPARE_ENGINE_UNAVAILABLE: --engine pyswrd was requested but "
+                           f"pyswrd cannot align on this machine ({exc}). Rerun with --engine biopython.") from exc
     for h in hits:
         qi, ti = h.query_index, h.target_index
         if qi == ti:
@@ -449,8 +459,13 @@ def main(argv=None):
     except ValueError as exc:
         ap.error(str(exc))
 
-    clusters, recs, pairs, groups, resolved = compare(
-        labels, gbks, min_id=a.min_id, min_cov=a.min_cov, engine=a.engine)
+    try:
+        clusters, recs, pairs, groups, resolved = compare(
+            labels, gbks, min_id=a.min_id, min_cov=a.min_cov, engine=a.engine)
+    except RuntimeError as exc:
+        if "CLUSTER_GENE_COMPARE_ENGINE_UNAVAILABLE" not in str(exc):
+            raise
+        ap.error(str(exc))
     names.extend(f"annotated_gbks/{lab}.gbk" for lab in labels)
     from mamey.output_transaction import fresh_output_set
     with fresh_output_set(a.outdir, names) as stage:

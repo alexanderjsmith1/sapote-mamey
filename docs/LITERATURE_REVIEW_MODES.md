@@ -36,4 +36,4 @@ Every literature section should declare one of:
 
 Reports must not imply VLR-grade verification when only an FLR/preliminary pass was performed.
 
-The 10–30-paper range is a planning convention, not a numerical acceptance floor or proof of completeness. Keep these workflow labels separate from the Bert digest vocabulary and the exact status vocabulary of a citation store/resolver. A completed declared scope can still contain identified unavailable full text or unresolved claims; do not label those claims verified.
+The 10–30-paper range is a planning convention, not a numerical acceptance floor or proof of completeness. Keep these workflow labels separate from the [Bert Mode digest vocabulary](BERT_MODE_PROTOCOL.md#citation-digest-vocabulary) and the exact status vocabulary of a citation store/resolver. A completed declared scope can still contain identified unavailable full text or unresolved claims; do not label those claims verified.

@@ -418,7 +418,7 @@ def test_a_strong_table_with_few_biosynthetic_genes_in_the_core_is_flagged(fx, t
 
 def test_the_tool_carries_no_workspace_path_or_strain_id():
     src = (ROOT / "tools" / "locus_reading_pages.py").read_text()
-    assert not re.search(r"/Users/[^/\s]+/|/home/[^/\s]+/", src)
+    assert not re.search(r"/Us" r"ers/[^/\s]+/|/ho" r"me/[^/\s]+/", src)
     assert not re.search(r"\bAS-\d+", src)
 
 

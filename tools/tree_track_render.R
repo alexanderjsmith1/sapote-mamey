@@ -20,7 +20,7 @@ render_tree_tracks <- function(a, single=FALSE) {
     if (any(tk$role!='query' & nzchar(raw))) stop('TREE_TRACK_REFUSED: reference/outgroup tips cannot carry query assay values')
     tk[[column]] <- val
   }
-  if (any(file.exists(paste0(out,c('.pdf','.png','.tip_order.tsv'))))) stop('TREE_TRACK_REFUSED: output exists')
+  if (any(file.exists(paste0(out,c('.pdf','.png','.tip_order.tsv','.cell_states.tsv'))))) stop('TREE_TRACK_REFUSED: output exists')
   dir.create(dirname(out),recursive=TRUE,showWarnings=FALSE)
   # Layout may request device metrics before ggsave; keep that scratch device off disk.
   grDevices::pdf(file=NULL)
@@ -39,16 +39,22 @@ render_tree_tracks <- function(a, single=FALSE) {
   plab <- ggplot(d,aes(x=y,y=0))+geom_text(aes(label=display,fontface=ifelse(role=='query','plain','italic')),angle=90,hjust=0,vjust=.5,size=if(big) 1.8 else 3)+
     scale_x_continuous(limits=xr,expand=c(0,0))+scale_y_continuous(limits=c(-.05,3.4),expand=c(0,0))+theme_void()+theme(plot.margin=margin(0,10,0,10))
   k <- nrow(spec); bw <- .84/k; off <- (seq_len(k)-(k+1)/2)*bw
-  long <- do.call(rbind,lapply(seq_len(k),function(i) data.frame(x=d$y+off[i],v=tk[[spec$column[i]]][ix],series=spec$label[i])))
+  long <- do.call(rbind,lapply(seq_len(k),function(i) data.frame(tip=d$label,role=d$role,x=d$y+off[i],v=tk[[spec$column[i]]][ix],series=spec$label[i])))
+  # Four cell states, kept apart: a query value, a recorded zero, a query not measured, and a
+  # reference/outgroup tip, which carries no assay value at all (not applicable, not 'not measured').
+  long$state <- ifelse(long$role!='query','NOT_APPLICABLE',ifelse(!is.finite(long$v),'NOT_MEASURED',ifelse(long$v==0,'RECORDED_ZERO','OBSERVED')))
+  states <- long[,c('tip','role','series','state')]
+  unmeasured <- long[long$state=='NOT_MEASURED',,drop=FALSE]
   long <- long[is.finite(long$v),]; long$series <- factor(long$series,levels=spec$label)
   pbar <- ggplot(long,aes(x=x,y=v,fill=series))+geom_col(width=bw*.92)+
     geom_point(data=long[long$v==0,,drop=FALSE],shape=21,size=2,stroke=.35)+
+    geom_point(data=unmeasured,aes(x=x,y=0),inherit.aes=FALSE,shape=4,size=1.8,stroke=.5,colour='grey45')+
     scale_fill_manual(values=setNames(spec$colour,spec$label),name=NULL,drop=FALSE)+guides(fill=guide_legend(nrow=1))+
     scale_x_continuous(limits=xr,expand=c(0,0))+scale_y_continuous(expand=expansion(mult=c(.06,.1)))+
     labs(y='Selected inhibition (%)')+theme_minimal(base_size=10)+
     theme(axis.title.x=element_blank(),axis.text.x=element_blank(),panel.grid.major.x=element_blank(),panel.grid.minor=element_blank(),legend.position='top',plot.margin=margin(2,10,4,10))
   if (!is.null(threshold)) pbar <- pbar+geom_hline(yintercept=threshold,linetype='dotted',colour='#2563EB')
-  subtitle <- paste0('Explicitly selected strain-level values; no aggregation by this renderer.\nBlank = not measured; recorded zero is marked by a dot.',if(!is.null(threshold)) paste0(' Dotted line = ',threshold,'% (display option).') else '')
+  subtitle <- paste0('Explicitly selected strain-level values; no aggregation by this renderer.\nRecorded zero = dot; x = query not measured; reference and outgroup tips carry no assay value (no mark).',if(!is.null(threshold)) paste0(' Dotted line = ',threshold,'% (display option).') else '')
   fig <- wrap_plots(list(pbar,plab,ptree),heights=c(2.8,2.3,2.4),ncol=1)+plot_annotation(title=a[5],subtitle=subtitle,theme=theme(plot.title=element_text(face='bold',size=13),plot.subtitle=element_text(size=9)))
   w <- if(big) min(40,2+n*(.15+.03*k)) else max(8,1.2+n*.75)
   pdf_device <- if (capabilities('aqua')) function(filename,width,height,...) grDevices::quartz(file=filename,type='pdf',width=width,height=height,...) else grDevices::pdf
@@ -56,4 +62,5 @@ render_tree_tracks <- function(a, single=FALSE) {
   if (!file.exists(paste0(out,'.pdf')) || file.info(paste0(out,'.pdf'))$size==0) stop('TREE_TRACK_REFUSED: PDF device did not produce an artifact')
   ggsave(paste0(out,'.png'),fig,width=w,height=10,dpi=160,limitsize=FALSE)
   write.table(data.frame(tip=d$label,label=d$display,role=d$role,position=d$y),paste0(out,'.tip_order.tsv'),sep='\t',row.names=FALSE,quote=FALSE)
+  write.table(states,paste0(out,'.cell_states.tsv'),sep='\t',row.names=FALSE,quote=FALSE)
 }

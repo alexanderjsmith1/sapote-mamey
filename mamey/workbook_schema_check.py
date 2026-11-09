@@ -380,9 +380,9 @@ if __name__ == "__main__":
     if "--fast" in args: mode = "fast"; args.remove("--fast")
     if "--full" in args: mode = "full"; args.remove("--full")
     if "--v12" in args: check_v12 = True; args.remove("--v12")
-    if not args:
+    if not args or args[0] in ("-h", "--help"):
         emit("Usage: python workbook_schema_check.py [--fast|--full] [--v12] <workbook.xlsx>", "  default 'auto': cohorts >= %d strains use the fast structural path." % LARGE_COHORT_THRESHOLD, "  --v12: additionally require the (non-frozen) v1.2 D5 Fragment_Rescue_Tiers + Activity_Ref additions.", sep="\n")
-        sys.exit(1)
+        sys.exit(0 if args else 1)
 
     result = validate(args[0], mode=mode, check_v12=check_v12)
     emit(json.dumps(result, indent=2))

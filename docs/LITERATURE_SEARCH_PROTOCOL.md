@@ -1,25 +1,33 @@
 # Literature Search Protocol — Sapote-Mamey Bundle
 
-Search strings for the five literature buckets of a strain report. The §8 numbering comes from the older Layer B report; in a current Mode B profile, use that profile's literature slots.
+Search strings for the five literature buckets of a strain report.
+
+In a `current50_v2` Mode B card, literature goes in §48 (biosynthetic gene, domain and machinery
+literature) and §49 (genus and biological-context literature). Both sections are required. A card
+that declares `FINISHED_FULL50_CURRENT50_V2` cannot carry a generic deferral there:
+`verify-modeb --contract current50_v2` fails, on any current50_v2 card, a §48 or §49 that cites no DOI, PMID or PMCID, that
+does not state why the citation is relevant, or that says the literature was not recorded or will
+be added later. If a search could not be done, write a typed limitation that names the reason and
+what cannot be inferred, as the [current50 guide](MODEB_CURRENT50_V2_CONTRACT.md) shows, and keep the
+card in draft.
 
 ---
 
-## Why §8 is deferred by default
+## Record what was searched
 
-The Sapote interpretation layer runs without guaranteed network access.
-Verify the identifiers the primary record actually assigns,
+The tool does not search the literature. Verify the identifiers the primary record actually assigns,
 using PubMed/DOI.org as applicable. Record an unassigned or unavailable PMID or DOI explicitly;
-never invent one or reject a supported source solely because it has no PMID or DOI. Rather than fabricate unverifiable
-references, §8 is logged as `DEFERRED` with a completion path.
+never invent one or reject a supported source solely because it has no PMID or DOI.
 
-For an authorized literature task, record actual queries, searched sources, date, source/passage locators and results. Preparing a source-backed handoff is distinct from browsing, sending it or rewriting a package. Each summarized claim still needs its supporting passage; identifiers alone do not close a deferral.
+For an authorized literature task, record actual queries, searched sources, date, source/passage locators and results. Preparing a source-backed handoff is distinct from browsing, sending it or rewriting a package. Each summarized claim still needs its supporting passage; identifiers alone do not complete a literature section.
 
 ---
 
 ## Standard five-bucket search map
 
-For each strain, the §8 deferral note in the Layer B report names the specific
-BGC IDs and classes. Map those to the searches below.
+For each BGC you write up, take its class from the package inventory and its full
+**strain / full node-or-contig / region / BGC alias** from the same record. Map the class to the
+searches below.
 
 ### Bucket 1 — Top antibacterial lead
 
@@ -40,7 +48,7 @@ These searches apply to every antibacterial lead with coupled resistance genes:
 - `Wencewicz antibiotic resistance biosynthesis crossroads` *(Wencewicz 2019, J Mol Biol — PMID 31288031)*
 - `self-resistance gene directed natural product discovery` *(Yan et al. 2020, Nat Prod Rep — PMID 31912842)*
 
-These references were verified once (metadata) for AS-XXX. Reuse one when the specific claim and its scope still
+These references were verified once (metadata) for an earlier strain report. Reuse one when the specific claim and its scope still
 apply, keeping the earlier review receipt: passage locator, date, applicability and open gaps. A metadata match does
 not show that the paper supports a new claim; check the passage for each new use (`docs/BERT_MODE_PROTOCOL.md`).
 
@@ -50,7 +58,7 @@ not show that the paper supports a new claim; check the passage for each new use
 |---|---|
 | T1PKS polyene / fatty-acid | `polyene macrolide polyketide Streptomyces antifungal biosynthesis` · First: look up the top MIBiG hit ID at mibig.secondarymetabolites.org to identify the known compound, then search by name |
 | Halogenated T1PKS | `halogenated polyketide Streptomyces biosynthesis` · `flavin-dependent halogenase polyketide actinomycete` |
-| Lanthipeptide | `lanthipeptide antifungal biosynthesis mining microorganism` *(Li et al. 2021, Front Bioeng Biotechnol — PMID 34395400; verified in AS-XXX)* |
+| Lanthipeptide | `lanthipeptide antifungal biosynthesis mining microorganism` *(Li et al. 2021, Front Bioeng Biotechnol — PMID 34395400; verified for an earlier strain report)* |
 | NI-siderophore / NRP-metallophore | `bacterial siderophore community host interactions` *(Kramer et al. 2020, Nat Rev Microbiol — PMID 31748738; verified)* · `iron infection immunity nutritional` *(Cassat & Skaar 2013, Cell Host Microbe — PMID 23684303; verified)* |
 
 ### Bucket 4 — Ecology / habitat framing
@@ -64,10 +72,10 @@ Always include one insect-symbiont or soil-ecology anchor:
 
 ### Bucket 5 — Strain-specific prior literature
 
-Always run this before §8:
+Always run this before you write the literature sections:
 `[Genus species] secondary metabolites` and `[Genus species] biosynthesis antibiotic`.
 
-If hits exist, they become the first reference in §8.1 (discovery/prior context).
+If hits exist, treat them as candidates. Record the database, queries, date and what you could access. Cite a hit in §49 (genus and biological-context literature) only after you have checked its bibliographic identity, that it concerns this taxon, and that it supports the specific sentence you cite it for.
 If there are no hits, report a bounded result, not a conclusion: "No relevant records found in [database] using
 [queries] on [date]; coverage limits: [...]". A no-hit search shows only that this search found nothing. It does
 not establish that no literature exists, and it never establishes a novel compound or novel chemistry. Keep four
@@ -78,7 +86,7 @@ inference (which needs its own evidence).
 
 ## Historical reference bank (rebind for each current use)
 
-These entries retain the original document’s historical metadata-verification claim for AS-XXX. This table does not carry its dated review receipts or passages, and does not independently verify the papers. Reuse requires the actual retained receipt or a separately authorized review; each new claim needs its supporting passage. A missing identifier is a metadata gap to record,
+These entries retain the original document’s historical metadata-verification claim. This table does not carry its dated review receipts or passages, and does not independently verify the papers. Reuse requires the actual retained receipt or a separately authorized review; each new claim needs its supporting passage. A missing identifier is a metadata gap to record,
 never one to fill in:
 
 | Key | Citation | PMID | DOI |
@@ -98,9 +106,9 @@ never one to fill in:
 
 ---
 
-## How to close a §8 deferral
+## How to complete §48 and §49
 
-1. Bind the selected task, exact locus identity and current profile’s literature slot.
+1. Bind the selected task, the exact locus identity and the literature section (§48 or §49).
 2. Within authorized retrieval scope, record the actual search and primary bibliographic identity; record unavailable identifiers rather than requiring every paper to have them.
 3. Check the passage/table supporting each claim, with units/conditions, scope and reviewed date. DOI resolution alone is metadata verification.
 4. Prepare a bounded handoff or author the selected section under the actual user scope. Do not infer sending, workbook merging or package-regeneration permission from this list; preserve original receipts and report unresolved evidence.
@@ -109,4 +117,4 @@ never one to fill in:
 
 ## Access and completion boundaries
 
-Access depends on the actual environment and admitted local sources, not a model name. An assistant can check supplied primary text without networking, but must identify which fields/passages it inspected. Missing access is an explicit partial/deferred state. Memory-generated citations, query strings, a work-order file or a labeled bank row are not verified sources.
+Access depends on the actual environment and admitted local sources, not a model name. An assistant can check supplied primary text without networking, but must identify which fields/passages it inspected. Missing access is a typed limitation in a draft card, not a finished §48 or §49. Memory-generated citations, query strings, a work-order file or a labeled bank row are not verified sources.

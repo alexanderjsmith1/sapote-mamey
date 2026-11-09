@@ -61,7 +61,8 @@ def test_collision_profiles_preserve_all_known_answer_values_and_exact_physical_
     assert [p['cctt_triggers'] for p in profiles] == ['T43-HAL_halogenation', 'T43-LAN_lanthipeptide']
     assert profiles[0]['exact_locus'] == f'{strain} / NODE_1_length_1000_cov_1.5 / region001 / BGC001'
     assert profiles[1]['exact_locus'] == f'{strain} / CP123456.2 / region001 / BGC001'
-    assert profiles[0]['bgc_identity']['node_id'] != profiles[0]['bgc_identity']['contig']
+    # Ruling 479: from engine 1.9.180 node_id is the full contig.
+    assert profiles[0]['bgc_identity']['node_id'] == profiles[0]['bgc_identity']['contig']
 
 
 def test_unique_alias_numeric_and_architecture_legacy_parity_for_every_column(tmp_path):
@@ -291,7 +292,8 @@ def test_distinct_full_contigs_sharing_normalized_node_do_not_join(tmp_path):
     rows[0]['Contig'] = 'NODE_1_length_1000_cov_1.9'
     with (package / f'{strain}_2_inventory.csv').open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
-    with pytest.raises(GoldBGCIdentityError, match='GOLD_IDENTITY_INVENTORY_MEMBERSHIP_CONFLICT'):
+    # Ruling 479: Node_ID is now the full contig, so the row is refused one step earlier.
+    with pytest.raises(GoldBGCIdentityError, match='GOLD_IDENTITY_COMPONENT_CONFLICT'):
         load_gold_identity_context(package, strain)
 
 

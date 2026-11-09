@@ -18,7 +18,7 @@ This is the Limitations section of the wiki page What It Does and Limitations, a
 - **The corpus is too large for uniformly deep manual review.** Thousands of loci cannot all
   receive repeated expert passes. *Improvement:* a two-tier corpus — substantive breadth drafts
   for every locus, deeply audited publication candidates for a prioritized set.
-- **Mode B cards can become longer than their evidence warrants** when 48 required sections
+- **Mode B cards can become longer than their evidence warrants** when 48 required sections (the default profile at v9.7.457; `current50_v2` has 50)
   encourage generic prose on a fragmentary locus. *Improvement:* explicit compact sections, with
   padding and unevidenced sentences penalized.
 - **Review and promotion remain bottlenecks** — candidate writers can outpace a single expert
@@ -128,7 +128,7 @@ This is the Limitations section of the wiki page What It Does and Limitations, a
 ### G. Performance and resource use
 
 - **Deep card authoring is expensive in time and model usage** — true gene reconciliation,
-  comparator scans, and 48-section synthesis can take tens of minutes per locus.
+  comparator scans, and 48-section synthesis (default profile at v9.7.457) can take tens of minutes per locus.
   *Improvement:* precompute shared cohort/reference protein comparisons across many loci and
   reserve prose generation for the final bound packet.
 - **Rendering can consume disproportionate resources** relative to the underlying text revision.

@@ -8,6 +8,8 @@ Use [the current cluster comparison guide](../CLUSTER_RELATE.md) for present inp
 
 ## Retained announcement — unchanged below
 
+Historical: "outgroup" and "closest pair" below are retired wording. The current tool reports the "Least similar input under this descriptive metric" and states that its UPGMA comparison establishes no phylogenetic outgroup (`tools/cluster_relate.py:358,395`). The "validated ... expected topology" and "2 pass" statements have no bundled receipt.
+
 # cluster_relate (new module — cluster relationship tree)
 
 - **New tool `tools/cluster_relate.py`**: turns a set of homologous cluster GBKs into a distance

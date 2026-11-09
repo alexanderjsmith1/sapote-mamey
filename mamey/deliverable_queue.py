@@ -55,10 +55,43 @@ def _tree_sha256(root: str) -> str:
     return h.hexdigest()
 
 
-def _resume_binding(strain: str, runs_dir: str, out_root: str, activity_csv: str | None) -> dict:
+def _source_fingerprint(path: str) -> list:
+    """Content identity of one supplied Mode B source path.
+
+    A file is bound by its bytes. A folder is bound by each regular file's relative path, size and
+    modification time (``os.stat``), not by reading every byte: cohort and region folders can be large.
+    An edit that keeps a file's size and modification time is therefore not detected in a folder.
+    """
+    p = Path(path)
+    if p.is_file():
+        return ["file", hashlib.sha256(p.read_bytes()).hexdigest()]
+    if p.is_dir():
+        h = hashlib.sha256()
+        for f in sorted(x for x in p.rglob("*") if x.is_file()):
+            st = f.stat()
+            h.update(f"{f.relative_to(p).as_posix()}\0{st.st_size}\0{st.st_mtime_ns}\n".encode("utf-8"))
+        return ["dir", h.hexdigest()]
+    return ["missing", ""]
+
+
+def _sources_sha256(sources: dict | None) -> str:
+    """Digest of the content behind every supplied --cohort-dir, --reference-dir, ... source path."""
+    from .modeb_template_emitter import SOURCE_FLAGS
+    rows = []
+    for dest, _flag, _help in SOURCE_FLAGS:
+        value = (sources or {}).get(dest)
+        if value:
+            rows.append([dest, *_source_fingerprint(str(value))])
+    raw = json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _resume_binding(strain: str, runs_dir: str, out_root: str, activity_csv: str | None,
+                    sources: dict | None = None) -> dict:
     """What a DONE record must still match to be skipped (v9.7.454): the package bytes, the delivered
     outputs' bytes and the run context, not only the source-argument strings. A changed input at the same
-    path, a deleted or edited output, or a different activity table makes the strain run again."""
+    path, a deleted or edited output, a different activity table, or changed content behind a supplied
+    Mode B source path (``sources_sha256``) makes the strain run again."""
     activity = ""
     if activity_csv and os.path.isfile(activity_csv):
         activity = hashlib.sha256(Path(activity_csv).read_bytes()).hexdigest()
@@ -67,7 +100,8 @@ def _resume_binding(strain: str, runs_dir: str, out_root: str, activity_csv: str
                           "activity_sha256": activity}, sort_keys=True)
     return {"package_sha256": _tree_sha256(os.path.join(runs_dir, strain, "package")),
             "outputs_sha256": _tree_sha256(os.path.join(out_root, strain, "sapote")),
-            "context_sha256": hashlib.sha256(context.encode("utf-8")).hexdigest()}
+            "context_sha256": hashlib.sha256(context.encode("utf-8")).hexdigest(),
+            "sources_sha256": _sources_sha256(sources)}
 
 
 def _run(mod_args: list[str], env=None) -> tuple[int, str]:
@@ -169,7 +203,7 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
         rerun_reason = ""
         if (resume and ledger.get(s, {}).get("status") in done_states
                 and ledger[s].get("source_args_sha256") == current_source_args_sha256):
-            binding = _resume_binding(s, runs_dir, out_root, activity_csv)
+            binding = _resume_binding(s, runs_dir, out_root, activity_csv, sources)
             if all(ledger[s].get(key) == value for key, value in binding.items()):
                 emit(f"[queue] {s}: skip (already {ledger[s]['status']}; package, outputs and context unchanged)", flush=True)
                 continue
@@ -179,7 +213,7 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
         rec = process_strain(s, runs_dir, out_root, activity_csv, sources=sources)
         rec["source_args_sha256"] = current_source_args_sha256
         if rec.get("status") in done_states:
-            rec.update(_resume_binding(s, runs_dir, out_root, activity_csv))
+            rec.update(_resume_binding(s, runs_dir, out_root, activity_csv, sources))
         ledger[s] = rec
         # v9.7.374 fix: this file is the ONLY resumability bookkeeping this queue has (see module
         # docstring: "a strain marked DONE in the ledger is skipped on re-run"). A direct write_text()

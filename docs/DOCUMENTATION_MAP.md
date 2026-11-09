@@ -1,28 +1,33 @@
 # Find the right document
 
-Choose a guide for the file or task in front of you. Start with
-[the file you have](READER_START_HERE.md) if you are unsure what it is.
+Choose a guide for the file or task in front of you. If you are unsure what you have,
+start with [the file you have](READER_START_HERE.md).
 
 | You want to | Open |
 |---|---|
-| Set up and extract an antiSMASH ZIP | [Inputs and setup](reader/02_INPUTS_AND_SETUP.md), then [First run](reader/01_FIRST_RUN.md) |
-| Read a saved result | [Read results](reader/03_READ_RESULTS.md) |
-| Fix an incomplete run or an error | [Recovery](reader/04_RECOVERY_AND_LIMITS.md), then [Troubleshooting](COMMON_MISTAKES.md) |
+| Install the program | [Install](INSTALL.md) |
+| Set up and extract an antiSMASH ZIP | [Inputs and setup](reader/02_INPUTS_AND_SETUP.md), then [Your first run](reader/01_FIRST_RUN.md) |
+| Read a saved result | [Read one saved package](reader/03_READ_RESULTS.md), then [Reading your results](READING_YOUR_RESULTS.md) for each field |
+| Fix an incomplete run or an error | [Recover a run](reader/04_RECOVERY_AND_LIMITS.md), then [Troubleshooting](COMMON_MISTAKES.md) |
+| Choose a task and see what it needs | [Choose a task](USER_TASK_ROUTER.md) |
+| Choose a specialist command | [Choose the next command](user_guides/CHOOSE_NEXT_COMMAND.md) |
+| Find a command or a term | [Command catalog](COMMAND_CATALOG.generated.md) or [Glossary](GLOSSARY.md) |
+| Find a missing genome, reference or tool | [Find a missing input](COMPANION_FILES.md) |
+| Write a Mode B card | [Mode B guide index](MODE_B_DOCUMENT_INDEX.md) |
+| Use stored BLASTp results | [BLASTp evidence](ONLINE_BLASTP_PROTOCOL.md) |
+| Draw or check a figure | [Make and review figures](FIGURES_START_HERE.md) |
+| Choose or run an optional companion tool | [Companion tools](COMPANION_TOOL_GUIDE.md) |
 | Save or transfer a package | [Files and storage](FILES_STORAGE_AND_HANDOFF.md) |
-| Choose a tool, figure, report or comparison | [Task router](USER_TASK_ROUTER.md) and [Companion tools](COMPANION_TOOL_GUIDE.md) |
-| Look up a term or command | [Glossary](GLOSSARY.md) or [Command catalog](COMMAND_CATALOG.generated.md) |
-| Read a worked example | [Type-strain examples](TYPE_STRAIN_WALKTHROUGHS.md) |
+| See recorded results from earlier runs | [Recorded public-genome walkthroughs](TYPE_STRAIN_WALKTHROUGHS.md). This is a record, not a recipe. |
 
 The [Master Walkthrough](MASTER_WALKTHROUGH.md) connects the main steps.
-[Reading your results](READING_YOUR_RESULTS.md) explains individual output fields.
-The [Current Docs Index](../CURRENT_DOCS_INDEX.md) lists specialist guides.
+The [Current Docs Index](../CURRENT_DOCS_INDEX.md) lists the specialist guides and says how to tell a current page from an old one.
 
-## For documentation maintainers
+## Maintainers
 
-Update misleading instructions in place and preserve earlier evidence.
-Use the generator for a generated catalog; [catalog maintenance](CATALOG_MAINTENANCE.md)
-identifies the relevant scripts. Keep the `AGENTS.md` and `CLAUDE.md` twins synchronized.
-Walk the examples after changing them.
+Fix wrong instructions in place. Rebuild a generated catalog with its generator;
+[catalog maintenance](CATALOG_MAINTENANCE.md) names the scripts. `CLAUDE.md` is a generated
+copy of `AGENTS.md` and must stay byte-identical. Walk the examples after you change them.
 
 <details>
 <summary>Run the static documentation checks</summary>
@@ -79,11 +84,3 @@ examples can contain old commands; preserve their history and correct the curren
 route that sends readers to them.
 
 </details>
-
-<a id="why-similar-titles-exist"></a>
-<a id="maintenance-rules"></a>
-<a id="onboarding-funnel-maintenance-check"></a>
-<a id="checking-documented-command-names"></a>
-<a id="checking-brace-characters-in-entry-names"></a>
-<a id="checking-regex-interpolation-in-maintained-code"></a>
-<a id="generated-catalog-limits"></a>

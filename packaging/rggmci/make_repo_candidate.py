@@ -31,6 +31,12 @@ print(json.dumps({"records": [[getattr(x, f) for f in %r] for x in b], "result":
                  sort_keys=True, default=str))
 """ % (FIELDS,)
 
+def example_count_sentence(result: dict) -> str:
+    """The example README's count sentence, with the plural that matches the count."""
+    n = result["pairs_total"]
+    return f"{n} scored pair{'' if n == 1 else 's'}, {result['high_pairs']} of them HIGH."
+
+
 SNAPSHOT_TEST = '''"""The package must reproduce the Sapote-Mamey engine's own result on the public example, byte for byte.
 
 `examples/%(expected)s` was written by the engine (see its "engine" key) when this repository was generated.
@@ -121,8 +127,7 @@ def main(argv=None) -> int:
     (ex / expected).write_text(json.dumps(engine, indent=1, sort_keys=True) + "\n")
     (ex / "README.md").write_text(
         f"# Example\n\n`{EXAMPLE}` holds five regions, with their ClusterBlast files, cut from the public antiSMASH result "
-        f"for NCBI WGS VWPH00000000.1 (*Saccharopolyspora*). It gives {engine['result']['pairs_total']} scored pairs, "
-        f"{engine['result']['high_pairs']} of them HIGH.\n\n"
+        f"for NCBI WGS VWPH00000000.1 (*Saccharopolyspora*). It gives {example_count_sentence(engine['result'])}\n\n"
         f"```bash\nrggmci examples/{EXAMPLE} --out result.json --pairs pairs.tsv\n```\n\n"
         f"`{expected}` is the Sapote-Mamey engine's own result on this file; `tests/test_example_matches_engine.py` "
         "checks that the package reproduces it exactly.\n")

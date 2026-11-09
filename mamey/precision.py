@@ -12,6 +12,23 @@ from __future__ import annotations
 
 SIMILARITY_DISCLAIMER = "similarity, not identity"
 
+# Band edges for antiSMASH's KnownClusterBlast percent similarity. Every KCB cut-off that
+# reads the percent uses these, so the band and the cut-offs cannot drift apart.
+KCB_PCT_HIGH = 70
+KCB_PCT_MODERATE = 40
+
+
+def kcb_pct_value(value) -> float | None:
+    """Return a 0-100 percent as a float, else None. A blank, non-number or out-of-range
+    value is not a percent, and None is not a low percent."""
+    if value is None or value == "":
+        return None
+    try:
+        s = float(value)
+    except (TypeError, ValueError):
+        return None
+    return s if 0 <= s <= 100 else None
+
 
 def similarity_band(score: float | int | None) -> str:
     """Bin a KnownClusterBlast percent similarity (0-100) into high/moderate/low.
@@ -28,9 +45,9 @@ def similarity_band(score: float | int | None) -> str:
         return "unresolved"
     if not 0 <= s <= 100:
         return "unresolved"
-    if s >= 70:
+    if s >= KCB_PCT_HIGH:
         return "high"
-    if s >= 40:
+    if s >= KCB_PCT_MODERATE:
         return "moderate"
     if s > 0:
         return "low"

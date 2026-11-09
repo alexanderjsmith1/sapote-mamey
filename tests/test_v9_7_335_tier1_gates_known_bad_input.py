@@ -247,6 +247,8 @@ def _pkg_with_register(tmp_path: Path, strain="AS-TEST", bgc_ids=("BGC001",)) ->
     pkg.mkdir()
     (pkg / "manifest.json").write_text(json.dumps({"strain_id": strain}), encoding="utf-8")
     init_register(pkg, strain_id=strain, bgc_ids=list(bgc_ids))
+    from tests._modeb_card_fixtures import write_identity_triage_board
+    write_identity_triage_board(pkg, strain, bgc_ids)
     return pkg
 
 
@@ -264,7 +266,9 @@ def test_crashed_structure_gate_is_not_recorded_as_a_clean_card(tmp_path, monkey
 
     pkg = _pkg_with_register(tmp_path)
     card = tmp_path / "AS-TEST_BGC001_mode_b.md"
-    card.write_text("<!-- MODE B: BGC001 -->\n# whatever\n", encoding="utf-8")
+    # A bound four-part identity, so the card reaches the (crashing) structure gate.
+    card.write_text("<!-- MODE B: BGC001 -->\n# Mode B — AS-TEST / NODE_1 / region001 / BGC001\n",
+                    encoding="utf-8")
 
     summary = mode_b_receipt.ingest_one_card(pkg, card)
     findings = summary.get("structure_findings") or []

@@ -35,6 +35,17 @@
 #            Genus legend in MAX4_GENUS_ROWS [2] rows. MAX4_QUERY_GROUPS=<groups.tsv> (columns group, colour) colours the isolate
 #            labels by the host_group column, legend title MAX4_QUERY_GROUP_TITLE [Host group (isolates)]; reference labels stay
 #            black. MAX4_LEGEND_BOX [vertical] or horizontal; MAX4_LEGEND_KEY_PT [1.15 x MAX4_SMALL].
+#   Star:    MAX4_STAR=<column> draws a "*" for every tip whose metadata <column> is "*".
+#            With MAX4_STRIPS the star sits inside the source-group box (white on dark fills, black on light ones); without
+#            strips it sits in a narrow box just left of the isolation-source text. MAX4_STAR_PT [10] star size in pt (>= 8).
+#            The table decides which tips get a star; the renderer infers nothing. Explain the star in the caption.
+#   Halo:    MAX4_SUPPORT_HALO=1 anchors each support label just left of its node and above the branch line, with a
+#            thin white halo (ggrepel bg.colour, as T05), so branch lines never cut the digits. Only labels that would still
+#            touch another get a ggrepel nudge: y only, at most MAX4_SUPPORT_NUDGE_PT [4] pt, short leader to the node,
+#            seed MAX4_SUPPORT_SEED [1], fixed max.iter, no time limit, so reruns are identical. Needs sapote_support_labels.R
+#            beside this script and the ggrepel package. Replaces SUPPORT_HJUST, SUPPORT_BG and SUPPORT_DODGE when on.
+#            A label whose default box would cross a branch line goes just below the branch, or else just right of the node,
+#            whichever is clear of lines and of other labels first.
 # Writes <stem>.pdf, <stem>.png and, when svglite is installed, <stem>.svg, each carrying the renderer stamp.
 suppressPackageStartupMessages({library(ape);library(ggtree);library(ggplot2);library(patchwork)})
 a<-commandArgs(trailingOnly=TRUE);tf<-a[1];mf<-a[2];stem<-a[3];prune<-length(a)>3&&a[4]=='prune'
@@ -97,6 +108,8 @@ p<-p+geom_segment(data=d,aes(x=x,xend=xmax*1.06,y=y,yend=y),linetype='dotted',li
 if(on('MAX4_CLIP_OFF'))p<-p+coord_cartesian(clip='off')
 SMIN<-num('MAX4_SUPPORT_MIN','50')
 nd<-p$data[!p$data$isTip,];value<-suppressWarnings(as.numeric(nd$label));nd<-nd[!is.na(value)&value>=SMIN&value<100,]
+HALO<-on('MAX4_SUPPORT_HALO');nd_halo<-nd[,c('x','y','label')]
+if(HALO)nd<-nd[0,]   # MAX4_SUPPORT_HALO: drawn after the layout is known (below); SUPPORT_HJUST/BG/DODGE are not used
 nd$vj<- -.45;nd$hj<-num('MAX4_SUPPORT_HJUST','-.1')
 if(on('MAX4_SUPPORT_DODGE')&&nrow(nd)>1){lw<-2.4*SMALL/72/branch_in*xmax*1.06;o<-order(-nd$y)
   for(k in 2:length(o)){i<-o[k];j<-o[seq_len(k-1)];hit<-j[abs(nd$y[j]-nd$y[i])<1.3&abs(nd$x[j]-nd$x[i])<lw]
@@ -135,7 +148,15 @@ s<-ggplot(d,aes(x=0,y=y))+geom_text(aes(label=src_w),hjust=0,size=SMALL/PT,lineh
   theme_void()+labs(title='Isolation source')+theme(plot.title=element_text(size=HEAD,face='bold',hjust=0),plot.margin=margin(4,2,4,4))
 g<-ggplot(d,aes(x=0,y=y))+geom_text(aes(label=geo_w),hjust=0,size=SMALL/PT,lineheight=LH,colour='grey15')+scale_x_continuous(limits=c(0,1),expand=c(0,0))+ylim(yr)+
   theme_void()+labs(title='Country')+theme(plot.title=element_text(size=HEAD,face='bold',hjust=0),plot.margin=margin(4,1,4,2))
+STARCOL<-env('MAX4_STAR');STARPT<-num('MAX4_STAR_PT','10')
+if(nzchar(STARCOL)){if(!STARCOL %in% names(md))stop('MAX4_STAR: no column ',STARCOL);if(STARPT<8)stop('MAX4_STAR_PT below 8 pt')
+  sv<-md[[STARCOL]][ix];if(!all(sv %in% c('*','')))stop('MAX4_STAR: column ',STARCOL,' must hold "*" or nothing');d$star<-ifelse(sv=='*','*','')
+  cat(sprintf('star: %d of %d tips\n',sum(d$star=='*'),n))}
 parts<-if(NOMETA) list(p,q) else list(p,q,s,g);widths<-if(NOMETA) c(branch_in,label_in) else c(branch_in,label_in,src_in,GEO_IN)
+if(nzchar(STARCOL)&&!NOMETA&&!nzchar(env('MAX4_STRIPS'))){STAR_IN<-.14
+  sb<-ggplot(d,aes(x=0,y=y))+geom_text(aes(label=star),size=STARPT/PT,fontface='bold',vjust=.72,colour='#202124')+
+    scale_x_continuous(limits=c(-.5,.5),expand=c(0,0))+ylim(yr)+theme_void()+theme(plot.margin=margin(4,0,4,0))
+  parts<-list(p,q,sb,s,g);widths<-c(branch_in-STAR_IN,label_in,STAR_IN,src_in,GEO_IN)}
 STR<-env('MAX4_STRIPS')
 if(nzchar(STR)&&!NOMETA){
   gt<-read.delim(STR,quote='',check.names=FALSE,colClasses='character')
@@ -150,17 +171,36 @@ if(nzchar(STR)&&!NOMETA){
     scale_fill_manual(values=setNames(pl$colour,pl$group),breaks=pl$group,name=title,guide=guide_legend(nrow=nr,title.position='left',order=if(col=='sg')1 else 2))+
     scale_x_continuous(expand=c(0,0))+ylim(yr)+theme_void()+theme(plot.margin=margin(4,1,4,1))
   STRIP_IN<-.15
-  parts<-list(p,q,strip('sg',sp,'Source group',2),strip('gg',gq,'Region',1),s,g)
+  sgp<-strip('sg',sp,'Source group',2)
+  if(nzchar(STARCOL)){lum<-function(h){v<-grDevices::col2rgb(h)/255;sum(c(.299,.587,.114)*v)}
+    fillc<-setNames(sp$colour,sp$group)[d$sg];d$star_col<-ifelse(vapply(fillc,lum,0)<.5,'white','#202124')
+    sgp<-sgp+geom_text(data=d[d$star=='*',],aes(x=0,y=y,label=star),colour=d$star_col[d$star=='*'],size=STARPT/PT,fontface='bold',vjust=.72,inherit.aes=FALSE)}
+  parts<-list(p,q,sgp,strip('gg',gq,'Region',1),s,g)
   widths<-c(branch_in-2*STRIP_IN-.06,label_in,STRIP_IN,STRIP_IN,src_in,GEO_IN);LEG<-TRUE
 }
-fig<-wrap_plots(parts,widths=widths,nrow=1)
+make_fig<-function(parts){fig<-wrap_plots(parts,widths=widths,nrow=1)
 if(LEG)fig<-fig+plot_layout(guides='collect')&theme(legend.position='bottom',legend.box=env('MAX4_LEGEND_BOX','vertical'),legend.box.just='left',legend.justification='left',
   legend.title=element_text(size=HEAD,face='bold'),legend.text=element_text(size=SMALL),legend.key.size=grid::unit(num('MAX4_LEGEND_KEY_PT',SMALL*1.15),'pt'),
   legend.spacing.x=grid::unit(3,'pt'),legend.box.spacing=grid::unit(2,'pt'),legend.margin=margin(0,0,0,0))
+fig}
+fig<-make_fig(parts)
 H<-H+num('MAX4_PAD','0')
+if(HALO&&nrow(nd_halo)){
+  script_dir<-dirname(gsub('~+~',' ',sub('^--file=','',grep('^--file=',commandArgs(FALSE),value=TRUE)[1]),fixed=TRUE))
+  source(file.path(script_dir,'sapote_support_labels.R'))
+  pdf(NULL,width=W,height=H);sc<-tree_panel_scale(fig,parts[[1]],W,H);invisible(dev.off());x_per_pt<-sc[['x_per_pt']];y_per_pt<-sc[['y_per_pt']]
+  cat(sprintf('support scale: tree panel %.3f x %.3f in; %.4f pt per row\n',sc[['panel_w_in']],sc[['panel_h_in']],1/y_per_pt))
+  hl<-support_halo_layers(nd_halo,SMALL,x_per_pt,y_per_pt,max_nudge=num('MAX4_SUPPORT_NUDGE_PT','4'),seed=as.integer(num('MAX4_SUPPORT_SEED','1')),segs=tree_segments(p$data),pts=if(nzchar(GD))data.frame(x=d$x,y=d$y,r_pt=2.31) else NULL)   # genus dots (size 1.5, radius 2.31 pt as drawn) are obstacles too
+  for(l in hl)parts[[1]]<-parts[[1]]+l
+  tb<-attr(hl,'table');mv<-tb[tb$group!=0,];if(nrow(mv))cat(sprintf('support nudge: label %s at %s, %+.2f pt\n',mv$label,mv$side,mv$dy),sep='')
+  sd<-attr(hl,'side');cat(sprintf('support halo: %d labels; left-above %d, left-below %d, right-centre %d; %d collision group(s), %d label(s) nudged in y (<= %g pt)\n',nrow(nd_halo),sd[1],sd[2],sd[3],attr(hl,'groups'),attr(hl,'nudged'),num('MAX4_SUPPORT_NUDGE_PT','4')))
+  fig<-make_fig(parts)}
 out<-c(paste0(stem,'.pdf'),paste0(stem,'.png'))
 if(any(file.exists(c(out,paste0(stem,'.svg')))))stop('MAX4_REFUSE_OVERWRITE: ',stem)
-ggsave(out[1],fig,width=W,height=H,device='pdf')
+# The plain pdf() device draws every ASCII hyphen with the /minus glyph, so strain IDs read 'AS\u2212441' in the PDF text layer
+# On macOS quartz keeps U+002D; elsewhere cairo_pdf does.
+pdf_dev<-if(Sys.info()[['sysname']]=='Darwin'&&capabilities('aqua'))function(filename,...)grDevices::quartz(type='pdf',file=filename,...) else grDevices::cairo_pdf
+ggsave(out[1],fig,width=W,height=H,device=pdf_dev)
 ggsave(out[2],fig,width=W,height=H,dpi=DPI)
 if(requireNamespace('svglite',quietly=TRUE)){ggsave(paste0(stem,'.svg'),fig,width=W,height=H,device=svglite::svglite);out<-c(out,paste0(stem,'.svg'))}
 script_path<-sub('^--file=','',grep('^--file=',commandArgs(FALSE),value=TRUE)[1])

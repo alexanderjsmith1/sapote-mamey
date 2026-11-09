@@ -9,7 +9,12 @@ absent is omitted and labelled, never assumed (RiQ and per-BGC TFBS-induction ar
 
 Inputs (Mamey package):
   manifest.json -> bgc_counts.assembly_tier, bioactivity, bgcs[].{edge_status, architecture_confidence,
-                   kcb_cumulative, kcb_top, riq_score, products, contig_length, length_kb}
+                   kcb_similarity_pct, kcb_evidence_state, riq_score, products, contig_length, length_kb}
+
+KCB terms read antiSMASH's KnownClusterBlast percent similarity (`kcb_similarity_pct`) through the engine's
+bands (`mamey.precision`: high >= KCB_PCT_HIGH, moderate >= KCB_PCT_MODERATE). The cumulative BLAST score is
+not a percent and is no longer read. A blank, non-numeric or out-of-range percent, or an explicit
+UNKNOWN_KCB state, is missing: no KCB term fires for it, in either direction.
   manifest.json -> source_scans.blda_tta.per_bgc[bgc].bldA_tier        (T3/T4 gating term)
 
 Outputs:
@@ -31,6 +36,13 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _wbio import atomic_save, atomic_open
+try:
+    from mamey.missing_values import optional_float
+    from mamey.precision import KCB_PCT_HIGH, KCB_PCT_MODERATE, kcb_pct_value, similarity_band
+except ImportError:  # bare-script run: bundle root is one level up
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from mamey.missing_values import optional_float
+    from mamey.precision import KCB_PCT_HIGH, KCB_PCT_MODERATE, kcb_pct_value, similarity_band
 
 
 def _read_json(_path, *, encoding="utf-8"):
@@ -48,14 +60,26 @@ def _prodstr(p):
 _TRUNCATED_EDGES = ("Edge", "Full-contig", "Full-Contig", "FC")
 
 
-def _kcb_score(b):
-    # kcb_top is the MIBiG identity text (mamey/models.py); only kcb_cumulative is a number.
-    # Falling back to float(kcb_top) raised ValueError for any BGC with no cumulative score.
-    v = b.get("kcb_cumulative")
-    try:
-        return float(v) if v not in (None, "") else 0.0
-    except (TypeError, ValueError):
-        return 0.0
+_KCB_NO_HITS = "KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED"
+
+
+def _kcb_band(b):
+    """The engine's percent band for this BGC: 'high', 'moderate', 'low', 'none', 'no_hits', or None.
+
+    None means missing (blank, non-numeric, out-of-range percent, or an explicit UNKNOWN_KCB state);
+    a missing percent is never a band. 'no_hits' is an observed KnownClusterBlast run with no hit."""
+    state = b.get("kcb_evidence_state")
+    if state == "UNKNOWN_KCB":
+        return None
+    pct = kcb_pct_value(optional_float(b.get("kcb_similarity_pct")))
+    if pct is None:
+        return "no_hits" if state == _KCB_NO_HITS else None
+    return similarity_band(pct)
+
+
+def _kcb_absent(band):
+    """An observed absence of a KCB anchor: KCB ran with no hit, or a 0% similarity."""
+    return band in ("no_hits", "none")
 
 
 def score_bgc(b, blda_tier, bioactivity_on=False):
@@ -63,7 +87,7 @@ def score_bgc(b, blda_tier, bioactivity_on=False):
     terms = []; notes = []
     arch = (b.get("architecture_confidence") or "").upper()
     edge = b.get("edge_status") or ""
-    kcb = _kcb_score(b)
+    band = _kcb_band(b)
     riq = b.get("riq_score")
     prod = _prodstr(b.get("products"))
 
@@ -76,18 +100,20 @@ def score_bgc(b, blda_tier, bioactivity_on=False):
     elif arch == "C":
         terms.append(("Architecture C (pathway unit)", 1, "architecture_confidence"))
 
-    if kcb > 5000:
-        terms.append(("Strong KCB >5,000", 3, "kcb_cumulative"))
-    elif kcb == 0:
+    if band == "high":
+        terms.append((f"Strong KCB >={KCB_PCT_HIGH}% similarity", 3, "kcb_similarity_pct"))
+    elif _kcb_absent(band):
         if arch == "A":
-            terms.append(("No KCB + strong diagnostic (Arch A)", 4, "kcb_cumulative+architecture_confidence"))
+            terms.append(("No KCB + strong diagnostic (Arch A)", 4, "kcb_similarity_pct+architecture_confidence"))
         elif arch == "B":
-            terms.append(("No KCB + moderate (Arch B)", 2, "kcb_cumulative+architecture_confidence"))
+            terms.append(("No KCB + moderate (Arch B)", 2, "kcb_similarity_pct+architecture_confidence"))
+    elif band is None:
+        notes.append("KCB percent: missing (no KCB term applied)")
 
-    if riq in (None, "", "-"):
-        notes.append("RiQ: not computed")
+    r = optional_float(riq)
+    if r is None:
+        notes.append("RiQ: not computed" if riq in (None, "", "-") else f"RiQ: unreadable value {riq!r} (no RiQ term applied)")
     else:
-        r = float(riq)
         if r < 0.50:
             terms.append(("RiQ <0.50 coherent", 3, "riq_score"))
         elif r <= 0.85:
@@ -108,7 +134,7 @@ def score_bgc(b, blda_tier, bioactivity_on=False):
     length_kb = b.get("length_kb")
     if length_kb is None and b.get("start") is not None and b.get("end") is not None:
         length_kb = (b["end"] - b["start"]) / 1000.0
-    if length_kb is not None and length_kb < 5 and edge != "Interior" and kcb == 0:
+    if length_kb is not None and length_kb < 5 and edge != "Interior" and _kcb_absent(band):
         terms.append(("tiny unanchored fragment", -3, "length_kb+edge_status"))
 
     notes.append("LMPKS: not run")  # post-score adjustment requires a rescue result; skip-not-fake
@@ -125,18 +151,36 @@ def decision_category(score):
     return "Deprioritized"
 
 
+NOT_EVALUATED = "NOT_EVALUATED"
+
+
 def action_scores(b, base, blda_tier):
+    """Priority labels. LOW means the input was read and did not meet the HIGH rule; when the input a
+    rule needs is missing the label is NOT_EVALUATED, never LOW."""
     arch = (b.get("architecture_confidence") or "").upper()
     edge = b.get("edge_status") or ""
-    kcb = _kcb_score(b)
-    riq = b.get("riq_score")
-    seq = "HIGH" if (edge in _TRUNCATED_EDGES or arch == "C") else "LOW"
-    act = "HIGH" if blda_tier in ("T3", "T4") else "LOW"   # TFBS-induction half is not per-BGC; bldA carries it
+    band = _kcb_band(b)
+    riq = optional_float(b.get("riq_score"))
+    if edge in _TRUNCATED_EDGES or arch == "C":
+        seq = "HIGH"
+    elif not edge:
+        seq = NOT_EVALUATED          # no boundary status: truncation cannot be judged
+    else:
+        seq = "LOW"
+    # TFBS-induction half is not per-BGC; bldA carries it
+    if blda_tier in ("T3", "T4"):
+        act = "HIGH"
+    elif blda_tier in ("T1", "T2"):
+        act = "LOW"
+    else:
+        act = NOT_EVALUATED          # no bldA tier, or NOT_APPLICABLE (non-actinomycete)
     iso = "HIGH" if base >= 10 else ("MED" if base >= 7 else "LOW")
-    if kcb > 1000:
+    if band in ("high", "moderate"):   # >= KCB_PCT_MODERATE similarity
         der = "HIGH"
-    elif riq not in (None, "", "-") and float(riq) > 0.50:
+    elif riq is not None and riq > 0.50:
         der = "HIGH"
+    elif band is None and riq is None:
+        der = NOT_EVALUATED          # neither KCB percent nor RiQ was available
     else:
         der = "LOW"
     return seq, act, iso, der
@@ -186,25 +230,37 @@ def main():
     with atomic_open(csv_path, "w", encoding=None, newline="") as f:
         w = _SafeDictWriter(f, fieldnames=fieldnames); w.writeheader(); w.writerows(rows)
 
+    xlsx_failed = False
     try:
         import openpyxl
-        wb = openpyxl.Workbook(); ws = wb.active; ws.title = "WetLab_Decision_Matrix"
-        ws.append(fieldnames)
-        for r in rows: ws.append([(", ".join(v) if isinstance(v,list) else v) for v in (r[k] for k in fieldnames)])
-        xlsx_path = os.path.join(a.out_dir, f"{strain}_WetLab_Decision_Matrix.xlsx")
-        # v9.7.371 fix: was a bare wb.save(xlsx_path) -- the CSV sibling now uses
-        # atomic_open's unique sibling staging; this XLSX write did not, so a process
-        # killed mid-save left a truncated/corrupt .xlsx (tools/_wbio.py's own docstring: "corrupts
-        # the workbook into an unreadable BadZipFile") sitting next to its intact CSV sibling in
-        # the deliverables directory. atomic_save is the same tmp+os.replace helper already used
-        # elsewhere in this codebase for exactly this write pattern.
-        atomic_save(wb, xlsx_path)
-    except Exception as e:
-        xlsx_path = f"(xlsx skipped: {e})"
+    except ImportError as e:
+        openpyxl = None
+        xlsx_path = f"(xlsx skipped: openpyxl is not installed: {e})"
+    if openpyxl is not None:
+        try:
+            wb = openpyxl.Workbook(); ws = wb.active; ws.title = "WetLab_Decision_Matrix"
+            ws.append(fieldnames)
+            for r in rows: ws.append([(", ".join(v) if isinstance(v,list) else v) for v in (r[k] for k in fieldnames)])
+            xlsx_path = os.path.join(a.out_dir, f"{strain}_WetLab_Decision_Matrix.xlsx")
+            # v9.7.371 fix: was a bare wb.save(xlsx_path) -- the CSV sibling now uses
+            # atomic_open's unique sibling staging; this XLSX write did not, so a process
+            # killed mid-save left a truncated/corrupt .xlsx (tools/_wbio.py's own docstring: "corrupts
+            # the workbook into an unreadable BadZipFile") sitting next to its intact CSV sibling in
+            # the deliverables directory. atomic_save is the same tmp+os.replace helper already used
+            # elsewhere in this codebase for exactly this write pattern.
+            atomic_save(wb, xlsx_path)
+        except Exception as e:
+            # openpyxl is installed, so this is a build or write error, not a missing library. Any
+            # .xlsx already at that path was not replaced and does not match this CSV.
+            xlsx_failed = True
+            xlsx_path = (f"(xlsx FAILED: {type(e).__name__}: {e}; any existing "
+                         f"{strain}_WetLab_Decision_Matrix.xlsx was not replaced and is stale)")
 
     cats = {}
     for r in rows: cats[r["decision_category"]] = cats.get(r["decision_category"], 0) + 1
     emit(f"{strain}: {len(rows)} BGCs scored -> {csv_path}", f"  categories: {cats}", f"  xlsx: {xlsx_path}", sep="\n")
+    if xlsx_failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

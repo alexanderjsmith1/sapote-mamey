@@ -3,6 +3,8 @@
 # Runs the claim-safety linter + the majority-read-aware named-compound guard on the SINGLE file just
 # written, so an overclaim surfaces immediately (not 90 min later at Stop). Scoped to report artefacts
 # under 'strain_data/'; exempts patch cards / scratchpad / the guard tooling itself to stay quiet.
+# The exemptions are matched below the report home, in claim_safety_scope.py, never on the absolute
+# path: a workspace that itself sits under a 'scratchpad' folder must still be checked.
 ROOT="${SAPOTE_WORKSPACE_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}"
 PY="$ROOT/Tools/bin/python3"; [ -x "$PY" ] || PY="python3"
 # extract the written file path from this hook's stdin JSON
@@ -23,9 +25,6 @@ SCOPE_ARGS=(--path "$FP" --root "$ROOT")
 if ! PYTHONDONTWRITEBYTECODE=1 "$PY" "$HOOK_DIR/claim_safety_scope.py" "${SCOPE_ARGS[@]}"; then
   exit 0
 fi
-case "$low" in
-  *"patches for next cut"*|*"/scratchpad"*|*"_provenance"*|*"guardrail"*|*"claim_safety"*) exit 0 ;;
-esac
 [ -f "$FP" ] || exit 0
 "$PY" "$ROOT/Tools/claim_safety_check.py" --quiet-if-clean "$FP" 2>/dev/null || true
 "$PY" "$ROOT/Tools/guardrail_named_compound.py" --quiet-if-clean "$FP" 2>/dev/null || true

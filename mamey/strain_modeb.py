@@ -345,6 +345,7 @@ def build_strain_sapote(pkg_dir, cohort_summary=None) -> tuple[str, dict]:
     bio = man.get("bioactivity", {}) or {}
     c_ab, c_af = _col(tri, "AB_auto"), _col(tri, "AF_auto")
     c_std, c_pm = _col(tri, "Standing_rule"), _col(tri, "Primary_metab_flag")
+    c_mob = _col(tri, "Mobile_element_flag")
     n_ab = n_af = 0
     if tri is not None:
         # AUDIT_374 fix: AB_auto/AF_auto carry an auto-floor and are observed to never
@@ -357,18 +358,20 @@ def build_strain_sapote(pkg_dir, cohort_summary=None) -> tuple[str, dict]:
         # them standing-rule saccharide-exclusions. Excluding those two flagged classes at least
         # removes the known false-positive rows from this count; it is still a floor-inclusive
         # count, not a "meaningfully positive" one -- read alongside S3's corrected-rank board.
+        # One reading of a flag cell for all three exclusions: scoring._lx_truthy, the same test the
+        # lead filter applies, so "NO" or blank is not a flag here either.
+        from .scoring import _lx_truthy
         included = tri
-        if c_std:
-            included = included[included[c_std].fillna("").astype(str).str.strip().eq("")]
-        if c_pm:
-            included = included[included[c_pm].fillna("").astype(str).str.strip().str.upper().ne("YES")]
+        for _c in (c_std, c_pm, c_mob):
+            if _c:
+                included = included[~included[_c].fillna("").map(_lx_truthy)]
         if c_ab:
             n_ab = int((pd.to_numeric(included[c_ab], errors="coerce").fillna(0) > 0).sum())
         if c_af:
             n_af = int((pd.to_numeric(included[c_af], errors="coerce").fillna(0) > 0).sum())
     meta["n_ab"], meta["n_af"] = n_ab, n_af
     W(f"- **Capacity:** {n_ab} BGC(s) carry antibacterial routing priors and {n_af} carry "
-      f"antifungal routing priors (standing-rule/primary-metabolism-excluded BGCs not counted). "
+      f"antifungal routing priors (standing-rule, primary-metabolism and mobile-element exclusions not counted). "
       f"Bioactivity metadata state: `{bio.get('metadata_state','NOT_SUPPLIED')}`; this is not BGC-level evidence.")
     rgs = man.get("resistance_gene_summary", {}) or {}
     if rgs.get("tier_counts"):

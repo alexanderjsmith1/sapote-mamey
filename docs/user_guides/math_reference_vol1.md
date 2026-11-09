@@ -514,14 +514,14 @@ A true result recommends batching; the helper does not partition rows, dispatch 
 | GC dispersion flag | ≥ 5.0 | `assembly.py:assembly_sanity_check` | contamination suspect |
 | Score bases | 25 / 20 / 30 | `scoring.py:triage_bgcs` | AB / AF / novelty floor |
 | Diagnostic bonus | 25 | `scoring.py` | corroborated CCTT trigger |
-| KCB-strong novelty | −15 | `scoring.py` | `kcb_cumulative > 10000` |
+| KCB-strong novelty | −15 | `scoring.py` | `kcb_similarity_pct >= 70` (antiSMASH percent, `precision.py:KCB_PCT_HIGH`) |
 | Missing/unknown KCB novelty | 0 | `scoring.py` | unavailable comparator adds no novelty credit; explicit UNKNOWN also suppresses the high-KCB penalty |
 | Low-RiQ novelty | +10 | `scoring.py` | `riq_score < 0.5` |
 | Rescue bonus | 8 / 4 | `scoring.py` | HIGH / MODERATE RG-GMCI |
 | Edge penalty | **0.0** | `scoring.py:edge_penalty` | neutralized v9.7.84 |
 | Penalty multipliers | 0.35 / 0.20 | `scoring.py:triage_bgcs` | AB·AF / novelty (dormant) |
 | Lead tiers | 85 / 70 / 50 | `scoring.py:triage_bgcs` | Exceptional / High / Medium |
-| Architecture grade | 10 kb, KCB 10,000 | `parsers.py:architecture_grade` | A–E thresholds |
+| Architecture grade | 10 kb, KCB percent 70 | `parsers.py:architecture_grade` | A–E thresholds |
 | RiQ labels | 0.85 / 0.50 | `antismash_evidence.py:riq_label` | known / variant / novel |
 | RiPP-fragment floor | 8.0 kb | `scoring.py` | truncated RiPP cap |
 | RG-GMCI tiers | 14 / 9 | `rggmci.py` | HIGH / MODERATE |

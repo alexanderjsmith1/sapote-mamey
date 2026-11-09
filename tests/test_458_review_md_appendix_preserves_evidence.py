@@ -18,7 +18,7 @@ def setup_case(tmp_path, source_name='input.md'):
     return src, boss, tmp_path/'boss.appendix.md', tmp_path/'qa.json'
 
 def refuse(src, boss, qa):
-    assert mp.main([str(src), str(boss), '--qa-json', str(qa)]) == 2
+    assert mp.main([str(src), str(boss), '--qa-json', str(qa), '--replace']) == 2
     assert boss.read_text() == 'PRIOR BOSS'
     assert not qa.exists()
 
@@ -70,7 +70,7 @@ def test_late_qa_alias_cannot_replace_published_appendix(tmp_path, monkeypatch):
         if Path(destination) == side: qa.symlink_to(side)
         return result
     monkeypatch.setattr(os,'link',alias)
-    assert mp.main([str(src),str(boss),'--qa-json',str(qa)]) == 2
+    assert mp.main([str(src),str(boss),'--qa-json',str(qa),'--replace']) == 2
     assert boss.read_text() == 'PRIOR BOSS'
     assert qa.is_symlink() and WIDE.rstrip() in side.read_text()
 
@@ -78,7 +78,7 @@ def test_unicode_default_retains_full_table(tmp_path):
     src,boss,side,qa = setup_case(tmp_path)
     text = src.read_text().replace('v3','café α')
     src.write_text(text,encoding='utf-8')
-    assert mp.main([str(src),str(boss),'--qa-json',str(qa)]) == 0
+    assert mp.main([str(src),str(boss),'--qa-json',str(qa),'--replace']) == 0
     assert 'café α' in side.read_text(encoding='utf-8')
     assert '| c0 | c1' not in boss.read_text()
     assert src.read_text(encoding='utf-8') == text
@@ -86,5 +86,5 @@ def test_unicode_default_retains_full_table(tmp_path):
 def test_explicit_named_appendix_keeps_replacement_contract(tmp_path):
     src,boss,side,qa = setup_case(tmp_path)
     side.write_text('OLD EXPLICIT OUTPUT',encoding='utf-8')
-    assert mp.main([str(src),str(boss),'--appendix-md',str(side)]) == 0
+    assert mp.main([str(src),str(boss),'--appendix-md',str(side),'--replace']) == 0
     assert WIDE.rstrip() in side.read_text()

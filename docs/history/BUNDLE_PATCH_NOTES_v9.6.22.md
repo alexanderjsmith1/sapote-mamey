@@ -2,6 +2,8 @@
 
 # BUNDLE PATCH NOTES — v9.6.22
 
+> **Do not follow the checklist below.** This is a record of one old patch. The tier propagation steps do not describe the current tree. Changes to the current tree go through [CUT_PROTOCOL](../../CUT_PROTOCOL.md); verified state is in [CHANGELOG](../../CHANGELOG.md).
+
 **Engine 1.9.13 · bundle v9.6.22.** Builds on v9.6.21 (validator realign, CAS-safe redaction,
 `--master` guard). This cut adds the contig-rescue reconstruction line and the reporting-fidelity
 guard, plus the lead-detail and punch-card tooling from the working session.
@@ -32,13 +34,15 @@ guard, plus the lead-detail and punch-card tooling from the working session.
   antiSMASH HTML for direct BLASTp).
 
 ## Apply-to-all-tiers checklist
+
+Historical: do not run this checklist. It propagates files to retired tier routes and gives a version number (`pyproject.toml` 1.9.13) that is not the current one. The current route is [CUT_PROTOCOL](../../CUT_PROTOCOL.md).
 This is the MERGED (private scaffold) tier. Propagate to CODE / CODE-analysis-free / SID-public via
 `tools/make_public_tier.sh` with a shared `BUILD_STAMP`, then leak-audit (0 AS strain IDs) before ship.
 
 - [ ] copy `tools/build_reconstruction.py`, `tools/build_lead_detail.py`, `tools/build_punchcard.py`
 - [ ] copy `docs/modules/DELIVERABLE_ContigRescueReconstruction.md`, `KNOWLEDGE_ConstellationReporting.md`, `SAPOTE_LEAD_DETAIL_MODULE.md`
 - [ ] `pyproject.toml` version 1.9.13; CHANGELOG v9.6.22 entry present
-- [ ] redaction pass on the SID/CODE tiers (the new modules reference the AS-XXX NODE_105/NODE_182 case — keep contig IDs but verify no SID#### leaks; AS-XXX NODE labels are assembly-derived, not SID identifiers)
+- [ ] redaction pass on the SID/CODE tiers (the new modules reference the <strain> NODE_105/NODE_182 case — keep contig IDs but verify no SID#### leaks; <strain> NODE labels are assembly-derived, not SID identifiers)
 - [ ] validator PASS on `examples/test_data/test_master.xlsx` (unchanged from v9.6.21)
 - [ ] `python -m py_compile tools/*.py mamey/*.py`
 

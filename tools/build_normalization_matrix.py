@@ -68,12 +68,19 @@ CLASSES=['NRPS','NRPS-like','T1PKS','T2PKS','T3PKS','transAT-PKS','terpene','lan
          'butyrolactone','melanin','phosphonate','indole','saccharide','amglyccycl']
 DEN_CLASSES={'ecto+napaa':['ectoine','napaa'],'terpene':['terpene'],'halogenase':['halogenated','halogenase']}
 
-def compute_per_strain(banked):
+def compute_per_strain(banked, unmatched=None):
+    """Per-strain rows for every strain in the bank roster. BGC rows whose `sid` is not in the
+    roster cannot be placed in a row; they are counted into `unmatched` ({sid: n_bgc_rows}) so the
+    caller can report them instead of losing them silently."""
     from collections import Counter, defaultdict
     bgc=_read_json(os.path.join(banked,'bgc_data.json')); strains=bgc['strains']; bgcs=bgc['bgcs']
     ccount=defaultdict(Counter); den=defaultdict(Counter)
     for b in bgcs:
-        sid=b['sid']; p=';'.join(with_family_labels(b.get('products') or '')).lower()
+        sid=b['sid']
+        if sid not in strains:
+            if unmatched is not None: unmatched[sid]=unmatched.get(sid,0)+1
+            continue
+        p=';'.join(with_family_labels(b.get('products') or '')).lower()
         for c in CLASSES:
             if c.lower() in p: ccount[c][sid]+=1
         for dn,toks in DEN_CLASSES.items():
@@ -89,6 +96,8 @@ def compute_per_strain(banked):
     return rows
 
 NOT_MEASURABLE='not measurable'
+MIN_CLASS_TOTAL=5   # a class needs at least this many BGCs across the cohort to be ranked
+NO_CLASS_STATE='NO_CLASS_MET_THRESHOLD'
 
 def finite_or_blank(x):
     """A correlation as a rounded float, or '' when it is NaN or infinite (not measurable)."""
@@ -100,10 +109,18 @@ def regime_of(rr):
     if not np.isfinite(rr): return NOT_MEASURABLE
     return 'inflates' if rr>0.3 else 'deflates' if rr<-0.2 else 'robust' if abs(rr)<0.15 else 'mild'
 
+class DuplicateStrainRows(ValueError):
+    pass
+
 def derive(rows):
     """from per-strain rows -> class ranking + normalization matrix. Operates only on rows present in the
-    CSV, so deleting a strain row propagates to every output."""
+    CSV. A strain id on more than one row is refused: deleting one of two rows would leave the strain in
+    every calculation, so the edit would not remove it."""
     sids=[r['sid'] for r in rows]
+    dupes=sorted({s for s in sids if sids.count(s)>1})
+    if dupes:
+        raise DuplicateStrainRows(f"strain id on more than one per-strain row: {', '.join(dupes)}; "
+                                  f"keep one row per strain before replotting")
     lc=np.log10(np.array([max(int(r['contigs']),1) for r in rows],float))
     DEN={'raw_BGC':np.array([float(r['raw_BGC']) for r in rows]),
          'corrected_BGC':np.array([float(r['corrected_BGC']) for r in rows]),
@@ -114,7 +131,7 @@ def derive(rows):
     ranking=[]; matrix=[]
     for c in CLASSES:
         v=np.array([float(r[f'cls_{c}']) for r in rows])
-        if v.sum()<5: continue
+        if v.sum()<MIN_CLASS_TOTAL: continue
         with np.errstate(all='ignore'):
             rr=float(np.corrcoef(v,lc)[0,1]) if v.std()>0 else float('nan')
         regime=regime_of(rr)
@@ -177,23 +194,54 @@ def main():
     ap.add_argument('--replot', action='store_true', help='skip compute; regenerate ranking+matrix+figures from the (possibly edited) per-strain CSV')
     a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); out=a.out_dir; os.makedirs(out,exist_ok=True)
     ps_path=os.path.join(out,'normalization_per_strain.csv')
+    unmatched={}
     if a.replot:
-        rows=list(csv.DictReader(open(ps_path)))
+        with open(ps_path, newline='') as _fh: rows=list(csv.DictReader(_fh))
         emit(f"[replot] {len(rows)} strains from {ps_path} (edits respected)")
     else:
-        rows=compute_per_strain(a.banked_dir)
+        rows=compute_per_strain(a.banked_dir, unmatched)
+        # Printed with the existing "[compute] N strains" line below (one emission site).
+        _unmatched_line=([f"[compute] WARNING: {sum(unmatched.values())} BGC row(s) carry a strain id that is not in the "
+                          f"bank's strain roster and were not counted: "
+                          + ', '.join(f'{k} ({v})' for k,v in sorted(unmatched.items()))] if unmatched else [])
         fields=['sid','organism','contigs','genome_Mbp','raw_BGC','corrected_BGC']+[f'cls_{c}' for c in CLASSES]+[f'den_{d}' for d in DEN_CLASSES]
-        write_csv(ps_path, rows, fields); emit(f"[compute] {len(rows)} strains -> {ps_path}")
-    ranking, matrix, dens = derive(rows)
+    try:
+        ranking, matrix, dens = derive(rows)
+    except DuplicateStrainRows as exc:
+        raise SystemExit(f"[build_normalization_matrix] {exc}")
+    if not a.replot:
+        write_csv(ps_path, rows, fields); emit(*_unmatched_line, f"[compute] {len(rows)} strains -> {ps_path}", sep="\n")
     write_csv(os.path.join(out,'normalization_class_ranking.csv'), ranking, ['class','n_total','corr_fragmentation','regime'])
     write_csv(os.path.join(out,'normalization_matrix.csv'), matrix, ['class','raw']+dens)
-    plot(ranking, matrix, dens, out)
-    atomic_write_text(os.path.join(out,'normalization_recipe.md'), RECIPE.format(n=len(rows),dens=', '.join(dens)))
-    emit(f"  ranking ({len(ranking)} classes) + matrix + 2 figures + recipe written to {out}")
+    _state_lines=[]
+    if ranking:
+        plot(ranking, matrix, dens, out)
+        figures_note='Both figures were drawn from the CSVs above.'
+    else:
+        # No class reached MIN_CLASS_TOTAL: the ranking and matrix are header-only and there is
+        # nothing to draw (an empty heatmap crashed matplotlib). This is a stated state, not a
+        # finding that classes are robust. Existing PNGs in --out-dir are not touched.
+        figures_note=(f"{NO_CLASS_STATE}: no BGC class reached {MIN_CLASS_TOTAL} BGCs across these "
+                      f"{len(rows)} strains, so the ranking and matrix CSVs have headers only and no figures "
+                      f"were drawn. Any fig_class_fragmentation.png or fig_normalization_matrix.png already in "
+                      f"this folder is from an earlier run.")
+        _state_lines.append(f"  {figures_note}")   # printed with the closing summary line (one emission site)
+    _unmatched_note=('' if a.replot else
+        ('Every BGC row in the bank carried a strain id from its strain roster.' if not unmatched else
+         f"{sum(unmatched.values())} BGC row(s) carried a strain id not in the bank's strain roster and are not "
+         f"counted in any output: " + ', '.join(f'{k} ({v})' for k,v in sorted(unmatched.items())) + '.'))
+    atomic_write_text(os.path.join(out,'normalization_recipe.md'),
+                      RECIPE.format(n=len(rows),dens=', '.join(dens),figures=figures_note,min_total=MIN_CLASS_TOTAL,
+                                    coverage=_unmatched_note or 'Replotted from the edited per-strain CSV; bank coverage was not re-checked.'))
+    emit(*_state_lines, f"  ranking ({len(ranking)} classes) + matrix + {'2 figures' if ranking else 'no figures'} + recipe written to {out}", sep="\n")
 
 RECIPE='''# Normalization figures — data & replot recipe
 
 Generated from a {n}-strain cohort. Two figures, each fully regenerable from the CSVs below.
+
+Coverage: {coverage} One row per strain is required; a replot refuses a strain id that appears on two rows.
+
+Figures: {figures} A class is ranked only when it has at least {min_total} BGCs across the cohort.
 
 ## Files
 - `normalization_per_strain.csv` — **the editable source**. One row per strain: contig count, per-class BGC
@@ -215,9 +263,10 @@ Generated from a {n}-strain cohort. Two figures, each fully regenerable from the
 1. Edit `normalization_per_strain.csv` — delete a strain's row to drop it, or paste a new row to add one.
 2. Re-run: `python tools/build_normalization_matrix.py --out-dir <this-dir> --replot`
 3. The ranking, matrix, and both figures regenerate from the edited CSV — no recompute from the cohort,
-   so a removed strain disappears from every output consistently.
+   so a removed strain (one row per strain) disappears from every output consistently.
 
-To rebuild from the full cohort instead (picking up new strains banked since), drop `--replot`.
+To rebuild from the bank instead (picking up new strains banked since), drop `--replot`. That rebuild
+covers the strains in the bank's strain roster; BGC rows for any other strain id are reported above.
 
 ## Figure-style note
 Figures carry data only (color, axes, numeric labels, neutral titles). All interpretation lives in

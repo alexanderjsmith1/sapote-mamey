@@ -158,7 +158,7 @@ The complete scan states from the EU158805 run gave a minimal scan set (one clus
 | CGAD | NULL | No chitinase or glycan-active domain hits. Not surprising for a soil isolate without confirmed antifungal phenotype — absence is recorded honestly, not used to infer anything about antifungal capacity. |
 | UMED | PASS | No maturation gaps flagged. |
 | EFLS | NULL | 0 candidate cross-contig pairs — expected on a single-contig closed genome. |
-| Resistance | PASS | 50 total resistance hits; 7 T1 (self-protection tier) BGCs. 7 clusters with self-protection evidence is a strong biosynthetic-activity signal — a producer commonly carries immunity genes for its own products. |
+| Resistance | PASS | 50 total resistance hits; 7 T1 (self-protection tier) BGCs. 7 clusters with self-protection evidence is consistent with, not evidence of, production; resistance genes can also come from other sources. |
 | bldA/TTA | PASS | 67 BGCs assessed; 5 T4 (TTA-codon dependent). 5 clusters whose expression is likely gated by bldA (the rare TTA tRNA) — these are probably activated under specific developmental conditions, relevant for fermentation strategy. |
 | TFBS | PASS | 279 motif hits across the genome. GBL_AdpA_like:225 — the AdpA global activator dominates, which is typical for large *Streptomyces* chromosomes (AdpA is the master regulator of secondary metabolite production and morphological differentiation). DasR_like:23 (N-acetylglucosamine sensing), BldD_like:13, SARP_BTAD_like:5 (cluster-specific activators on 5 BGCs), IolR_like:6. |
 
@@ -196,7 +196,7 @@ observation of this run, not a universal assertion about closed genomes.
 
 **The CCTT trigger set is representative.** With 8 of 18 trigger families firing across the 67 clusters, the historical run reports coverage of a subset of the trigger families. A pipeline update to any trigger family in {HAL, PHO, BLA, ENE, LAN, LASSO, DKP, TET} can be regression-tested against the spectabilis run's expected trigger calls.
 
-The package from this run is available as a public reference in the project's validation infrastructure.
+The original page said the package from this run is available as a public reference in the project's validation infrastructure; no path was given and none is verified here.
 
 For the historical comparison, continue with [Volume XI](Encyclopedia-Volume-XI.md).
 For a current package, use [Read an existing result](../../../docs/user_guides/READ_EXISTING_RESULT.md)
@@ -204,6 +204,3 @@ and the [current source-scope reference](../../../docs/reference/06_CURRENT_SOUR
 Use [the currency record](Encyclopedia-Currency.md) to distinguish refreshed
 software checks from the older worked-run observations in this volume.
 
-</div>
-
-<div id="vol-xi" class="section vol">

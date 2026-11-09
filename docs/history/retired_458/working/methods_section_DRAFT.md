@@ -2,17 +2,17 @@
 
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Methods implementation template](../../../templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md).
 
-The draft below remains a verbatim v9.7.96-era writing artifact. Do not copy it as current Methods or treat its test count, release tiers, blanket byte-determinism claim, scoring ownership, or retired ecological policy as an execution record. Start a study-specific narrative from the [prospective current template](../../../templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md), [technical appendix](../../../reference/METHODS_TECHNICAL_APPENDIX.md), and [reporting checklist](../../../METHODS_REPORTING_CHECKLIST.md).
+The draft below remains a near-verbatim v9.7.96-era writing artifact (an agent name and a blank field were edited out). Do not copy it as current Methods or treat its test count, release tiers, blanket byte-determinism claim, scoring ownership, or retired ecological policy as an execution record. Start a study-specific narrative from the [prospective current template](../../../templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md), [technical appendix](../../../reference/METHODS_TECHNICAL_APPENDIX.md), and [reporting checklist](../../../METHODS_REPORTING_CHECKLIST.md).
 
 Current concrete differences: `make_public_tier.sh` disables all but CODE by default; its historical alternative branches require an explicit environment override. Selected timing/judgment records are mutable and selected post-seal images/PDFs are outside checksum scope, so reproducible analytical fields do not imply universal byte-identical packages. Source/test paths and historical test totals do not demonstrate a current successful study run or scientific validation. Record actual commands, complete locus identity, source hashes, database/configuration versions, excluded inputs, and reviewer disposition before manuscript adoption.
 
 ---
 
-## Historical draft (verbatim)
+## Historical draft (near-verbatim)
 
 # Methods — Sapote–Mamey pipeline (DRAFT, against engine 1.9.96 / bundle v9.7.96)
 
-> Working draft for the methods paper (target: *NAR Genomics & Bioinformatics* / *Bioinformatics*). Claude's natural voice; the Developer or User does the final formality pass. **Citation placeholders are marked `[CITE: …]` — verify metadata before use; none are invented DOIs.** Affiliation throughout: 
+> Working draft for the methods paper (target: *NAR Genomics & Bioinformatics* / *Bioinformatics*). The Developer or User does the final formality pass. **Citation placeholders are marked `[CITE: …]` — verify metadata before use; none are invented DOIs.** Affiliation: blank in the original.
 
 ---
 
@@ -54,7 +54,7 @@ Several classes are **permanently down-weighted** as uninformative for the disco
 
 ### 2.6 Privacy-preserving release architecture
 
-Because the cohort includes unpublished strains, the pipeline ships in four tiers cut by a single deterministic script: a private MERGED scaffold that retains real strain identifiers, and three public tiers (CODE, CODE-analysis-free, SID-public) from which private identifiers are scrubbed. The cut is **fail-closed**: it refuses to ship a public tier if any unpublished strain identifier survives, verified by (i) a tokenize-aware redactor with a public-name carve-out for compound names that collide with the identifier syntax, (ii) a leak audit that greps the staged tree (including test files, against a synthetic-ID allowlist), and (iii) a tier-derivation parity check confirming each public tier is an exact redaction-view of the private source. A version-sync gate refuses any tree whose version restatements have drifted from the single source of truth.
+Because the cohort includes unpublished strains, the pipeline ships in four tiers cut by a single deterministic script: a private MERGED scaffold that retains real strain identifiers, and three public tiers (CODE, CODE-analysis-free, public-ID) from which private identifiers are scrubbed. The cut is **fail-closed**: it refuses to ship a public tier if any unpublished strain identifier survives, verified by (i) a tokenize-aware redactor with a public-name carve-out for compound names that collide with the identifier syntax, (ii) a leak audit that greps the staged tree (including test files, against a synthetic-ID allowlist), and (iii) a tier-derivation parity check confirming each public tier is an exact redaction-view of the private source. A version-sync gate refuses any tree whose version restatements have drifted from the single source of truth.
 
 ### 2.7 Determinism, verification, and reproducibility
 

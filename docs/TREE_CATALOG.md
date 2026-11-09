@@ -101,13 +101,18 @@ can pass the character check.
 
 Metadata includes tip/role/type status, taxon and concise/experiment labels,
 raw and categorized source/geography, assay states/provenance and experiment/sample
-IDs. Query assay states are positive, negative, not_tested or missing; reference
-and outgroup assay/experiment fields are blank. Keep the exact schema in
-[`tree_series_contract.py`](../tools/tree_series_contract.py) when preparing these files.
+IDs. A query's `candida_state` and `mrsa_state` must each be the literal word `positive`,
+`negative`, `not_tested` or `missing`; a blank query state is refused. Reference and outgroup
+assay/experiment fields must be blank. The column list and these states are checked by
+[`phylo_display_contract.py`](../tools/phylo_display_contract.py); the series matrix is checked by
+[`tree_series_contract.py`](../tools/tree_series_contract.py).
 
 Provenance rows bind each field's raw value, source, hash and status. Palette rows
 use field/value/color; each category keeps one color across the series, and two
-categories within a field cannot share a color. Every displayed tip needs resolved
+categories within a field cannot share a color. On top of that, every palette row must match
+the shared house palette, [`tools/phylo_display_palette.tsv`](../tools/phylo_display_palette.tsv),
+exactly: the same field, value and color. A custom palette that meets the other rules still
+stops with `SERIES_PALETTE_NOT_CANONICAL`. Copy the rows you need from that file. Every displayed tip needs resolved
 source and geography, even in no-geography views. Hold a panel with missing query
 metadata; do not remove queries or invent values to pass.
 

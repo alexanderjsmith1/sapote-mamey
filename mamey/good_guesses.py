@@ -860,7 +860,59 @@ def render_docx(rows: list[GoodGuess], path: Path) -> dict:
 
 
 # --------------------------------------------------------------------------- pdf (reuse renderer)
-def render_pdf(md_path: Path, pdf_path: Path, pkg_hint: Path | None = None) -> dict:
+#: Files the PDF routes may write for one PDF: the PDF and the md_to_pdf.sh fallback sidecars.
+_PDF_ROUTE_SUFFIXES = (".pdf", ".resource_bindings.json", ".render_preflight.json", ".wide_tables_appendix.md")
+
+
+def _pdf_route_outputs(pdf_path: Path) -> list[Path]:
+    stem = str(pdf_path)[:-4] if str(pdf_path).endswith(".pdf") else str(pdf_path)
+    return [Path(stem + suffix) for suffix in _PDF_ROUTE_SUFFIXES]
+
+
+def render_pdf(md_path: Path, pdf_path: Path, pkg_hint: Path | None = None,
+               replace: bool = False) -> dict:
+    """Render GOOD_GUESSES.pdf without replacing an earlier one unless asked.
+
+    Without `replace`, an existing PDF or fallback sidecar returns ``OUTPUT_EXISTS`` before
+    anything is written. With `replace`, the earlier files are moved into a private folder
+    first, put back if the new render fails, and deleted only after it succeeds. A symlink or
+    folder at one of those names is refused (``OUTPUT_NOT_REPLACEABLE``).
+    """
+    import contextlib
+    import tempfile
+    existing = [p for p in _pdf_route_outputs(pdf_path) if p.exists() or p.is_symlink()]
+    if existing and not replace:
+        return {"status": "OUTPUT_EXISTS", "path": None,
+                "detail": "earlier PDF output exists: " + ", ".join(str(p) for p in existing)
+                          + "; pass --replace to replace it, or --out to a new folder"}
+    bad = [p for p in existing if p.is_symlink() or not p.is_file()]
+    if bad:
+        return {"status": "OUTPUT_NOT_REPLACEABLE", "path": None,
+                "detail": "a symlink or folder sits at a PDF output name: " + ", ".join(map(str, bad))}
+    aside = None
+    if existing:
+        aside = Path(tempfile.mkdtemp(prefix=f".{pdf_path.stem}.previous.", dir=str(pdf_path.parent)))
+        for p in existing:
+            p.rename(aside / p.name)
+    res = _render_pdf_once(md_path, pdf_path, pkg_hint)
+    if aside is not None:
+        if res.get("status") == "WRITTEN":
+            for p in aside.iterdir():
+                p.unlink()
+            aside.rmdir()
+        else:
+            # The earlier set was moved aside, so anything now at those names is this attempt's.
+            for p in _pdf_route_outputs(pdf_path):
+                if p.is_file() and not p.is_symlink():
+                    p.unlink()
+            for p in aside.iterdir():
+                p.rename(pdf_path.parent / p.name)
+            with contextlib.suppress(OSError):
+                aside.rmdir()
+    return res
+
+
+def _render_pdf_once(md_path: Path, pdf_path: Path, pkg_hint: Path | None = None) -> dict:
     """Render GOOD_GUESSES.pdf by REUSING the sanctioned colorful reportlab renderer
     (tools/render_deliverable_pdf.py, the same primary path compile_report._render_compiled_pdf
     drives via md_to_pdf.sh). We call it in-process so it uses THIS interpreter's reportlab
@@ -887,6 +939,10 @@ def render_pdf(md_path: Path, pdf_path: Path, pkg_hint: Path | None = None) -> d
             last = "renderer produced no file"
     else:
         last = "tools/render_deliverable_pdf.py absent"
+    # render_pdf calls this only when no PDF sits at pdf_path, so a file there now is a partial
+    # from the failed primary attempt. Remove it, or the fallback would refuse the path.
+    if pdf_path.is_file() and not pdf_path.is_symlink():
+        pdf_path.unlink()
     # fallback: the compile_report sanctioned path (pandoc/xelatex)
     try:
         from . import compile_report as _cr
@@ -903,7 +959,7 @@ def render_pdf(md_path: Path, pdf_path: Path, pkg_hint: Path | None = None) -> d
 
 # --------------------------------------------------------------------------- run / CLI
 def run(root: str | Path = ".", out_dir: str | Path | None = None, depth: int = 3,
-        pdf: bool = False, docx: bool = False) -> dict:
+        pdf: bool = False, docx: bool = False, replace: bool = False) -> dict:
     root = Path(root)
     pkgs = _find_packages(root, depth)
     rows = build_guesses(pkgs)
@@ -934,7 +990,7 @@ def run(root: str | Path = ".", out_dir: str | Path | None = None, depth: int = 
             result["docx"] = render_docx(rows, out / "GOOD_GUESSES.docx")
         if pdf:
             result["pdf"] = render_pdf(md_path, out / "GOOD_GUESSES.pdf",
-                                       pkg_hint=(pkgs[0] if pkgs else None))
+                                       pkg_hint=(pkgs[0] if pkgs else None), replace=replace)
     return result
 
 
@@ -943,7 +999,8 @@ def good_guesses_command(args) -> int:
               out_dir=getattr(args, "out", None),
               depth=getattr(args, "depth", 3),
               pdf=getattr(args, "pdf", False),
-              docx=getattr(args, "docx", False))
+              docx=getattr(args, "docx", False),
+              replace=getattr(args, "replace", False))
     if res.get("out_dir"):
         fc = res["flavour_counts"]
         _OUT.info('%s', f"good-guesses: {res['packages']} package(s) -> {res['guesses']} guess(es) "
@@ -969,6 +1026,9 @@ def main(argv=None) -> int:
     ap.add_argument("--depth", type=int, default=3, help="max recursion depth (default 3)")
     ap.add_argument("--pdf", action="store_true", help="also render GOOD_GUESSES.pdf")
     ap.add_argument("--docx", action="store_true", help="also render GOOD_GUESSES.docx")
+    ap.add_argument("--replace", action="store_true",
+                    help="with --pdf: replace an earlier GOOD_GUESSES.pdf and its sidecars (set aside, "
+                         "restored if the new render fails). Without it an existing PDF is refused.")
     return good_guesses_command(ap.parse_args(argv))
 
 

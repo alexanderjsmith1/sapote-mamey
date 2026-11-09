@@ -124,12 +124,24 @@ def render_figures_command(args) -> int:
         from .domain_figures import render_domain_figures
         from .domain_level import run_domain_level
         dl_dir = pkg / "domain_level"
+        # This route reads <package>/domain_level/ only; it does not read a domain-level --out
+        # folder. When that folder has no tables it runs domain-level INTO the package; say so.
+        # The warning goes out BEFORE the run (it announces a write into the package); a direct
+        # stderr write keeps the print/emit ratchet flat. The status line is printed with the
+        # existing figures line.
+        _dl_lines: list[str] = []
         if not (dl_dir / "domain_complexity_metrics_by_bgc.csv").exists():
-            run_domain_level(pkg, source_antismash=getattr(args, "source_antismash", None),
-                             top_n=getattr(args, "top_n", 10))
+            sys.stderr.write(f"  domain-level tables not found in {dl_dir}; running domain-level into the "
+                             f"package (a separate --out folder is not read here)\n")
+            sys.stderr.flush()
+            _dl_rec = run_domain_level(pkg, source_antismash=getattr(args, "source_antismash", None),
+                                       top_n=getattr(args, "top_n", 10))
+            _dl_lines.append(f"  domain-level: {_dl_rec.get('status')}"
+                             + (f" ({_dl_rec.get('reason')})" if _dl_rec.get("reason") else ""))
         fig_out = Path(args.outdir) if getattr(args, "outdir", None) else dl_dir / "figures"
         res = render_domain_figures(dl_dir, outdir=fig_out)
-        emit(f"  domain-level figures: {res['status']} ({len(res['figures'])} rendered) -> {fig_out}")
+        emit(*_dl_lines, f"  domain-level figures: {res['status']} ({len(res['figures'])} rendered) -> {fig_out}",
+             sep="\n")
         if res["warnings"]:
             emit(f"  warnings: {res['warnings']}")
         return 0
@@ -183,9 +195,9 @@ def render_figures_command(args) -> int:
             raise ValueError(f"LEAD_FIGURE_SCORE_INVALID: {col} requires a finite numeric value")
         return number
 
-    active = [r for r in rows
-              if not r.get("Standing_rule")
-              and r.get("Primary_metab_flag") != "YES"]
+    # The engine's own three-flag lead exclusion (standing rule, primary metabolism, mobile element).
+    from mamey.scoring import is_lead_excluded
+    active = [r for r in rows if not is_lead_excluded(r)]
 
     rendered_ok = 0
     errors: list[str] = []
@@ -231,7 +243,10 @@ def render_figures_command(args) -> int:
                 ax.set_yticklabels(wrapped_labels, fontsize=9)
                 ax.tick_params(axis="x", labelsize=9)
                 ax.invert_yaxis()
-                ax.set_xlabel("DAPR auto score", fontsize=9)
+                # These bars are the triage-board routing priors, not the downstream DAPR scores.
+                ax.set_xlabel({"AB_auto": "Antibacterial routing prior (AB_auto)",
+                               "AF_auto": "Antifungal routing prior (AF_auto)"}.get(score_col, score_col),
+                              fontsize=9)
                 ax.set_title(textwrap.fill(title, width=35, break_on_hyphens=False),
                              fontsize=11, fontweight="bold")
                 ax.grid(axis="x", linestyle="--", alpha=0.4)
@@ -353,13 +368,18 @@ def _claim_ceiling(row: dict, bgc: dict, n_genes: int = 0) -> str:
     comparator = str(bgc.get("clusterblast_top") or row.get("KCB_clusterblast") or bgc.get("kcb_top") or "")
     prods = str(row.get("Products") or bgc.get("products") or "")
     class_mismatch = kcb_class_mismatch(comparator, prods)
+    # The two upper ceilings read antiSMASH's percent similarity, never the cumulative BLAST
+    # score. A missing or invalid percent cannot raise a ceiling; a hit still earns the lowest one.
+    from mamey.precision import KCB_PCT_HIGH, KCB_PCT_MODERATE, kcb_pct_value
+    pct = kcb_pct_value(bgc.get("kcb_similarity_pct", row.get("KCB_similarity_pct")))
     if sr or arch in ("E",):
         return "inventory only"
-    if kcb > 50000 and kp >= 5 and substantial and not class_mismatch and arch not in ("D", "E"):
+    if (pct is not None and pct >= KCB_PCT_HIGH and kp >= 5 and substantial
+            and not class_mismatch and arch not in ("D", "E")):
         return "candidate product-level similarity"
-    if kcb > 5000 and kp >= 4 and not class_mismatch:
+    if pct is not None and pct >= KCB_PCT_MODERATE and kp >= 4 and not class_mismatch:
         return "candidate family similarity"
-    if kcb > 0:
+    if kcb > 0 or (pct or 0) > 0:
         return "source-derived similarity"
     return "inventory only"
 
@@ -490,9 +510,9 @@ def mode_b_command(args) -> int:
         except (TypeError, ValueError):
             return 0.0
 
-    active = [r for r in triage_rows
-              if not r.get("Standing_rule")
-              and r.get("Primary_metab_flag") != "YES"]
+    # The engine's own three-flag lead exclusion (standing rule, primary metabolism, mobile element).
+    from mamey.scoring import is_lead_excluded
+    active = [r for r in triage_rows if not is_lead_excluded(r)]
     ranked_all = sorted(
         active,
         key=lambda r: _score(r, "AB_auto") + _score(r, "AF_auto"),
@@ -591,15 +611,24 @@ def mode_b_command(args) -> int:
     _dom_claims: dict[str, dict] = {}
     _dom_mode = None
     if getattr(args, "with_domain_level", False):
+        _dl_lines: list[str] = []   # printed once, after the block (one emission site)
         try:
             import csv as _csv_dl
             from .domain_level import run_domain_level as _run_dl
             _dl_dir = pkg / "domain_level"
             _need_run = not (_dl_dir / "domain_complexity_metrics_by_bgc.csv").exists()
             if _need_run:
+                # Reads <package>/domain_level/ only, never a domain-level --out folder; when
+                # the tables are absent it writes them into the package. Disclose that write.
+                # Printed before the run: it announces a write into the package.
+                sys.stderr.write(f"  domain-level tables not found in {_dl_dir}; running domain-level into "
+                                 f"the package (a separate --out folder is not read here)\n")
+                sys.stderr.flush()
                 _rec = _run_dl(pkg, source_antismash=getattr(args, "source_antismash", None),
                                top_n=getattr(args, "top_n", 10))
                 _dom_mode = _rec.get("mode")
+                _dl_lines.append(f"  domain-level: {_rec.get('status')}"
+                                 + (f" ({_rec.get('reason')})" if _rec.get("reason") else ""))
             else:
                 try:
                     _rcj = json.loads((_dl_dir / "domain_level_receipt.json").read_text(encoding="utf-8"))
@@ -617,7 +646,9 @@ def mode_b_command(args) -> int:
                     for _r in _csv_dl.DictReader(_f):
                         _dom_claims[_r["BGC_ID"]] = _r
         except Exception as _dl_err:
-            emit(f"  [WARN] domain-level enrichment unavailable: {_dl_err}")
+            _dl_lines.append(f"  [WARN] domain-level enrichment unavailable: {_dl_err}")
+        if _dl_lines:
+            emit(*_dl_lines, sep="\n")
 
     def _domain_block_md(bgc_id: str) -> list[str]:
         cx = _dom_complexity.get(bgc_id)

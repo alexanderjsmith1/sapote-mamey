@@ -35,6 +35,7 @@ numeric_check <- function(d,cols,nonnegative=FALSE) {
  }
 }
 emitted <- character()
+n_figures <- 0L
 context <- load('render_context.csv',c('key','value'))
 setting <- function(key,default) {
  if (is.null(context)) return(default)
@@ -52,6 +53,7 @@ save_plot <- function(p,stem,w,h) {
  ggsave(paths[1],p,width=w,height=h,dpi=300,bg='white')
  ggsave(paths[2],p,width=w,height=h,device=grDevices::pdf,useDingbats=FALSE,bg='white')
  emitted <<- c(emitted,paths)
+ n_figures <<- n_figures + 1L
 }
 d <- load('overlap.csv',c('category','count','total'))
 if (!is.null(d)) {
@@ -94,6 +96,14 @@ if (!is.null(d)) {
   if (!overwrite && file.exists(scorefile)) stop('Scored data exists; use --overwrite')
   write.csv(d,scorefile,row.names=FALSE)
  }
+ # The renderer checks only that each fraction-assay record has all four concentrations. The assay
+ # format and the source admission (crude and identity-conflict exclusion) come from render_context.csv
+ # when the owner states them there; otherwise the figure says they were not checked here.
+ assay_format <- setting('assay_format','')
+ admission <- setting('admission_statement','')
+ admission_line <- if (nzchar(admission)) paste('Source admission as stated in render_context.csv:',admission) else
+  'Crude and identity-conflict exclusion is a source admission step; this renderer does not check it.'
+ format_text <- if (nzchar(assay_format)) paste('Recorded',assay_format,'inhibition') else 'Recorded inhibition'
  slugs <- gsub('[^a-z0-9]+','_',tolower(unique(d$dataset)))
  if (any(!nzchar(slugs)) || anyDuplicated(slugs)) stop('Dataset names do not form unique safe output names')
  for (j in seq_along(slugs)) {
@@ -106,12 +116,12 @@ if (!is.null(d)) {
    geom_boxplot(width=.45,outlier.shape=NA,fill='white',alpha=.7,colour='#163D48',linewidth=.4)+
    facet_wrap(~organism,nrow=1,labeller=as_labeller(lab))+
    labs(title=paste(dataset,'fraction screening across concentrations'),
-    subtitle='Recorded 384-well inhibition | complete, metadata-matched fraction-assay records only',
+    subtitle=paste(format_text,'| complete fraction-assay records only (all four concentrations)'),
     x=expression('Concentration ('*mu*'g/mL)'),y='Recorded inhibition (%)',
-    caption='Each point is a recorded fraction-assay observation; concentrations are not independent replicates.\nBoxes show medians and interquartile ranges across sampled fractions. Values outside 0-100% remain visible.\nCrudes, incomplete records and unresolved identity conflicts are excluded. This is a subset of the full screen.')
+    caption=paste0('Each point is a recorded fraction-assay observation; concentrations are not independent replicates.\nBoxes show medians and interquartile ranges across sampled fractions. Values outside 0-100% remain visible.\nThe renderer refuses incomplete records. ',admission_line))
   if (score_bounded) {
    p <- p + scale_y_continuous(limits=c(0,100),breaks=seq(0,100,25),expand=expansion(mult=c(.03,.04))) +
-    labs(subtitle='Inhibition scored from 0 to 100% | complete, metadata-matched fraction-assay records',
+    labs(subtitle=paste('Inhibition scored from 0 to 100% | complete fraction-assay records (all four concentrations)',if (nzchar(assay_format)) paste('|',assay_format) else ''),
      y='Inhibition score (%)',
      caption='Scores below 0% are set to 0%; scores above 100% are set to 100%. Boxes are recomputed from these scores.\nOwner reports that extract precipitation can raise OD600 and produce artifactual negative inhibition values.\nRaw values are preserved separately. Four concentrations per fraction-assay record are not independent replicates.')
    save_plot(p,paste0('03_concentrations_',slugs[j],'_scored'),12,6.4)
@@ -121,7 +131,7 @@ if (!is.null(d)) {
   zoomlab <- setNames(paste0(n$organism,'\nn = ',n$inhibition_pct,' records; ',outside$inhibition_pct[match(n$organism,outside$organism)],' observations outside view'),n$organism)
   pz <- p + coord_cartesian(ylim=c(-25,110)) + facet_wrap(~organism,nrow=1,labeller=as_labeller(zoomlab)) +
    labs(subtitle='Zoomed view from -25 to 110% | see companion full-range figure for every observation',
-    caption='Viewport zoom only: all observations remain in the source table and boxplot calculations.\nFour observations per complete fraction-assay record; these are not independent biological replicates.\nCrudes, incomplete records and unresolved identity conflicts are excluded. No potency estimate or significance test.')
+    caption=paste0('Viewport zoom only: all observations remain in the source table and boxplot calculations.\nFour observations per complete fraction-assay record; these are not independent biological replicates.\nThe renderer refuses incomplete records. ',admission_line,'\nNo potency estimate or significance test.'))
   save_plot(pz,paste0('03_concentrations_',slugs[j],'_zoom'),12,6.4)
   }
  }
@@ -168,4 +178,4 @@ if (!is.null(d)) {
 }
 if (!length(emitted)) stop('No supported input tables found')
 writeLines(c(capture.output(sessionInfo()),'',paste('Created',emitted)),file.path(output,'R_SESSION.txt'))
-cat(length(emitted)/2,'figure pairs created\n')
+cat(n_figures,'figures created, each as PNG, PDF and caption text\n')

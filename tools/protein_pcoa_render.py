@@ -1355,7 +1355,7 @@ def main(argv=None) -> int:
     ap.add_argument("--cohort-table", help="TSV with strain and cohort columns (required unless --source-style)")
     ap.add_argument("--panel", action="append", help="NAME=COHORT[,COHORT...] (repeatable; required unless --source-style)")
     ap.add_argument("--source-style", metavar="GENUS",
-                    help="reference-only figure, no cohort (M5_452_pcoa_source_style): reference points as outlined circles in GENUS's "
+                    help="reference-only figure, no cohort: reference points as outlined circles in GENUS's "
                          "colour from mamey/data/genus_palette.json, drawn above MIBiG points as outlined triangles, legend boxed; R renderer only")
     ap.add_argument("--panel-label", action="append", default=[], help="NAME=legend text for the cohort points")
     ap.add_argument("--cohort-colour", action="append", default=[], help="NAME=#hex fill for a panel's points")
@@ -1373,7 +1373,7 @@ def main(argv=None) -> int:
                     help="saved coordinates only: pcoa uses kit PC1/PC2; trimap/tsne use --embedding-table; no embedding fit is executed")
     ap.add_argument("--embedding-table", action="append", default=[], help="SET=TSV with id and TRIMAP1/TRIMAP2 or TSNE1/TSNE2 (layout trimap/tsne)")
     ap.add_argument("--label-names", help="TSV: strain, display (house rule 6 name) for the LABELS key table")
-    ap.add_argument("--label-low-identity", help="TSV: region_file, text; label only proteins below --label-below, one label per region with this text (ruling 75)")
+    ap.add_argument("--label-low-identity", help="TSV: region_file, text; label only proteins below --label-below, one label per region with this text")
     ap.add_argument("--leader-max-in", type=float, default=None, help="longest label leader at print size in inches (default 0.35)")
     ap.add_argument("--zoom-cohort", type=float, default=None, metavar="PAD",
                     help="with --page-grid: zoom each panel to the box of the cohort points, padded by PAD x the full data span "
@@ -1398,10 +1398,10 @@ def main(argv=None) -> int:
     ap.add_argument("--page", help="saved layouts side by side on one R page (e.g. pcoa,trimap); default 8 pt floor")
     ap.add_argument("--set-kit", action="append", default=[], metavar="SET=PATH",
                     help="this set's ordination kit, when it is not --kit (repeatable; e.g. a set ordinated in its own run); its "
-                         "out_<SET> tables and <SET>_META.tsv are read and bound from PATH (m5_452_protein_pcoa_multiset_grid)")
+                         "out_<SET> tables and <SET>_META.tsv are read and bound from PATH")
     ap.add_argument("--page-grid", metavar="RxC",
                     help="with --page pcoa: draw several --set per page in an R x C grid (row by row; e.g. 2x2), each set its own ordination "
-                         "and axes, one shared legend, panel letters continuing across pages (m5_452_protein_pcoa_multiset_grid)")
+                         "and axes, one shared legend, panel letters continuing across pages")
     ap.add_argument("--italic-labels", action="store_true", help="page mode: canvas labels in italic (species names)")
     ap.add_argument("--caption-note", help="page mode: one study-design sentence appended to the written caption (checked by caption_guard)")
     ap.add_argument("--reference-label", help="page mode: legend text for the grey reference points (e.g. reference genomes, n = 1,705 (cluster centroids; query genomes excluded))")

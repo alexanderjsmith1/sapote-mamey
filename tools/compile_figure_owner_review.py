@@ -69,7 +69,9 @@ def _safe_locator(value: Any, label: str) -> str:
         raise ReviewCompileError(f"MANIFEST_SCHEMA: {label} must be a non-empty string")
     text = value.strip().replace("\\", "/")
     locator = PurePosixPath(text)
-    if locator.is_absolute() or ".." in locator.parts:
+    # A drive-qualified path (C:/x, C:x) or a URL-like scheme is absolute on some platform; refuse it too.
+    first = locator.parts[0] if locator.parts else ""
+    if locator.is_absolute() or ".." in locator.parts or ":" in first:
         raise ReviewCompileError(f"MANIFEST_LOCATOR_UNSAFE: {label}")
     return text
 

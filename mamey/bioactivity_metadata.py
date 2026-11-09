@@ -13,9 +13,11 @@ from typing import Any, Mapping
 
 
 SCHEMA_VERSION = "bioactivity_metadata_v1"
+# BIOACTIVITY_LEGACY_SHAPE_HOLD is a refusal code (BioactivityMetadataError.code), not a metadata state:
+# an object that declares it as its state is refused rather than admitted as if it carried an outcome.
 METADATA_STATES = frozenset({
     "NOT_SUPPLIED", "SUPPLIED_UNKNOWN", "MEASURED_NEGATIVE", "MEASURED_POSITIVE",
-    "BIOACTIVITY_LEGACY_SHAPE_HOLD", "LEGACY_UNTYPED_CONTEXT",
+    "LEGACY_UNTYPED_CONTEXT",
 })
 OBSERVATION_STATES = frozenset({"NOT_OBSERVED", "UNKNOWN", "NEGATIVE", "POSITIVE"})
 USAGE_SCOPES = frozenset({"PRODUCTION", "EXAMPLE_ONLY"})

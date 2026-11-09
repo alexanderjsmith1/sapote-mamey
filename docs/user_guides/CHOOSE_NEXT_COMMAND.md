@@ -1,71 +1,177 @@
 # Choose the next command
 
-This chapter helps you choose among selected command routes. It is not the full command manual. Examples are source-inspected and have not been run on biological inputs in this documentation review.
+This page helps you pick one command and shows how to call it. It is not the full command list; see the [command catalog](../COMMAND_CATALOG.generated.md) for that.
+
+Run every command from the program folder, the one that holds `mamey_run.py`. Replace `EXAMPLE` and each path with your own. Run `python mamey_run.py <command> --help` for every option.
+
+A *package* is the folder of tables, workbook and issue log that `run` builds for one strain. A *ledger* is a table of claims, one per row.
 
 ## Start with the question
 
-If you already have a result package, begin with the results-reading guide. You may be able to answer your question from the inventory, workbook, issue files and saved evidence without running another command.
+If you already have a package, read it first. The answer may be in the files, and you may not need another command. See [Read one saved package](../reader/03_READ_RESULTS.md).
 
-- **What did I receive?** `explain` summarizes a saved package; `list-bgcs` lists its selected inventory records. The summary does not rerun validation. The listing excludes dropped records by default, so keep its filter settings with any count you report.
-- **Is my input suitable?** `inspect` previews an antiSMASH archive. It does not establish that extraction finished. `start` provides orientation, and `doctor` reports environment diagnostics.
-- **Did the encoded package checks pass?** `validate` checks a package and can refresh its status receipt. Preserve the original result and use the deliberately selected review workspace described in the troubleshooting guide.
-- **Where is the larger workflow up to?** `workflow` reports stage status and writes a ledger. Its current mandatory W10 close stage always returns N/A, so a strict all-complete result is blocked in this source version. Keep the stage results and the defect separate.
+| Your question | Command | What you see | Success |
+|---|---|---|---|
+| What did I receive? | `python mamey_run.py explain runs/EXAMPLE/package` | A plain summary read from the package manifest. It does not run extraction or `validate`. | Exit 0 and a summary. Exit 1 means no manifest was found. |
+| Which regions are in it? | `python mamey_run.py list-bgcs runs/EXAMPLE/package --top 10` | A table of regions in triage order. Add `--json` for JSON or `--axis af` to sort by antifungal score. Dropped regions are left out unless you add `--include-dropped`. | Exit 0 and a table. Note the filters with any count you report. |
+| Is my input usable? | `python mamey_run.py inspect ~/Downloads/EXAMPLE.zip` | A preview of the ZIP and a suggested `run` command. It does not extract anything. | Exit 0 and a suggested `run` command. For a `Complete_Package.zip` it prints an extract note instead. A missing or non-ZIP file exits 1. |
+| Is my setup ready? | `python mamey_run.py doctor` | A last line that says whether to go on. | `DOCTOR: ALL CLEAR`, or `PASS with N warning(s) — optional items only`. `PASS ... missing core dependency` means install the named package and run `doctor` again. `DOCTOR: N blocking issue(s)` exits 1; stop. The [doctor table](../reader/01_FIRST_RUN.md#1-check-the-install) covers each line. |
+| Did the package checks pass? | `python mamey_run.py validate runs/EXAMPLE/package --workbook-strict` | Package and workbook results. Run it on a writable copy, because it can rewrite `package_status.json`. | Exit 0. |
+| Where is the larger workflow up to? | `python mamey_run.py workflow runs/EXAMPLE/package` | Each stage as `PASS`, `PENDING`, `BLOCKED` or `N/A`, and a ledger file inside the package (use `--ledger-out FILE` to write it elsewhere). | See below. |
 
-These are different questions. A diagnostic PASS, a written report and an accepted scientific interpretation each need their own evidence.
+`workflow --strict` exits 1 only when a mandatory stage is `PENDING` or `BLOCKED`. A stage marked `N/A` counts as complete. A bad package path exits 2. Without `--strict` it exits 0 once the ledger is written. Exit 0 never means every stage passed, so read the ledger. [The workflow contract](../SAPOTE_WORKFLOW_CONTRACT.md) lists each stage.
 
-## Make a view from saved data
+A passing check, a written report and an accepted interpretation are three different things. Each needs its own evidence.
 
-The optional figure tools render or reorganize existing evidence. They do not perform the upstream search or establish a biological conclusion. Choose a fresh output directory outside the source package, record the selected input paths and hashes, and inspect the resulting artifacts.
+## Make a figure from saved data
 
-**For a numeric matrix: `codex-heatmaps`.** The CSV starts with a row-label column, followed by numeric data columns. Use unique row and column labels. Missing cells and observed zeros remain different states. The default display selects the top 40 rows by total; `--top-rows 0` keeps all rows. The default log1p setting changes color mapping while labels retain raw values.
+These commands draw or reorganize evidence you already have. They do not search or run clustering. Write to a new folder outside the package. Look at every output before you use it.
 
-From the selected bundle directory, using its compatible Python environment, this source-inspected example keeps every row:
+**A numeric matrix: `codex-heatmaps`.** The input is a Figure Factory `*_data.csv` file: a row-label column, then numeric columns. Row and column labels must be unique. Output goes to `<outdir>/<file name without _data>/`.
 
 ```bash
 python mamey_run.py codex-heatmaps \
-  --input /path/to/matrix.csv \
-  --outdir /path/to/new_heatmap_review \
+  --input matrix_data.csv \
+  --outdir heatmap_out \
   --top-rows 0
 ```
 
-Replace both paths with your selected files and a new destination. The output includes SVG panels, an HTML explorer, caption/method text and receipts. Check source versus displayed row counts, missing cells, observed zeros and any omitted rows. Use a separate job directory for unrelated inputs with the same filename stem. A receipt's render PASS does not replace reading the figure at its intended size.
+By default only the 40 rows with the highest totals are drawn. `--top-rows 0` keeps every row. The default `log1p` setting changes the color scale only; labels show raw values. You get SVG panels, an HTML explorer, caption and method text, and receipts.
 
-**For a menu of figure possibilities: `codex-figure-catalog`.** This writes a registry and its readiness information. A catalog entry can still need curated inputs or an implementation. A catalog of 200 sets is not a receipt for 200 rendered figures. Check both the selected count and readiness labels, especially after filtering.
+**A list of possible figures: `codex-figure-catalog`.** It writes a registry with a readiness label for each figure set. A catalog entry is not a drawn figure.
 
-**For implemented figure sets: `codex-figure-sets`.** Start with the exact widget JSON and the tranche you intend to render. Tranche 1 is the default. Later tranches require the source bundle, and tranche 6 also requires a lead ledger. Check the returned implemented IDs and count. SVG output can be available even when a native PNG rendering path is unavailable; inspect the formats actually produced.
+```bash
+python mamey_run.py codex-figure-catalog --outdir catalog_out
+```
 
-**For a saved BiG-SCAPE result: `codex-bigscape-figure-sets`.** This reads an existing table or database result. It does not run clustering. Bind the exact run, cutoffs and source manifest. Use the exact-identity bridge when joining to package loci. Source reconciliation, biological interpretation and publication approval remain separate from the renderer's QA status.
+**Implemented figure sets: `codex-figure-sets`.** It needs a widget JSON file, which `interactive-figures` makes. Run these two in order:
 
-**For a package aggregate: `interactive-figures`.** Compare the requested strains with those included in the JSON. Missing packages can be skipped. If you request figures, read the separate figure status: the command can return success for the aggregate while figure generation fails or is skipped. Host information and structural counts are context, not evidence of a product or measured activity.
+```bash
+python mamey_run.py interactive-figures --runs-dir runs --out widget.json
+python mamey_run.py codex-figure-sets --widget-data widget.json --outdir sets_out
+```
 
-## Print per-strain views
+`--runs-dir` is a folder that holds `<STRAIN>/package/` for each strain. `--tranche` picks the group of figure sets; the default is 1. Tranches 2 to 6 and `all` also need `--source-bundle`: make it first with `python mamey_run.py codex-figure-sources --widget-data widget.json --package-dir runs --outdir sources_out`. Tranche 6 also needs `--lead-ledger`, a table of leads this guide does not cover; see the [deliverable menu](../DELIVERABLE_MENU.md). Check the list of figure sets the command reports against what you expected.
 
-`assembly-line-pdf` prints saved assembly-line domain views. `bgc-gene-map` prints saved positioned-gene views. Both accept selected strains and an output directory. Their shared wrapper can return success when some requested strains were skipped, so retain the built/requested count and each skip reason.
+**A saved BiG-SCAPE result: `codex-bigscape-figure-sets`.** BiG-SCAPE groups similar regions into families. This command reads a finished result and does not run it. Name the exact run and cutoffs; it never picks the latest.
 
-Use a narrow, unambiguous package root. The package finder looks for the strain's saved modules table and can otherwise select the first recursive match; a root containing several versions is a poor choice for reproducible review. For gene maps, a missing coordinate or gene-context record limits what can be drawn. A blank or skipped view is not a biological absence result.
+```bash
+python mamey_run.py codex-bigscape-figure-sets \
+  --bigscape-tsv result.tsv \
+  --run-manifest run_manifest.json \
+  --bigscape-run RUN_LABEL \
+  --bigscape-cutoffs 0.30 \
+  --outdir bigscape_figs
+```
 
-These PDF tools use small legend and footer sizes in the inspected source. Treat their pages as review outputs until the actual rendered text is readable at the intended print size. Generating a PDF is only the first step.
+Use `--bigscape-db` in place of `--bigscape-tsv` when you have a database. A portable TSV also needs `--run-manifest`.
 
-## Keep specialist reports in their own route
+**A cohort summary: `interactive-figures`.** The command above also writes the widget JSON. Add `--emit-figures` to render publication figures as well. Compare the strains you asked for with those in the JSON, because a package that cannot be read is skipped. Read the figure status separately: the JSON can be written while figures are skipped.
 
-**`resistance-dossier`** writes marker-selected dossiers from saved domains and comparison evidence. Record the curated domain-reference vocabulary used. Zero dossiers can reflect input or vocabulary availability. A marker is a resistance hypothesis, not a measured phenotype. Use a fresh sibling output directory.
+## Print per-strain pages
 
-**`af-leadboard`** creates an HTML capacity-prior view from an existing cohort master and optional context. Select the master CSV, workspace root and output explicitly. Keep measured antifungal activity distinct from the capacity prior, and check the displayed software/source labels before sharing.
+`assembly-line-pdf` prints the saved domain layout of the NRPS and PKS regions in each strain. `bgc-gene-map` prints the saved gene positions of every region, whatever its class. Both take the same options.
 
-**`surface-leads`** expects particular dated workspace tables. Changing `--out` does not supply those inputs. This belongs in the workspace-maintenance route until its input locations are explicitly bound. Do not use the overwrite flag simply to make a refusal disappear.
+```bash
+python mamey_run.py assembly-line-pdf --strain EXAMPLE --runs-root runs --out pdf_out
+python mamey_run.py bgc-gene-map --strain EXAMPLE --runs-root runs --out pdf_out
+```
 
-**`triage-raw`** prioritizes regions before extraction. It differs from the post-extraction `explore` route, despite older internal text still using that name. Read the top-N scope and each stage's skipped/error state. A prioritization report is not a complete inventory.
+Use `--strains A B` for several strains, or `--all` for every strain that has an `antismash_modules.csv`. Point `--runs-root` at a folder with one package per strain. Keep the count of strains built against the count requested, and note each strain that was skipped. A missing coordinate leaves a gap in a gene map. A gap is not a finding.
 
-## Review and study tools need explicit status reading
+The text in these PDFs is smaller than the 8 pt minimum the figure house rules set for print. Use them for review on screen, and do not use them as print figures.
 
-**`dualpass` compares ledgers; it does not decide which claim is true.** By default, normalization writes files beside both input ledgers even when `--out` points elsewhere. In this source, a ledger filename lacking `.tsv` can cause normalization to rewrite that input. Keep preserved ledgers out of this default route until the path behavior is repaired. `--no-normalize` compares raw values and avoids that normalization step, but wording differences can then appear as disagreement. Record that choice.
+## Specialist reports
 
-**`validate-finished-review-request` checks a review packet.** READY_FOR_OWNER_REVIEW means the packet passed internal-consistency routing. It does not mean the card was accepted, scientifically validated or selected as current. Keep the findings, artifact root and owner-controlled provenance with the request; hashes establish byte consistency rather than authorship.
+Each of these writes a report. None of them is a finding on its own.
 
-**`directed-pks-study` and `cddr-pks` are specialist study/report routes.** Their input schema, selected groups and active source owner need to be explicit. Figure self-ratings do not establish scientific validity. On the existing-study `cddr-pks` route, an UNKNOWN status can return exit 0—even when the study inputs are missing. Read status, warning count and source-table counts; keep that result on hold rather than treating the report's existence as completion.
+**`resistance-dossier`** lists regions that carry resistance-marker domains.
 
-**`wise-fragmented-pks` prepares a local queue.** It does not run BLASTp. A queued file is not a completed search or an admitted result. Keep local preparation, any separately scoped external work and result review as distinct steps.
+```bash
+python mamey_run.py resistance-dossier runs/EXAMPLE/package --domain-reference domain_reference.tsv
+```
+
+The output goes to a new folder beside the package, named `<package>_resistance_dossiers`. Pass `--domain-reference` when you have one, because the built-in fallback misses some curated calls. A marker is a hypothesis about resistance. It is not a measured phenotype.
+
+**`af-leadboard`** builds an HTML view of the antifungal-capacity score from a per-region master table. The table is `SAPOTE_PER_BGC_MASTER_all_AS.csv`, with one row per region (strain, region, products, tier, antifungal and antibacterial scores, MIBiG anchor, guard flags). It is a cohort file kept in the project's `strain_data` folder, not something `run` writes. Without `--master-csv` the command looks for it there. If the file is missing it exits 1 with "per-BGC master CSV not found".
+
+```bash
+python mamey_run.py af-leadboard --master-csv SAPOTE_PER_BGC_MASTER_all_AS.csv --out leadboard_out
+```
+
+A capacity score is not measured antifungal activity.
+
+**`surface-leads`** lists two review groups from a cohort table: regions whose reference match rests only on common PKS or NRPS scaffold genes, and regions that match one known family at low identity. Both are class-level capacity, not identity. It reads `whole_bgc_majority_read_cohort.csv`, which `python mamey_run.py majority-read --cohort` writes. If that file is missing, it prints `surface-leads: skipped (FileNotFoundError ...)` and exits 1. By default it writes to a dated folder and overwrites it. Set `--out` to a new folder, and add `--force` only when you mean to overwrite.
+
+```bash
+python mamey_run.py surface-leads --out leads_out
+```
+
+**`triage-raw`** ranks regions in a raw antiSMASH ZIP or folder before extraction. `explore` reads a finished package instead.
+
+```bash
+python mamey_run.py triage-raw --input-zip EXAMPLE.zip --top-n 5 --out triage.md
+python mamey_run.py explore runs/EXAMPLE/package --top 5
+```
+
+Add `--no-walk` to `triage-raw` if the HMM tools are not installed. A ranking of the top regions is not a full inventory.
+
+## Compare and review
+
+**`dualpass`** compares two ledgers of claims from two independent passes, called the first and second ledger. It does not say which claim is true. Each ledger is a tab-separated file with the columns `task`, `strain`, `bgc_id`, `locus_tag`, `assertion_type` and `value`.
+
+```bash
+python mamey_run.py dualpass first_ledger.tsv second_ledger.tsv --out dualpass_out
+```
+
+It writes `DIVERGENCE.tsv` and normalized copies of both ledgers into `--out`, named for the ledger they came from: files from the first ledger start with `claude_` and files from the second start with `codex_`. It never rewrites the inputs. It stops if a normalized copy already exists, so use a new `--out` folder each time. `--no-normalize` compares the raw values, so wording differences then show up as disagreement.
+
+**`validate-finished-review-request`** checks a review packet.
+
+```bash
+python mamey_run.py validate-finished-review-request runs/EXAMPLE/package \
+  --request request.json --artifact-root review_files
+```
+
+This is a maintainer command. Its `request.json` format is not documented for users, so skip this command unless a maintainer gives you a request file. A missing or wrong key comes back as a named finding. The command exits 0 with `READY_FOR_OWNER_REVIEW` when the packet is consistent, and exits 3 with `HOLD_FINISHED_REVIEW_REQUEST` when it is not. Ready means the packet is complete. It does not mean the card was accepted.
+
+**`directed-pks-study` and `cddr-pks`** build a study of polyketide synthase (PKS) regions and a report on it.
+
+```bash
+python mamey_run.py directed-pks-study \
+  --source-csv genes.csv --study-spec study.json --out pks_study
+python mamey_run.py cddr-pks --directed-study-dir pks_study --out pks_report
+```
+
+`study.json` is a JSON object. Only `groups` is needed to do anything useful:
+
+```json
+{
+  "study_id": "example_study",
+  "groups": {"SetA": ["NODE_1", "NODE_2"], "SetB": ["NODE_3"]},
+  "excluded_bgcs": {"BGC011": "reason for leaving it out"},
+  "figure_quality_gate": 9.0
+}
+```
+
+- `study_id`: the study name. It names the output files. The default is `directed_pks_study`.
+- `groups`: each group name maps to a list of full contig names. Each group gets its own locus map.
+- `excluded_bgcs`: optional. Each BGC ID maps to the reason it is left out. Those regions are listed in `excluded_bgc_table.csv`.
+- `figure_quality_gate`: optional, default 9.0. The command reports `READY` only when it has at least one figure and every figure's self-rating meets this number. Otherwise it reports `NEEDS_REVIEW` and exits 2.
+- `comparator_gene_table`: optional path to a comparator gene table. `--comparator-gene-table` on the command line overrides it.
+
+`examples/directed_pks/bee_strain_directed_pks_study_spec.json` is a full example. `genes.csv` needs the columns listed in `directed-pks-study --help`.
+
+`cddr-pks` exits 0 only when the study status is `READY`. A status of `UNKNOWN` means no readable study receipt was found. It exits 2 and still writes the report so you can read the gaps. Read the status, the warning count and the source-table counts before you use the report.
+
+**`wise-fragmented-pks`** splits a ranked protein FASTA into batch files sized for the NCBI web BLASTp limit. It does not run a search.
+
+```bash
+python mamey_run.py wise-fragmented-pks --input-fasta ranked.fasta --outdir blast_queue
+```
+
+The FASTA headers carry a rank as `rank=N`. A queued file is not a finished search.
 
 ## If a command does not answer your question
 
-Save the command, selected input identities and hashes, output destination, exit status and relevant receipt. Add one sentence explaining what you expected and one explaining what you observed. A useful next action fixes the affected stage or missing prerequisite; it does not automatically rerun the entire pipeline.
+Save the command, the input file names, the output folder, the exit code and the receipt it wrote. Add one sentence on what you expected and one on what you saw. Then fix the stage that failed. Do not rerun the whole pipeline. [Recover a run](../reader/04_RECOVERY_AND_LIMITS.md) shows how.

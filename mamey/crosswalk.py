@@ -47,12 +47,14 @@ def contig_key(name: str) -> str:
     return re.sub(r"[_.]cov[_=].*$", "", name)
 
 
-def infer_node_id(contig_id: str, source_gbk: str = "") -> str:
-    """Return the most user-recognizable contig/node identifier available.
+def legacy_short_node_id(contig_id: str, source_gbk: str = "") -> str:
+    """Return the short Node_ID that engines up to 1.9.179 stored.
 
-    antiSMASH and assemblers vary: NODE_10_length_..., ctg10, scaffold_42,
-    CP073042.1.  We preserve the original contig ID if it already looks like a
-    node/scaffold/contig accession; otherwise we use the GenBank record ID.
+    Frozen copy of the old ``infer_node_id``. The NODE_ pattern stops at the
+    first dot, so a SPAdes coverage decimal is dropped:
+    ``NODE_10_length_199265_cov_67.826847`` became ``NODE_10_length_199265_cov_67``.
+    Stored packages and stored Mode B cards still carry that form. Use this
+    function only to recognize those stored values; never use it to make a new one.
     """
     base = Path(source_gbk).name
     for candidate in (contig_id, base):
@@ -65,6 +67,34 @@ def infer_node_id(contig_id: str, source_gbk: str = "") -> str:
         if m:
             return m.group(1)
     return contig_id
+
+
+def node_id_forms(contig_id: str) -> frozenset:
+    """Return the stored Node_ID values accepted for one full contig.
+
+    These are the full contig itself and its legacy short form. For a contig
+    whose coverage is a whole number, or a public accession, both forms are
+    the same string. The set is derived from the contig, never from a name pattern.
+    """
+    full = (contig_id or "").strip()
+    if not full:
+        return frozenset()
+    return frozenset({full, legacy_short_node_id(full, "")})
+
+
+def infer_node_id(contig_id: str, source_gbk: str = "") -> str:
+    """Return the Node_ID for a new package: the full contig, unshortened.
+
+    Ruling 479, engine 1.9.180: Node_ID equals the full Contig, so every
+    display and join carries strain / full node-or-contig / region / BGC alias.
+    Only when the contig is missing does this fall back to the record name in
+    ``source_gbk``, read with the legacy pattern. Stored short values are
+    recognized through ``legacy_short_node_id`` and ``node_id_forms``.
+    """
+    full = (contig_id or "").strip()
+    if full:
+        return full
+    return legacy_short_node_id("", source_gbk)
 
 
 def assembly_locator(bgc) -> str:

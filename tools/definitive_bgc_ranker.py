@@ -483,12 +483,16 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
     # The counts below already differed in that case; naming the accessions and refusing to
     # call the run COMPLETE is what makes it actionable. tools/fetch_mibig_reference.py
     # already reports its own NOT FOUND list -- this keeps that visible through to the consumer.
-    unresolved_accessions = sorted(acc for acc in needed if acc and acc not in rosters)
+    # A roster entry with no CDS genes is unresolved too: archive membership is not a usable gene roster.
+    unresolved_accessions = sorted(acc for acc in needed
+                                   if acc and not (rosters.get(acc) or {}).get("genes"))
     receipt = {
         "schema": "definitive-bgc-ranker-receipt-v1",
         "status": "COMPLETE" if not unresolved_accessions else "COMPLETE_WITH_UNRESOLVED_REFERENCES",
         "packages": len(packages), "bgcs": len(ranking), "strains": len({r["strain"] for r in ranking}),
-        "mibig_accessions_required": len(needed), "mibig_rosters_resolved": len(rosters),
+        "mibig_accessions_required": len(needed),
+        "mibig_rosters_resolved": sum(1 for acc in needed if acc and (rosters.get(acc) or {}).get("genes")),
+        "mibig_archive_members_read": len(rosters),
         "mibig_accessions_unresolved": unresolved_accessions,
         "rggmci_linked_units_admitted": len(linked_rows), "claim_ceiling": CLAIM,
         "outputs": {p.name: {"sha256": sha256(p), "bytes": p.stat().st_size} for p in sorted(out.glob("*.tsv"))},

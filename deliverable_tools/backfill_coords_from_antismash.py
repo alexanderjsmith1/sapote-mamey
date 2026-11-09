@@ -48,6 +48,7 @@ def cds_map(zpath):
     jn=[n for n in zf.namelist() if n.endswith(".json") and "/input/" not in n and not n.startswith("input")][0]
     d=json.load(io.TextIOWrapper(zf.open(jn),encoding="utf-8"))
     out={}
+    dup=set()   # locus tags seen on two CDS features: ambiguous, held
     cbg={}   # general clusterblast per locus (best perc_ident)
     for rec in d.get("records",[]):
         for f in rec.get("features",[]):
@@ -59,6 +60,8 @@ def cds_map(zpath):
             tr=(q.get("translation") or [""])[0]
             gf=" ".join(q.get("gene_functions",[]) or []) or " ".join(q.get("sec_met_domain",[]) or [])
             doms=re.findall(r"([A-Za-z0-9_\-]+)\s*\(E-value", gf)
+            if lt in out:
+                dup.add(lt)
             out[lt]={"start":st,"end":en,"strand":strand,"aa":len(tr) if tr else None,
                      "gf":gf,"domains":list(dict.fromkeys(doms))[:4]}
         cb=rec.get("modules",{}).get("antismash.modules.clusterblast",{}).get("general",{})
@@ -73,15 +76,19 @@ def cds_map(zpath):
                             cbg[lt]={"pid":round(pid,1),"coverage":round(float(pr[2].get("perc_coverage",0)),1),
                                      "subject_gene":pr[2].get("name",""),"annotation":pr[2].get("annotation","") or "",
                                      "genecluster":pr[2].get("genecluster","")}
-    return out, cbg
+    for lt in dup:
+        out.pop(lt, None); cbg.pop(lt, None)
+    return out, cbg, sorted(dup)
 
 def backfill(strain):
     rp=f"{RD}/{strain}_roster_v2.json"
     if not os.path.exists(rp): return f"{strain}: no roster"
     z=find_antismash_zip(strain)
     if not z: return f"{strain}: NO antiSMASH zip found in any known home"
-    cm, cbg = cds_map(z)
+    cm, cbg, dup = cds_map(z)
     r=json.load(open(rp)); nc=ncb=0
+    if dup:
+        r.setdefault("join_holds",{})["antismash_coords"]=[{"locus_tag":lt,"hold":"DUPLICATE_ANTISMASH_LOCUS_TAG"} for lt in dup]
     for b in r["bgcs"]:
         for g in b["genes"]:
             lt=g["locus_tag"]; info=cm.get(lt)
@@ -96,7 +103,8 @@ def backfill(strain):
                 g["channels"]["clusterblast"]=cbg[lt]; ncb+=1
     if ncb: r["channels_present"]=sorted(set(r.get("channels_present",[]))|{"clusterblast"})
     _atomic_write_json(r, rp, owner_dir=RD, indent=1)
-    return f"{strain}: +coords {nc} genes, +clusterblast {ncb} genes (from {os.path.basename(z)})"
+    return (f"{strain}: +coords {nc} genes, +clusterblast {ncb} genes (from {os.path.basename(z)})"
+            + (f"; {len(dup)} repeated locus tag(s) held" if dup else ""))
 
 if __name__=="__main__":
     ap=argparse.ArgumentParser(); ap.add_argument("strains",nargs="+"); a=ap.parse_args()

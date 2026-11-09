@@ -1,9 +1,8 @@
-# Known limits of the check tools
+# Check tools: what a PASS does not cover
 
 Use this page when a check tool says PASS or exits 0 and you need to know what it did not check.
-Each section names a tool, its command and the limits checked in the current source. Use the producing
-code to resolve software behavior. Scientific interpretation and the choice of a canonical math reference
-remain owner decisions.
+Each section names a tool, its command and what it does not check. If the page and the tool disagree,
+the tool's source code is right. Scientific interpretation is yours to make with the project lead.
 
 Two rules apply everywhere. A PASS is a software check, not scientific acceptance. Cite each locus as
 strain / full node-or-contig / region / BGC alias; matching an alias alone does not check the contig or region.
@@ -18,18 +17,18 @@ Where to look instead:
 <a id="volume-i-section-66-standing-rule-selection-scope-and-policy-conflict"></a>
 ## Scores and rules that changed
 
-- **NAPAA and hglE.** `mamey/data/rules_registry.json` marks NAPAA neutral and hglE-KS noted. Both are
-  nonblocking. Saccharide is a lead-blocking exclusion. Older "three permanent exclusions" text is out of date.
+- **NAPAA and hglE.** NAPAA (non-alpha poly-amino acids) and hglE-KS (a heterocyst-glycolipid-type ketosynthase) are defined in the [glossary](../GLOSSARY.md). `mamey/data/rules_registry.json` marks NAPAA neutral and hglE-KS noted. Both are
+  nonblocking. Saccharide is a lead-blocking exclusion.
 - **Assembly quality.** `mamey/assembly.py` gives a weighted count and 70/45/20/UNKNOWN labels. These are
   engineering diagnostics. Keep raw counts and boundary state beside them.
-- **RG-GMCI score labels.** Reference-row scores use 14/9 thresholds. Pair rollups add support and
+- **RG-GMCI score labels.** RG-GMCI is defined in the [glossary](../GLOSSARY.md). Reference-row scores use 14/9 thresholds. Pair rollups add support and
   geometry terms before applying thresholds and gates. Read the final verdict and its evidence; a HIGH
   label identifies a candidate link and does not establish a physical contig join.
 - **Version stamps.** `tools/sync_version.py` updates version lines in the references. It does not re-check
   the formulas under them.
 
 <a id="plumbing-part-1-current-cli-contracts"></a>
-## Command-line behavior that differs from the old plumbing reference
+## Command-line behavior
 
 - Run modes: `gold`, plus the deprecated `standard` alias. `smoke` is gone. Gold extracts evidence; it does
   not author Mode B cards.
@@ -38,7 +37,7 @@ Where to look instead:
 - The main full-mode JSON walker refuses a member above 80,000,000 bytes. Other JSON and GBK readers
   have independent caps and switches. `--json-evidence off` stops the main walker; GBK Pfam extraction
   still runs.
-- Privacy defaults to PRIVATE unless you supply an exact public roster or override. An `AS` prefix grants nothing.
+- Privacy defaults to PRIVATE unless you supply an exact public roster or override. A strain-ID prefix grants nothing.
   See [custom privacy tiers](../CUSTOM_PRIVACY_TIERS.md).
 - `validate` separates extraction completeness from judgment completeness. A `MAMEY_COMPLETE` result
   with exit 0 does not certify authored cards; read the judgment state too.
@@ -46,9 +45,7 @@ Where to look instead:
 <a id="plumbing-part-2-master-writer-and-retained-values"></a>
 <a id="plumbing-part-4-gene-exports-and-package-integrity"></a>
 <a id="plumbing-part-5-brief-profiles-display-labels-and-boundary-payloads"></a>
-<a id="plumbing-part-6-analysis-forward-and-package-entry-snapshots"></a>
 <a id="plumbing-part-7-stored-depth-receipt-admission-and-legacy-readiness"></a>
-<a id="card-ingestion-and-recovery-receipts"></a>
 ## Workbook, package and brief writers
 
 - The master writer adds a header column for an unfamiliar key; it does not drop it.
@@ -60,7 +57,8 @@ Where to look instead:
 <a id="aggregate-figure-rendering-selection-writes-and-completion"></a>
 ## Rendering every figure
 
-`mamey_run.py render-all-figures --package <package>` runs five sets by default: smoke, brief, locus-maps,
+Copy the package first and run on the copy; see [figures start here](../FIGURES_START_HERE.md).
+`python mamey_run.py render-all-figures --package <package-copy>` runs five sets by default: smoke, brief, locus-maps,
 figure-suite and domain-level. `--all` adds cohort-class and mamey-native. `--include` wins over `--all`;
 `--exclude` removes sets.
 
@@ -74,7 +72,7 @@ figure-suite and domain-level. `--all` adds cohort-class and mamey-native. `--in
 ## Report builders
 
 `tools/build_combined_bgc_report.py --job-spec <spec> --source-root ID=/abs/path --out-root <dir>` composes
-an existing report packet with V7 and Mode B sections. It does not rerun BLASTp or write missing sections.
+an existing report packet with V7 report sections and Mode B sections (see the [glossary](../GLOSSARY.md) for Mode B). It does not rerun BLASTp or write missing sections.
 An excluded job returns `EXCLUDED_NO_OUTPUT` and exit 3. A built draft returns exit 0; check `status`
 in its JSON.
 A built dossier reads `DRAFT_BUILT_NOT_ACCEPTED_NOT_INTEGRATED`. `python3 -m mamey.bgc_report_builder` is the
@@ -107,6 +105,8 @@ python3 tools/phylo_postflight.py '<treefile>' --outgroup '<token>' \
 
 - It reads a finished tree. It does not build, reroot or draw one.
 - `--outgroup` is a substring match on tip names. Keep an exact tip list elsewhere.
+- Each check prints one row: `ok` (pass), `~` (warning) or `FAIL`. A last line counts them, for example
+  `--- 4 pass / 1 warn / 0 FAIL ---`. Fix every `FAIL` before you publish the tree.
 - P5 needs at least five ingroup branch lengths and warns above five times the median.
 - P6 counts top-level `.fna` files only. Zero files gives a P6 WARN. Warnings still exit 0; read the row.
 - Only FAIL rows give exit 1. Warnings come with exit 0.
@@ -152,17 +152,16 @@ The generated tool catalog guesses a tool's interface from its source text; a co
 look like a CLI. Two different suite-receipt formats exist; check which tool wrote a receipt before
 comparing them.
 
-<a id="volume-ii-b4-assembly-input-scope-independent-tier-fields-and-warning-limits"></a>
 ## Scan-level limits worth knowing
 
 - **Self-resistance confidence.** `HIGH_CLASS_CONCORDANT` can be set by a class-concordant group that is
   not the diagnostic group.
-- **CNBU.** A missing or non-numeric region length becomes 0 kb with no warning. That 0 means the
+- **CNBU** (class-normalized biosynthetic units: region length divided by the expected length for the class). A missing or non-numeric region length becomes 0 kb with no warning. That 0 means the
   length is missing. It is not a measured length of zero.
 - **Region span fallback.** When a record has no stored original bounds, the span comes from the last
   region, protocluster or candidate-cluster feature, not their union.
 - **External scan pack.** Several pack rows derive from stored counts or flags. Check the per-scan
   producer before treating a pack label as a record of completed execution.
 
-Read the raw fields behind these labels. Changes to confidence, length or coordinate policy require
-owner review.
+Read the raw fields behind these labels. Ask the project lead before you change a confidence, length or
+coordinate rule.

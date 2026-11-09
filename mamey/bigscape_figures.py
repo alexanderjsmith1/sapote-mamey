@@ -110,6 +110,18 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
         from matplotlib.patches import Patch
     except Exception as e:  # pragma: no cover
         return {"status": "SKIPPED_NO_DEPS", "detail": f"needs networkx+matplotlib ({e})"}
+    # The image, its node table and its scope receipt are one fresh output set: none may exist
+    # already, collide, or name the database or evidence file. Checked before the database is read.
+    from .output_transaction import preflight_output_roster
+    stem = str(Path(out).with_suffix(""))
+    outputs = (str(out), stem + "_data.csv", stem + "_scope.json")
+    if not os.path.isfile(str(db)):
+        return {"status": "DB_NOT_FOUND", "detail": f"not an existing BiG-SCAPE database: {db}"}
+    try:
+        preflight_output_roster(outputs, protected_paths=tuple(str(x) for x in (db, evidence) if x))
+    except ValueError as error:
+        return {"status": "OUTPUT_REFUSED",
+                "detail": f"{error}: choose new paths for {', '.join(outputs)}"}
     L = _tool("bigscape_figure_labels")
     I = _tool("bigscape_ingest_to_mamey")
 
@@ -130,7 +142,8 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
             if _auto_leads and str(e.get("tier", "")).lower() in ("exceptional", "high"):
                 LEADS.add(b)
 
-    con = sqlite3.connect(str(db))
+    from .bigscape_namespace import open_database_read_only
+    con = open_database_read_only(str(db))  # refuses a missing path; never writes the source
     recs = {}
     for rid, path in con.execute(
         "select br.id,g.path from bgc_record br join gbk g on br.gbk_id=g.id "
@@ -227,7 +240,7 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
     try:
         import csv as _csv
         _csv_path = str(Path(out).with_suffix("")) + "_data.csv"
-        with open(_csv_path, "w", newline="", encoding="utf-8") as _fh:
+        with open(_csv_path, "x", newline="", encoding="utf-8") as _fh:
             _w = _SafeWriter(_fh)
             _w.writerow(["node", "kind", "is_named_lead", "node_size", "degree", "label"])
             for _n in G.nodes():
@@ -255,7 +268,8 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
         "dark_singletons": len(dark),
     }
     scope_json = str(Path(out).with_suffix("")) + "_scope.json"
-    Path(scope_json).write_text(json.dumps(scope, indent=2, sort_keys=True), encoding="utf-8")
+    with open(scope_json, "x", encoding="utf-8") as _fh:
+        _fh.write(json.dumps(scope, indent=2, sort_keys=True))
     return {"status": "WRITTEN", "out": str(out), "run": run, "cutoff": cutoff,
             "dark_singletons": len(dark), "shared_families": len(families),
             "leads_all_dark": bool(LEADS) and LEADS.issubset(set(dark)), "families": families,

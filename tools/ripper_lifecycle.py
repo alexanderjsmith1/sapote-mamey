@@ -23,13 +23,19 @@ def policy(spec):
     return limits
 
 
-def disk_size(root):
+def disk_size(root,observations=None):
+    """Sum file sizes under root. A file listed by os.walk that is gone before stat()
+    (a SQLite journal, a makeblastdb volume) contributes 0 bytes and is counted in
+    observations['vanished_file_samples'] when a dict is passed; it never kills the run."""
     total=0
     for here,dirs,files in os.walk(root,followlinks=False):
         for name in dirs+files:
             p=Path(here)/name
             if p.is_symlink():raise ValueError('RUNNER_OUTPUT_SYMLINK_REFUSED')
-        for name in files:total+=(Path(here)/name).stat().st_size
+        for name in files:
+            try:total+=(Path(here)/name).stat().st_size
+            except FileNotFoundError:
+                if observations is not None:observations['vanished_file_samples']=observations.get('vanished_file_samples',0)+1
     return total
 
 
@@ -187,6 +193,7 @@ def lifecycle(api,spec_path,supplied,run_root,adapted_profile_path=None,execute_
     environment=native['environment'] if execute_native else {'PATH':'','LC_ALL':'C','OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1'}
     result.update(status='STARTED',stub_execution='NOT_EXECUTED' if execute_native else 'STARTED_SYNTHETIC_ONLY',argv=argv,psutil_version=psutil.__version__)
     result['rss_sampling_observations']={'vanished_member_samples':0,'zombie_member_samples':0,'absent_tree_samples':0,'zombie_tree_samples':0,'zero_contribution_scope':'Only processes observed vanished/zombie during sampling; inspection denial remains supervision unavailable'}
+    result['disk_sampling_observations']={'vanished_file_samples':0,'zero_contribution_scope':'Only files listed by the disk sampler and gone before stat; each contributes 0 bytes to that sample'}
     write_new(root/'STARTED.json',result)
     try:
         if cancel and cancel.exists():reason='CANCEL_REQUESTED_BEFORE_LAUNCH'
@@ -202,7 +209,7 @@ def lifecycle(api,spec_path,supplied,run_root,adapted_profile_path=None,execute_
                     elapsed=time.monotonic()-started
                     if cancel and cancel.exists():reason='CANCEL_REQUESTED';break
                     if elapsed>limits['wall_seconds']:reason='WALL_LIMIT';break
-                    disk=disk_size(root);peak_disk=max(peak_disk,disk)
+                    disk=disk_size(root,result['disk_sampling_observations']);peak_disk=max(peak_disk,disk)
                     if disk>limits['disk_bytes']:reason='DISK_LIMIT';break
                     try:
                         proc=psutil.Process(child.pid);tree=[proc]+proc.children(recursive=True);rss=0
@@ -242,7 +249,7 @@ def lifecycle(api,spec_path,supplied,run_root,adapted_profile_path=None,execute_
     result['retained_outputs']={}
     try:
         # Complete inventory is limited to this fresh root; no external discovery.
-        result['retained_disk_bytes']=disk_size(root)
+        result['retained_disk_bytes']=disk_size(root,result['disk_sampling_observations'])
         if result['retained_disk_bytes']>limits['disk_bytes'] and not reason:result.update(status='INTERRUPTED',reason='DISK_LIMIT_FINAL')
         for here,dirs,names in os.walk(root,followlinks=False):
             for name in sorted(names):

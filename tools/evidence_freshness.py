@@ -199,27 +199,52 @@ def audit(manifest, base, *, bundle=None, max_file_bytes=20_000_000,
             "claim_ceiling": "Listed byte pins and declared dependencies only; no scientific freshness, actual-consumption proof, complete roster, sequence binding, release or adoption."}
 
 
+def write_receipt(out, text, protected):
+    """Write the receipt to a fresh path only; an existing file is refused, never truncated."""
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    sys.dont_write_bytecode = True  # keep the adapter from writing caches into the bundle
+    from mamey.output_transaction import preflight_output_roster
+    (fresh,), _ = preflight_output_roster([out], protected_paths=protected, require_parents=True)
+    with fresh.open("x", encoding="utf-8") as handle:
+        handle.write(text + "\n")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("manifest", type=Path)
     ap.add_argument("--bundle", type=Path, help="Read the native exact-identity owner for locus/gene metadata")
     ap.add_argument("--max-file-bytes", type=int, default=20_000_000)
     ap.add_argument("--max-total-bytes", type=int, default=100_000_000)
+    ap.add_argument("--out", type=Path, help="Write the JSON receipt to this NEW file; an existing path, "
+                    "the manifest or a listed artifact is refused. Without it the receipt goes to stdout.")
     args = ap.parse_args(argv)
     if args.max_file_bytes < 1 or args.max_total_bytes < 1:
         ap.error("byte budgets must be positive")
+    protected, code = [args.manifest], 2
     try:
         manifest_bytes = args.manifest.read_bytes()
         manifest = json.loads(manifest_bytes)
         result = audit(manifest, args.manifest.resolve().parent, bundle=args.bundle,
                        max_file_bytes=args.max_file_bytes, max_total_bytes=args.max_total_bytes)
         result["manifest"] = {"path": str(args.manifest.resolve()), "sha256": hashlib.sha256(manifest_bytes).hexdigest()}
+        protected += [Path(row["path"]) for row in result["artifacts"]]
+        code = 0 if result["status"] == "PASS_BYTES_AND_DECLARED_DEPENDENCIES" else 1
     except (ValueError, OSError, TypeError, AttributeError) as exc:
-        print(json.dumps({"schema": SCHEMA, "status": "INVALID_INPUT", "error": str(exc)}, indent=2))
-        return 2
-    print(json.dumps(result, indent=2))
-    return 0 if result["status"] == "PASS_BYTES_AND_DECLARED_DEPENDENCIES" else 1
-
+        result = {"schema": SCHEMA, "status": "INVALID_INPUT", "error": str(exc)}
+    text = json.dumps(result, indent=2)
+    if args.out is not None:
+        try:
+            write_receipt(args.out, text, protected)
+        except (ValueError, OSError) as exc:
+            text, code = json.dumps({"schema": SCHEMA, "status": "OUTPUT_REFUSED", "error": str(exc),
+                                     "out": str(args.out)}, indent=2), 2
+        else:
+            text = json.dumps({"schema": SCHEMA, "status": result["status"],
+                               "receipt": str(args.out.absolute())}, indent=2)
+    print(text)
+    return code
 
 if __name__ == "__main__":
     raise SystemExit(main())

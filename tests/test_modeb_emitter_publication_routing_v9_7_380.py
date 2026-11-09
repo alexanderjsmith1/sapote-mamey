@@ -56,7 +56,8 @@ def test_fresh_template_is_structure_scaffold_not_publication_candidate(tmp_path
 def test_emitter_supplies_canonical_channel_matrix_scaffold(tmp_path: Path) -> None:
     card = emit_card_template(_package(tmp_path), "BGC001")
     assert card.count("#### Complete named-match, channel-separated table") == 1
-    assert "| Gene | NCBI nr top hit | NCBI nr identity |" in card
+    # Card 464_matrix_scaffold_names_gate_metrics: the header uses the column names the matrix gate checks.
+    assert "| Gene | NCBI nr accession + matched protein | nr id/pos/qcov |" in card
     assert card.count("| `ctg1_1` | <accession · matched protein · organism · state>") == 1
     assert card.count("| `ctg1_2` | <accession · matched protein · organism · state>") == 1
 

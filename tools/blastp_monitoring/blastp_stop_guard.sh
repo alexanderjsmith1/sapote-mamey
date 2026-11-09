@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# blastp_stop_guard.sh — Monitor unattended runs and stop the monitored process group on a real error.
-# REAL error = failure-status ledger row, OR a run.log line matching throttle/SIGXCPU/CPU usage limit/
-#              Too Many/Status=UNKNOWN/nonzero "failed"/nonzero "expired" in the lookback window.
-# NOT an error = transient curl rc=16/18/35/56 poll retries (network; runner re-polls the same RID) and
-#               the benign "0 failed/expired" / "RUN end" summary lines.
-# If a real error is found: bootout ALL 8 codex100 lanes and print STOPPED (+ the offending lines).
+# blastp_stop_guard.sh — Monitor unattended BLASTp lanes and stop them on a systemic error or a failure burst.
+# Stops when EITHER:
+#   * a BURST of ledger rows with a fail/expired/error status: at least FAIL_THRESHOLD (default 3) across all
+#     lanes whose submit_iso is within FAIL_WINDOW_H hours (default 6) or unparseable; or
+#   * a run.log line in the lookback window (first argument, minutes, default 25) matching SIGXCPU, CPU usage
+#     limit, throttl, Too Many/Too many, quota or "blocked by NCBI".
+# A lone expired or failed RID, curl rc=16/18/35/56 poll retries, and "0 failed/expired" / "RUN end" lines do
+# not stop the lanes. On a stop it boots out the 8 configured codex100 lanes, prints STOPPED with the
+# offending lines, and exits 2.
 set -uo pipefail
 ROOT="${SAPOTE_WORKSPACE_ROOT:-$(pwd)}"
 BR="$ROOT/Blastp RESULTS"

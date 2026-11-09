@@ -4,7 +4,7 @@
 
 ## Why the previous approach failed
 
-The previous AS-XXX work drifted into a data-extraction workflow. It produced inventories, character counts, and large tables, but it did not consistently produce scientific Mode B cards.
+The previous work on one strain drifted into a data-extraction workflow. It produced inventories, character counts, and large tables, but it did not consistently produce scientific Mode B cards.
 
 A real Mode B card is not a table with section headings. It is a written interpretation built from evidence.
 
@@ -41,9 +41,9 @@ Do not work on twelve BGCs in parallel until one card is good.
 
 Start with one high-value BGC, ideally:
 
-- BGC018 for the megacluster problem, or
-- BGC050 for the antifungal/PTM problem, or
-- BGC041 for a cleaner phosphonate card.
+- a megacluster locus, or
+- a locus with an antifungal or post-translational-modification question, or
+- a cleaner locus, such as a phosphonate region.
 
 ### Step 2 — Build the evidence pack
 
@@ -143,22 +143,18 @@ For each round, report:
 
 Character counts are a progress signal, not a quality signal. The “what changed” and “remaining problem” columns are mandatory.
 
-## Immediate execution plan for AS-XXX
+## Immediate execution plan for that strain
 
 The next productive move is not another all-twelve expansion.
 
 The next productive move is:
 
-1. Write one complete, prose-first Mode B card for BGC018.
+1. Write one complete, prose-first Mode B card for one locus, cited by its full strain / full node-or-contig / region / BGC alias.
 2. Include its evidence table as an appendix, not as the main report.
 3. Check it against the quality gate.
 4. Revise until it reads like a real scientific report.
-5. Then repeat for BGC050, BGC005, BGC028, BGC041, and the remaining BGCs.
+5. Then repeat for the remaining loci, one at a time.
 
 ## Recommended first target
 
-Use BGC018 first only if the goal is the hardest flagship report.
-
-Use BGC050 first if the goal is to produce a cleaner high-quality example faster.
-
-My recommendation: start with BGC050 as the reference-quality card, then return to BGC018 after the standard is clear.
+Start with the hardest locus only if the goal is a flagship report. Start with a cleaner locus if the goal is a high-quality example sooner, then return to the hard one once the standard is clear.

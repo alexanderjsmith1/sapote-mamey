@@ -42,8 +42,27 @@ def run_external_scan_pack(source_scans: SourceScanBundle,
     kcb_status = antismash_evidence.get("status", "")
     kcb_regions = len(antismash_evidence.get("by_region", {}))
     kcb_loose   = len(antismash_evidence.get("loose_hits", []))
-    kcb_state   = "PASS" if (kcb_regions + kcb_loose) > 0 else "NULL"
+    # Zero parsed hits is NULL only when a KCB source was actually read. With no TXT/JSON source,
+    # or with every TXT file unreadable, the sweep could not run, so it is FAILED (not a negative).
+    _txt_items = [i for i in (antismash_evidence.get("txt_parse_receipt") or []) if isinstance(i, dict)]
+    _txt_bad = [i for i in _txt_items if i.get("state") in ("HELD_RESOURCE", "READ_FAILED")]
+    _sources = list(antismash_evidence.get("txt_files") or []) + list(antismash_evidence.get("json_files") or [])
     kcb_detail  = f"{kcb_regions} regions parsed; {kcb_loose} loose hits"
+    if (kcb_regions + kcb_loose) > 0:
+        kcb_state = "PASS"
+    elif not _sources:
+        # `status` stays NO_KCB_SOURCE_FOUND both when nothing was there and when sources were
+        # read with no hits, so the decision rests on the files actually listed as read.
+        kcb_state = "FAILED"
+        kcb_detail = "no KCB TXT or JSON source was read; not a negative"
+    elif _txt_items and len(_txt_bad) == len(_txt_items) and not antismash_evidence.get("json_files"):
+        kcb_state = "FAILED"
+        kcb_detail = f"all {len(_txt_items)} KCB TXT file(s) unreadable; not a negative"
+    else:
+        kcb_state = "NULL"
+        kcb_detail = f"source read: {kcb_regions} regions parsed; {kcb_loose} loose hits"
+        if _txt_bad:
+            kcb_detail += f"; {len(_txt_bad)} of {len(_txt_items)} KCB TXT file(s) unreadable"
 
     # FLBR
     flbr = ss.flbr

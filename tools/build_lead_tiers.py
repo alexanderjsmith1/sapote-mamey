@@ -60,8 +60,19 @@ def _load_axis_table():
     if _AXIS_TABLE is None:
         here=os.path.dirname(os.path.abspath(__file__))
         path=os.path.join(here,'..','resources','bioactivity_axes.json')
-        try: _AXIS_TABLE=_read_json(path)
-        except Exception: _AXIS_TABLE={'axes_in_priority_order':[],'default_axis':'antibacterial (general)'}
+        # Fail closed: an unreadable or malformed rules table used to fall back to an empty keyword
+        # list, so every row silently got the default label. A missing table is an error, not a rule.
+        try: tbl=_read_json(path)
+        except Exception as _e:
+            raise SystemExit(f"[build_lead_tiers] cannot read the activity-label table {path} ({_e}); "
+                             f"refusing to assign bioactivity_axis labels without it.")
+        axes=tbl.get('axes_in_priority_order') if isinstance(tbl,dict) else None
+        if (not isinstance(axes,list) or not axes
+                or not all(isinstance(e,dict) and isinstance(e.get('axis'),str)
+                           and isinstance(e.get('keywords'),list) for e in axes)):
+            raise SystemExit(f"[build_lead_tiers] activity-label table {path} has no valid "
+                             f"'axes_in_priority_order' list; refusing to assign bioactivity_axis labels.")
+        _AXIS_TABLE=tbl
     return _AXIS_TABLE
 
 def axis(mc, note, anchor='', chitin_context=False):
@@ -113,11 +124,17 @@ def main():
         # `try: ... except Exception: pass` left `held` empty on any parse failure (truncated write, schema
         # drift, bad encoding), silently PROMOTING strains that must be held — a claim-safety contract
         # violation with no visible signal. A corrupt QC hold-set must stop the run, not pass quietly.
+        # The parsed object must also carry `held_qc` as a list of nonempty strain names: a missing
+        # key used to read as "no holds", and a string became a set of its characters.
         try:
             with open(qcp, encoding="utf-8") as _fh:
-                held=set(json.load(_fh).get('held_qc',[]))
+                _qc=json.load(_fh)
+            _hq=_qc.get('held_qc') if isinstance(_qc,dict) else None
+            if not isinstance(_hq,list) or not all(isinstance(x,str) and x.strip() for x in _hq):
+                raise ValueError("'held_qc' must be a list of nonempty strain names")
+            held=set(_hq)
         except Exception as _e:
-            raise SystemExit(f"[build_lead_tiers] assembly_qc.json exists but failed to parse ({_e}); "
+            raise SystemExit(f"[build_lead_tiers] assembly_qc.json exists but failed to parse or validate ({_e}); "
                              f"refusing to run — a corrupt QC hold-set would silently promote held strains. "
                              f"Fix or remove {qcp}.")
     rows=[]
@@ -158,7 +175,8 @@ def main():
             'resistance_tier':rt[:34],'edge':b.get('edge_status'),'kb':b.get('length_kb'),
             'priority_floor':'high' if nucl else ''})
     if a.bioactivity:
-        # never-drop: chemistry-relevant leads are partitioned, not removed (kept for transparency)
+        # A substring filter on the assigned label: rows with other labels are removed from this
+        # output (no adjacent partition is written). Run without --bioactivity to see them.
         rows=[x for x in rows if a.bioactivity.lower() in x['bioactivity_axis'].lower()]
     order={'antifungal (Candida)':0,'anticancer':1,'anti-MRSA / anti-Gram-positive':2,'anti-MRSA':2,'antiparasitic':3}
     # nucleoside priority floor sorts to the top regardless of tier; then tier, then axis

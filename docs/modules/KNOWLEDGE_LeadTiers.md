@@ -1,5 +1,8 @@
 # Read current and proposed lead tiers together
 
+Make the table with `python tools/build_lead_tiers.py --banked-dir cohort --out ChemistryFirst_Recall.csv`.
+`--banked-dir` is the banked cohort folder; `--bioactivity antifungal` limits it to one axis.
+
 Start with one row in `ChemistryFirst_Recall.csv` and ask why it is present and whether its
 `current_tier` differs from `proposed_tier`. Copy the complete **strain / full node-or-contig /
 region / BGC alias** from the bound inventory before citing the row: this CSV uses bank-local
@@ -27,7 +30,9 @@ The writer reads cohort `bgc_data.json`, `tfbs_coupling.json` and a cohort-level
 current implementation: if missing, the output can be header-only. That is not evidence that
 no pathway could pass an authored review. Missing optional `deep_data.json` and
 `resistance_coupling.json` also change available self-protection support. A present but malformed
-`assembly_qc.json` stops this writer; an absent file does not establish that QC passed.
+`assembly_qc.json` stops this writer. That includes a file that parses but has no `held_qc` key,
+or whose `held_qc` is not a list of nonempty strain names. An absent file does not establish
+that QC passed.
 
 When a row is absent, check those input states and any `--bioactivity` filter before drawing a
 biological conclusion. Keep the source bank/version and exact command with the saved output.
@@ -37,7 +42,9 @@ The output path is replaced atomically; preserve an earlier result before a sele
 
 `bioactivity_axis` comes from the first matching keyword group in
 `resources/bioactivity_axes.json`, applied to stored class, note and KCB-anchor text. The
-fallback label is `antibacterial (general)`. A generic nucleoside phrase without an earlier
+fallback label is `antibacterial (general)`, given when no keyword group matches. If the table
+cannot be read, or has no valid `axes_in_priority_order` list, the writer stops instead of
+labeling rows. A generic nucleoside phrase without an earlier
 keyword match is gated by the stored strain chitin-context flag; that flag is not an assay.
 The table is deterministic for the same inputs, but it does not verify the compound, target or
 biological activity. In particular, a default activity label does not establish an observed hit.

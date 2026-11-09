@@ -14,6 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mamey.path_safety import safe_label, contained_output_path
 
 CREDIBLE = {"STRONG_DOSE_CONSISTENT", "SUPPORTED_MULTI_CONCENTRATION_HIT"}
+# The assay label and dose list are this adapter's fixed template. They are stamped on every assay,
+# not read from the input, so their provenance is recorded separately from the observed values.
+TEMPLATE_LAYOUT = "fraction_screen_multidose_48h"
+TEMPLATE_DOSE_COLUMNS = ("inhibition_120ug_ml", "inhibition_60ug_ml", "inhibition_30ug_ml", "inhibition_15ug_ml")
+LAYOUT_WARNING = (
+    "LAYOUT_TEMPLATE_NOT_VERIFIED: the assay label fraction_screen_multidose_48h and doses 120/60/30/15 ug/mL "
+    "are the adapter's fixed template, not conditions read from the input; layout_declaration_state says "
+    "whether an operator declared the layout, and the software did not verify it against the source."
+)
 
 # Screening-not-validated caveat carried on every emitted object (preliminary single-replicate 384-well data).
 SCREEN_WARNINGS = [
@@ -29,6 +38,15 @@ def fnum(x):
         return value if math.isfinite(value) else None
     except (TypeError, ValueError):
         return None
+
+
+def _dose_columns_state(recon):
+    with open(recon, encoding="utf-8-sig", newline="") as handle:
+        header = next(csv.reader(handle), [])
+    present = [name for name in TEMPLATE_DOSE_COLUMNS if name in header]
+    if len(present) == len(TEMPLATE_DOSE_COLUMNS):
+        return "ALL_TEMPLATE_DOSE_COLUMNS_PRESENT"
+    return "TEMPLATE_DOSE_COLUMNS_ABSENT" if not present else "TEMPLATE_DOSE_COLUMNS_PARTIAL"
 
 
 def _read_evidence(recon, only=None):
@@ -78,8 +96,13 @@ def _adjudicate(rows, min_hit):
     return "UNKNOWN"
 
 
-def build(recon, only=None, min_hit=50.0):
+def build(recon, only=None, min_hit=50.0, declared_layout=None):
     _adjudicate([], min_hit)
+    if declared_layout is not None and declared_layout != TEMPLATE_LAYOUT:
+        raise ValueError(f"this adapter handles only the {TEMPLATE_LAYOUT} layout; declared {declared_layout!r}")
+    declaration = ("OPERATOR_DECLARED_NOT_SOFTWARE_VERIFIED" if declared_layout
+                   else "UNDECLARED_HOLD_LAYOUT_ASSUMED_FROM_TEMPLATE")
+    dose_columns = _dose_columns_state(recon)
     source_rows = _read_evidence(recon, only)
     canonical_source = json.dumps(sorted(source_rows, key=lambda r: json.dumps(r, sort_keys=True)), sort_keys=True)
     source_locator = "screen-evidence-sha256/" + hashlib.sha256(canonical_source.encode()).hexdigest()
@@ -101,12 +124,16 @@ def build(recon, only=None, min_hit=50.0):
             row = ordered[0]
             mx = fnum(row.get("max_inhibition_raw"))
             assays.append({
-                "assay": "fraction_screen_multidose_48h",
+                "assay": TEMPLATE_LAYOUT,
+                "assay_label_basis": "ADAPTER_TEMPLATE_NOT_READ_FROM_INPUT",
+                "layout_declaration_state": declaration,
+                "template_dose_columns_state": dose_columns,
                 "target": min(r["organism"] for r in rows),
                 "screening_observation_state": state,
                 "best_inhibition_pct": round(mx, 1) if mx is not None else None,
                 "inhibition_15ugml": fnum(row.get("inhibition_15ug_ml")),
                 "doses_ugml": [120, 60, 30, 15],
+                "doses_ugml_basis": "ADAPTER_TEMPLATE_NOT_READ_FROM_INPUT",
                 "dose_inhibition_pct": [fnum(row.get(key)) for key in
                     ("inhibition_120ug_ml", "inhibition_60ug_ml", "inhibition_30ug_ml", "inhibition_15ug_ml")],
                 "screening_tier": (row.get("screening_pattern") or "").strip(),
@@ -125,7 +152,7 @@ def build(recon, only=None, min_hit=50.0):
             "assays": assays,
             "compound_linkage": "NOT_ESTABLISHED",
             "receipt_locator": source_locator,
-            "warnings": list(SCREEN_WARNINGS),
+            "warnings": [*SCREEN_WARNINGS, LAYOUT_WARNING],
         }
     return objs
 
@@ -167,12 +194,15 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--strain", default=None)
     ap.add_argument("--min-hit", type=float, default=50.0)
+    ap.add_argument("--declare-layout", default=None, choices=[TEMPLATE_LAYOUT],
+                    help=("record that you checked the input comes from the 48 h, 120/60/30/15 ug/mL fraction screen; "
+                          "without it every assay carries layout_declaration_state=UNDECLARED_HOLD_LAYOUT_ASSUMED_FROM_TEMPLATE"))
     ap.add_argument("--validate", default=None, help="path to a sealed mamey tree to run normalize_bioactivity")
     ap.add_argument("--af-dossier-csv", default=None, help="also write the af-dossier --activity-table CSV here (strain,anti_Candida,anti_MRSA,host,genus)")
     a = ap.parse_args(argv)
     try:
         source_before = hashlib.sha256(Path(a.recon).read_bytes()).hexdigest()
-        objs = build(a.recon, a.strain, a.min_hit)
+        objs = build(a.recon, a.strain, a.min_hit, a.declare_layout)
         af_rows = build_af_dossier(a.recon, a.min_hit, a.strain) if a.af_dossier_csv else None
         if hashlib.sha256(Path(a.recon).read_bytes()).hexdigest() != source_before:
             raise ValueError("source changed during evidence admission")
@@ -214,6 +244,9 @@ def main(argv=None):
     payloads[Path(a.out).resolve() / "MANIFEST.json"] = (json.dumps({
         "n_strains": len(objs), "min_hit": a.min_hit, "source_sha256": source_before,
         "n_positive": sum(obj["metadata_state"] == "MEASURED_POSITIVE" for obj in objs.values()),
+        "assay_layout": TEMPLATE_LAYOUT,
+        "layout_declaration_state": ("OPERATOR_DECLARED_NOT_SOFTWARE_VERIFIED" if a.declare_layout
+                                     else "UNDECLARED_HOLD_LAYOUT_ASSUMED_FROM_TEMPLATE"),
         "records": manifest}, indent=2, allow_nan=False) + "\n").encode()
     if a.af_dossier_csv:
         import io

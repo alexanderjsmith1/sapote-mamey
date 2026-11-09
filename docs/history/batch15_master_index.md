@@ -10,7 +10,7 @@
 
 This page preserves the v9.7.149a index below as historical evidence. Its numbering offset, missing filenames and old “current” version labels do not define today's navigation. Use [the current docs index](../../CURRENT_DOCS_INDEX.md), [the product map](../PRODUCT_MAP.md), and [the assistant guide](../ASSISTANT_USER_GUIDE.md) for current tasks.
 
-The exact 18 Markdown filenames present in `docs/batches/` in the bound baseline are:
+The 18 batch filenames the original index counted are listed below, with the links as they resolve in this tree. Only three of them, batch15, batch16 and batch18, are files in `docs/batches/` now. Eight are under `docs/history/` and seven are under `docs/history/retired_458/batches/`. The older baseline that held all 18 in `docs/batches/` is not identified or hashed here, so its directory census is unverified.
 
 - [batch06_doc_navigation_guide.md](batch06_doc_navigation_guide.md)
 - [batch11_common_failure_recovery_matrix.md](batch11_common_failure_recovery_matrix.md)
@@ -41,14 +41,13 @@ These are retained historical/derived notes, not an independent executable contr
 > batch06, 11, 12, 14 (from the first set) and batch15–28 (the full second set). **Missing:**
 > batch01, 02, 03, 04, 05, 07, 08, 09, 10, 13 — these were referenced throughout this index and
 > 10 of 28 are missing (batch01–05, batch07–10, batch13); they were never delivered to this bundle. Links to a missing batch number resolve to nothing.
-> below will 404 until that document arrives in a future patch.
 >
 > **Numbering correction:** this index's own "Complete document list → Second set" table uses
 > a numbering scheme that is **one off** from the actual filenames shipped in this bundle (e.g.
 > the table calls the interpretive-floor document `batch15_modeb_interpretive_floor.md`, but the
 > file on disk — and the file this index itself is named — is `batch16_modeb_interpretive_floor.md`,
 > with this index document being `batch15_master_index.md`). **The filenames in `docs/batches/`
-> are authoritative.** Cross-references elsewhere in this set that cite the table's numbering
+> are authoritative.** (Historical: that was true of the bundle the note described. Today only three of the files are in `docs/batches/`; see the list at the top of this page.) Cross-references elsewhere in this set that cite the table's numbering
 > (e.g. "see batch15_modeb_interpretive_floor.md") should be read as +1 from what's printed.
 
 ---
@@ -65,10 +64,10 @@ These are retained historical/derived notes, not an independent executable contr
 1. `batch03` — 5-Minute Runbook ← start here
 2. `batch08` — Workflow Guide (plain English)
 3. `batch07` — Glossary (three levels)
-4. `batch05` — Worked Example (SID8370 walkthrough)
+4. `batch05` — Worked Example (`<strain>` walkthrough)
 
 **LLM operator (running Mamey and writing Mode B)**
-1. `AGENTS.md` or `AGENTS.md` ← bundle root
+1. `AGENTS.md` ← bundle root
 2. `batch10` — Mode B Output Guide
 3. `batch15_modeb_interpretive_floor.md` ← this set
 4. `batch07` — Glossary (expert level)
@@ -176,8 +175,7 @@ These are bundle root or `docs/` files that the batch docs frequently point to:
 | File | What it is |
 |------|-----------|
 | `docs/BUNDLE_CAPABILITIES.md` | Command menu + tool catalog (start every session here) |
-| `AGENTS.md` | ChatGPT execution contract |
-| `AGENTS.md` | Claude execution contract |
+| `AGENTS.md` | Shared assistant execution contract (the old index listed it twice, once for each assistant) |
 | `docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md` | Authoritative Mode B §1–§20 spec |
 | `docs/CHATGPT_EXECUTION_SLICE_v97147.md` | Active judgment controller (supersedes contract) |
 | `docs/DELIVERABLE_CONTRACT.md` | What Sapote must produce per strain |

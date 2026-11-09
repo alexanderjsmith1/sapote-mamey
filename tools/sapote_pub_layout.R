@@ -35,7 +35,11 @@ PUB_FONT <- getOption("sapote.pub_font", "Arial")
   for (d in names(devs)) {
     ok <- tryCatch({ devs[[d]](); print(fig); grDevices::dev.off(); TRUE },
                    error = function(e) { try(grDevices::dev.off(), silent = TRUE); errs[[d]] <<- conditionMessage(e); FALSE })
-    if (ok) return(invisible(d))
+    if (ok) {
+      if (d == "pdf") warning("PDF drawn with the plain pdf() device: ASCII hyphens are written as U+2212 in the text layer, ",
+                              "so IDs such as AS-441 are not searchable")
+      return(invisible(d))
+    }
   }
   unlink(file)
   stop("no PDF device could draw font '", PUB_FONT, "': ", paste(names(errs), errs, sep = ": ", collapse = "; "))

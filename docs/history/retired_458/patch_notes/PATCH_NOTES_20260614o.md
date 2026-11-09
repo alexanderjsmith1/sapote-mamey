@@ -1,6 +1,6 @@
 # Sapote–Mamey v9.7.22 — build -o (2026-06-14)
 
-Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [v9.7.22 release notes](../../RELEASE_NOTES_v9.7.22.md).
+Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Changelog](../../../../CHANGELOG.md).
 
 UX layer (audit + ChatGPT priorities). **No engine scoring logic changed.**
 
@@ -29,11 +29,11 @@ map override, six-column markdown render.
 - Corrected-BGC-count reframe for NAR-GB.
 
 ## Per-tier verification (in-zip)
-| Tier | pytest | AS-### |
+| Tier | pytest | private-ID hits |
 |---|---|---|
 | CODE | 514 passed / 80 skip | 0 |
 | CODE-analysis-free | 512 passed / 82 skip | 0 |
-| SID-public | 514 passed / 80 skip | 0 |
+| public-ID | 514 passed / 80 skip | 0 |
 | MERGED-PRIVATE-scaffold | 513 passed / 81 skip | retained (expected) |
 
 Supersedes -n. Checksums regenerated last; verified in-zip.

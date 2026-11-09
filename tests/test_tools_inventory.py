@@ -74,7 +74,7 @@ def test_connection_audit_uses_real_wiring_and_excludes_generated_self_certifica
 
 
 def test_connection_audit_flags_personal_path_literals_and_parse_holds(tmp_path):
-    _write(tmp_path / "tools" / "private_default.py", 'SOURCE = "/Users/example/private.tsv"\n')
+    _write(tmp_path / "tools" / "private_default.py", 'SOURCE = "/Us' 'ers/example/private.tsv"\n')
     _write(tmp_path / "tools" / "broken.py", "def broken(:\n")
     payload = gen.audit_connections(tmp_path)
     rows = {row["tool"]: row for row in payload["tools"]}

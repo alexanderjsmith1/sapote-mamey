@@ -24,13 +24,12 @@ subcommand CLI (`bigscape cluster`, replacing the BiG-SCAPE 1.x bigscape.py entr
 ## What's already prepared
 
 `AS_batch1_bigscape_input_624gbk.zip` — all 624 antiSMASH region GBKs from the 11 strains,
-each filename prefixed with its strain ID (e.g. `AS-XXX_NODE_2_..._region002.gbk`).
+each filename prefixed with its strain ID (e.g. `<strain>_NODE_2_..._region002.gbk`).
 Prefixing matters: these are SPAdes assemblies, so `NODE_*` record names can collide
 across strains; the prefix keeps every record uniquely named and keeps strain provenance
 visible in the BiG-SCAPE HTML and the SQLite `gbk.path` column.
 
-Per-strain region counts: AS-XXX 46 · AS-XXX 62 · AS-XXX 68 · AS-XXX 71 · AS-XXX 65 ·
-AS-XXX 48 · AS-XXX 60 · AS-XXX 48 · AS-XXX 48 · AS-XXX 57 · AS-XXX 51 = 624.
+Per-strain region counts (strain IDs omitted): 46, 62, 68, 71, 65, 48, 60, 48, 48, 57 and 51 = 624.
 
 Unzip it to a working folder; that folder is your `-i` input.
 
@@ -40,6 +39,8 @@ unzip ../AS_batch1_bigscape_input_624gbk.zip -d input/
 ```
 
 ---
+
+Historical: do not run the install, download, run and cleanup commands in sections 1 to 3 and in the staging step below. The current route is [BiG-SCAPE GCF workflow](../../BIGSCAPE_GCF_WORKFLOW.md).
 
 ## 1 · Install BiG-SCAPE 2.0
 
@@ -79,12 +80,12 @@ bigscape cluster \
 - `--mibig-version 3.1` pulls antiSMASH-processed MIBiG references and folds them in, so
   any GCF containing a MIBiG BGC is immediately dereplicated (this is the cross-check for
   the Mamey KCB anchors — a GCF that lands on a MIBiG reference is your "known" family;
-  one that doesn't is a novelty candidate). Drop this flag for a strains-only graph.
+  one that doesn't has no MIBiG match in this run, which is not evidence of novelty; see [BiG-SCAPE GCF networks](../../../wiki/BiG-SCAPE-GCF-Networks.md)). Drop this flag for a strains-only graph.
 - Classification defaults to antiSMASH **Category** (2.0 behavior). Add `--classify class`
   for the finer antiSMASH-class bins, or `--mix` to compare all BGCs in one bin regardless
   of class (useful for spotting cross-class hybrids). `--classify legacy` reproduces
   BiG-SCAPE 1's 8 groups if you want continuity with older runs.
-- Cutoffs: the default distance cutoff is 0.30. Add e.g. `--gcf-cutoffs 0.3 0.5 0.7` to
+- Cutoffs: the default distance cutoff is 0.30. Add e.g. `--gcf-cutoffs 0.3,0.5,0.7` to
   emit GCFs at several stringencies in one run (0.3 ≈ same compound, 0.7 ≈ loosely related
   family) — worth doing so you can see how the cohort's families split/merge with
   stringency.
@@ -116,11 +117,11 @@ the SQLite DB are the machine-readable outputs for joining back to the Mamey wor
   (`COHORT_domain_architecture_by_bgc.csv`, 110 rows) and any `build_pangenome.py` output
   are Mamey's family view; BiG-SCAPE's GCFs are an independent family view over the same
   BGCs. Concordant families are strong; families that disagree between the two tools are
-  exactly where to look (fragmented assemblies — AS-XXX VERY_POOR, AS-XXX VERY_POOR — will
+  exactly where to look (fragmented assemblies — STRAIN_ID VERY_POOR, STRAIN_ID VERY_POOR — will
   split families across contigs in both tools, so expect and caveat that).
 - **MIBiG-anchored GCFs** dereplicate against known chemistry; **MIBiG-free GCFs shared
-  across strains** are the cohort's novelty candidates and the natural priority list for
-  the Mode B campaign.
+  across strains** were treated at the time as the cohort's novelty candidates and the priority list for
+  the Mode B campaign. Historical wording: a GCF with no MIBiG member is not shown to be novel (see [BiG-SCAPE GCF networks](../../../wiki/BiG-SCAPE-GCF-Networks.md)).
 
 ## Reproducing the input prep for other cohorts
 

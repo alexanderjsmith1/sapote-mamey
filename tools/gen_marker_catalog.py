@@ -98,9 +98,16 @@ def write(payload: dict) -> None:
     atomic_write_text(MD_OUT, render_md(payload))
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(
+        description="Write docs/MARKER_CATALOG.generated.{md,json} from mamey/source_scans.py. "
+                    "With no option this REWRITES both files.")
+    ap.add_argument("--check", action="store_true",
+                    help="compare the committed files with a fresh render; write nothing (exit 1 on drift)")
+    args = ap.parse_args(argv)  # --help and unknown options exit before anything is written
     payload = collect()
-    if "--check" in sys.argv:
+    if args.check:
         if not JSON_OUT.exists() or not MD_OUT.exists():
             emit("MARKER CATALOG missing — run gen_marker_catalog.py")
             return 1

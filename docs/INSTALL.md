@@ -52,8 +52,16 @@ Install an extra with the same syntax, replacing `figures` with its name.
 python mamey_run.py doctor
 ```
 
-Read the final summary. It says whether the core checks passed and lists missing
-optional capabilities. You can start a core extraction while optional tools are absent.
+The last line tells you whether the install is ready:
+
+| Last line starts with | Meaning |
+|---|---|
+| `DOCTOR: ALL CLEAR` | Ready. |
+| `DOCTOR: PASS with N warning(s) — optional items only` | Ready. The warnings name optional tools for later workflows. |
+| `DOCTOR: PASS with N warning(s) — missing core dependency` | Install the named package, then run `doctor` again. |
+| `DOCTOR: N blocking issue(s)` | Not ready, and doctor exits `1`. Fix each line marked ❌. |
+
+Then follow [Your first run](reader/01_FIRST_RUN.md).
 
 ### Doctor scope and write probe
 
@@ -68,10 +76,18 @@ use `python mamey_run.py start --no-doctor`.
 ### Bytecode refusal
 
 Tests and `tools/` scripts can leave a `mamey/__pycache__` the launcher cannot trust.
-A normal launch clears it and recompiles. With `python -B` or `PYTHONDONTWRITEBYTECODE=1`,
-the launcher leaves the tree alone and stops with `BYTECODE_WRITES_DISABLED`. In a working
-copy, run the same command once without `-B`, or add `--purge-bytecode` to clear the cache
-first. Do not do this inside a sealed release folder; use a fresh extraction instead.
+The launcher stamps the cache with the cut that built it, and with a hash of the `mamey/` source.
+
+- **No stamp, or the same stamp with changed source.** The cache is untrusted. A normal launch
+  clears it, recompiles and stamps it again. It prints `UNBOUND_BYTECODE_CLEARED`. If the clear
+  does not take, it stops with `UNBOUND_BYTECODE_REFUSED` and names the folders to remove.
+- **Stamp from a different cut.** The launcher stops with `FOREIGN_BYTECODE_REFUSED`. It clears
+  nothing. Re-run with `--purge-bytecode`, or remove the `__pycache__` folders yourself.
+- **`python -B` or `PYTHONDONTWRITEBYTECODE=1` with an untrusted cache.** The launcher leaves the
+  tree alone and stops with `BYTECODE_WRITES_DISABLED`. Run the command once without `-B`, or add
+  `--purge-bytecode` to clear the cache first.
+
+Do not clear a cache inside a sealed release folder. Use a fresh extraction instead.
 
 ## 5. Inspect and run an input
 
@@ -122,7 +138,11 @@ Use [Project catalog](PROJECT_CATALOG.md) to find and register saved packages.
 The [data-home guide](DATA_HOME.md) explains how to select the right assembly
 when several results exist for one strain.
 
-## 6. Optional: developer tests
+## Developer tests (optional)
 
 Tests are for code changes. Follow the [cut protocol](../CUT_PROTOCOL.md) for
 release checks; they are not an installation step for a first analysis.
+
+## Offline setups
+
+`python mamey_run.py doctor --probe-transports` makes network requests to check the NCBI and EBI BLAST services. Leave it out of an offline setup. Plain `doctor` makes no such requests.

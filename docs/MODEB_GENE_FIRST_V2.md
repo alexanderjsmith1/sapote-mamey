@@ -1,6 +1,6 @@
 # Mode B gene-first v2 candidate contract
 
-Developer API only; no command is registered. For the command-line review, use [`modeb-gene-first`](MODEB_GENE_FIRST_EXPLORATION.md).
+Developer API only, in `mamey/mode_b/gene_first_stage_v2.py`; no command is registered. For the command-line review, use [`modeb-gene-first`](MODEB_GENE_FIRST_EXPLORATION.md).
 
 This candidate turns a compact, content-addressed evidence stage into a fast review surface. It does not run similarity searches, domain searches, cassette detectors, rendering, or workspace discovery. It does not generate a governed long-form card or make a scientific acceptance decision.
 

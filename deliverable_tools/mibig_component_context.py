@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
 import re
 import sys
@@ -17,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.output_transaction import preflight_output_roster
 
 CLAIM_CEILING = (
     "Component-aware match density and core-marker presence support pathway-family context only. "
@@ -47,13 +49,23 @@ def read_tsv(path):
         return list(csv.DictReader(stream, delimiter="\t"))
 
 
-def write_tsv(path, rows, fields):
+def tsv_text(rows, fields):
+    stream = io.StringIO(newline="")
+    writer = _SafeDictWriter(stream, fieldnames=fields, delimiter="\t", lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return stream.getvalue()
+
+
+def _write_fresh(path, text):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = _SafeDictWriter(stream, fieldnames=fields, delimiter="\t", lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
+    with path.open("x", newline="", encoding="utf-8") as stream:
+        stream.write(text)
+
+
+def write_tsv(path, rows, fields):
+    _write_fresh(path, tsv_text(rows, fields))
 
 
 def _clusters(positions, max_unmatched_gap=2):
@@ -141,13 +153,19 @@ def derive(rows, identity, accession, evidence_source, evidence_hash):
 def build(evidence_tsv, identity, accession, evidence_extract, out, evidence_locator):
     if not re.fullmatch(r"BGC\d{7}", accession):
         raise ValueError("MIBIG_COMPONENT_GATE: invalid MIBiG accession")
+    # Both outputs must be fresh, distinct, and must not alias the evidence table. Everything is
+    # validated in memory before the first byte is written, so a refused run leaves no extract.
+    preflight_output_roster((evidence_extract, out), protected_paths=(evidence_tsv,))
     rows = read_tsv(evidence_tsv)
     selected = [row for row in rows if str(row.get("complete_identity") or "").strip() == identity]
     if not selected:
         raise ValueError("MIBIG_COMPONENT_GATE: requested complete identity is absent")
-    write_tsv(evidence_extract, selected, list(selected[0]))
-    row = derive(selected, identity, accession, evidence_locator, sha256(evidence_extract))
-    write_tsv(out, [row], FIELDS)
+    extract_text = tsv_text(selected, list(selected[0]))
+    extract_hash = hashlib.sha256(extract_text.encode("utf-8")).hexdigest()
+    row = derive(selected, identity, accession, evidence_locator, extract_hash)
+    out_text = tsv_text([row], FIELDS)
+    _write_fresh(evidence_extract, extract_text)
+    _write_fresh(out, out_text)
     return row
 
 

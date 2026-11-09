@@ -18,5 +18,5 @@ def test_domain_coverage_reports_inventory_gaps(tmp_path,sidecar,expected):
     assert ('Domain sidecar coverage' in w._domains_page(model))
     if expected=='PARTIAL':
         assert coverage['represented_inventory_rows']==1
-        assert len(model['domains'])==1 and model['domains'][0]['total']==0
+        assert len(model['domains'])==1 and model['domains'][0]['total'] is None and model['domains'][0]['total_recorded_cells_only']==0  # sidecar carries 1 of 8 columns
     if expected=='INCONSISTENT':assert coverage['unmapped_rows']==0 and coverage['duplicate_rows']==1

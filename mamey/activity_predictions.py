@@ -52,9 +52,11 @@ _OPTIONAL_PREDICTION_KEYS = (
     "fragment_adequacy",
 )
 
-_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_BGC_RE = re.compile(r"^BGC[0-9]+$")
-_WARN_RE = re.compile(r"^[A-Z0-9_:-]+$")
+# Patterns are applied with fullmatch: `match` + `$` also accepts a trailing newline, so a
+# 64-hex digest followed by "\n" would pass as a digest.
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+_BGC_RE = re.compile(r"BGC[0-9]+")
+_WARN_RE = re.compile(r"[A-Z0-9_:-]+")
 
 # model_ids for which predictions are NOT admissible per the Developer or User's v9.7.348 verdict — any such row must
 # be held OUT_OF_DOMAIN/FAILED (never IN_DOMAIN/LIMITED). NPBDetect: released fc1 bypass + the
@@ -92,7 +94,7 @@ def validate_activity_predictions(doc: Any) -> list[dict[str, str]]:
              f"schema_version must be {SCHEMA_VERSION!r}, got {doc.get('schema_version')!r}")
 
     if not (isinstance(doc.get("source_package_sha256"), str)
-            and _SHA256_RE.match(doc["source_package_sha256"])):
+            and _SHA256_RE.fullmatch(doc["source_package_sha256"])):
         _err(errors, "HIGH", "BAD_SOURCE_HASH", "source_package_sha256 must be a 64-hex sha256")
 
     preds = doc.get("predictions")
@@ -128,15 +130,19 @@ def validate_activity_predictions(doc: Any) -> list[dict[str, str]]:
 
         if not (isinstance(p.get("strain"), str) and p.get("strain")):
             _err(errors, "HIGH", "BAD_STRAIN", "strain must be a nonempty string", i)
-        if not (isinstance(p.get("bgc_id"), str) and _BGC_RE.match(str(p.get("bgc_id")))):
+        if not (isinstance(p.get("bgc_id"), str) and _BGC_RE.fullmatch(str(p.get("bgc_id")))):
             _err(errors, "HIGH", "BAD_BGC_ID", "bgc_id must match ^BGC[0-9]+$", i)
         if not (isinstance(p.get("contig_region"), str) and p.get("contig_region")):
             _err(errors, "HIGH", "BAD_CONTIG_REGION", "contig_region must be a nonempty string", i)
+        # model_id is part of the duplicate key and the admissibility gate: a null or blank
+        # model_id would skip both, so it is refused here.
+        if not (isinstance(p.get("model_id"), str) and p.get("model_id").strip()):
+            _err(errors, "HIGH", "BAD_MODEL_ID", "model_id must be a nonempty string", i)
 
         for hk in ("model_sha256", "environment_sha256", "feature_schema_sha256",
                    "input_package_sha256", "feature_receipt_sha256"):
             v = p.get(hk)
-            if v is not None and not (isinstance(v, str) and _SHA256_RE.match(v)):
+            if v is not None and not (isinstance(v, str) and _SHA256_RE.fullmatch(v)):
                 _err(errors, "HIGH", "BAD_HASH", f"{hk} must be a 64-hex sha256 or null", i)
 
         for pk in ("antibacterial_probability", "antifungal_probability", "reference_threshold"):
@@ -155,7 +161,7 @@ def validate_activity_predictions(doc: Any) -> list[dict[str, str]]:
                  f"applicability_status must be one of {APPLICABILITY_STATES}", i)
 
         wc = p.get("warning_codes")
-        if not (isinstance(wc, list) and all(isinstance(w, str) and _WARN_RE.match(w) for w in wc)):
+        if not (isinstance(wc, list) and all(isinstance(w, str) and _WARN_RE.fullmatch(w) for w in wc)):
             _err(errors, "MEDIUM", "BAD_WARNING_CODES",
                  "warning_codes must be a list of ^[A-Z0-9_:-]+$ tokens", i)
         elif len(set(wc)) != len(wc):

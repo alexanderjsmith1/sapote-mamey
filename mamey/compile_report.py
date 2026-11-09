@@ -585,19 +585,29 @@ def _assembly_table(m: dict) -> str:
            f"| N50 | {m['n50']} |\n"
            f"| Contigs | {m['contigs']} |\n"
            f"| Analysis mode | {m['mode']} |\n")
-    issues = m.get("issues") or []
-    if issues:
-        out += ("\n**Run-level issues** (deterministic engine flags, not interpretation — carry "
-                "these into any caption or sign-off note before presenting figures/tables below):\n\n")
-        for issue in issues:
-            if str(issue).startswith("[CLAIM-SAFETY REFUSAL] auto-emitted compiled report WITHHELD:"):
-                # Keep the historical refusal visible without importing its rejected
-                # prose into a newly assembled report. Original diagnostics are immutable.
-                out += ("- A previous automatic compiled report was withheld by the claim-language "
-                        "check. Its original diagnostic remains in the source package's "
-                        "`manifest.json` issues field; this report is checked afresh.\n")
-            else:
-                out += f"- {issue}\n"
+    out += render_run_level_issues(m.get("issues") or [])
+    return out
+
+
+def render_run_level_issues(issues) -> str:
+    """The "Run-level issues" block of section 4 ("" when there are none).
+
+    One renderer, used when the report is built and again by the run's pre-ZIP status stamp,
+    so an issue raised after the report was written still reaches it.
+    """
+    if not issues:
+        return ""
+    out = ("\n**Run-level issues** (deterministic engine flags, not interpretation — carry "
+           "these into any caption or sign-off note before presenting figures/tables below):\n\n")
+    for issue in issues:
+        if str(issue).startswith("[CLAIM-SAFETY REFUSAL] auto-emitted compiled report WITHHELD:"):
+            # Keep the historical refusal visible without importing its rejected
+            # prose into a newly assembled report. Original diagnostics are immutable.
+            out += ("- A previous automatic compiled report was withheld by the claim-language "
+                    "check. Its original diagnostic remains in the source package's "
+                    "`manifest.json` issues field; this report is checked afresh.\n")
+        else:
+            out += f"- {issue}\n"
     return out
 
 
@@ -615,7 +625,8 @@ def _triage_board(pkg: Path) -> str:
     return f"# 5. Triage board (all BGCs)\n\n{head}{sep}{body}"
 
 
-def _figures(pkg: Path, generate: bool = True, preflight_note: str = "") -> str:
+def _figures(pkg: Path, generate: bool = True, preflight_note: str = "",
+             absolute_companions: bool = False) -> str:
     # N3 (v9.7.149c): walk both *.png and *.svg so locus_maps/*.svg from W5
     # are picked up alongside raster figures. The markdown image syntax
     # `![alt](path.svg)` is valid for pandoc → LaTeX (PDF) and for HTML.
@@ -650,10 +661,28 @@ def _figures(pkg: Path, generate: bool = True, preflight_note: str = "") -> str:
             note += f"\n*(Figures generated at compile time: {made}.)*\n"
     if not figs:
         return "# 6. Figures\n" + (note or "\n*(no figures in package)*\n")
+    # Only suppress a second embedded format when the existing figure receipt
+    # binds both current files. Legacy same-stem files can be different images.
+    verified_pairs = {}
+    if (pkg / "figure_receipts.jsonl").is_file():
+        from .figure_save import FigureSaveRefusal, audit_figure_outputs
+        try:
+            audit = audit_figure_outputs(pkg)
+            verified_pairs = {row["png"]: row["svg"] for row in audit["figures"]
+                              if row["state"] == "RECEIPT_BOUND_PAIR"}
+        except (FigureSaveRefusal, OSError, UnicodeError):
+            note += "\n*(Figure-pair receipts could not be verified; all formats are retained.)*\n"
+    paired_svgs = set(verified_pairs.values())
     out = ["# 6. Figures\n"]
     for p in figs:
         rel = p.relative_to(pkg)
-        out.append(f"![{rel.stem}]({rel})\n\n*Figure: {rel.stem.replace('_',' ')}.*\n")
+        if rel.as_posix() in paired_svgs:
+            continue
+        alternate = verified_pairs.get(rel.as_posix())
+        companion_target = (pkg / alternate).resolve() if alternate and absolute_companions else alternate
+        companion = f" [SVG version](<{companion_target}>)" if alternate else ""
+        target = f"<{rel}>" if alternate and any(c.isspace() for c in str(rel)) else str(rel)
+        out.append(f"![{rel.stem}]({target})\n\n*Figure: {rel.stem.replace('_',' ')}.*{companion}\n")
     return "\n".join(out) + note
 
 
@@ -877,7 +906,7 @@ def _rrefinder_evidence_note(pkg: Path, strain: str) -> str:
 
 
 def build_report(package_dir: str | Path, generate_figures: bool = True,
-                 toc_depth: int = 1) -> str:
+                 toc_depth: int = 1, absolute_figure_companions: bool = False) -> str:
     """Assemble the full §13 report as pandoc-ready Markdown. Pure read except for
     optional figure generation (best-effort; never blocks).
 
@@ -922,7 +951,8 @@ def build_report(package_dir: str | Path, generate_figures: bool = True,
         _assembly_table(m),
         _rrefinder_evidence_note(pkg, strain),
         _triage_board(pkg),
-        _figures(pkg, generate=generate_figures, preflight_note=locus_map_note),
+        _figures(pkg, generate=generate_figures, preflight_note=locus_map_note,
+                 absolute_companions=absolute_figure_companions),
         _slot("ecological_synthesis", strain, pkg),
         _slot("priority_deep_dives", strain, pkg),
         _mode_b_cards(pkg),
@@ -956,10 +986,14 @@ def write_narrative(package_dir: str | Path, section_key: str,
     """Validate + write a narrative section to `judgment/<strain>_<section>.md`.
 
     Runs the package claim-safety linter against `content`; refuses (returns
-    a dict with `status: "REFUSED"`) on any finding unless `force=True`.
+    a dict with `status: "REFUSED"`) on any finding, `force` or not.
+
+    An existing section file is never replaced unless `force=True`: without it the call
+    returns `status: "EXISTS"` and writes nothing, so a rerun cannot overwrite an authored
+    narrative. `force=True` replaces it. The staging file is a fresh, uniquely named sibling.
 
     Returns:
-        {"status": "WRITTEN"|"REFUSED"|"UNKNOWN_SECTION",
+        {"status": "WRITTEN"|"REFUSED"|"EXISTS"|"UNKNOWN_SECTION"|"NOT_NARRATIVE",
          "path": <str|None>, "findings": [<str>...], "section": <key>}
 
     Never raises. The caller (CLI or another module) decides exit behaviour.
@@ -1001,9 +1035,21 @@ def write_narrative(package_dir: str | Path, section_key: str,
     # Resolve write path via the write variant so judgment/ is created here,
     # not silently elsewhere (F2 contract).
     out = js._judgment_dir_write(pkg) / fname
-    _otmp = out.with_name(out.name + ".tmp")  # OUT-P06: atomic — no truncated narrative on a mid-write crash
-    _otmp.write_text(content, encoding="utf-8")
-    _otmp.replace(out)
+    if (out.exists() or out.is_symlink()) and not force:
+        return {"status": "EXISTS", "path": str(out), "findings": [], "section": section_key}
+    # OUT-P06: atomic — no truncated narrative on a mid-write crash. The staging name is unique
+    # (mkstemp), so an unrelated file at a fixed "<name>.tmp" path is never overwritten.
+    import os as _os
+    import tempfile as _tempfile
+    _fd, _tmpname = _tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=str(out.parent))
+    try:
+        with _os.fdopen(_fd, "w", encoding="utf-8") as _fh:
+            _fh.write(content)
+        _os.replace(_tmpname, out)
+    except BaseException:
+        if _os.path.exists(_tmpname):
+            _os.unlink(_tmpname)
+        raise
 
     return {"status": "WRITTEN", "path": str(out),
             "findings": findings,  # always [] — a WRITTEN section has passed the claim-safety gate
@@ -1044,6 +1090,12 @@ def write_narrative_command(args) -> int:
               f"  {res['remediation']}\n"
               f"  write-narrative sections: {', '.join(res['valid_sections'])}", file=sys.stderr)
         return 2
+    if res["status"] == "EXISTS":
+        # Same text and stream as emit(..., file=sys.stderr); a direct write keeps the print/emit
+        # ratchet flat.
+        sys.stderr.write(f"REFUSED: {res['path']} already exists; it was not replaced. Keep a copy of it, then "
+                         f"re-run with --force to replace it.\n")
+        return 4
     if res["status"] == "REFUSED":
         emit(f"REFUSED: claim-safety linter raised {len(res['findings'])} "
               f"finding(s) for section '{args.section}':", file=sys.stderr)
@@ -1222,11 +1274,27 @@ def _verify_compiled_pdf_artwork(out_pdf: "Path", quality: dict) -> dict:
     return receipt
 
 
-def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
+#: Files `tools/md_to_pdf.sh` may write for one PDF: the PDF and its three fallback sidecars.
+PDF_ROUTE_SUFFIXES = (".pdf", ".resource_bindings.json", ".render_preflight.json", ".wide_tables_appendix.md")
+
+
+def pdf_route_outputs(out_pdf: "Path") -> list:
+    """Every path the PDF route may write for `out_pdf` (the PDF first)."""
+    stem = str(out_pdf)[:-4] if str(out_pdf).endswith(".pdf") else str(out_pdf)
+    return [Path(stem + suffix) for suffix in PDF_ROUTE_SUFFIXES]
+
+
+def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path", replace: bool = False) -> dict:
     """Boss-Ready / Compiled Master PDF (menu Special / monolith §15.8) via the SANCTIONED renderer
-    tools/md_to_pdf.sh (Markdown -> pandoc -> xelatex, with the wide-table preflight). This does NOT
-    hand-roll a renderer; it drives the documented "correct PDF path". Non-blocking — returns a status
-    dict, never raises into the build, never affects the markdown.
+    tools/md_to_pdf.sh: the colorful ReportLab renderer, with the pandoc + XeLaTeX fallback and its
+    wide-table preflight. This does NOT hand-roll a renderer; it drives the documented "correct PDF
+    path". Non-blocking — returns a status dict, never raises into the build, never affects the
+    markdown.
+
+    The renderer never replaces an existing PDF or sidecar. Without `replace`, an existing one is
+    reported as ``OUTPUT_EXISTS`` before anything is written. With `replace` (``--replace-pdf``),
+    the earlier files are moved into a private folder first, restored if the new render fails, and
+    deleted only after it succeeds; a symlink or folder at one of those names is still refused.
 
     Two compile-report-side adjustments let the sanctioned tool succeed on a package:
       (1) figure references are publication-gated at 7.2 inches. Live-text SVG is converted to a
@@ -1245,6 +1313,55 @@ def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
     except FigurePolicyError as exc:
         return {"status": "FIGURE_QUALITY_REFUSED", "path": None,
                 "code": exc.code, "detail": exc.detail}
+    existing = [p for p in pdf_route_outputs(out_pdf) if p.exists() or p.is_symlink()]
+    if existing and not replace:
+        return {"status": "OUTPUT_EXISTS", "path": None,
+                "detail": ("earlier PDF output exists: " + ", ".join(str(p) for p in existing)
+                           + "; rerun with --replace-pdf to replace it, or pass --out to a new path")}
+    if any(p.is_symlink() or not p.is_file() for p in existing):
+        return {"status": "OUTPUT_NOT_REPLACEABLE", "path": None,
+                "detail": "a symlink or folder sits at a PDF output name: "
+                          + ", ".join(str(p) for p in existing if p.is_symlink() or not p.is_file())}
+    import tempfile as _tempfile
+    aside = None
+    if existing:
+        aside = Path(_tempfile.mkdtemp(prefix=f".{out_pdf.stem}.previous.", dir=str(out_pdf.parent)))
+        for p in existing:
+            p.rename(aside / p.name)
+
+    def _restore():
+        if aside is not None:
+            for p in aside.iterdir():
+                target = out_pdf.parent / p.name
+                if not (target.exists() or target.is_symlink()):
+                    p.rename(target)
+            with contextlib.suppress(OSError):
+                aside.rmdir()
+
+    def _discard():
+        if aside is not None:
+            for p in aside.iterdir():
+                p.unlink()
+            aside.rmdir()
+
+    res = _run_pdf_route(gated_md, quality, out_pdf, pkg, script)
+    if res["status"] == "WRITTEN":
+        _discard()
+    else:
+        # The new attempt failed. The earlier files were moved aside, so anything now at those
+        # names was written by this attempt: remove it, then put the earlier set back.
+        if aside is not None:
+            for p in pdf_route_outputs(out_pdf):
+                if p.is_file() and not p.is_symlink():
+                    p.unlink()
+        _restore()
+    return res
+
+
+def _run_pdf_route(gated_md: str, quality: dict, out_pdf: "Path", pkg: "Path", script: "Path") -> dict:
+    """Run md_to_pdf.sh once and check the embedded artwork (helper of `_render_compiled_pdf`)."""
+    import os
+    import subprocess
     render_md = out_pdf.with_suffix(".render.md")
     render_md.write_text(gated_md, encoding="utf-8")
     try:  # cwd=pkg so relative figure paths (gold_figures/…, locus_maps/…) resolve
@@ -1413,7 +1530,8 @@ def _compile_report_from_reader_view(args) -> int:
     if _bp["message"]:
         emit(f"  {_bp['message']}", file=sys.stderr)
     md = build_report(pkg, generate_figures=not getattr(args, "no_figures", False),
-                      toc_depth=int(getattr(args, "toc_depth", 1)))
+                      toc_depth=int(getattr(args, "toc_depth", 1)),
+                      absolute_figure_companions=True)
     out = Path(args.out) if getattr(args, "out", None) else (pkg / f"{_read_manifests(pkg)['strain_id']}_compiled_report.md")
     # Persist image paths into the external reader view. Input package paths are
     # never rewritten; embedded artwork generation also stays in this view.
@@ -1491,7 +1609,7 @@ def _compile_report_from_reader_view(args) -> int:
                   file=sys.stderr)
             return 2
         pdf_out = out.with_suffix(".pdf")
-        res = _render_compiled_pdf(md, pdf_out, pkg)
+        res = _render_compiled_pdf(md, pdf_out, pkg, replace=getattr(args, "replace_pdf", False))
         if res["status"] == "WRITTEN":
             drop = res.get("dropped_figs", 0)
             extra = f" ({drop} svg/absent figure ref(s) dropped)" if drop else ""

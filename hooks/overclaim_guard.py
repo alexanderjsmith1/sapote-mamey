@@ -79,12 +79,19 @@ def in_report_scope(path):
     if not path.lower().endswith(REPORT_EXT):
         return False
     parts = _path_components(path)
-    if "strain_data" in parts:
-        return True
+    return any(name in parts for name in _report_home_names())
+
+
+def _report_home_names():
+    """Directory names that mark a report home: 'strain_data', then the configured or discovered
+    deliverable root. An explicit $SAPOTE_DELIVERABLE_ROOT replaces discovery."""
+    names = ["strain_data"]
     env = os.environ.get("SAPOTE_DELIVERABLE_ROOT")
     if env:
         root_name = os.path.basename(env.rstrip("/\\")).lower()
-        return bool(root_name) and root_name in parts
+        if root_name:
+            names.append(root_name)
+        return names
     if deliverable_hub_root is not None:
         try:
             root = deliverable_hub_root(WORKSPACE)
@@ -92,9 +99,21 @@ def in_report_scope(path):
             root = None
         if root:
             root_name = os.path.basename(root.rstrip("/\\")).lower()
-            if root_name and root_name in parts:
-                return True
-    return False
+            if root_name:
+                names.append(root_name)
+    return names
+
+
+def _below_report_home(path):
+    """The path below its innermost report home, as '/a/b.md'.
+
+    Exemption tokens are matched here, not on the absolute path, so a workspace or checkout that
+    itself sits under a folder named 'scratchpad' or 'guardrail' does not exempt every report in it.
+    """
+    parts = _path_components(path)
+    names = set(_report_home_names())
+    idx = max((i for i, seg in enumerate(parts) if seg in names), default=-1)
+    return "/" + "/".join(parts[idx + 1:])
 
 
 def egregious_lines(content):
@@ -121,7 +140,7 @@ def main():
     path = ti.get("file_path", "") or ""
     if not in_report_scope(path):
         return 0
-    low = path.lower()
+    low = _below_report_home(path)
     if any(x in low for x in ("patches for next cut", "/scratchpad", "_provenance", "guardrail",
                               "claim_safety", "flagged_lead_surfacing", "readme_and_bgc059")):
         return 0

@@ -4,7 +4,7 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 
 **Version history, scoring boundaries, and cross-version compatibility**
 
-**v9.7.149a** | Source: `docs/ENGINE_LINEAGE.md`, `docs/COHORT_RESCORING_PLAN.md` | Last updated: 2026-06-29
+**v9.7.149a** | Source: `docs/ENGINE_LINEAGE.md`, `docs/history/retired_458/COHORT_RESCORING_PLAN.md` | Last updated: 2026-06-29
 
 
 ## Current lineage and executable gate scope
@@ -42,7 +42,7 @@ The `cohort_scoring_version_gate.py` tool enforces this as a fail-closed gate.
 
 ## Engine lineage (authoritative record)
 
-### Engine 1.9.100 — current
+### Engine 1.9.100 — current when written
 
 **Bundle range:** v9.7.142 – v9.7.149a (current)
 **Bump from:** 1.9.99
@@ -120,6 +120,8 @@ When strains in a cohort were scored at different engine versions:
 
 ## Version gate enforcement
 
+Historical: the flags in the block below (`--banked-dir`, `--workbook`) are not accepted by the current tool. Use the `--workbooks-dir` and `--engine` template near the top of this page.
+
 ```bash
 python tools/cohort_scoring_version_gate.py \
   --banked-dir cohort \
@@ -176,7 +178,7 @@ Future engine bumps must include:
 ## See also
 
 - **Authoritative source:** `docs/ENGINE_LINEAGE.md`
-- **Re-scoring plan:** `docs/COHORT_RESCORING_PLAN.md`
+- **Re-scoring plan:** `docs/history/retired_458/COHORT_RESCORING_PLAN.md`
 - **Version gate tool:** `tools/cohort_scoring_version_gate.py`
 - **Schema check:** `python mamey/workbook_schema_check.py`
 - **Sync version check:** `python tools/sync_version.py --check`

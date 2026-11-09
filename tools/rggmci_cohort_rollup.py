@@ -59,6 +59,8 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _wbio import atomic_open, atomic_write_text
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from mamey.missing_values import is_missing, optional_float, optional_int  # noqa: E402
 
 # subject-tiling verdicts that are genuine splits (ranked), excluded, or review-queued.
 _GENUINE = {"COMPLEMENTARY_SPLIT", "TERMINUS_TRUNCATION_SPLIT"}
@@ -90,18 +92,42 @@ def _is_high(conf: str) -> bool:
     return c.startswith("HIGH_RG_GMCI") or c == "HIGH"
 
 
-def _to_int(v, default=0):
-    try:
-        return int(float(v))
-    except (TypeError, ValueError):
-        return default
+# The numeric fields the confidence tier reads, with their admitted ranges. A blank, placeholder,
+# unparseable, nonfinite, fractional count or out-of-range value is a numeric hold: the pair goes
+# to NEEDS-REVIEW and the hold is listed, instead of the value silently becoming zero.
+_TIER_FIELDS = (
+    ("complementary_disjoint_refs", "count"),
+    ("n_shared_subjects", "count"),
+    ("a_core_fraction", "fraction"),
+    ("b_core_fraction", "fraction"),
+)
 
 
-def _to_float(v, default=0.0):
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return default
+def numeric_holds(row: dict) -> list[str]:
+    """`field:missing|malformed|out_of_range` for every tier field that is not an admitted number."""
+    holds = []
+    for key, kind in _TIER_FIELDS:
+        raw = row.get(key)
+        if is_missing(raw):
+            holds.append(f"{key}:missing")
+            continue
+        # A percent sign means a percentage, not a fraction or a count, and Python float() would
+        # also read digit underscores ("1_0" -> 10). Neither is an admitted value: hold it.
+        if isinstance(raw, str) and ("%" in raw or "_" in raw):
+            holds.append(f"{key}:malformed")
+            continue
+        value = optional_int(raw) if kind == "count" else optional_float(raw)
+        if value is None:
+            holds.append(f"{key}:malformed")
+        elif (kind == "count" and value < 0) or (kind == "fraction" and not 0.0 <= value <= 1.0):
+            holds.append(f"{key}:out_of_range")
+    return holds
+
+
+def _score_key(row: dict) -> tuple:
+    """Sort key for rggmci_score: admitted finite scores first (high to low), then held scores."""
+    score = optional_float(row.get("rggmci_score"))
+    return (0, -score) if score is not None else (1, 0.0)
 
 
 def effective_verdict(row: dict) -> str:
@@ -127,11 +153,13 @@ def confidence_tier(row: dict) -> str:
     (both arms carrying core machinery strengthens the call). Deliberately conservative — most
     tiling-genuine splits still carry homology cautions and land in LIKELY/REVIEW, not CONFIRMABLE.
     """
-    disjoint = _to_int(row.get("complementary_disjoint_refs"))
-    shared = _to_int(row.get("n_shared_subjects"))
+    if numeric_holds(row):
+        return "NEEDS-REVIEW"
+    disjoint = optional_int(row.get("complementary_disjoint_refs"))
+    shared = optional_int(row.get("n_shared_subjects"))
     guard = (row.get("interpretation_guard") or "").upper()
-    a_core = _to_float(row.get("a_core_fraction"))
-    b_core = _to_float(row.get("b_core_fraction"))
+    a_core = optional_float(row.get("a_core_fraction"))
+    b_core = optional_float(row.get("b_core_fraction"))
     distant = "DISTANT" in guard
 
     # CONFIRMABLE: strong independent disjoint support, little shared overlap, no distance caution,
@@ -189,6 +217,7 @@ def rollup(packages_dir: str | Path) -> dict:
         if v in _GENUINE:
             r["_effective_verdict"] = v
             r["_confidence_tier"] = confidence_tier(r)
+            r["_numeric_holds"] = numeric_holds(r)
             genuine.append(r)
         elif v in _EXCLUDED:
             excluded.append(r)
@@ -200,7 +229,7 @@ def rollup(packages_dir: str | Path) -> dict:
     _tier_rank = {"CONFIRMABLE": 0, "LIKELY": 1, "NEEDS-REVIEW": 2}
     genuine.sort(key=lambda r: (_VERDICT_RANK.get(r["_effective_verdict"], 9),
                                 _tier_rank.get(r["_confidence_tier"], 9),
-                                -_to_float(r.get("rggmci_score"))))
+                                _score_key(r)))
 
     comp = sum(1 for r in genuine if r["_effective_verdict"] == "COMPLEMENTARY_SPLIT")
     term = sum(1 for r in genuine if r["_effective_verdict"] == "TERMINUS_TRUNCATION_SPLIT")
@@ -215,6 +244,7 @@ def rollup(packages_dir: str | Path) -> dict:
         "n_excluded_paralog": len(excluded),
         "n_review": len(review),
         "tiers": dict(tiers),
+        "n_numeric_hold": sum(1 for r in genuine if r["_numeric_holds"]),
         "genuine": genuine,
         "review": review,
     }
@@ -239,6 +269,10 @@ def write_board(summary: dict, out_prefix: str) -> tuple[str, str]:
               f"(Most tiling-genuine splits still carry homology cautions — this is honest, not a "
               f"defect.)")
     md.append("")
+    md.append(f"{summary.get('n_numeric_hold', 0)} genuine split(s) have a missing, malformed or "
+              f"out-of-range tier field; they are NEEDS-REVIEW and list the field below. A held "
+              f"field is not a zero.")
+    md.append("")
     md.append("RG-GMCI is homology-guided shared-reference linkage, not nucleotide-level contig "
               "joining. Each pair below is a capacity-level reconstruction hypothesis cited with "
               "contig/node, never an asserted physical join.")
@@ -251,6 +285,8 @@ def write_board(summary: dict, out_prefix: str) -> tuple[str, str]:
                   f"(score {r.get('rggmci_score','')}, disjoint-refs "
                   f"{r.get('complementary_disjoint_refs','?')}, shared-subjects "
                   f"{r.get('n_shared_subjects','?')})")
+        if r.get("_numeric_holds"):
+            md.append(f"   - numeric hold: {', '.join(r['_numeric_holds'])}")
         md.append(f"   - {r.get('bgc_a','')} [{r.get('contig_a','')}] {r.get('products_a','')} "
                   f"({r.get('edge_a','')})")
         md.append(f"   - {r.get('bgc_b','')} [{r.get('contig_b','')}] {r.get('products_b','')} "
@@ -261,7 +297,7 @@ def write_board(summary: dict, out_prefix: str) -> tuple[str, str]:
     cols = ["rank", "strain", "pair", "verdict", "confidence_tier", "rggmci_score",
             "complementary_disjoint_refs", "n_shared_subjects", "a_core_fraction", "b_core_fraction",
             "bgc_a", "contig_a", "products_a", "edge_a",
-            "bgc_b", "contig_b", "products_b", "edge_b", "interpretation_guard"]
+            "bgc_b", "contig_b", "products_b", "edge_b", "interpretation_guard", "numeric_hold"]
     _parent = os.path.dirname(out_prefix)
     if _parent:
         os.makedirs(_parent, exist_ok=True)
@@ -277,7 +313,7 @@ def write_board(summary: dict, out_prefix: str) -> tuple[str, str]:
                         r.get("bgc_a", ""), r.get("contig_a", ""), r.get("products_a", ""),
                         r.get("edge_a", ""), r.get("bgc_b", ""), r.get("contig_b", ""),
                         r.get("products_b", ""), r.get("edge_b", ""),
-                        r.get("interpretation_guard", "")])
+                        r.get("interpretation_guard", ""), ";".join(r.get("_numeric_holds", []))])
     md_path = out_prefix + "_board.md"
     atomic_write_text(md_path, md_text)
     return md_path, csv_path
@@ -295,7 +331,8 @@ def main(argv=None):
     md_path, csv_path = write_board(summary, a.out_prefix)
     emit(f"RG-GMCI cohort rollup: {summary['n_high']} HIGH -> {summary['n_genuine']} genuine "
           f"({summary['n_complementary']} complementary + {summary['n_terminus']} terminus), "
-          f"{summary['n_excluded_paralog']} paralog excluded, {summary['n_review']} review",
+          f"{summary['n_excluded_paralog']} paralog excluded, {summary['n_review']} review, "
+          f"{summary['n_numeric_hold']} with a numeric hold",
          f"  tiers: {summary['tiers']}", f"  -> {md_path}", f"  -> {csv_path}", sep="\n")
     return 0
 

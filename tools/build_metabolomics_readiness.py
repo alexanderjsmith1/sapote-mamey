@@ -28,7 +28,9 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
-from _wbio import atomic_save
+from _wbio import atomic_save, atomic_open
+from mamey.missing_values import optional_text  # noqa: E402
+from mamey.output_transaction import preflight_output_roster  # noqa: E402
 
 
 def _read_json(_path, *, encoding="utf-8"):
@@ -70,10 +72,27 @@ def base_class(products, closest):
     return None
 
 
+def _region_label(b):
+    """The source region text as given; a bare number becomes regionNNN. None when missing."""
+    reg = optional_text(b.get("antismash_region")) or optional_text(b.get("region_number"))
+    if reg is None:
+        return None
+    return reg if reg.lower().startswith("region") else f"region{int(reg):03d}" if reg.isdigit() else reg
+
+
+def identity_fields(b, strain):
+    """Exact strain / full contig / region / alias from one manifest record, with a hold for gaps."""
+    contig = optional_text(b.get("contig")) or optional_text(b.get("node_id"))
+    region = _region_label(b)
+    missing = [n for n, v in (("strain", strain), ("contig", contig), ("region", region)) if not v]
+    return {"strain": strain or "", "full_contig": contig or "", "region": region or "",
+            "identity_state": ("IDENTITY_HOLD: missing " + ", ".join(missing)) if missing else "COMPLETE"}
+
+
 def locator(b):
     contig = b.get("contig") or b.get("node_id") or "?"
-    reg = b.get("region_number") or b.get("antismash_region") or "?"
-    return f"{b['bgc_id']} ({contig} · region{reg})"
+    reg = _region_label(b) or "region?"
+    return f"{b['bgc_id']} ({contig} · {reg})"
 
 
 def main():
@@ -85,7 +104,15 @@ def main():
     if not mf:
         raise SystemExit("manifest.json not found in package dir")
     d = _read_json(mf[0])
-    strain = d.get("strain_id") or "STRAIN"
+    strain_id = optional_text(d.get("strain_id"))
+    strain = strain_id or "STRAIN"
+    csv_path = os.path.join(a.out_dir, f"{strain}_Metabolomics_Readiness.csv")
+    xlsx_target = os.path.join(a.out_dir, f"{strain}_Metabolomics_Readiness.xlsx")
+    # Both outputs must be fresh: an older spreadsheet left beside a new CSV would read as this run's.
+    try:
+        preflight_output_roster([csv_path, xlsx_target], protected_paths=[mf[0]])
+    except ValueError as exc:
+        raise SystemExit(f"OUTPUT_REFUSED: {exc}; use a fresh --out-dir")
     os.makedirs(a.out_dir, exist_ok=True)
 
     rows = []
@@ -93,39 +120,38 @@ def main():
         cls = base_class(b.get("products"), b.get("closest_candidate_kcb_product"))
         df = CLASS_DEFAULTS.get(cls)
         if df:
-            rows.append({"locator": locator(b), "bgc_id": b["bgc_id"], "class": cls,
+            rows.append({"locator": locator(b), **identity_fields(b, strain_id), "bgc_id": b["bgc_id"], "class": cls,
                          "MW_range": df["mw"], "ionization": df["ion"], "UV_handle": df["uv"],
                          "polarity": df["polarity"], "extraction_route": df["extraction"],
                          "dereplication_target": df["derep"],
                          "claim_ceiling": b.get("product_claim_ceiling") or "class-level only"})
         else:
-            rows.append({"locator": locator(b), "bgc_id": b["bgc_id"], "class": (cls or b.get("products") or "unclassified"),
+            rows.append({"locator": locator(b), **identity_fields(b, strain_id), "bgc_id": b["bgc_id"], "class": (cls or b.get("products") or "unclassified"),
                          "MW_range": "class-default: unavailable", "ionization": "", "UV_handle": "",
                          "polarity": "", "extraction_route": "", "dereplication_target": "",
                          "claim_ceiling": b.get("product_claim_ceiling") or "class-level only"})
 
-    csv_path = os.path.join(a.out_dir, f"{strain}_Metabolomics_Readiness.csv")
     # Empty-safe write (v9.7.114): a package with zero BGCs must write a valid header-only CSV,
     # not crash on rows[0].keys().
-    _FIELDS = ["locator", "bgc_id", "class", "MW_range", "ionization", "UV_handle",
+    _FIELDS = ["locator", "strain", "full_contig", "region", "identity_state", "bgc_id", "class", "MW_range", "ionization", "UV_handle",
                "polarity", "extraction_route", "dereplication_target", "claim_ceiling"]
     fieldnames = list(rows[0].keys()) if rows else _FIELDS
-    _tmp = csv_path + ".tmp"
-    with open(_tmp, "w", newline="") as f:
+    with atomic_open(csv_path, "w", encoding=None, newline="", refuse_existing=True) as f:
         w = _SafeDictWriter(f, fieldnames=fieldnames); w.writeheader(); w.writerows(rows)
-    os.replace(_tmp, csv_path)
     try:
         import openpyxl
         wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Metabolomics_Readiness"
         ws.append(fieldnames)
         for r in rows: ws.append([(", ".join(v) if isinstance(v,list) else v) for v in (r[k] for k in fieldnames)])
-        xlsx_path = os.path.join(a.out_dir, f"{strain}_Metabolomics_Readiness.xlsx"); atomic_save(wb, xlsx_path)
+        xlsx_path = xlsx_target; atomic_save(wb, xlsx_path, refuse_existing=True)
     except Exception as e:
         xlsx_path = f"(xlsx skipped: {e})"
 
     mapped = sum(1 for r in rows if r["MW_range"] != "class-default: unavailable")
     caveat = sum(1 for r in rows if "CAVEAT" in (r["polarity"] or ""))
-    emit(f"{strain}: {len(rows)} BGCs -> {mapped} class-mapped, {caveat} carry polar-compound caveat", f"  csv: {csv_path}\n  xlsx: {xlsx_path}", sep="\n")
+    held = sum(1 for r in rows if r["identity_state"] != "COMPLETE")
+    emit(f"{strain}: {len(rows)} BGCs -> {mapped} class-mapped, {caveat} carry polar-compound caveat", f"  csv: {csv_path}\n  xlsx: {xlsx_path}"
+         + (f"\n  {held} row(s) carry IDENTITY_HOLD (missing strain, contig or region in manifest.json)" if held else ""), sep="\n")
 
 
 if __name__ == "__main__":

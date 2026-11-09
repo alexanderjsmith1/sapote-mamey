@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""rggmci_widget.py — self-contained interactive RG-GMCI split-pathway widget (graduated
-into the engine as a first-class deliverable tool, v9.7.349x candidate).
+"""rggmci_widget.py — self-contained interactive RG-GMCI split-pathway widget.
 
 RG-GMCI = Reference-Guided Gene-Module Complementarity Index: the Mamey engine's
 *within-strain* split-pathway linkage channel. It proposes pairs of BGCs in the same

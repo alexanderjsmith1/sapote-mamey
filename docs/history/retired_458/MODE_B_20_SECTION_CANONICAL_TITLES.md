@@ -49,7 +49,7 @@ edit the JSON and re-run the regen tool. CI enforces this via
 
 Before v9.7.150e the bundle carried six separate §1–§20 schema sources:
 
-1. `mamey/data/mode_b/modeb_full20_corrective_contract.json` (live read)
+1. `mamey/data/mode_b/modeb_full20_corrective_contract.json` (removed; the last copy is `mamey/data/mode_b/legacy/modeb_full20_corrective_contract_legacy_v97144.json`)
 2. `mamey/data/mode_b/modeb_full30_corrective_contract.json` (live read)
 3. `mamey/data/mode_b/legacy/modeb_full20_corrective_contract_legacy_v97144.json` (archival)
 4. Hard-coded fallback list inside `mamey/validators/modeb_full20.py:30-52`

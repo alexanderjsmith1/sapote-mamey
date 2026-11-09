@@ -9,7 +9,7 @@
       "exact completed run ID"
     ],
     "docs/BIGSCAPE_GCF_WORKFLOW.md": [
-      "content-addressed",
+      "STAGING_COLLISION",
       "cohort-only",
       "never use `max(run.id)`",
       "Only a user-approved, source-preserving reconciliation"

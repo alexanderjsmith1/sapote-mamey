@@ -180,11 +180,46 @@ def _load_miscalls(miscall_file: str | os.PathLike | None) -> set[tuple[str, str
     return subs
 
 
+class DualpassOutputRefused(ValueError):
+    """The output roster failed the shared output check; nothing was written."""
+
+
+class DualpassOutputAliasesInput(DualpassOutputRefused):
+    """An output path is, or resolves to, one of the input ledgers."""
+
+
+def _preflight_outputs(outputs: list[str], inputs: list) -> None:
+    """Refuse an output that aliases an input (DualpassOutputAliasesInput) or already exists
+    (FileExistsError). Nothing is created."""
+    try:
+        from .output_transaction import preflight_output_roster
+    except ImportError:  # direct-script use
+        from mamey.output_transaction import preflight_output_roster
+    for path in outputs:
+        try:
+            preflight_output_roster([path], protected_paths=inputs)
+        except ValueError as exc:
+            if "protected input" in str(exc):
+                raise DualpassOutputAliasesInput(
+                    f"dualpass output {path} is one of its inputs; choose a separate --out folder") from None
+            if os.path.lexists(path):
+                raise FileExistsError(17, "output already exists", path) from None
+            raise DualpassOutputRefused(f"dualpass output {path} refused: {exc}") from None
+
+
 def merge(claude_path, codex_path, out_dir=None, normalize=True, miscall_file=None) -> dict[str, Any]:
     """Merge two ledgers into DIVERGENCE.tsv. If normalize, canonicalise both first via claims_vocab."""
     vocab = load_vocab()
     cl_p, cx_p = str(claude_path), str(codex_path)
     outd = os.path.abspath(out_dir or os.path.dirname(str(claude_path)) or ".")
+    out = os.path.join(outd, "DIVERGENCE.tsv")
+    # Check the whole output roster before the first write: no output may be, or resolve to, an
+    # input, and none may already exist. The normalized copies are also created exclusively below.
+    outputs = [out]
+    if normalize:
+        outputs += [os.path.join(outd, side + Path(src).stem + "_norm.tsv")
+                    for side, src in (("claude_", cl_p), ("codex_", cx_p))]
+    _preflight_outputs(outputs, [p for p in (cl_p, cx_p, miscall_file) if p])
     os.makedirs(outd, exist_ok=True)
     if normalize:
         # Normalized copies go to the output folder, named per side, so --out keeps every write
@@ -215,11 +250,10 @@ def merge(claude_path, codex_path, out_dir=None, normalize=True, miscall_file=No
             "status": status, "auto_resolution": rule,
             "needs_discussion": "yes" if (escalated or (status in ("DISAGREE", "CLAUDE_ONLY", "CODEX_ONLY") and not rule)) else "no",
         })
-    out = os.path.join(outd, "DIVERGENCE.tsv")
     cols = ["task", "strain", "bgc_id", "locus_tag", "assertion_type", "claude_value", "codex_value",
             "claude_evidence", "codex_evidence", "claude_conf", "codex_conf", "status",
             "auto_resolution", "needs_discussion"]
-    with open(out, "w", newline="", encoding="utf-8") as fh:
+    with open(out, "x", newline="", encoding="utf-8") as fh:
         fh.write("# Dual-pass divergence (freeze-safe additive tooling). Reconciliation only; no scoring; "
                  "judgment deferred. Values canonicalised via claims_vocab.json when --normalize.\n")
         w = _SafeDictWriter(fh, fieldnames=cols, delimiter="\t")
@@ -244,8 +278,11 @@ def dualpass_command(args) -> int:
                     normalize=not getattr(args, "no_normalize", False),
                     miscall_file=getattr(args, "miscalls", None))
     except FileExistsError as exc:
-        sys.stderr.write(f"ERROR: dualpass will not replace an earlier normalized ledger ({exc.filename}); "
+        sys.stderr.write(f"ERROR: dualpass will not replace an earlier output ({exc.filename}); "
                          f"choose a new --out folder\n")  # direct write keeps the strict-health print_calls ratchet flat
+        return 1
+    except DualpassOutputRefused as exc:
+        sys.stderr.write(f"ERROR: {exc}\n")
         return 1
     _OUT.info('%s\n%s\n%s', f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", f"  -> {res['out']}")
     return 0

@@ -38,6 +38,9 @@ except ImportError:  # bare-script run outside an editable install
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from mamey.output_transaction import preflight_output_roster  # noqa: E402
+from mamey.bigscape_namespace import NamespaceError, select_family_run  # noqa: E402
 try:
     from _console import emit
 except ImportError:  # bare-script run outside the bundle
@@ -78,8 +81,9 @@ def family_runs(con):
 
 def build(db_path, cutoff, query_rx, prefixes, run_id=None):
     """A BiG-SCAPE 2 database reused for a later run (the documented way to add genomes) keeps every run's families.
-    Families are read from one run only: run_id when given, else the latest run. Reading all runs counts each family
-    once per run."""
+    Families are read from one run only. With run_id, that run must exist and be finished; without it, the database
+    must hold exactly one finished run (mamey.bigscape_namespace.select_family_run). Reading all runs counts each
+    family once per run, and silently taking the latest run hides which run was read."""
     con = _open_db_ro(db_path)
     runs = family_runs(con)
     if runs is None:
@@ -87,10 +91,12 @@ def build(db_path, cutoff, query_rx, prefixes, run_id=None):
             raise SystemExit("RUN_ID_UNAVAILABLE: this database's family table has no run_id column")
         run_sql, run_arg = "", ()
     else:
-        if run_id is None:
-            run_id = runs[-1] if runs else None
-        elif run_id not in runs:
+        if run_id is not None and run_id not in runs:
             raise SystemExit(f"RUN_ID_NOT_FOUND: run {run_id} is not in this database (runs: {runs})")
+        try:
+            run_id = select_family_run(con, run_id)
+        except NamespaceError as error:
+            raise SystemExit(str(error)) from None
         run_sql, run_arg = " and f.run_id=?", (run_id,)
     rec = {rid: (os.path.basename(path), prod or "") for rid, path, prod in
            con.execute("select r.id, g.path, r.product from bgc_record r join gbk g on g.id=r.gbk_id where r.record_type='region'")}
@@ -101,7 +107,8 @@ def build(db_path, cutoff, query_rx, prefixes, run_id=None):
     placement = []
     for (cut,) in con.execute("select distinct cutoff from family f where 1=1" + run_sql + " order by cutoff", run_arg):
         placed = con.execute("select count(distinct bf.record_id) from bgc_record_family bf join family f on f.id=bf.family_id join bgc_record r on r.id=bf.record_id where abs(f.cutoff-?)<1e-6 and r.record_type='region'" + run_sql, (cut,) + run_arg).fetchone()[0]
-        placement.append({"cutoff": cut, "region_records": len(rec), "records_with_family_row": placed, "singleton_records": len(rec) - placed})
+        placement.append({"cutoff": cut, "region_records": len(rec), "records_with_family_row": placed, "singleton_records": len(rec) - placed,
+                          "run_id": "" if run_id is None else run_id})
     con.close()
     rows = []
     for fid, rids in fam.items():
@@ -120,7 +127,8 @@ def build(db_path, cutoff, query_rx, prefixes, run_id=None):
                      "query_strains": ";".join(sorted(strains)), "query_products": ";".join(sorted(p for p in prods if p)),
                      "layer_counts": ";".join(f"{k}={v}" for k, v in sorted(layers.items()) if k not in ("query",)),
                      "n_mibig": len(mibig), "mibig_ids": ";".join(sorted(mibig)[:6]), "verdict": verdict(layers, strains),
-                     "cross_strain": "yes" if len(strains) >= 2 else "no (same-strain members only)"})
+                     "cross_strain": "yes" if len(strains) >= 2 else "no (same-strain members only)",
+                     "run_id": "" if run_id is None else run_id})
     rows.sort(key=lambda r: (r["verdict"], -r["n_query_strains"], -r["n_members"]))
     build.last_run = (run_id, runs)
     return rows, placement
@@ -133,18 +141,23 @@ def main(argv=None):
     ap.add_argument("--query-regex", default=r"^([A-Za-z]+-\d+)_")
     ap.add_argument("--layer-prefix", action="append", default=None, help="reference-layer file prefix (default SID_, TYPE_)")
     ap.add_argument("--run-id", type=int, default=None,
-                    help="BiG-SCAPE run to read (default: the latest run in the database); a reused database holds every run's families")
+                    help="BiG-SCAPE run to read; required when the database holds more than one finished run (a reused database keeps every run's families)")
     a = ap.parse_args(argv)
     prefixes = tuple(a.layer_prefix) if a.layer_prefix else ("SID_", "TYPE_")
+    # Both outputs must be new and must not be the database: one fresh pair per run and cutoff.
+    try:
+        preflight_output_roster((a.out, a.out + ".placement.tsv"), protected_paths=(a.db,))
+    except ValueError as error:
+        ap.error(f"refusing outputs {a.out} and {a.out}.placement.tsv: {error}; choose a new path for each run and cutoff")
     rows, placement = build(a.db, a.cutoff, re.compile(a.query_regex), prefixes, run_id=a.run_id)
     used, runs = build.last_run
     if runs is not None:
-        emit(f"run {used} of {len(runs)} run(s) in the database {runs}" + ("" if a.run_id is not None or len(runs) < 2 else "; the latest run is used, pass --run-id to choose"))
-    fields = ["family_id", "cutoff", "n_members", "n_query_records", "n_query_strains", "query_strains", "query_products", "layer_counts", "n_mibig", "mibig_ids", "verdict", "cross_strain"]
-    with open(a.out, "w", encoding="utf-8", newline="") as h:
+        emit(f"run {used} of {len(runs)} run(s) in the database {runs}")
+    fields = ["family_id", "cutoff", "n_members", "n_query_records", "n_query_strains", "query_strains", "query_products", "layer_counts", "n_mibig", "mibig_ids", "verdict", "cross_strain", "run_id"]
+    with open(a.out, "x", encoding="utf-8", newline="") as h:
         w = _SafeDictWriter(h, fieldnames=fields, delimiter="\t", lineterminator="\n"); w.writeheader(); w.writerows(rows)
-    with open(a.out + ".placement.tsv", "w", encoding="utf-8", newline="") as h:
-        w = _SafeDictWriter(h, fieldnames=["cutoff", "region_records", "records_with_family_row", "singleton_records"], delimiter="\t", lineterminator="\n")
+    with open(a.out + ".placement.tsv", "x", encoding="utf-8", newline="") as h:
+        w = _SafeDictWriter(h, fieldnames=["cutoff", "region_records", "records_with_family_row", "singleton_records", "run_id"], delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(placement)
     cnt = collections.Counter(r["verdict"] for r in rows)
     emit(f"cutoff {a.cutoff:g}: {len(rows)} query-containing families; " + ", ".join(f"{k} {v}" for k, v in sorted(cnt.items())))

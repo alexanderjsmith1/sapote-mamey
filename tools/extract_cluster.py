@@ -88,15 +88,45 @@ def find_cluster(prots, markers, min_identity=40.0, window=25):
         lst = sorted(lst)
         for gi0, _, _, _ in lst:
             win = [x for x in lst if gi0 <= x[0] < gi0 + window]
-            ndistinct = len(set(m for _, m, _, _ in win))
+            names = len(set(m for _, m, _, _ in win))
+            # Count markers that can each be assigned a different predicted gene. Two marker names
+            # hitting one protein are one gene of evidence, not two co-occurring genes.
+            ndistinct = distinct_gene_assignments(win)
+            genes_by = defaultdict(set)
+            for g, m, _, _ in win:
+                genes_by[g].add(m)
+            shared = sorted([g, sorted(ms)] for g, ms in genes_by.items() if len(ms) > 1)
             if best is None or ndistinct > best["n_markers"]:
                 best = {"contig": cid, "gene_start": gi0,
                         "gene_end": max(x[0] for x in win),
                         "n_markers": ndistinct,
+                        "n_marker_names_matched": names,
+                        "n_distinct_target_genes": len(genes_by),
+                        "shared_target_genes": shared,
                         "markers": sorted(set((m, round(max(i for _, mm, i, _ in win if mm == m), 1))
                                               for _, m, _, _ in win)),
                         "hits": win}
     return best
+
+
+def distinct_gene_assignments(window_hits):
+    """Largest set of markers that can each be matched to a different predicted gene (bipartite matching)."""
+    genes_by_marker = defaultdict(set)
+    for gene, marker, _, _ in window_hits:
+        genes_by_marker[marker].add(gene)
+    owner = {}
+
+    def assign(marker, seen):
+        for gene in sorted(genes_by_marker[marker]):
+            if gene in seen:
+                continue
+            seen.add(gene)
+            if gene not in owner or assign(owner[gene], seen):
+                owner[gene] = marker
+                return True
+        return False
+
+    return sum(1 for marker in sorted(genes_by_marker) if assign(marker, set()))
 
 
 def extract_gbk(prots, seqs, cluster, label, flank=2, marker_labels=None):
@@ -160,6 +190,10 @@ def run(genome, markers, label, min_identity=40.0, window=25, min_markers=2, fla
     rec = None
     if cluster:
         result.update({"contig": cluster["contig"], "n_markers_found": cluster["n_markers"],
+                       "n_markers_found_basis": "markers assigned to distinct predicted genes",
+                       "n_marker_names_matched": cluster.get("n_marker_names_matched"),
+                       "n_distinct_target_genes": cluster.get("n_distinct_target_genes"),
+                       "shared_target_genes": cluster.get("shared_target_genes", []),
                        "markers": cluster["markers"]})
         if present:
             out = extract_gbk(prots, seqs, cluster, label, flank=flank)

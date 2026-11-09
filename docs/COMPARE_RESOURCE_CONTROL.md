@@ -1,6 +1,6 @@
 # Comparison alignment resource control
 
-`mamey compare` uses one protein-alignment thread by default. Increase it explicitly
+`python mamey_run.py compare` uses one protein-alignment thread by default. Increase it explicitly
 when more CPU capacity is available:
 
 ```bash
@@ -16,7 +16,7 @@ and may be slower.
 
 DIAMOND receives the setting for database construction and protein search. Each
 pyswrd query batch receives the same setting. The Biopython fallback remains serial.
-The requested value is recorded as `alignment_threads` in `gemini_summary.json`;
+The requested value is recorded as `alignment_threads` in the summary JSON in the output folder (`gemini_summary.json`);
 it is not a measurement of active native threads.
 
 This is an alignment setting, not a process-wide CPU or memory limit. Optional ANI

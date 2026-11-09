@@ -41,8 +41,7 @@ What's gated is the **comparative layer** specifically.
 
 ## Scope: what must be re-run
 
-The 19-strain comparative cohort *(observed: CCSM cohort definition)* — 12 bee / 3 wasp (AS-XXX/365/425)
-/ 2 moss (AS-XXX/609) / 2 host-unconfirmed (AS-XXX/348). Re-scoring means, per strain:
+The 19-strain comparative cohort *(observed: CCSM cohort definition)* — 12 bee / 3 wasp / 2 moss / 2 host-unconfirmed (counts only; the strain list is omitted). Re-scoring means, per strain:
 
 1. Re-run the deterministic Mamey extraction on the strain's antiSMASH output under the **pinned 1.9.96
    engine** (no mixed versions). Mamey output is byte-deterministic *(observed: held by tests)*, so this

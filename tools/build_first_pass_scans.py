@@ -117,8 +117,14 @@ def _flbr(ss: dict) -> str:
     """Scan 3 — FLBR / LMPKS megasynthase census."""
     f = ss.get("flbr", {})
     counts = f.get("counts", {})
+    # The count covers the GenBank record set the parser read, which is region records only for
+    # an archive with no whole-record GenBank. Name that set; never call the count genome-wide.
+    scope = f.get("count_scope") if isinstance(f.get("count_scope"), dict) else {}
+    scope_state = str(scope.get("state") or "NOT_BOUND")
+    scope_note = str(scope.get("note") or "record scope not recorded by this package")
     out = ["### 3 · FLBR / LMPKS Megasynthase Census",
-           f"_Genome-wide KS-like count: **{f.get('genome_wide_ks_like_count', '?')}** · "
+           f"_KS-like count (record scope: {scope_state}, {scope_note}): "
+           f"**{f.get('genome_wide_ks_like_count', '?')}** · "
            f"grade: **{f.get('flbr_grade', '?')}**. Very-Poor assembly demotes STRONG→WEAK except "
            f"modules bracketed by docking domains on both sides. Physical linkage of split subunits is "
            f"unproven — candidate co-locus, long-read required._", ""]

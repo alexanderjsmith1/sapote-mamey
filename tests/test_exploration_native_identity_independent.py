@@ -4,7 +4,7 @@ import copy
 import json
 from types import SimpleNamespace
 import pytest
-from mamey.crosswalk import enrich_bgc_crosswalk
+from mamey.crosswalk import enrich_bgc_crosswalk, legacy_short_node_id
 from mamey.models import BGCRecord
 from mamey import genome_explore as ge
 from mamey.exact_identity import ExactLocusIdentityError, exact_locus_from_mapping
@@ -61,7 +61,10 @@ def test_native_full_contig_display_preserves_producer_fields(tmp_path, monkeypa
 
 @pytest.mark.parametrize("as_json", [False, True])
 def test_normalized_key_collision_keeps_distinct_full_contigs(tmp_path, monkeypatch, as_json):
+    # Ruling 479: new packages no longer collide; a stored legacy package still can.
     rows = [native("NODE_1_length_1000_cov_1.5"), native("NODE_1_length_1000_cov_1.9", "BGC002")]
+    for r in rows:
+        r["node_id"] = legacy_short_node_id(r["contig"])
     assert rows[0]["node_id"] == rows[1]["node_id"]
     root = install(tmp_path, monkeypatch, {"strain_id": STRAIN, "bgcs": rows})
     output = run(root, as_json, monkeypatch)
@@ -86,8 +89,12 @@ def test_native_adapter_must_not_hide_real_conflicts(tmp_path, monkeypatch, fiel
     assert emitted == []
 
 def test_generic_synonym_owner_stays_strict_for_normalized_values():
+    # Ruling 479: a new package's node_id is the full contig, so the stored legacy short
+    # form is what the generic owner must still refuse as a conflicting synonym.
+    row = native()
+    row["node_id"] = legacy_short_node_id(row["contig"])
     with pytest.raises(ExactLocusIdentityError):
-        exact_locus_from_mapping(STRAIN, native())
+        exact_locus_from_mapping(STRAIN, row)
 
 @pytest.mark.parametrize("case", ["empty_node", "null_node", "missing_contig", "missing_native_region", "filename_fallback", "broad_cov_equivalence"])
 @pytest.mark.parametrize("as_json", [False, True])
@@ -123,6 +130,8 @@ def test_database_normalized_key_exact_missing_and_ambiguous_states_are_preserve
     import sqlite3
     from mamey.bgc_l0_program import _exact_region
     row = native()
+    # Ruling 479: database rows written before engine 1.9.180 carry the legacy short key.
+    row["node_id"] = legacy_short_node_id(row["contig"])
     assert row["node_id"] == "NODE_1_length_1000_cov_1"
     assert row["contig"] == "NODE_1_length_1000_cov_1.5"
     db = sqlite3.connect(":memory:"); db.row_factory = sqlite3.Row

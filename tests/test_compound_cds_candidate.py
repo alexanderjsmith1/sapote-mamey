@@ -37,8 +37,10 @@ def test_writer_discloses_representative_coordinates_and_full_parts(tmp_path):
  b=bgc('BGC001',900,100,200);write_gene_context(tmp_path,'test',[b],[cds([(1,10),(991,1000)])]);rows=list(csv.DictReader((tmp_path/'test_cds_table.csv').open()));assert rows[0]['length_bp']=='20' and rows[0]['coordinate_scope']=='longest_part' and json.loads(rows[0]['location_parts_1based_inclusive'])==[[1,10],[991,1000]]
 
 def test_real_graeca_origin_cds():
- base=Path('/Users/alexandersmith/Codex Alex 2026/October 30 Codex');src=base/'Actinomadura Methods Demonstration/19 Build a reproducibility and availability plan/RECOVERED_ZENODO_SOURCES/Actinomadura_graeca__CP059572__antiSMASH8.0.4_loose.zip'
- if not src.exists(): pytest.skip('local Actinomadura graeca antiSMASH zip not present (runs on the owner workstation only)')
+ root=__import__('os').environ.get('SAPOTE_TEST_REFERENCE_ROOT')
+ if not root: pytest.skip('public Actinomadura graeca antiSMASH zip unavailable: set SAPOTE_TEST_REFERENCE_ROOT to a folder holding Actinomadura_graeca__CP059572__antiSMASH8.0.4_loose.zip')
+ src=Path(root).expanduser()/'Actinomadura_graeca__CP059572__antiSMASH8.0.4_loose.zip'
+ if not src.is_file(): pytest.skip('public Actinomadura graeca antiSMASH zip not found under SAPOTE_TEST_REFERENCE_ROOT')
  assert hashlib.sha256(src.read_bytes()).hexdigest()=='1b1632fce6d7d28d61987208652013e1e6f0373ae5af487424f116ad557dabc1';rows=parsers.extract_cds_features(src);c=next(x for x in rows if x.locus_tag=='AGRA3207_000001');assert c.location_parts==((8944623,8944773),(1,3704)) and len(c.nucleotide_seq)==3855
  b=BGCRecord('BGC001','CP059572.1',1,8895909,18704,8944773,validated_circular_span_bp=67568);r=build_gene_context([b],[c])['bgcs']['BGC001'][0];assert r['length_bp']==3855 and r['coordinate_scope']=='longest_part' and r['start']==1 and r['end']==3704
 

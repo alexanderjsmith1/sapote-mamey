@@ -2,9 +2,9 @@
   "schema_version": "modeb_corrective_full48_v1",
   "status": "current",
   "filename_provenance": "SSOT NOTE: this file is named 'modeb_full30_corrective_contract.json' for historical continuity — the structure gate (mamey/modeb_structure_gate.py), the template emitter, tools/regen_modeb_contract_docs.py, and several tests load it by that exact filename. The filename count ('full30') is stale; the authoritative section count is carried by schema_version ('modeb_corrective_full48_v1') and the sections[] list below, which define the §1–§48 finished-deliverable contract. When filename and schema_version disagree, schema_version wins. Do not read '30' from the filename as a section ceiling. A physical rename is deferred because code and tests bind to this name; see docs/CURRENT_DOCS_INDEX.md for the canonical section doc.",
-  "source_protocol": "docs/MODEB_CORRECTIVE_PROTOCOL.md + docs/CHATGPT_EXECUTION_SLICE_v97147.md §9",
+  "source_protocol": "docs/MODEB_CORRECTIVE_PROTOCOL.md + docs/MODEB_PROFILE_MATRIX.md",
   "supersedes": "modeb_corrective_full20_v1 (which omitted §21–§30 entirely)",
-  "section_policy": "Expanded publication-candidate profile requires §1–§48 in exact order. A section may contain a reasoned NOT_APPLICABLE disposition, but it may not be omitted. LLMs must not invent, rename, reorder, or substitute section titles. Legacy conditional/optional flags remain only for backward-compatible non-publication linting.",
+  "section_policy": "Expanded publication-candidate profile requires §1–§48 in exact order. A section may contain a reasoned NOT_APPLICABLE disposition, but it may not be omitted. Keep the exact section titles and order; do not invent, rename, reorder or substitute them. Legacy conditional/optional flags remain only for backward-compatible non-publication linting.",
   "artifact_drift_policy": {
     "card_body": "prose-first scientific interpretation",
     "evidence_tables": "supporting appendix/index only; never a substitute for the card body",
@@ -248,21 +248,21 @@
       "title": "Assembly-line inventory",
       "required": "conditional",
       "condition_key": "has_measured_assembly_line",
-      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+      "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it."
     },
     {
       "number": 33,
       "title": "Module programming readout",
       "required": "conditional",
       "condition_key": "has_measured_assembly_line",
-      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+      "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it."
     },
     {
       "number": 34,
       "title": "Initiation & release logic",
       "required": "conditional",
       "condition_key": "has_measured_assembly_line",
-      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+      "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it."
     },
     {
       "number": 35,
@@ -394,5 +394,5 @@
     "FINISHED_FULL48_CURRENT_EVIDENCE": "§§1–48 exactly once, in numeric order; every section carries locus-specific interpretation or a reasoned not-applicable/hold statement; complete channel-separated named-match gene matrix; 48-row section-accountability matrix; 14-stream typed dispositions; historical source-loss reconciliation; appendices only after §48",
     "EXPERIMENTALLY_ADJUDICATED": "separate future state; never implied by a finished current-evidence card"
   },
-  "profile_note": "v9.7.372: never the unqualified word 'full'. Full Mode B means the FINISHED_FULL48_CURRENT_EVIDENCE profile; §1–§30 survives only as MODEB_CANDIDATE_30."
+  "profile_note": "Never use the unqualified word 'full'. Full Mode B means the FINISHED_FULL48_CURRENT_EVIDENCE profile; §1–§30 survives only as MODEB_CANDIDATE_30."
 }

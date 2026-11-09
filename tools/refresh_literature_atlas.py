@@ -28,6 +28,8 @@ from mamey.csv_safety import SafeDictWriter, SafeWriter
 
 
 HEADING = re.compile(r"^## Rank (\d+): (AS-\d+) (BGC\d+)\s*-\s*(.*)$", re.MULTILINE)
+# Any level-2 "Rank" heading. One that HEADING does not parse is held, never skipped silently.
+RANK_LINE = re.compile(r"^##\s+Rank\b.*$", re.MULTILINE)
 LOCAL_ALIAS = re.compile(r"(?<![A-Za-z0-9])BGC\d{3}(?!\d)")
 CLAIM_CEILING = (
     "The refreshed exact-locus and report-corpus links support evidence review only. "
@@ -86,6 +88,14 @@ def open_store(path: Path) -> sqlite3.Connection:
 
 def resolve_report(connection: sqlite3.Connection, markdown: str) -> tuple[list[dict], list[dict]]:
     resolved, unresolved = [], []
+    recognized = {match.group(0) for match in HEADING.finditer(markdown)}
+    for line in RANK_LINE.findall(markdown):
+        if line not in recognized:
+            number = re.search(r"\d+", line)
+            unresolved.append({"rank": int(number.group(0)) if number else 0, "strain": "",
+                               "reason": "UNRECOGNIZED_RANK_HEADING"})
+    if not recognized and not unresolved:
+        unresolved.append({"rank": 0, "strain": "", "reason": "NO_RANKED_HEADINGS"})
     for match in HEADING.finditer(markdown):
         rank, strain, alias, legacy_label = match.groups()
         loci = list(
@@ -190,7 +200,7 @@ def refresh_markdown(
     )
     intro = (
         "# Current evidence refresh\n\n"
-        f"This additive report binds every ranked locus below to {package_label} and records exact-locus Mode B/report-corpus availability. "
+        f"This additive report binds each of the {len(resolved)} recognized ranked loci below to {package_label} and records exact-locus Mode B/report-corpus availability. "
         "The July 2026 literature analysis is retained as a historical layer. Database presence and owner-index status do not constitute scientific or owner acceptance.\n\n"
         + CLAIM_CEILING
         + "\n\n"
@@ -316,7 +326,7 @@ def refresh_docx(
     ceiling = first.insert_paragraph_before(CLAIM_CEILING)
     ceiling.style = document.styles["Normal"]
     intro = first.insert_paragraph_before(
-        f"This additive report binds every ranked locus to {package_label} and records exact-locus Mode B and report-corpus availability. The prior literature analysis remains a historical evidence layer."
+        f"This additive report binds each of the {len(resolved)} recognized ranked loci to {package_label} and records exact-locus Mode B and report-corpus availability. The prior literature analysis remains a historical evidence layer."
     )
     intro.style = document.styles["Normal"]
     title = first.insert_paragraph_before("Current Evidence Literature Atlas")
@@ -358,8 +368,9 @@ def check_output_targets(root: Path, targets: list[Path], sources: list[Path]) -
             for source in sources
         ):
             raise ValueError(f"output aliases retained input: {target}")
-        if target.exists() and not target.is_file():
-            raise ValueError(f"output target is not a regular file: {target}")
+        if target.exists() or target.is_symlink():
+            # Earlier outputs are preserved: every refresh writes a fresh roster.
+            raise ValueError(f"output target already exists; use a fresh --output-root: {target}")
         for parent in target.parents:
             if parent == root:
                 break
@@ -425,6 +436,7 @@ def main() -> int:
                     "source_markdown_sha256": digest(markdown_path),
                     "unresolved_rank_count": len(unresolved),
                     "unresolved_legacy_ranks": ranks,
+                    "unresolved_reasons": ";".join(sorted({row["reason"] for row in unresolved})),
                     "state": "REPORT_WITHHELD_UNBOUND_CURRENT_LOCI",
                     "release_condition": "Bind every legacy rank to one fresh four-part locus identity before regeneration",
                 }
@@ -439,7 +451,9 @@ def main() -> int:
                     "exact_owner_matches": 0,
                     "status": "WITHHELD",
                     "markdown": "",
+                    "markdown_sha256": "",
                     "docx": "",
+                    "docx_sha256": "",
                 }
             )
             continue
@@ -448,10 +462,8 @@ def main() -> int:
         strain_out.mkdir(parents=True, exist_ok=True)
         stem = f"{strain}_CURRENT_EVIDENCE_LITERATURE_ATLAS_{args.artifact_tag}"
         md_out = strain_out / f"{stem}.md"
-        md_out.write_text(
-            refresh_markdown(markdown, resolved, store_hash, authority, args.package_label),
-            encoding="utf-8",
-        )
+        with md_out.open("x", encoding="utf-8") as handle:
+            handle.write(refresh_markdown(markdown, resolved, store_hash, authority, args.package_label))
         docx_out = strain_out / f"{stem}.docx"
         if args.emit_docx:
             if docx_path is None:
@@ -468,7 +480,9 @@ def main() -> int:
                 "exact_owner_matches": exact_owner_matches,
                 "status": "GENERATED_REVIEW_ONLY",
                 "markdown": str(md_out),
+                "markdown_sha256": digest(md_out),
                 "docx": str(docx_out) if args.emit_docx else "",
+                "docx_sha256": digest(docx_out) if args.emit_docx else "",
             }
         )
         for row in resolved:
@@ -492,7 +506,7 @@ def main() -> int:
     write_tsv(
         output_root / "REFRESH_INDEX.tsv",
         index_rows,
-        ["strain", "source_markdown_sha256", "source_docx_sha256", "ranked_loci", "resolved_loci", "exact_owner_matches", "status", "markdown", "docx"],
+        ["strain", "source_markdown_sha256", "source_docx_sha256", "ranked_loci", "resolved_loci", "exact_owner_matches", "status", "markdown", "markdown_sha256", "docx", "docx_sha256"],
     )
     write_tsv(
         output_root / "LOCUS_REFRESH_LEDGER.tsv",
@@ -502,12 +516,13 @@ def main() -> int:
     write_tsv(
         output_root / "UNBOUND_REPORT_HOLDS.tsv",
         hold_rows,
-        ["strain", "source_markdown_sha256", "unresolved_rank_count", "unresolved_legacy_ranks", "state", "release_condition"],
+        ["strain", "source_markdown_sha256", "unresolved_rank_count", "unresolved_legacy_ranks", "unresolved_reasons", "state", "release_condition"],
     )
     summary = {
         "schema": "sapote_mamey_literature_atlas_refresh/1",
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "legacy_root_sha256_basis": "source Markdown and available DOCX SHA-256 values retained in REFRESH_INDEX; withheld Markdown hashes duplicated in the hold ledger",
+        "output_sha256_basis": "markdown_sha256 and docx_sha256 in REFRESH_INDEX hash each generated report as written by this run",
         "evidence_store": str(store),
         "evidence_store_sha256": store_hash,
         "evidence_store_authority": authority,

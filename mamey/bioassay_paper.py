@@ -296,11 +296,15 @@ def cli(kind, r_script, argv=None):
     p.add_argument('--palette-set',default='default')
     p.add_argument('--bar-labels',action='store_true',help='A06: also print strong/tested above each bar (default: n tested under each bar only)')
     p.add_argument('--point-labels',choices=('default','genus'),default='default',help='A03: genus = keep every genus and label every isolate that has a 16S genus')
+    p.add_argument('--x-axis',choices=('count','share'),default=None,help='A01: count = isolates tested (default); share = each row as 100%% with strong / tested at its end. Default: the layout key a01_x_axis')
     a=p.parse_args(argv)
     if sha(a.table)!=a.table_sha256 or sha(a.lock)!=a.lock_sha256:
         raise ValueError('Bound input hash mismatch')
     if a.out.exists(): raise FileExistsError(a.out)
     profile=layout_profile(a.layout,a.layout_config)
+    if a.x_axis and kind!='A01': raise ValueError('--x-axis applies to A01 only')
+    x_axis=a.x_axis or profile.get('a01_x_axis') or 'count'
+    if x_axis not in ('count','share'): raise ValueError(f'a01_x_axis must be count or share, not {x_axis!r}')
     result=(prepare_fractions(a.table,a.roster,a.aliases,a.layout,a.material,a.layout_config) if kind=='A07'
             else prepare(a.table,a.roster,a.aliases,kind,a.layout,a.material,a.layout_config))
     if not result['plot']: raise ValueError('No eligible plotted rows')
@@ -317,13 +321,13 @@ def cli(kind, r_script, argv=None):
     config=dict(kind=kind,layout=a.layout,profile=profile,material=a.material,data=str((a.out/'plot_data.tsv').resolve()),
                 stem=str((a.out/f'{kind}_{a.layout}_{MATERIAL_STEM[a.material]}').resolve()),
                 palette=colors,fallback=palette['fallback'],theme=str(ROOT/'tools/sapote_pub_layout.R'),
-                groups=sorted({r['group'] for r in result['used']}),dpi=600,bar_labels=a.bar_labels,point_labels=a.point_labels)
+                groups=sorted({r['group'] for r in result['used']}),dpi=600,bar_labels=a.bar_labels,point_labels=a.point_labels,x_axis=x_axis)
     (a.out/'render_config.json').write_text(json.dumps(config,indent=2))
     inputs=[a.table,a.roster,a.aliases,a.lock,palette_path,Path(a.layout_config or LAYOUTS),Path(r_script),Path(__file__),ROOT/'tools/sapote_pub_layout.R',ROOT/'tools/bioassay_paper_theme.R',Path(__file__).parents[1]/'tools'/f'bioassay_{kind.lower()}.py']
     receipt=dict(kind=kind,layout=a.layout,material=a.material,status='PREPARED',inputs=[dict(path=str(x.resolve()),sha256=sha(x)) for x in inputs],
                  claim_scope='Single-replicate preliminary strain-level screening; no BGC attribution.',minimum_font_pt=8,
                  material_colors={'Crude extract':'#C0973F','Fraction':'#7E5AA2','HPLC fraction':'#7E5AA2'},source_rows=len(result['raw']),plotted_rows=len(result['plot']),
-                 plotted_platforms={t:sorted(p) for t,p in result['platforms'].items()})
+                 plotted_platforms={t:sorted(p) for t,p in result['platforms'].items()},x_axis=x_axis if kind=='A01' else None)
     (a.out/'RUN_INFO.json').write_text(json.dumps(receipt,indent=2))
     pooled_a04 = kind == 'A04' and profile.get('a04_pool_candida')
     candida = ('Candida targets are shown separately: C. albicans, C. auris, and screens recorded only as Candida '
@@ -336,6 +340,11 @@ def cli(kind, r_script, argv=None):
               'nonzero': ' Labelled points: every isolate not at 0% inhibition of both targets.',
               'either': ' Labelled points: every isolate with at least 80% inhibition of either target.'}.get(profile.get('a04_point_labels'), '') if kind == 'A04' else ''
     per = 'Each point is one fraction (one fraction-plate well); ' if kind == 'A07' else ''
+    if kind == 'A01' and x_axis == 'share':
+        min_n = int(profile.get('a01_share_min_isolates') or 3)
+        labels = (' Each bar is the share of isolates tested in each class; the numbers at the right of each bar are strong / '
+                  f'tested. The top row pools every isolate. Genera with fewer than {min_n} isolates are drawn as one Other '
+                  'genera row (the number of genera in brackets).')
     (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. ' + per + 'Best numeric inhibition per isolate and material. ' + platform_sentence(result['platforms'], result['dose_384']) + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
     if not a.prepare_only:
         render(a.out,r_script)

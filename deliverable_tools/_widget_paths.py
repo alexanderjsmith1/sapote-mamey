@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """_widget_paths.py — shared, de-duplicated default-path resolution for the graduated
-Sapote-Mamey analysis/widget deliverable tools (v9.7.349x candidate).
+Sapote-Mamey analysis/widget deliverable tools.
 
 The over-merge inspector, RG-GMCI widget, assembly-line widget, AF lead-board and the
 protocluster split-card QC-fixer all keyed off the same hardcoded workspace root and a

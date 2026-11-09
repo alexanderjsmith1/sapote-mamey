@@ -42,6 +42,8 @@ def _flags(v: dict) -> str:
         bits.append(f"DOWNGRADE:{v['standing_rule_flag']}")
     if v.get("primary_metabolism_flag"):
         bits.append("PRIMARY-METAB")
+    if v.get("mobile_element_flag"):
+        bits.append(f"MOBILE-ELEMENT:{v['mobile_element_flag']}")
     if v.get("misanchor_flag"):
         bits.append(f"MIS-ANCHOR:{v['misanchor_flag']}")
     return ("  [" + "; ".join(bits) + "]") if bits else ""

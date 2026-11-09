@@ -423,9 +423,15 @@ def _render(root: Node, rows: list[dict[str, Any]], columns: list[tuple[str, str
     tree_axis.set_ylim(-0.8, len(rows) - 0.2)
     tree_axis.invert_yaxis(); tree_axis.axis("off")
     tree_axis.set_title("Tree" if profile == "SINGLE_COLUMN" else "Recorded phylogeny", fontsize=9)
+    key_top = -0.09
     if perfect_support_count:
-        tree_axis.text(0.02, -0.09, "● = 100/100 support", transform=tree_axis.transAxes,
+        tree_axis.text(0.02, key_top, "● = 100/100 support", transform=tree_axis.transAxes,
                        fontsize=8, ha="left", va="top", clip_on=False)
+        key_top -= 0.08
+    # Key for the three non-observed track states (drawn in the tracks below).
+    tree_axis.text(0.02, key_top, "Track cells:\n? missing\n× not measured\n– not applicable",
+                   transform=tree_axis.transAxes, fontsize=8, ha="left", va="top", clip_on=False,
+                   linespacing=1.3)
 
     value_groups = defaultdict(list)
     for row in rows:
@@ -435,9 +441,12 @@ def _render(root: Node, rows: list[dict[str, Any]], columns: list[tuple[str, str
     scale = {}
     for key, values in value_groups.items():
         scale[key] = plan_heatmap_scale(values, value_field="value", category_field="category", lower_quantile=0.0, upper_quantile=1.0)
+    # The three non-observed states get distinct fills and marks, keyed in the track title.
+    unobserved_style = {"MISSING": ("#D9D9D9", "?"), "NOT_MEASURED": ("#FFFFFF", "×"),
+                        "NOT_APPLICABLE": ("#F2F2F2", "–")}
     for row_index, row in enumerate(rows):
         for column_index, ((channel, feature), cell) in enumerate(zip(columns, row["cells"])):
-            color = "#E6E6E6"
+            color, mark = unobserved_style.get(cell["state"], ("#E6E6E6", "·"))
             alpha = 1.0
             if cell["state"] == "OBSERVED":
                 bounds = scale[(channel, feature)]
@@ -445,9 +454,11 @@ def _render(root: Node, rows: list[dict[str, Any]], columns: list[tuple[str, str
                 alpha = 0.30 + 0.70 * min(1.0, max(0.0, (cell["value"] - low) / (high - low)))
                 color = TRACK_COLORS[channel]
             track_axis.add_patch(Rectangle((column_index, row_index - 0.42), 0.92, 0.84,
-                                           facecolor=color, edgecolor="#FFFFFF", alpha=alpha))
+                                           facecolor=color, alpha=alpha,
+                                           edgecolor="#9E9E9E" if cell["state"] == "NOT_MEASURED" else "#FFFFFF"))
             if cell["state"] != "OBSERVED":
-                track_axis.text(column_index + 0.46, row_index, "·", ha="center", va="center", fontsize=8)
+                track_axis.text(column_index + 0.46, row_index, mark, ha="center", va="center", fontsize=8,
+                                color="#424242")
     track_axis.set_xlim(0, max(1, len(columns))); track_axis.set_ylim(-0.8, len(rows) - 0.2)
     track_axis.invert_yaxis(); track_axis.set_yticks([])
     track_axis.set_xticks([index + 0.46 for index in range(len(columns))])

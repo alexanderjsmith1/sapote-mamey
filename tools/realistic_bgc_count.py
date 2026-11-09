@@ -253,7 +253,7 @@ def _reader_out_dir(out, package_dir, suffix):
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Realistic (corrected-denominator) BGC count — advisory report")
+    ap = argparse.ArgumentParser(description="Heuristic merged-region BGC count (not a validated count of loci) — advisory report")
     ap.add_argument("--package", action="append", required=True,
                     help="sealed Mamey package directory (repeatable)")
     ap.add_argument("--out", default=None, help="output dir (default: first package dir)")
@@ -283,9 +283,12 @@ def main(argv=None) -> int:
         "n_packages": len(rows), "total_raw_regions": tot_raw, "total_realistic_count": tot_real,
         "total_corrected_count_bw": tot_bw,
         "cohort_inflation_pct": round(100 * (tot_raw - tot_real) / max(tot_raw, 1)),
-        "denominator_note": ("TWO different corrected denominators, not interchangeable: "
-                             "Realistic_count = distinct biosynthetic loci (drop junk + HIGH RG-GMCI "
-                             "merge, integer); Corrected_count_bw = boundary-weighted fragmentation "
+        "denominator_note": ("TWO different heuristic denominators, not interchangeable: "
+                             "Realistic_count = a heuristic scenario, not distinct loci: regions left "
+                             "after an annotation-role drop, with regions joined by HIGH RG-GMCI "
+                             "candidate links counted once (integer; the links are homology-guided "
+                             "candidates, not physical joins; raw_regions is kept beside it); "
+                             "Corrected_count_bw = boundary-weighted fragmentation "
                              "discount over all regions (Interior*1 + Edge*1/2 + Full-contig*1/4, "
                              "fractional; the SSOT number in figures / cohort HTML / "
                              "EXTERNAL_VALIDATION). They may differ for one strain by design."),
@@ -295,7 +298,7 @@ def main(argv=None) -> int:
     }
     with open(os.path.join(out_dir, "realistic_bgc_count_summary.json"), "w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
-    emit(f"{len(rows)} package(s) · raw {tot_raw} -> distinct-loci {tot_real} "
+    emit(f"{len(rows)} package(s) · raw {tot_raw} -> heuristic merged count {tot_real} "
           f"(-{summary['cohort_inflation_pct']}% overall) · boundary-weighted corrected {tot_bw} "
           f"(different denominator) -> {csv_path}")
     return 0

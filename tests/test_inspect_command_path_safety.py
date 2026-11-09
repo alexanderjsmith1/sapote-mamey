@@ -98,5 +98,5 @@ def test_printed_validation_uses_one_safe_default_package_argument(tmp_path, cap
     result = subprocess.run(["bash", "-c", validation], cwd=work, env=env,
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert json.loads(captured.read_text()) == ["mamey_run.py", "validate", expected]
+    assert json.loads(captured.read_text()) == ["mamey_run.py", "validate", expected, "--workbook-strict"]
     assert not (work / "VALIDATE_SIDE_EFFECT").exists()

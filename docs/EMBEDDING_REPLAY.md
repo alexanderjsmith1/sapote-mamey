@@ -4,6 +4,13 @@ This optional tool redraws existing coordinates. It does not fit TriMap or t-SNE
 calculate distances, infer biological function or certify a publication figure.
 It needs the existing plotting environment, but does not need the TriMap or numba
 packages. Keep fitting, model preparation and stability validation separate.
+Make the coordinate tables first, using the steps in [TriMap runs](TRIMAP_RUNS.md).
+TriMap and t-SNE are methods that place each input item (in the TriMap runs, usually one protein
+sequence row) as a point on a 2-D plot, trying to keep items that are near each other in the input
+representation near each other on the plot. Closeness on the plot is a visualization, not a measured
+similarity: it depends on the input features, the metric, the fit settings and the distortion of the
+2-D layout. The replay does not check any of that. PCoA (principal coordinates analysis) is a related method that
+starts from a table of pairwise distances.
 
 From the bundle root:
 
@@ -14,8 +21,12 @@ python tools/protein_embedding_replay.py --manifest /path/replay.json --out /pat
 
 Paths in the manifest resolve relative to that manifest, so the same small input
 set can be relocated without editing producer source. Absolute paths can reference
-large evidence in place. Every input needs its exact lowercase SHA-256. No input
+large evidence in place. Every input needs its exact lowercase SHA-256. Get it
+with `shasum -a 256 file` on macOS or `sha256sum file` on Linux. No input
 or existing output is overwritten.
+
+`--validate-only` checks the manifest and inputs and writes nothing. A pass
+exits 0. A refusal prints the reason and exits 2.
 
 ```json
 {
@@ -26,8 +37,8 @@ or existing output is overwritten.
   "metadata": {"path": "METADATA_SET.tsv", "sha256": "REPLACE_WITH_64_HEX_CHARACTERS"},
   "exclusions": {"path": "EXCLUDED_IDS.txt", "sha256": "REPLACE_WITH_64_HEX_CHARACTERS"},
   "columns": {"id": "id", "x": "TRIMAP1", "y": "TRIMAP2", "group": "source"},
-  "palette": {"reference": "#666666", "isolate": "#0072B2", "MIBiG": "#3A78B5"},
-  "group_order": ["reference", "MIBiG", "isolate"],
+  "palette": {"groupA": "#666666", "groupB": "#0072B2", "groupC": "#3A78B5"},
+  "group_order": ["groupA", "groupC", "groupB"],
   "expected_points": 100
 }
 ```

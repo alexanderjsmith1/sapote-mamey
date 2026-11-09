@@ -2,6 +2,7 @@
 
 Choose a task below, then open its guide for the inputs and command. For your
 first antiSMASH ZIP, start with [Your first run](../reader/01_FIRST_RUN.md).
+Terms such as Mode B and profile are in the [glossary](../GLOSSARY.md).
 
 The [command catalog](../COMMAND_CATALOG.generated.md) lists launcher commands.
 The [tools inventory](../TOOLS_INVENTORY.generated.md) lists helper scripts from
@@ -35,9 +36,8 @@ emission and verification, and identify each locus as
 
 Choose the check for the file you actually have:
 
-- **Markdown links:** [link-check scope](../CATALOG_MAINTENANCE.md#markdown-link-checks-and-hook-scope).
+- **Markdown links (maintainers):** [link-check scope](../CATALOG_MAINTENANCE.md#markdown-link-checks-and-hook-scope).
 - **Citations and source disclosure:** [finished-text checks](../reference/06_CURRENT_SOURCE_SCOPE.md#finished-text-citation-hygiene-and-strict-source-disclosure).
-- **Registry IDs:** [duplicate-check inputs](../REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md#registry-id-checker-scope).
 - **Input hashes or software-release ZIP names:** [manifest and ZIP checks](../reference/06_CURRENT_SOURCE_SCOPE.md#input-manifests-and-zip-preflight-scopes).
 - **Workbook ratios or evidence conservation:** [their separate checks](../reference/06_CURRENT_SOURCE_SCOPE.md#cross-strain-denominator-and-conservation-audit-coverage).
 - **A public workbook candidate:** [disclosure audit](../CUSTOM_PRIVACY_TIERS.md#public-workbook-audit-limits).

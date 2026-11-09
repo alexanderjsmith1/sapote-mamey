@@ -6,7 +6,7 @@ You need an antiSMASH result ZIP for extraction, or a saved Mamey package for
 review. For installation and the shortest command sequence, follow
 [Your first run](../docs/reader/01_FIRST_RUN.md).
 
-*Current to bundle v9.7.463 / engine Mamey 1.9.179*
+*Current to bundle v9.7.464 / engine Mamey 1.9.180*
 
 ## 1 · What Sapote-Mamey is
 
@@ -34,14 +34,21 @@ Follow the [first-run commands](../docs/reader/01_FIRST_RUN.md), replacing `EXAM
 with your strain name and the input path with your antiSMASH ZIP.
 Use the whole genome's antiSMASH result from one job.
 
-The default run uses gold mode and bounded JSON evidence. It writes to
-`runs/EXAMPLE/`; `--outdir` selects another parent folder. Add taxonomy and isolation
-source only when you have records for them. The [Quick Guide](Quick-Guide.md#2-choose-the-evidence-and-runtime-budget)
-explains the capped-session output tradeoff.
+`inspect` prints a capped run command. Gold is the analysis mode, and the only one in
+use. Capped means faster: the written brief, the JSON evidence and the automatic gene
+maps are skipped. The [Quick Guide](Quick-Guide.md#1-inspect-and-run-one-strain)
+says how to turn a capped run into a full one. Output goes to `runs/EXAMPLE/`, and
+`--outdir` chooses another parent folder. Add taxonomy and isolation source only when you
+have records for them.
 
-When extraction finishes, the terminal prints the package path and workbook
-status. `MAMEY_COMPLETE_WITH_ISSUES` means the run completed with warnings.
-Read them in `issue_log.md`; validation can pass while those warnings remain.
+When the run finishes, check its exit code:
+- `0`: the package is complete. A `MAMEY_COMPLETE_WITH_ISSUES` status means there are
+  warnings. Read them in `issue_log.md`.
+- `1`: the run did not finish, or it has a `[BLOCKING]` issue. Do not use the package.
+- `2`: the command was refused before any work.
+
+[Your first run](../docs/reader/01_FIRST_RUN.md#4-check-that-the-run-worked) shows how to
+read it.
 
 For a folder of input ZIPs, follow the [batch guide](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
 Its resume option skips matching completed inputs. It does not restart every
@@ -51,7 +58,7 @@ partly finished step.
 
 Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html`. The
 [saved-result guide](../docs/reader/03_READ_RESULTS.md) walks through the workbook
-and gives an optional strict validation check.
+and the strict validation check.
 
 ### Read the region inventory and triage board
 
@@ -65,7 +72,7 @@ adds ranking fields. Match their rows by the same complete identity:
   position on its contig; a truncated assembly can split a pathway across contigs.
 - **KCB:** KnownClusterBlast reference matches. Compare the shared genes and
   coverage before using the reference's product name in an interpretation.
-- **Exclusion:** why a region was left out of a ranked list. Read the excluded
+- **`Standing_rule`, `Primary_metab_flag`, `Mobile_element_flag`:** why a region was left out of a ranked list. Read the excluded
   rows as well as the lead rows.
 
 Use [the glossary](Glossary.md) for field definitions and
@@ -93,8 +100,9 @@ short candidates from finished cards. The [authoring walkthrough](../docs/MODE_B
 uses the same selected contract for template creation and verification:
 `full48` by default, or `current50_v2` when you choose that profile.
 
-Save the written card as a file. To put it into the package, follow the
-[receipt workflow](../docs/DELIVERABLE_CONTRACT.md), which also explains master-workbook updates.
+Save the written card as a file. To record it in the package, follow
+[Save and review](../docs/MODE_B_USER_WALKTHROUGH.md#6-save-and-review) in the walkthrough. The
+[deliverable contract](../docs/DELIVERABLE_CONTRACT.md) covers master-workbook updates.
 Keep the original package ZIP when updating a working copy.
 
 ## 5 · Deepen the evidence
@@ -148,4 +156,4 @@ starting another writer.
 
 The [command catalog](../docs/COMMAND_CATALOG.generated.md) lists the full interface.
 Use the [current documentation index](../CURRENT_DOCS_INDEX.md) for specialized
-guides and the [changelog](../CHANGELOG.md) for older behavior.
+guides. [Engine lineage](../docs/ENGINE_LINEAGE.md) says what changed in each engine version and whether results from different versions can be compared.

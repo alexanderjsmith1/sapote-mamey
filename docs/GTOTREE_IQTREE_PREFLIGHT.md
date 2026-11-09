@@ -5,12 +5,9 @@ never downloads references. It writes one checksummed plan that a person approve
 
 ## Supported local interface
 
-The planner was written against:
+The planner accepts:
 
-- GToTree 1.8.16 (`GToTree -v`, `GToTree -h`), where `-n` defaulted to 2 HMM-search CPUs, `-M`
-  to 5 MUSCLE threads, and `-j` to one concurrent job. 1.8.16 is now refused: 1.8.19 is the production
-  version and 2.0.x is admitted ([GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md)). Check `GToTree -h` for the
-  installed version's defaults;
+- GToTree 1.8.19 (production) and selected 2.0.x releases. Version 1.8.16 is refused. See [GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md). Run `GToTree -h` to see the installed version's defaults;
 - IQ-TREE 3.1.2 for macOS ARM64, where `-T` controls cores/threads and defaults to one.
 
 The planner checks the installed help for the exact options it will use. A missing option creates `HOLD_TOOL_INTERFACE_REVIEW`; it does not silently run a guessed command.
@@ -21,7 +18,7 @@ See [companion run contracts](COMPANION_RUN_CONTRACTS.md).
 
 ## Canonical tool chain
 
-The tools run in this order:
+The tools run in this order. ClusterBlast is antiSMASH's cross-genome comparison. GCA/GCF are versioned NCBI assembly accessions (GenBank/RefSeq). An outgroup is a distant genome that roots the tree. Other terms are in the [glossary](GLOSSARY.md).
 
 1. `rank_clusterblast_phylo_candidates.py` creates an assembly-candidate ledger from the raw
    ClusterBlast channel. It neither downloads nor asserts organism identity.
@@ -32,8 +29,20 @@ The tools run in this order:
    references plus up to two type anchors per query, with at most four comparators per query in all. It writes
    `panel_selected.tsv` plus `panel_receipt.json`. `select_panel` in `tools/build_phylo_panel.py` admits the
    anchors, and `read_prepared_panel` in `tools/plan_gtotree_iqtree.py` re-checks both caps.
-4. `plan_gtotree_iqtree.py plan --prepared-panel ...` revalidates that staged panel, freezes the HMM
-   set and tool/resource interface, and creates the immutable approval handoff.
+4. `plan_gtotree_iqtree.py plan` revalidates that staged panel, freezes the HMM
+   set and tool/resource interface, and creates the immutable approval handoff:
+
+   ```bash
+   python tools/plan_gtotree_iqtree.py plan \
+     --prepared-panel panel_out \
+     --workspace phylogenomics_workspace \
+     --run-id EXAMPLE_RUN_01 \
+     --hmm path/to/marker_set.hmm
+   ```
+
+   `--prepared-panel` (or `--panel-tsv`), `--workspace`, `--run-id` and `--hmm` are required.
+   A finished plan leaves `runs/EXAMPLE_RUN_01/` with `RUN_STATE.json` at `PLANNED_AWAITING_APPROVAL`
+   or a `HOLD_` state. Read `HANDOFF.md` there next.
 
 The panel selector is authoritative for membership. The run planner does not independently re-rank
 an already prepared panel. Manual `--panel-tsv` ingress remains available for recovery, but requires
@@ -76,7 +85,7 @@ traceable to the kept assembly. A duplicate focal query places the run on
 silently collapsed. Identical 16S alone is not an assembly duplicate.
 
 The panel builder already collapses equal-content queries before this step; see
-[panel selection](GTOTREE_PANEL_SELECTION.md#exact-content-duplicate-guard).
+[panel selection](GTOTREE_PANEL_SELECTION.md#duplicates).
 
 ## Immutable plan layout
 
@@ -112,17 +121,33 @@ explicit approval when the operation is not already authorized. The direct legac
 does not read the state file. The governed 2.0.0 recipe instead delegates to
 `run_planned_tree.py --plan-dir ...`, requires an explicit `--approved` argument and fresh
 runtime probe directory, and checks `approved=true` plus the matching run ID and bound
-inputs/mapping/tool/resource/HMM data. The planner has no approve subcommand. Preserve
+inputs/mapping/tool/resource/HMM data. The planner has no approve subcommand. The runner continues only if `RUN_STATE.json` in the run folder holds `"approved": true` and its `run_id` matches the manifest; the person who approves makes that edit. Preserve
 the actual user approval in the handoff/state; a flag or script does not grant authority.
-Reference downloads require a separate network approval. The direct recipe intentionally contains
+The run step is `tools/run_planned_tree.py`, called with `--plan-dir <run dir>` and `--approved` from the run's `COMMAND.sh`, which has the full arguments. See [GTOTREE_RUNTIME_ADMISSION.md](GTOTREE_RUNTIME_ADMISSION.md). Reference downloads require a separate network approval. The direct recipe intentionally contains
 `<DISCOVERED_ALIGNMENT_PATH>` for IQ-TREE: GToTree must exit zero and its real alignment must be
 discovered and hashed before that command can be completed. The governed runner has its own
 alignment discovery and completion checks; it does not use that manual placeholder.
 
-After GToTree, use `discover`. It derives the retained taxon count from the unique
-`Genomes_summary_info.tsv`, inventories all observed files, excludes individual-marker alignments from
-final-alignment nomination, and returns PASS only for one root-level FASTA with the retained
-denominator. This avoids depending on a version-specific filename.
+After GToTree, use `discover`. On the direct (non-governed) route it reads the retained roster from
+the unique `Genomes_summary_info.tsv`: the rows whose `in_final_tree` is `Yes` (every row when that
+column is absent), named by the `label` column when the run used a label map and by `assembly_id`
+otherwise. GToTree names the final alignment's records the same way. It inventories all observed files, and
+leaves individual-marker alignments out of the final-alignment nomination. A root-level file is
+nominated when its `>` count equals the roster size (at least 2), it parses as an alignment (every
+record has a nonblank, unique label and a nonempty sequence, and all sequences have one length), and
+its labels equal the roster.
+The receipt's `alignment_problem` field names the first problem in a file that fails. The status is:
+
+- `PASS_UNIQUE_ALIGNMENT` (exit 0): exactly one such file;
+- `HOLD_AMBIGUOUS_ALIGNMENT` (exit 2): more than one;
+- `HOLD_ROSTER_MISMATCH` (exit 2): none, and every count-matching file parsed but its labels differ
+  from the roster. `alignment_problem` lists up to five missing and five extra labels;
+- `HOLD_MALFORMED_ALIGNMENT` (exit 2): none, and a count-matching file failed to parse;
+- `HOLD_NO_ALIGNMENT` (exit 2): no count-matching file.
+
+This avoids depending on a version-specific filename. A PASS names a discovery candidate whose
+records match the genomes GToTree kept; it is not a check of alignment quality. The receipt records
+the roster column in `retained_roster_column`. The governed route has its own binding and label checks.
 
 ## Claim ceiling
 

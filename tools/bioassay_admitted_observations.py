@@ -39,6 +39,7 @@ except ImportError:
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.output_transaction import preflight_output_roster
 
 PROFILE_SCHEMA = "sapote.bioassay-admitted-profile.v1"
 FIELDS = (
@@ -247,6 +248,21 @@ def write_tsv(path: Path, rows: list[dict], fields) -> None:
         writer.writerows(rows)
 
 
+def _preflight(out: Path, inputs) -> Path:
+    """Admit the output table and its receipt together: both fresh, distinct, and not an input."""
+    receipt = Path(str(out) + ".receipt.json")
+    try:
+        preflight_output_roster([out, receipt], protected_paths=[Path(p) for p in inputs])
+    except ValueError as exc:
+        raise AdmittedProfileHold(f"OUTPUT_EXISTS_HOLD: {exc}: {out} or {receipt}; choose a new path") from exc
+    return receipt
+
+
+def _write_receipt(path: Path, receipt: dict) -> None:
+    with open(path, "x", encoding="utf-8") as handle:
+        handle.write(json.dumps(receipt, indent=2) + "\n")
+
+
 def best_table(observations: Path, dose_384: float = 120.0, floor: float | None = 0.0) -> list[dict[str, str]]:
     """Higher of the best 96-well reading (any recorded dose) and the best 384-well reading at `dose_384`."""
     best = defaultdict(lambda: {"96": None, "384": None, "n96": 0, "n384": 0})
@@ -299,17 +315,17 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "observations":
-            if args.out.exists():
-                raise AdmittedProfileHold(f"OUTPUT_EXISTS_HOLD: {args.out} exists; choose a new path")
+            receipt_path = _preflight(args.out, [args.profile])
             rows, receipt = build_observations(args.profile)
+            # The profile names the per-well tables; recheck the roster against them too.
+            _preflight(args.out, [args.profile, *(t["path"] for t in receipt.get("tables", []))])
             write_tsv(args.out, rows, FIELDS)
             receipt.update(output=str(args.out), output_sha256=sha256_file(args.out))
-            Path(str(args.out) + ".receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            _write_receipt(receipt_path, receipt)
             held = sum(1 for r in rows if r["inclusion_state"] != "INCLUDE")
             sys.stdout.write(f"{len(rows)} observations; {len(rows) - held} included; {held} held\n")
         else:
-            if args.out.exists():
-                raise AdmittedProfileHold(f"OUTPUT_EXISTS_HOLD: {args.out} exists; choose a new path")
+            receipt_path = _preflight(args.out, [args.observations, Path(str(args.observations) + ".receipt.json")])
             rows = best_table(args.observations, args.dose_384, None if args.no_floor else args.floor)
             if not rows:
                 raise AdmittedProfileHold("BEST_TABLE_EMPTY_HOLD: no included observations")
@@ -318,7 +334,7 @@ def main(argv=None) -> int:
                        "observations": str(args.observations), "observations_sha256": sha256_file(args.observations),
                        "dose_384_ug_ml": args.dose_384, "floor": None if args.no_floor else args.floor,
                        "rows": len(rows), "output": str(args.out), "output_sha256": sha256_file(args.out)}
-            Path(str(args.out) + ".receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            _write_receipt(receipt_path, receipt)
             sys.stdout.write(f"{len(rows)} strain x target x material rows\n")
     except AdmittedProfileHold as exc:
         sys.stderr.write(f"{exc}\n")

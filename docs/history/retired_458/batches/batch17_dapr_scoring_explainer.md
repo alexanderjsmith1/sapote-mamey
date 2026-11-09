@@ -89,7 +89,7 @@ These classes are routed away from the antibacterial/antifungal track. They get 
 | Class | Route | Why |
 |-------|-------|-----|
 | **Indolocarbazoles** (staurosporine, rebeccamycin, K-252) | → cytotoxicity track | Non-selective kinase inhibition; not antibacterial/antifungal at non-toxic concentrations |
-| **Enediynes** (kedarcidin, calicheamicin) | → [E-signal] + cytotoxicity | DNA-damaging; BSL-2 relevant; not a clean antibiotic |
+| **Enediynes** (kedarcidin, calicheamicin) | → [E-signal] + cytotoxicity | DNA-damaging; historical "BSL-2 relevant" wording is retired (per-BGC BSL-2 flagging is no longer applied; the scorer emits an [E-signal] similarity note instead); not a clean antibiotic |
 | **Aureolic acids** (mithramycin, chromomycin) | → cytotoxicity | Antitumour / DNA-binding |
 | **Anthracyclines** (cosmomycin, doxorubicin-class) | → cytotoxicity | Non-selective DNA intercalation |
 | **Ansamycins** (geldanamycin, herbimycin) | → cytotoxicity | Hsp90 inhibition; not antibacterial/antifungal |
@@ -108,7 +108,7 @@ Self-resistance genes (resistance cassettes in or near the BGC) are a strong sec
 
 | Tier | Meaning | Effect on DAPR score |
 |------|---------|---------------------|
-| **T1** | Source-derived self-resistance — resistance gene in the BGC itself, same contig | +bonus (strong signal of active antibiotic production in the native host) |
+| **T1** | Source-derived self-resistance — resistance gene in the BGC itself, same contig | +bonus (historical wording: a scoring input; a resistance gene in the cluster does not show that the strain produces anything) |
 | **T2** | Genomic resistance — resistance gene on a different contig, same genome | +smaller bonus |
 | **T3** | Transporter-only — efflux or ABC transporter without a mechanism-specific resistance gene | no bonus (transporters are ubiquitous) |
 

@@ -262,7 +262,7 @@ Plain Python functions as CLI commands without boilerplate. Used in some of the 
 
 Brain-dead simple INI config file parsing. A dependency of pytest — reads `pyproject.toml` and `pytest.ini` configuration sections.
 
-### packaging — v26.2
+### packaging — v26.2 (the bundle now ships `wheels/packaging-26.3-py3-none-any.whl`)
 **License:** Apache / BSD
 **Source:** https://github.com/pypa/packaging
 
@@ -325,11 +325,11 @@ The command-line tool for working with `.whl` (wheel) files: building, unpacking
 **Size:** 13.3 MB · 148 HMM profiles
 **SHA256:** `2db9ed0e58d1cd679b6b3c15e01c411e0bd49ae410a116d50bd23afa904aa57c`
 
-The three-tier Pfam reference model used by the offline HMM scanner (pyhmmer). This is not a wheel but ships alongside the figures addon because it is data rather than code. The 148 profiles were selected empirically: the full Pfam-A (30,134 families) was scanned against SID10815's BGC proteome, the top ~130 families by hit frequency were retained, and all scanner-gate discriminating domains were force-added regardless of frequency (e.g., `DHQ_synthase` for aminocyclitol BGCs, which are rare but diagnostically critical). The result captures ~66% of domain signal across a typical actinomycete BGC proteome while remaining fast enough for per-run inline scanning.
+The three-tier Pfam reference model used by the offline HMM scanner (pyhmmer). This is not a wheel but ships alongside the figures addon because it is data rather than code. The 148 profiles were selected empirically: the full Pfam-A (30,134 families) was scanned against STRAIN_ID's BGC proteome, the top ~130 families by hit frequency were retained, and all scanner-gate discriminating domains were force-added regardless of frequency (e.g., `DHQ_synthase` for aminocyclitol BGCs, which are rare but diagnostically critical). The result captures ~66% of domain signal across a typical actinomycete BGC proteome while remaining fast enough for per-run inline scanning.
 
 The 148 families include all major BGC-relevant domain classes: PKS (ketoacyl-synthase, KR, DH, AT, ACP, docking), NRPS (condensation, adenylation, peptidyl carrier), terpene (Terpene_synth/C), RiPP (LANC_like, Lant_dehydr_N/C, YcaO, SPASM, RRE), aminoglycoside (aminotransferases, NDP-sugar synthases), and regulatory/resistance (TetR, MarR, ABC transporters).
 
-This file lives in tier 3 of the three-tier model: the CODE bundle ships the first 25 core HMMs; the gemini-stack wheels supply the pyhmmer engine; this file supplies the full reference data. All three tiers must be present for the full offline HMM scan to run.
+This file lives in tier 3 of the three-tier model: the CODE bundle ships the first 25 core HMMs (unverified: no HMM payload is in the tree; `bundle_support/scanner_pfam_148_accessions.txt` and `scanner_pfam_35_accessions.txt` list 148 and 35 accessions); the gemini-stack wheels supply the pyhmmer engine; this file supplies the full reference data. All three tiers must be present for the full offline HMM scan to run.
 
 ---
 

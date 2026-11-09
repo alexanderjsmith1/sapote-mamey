@@ -14,7 +14,7 @@ def load(monkeypatch):
     return m
 
 HITS='Sequences producing significant alignments:\n\nXP_123.1 synthetic 100%\n\n'
-IPG='Assembly\tOrganism\tStrain\nGCF_000001.1\tSynthetic fixture\tFIXTURE\n'
+IPG='Assembly\tOrganism\tStrain\nGCF_000000001.1\tSynthetic fixture\tFIXTURE\n'
 
 class Fake:
     poll=0

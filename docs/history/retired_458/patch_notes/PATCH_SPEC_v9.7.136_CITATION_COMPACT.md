@@ -19,7 +19,7 @@ This hurts the actual user goal:
 - less room for evidence;
 - fewer citations per output;
 - more repeated boilerplate;
-- more token pressure in ChatGPT/Claude;
+- more token pressure in an assistant session;
 - harder merge work across chats.
 
 The system already has claim-safety internally. What is missing is a compact output profile that separates:
@@ -94,7 +94,7 @@ When a citation is missing, citation-compact mode must not invent it. Instead it
 - `citation_compact/Literature_Search_WorkOrder.md`
 - `citation_compact/Literature_Search_WorkOrder.json`
 
-These files are designed for a separate web/literature ChatGPT session. Each task includes the strain, BGC, locus, candidate class, evidence basis, exact citation need, search instruction, required output format, and a do-not-infer rule.
+These files are designed for a separate web/literature assistant session. Each task includes the strain, BGC, locus, candidate class, evidence basis, exact citation need, search instruction, required output format, and a do-not-infer rule.
 
 
 ## 5. Out of Scope

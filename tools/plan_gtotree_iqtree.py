@@ -464,6 +464,42 @@ def _write_tsv_new(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
+# Approval and source re-check for the 1.8.19 recipe, the same conditions the governed runner applies
+# before it starts: explicit --approved, RUN_STATE approved=true for this run_id, and unchanged staged
+# inputs and HMM. Any failure exits 2 before GToTree is called.
+_V1_APPROVAL_GUARD = r"""if [ "${1:-}" != "--approved" ]; then
+  echo "COMMAND_REFUSED: pass --approved after RUN_STATE.json records the approval" >&2; exit 2
+fi
+@PYTHON@ - @RUN_DIR@ <<'GUARD_PY'
+import hashlib, json, sys
+from pathlib import Path
+run = Path(sys.argv[1])
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+problems = []
+try:
+    manifest = json.loads((run / "RUN_MANIFEST.json").read_text(encoding="utf-8"))
+    state = json.loads((run / "RUN_STATE.json").read_text(encoding="utf-8"))
+    if state.get("approved") is not True or state.get("run_id") != manifest.get("run_id"):
+        problems.append("RUN_STATE.json does not record approved=true for this run")
+    for item in manifest.get("assemblies", []):
+        if sha(run / item["object_relpath"]) != item["object_sha256"]:
+            problems.append("staged input changed: " + item["object_relpath"])
+    if sha(run / manifest["hmm"]["object_relpath"]) != manifest["hmm"]["sha256"]:
+        problems.append("staged HMM changed")
+except (OSError, ValueError, KeyError, TypeError) as exc:
+    problems.append(type(exc).__name__ + ": " + str(exc))
+if problems:
+    sys.stderr.write("COMMAND_REFUSED: " + "; ".join(problems) + "\n")
+    sys.exit(2)
+GUARD_PY
+"""
+
+
 def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str, threads: int = 1,
                   version_text: str = "1.8.19", hold_reason: str | None = None,
                   governed_argv: list[str] | None = None) -> str:
@@ -492,8 +528,11 @@ def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str, t
           "-T", str(threads), "--seed", "12345", "--prefix", "outputs/iqtree/final"]
     return (
         "#!/usr/bin/env bash\nset -euo pipefail\n"
-        "# GENERATED PLAN ONLY. Do not execute until RUN_STATE records APPROVED.\n"
+        "# GENERATED PLAN. It runs only with --approved, a RUN_STATE.json that records approved=true\n"
+        "# for this run, and every staged input and the HMM matching the hashes in RUN_MANIFEST.json.\n"
         "# Run GToTree first. Discover and hash its emitted alignment before replacing the placeholder.\n"
+        + _V1_APPROVAL_GUARD.replace("@PYTHON@", shlex.quote(sys.executable))
+                            .replace("@RUN_DIR@", shlex.quote(str(run_dir)))
         + "export PATH=" + shlex.quote(str(Path(gtt_bin).parent)) + ":\"$PATH\"\n"
         + "cd " + shlex.quote(str(run_dir)) + "\n"
         + " ".join(shlex.quote(x) for x in gtt) + "\n"
@@ -516,6 +555,14 @@ def plan(args: argparse.Namespace) -> int:
         raise ValueError("run-id must be a single name beginning with a letter or digit; use letters, digits, _, . or -")
     if not 1 <= args.max_concurrent_cores <= DEFAULT_MAX_CONCURRENT_CORES:
         raise ValueError("max-concurrent-cores must be between 1 and 4")
+    # The shared runtime options include --gtotree-cpu-budget, but on `plan` the budget is
+    # --max-concurrent-cores (it is what the plan records and passes to the runner). A different
+    # value would be silently ignored, so it is refused.
+    cpu_budget = getattr(args, "gtotree_cpu_budget", None)
+    if cpu_budget is not None and cpu_budget != args.max_concurrent_cores:
+        raise ValueError(f"--gtotree-cpu-budget {cpu_budget} differs from --max-concurrent-cores "
+                         f"{args.max_concurrent_cores}; on plan the budget is --max-concurrent-cores, "
+                         "so set that, and pass the same value or leave --gtotree-cpu-budget out")
     threads = int(getattr(args, "threads_per_tree", 1) or 1)
     if not 1 <= threads <= args.max_concurrent_cores:
         raise ValueError("threads-per-tree must be between 1 and max-concurrent-cores (at most 4)")
@@ -801,13 +848,71 @@ def _count_fasta_records(path: Path) -> int | None:
         return None
 
 
-def _retained_count(output_root: Path) -> tuple[int | None, list[str]]:
+def _fasta_alignment_problem(path: Path, labels_out: list | None = None) -> str:
+    """'' when `path` parses as an alignment candidate: every record has a nonblank unique label and
+    a nonempty sequence, and all sequences have one length. Otherwise the first problem found."""
+    labels: set[str] = set()
+    lengths: set[int] = set()
+    label, length, seen_any = None, 0, False
+
+    def close() -> str:
+        if label is None:
+            return ""
+        if length == 0:
+            return f"EMPTY_SEQUENCE: {label[:80]}"
+        lengths.add(length)
+        return "UNEQUAL_SEQUENCE_LENGTHS" if len(lengths) > 1 else ""
+
+    try:
+        with path.open("r", encoding="utf-8", errors="strict") as handle:
+            for line in handle:
+                line = line.rstrip("\r\n")
+                if line.startswith(">"):
+                    problem = close()
+                    if problem:
+                        return problem
+                    label = line[1:].strip()
+                    seen_any = True
+                    if not label:
+                        return "BLANK_LABEL"
+                    if label in labels:
+                        return f"DUPLICATE_LABEL: {label[:80]}"
+                    labels.add(label)
+                    if labels_out is not None:
+                        labels_out.append(label)
+                    length = 0
+                elif line.strip():
+                    if label is None:
+                        return "SEQUENCE_BEFORE_FIRST_HEADER"
+                    length += len(line.strip())
+    except (OSError, UnicodeError) as exc:
+        return f"UNREADABLE: {type(exc).__name__}"
+    if not seen_any:
+        return "NO_RECORDS"
+    return close()
+
+
+def _retained_roster(output_root: Path) -> tuple[list[str] | None, list[str], str]:
+    """The genomes GToTree kept, from the unique Genomes_summary_info.tsv.
+
+    Each kept genome is named the way GToTree names it in the final alignment: by `label` when the
+    run used a label map, otherwise by `assembly_id` (the first column). Rows whose `in_final_tree`
+    is not `Yes` are left out; a summary with no `in_final_tree` column keeps every row. Returns
+    (labels or None, summary paths, the label column used)."""
     summaries = sorted(output_root.rglob("Genomes_summary_info.tsv"))
     if len(summaries) != 1:
-        return None, [str(p) for p in summaries]
+        return None, [str(p) for p in summaries], ""
     with summaries[0].open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.reader(handle, delimiter="\t"))
-    return (max(0, len(rows) - 1), [str(summaries[0])])
+    if not rows:
+        return [], [str(summaries[0])], ""
+    header = [h.strip() for h in rows[0]]
+    key = "label" if "label" in header else ("assembly_id" if "assembly_id" in header else header[0])
+    k = header.index(key)
+    final = header.index("in_final_tree") if "in_final_tree" in header else None
+    labels = [r[k].strip() for r in rows[1:] if len(r) > k and r[k].strip()
+              and (final is None or (len(r) > final and r[final].strip() == "Yes"))]
+    return labels, [str(summaries[0])], key
 
 
 def discover_governed_outputs(run_dir, manifest, admitted):
@@ -982,7 +1087,8 @@ def discover_outputs(args: argparse.Namespace) -> int:
         emit(text, end="")
         return 0 if receipt["status"] == "PASS_UNIQUE_ALIGNMENT" else 2
     output_root = run_dir / "outputs" / "gtotree_alignment"
-    retained, summary_paths = _retained_count(output_root) if output_root.is_dir() else (None, [])
+    roster, summary_paths, roster_key = _retained_roster(output_root) if output_root.is_dir() else (None, [], "")
+    retained = len(roster) if roster is not None else None
     files: list[dict] = []
     candidates: list[dict] = []
     if output_root.is_dir():
@@ -996,21 +1102,38 @@ def discover_outputs(args: argparse.Namespace) -> int:
             # marker alignments under run_files are inventoried but never nominated.
             if (retained is not None and records == retained and retained >= 2 and
                     "individual_alignments" not in path.parts and path.parent == output_root):
-                candidates.append(row)
+                # A record count alone is not an alignment: parse it before nominating.
+                observed_labels: list[str] = []
+                row["alignment_problem"] = _fasta_alignment_problem(path, observed_labels)
+                if not row["alignment_problem"] and set(observed_labels) != set(roster):
+                    missing = sorted(set(roster) - set(observed_labels))[:5]
+                    extra = sorted(set(observed_labels) - set(roster))[:5]
+                    row["alignment_problem"] = (f"ROSTER_MISMATCH: not in alignment {missing}; "
+                                                f"not in summary {extra}")
+                if not row["alignment_problem"]:
+                    candidates.append(row)
     status = "PASS_UNIQUE_ALIGNMENT" if len(candidates) == 1 else (
         "HOLD_NO_ALIGNMENT" if not candidates else "HOLD_AMBIGUOUS_ALIGNMENT"
     )
+    if status == "HOLD_NO_ALIGNMENT" and any(r.get("alignment_problem") for r in files):
+        status = ("HOLD_ROSTER_MISMATCH" if all(r["alignment_problem"].startswith("ROSTER_MISMATCH")
+                                                for r in files if r.get("alignment_problem"))
+                  else "HOLD_MALFORMED_ALIGNMENT")
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "run_id": manifest.get("run_id"),
         "discovery_mode": "READ_ONLY_CONTENT_INVENTORY",
         "admitted_taxa": admitted,
         "retained_taxa_from_summary": retained,
+        "retained_roster_column": roster_key,
         "genome_summary_paths": summary_paths,
         "status": status,
         "alignment_candidates": candidates,
         "observed_files": files,
-        "note": "Candidate selection uses observed FASTA record count and hashes, not an assumed filename.",
+        "note": ("Candidate selection uses observed FASTA record count and hashes, not an assumed filename. "
+                 "A nominated file must parse with nonblank unique labels, nonempty sequences and one "
+                 "sequence length, and its labels must equal the summary's in_final_tree=Yes roster "
+                 "(label column when present, else assembly_id)."),
     }
     text = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
     if args.receipt:
@@ -1049,6 +1172,7 @@ def build_parser() -> argparse.ArgumentParser:
                         "v2 uses max(2 * jobs, jobs * MUSCLE threads) per tree; this is not total OS/CPU usage")
     from _gtotree_runtime import add_runtime_arguments
     add_runtime_arguments(p)
+    p.set_defaults(gtotree_cpu_budget=None)   # unset on plan unless given; see plan()
     p.add_argument("--gtotree-bin", default=None)
     p.add_argument("--iqtree-bin", default=None,
                    help="explicit executable; otherwise resolve iqtree3, iqtree2, then iqtree")

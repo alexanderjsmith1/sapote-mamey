@@ -1,151 +1,46 @@
-# RG-GMCI uses ClusterBlast, not just KnownClusterBlast — source-verified
+# RG-GMCI uses ClusterBlast, not just KnownClusterBlast
 
-## Current owner and inference boundary
+RG-GMCI is the split-cluster rescue score. It looks for two BGC regions on different contigs that may be two halves of one broken locus. It uses homology to reference genomes to suggest the link. It does not join nucleotide sequence, and a candidate is a hypothesis, not a physical join. See the [glossary](../GLOSSARY.md) for other terms.
 
-RG-GMCI uses both cross-genome `clusterblast` and characterized-reference
-`knownclusterblast` records. It keeps those channels separate and excludes
-`subclusterblast` from candidate pairing. To check which channel supports a saved
-candidate, read its canonical JSON:
+## The three antiSMASH comparison files
 
-1. Check `reference_map_status`, `reference_parse_error_count`,
-   `reference_record_count` and `clusterblast_txt_file_count` before reading a
-   zero candidate count. A parse problem or unavailable reference evidence is not
-   a successful negative search.
-2. Read the pair's `db_kinds`, `clusterblast_refs` and `knownclusterblast_refs`
-   alongside the reference-level `evidence_rows`. Check
-   `rggmci_summary.evidence_rows_total` and `evidence_rows_not_exported` when
-   assessing how much reference evidence is retained in the JSON.
-3. Preserve both saved endpoints as strain / full node-or-contig / region / BGC
-   alias, together with the effective verdict and bound source records.
+| File family | What it holds | Role in RG-GMCI |
+|---|---|---|
+| `clusterblast` | Other genomes that carry a homologous locus | Main signal. A complete reference genome that covers both fragments supports a split. |
+| `knownclusterblast` | Characterized MIBiG reference clusters | Adds a named reference when one exists. Its similarity is antiSMASH's percent, with band edges 70 and 40. |
+| `subclusterblast` | Sub-operon hits | Kept as a functional marker. Never used for pairing. |
 
-The current owners are `_classify_db_kind`,
-`parse_clusterblast_reference_map` and `compute_rggmci` in `mamey/rggmci.py`.
-Classification by filename, successful parsing, and inclusion in a reference pool
-are separate steps. Unknown names passed directly to the classifier fall back to
-`clusterblast`; that fallback does not authenticate an arbitrary file.
+The two paired channels stay separate. A split can be supported by ClusterBlast alone, with no MIBiG hit. This matters because most cryptic clusters have no MIBiG relative. The classifier is `_classify_db_kind` in `mamey/rggmci.py`.
 
-Reference sharing and subject tiling support a candidate fragmented-locus
-interpretation. They do not establish physical contig linkage, one pathway,
-compound identity or reference-genome completeness. Use the saved source bindings
-for those questions and [current source scope](06_CURRENT_SOURCE_SCOPE.md) for the
-version-specific software contract. The dated clarification below preserves why
-the KCB-only description was corrected; its scientific generalizations and line
-pointers are historical, not current validation.
+## Check which channel supports a candidate
 
-<details>
-<summary>Historical v9.7.117 clarification and source pointers</summary>
+Open `<strain>_4A_RGGMCI_canonical.json` in the package. Mamey writes it with seven TSV files that carry the same result.
 
-**Status:** Correctness clarification · verified against `mamey/rggmci.py` @ bundle v9.7.117 · 2026-06-23
-**Why this exists:** An overview write-up described RG-GMCI's evidence as *KnownClusterBlast* only. That is incomplete. RG-GMCI consumes the cross-genome **ClusterBlast** data as a first-class evidence source. This note pins the exact source lines so the distinction is unambiguous and does not get lost again.
+1. Check `reference_map_status`, `reference_parse_error_count`, `reference_record_count` and `clusterblast_txt_file_count` before you read a zero candidate count. A parse problem or missing reference evidence is not a negative search.
+2. For each pair, read `db_kinds`, `clusterblast_refs` and `knownclusterblast_refs`. Compare `rggmci_summary.evidence_rows_total` with `evidence_rows_not_exported` to see how much reference evidence the JSON kept.
+3. Copy both endpoints as `strain / full node-or-contig / region / BGC alias`, with the verdict and its source records.
 
----
+Shared references and subject tiling support a fragmented-locus reading. They do not show one pathway, one compound or a complete reference genome. [Current source scope](06_CURRENT_SOURCE_SCOPE.md) lists what the checks do not cover.
 
-## The three antiSMASH BLAST databases
-
-antiSMASH emits three TXT families, distinguished in code by `ClusterBlastReference.db_kind` (`rggmci.py:368`):
-
-- **`clusterblast`** — cross-genome GenBank neighbours. Other genomes that carry a homologous locus. This is the evidence that links *split fragments of one cluster across contigs*, because a complete reference genome tiles both arms.
-- **`knownclusterblast`** — characterized MIBiG reference clusters. Similarity to a *named* compound's BGC.
-- **`subclusterblast`** — sub-operon / sub-cluster hits. **Excluded** from the pairing pool (kept only as a functional marker).
-
-The classifier is `rggmci.py:_classify_db_kind` (lines 542–553). Order matters there: `knownclusterblast` and `subclusterblast` both contain the substring `clusterblast`, so they are tested first; anything else falls through to `clusterblast`.
-
-## RG-GMCI ingests ClusterBlast — the proof
-
-**1. Parse (`rggmci.py:parse_clusterblast_reference_map`, line ~614):** the glob accepts any `.txt` whose name contains `clusterblast` **or** `knownclusterblast`. The cross-genome `clusterblast/` directory is read, not skipped.
-
-```
-if "clusterblast" not in low and "knownclusterblast" not in low:
-    continue        # only non-ClusterBlast TXT is skipped
-```
-
-**2. Pairing pool (`rggmci.py`, line 824):** the only exclusion is `subclusterblast`. Both `clusterblast` and `knownclusterblast` records enter pairing.
-
-```
-ref_records = [r for r in all_records if r.db_kind != "subclusterblast"]
-```
-
-**3. Pool keying (line 832):** the pool is keyed on `(db_kind, ref)`, so a `clusterblast` hit and a `knownclusterblast` hit to the same accession are tracked as distinct supporting references — neither shadows the other.
-
-**4. Per-pair accounting (lines 901–909):** every rescue pair separately counts `clusterblast_refs` and `knownclusterblast_refs`. A split can be supported, scored, and promoted on **cross-genome ClusterBlast homology with zero MIBiG/KnownClusterBlast hits**.
-
-```
-acc["db_kinds"].add(db_kind)
-if db_kind == "knownclusterblast":
-    acc["knownclusterblast_refs"] += 1
-elif db_kind == "clusterblast":
-    acc["clusterblast_refs"] += 1
-```
-
-## Why this is the correct design
-
-RG-GMCI's job is to recognize when assembly fragmentation has split one biosynthetic locus across contigs. The signal for that is a *complete reference genome* (a ClusterBlast cross-genome neighbour) whose subjects tile across both fragments — the subject-tiling verdict (`COMPLEMENTARY_SPLIT`) is computed on those cross-genome subjects. Restricting to KnownClusterBlast/MIBiG would blind the rescue to every split whose parent compound is not in MIBiG — which is most cryptic clusters, i.e. exactly the discovery targets. The historical fix at `rggmci.py:56` notes a prior version where the linking coordinate "was computable from data already parsed onto `ClusterBlastReference.subjects`, but was dropped before output" — the lesson that drove the current explicit ClusterBlast utilization.
-
-## What an overview should say
-
-> RG-GMCI scores split-cluster rescue from antiSMASH ClusterBlast evidence — both cross-genome **ClusterBlast** neighbours and characterized **KnownClusterBlast** (MIBiG) references — excluding only SubClusterBlast. Cross-genome ClusterBlast is the primary signal for fragmentation splits; KnownClusterBlast adds named-compound corroboration when present.
-
-*Source-verified against `mamey/rggmci.py` (lines 368, 542–553, 614, 824, 832, 901–909) @ Mamey v1.9.98 / bundle v9.7.117. KCB = similarity, not identity; capacity-level language throughout.*
-
-
-</details>
-
+<a id="shared-invocation-contract"></a>
 <a id="shared-invocation-contract-rggmci-shared-invocation-v2"></a>
-## Shared invocation contract (`rggmci-shared-invocation-v3`)
+## Saved files and the schema field
 
-Read the saved JSON `schema` field before comparing runs. The shared owner
-sets it to `rggmci-shared-invocation-v3`; this version also retains archive-derived
-`functional_profiles`, `modular_profiles` and `functional_context` in the result.
-A shared source contract does not establish that a separately installed or
-published standalone distribution contains the same implementation.
+Read the `schema` field of the saved JSON before you compare two runs. It reads `rggmci-shared-invocation-v3`. Runs with different values are not directly comparable.
 
-The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
-binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
-process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
-public standalone `run` rejects snapshot overrides. The
-high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
-behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
-standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
-disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
-sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
+Each input writes eight files that share one prefix (`<strain>_4A_RGGMCI_canonical` in a Mamey package):
 
-Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
-diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
-members refuse common intake before a subset is reported. General source-reader malformed/empty-member
-warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
-empty successful RGGMCI result.
+| File suffix | Holds |
+|---|---|
+| `.json` | Full result, region metadata and four-part endpoint identities |
+| `_pairs.tsv` | Ranked pairs |
+| `_related_loci.tsv` | Related loci |
+| `_candidate_groups.tsv` | Candidate groups |
+| `_summary.tsv` | One summary row |
+| `_reference_completion.tsv`, `_split_genes.tsv`, `_partner_contigs.tsv` | Reference-completion tables |
 
-Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
-no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
-then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
-implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
-DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
-the actual selected content. Standalone
-`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
-Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
-`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
-Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
-retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
-is a distinct requested layer. No automatic database download is introduced.
+An empty table has headers only. An empty completion table keeps one row that names its tier. Nested evidence sits in JSON cells.
 
-The canonical exporter defines eight per-input artifacts: JSON and seven TSVs
-(ranked pairs, related loci, candidate groups, summary, and three completion
-tables). In the standalone CLI, `--out-dir` writes that complete per-input set;
-`--out` and `--pairs` select only the single-input JSON and pair TSV destinations.
-Read the selected output roster before assuming that eight files were written.
-Every row key is retained, including later-row-only fields; nested evidence uses
-JSON cells with spreadsheet protection. Empty candidate tables have headers only.
-Empty completion tables retain their explicit tier row. JSON includes full
-region metadata and four-component endpoint identities: logical strain / full physical contig / region /
-BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
-effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
-`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
+`run` controls these settings with `--rggmci-registry-from`, `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`, `--rggmci-residue-scope`, `--rggmci-residue-work-dir`, `--rggmci-completion-work-dir` and `--rggmci-label`. Run `python mamey_run.py run --help` for their defaults. No database is downloaded for you. A missing database stays marked as missing in the result.
 
-Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
-attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
-and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
-`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
-presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
-contract; runtime parity, optional active-resource profiles and published standalone synchronization
-require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
-physical joins, compound identity or biological accuracy.
+The same code also ships as a separately packaged standalone tool (`packaging/rggmci/`). It has its own `--out-dir`, `--out` and `--pairs` options. Treat its results as comparable to Mamey's only when their `schema` fields match.

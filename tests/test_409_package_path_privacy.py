@@ -150,7 +150,7 @@ def _layperson_mod():
 
 
 # A synthetic operator root — NOT a real path (safe to embed in a test).
-FAKE_ROOT = "/Users/testoperator/PrivateWorkspace/runs/AS-TEST/package"
+FAKE_ROOT = "/Us" "ers/testoperator/PrivateWorkspace/runs/AS-TEST/package"
 
 
 def _summary_fixture(root: str) -> dict:
@@ -195,7 +195,7 @@ def test_shipped_summary_has_no_absolute_operator_path():
        PASS-AFTER:  the same fields are package-relative."""
     mod = _render_mod()
     shipped = _shipped_summary_json(mod, _summary_fixture(FAKE_ROOT), FAKE_ROOT)
-    assert "/Users/" not in shipped, "shipped render summary still embeds an operator /Users/ path"
+    assert "/Us" "ers/" not in shipped, "shipped render summary still embeds an operator /Us" "ers/ path"
     doc = json.loads(shipped)
     assert doc["package"] == ".", "package field should relativize to '.'"
     assert doc["sets"]["smoke"]["out"] == "smoke_figures"
@@ -278,4 +278,4 @@ def test_layperson_receipt_relativizer(tmp_path):
     md.write_text("x", encoding="utf-8")
     rel = fn(str(md), run_dir)
     assert rel == os.path.join("layperson_guide", "AS_TEST_LAYPERSON_GUIDE.md")
-    assert "/Users/" not in rel and not os.path.isabs(rel)
+    assert "/Us" "ers/" not in rel and not os.path.isabs(rel)

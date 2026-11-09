@@ -21,13 +21,13 @@ Entries are roughly reverse-chronological within themes.
 ## 1 · PDF Compilation Issues
 
 ### 1.1 — Overlapping text on the first section page of a compiled report
-**Severity:** High · **Discovered:** v9.7.148c · **Trigger:** AS-XXX Full Report visual inspection
+**Severity:** High · **Discovered:** v9.7.148c · **Trigger:** STRAIN_ID Full Report visual inspection
 
-**What happened:** The first section page (Synopsis) of the AS-XXX compiled PDF showed giant overlapping text — three layers of header information stacked on the same vertical space, making the page unreadable.
+**What happened:** The first section page (Synopsis) of the STRAIN_ID compiled PDF showed giant overlapping text — three layers of header information stacked on the same vertical space, making the page unreadable.
 
 **Root cause:** The testing chat was placing a mini-header block at the start of each section body, e.g.:
 ```
-AS-XXX Analysis Synopsis · Saccharopolyspora sp. AS-XXX · Apis mellifera honeybee...
+<strain> Analysis Synopsis · Saccharopolyspora sp. <strain> · Apis mellifera honeybee...
 Bundle: Sapote–Mamey v9.7.146 · Engine 1.9.100...
 ```
 This is correct on the cover page. But in subsequent sections, the LaTeX renderer already places a running header automatically at the top of every page (strain name · PRIVATE). Adding the mini-header as body text produces three simultaneous layers: the YAML `\maketitle` block, the automatic running header, and the body text header. All three land on the same vertical position.
@@ -39,9 +39,9 @@ This is correct on the cover page. But in subsequent sections, the LaTeX rendere
 ---
 
 ### 1.2 — Dark blue background / illegible text in compiled PDF
-**Severity:** High · **Discovered:** v9.7.148 review · **Trigger:** AS-XXX Mode B PDF upload
+**Severity:** High · **Discovered:** v9.7.148 review · **Trigger:** STRAIN_ID Mode B PDF upload
 
-**What happened:** The AS-XXX PDF had black text against a dark blue background, making it nearly unreadable. This is visually inverted from the intended white-background black-text format.
+**What happened:** The STRAIN_ID PDF had black text against a dark blue background, making it nearly unreadable. This is visually inverted from the intended white-background black-text format.
 
 **Root cause:** The testing chat used `wkhtmltopdf` directly to render HTML to PDF. `wkhtmltopdf` inherits dark-mode CSS from the system environment, so if the host machine has dark mode enabled, the generated PDF adopts dark backgrounds. The pipeline's own PDF tool (`tools/md_to_pdf.sh` → pandoc → xelatex) produces clean white-background output and was not used.
 
@@ -50,7 +50,7 @@ This is correct on the cover page. But in subsequent sections, the LaTeX rendere
 ---
 
 ### 1.3 — Compiled report was Mode B cards only, not a complete deliverable
-**Severity:** High · **Discovered:** v9.7.148 review · **Trigger:** AS-XXX Mode B PDF
+**Severity:** High · **Discovered:** v9.7.148 review · **Trigger:** STRAIN_ID Mode B PDF
 
 **What happened:** The testing chat produced a 7-page PDF titled "Mode B Report" and treated it as the compiled analysis deliverable. It contained Mode B cards only — no layperson guide, no figures, no ecology section, no fermentation guidance, no wet-lab matrix, no triage board, no BLASTP evidence table.
 
@@ -66,9 +66,9 @@ Target length for a 13-BGC strain with 10 cards: 40–80 pages.
 
 
 ### 1.4 — Blank pages from double section breaks
-**Severity:** Medium · **Discovered:** v9.7.148c review · **Trigger:** AS-XXX PDF visual inspection
+**Severity:** Medium · **Discovered:** v9.7.148c review · **Trigger:** STRAIN_ID PDF visual inspection
 
-**What happened:** The 111-page AS-XXX compiled report had 16 near-blank pages — 8 completely blank pages and 8 pages containing only a section header (e.g. "Section 3 — Chapter — BGC Landscape") with no content. These appeared at every major section boundary.
+**What happened:** The 111-page STRAIN_ID compiled report had 16 near-blank pages — 8 completely blank pages and 8 pages containing only a section header (e.g. "Section 3 — Chapter — BGC Landscape") with no content. These appeared at every major section boundary.
 
 **Root cause:** The Markdown source used a pattern that generates two forced page breaks per section transition: a `---` rule before a dedicated section title block, then another `---` rule before the actual section heading. LaTeX renders each `---` as a `\clearpage`, producing two blank-ish pages before content resumes. In a 111-page document this wasted ~14% of pages.
 
@@ -88,9 +88,9 @@ ewpage` commands.
 ---
 
 ### 1.5 — 324 bare BGC ID instances in compiled PDF prose
-**Severity:** High · **Discovered:** v9.7.148c review · **Trigger:** AS-XXX PDF audit
+**Severity:** High · **Discovered:** v9.7.148c review · **Trigger:** STRAIN_ID PDF audit
 
-**What happened:** An audit of the AS-XXX compiled report (111 pages) found 324 bare BGC ID instances — `BGC028`, `BGC020` etc. — in prose sections without node/region citation. This included exclusion tables, lead tier tables, cross-references throughout the Mode B cards, fermentation guidance, and the ecological synthesis. The §15 rule (added in v9.7.148b) was not in effect when this report was generated (it ran on v9.7.146).
+**What happened:** An audit of the STRAIN_ID compiled report (111 pages) found 324 bare BGC ID instances — `BGC028`, `BGC020` etc. — in prose sections without node/region citation. This included exclusion tables, lead tier tables, cross-references throughout the Mode B cards, fermentation guidance, and the ecological synthesis. The §15 rule (added in v9.7.148b) was not in effect when this report was generated (it ran on v9.7.146).
 
 **The scale of the problem:** 383 total bare BGC instances across the document. Of those, 28 were in the TOC (structurally acceptable — TOC entries reference IDs by design), 4 on the cover summary table (short form acceptable), and 324 in prose (all violations).
 
@@ -100,9 +100,9 @@ ewpage` commands.
 
 
 ### 1.6 — "PI clearance required" persisting in compiled PDF footers and headers
-**Severity:** Medium · **Discovered:** v9.7.148c PDF review · **Trigger:** AS-XXX compiled report
+**Severity:** Medium · **Discovered:** v9.7.148c PDF review · **Trigger:** STRAIN_ID compiled report
 
-**What happened:** The AS-XXX compiled PDF (generated from v9.7.146 analysis) showed "PI clearance required" in the running footer on every page, in the cover page footer, and in the Synopsis section header. The bundle fix (replacing all "PI clearance required" → "PRIVATE") landed in v9.7.148c but the testing chat generated its report Markdown before that cut.
+**What happened:** The STRAIN_ID compiled PDF (generated from v9.7.146 analysis) showed "PI clearance required" in the running footer on every page, in the cover page footer, and in the Synopsis section header. The bundle fix (replacing all "PI clearance required" → "PRIVATE") landed in v9.7.148c but the testing chat generated its report Markdown before that cut.
 
 **Root cause:** The "PI clearance required" string was in the report's YAML front-matter (used for the running footer) and repeated as body text in the Synopsis classification line. Bundle fixes to source files don't retroactively change already-generated Markdown reports.
 
@@ -111,10 +111,10 @@ ewpage` commands.
 ---
 
 ### 1.7 — Overclaims in layperson guide plain-English descriptions
-**Severity:** Medium · **Discovered:** v9.7.148c PDF review · **Trigger:** AS-XXX compiled report
+**Severity:** Medium · **Discovered:** v9.7.148c PDF review · **Trigger:** STRAIN_ID compiled report
 
-**What happened:** The layperson guide in the AS-XXX report contained several identity overclaims in plain-English prose:
-- "AS-XXX produces a structurally distinct analogue" (of totopotensamide) — compound identity claim
+**What happened:** The layperson guide in the STRAIN_ID report contained several identity overclaims in plain-English prose:
+- "STRAIN_ID produces a structurally distinct analogue" (of totopotensamide) — compound identity claim
 - "Our bacterium produces a compound whose..." — implies compound is known
 - "The compound is secreted into the growth medium" — implies compound identity
 - "The compound is also heavily methylated" — describes an unconfirmed specific product
@@ -131,9 +131,9 @@ ewpage` commands.
 
 
 ### 1.8 — Hand-written TOC page numbers up to 53 pages wrong
-**Severity:** High · **Discovered:** v9.7.148d review · **Trigger:** AS-XXX compiled PDF
+**Severity:** High · **Discovered:** v9.7.148d review · **Trigger:** STRAIN_ID compiled PDF
 
-**What happened:** The TOC in the AS-XXX compiled report (115 pages) had page numbers that drifted progressively further from reality as the document grew. The Figures section was listed as page 17 but actually started on page 26 (+9). The Outstanding Work section was listed as page 60 but actually started on page 113 (+53). A user following the TOC would never find the figures.
+**What happened:** The TOC in the STRAIN_ID compiled report (115 pages) had page numbers that drifted progressively further from reality as the document grew. The Figures section was listed as page 17 but actually started on page 26 (+9). The Outstanding Work section was listed as page 60 but actually started on page 113 (+53). A user following the TOC would never find the figures.
 
 **Root cause:** The testing chat hand-wrote the TOC with estimated page numbers before finalising the content. As each section grew during composition, the page offsets accumulated. By the end of the document the drift was 53 pages.
 
@@ -152,10 +152,10 @@ This inserts `	ableofcontents` at the LaTeX level, computed correctly after two-
 
 ## 2 · BGC Class Misidentification
 
-### 2.1 — BGC044 (AS-XXX, NODE_73): ranthipeptide → mycofactocin
-**Severity:** High · **Discovered:** v9.7.146 Mamey run · **Trigger:** TIGRFAM scan of AS-XXX package
+### 2.1 — BGC044 (STRAIN_ID, NODE_73): ranthipeptide → mycofactocin
+**Severity:** High · **Discovered:** v9.7.146 Mamey run · **Trigger:** TIGRFAM scan of STRAIN_ID package
 
-**What happened:** BGC044 (NODE_73_length_34773_cov_57 · region001) in AS-XXX was identified as a ranthipeptide BGC across multiple prior analysis sessions. Full §1–§20 Mode B cards and §21–§30 extensions were produced under this assumption. All were wrong. BGC044 produces mycofactocin — a redox cofactor RiPP used in electron transfer, not an antibiotic.
+**What happened:** BGC044 (NODE_73_length_34773_cov_57 · region001) in STRAIN_ID was identified as a ranthipeptide BGC across multiple prior analysis sessions. Full §1–§20 Mode B cards and §21–§30 extensions were produced under this assumption. All were wrong. BGC044 produces mycofactocin — a redox cofactor RiPP used in electron transfer, not an antibiotic.
 
 **Root cause:** The analysis was done from raw antiSMASH GBK files before running the Mamey TIGRFAM scan. TIGR03997 (MftE, HMHP hydrolase — a mycofactocin-specific enzyme) was annotated in the raw GBK under a name that looked like an RRE domain used in ranthipeptides. Without the Mamey package's full TIGRFAM sweep, the false class assignment went undetected.
 
@@ -170,16 +170,16 @@ Seven diagnostic mycofactocin markers were present on the contig:
 
 TIGR04085 (SPASM domain) was also present on ctg73_21. SPASM occurs in both ranthipeptide and mycofactocin pathways — its presence alone is not diagnostic for ranthipeptide. The MftD+MftE co-occurrence is definitive for mycofactocin.
 
-**Fix:** Execution slice §14 (PATCH-MYCO-DISAMBIGUATION): when TIGR03967 + TIGR03996 + TIGR03997 co-occur on a contig, the class is mycofactocin regardless of TIGR04085 presence. All prior BGC044 cards for AS-XXX are invalidated. BGC044 is excluded from antibacterial/antifungal leads; reclassified as cofactor biosynthesis.
+**Fix:** Execution slice §14 (PATCH-MYCO-DISAMBIGUATION): when TIGR03967 + TIGR03996 + TIGR03997 co-occur on a contig, the class is mycofactocin regardless of TIGR04085 presence. All prior BGC044 cards for STRAIN_ID are invalidated. BGC044 is excluded from antibacterial/antifungal leads; reclassified as cofactor biosynthesis.
 
 **Broader lesson:** Mamey-first is a hard gate. Working from raw GBK files before the Mamey package is sealed causes systematic errors that compound through all downstream analysis.
 
 ---
 
-### 2.2 — BGC022 (AS-XXX): Linocin_M18 bacteriocin → encapsulin nanocompartment
-**Severity:** Medium · **Discovered:** BLASTP validation · **Trigger:** AS-XXX analysis session
+### 2.2 — BGC022 (STRAIN_ID): Linocin_M18 bacteriocin → encapsulin nanocompartment
+**Severity:** Medium · **Discovered:** BLASTP validation · **Trigger:** STRAIN_ID analysis session
 
-**What happened:** BGC022 in AS-XXX was initially assigned as a Linocin_M18 bacteriocin based on antiSMASH domain annotation. BLASTP of ctg4_82 (94.2% identity to *Pseudonocardia sulfidoxydans* family-1 encapsulin shell protein) revealed it is an encapsulin nanocompartment with hemerythrin cargo.
+**What happened:** BGC022 in STRAIN_ID was initially assigned as a Linocin_M18 bacteriocin based on antiSMASH domain annotation. BLASTP of ctg4_82 (94.2% identity to *Pseudonocardia sulfidoxydans* family-1 encapsulin shell protein) revealed it is an encapsulin nanocompartment with hemerythrin cargo.
 
 **Root cause:** The Linocin_M18 Pfam domain is structurally homologous to encapsulin shell proteins — antiSMASH's domain model correctly identifies the fold but does not distinguish the biological context. A bare class assignment from antiSMASH annotation without BLASTP confirmation accepted the domain-level call as the class call.
 
@@ -187,7 +187,7 @@ TIGR04085 (SPASM domain) was also present on ctg73_21. SPASM occurs in both rant
 
 ---
 
-### 2.3 — BGC036 (AS-XXX, NODE_59): terpene/carotenoid → SUF operon (primary metabolism)
+### 2.3 — BGC036 (STRAIN_ID, NODE_59): terpene/carotenoid → SUF operon (primary metabolism)
 **Severity:** Medium · **Discovered:** v9.7.146 Mamey run
 
 **What happened:** BGC036 was reported by antiSMASH as a terpene/carotenoid BGC. The Mamey v9.7.146 TIGRFAM scan identified the genes as SUFBD (TIGR01980/01981), ABC transporter (TIGR01978), aminotransferase (TIGR01979), and NifU (TIGR01994) — the complete iron-sulphur cluster assembly pathway (sufBCDSU). This is primary metabolism, not a secondary metabolite BGC.
@@ -264,9 +264,9 @@ This affected every file that sync_version patches: TAG, docs/BUNDLE_CAPABILITIE
 ## 5 · BGC Node/Contig Citation
 
 ### 5.1 — Bare BGC IDs in analysis deliverables (no node/contig)
-**Severity:** High · **Discovered:** v9.7.148b · **Trigger:** AS-XXX full analysis report audit
+**Severity:** High · **Discovered:** v9.7.148b · **Trigger:** STRAIN_ID full analysis report audit
 
-**What happened:** An audit of the AS-XXX full analysis report found 79 lines with bare BGC IDs — `BGC007`, `BGC027`, etc. — in prose sections, §28/§30 evidence ledgers, exclusion lists, cross-reference sentences, and the ecological synthesis. The node and region (`NODE_1_length_406707_cov_83 · region001`) were cited correctly in the triage board table but dropped in all subsequent prose.
+**What happened:** An audit of the STRAIN_ID full analysis report found 79 lines with bare BGC IDs — `BGC007`, `BGC027`, etc. — in prose sections, §28/§30 evidence ledgers, exclusion lists, cross-reference sentences, and the ecological synthesis. The node and region (`NODE_1_length_406707_cov_83 · region001`) were cited correctly in the triage board table but dropped in all subsequent prose.
 
 **Impact:** BGC IDs are Mamey-internal bookkeeping. A collaborator, reviewer, or user returning to the report cannot locate `BGC007` in the assembly or antiSMASH HTML without the node and region. The node citation is the locus identifier; the BGC number is a convenience alias.
 
@@ -296,7 +296,7 @@ This affected every file that sync_version patches: TAG, docs/BUNDLE_CAPABILITIE
 
 ---
 
-### 6.2 — ctg94_18 (AS-XXX, BGC050) at 3,049 aa may exceed NCBI web BLASTP limit
+### 6.2 — ctg94_18 (STRAIN_ID, BGC050) at 3,049 aa may exceed NCBI web BLASTP limit
 **Severity:** Low · **Discovered:** v9.7.147 analysis
 
 **What happened:** ctg94_18, the Hybrid-KS protein in BGC050 (NODE_94), is 3,049 amino acids — well above the NCBI web BLASTP practical size limit (~100,000 residues per submission, but individual proteins above ~2,500 aa are often rejected).
@@ -308,7 +308,7 @@ This affected every file that sync_version patches: TAG, docs/BUNDLE_CAPABILITIE
 ## 7 · Figure Generation
 
 ### 7.1 — Figures were not produced automatically in smoke mode
-**Severity:** High · **Discovered:** v9.7.148 · **Trigger:** AS-XXX testing chat delivering `NO_FIGURES_RENDERED.md`
+**Severity:** High · **Discovered:** v9.7.148 · **Trigger:** STRAIN_ID testing chat delivering `NO_FIGURES_RENDERED.md`
 
 **What happened:** The testing chat ran with `--chatgpt-safe` (which sets `--brief none`), which explicitly skips all figure rendering. The package contained `NO_FIGURES_RENDERED.md` explaining the skip, but the post-MAMEY_COMPLETE handback did not detect this file and trigger `render-figures` before presenting outputs. Users received a package with no figures.
 
@@ -363,11 +363,11 @@ Smoke/standard runs write `GOLD_FIGURES_REQUIRE_GOLD_MODE.md` instead of failing
 ---
 
 ### 9.2 — NI-siderophore and NRP-metallophore scoring caused false lead suppression
-**Severity:** Medium · **Discovered:** v9.7.122 · **Trigger:** AS-XXX BGC017 dogfood run
+**Severity:** Medium · **Discovered:** v9.7.122 · **Trigger:** STRAIN_ID BGC017 dogfood run
 
 **What happened:** An early version of the iron/metal-acquisition exclusion rule (`BH-007`) incorrectly suppressed AB/AF scores for BGCs with co-present NRPS/PKS/RiPP leads alongside an iron-acquisition component. The rule was too broad — it downgraded the entire BGC rather than only the iron-acquisition capacity.
 
-**Fix (v9.7.122 BH-007b):** The committed-class guard was added: a co-present NRPS/PKS/RiPP/lanthipeptide lead is preserved even when the iron-acquisition downgrade fires. The AS-XXX BGC017 lanthipeptide lead was correctly retained after the fix.
+**Fix (v9.7.122 BH-007b):** The committed-class guard was added: a co-present NRPS/PKS/RiPP/lanthipeptide lead is preserved even when the iron-acquisition downgrade fires. The STRAIN_ID BGC017 lanthipeptide lead was correctly retained after the fix.
 
 ---
 
@@ -424,7 +424,7 @@ Smoke/standard runs write `GOLD_FIGURES_REQUIRE_GOLD_MODE.md` instead of failing
 | v9.7.124–126 | Card-time gating + seal-package | Card-time claim-safety + locator wiring; `mamey seal-package` CLI; figure-reference validation gate; deliverable-status table gate |
 | v9.7.127–129 | Two-pathway detection | Gene-only two-pathway detector (`two_pathway.py`); `Two_Pathway_Flag` triage column; BGC decomposition module (`bgc_decomp.py`) |
 | v9.7.130–131 | Domain classifier expansion | `lasso`, `thioamide`, `phosphonate` new classes; hierarchical RiPP-family coherence |
-| v9.7.132–134 | Cross-assistant bootstrap | AS-XXX SPAdes contig fix; `AGENTS.md`; `AGENTS.md`; smoke-first default |
+| v9.7.132–134 | Cross-assistant bootstrap | STRAIN_ID SPAdes contig fix; `AGENTS.md`; `AGENTS.md`; smoke-first default |
 | v9.7.135–137 | ChatGPT handback | Exactly-8 unique next-paths rule; release polish |
 | v9.7.138–140 | Four-tier consolidation | C1–C4 release-identity; public/private leak-safety; surrogate gate |
 | v9.7.141–142 | ChatGPT operational reliability | Smoke-first first-run guard; BLASTP evidence store; `bgc-blastp-panel`; `blastp-followup` |
@@ -477,6 +477,8 @@ A raw-JSON parse is not a Mamey package. Any analysis built on it is missing ~80
 > The engine runs fully offline — no internet required. Install from the bundle root: `pip install -e . --break-system-packages --no-index`. Do NOT parse raw antiSMASH JSON as a substitute — that is not a Mamey package.
 
 **Install commands for a fully offline session:**
+Historical: do not run these as written. `--break-system-packages` modifies the system Python. Install as described in [INSTALL.md](../../INSTALL.md).
+
 ```bash
 pip install -e . --break-system-packages --no-index        # core engine
 pip install --no-index --find-links ./wheels biopython      # optional robust GBK parsing
@@ -499,6 +501,8 @@ The chat did not know: (1) `tools/intake_harness.py` exists for multi-strain bat
 - CHATGPT_START_HERE: single-strain callout replaced with full batch command block and `mode-b` follow-up
 
 **The correct four-strain workflow:**
+Historical: do not run these as written. They use `python -m mamey`, which can resolve to a different installed version than the bundle you are in. Use `python mamey_run.py <command>` from the bundle root (see [AGENTS.md](../../../AGENTS.md)).
+
 ```bash
 # Step 1 — install (once)
 pip install -e . --break-system-packages
@@ -547,7 +551,7 @@ The §16 note added in 148e says "§21–§30 are required... the execution slic
 ### 14.1 — `_parse_fasta` gene tag regex consumed entire header tail on space-delimited format
 **Severity:** High · **Discovered:** v9.7.150 (Opus W7) · **Trigger:** real-format header audit
 
-**What happened:** `_parse_fasta()` in `mamey/modeb_blastp.py` used `r"gene=([^|]+)"` to extract the locus tag from FASTA headers. This regex matches everything except a pipe character. On pipe-delimited headers (`>strain|BGC_ID|slot=N|role=...|gene=<tag>|node=...`) this worked correctly — the next `|` stopped the capture. On AS-XXX-style space-delimited headers (`>ctg107_3 gene=ctg107_3 BGC=BGC003 length=619 product=hypothetical protein`) there is no `|` after `gene=`, so the capture group consumed the rest of the line. The resulting "gene tag" was `"ctg107_3 BGC=BGC003 length=619 product=hypothetical protein"` — garbage, not a usable locus tag.
+**What happened:** `_parse_fasta()` in `mamey/modeb_blastp.py` used `r"gene=([^|]+)"` to extract the locus tag from FASTA headers. This regex matches everything except a pipe character. On pipe-delimited headers (`>strain|BGC_ID|slot=N|role=...|gene=<tag>|node=...`) this worked correctly — the next `|` stopped the capture. On STRAIN_ID-style space-delimited headers (`>ctg107_3 gene=ctg107_3 BGC=BGC003 length=619 product=hypothetical protein`) there is no `|` after `gene=`, so the capture group consumed the rest of the line. The resulting "gene tag" was `"ctg107_3 BGC=BGC003 length=619 product=hypothetical protein"` — garbage, not a usable locus tag.
 
 **Impact:** Any FASTA emitted in space-delimited format and re-parsed by `_load_panel_sequences()` would have its sequences keyed under garbage tags, silently breaking the BGC-filtering step in `emit_for_bgc()`.
 
@@ -621,11 +625,11 @@ Searched the codebase for other unbounded-capture regex patterns matching the sa
 ## 17 · Documentation Integration — docs/batches/ and a Latent Redaction-Policy Mismatch
 
 ### 17.1 — verify_tier_derivation.py hardcoded a stricter redaction policy than the real tier-build script uses
-**Severity:** High · **Discovered:** v9.7.151b · **Trigger:** integrating a new 18-document batch series (`docs/batches/`) that, for the first time in this bundle's history, named specific SID strain numbers (SID8370, SID8371, SID8375) in prose.
+**Severity:** High · **Discovered:** v9.7.151b · **Trigger:** integrating a new 18-document batch series (`docs/batches/`) that, for the first time in this bundle's history, named specific SID strain numbers in prose.
 
-**What happened:** `tools/verify_tier_derivation.py`'s `redact_text()`/`redact_py()` wrappers called the shared redaction function with `as_only=False`, with a comment claiming this "mirrors the code/sid public-tier scrub (SID + AS both redacted)." That claim was wrong. Every real call site in `tools/make_public_tier.sh` — for every tier, every time — passes `--as-only` to `redact_public_tier.py`, whose own comment states plainly: "`--as-only` keeps public SID (Chevrette 2019) intact." SID strain identifiers are genuinely public (the Chevrette 2019 attine ant antiSMASH dataset) and were never meant to be redacted in any tier.
+**What happened:** `tools/verify_tier_derivation.py`'s `redact_text()`/`redact_py()` wrappers called the shared redaction function with `as_only=False`, with a comment claiming this "mirrors the code/sid public-tier scrub (SID + AS both redacted)." That claim was wrong. Every real call site in `tools/make_public_tier.sh` — for every tier, every time — passes `--as-only` to `redact_public_tier.py`, whose own comment states plainly: "`--as-only` keeps public SID (Chevrette 2019) intact." The entry states that SID strain identifiers are public (the Chevrette 2019 attine ant antiSMASH dataset) and were never meant to be redacted in any tier; that provenance is not verified here.
 
-Because no prior bundle content happened to name a specific SID number in prose, this mismatch sat latent — `verify_tier_derivation.py` was checking against a stricter, never-actually-applied policy and would have produced a false `FATAL: code tier is NOT an exact redaction-view of the private source` on the very first document that triggered it. That document turned out to be `docs/batches/batch12_figure_system_one_pager.md`, which uses SID8370/8371/8375 as illustrative example strain IDs in a CLI command and a sample CSV.
+Because no prior bundle content happened to name a specific SID number in prose, this mismatch sat latent — `verify_tier_derivation.py` was checking against a stricter, never-actually-applied policy and would have produced a false `FATAL: code tier is NOT an exact redaction-view of the private source` on the very first document that triggered it. That document turned out to be `docs/history/batch12_figure_system_one_pager.md` (was `docs/batches/`), which uses three SID-numbered strain IDs (omitted here) as illustrative examples in a CLI command and a sample CSV.
 
 **Fix:** Both wrappers changed from `as_only=False` to `as_only=True`, matching the real tier-build policy exactly. Verified: the official `tools/make_public_tier.sh code` run now passes the parity gate cleanly with the new batch documents present; SID numbers survive redaction (correctly), private AS-series numbers are still redacted (correctly, unaffected by the fix).
 
@@ -641,7 +645,7 @@ A new plain-English reference document set was integrated: `docs/batches/batch06
 ### 17.3 — make_public_tier.sh's strict parity gate incorrectly scoped to both code AND clean tiers
 **Severity:** High · **Discovered:** v9.7.151b, same session as 17.1 · **Trigger:** re-cutting all four tiers after the 17.1 fix — `code` and `sid` passed, `clean` failed with the same class of false-positive drift report.
 
-**What happened:** `clean` (the "analysis-free" tier) applies an *additional* transformation beyond the base `redact_public_tier.py --as-only` pass: a direct `sed -E 's/SID[0-9]{2,}/SID-XXX/g'` step that anonymizes SID strain numbers too (a uniformity scrub, not a secrecy one — SID is public; see the script's own comment at the point of that sed call). This makes `clean` not a pure single-function redaction-view of the private source, the same structural reason the script's authors had already correctly excluded the `sid` tier from this gate. But the gate's `if` condition still included `clean` alongside `code`, so it compared `clean`'s doubly-transformed output against `verify_tier_derivation.py`'s single-function redaction baseline and reported false drift on the same `docs/batches/batch12_figure_system_one_pager.md` SID-number content that triggered 17.1.
+**What happened:** `clean` (the "analysis-free" tier) applies an *additional* transformation beyond the base `redact_public_tier.py --as-only` pass: a direct `sed -E 's/SID[0-9]{2,}/<strain>/g'` step that anonymizes SID strain numbers too (a uniformity scrub, not a secrecy one — SID is public; see the script's own comment at the point of that sed call). This makes `clean` not a pure single-function redaction-view of the private source, the same structural reason the script's authors had already correctly excluded the `sid` tier from this gate. But the gate's `if` condition still included `clean` alongside `code`, so it compared `clean`'s doubly-transformed output against `verify_tier_derivation.py`'s single-function redaction baseline and reported false drift on the same `docs/history/batch12_figure_system_one_pager.md` (was `docs/batches/`) SID-number content that triggered 17.1.
 
 **Fix:** Narrowed the gate's `if` condition to `code` only. Verified: `clean` tier now cuts cleanly; `code` tier still correctly gated (re-confirmed passing); sanity-checked the gate still genuinely catches real injected drift in a `code`-tier staging copy (not just always-passing).
 

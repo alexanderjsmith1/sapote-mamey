@@ -4,9 +4,10 @@
 #
 # HOW TO USE
 # Create a separate tools/release_denylist.txt containing only your selected
-# terms, one per line, with a final newline. Do not copy this commented template
-# verbatim: the current reader skips only empty lines. A line beginning # and
-# leading/trailing spaces are treated as part of a term, not as comments.
+# terms, one per line, with a final newline. The cut reader
+# (tools/make_public_tier.sh) trims leading and trailing whitespace and skips
+# blank lines and lines beginning with #. Other consumers may differ; check each
+# one before relying on comments in the active file.
 # Review the chosen terms before invoking any separately authorized tier cut.
 #
 # CURRENT NONMERGED CUT BEHAVIOR (tools/make_public_tier.sh:361-373)

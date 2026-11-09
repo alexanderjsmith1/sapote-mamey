@@ -1,51 +1,39 @@
 # Run TriMap and t-SNE layouts
 
-TriMap and t-SNE draw a 2-D layout from a table of points. Protein space pages and BGCs in Space use them beside PCA. This page covers where TriMap is installed, how to check it before a long run, the one known crash and its fix, and the settings to reuse.
+TriMap and t-SNE draw a 2-D layout from a table of points. The protein-space pages show them beside PCA. This page covers how to install TriMap, check it before a long run, fix its one known crash, avoid a bad layout, and record the run.
 
-To redraw coordinates that already exist, use [Embedding replay](EMBEDDING_REPLAY.md) instead. Replay does not need TriMap or numba.
+The bundle's renderers do not fit these layouts. They draw coordinates you saved. To redraw saved coordinates, use [Embedding replay](EMBEDDING_REPLAY.md). Replay does not need TriMap or numba.
 
-## Where it is installed
+## 1. Install TriMap
 
-TriMap is not in the main bundle environment. It lives in its own virtual environment on the operator workstation:
+TriMap is not in the main bundle environment. Put it in its own virtual environment so it cannot change the bundle's packages. The folder name below is an example.
 
 ```bash
-Tools/venvs/trimap/bin/python3
+python3 -m venv ~/venvs/trimap
+~/venvs/trimap/bin/python3 -m pip install trimap
+~/venvs/trimap/bin/python3 -m pip list
 ```
 
-The environment was made from the `phylo` conda Python (3.12.7). It holds these versions:
+`pip install trimap` brings annoy (approximate neighbors), numba (compiles the inner loops), numpy, scikit-learn and PyTorch (`torch>=2.1`), per the package metadata of trimap 1.2.0. scikit-learn is used by the exact-neighbor and t-SNE steps below. Expect about 1 GB on disk, mostly PyTorch, so check free space first. Record the versions that `pip list` prints.
 
-| Package | Version |
-|---|---|
-| trimap | 1.2.0 |
-| annoy | 1.17.3 |
-| numba | 0.68.0 |
-| llvmlite | 0.50.0 |
-| numpy | 2.5.4 |
-| scipy | 1.18.1 |
-| scikit-learn | 1.9.1 |
+## 2. Check it first
 
-Check the versions with `Tools/venvs/trimap/bin/python3 -m pip list` before quoting them. Another machine needs its own environment. Install `trimap` with pip into a fresh virtual environment; pip brings annoy and numba with it.
-
-## Check it first
-
-Run this smoke test before any long run. It takes a few seconds:
+Run this smoke test before any long run. It takes a few seconds.
 
 ```bash
-NUMBA_THREADING_LAYER=workqueue Tools/venvs/trimap/bin/python3 -c "
+NUMBA_THREADING_LAYER=workqueue ~/venvs/trimap/bin/python3 -c "
 import numpy as np, trimap
-x = np.random.rand(500, 50).astype('float32'); np.random.seed(1)
+np.random.seed(1); x = np.random.rand(500, 50).astype('float32')
 print(trimap.TRIMAP(apply_pca=False, n_iters=50).fit_transform(x).shape)"
 ```
 
-It prints `(500, 2)`. Anything else, or no output, means the run would fail too.
+Success prints `(500, 2)`. The seed fixes only the test input; it does not control TriMap's own random steps (section 5).
 
-## The known crash: numba's default threading layer
+Anything else, or no output, means TriMap did not run in this environment as it is set up. Keep the full error and the `pip list` versions, and fix that before a long run. A pass shows only that this small test ran; a larger run can still fail for other reasons.
 
-On the operator workstation, TriMap ends with `Segmentation fault` (exit code 139) and no Python traceback. With `-X faulthandler` the crash is inside the `trimap_` module of the TriMap package, in `generate_triplets_known_knn` at the `find_p` call, which numba compiles.
+## 3. If TriMap exits with code 139
 
-The cause is numba's default threading layer, `omp`. The `workqueue` layer runs cleanly. These do not fix it: a fresh `NUMBA_CACHE_DIR`, or `NUMBA_OPT=0`. annoy is not the cause; it runs on its own and inside TriMap once the layer is set.
-
-The fix is one environment variable, set before numba is imported:
+On some machines TriMap ends with `Segmentation fault` (exit code 139) and no Python traceback. Where this was seen, the crash came from numba's default threading layer, `omp`, and the `workqueue` layer ran cleanly. Exit 139 only says the process crashed; it can have other causes. If `workqueue` does not stop it, keep the error output and versions and look for the cause before changing anything else. Set the layer before numba is imported. Set it for every real run, even if the smoke test passes without it:
 
 ```bash
 export NUMBA_THREADING_LAYER=workqueue
@@ -59,24 +47,24 @@ os.environ.setdefault("NUMBA_THREADING_LAYER", "workqueue")
 import trimap
 ```
 
-Record the layer in the run receipt. `numba.threading_layer()` reports the layer in use after the first parallel function runs.
+A fresh `NUMBA_CACHE_DIR` or `NUMBA_OPT=0` does not help. After the first parallel call, `numba.threading_layer()` reports the layer in use. Record it.
 
-A crash with no traceback is easy to misread. A process that exits 139 inside a pipe can also look like it finished with no output. Run once without a pipe and check `echo $?`.
+A process that exits 139 inside a pipe can look like it finished with no output. Run once without a pipe and check `echo $?`.
 
-## Identical points make TriMap diverge
+## 4. Identical points make TriMap diverge
 
-TriMap can finish without an error and still return a broken layout. Check the coordinates before drawing. A good layout spans a few hundred units. A diverged one reaches 1e6 to 1e12, and plotting squeezes almost every point into a thin band.
+TriMap can finish with no error and still return a broken layout. Check the coordinates before you draw: look for non-finite values, a range far beyond your other runs on similar data, and a plot that squeezes nearly every point into a thin band. In the runs seen here, good layouts spanned a few hundred units and diverged ones reached millions or more. The range depends on the data and settings, so a small range does not by itself show a good layout.
 
-The cause is rows with identical input values. TriMap scales each point by its mean distance to neighbors 3 to 5. When several neighbors sit at distance 0, that scale collapses and the layout diverges. BGCs in Space hit this: 6,972 of 101,447 BiG-SLiCE regions shared their feature vector with another region, and the first full run reached about 1e12.
+One cause seen here is rows with identical input values. TriMap scales each point by its mean distance to neighbors 3 to 5. When several neighbors sit at distance 0, that scale collapses. This showed up in a large set of biosynthetic regions where some rows had the same feature vector as another row.
 
 The fix:
 
-1. Find rows that are exactly identical in the input (compare the raw values, not rounded coordinates).
+1. Find rows that are exactly identical in the input. Compare raw values, not rounded coordinates.
 2. Run TriMap on the distinct rows only.
-3. Give each duplicate the position of its identical twin. Identical inputs belong at the same point.
+3. Give each duplicate the position of its identical twin.
 4. Record the number of distinct rows in the receipt.
 
-After that, pass exact neighbors (below). On a 20,000-point test of distinct rows, annoy's approximate neighbors still diverged (about 1e6), while exact neighbors converged (largest coordinate about 281).
+Then pass exact neighbors (section 5). In a test on distinct rows, annoy's approximate neighbors still diverged, while exact neighbors converged.
 
 ```python
 keys = {}
@@ -87,9 +75,11 @@ y_unique = run_trimap(X[uniq])
 y = y_unique[[pos[i] for i in first]]
 ```
 
-## Settings to reuse
+`run_trimap` stands for your own function that fits TriMap and returns an array of coordinates.
 
-The protein space run 7 layouts used these TriMap settings (`TRIMAP_<SET>.json` in its kit). Reuse them unless the owner asks for others:
+## 5. Settings
+
+These are a tested starting point for protein-space layouts:
 
 | Setting | Value |
 |---|---|
@@ -98,26 +88,30 @@ The protein space run 7 layouts used these TriMap settings (`TRIMAP_<SET>.json` 
 | `n_outliers` | 4 |
 | `n_random` | 3 |
 | `n_iters` | 400 |
-| seed | `np.random.seed(20261008)` set just before TriMap |
 
-TriMap 1.2.0 has no seed argument, and numba's random numbers are not controlled. Its layout is therefore not bit-reproducible. Say so in the receipt and Methods. The point positions change slightly between runs; the neighborhoods do not.
+TriMap has no seed argument, and numba's random numbers are not controlled. The layout is therefore not exactly reproducible. Say so in the receipt and in Methods. Point positions change between runs, and neighborhoods can change too. Before you read a group from a layout, fit it at least twice and compare each point's nearest neighbors across the runs. Record that check with the run.
 
-Run 7 passed a distance matrix (`use_dist_matrix=True`). For feature vectors, pass a 50-component PCA with `apply_pca=False`. You can also pass exact neighbors in place of annoy's approximate ones, as `knn_tuple=(neighbors, distances)`. Give each point its 62 nearest neighbors (`n_inliers` + 50) from scikit-learn `NearestNeighbors`, with the point itself first. BGCs in Space does this.
+What to pass as input:
 
-For t-SNE, use scikit-learn `TSNE` (Barnes-Hut) on the same 50 components. Use perplexity 30, `init="pca"` and `random_state=20261008`.
+- **A distance matrix:** `use_dist_matrix=True`.
+- **Feature vectors:** pass a 50-component PCA with `apply_pca=False`.
+- **Exact neighbors:** pass `knn_tuple=(neighbors, distances)`. Get 62 nearest neighbors per point (the 12 from `n_inliers` plus 50) from scikit-learn `NearestNeighbors`, with the point itself first.
 
-## Size and time
+For t-SNE, use scikit-learn `TSNE` (Barnes-Hut) on the same 50 components. Use perplexity 30 and `init="pca"`. Set `random_state` to a value you record. Unlike TriMap, t-SNE accepts a seed.
 
-TriMap on about 6,300 points took 6 s on the M5 (run 7, KS). t-SNE is the slow step on large sets. Barnes-Hut time grows a little faster than the number of points. Run large sets under `nice -n 15` with at most 4 threads (`n_jobs=4` for t-SNE and neighbors). Time a 5,000-point sample first, and stop if the estimate passes an hour.
+## 6. Size and time
 
-## What a run must record
+t-SNE is the slow step on large sets. Barnes-Hut time grows a little faster than the number of points. Run large sets under `nice -n 15` with at most 4 threads (`n_jobs=4` for t-SNE and neighbors). Time a 5,000-point sample first, and stop if the estimate passes an hour.
 
-- the Python path and the package versions above;
+## 7. What a run must record
+
+- the Python path and the package versions;
 - `NUMBA_THREADING_LAYER` and the layer reported;
 - the TriMap and t-SNE settings, the seed statement and the input (distance matrix, PCA components or exact neighbors);
-- the number of points and the seconds per layout;
-- input file SHA-256 values.
+- the number of points, the number of distinct rows, and the seconds per layout;
+- the coordinate check and the neighbor comparison between repeat runs;
+- the SHA-256 of each input file.
 
-## Reading the layouts
+## 8. Reading the layouts
 
-t-SNE and TriMap keep near neighbors together but distort large distances. Gaps between groups and group sizes do not measure difference. Read distances from PCA, or from the distances themselves. A point near another is similar in its input features. That is not a shared product.
+t-SNE and TriMap try to keep near neighbors together and distort large distances. Gaps between groups and group sizes do not measure difference. Read distances from PCA or from the distances themselves. A point near another may be similar in its input features; check the input distances before saying so. Nearness is not a shared product.

@@ -1,6 +1,6 @@
 # Plan a Sapote–Mamey result
 
-**Version:** v9.7.463 | **Bundle:** sapote-mamey-v9.7.463
+**Version:** v9.7.464 | **Bundle:** sapote-mamey-v9.7.464
 
 Choose the result you need, then use its maintained guide. If you already have a package,
 read it before requesting another extraction. Keep the input path, question, permitted
@@ -40,7 +40,7 @@ result; these names are not CLI flags or automatic workbook selectors.
 
 A source observation and an interpretation serve different purposes. Retain the original
 extraction, then bind each interpretation to its actual evidence. Keep lead priority separate
-from claim confidence. Domain patterns and KCB matches support bounded hypotheses; they do
+from claim confidence. Domain patterns and KCB (KnownClusterBlast, see the [glossary](GLOSSARY.md)) matches support bounded hypotheses; they do
 not by themselves establish product identity, activity or physical linkage. Display an
 individual locus as **strain / full node-or-contig / region / BGC alias** from one bound record.
 Missing evidence stays explicit.
@@ -70,40 +70,4 @@ not replace the corresponding source review or verifier result. Keep source path
 hashes with the result. Before a post-seal command, read its [write boundary](POSTSEAL_READERS.md);
 an external destination alone does not establish that the source package remains unchanged.
 
-### Current advisory sign-off selection
-
-Use explicit current artifact paths when requesting sign-off review:
-
-```bash
-python mamey_run.py signoff '<tree.treefile>'
-```
-
-The bundle CLI exposes files and `--minutes` only. Use the direct helper when
-selection requires its additional options:
-
-```bash
-python tools/signoff_check.py --root '<review-root>' --outgroup '<declared-tip-token>' '<tree.treefile>'
-```
-
-The helper accepts repeated/comma-separated outgroup terms; recognizing a label
-is not approval of outgroup choice. Without explicit files, it walks the selected
-root for case-sensitive `.treefile` names modified in the last 90 minutes by
-default. Hidden directories and its named environment/database/reference pruning
-list are excluded; `SIGNOFF_PRUNE_DIRS` adds exclusions. This is a selected recent
-file sweep, not the authoritative artifact roster or proof of current-run input
-binding. Record the exact files, hashes, source/run identities, scan window and
-exclusions separately. Use explicit paths for required older or pruned artifacts.
-
-The report checks regex-extracted labels and support-like text rather than fully
-validating Newick structure, every numeric measurement or provenance. It does not
-read ANI data, validate comparator downloads or make biological sign-off decisions.
-Those are independent review requirements. No structured receipt or report file
-is saved by the helper; retain console diagnostics with the selected input hashes.
-
-Valid advisory invocations return 0 for issues, read failures, an incomplete walk
-and no selected files. `--quiet-if-clean` can suppress the no-selection message or
-caution notes when no issues were found. Silence is not a completed clean review.
-The direct helper parses its options with argparse. `--help` prints usage and
-exits 0. An unknown option, a missing value or a non-numeric `--minutes` exits 2.
-Do not use its exit alone for input admission or completion. The bundle CLI has
-its own parser and does not offer these extra helper options.
+For the advisory tree sign-off check (`mamey_run.py signoff` and `tools/signoff_check.py`), see [the phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md#advisory-tree-sign-off-check).

@@ -94,12 +94,18 @@ def _pearson(x,y):
     mx=statistics.mean(x); my=statistics.mean(y); cov=sum((a-mx)*(b-my) for a,b in zip(x,y))
     sx=math.sqrt(sum((a-mx)**2 for a in x)); sy=math.sqrt(sum((b-my)**2 for b in y)); return cov/(sx*sy) if sx and sy else 0.0
 
-def compute(banked_dir, include_saccharide=False):
+def compute(banked_dir, include_saccharide=False, unmatched=None):
+    """Sizes by strain and primary class. A BGC row whose `sid` is not in the bank's strain roster has
+    no strain row to appear in, so it is left out of every total, including the top-eight class choice,
+    and counted into `unmatched` ({sid: n_rows}) for the caller to report."""
     bgc=_read_json(os.path.join(banked_dir,'bgc_data.json'))
     from mamey.figure_policy import omit_saccharides
     strains=bgc['strains']; bgcs=omit_saccharides(bgc['bgcs'])  # figure policy: pure-saccharide omitted
     siz=defaultdict(Counter); cnt=defaultdict(Counter)
     for b in bgcs:
+        if b.get('sid') not in strains:
+            if unmatched is not None: unmatched[b.get('sid')]=unmatched.get(b.get('sid'),0)+1
+            continue
         p=_primary(b)
         if p=='saccharide-only' and not include_saccharide: continue
         c=_norm(p); siz[b['sid']][c]+=(b.get('length_kb') or 0); cnt[b['sid']][c]+=1
@@ -257,11 +263,17 @@ def main():
         for r in rows[1:]:
             for j,c in enumerate(cols): siz[r[0]][c]=float(r[2+j])
         plot_all(a.out_dir, strains, sids, cols, siz, cnt, a.unit); emit('  replotted from CSV (count panels need full data)'); return
-    strains, sids, cols, siz, cnt = compute(a.banked_dir, a.include_saccharide)
+    unmatched={}
+    strains, sids, cols, siz, cnt = compute(a.banked_dir, a.include_saccharide, unmatched)
+    # Printed with the existing summary line at the end (one emission site).
+    _unmatched_line = ([f'  WARNING: {sum(unmatched.values())} BGC row(s) carry a strain id not in the bank strain roster '
+                        f'and are left out of every total and the class choice: '
+                        + ', '.join(f'{k} ({v})' for k,v in sorted(unmatched.items(), key=lambda kv: str(kv[0])))]
+                       if unmatched else [])
     write_csv(csv_path, strains, sids, cols, siz)
     plot_all(a.out_dir, strains, sids, cols, siz, cnt, a.unit)
     if a.workbook and os.path.exists(a.workbook):
         write_sheet(a.workbook, strains, sids, cols, siz, cnt); emit(f'  Size_By_Type sheet added to {os.path.basename(a.workbook)}')
-    emit(f'  size-by-type: {len(sids)} strains x {len(cols)} classes; figures + CSV in {a.out_dir}')
+    emit(*_unmatched_line, f'  size-by-type: {len(sids)} strains x {len(cols)} classes; figures + CSV in {a.out_dir}', sep='\n')
 
 if __name__=='__main__': main()

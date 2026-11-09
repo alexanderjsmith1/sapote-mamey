@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """extract_sid_clusterblast.py — parse per-gene KnownClusterBlast (MIBiG) from the
-ALREADY-COMPLETED antiSMASH result JSONs in SID strains/antismash_inputs_renamed/*.zip.
+already-completed antiSMASH result JSONs of the public reference genomes.
 No antiSMASH run — read-only extraction. Emits a compact per-(strain,compound) supplement
 so the 64 not-yet-in-gene-master SID strains can join the AS-vs-SID comparison.
 """

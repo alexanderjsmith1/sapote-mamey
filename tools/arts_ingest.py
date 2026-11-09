@@ -66,7 +66,7 @@ def analyze(arts_dir, strain="UNSPECIFIED", assembly_tier=None):
     # assembly both splits/duplicates core genes artefactually and blurs which BGC a
     # resistance gene is "proximal" to. Two independent signals downgrade confidence:
     #   (1) the Mamey assembly tier is POOR/VERY_POOR (passed in), and
-    #   (2) an implausibly high genome-wide duplication fraction (e.g. AS-XXX ~80%).
+    #   (2) an implausibly high genome-wide duplication fraction (e.g. ABC-12 ~80%).
     n_core = len(core_flags) or 1
     n_dup_core = sum(1 for v in core_flags.values() if v["crit"].get("Duplication"))
     dup_fraction = n_dup_core / n_core

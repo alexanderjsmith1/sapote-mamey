@@ -113,8 +113,8 @@ Every figure must have a **companion CSV** with the raw data.
 
 ```csv
 strain_id, bgc_id, contig, class, kbc_score, kbc_identity, ab_score, af_score, size_bp, novelty
-SID8370, BGC_0001, contig_1, PKS, 8743, 45, 8.7, 6.2, 27300, 0.65
-SID8370, BGC_0002, contig_2, NRPS, 5234, 52, 7.1, 8.3, 31500, 0.72
+<strain>, BGC_0001, contig_1, PKS, 8743, 45, 8.7, 6.2, 27300, 0.65
+<strain>, BGC_0002, contig_2, NRPS, 5234, 52, 7.1, 8.3, 31500, 0.72
 ...
 ```
 
@@ -150,7 +150,8 @@ After `mamey run --mode standard` or `--mode gold`:
 ## Workflow: Mamey → Figures
 
 ```
-mamey run --strain SID8370 --input-zip antismash.zip --mode gold
+mamey run --strain <ID> --input-zip antismash.zip --mode gold
+# Historical: the current form is `python mamey_run.py run ...` (see AGENTS.md).
         ↓
 ✓ MAMEY_COMPLETE (locus_maps/ auto-generated)
         ↓
@@ -190,12 +191,12 @@ Supplementary Table Y for raw values.
 **Example:**
 
 ```
-Figure 2: BGC architecture and novelty across the SID cohort.
+Figure 2: BGC architecture and novelty across the cohort.
 (A) Heatmap of biosynthetic class distribution (PKS, NRPS, RiPP, terpene)
 across 20 Streptomyces strains. Color intensity indicates number of detected
 clusters per class. (B) Scatter plot of BGC size versus novelty score,
 colored by class. High novelty (>0.8) indicates rare/unknown pathways.
-Data from 42 clusters across SID8370, SID8371, and SID8375. Raw data
+Data from 42 clusters across <strain A>, <strain B>, and <strain C>. Raw data
 available in Supplementary File S1 (fig_novelty_scatter_data.csv).
 ```
 
@@ -245,9 +246,9 @@ python tools/build_figures.py \
 ```bash
 # One strain per run, from banked data (see the tool's docstring)
 python tools/generate_bgc_atlas.py \
-  --strain SID-XXX \
+  --strain <ID> \
   --banked-dir cohort \
-  --out atlas/SID-XXX_atlas.html
+  --out atlas/<ID>_atlas.html
 
 # Output: one self-contained HTML atlas for that strain
 ```
@@ -282,9 +283,12 @@ python tools/build_panel_figure.py \
 
 ```bash
 python tools/build_thesis_diagrams.py \
-  --strain SID8370 \
+  --strain <ID> \
   --data strain_data.json \
   --outdir thesis_figures/
+
+# Historical: do not run this. build_thesis_diagrams.py takes only --out-dir and --replot
+# (python tools/build_thesis_diagrams.py --help).
 
 # Produces: cause-and-effect, chain-of-events diagrams
 ```
@@ -320,7 +324,9 @@ python tools/build_thesis_diagrams.py \
 
 ---
 
-## Quick commands (verified flags)
+## Quick commands (historical; not all flags are current)
+
+Historical: this block was labeled "verified flags". It is not. Checked against `--help`: `build_panel_figure.py` takes `--in-dir`, `--out`, `--panels` (comma-separated basenames), `--cols` and `--title`, not `--labels` or `--outdir`; `generate_bgc_atlas.py` requires `--strain` and takes `--banked-dir`, `--out` and `--strictness`, not `--workbook`, `--figures` or `--outdir`; `build_thesis_diagrams.py` takes `--out-dir` and `--replot`. Only the first three commands below match their `--help`.
 
 ```bash
 # Export figure-ready CSVs from workbook

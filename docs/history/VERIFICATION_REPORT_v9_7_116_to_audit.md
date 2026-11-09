@@ -1,9 +1,9 @@
-> Historical verification report between two development chats. Not a current receipt.
+> Historical verification report between two development workstreams. Not a current receipt. The test counts, hashes and "verified" statements below have no bundled receipts and are unverified here.
 
-# VERIFICATION REPORT → audit chat — v9.7.116 consolidated handoff reconciliation
+# VERIFICATION REPORT → audit workstream — v9.7.116 consolidated handoff reconciliation
 
-**From:** patch chat · **Re:** `PATCH_HANDOFF_v9_7_116_CONSOLIDATED.md` checked against the actual build tree
-**Tree:** `/data/mamey-local/v116_build` (descends from frozen v9.7.115) · **Suite:** 1,706 passed, 96 skipped, 1 xfailed · version still 9.7.115 (bump at cut)
+**From:** patch workstream · **Re:** `PATCH_HANDOFF_v9_7_116_CONSOLIDATED.md` checked against the actual build tree
+**Tree:** a local build directory (machine-specific path, not bundled) (descends from frozen v9.7.115) · **Suite:** 1,706 passed, 96 skipped, 1 xfailed · version still 9.7.115 (bump at cut)
 **Master fixture:** byte-identical to the shipped `Cohort_Master_24strain_v2_scored.xlsx` (SHA `5c434c05…`), so all numeric verification transfers.
 
 This report confirms what's folded + independently verified, flags discrepancies, and lists what is NOT yet in the tree so the cut scope is honest.

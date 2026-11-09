@@ -4,7 +4,7 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 
 This is a retained June 2026 session example. The version/build, line counts, “unaudited” roster, panel quotas, scientific thresholds and standing exclusions below are historical declarations, not the current bundle's backlog or adopted policy. Do not infer that a file has never been reviewed from this list. The three-argument quota is superseded by the current protocol's supported findings, including zero.
 
-Use the [current request template](../../../debugging_modules/CURRENT_AUDIT_REQUEST.md), [current game](../../../debugging_modules/BUNNY_HOP_AUDIT_GAME.md) and exact selected source/profile. Requesting another session does not itself authorize sending messages or creating agents. The original body is retained verbatim for evidence.
+Use the [current request template](../../../debugging_modules/CURRENT_AUDIT_REQUEST.md), [current game](../../../debugging_modules/BUNNY_HOP_AUDIT_GAME.md) and exact selected source/profile. Requesting another session does not itself authorize sending messages or creating agents. The original body is retained for evidence, with one blank field removed.
 
 ---
 
@@ -121,7 +121,7 @@ These have never been read by any auditor. Use 3- or 4-inspector panels for file
 | `docs/ANTISMASH_PROFILE.md` | — | 2-inspector |
 | `docs/FIGURE_STYLE.md` | — | 2-inspector |
 | `docs/RELEASE_CHECKLIST_v9.md` | — | 3-inspector |
-| `docs/COHORT_RESCORING_PLAN.md` | — | 2-inspector |
+| `docs/COHORT_RESCORING_PLAN.md` (now `docs/history/retired_458/COHORT_RESCORING_PLAN.md`) | — | 2-inspector |
 
 ---
 
@@ -146,6 +146,8 @@ grep -rn "TIGRFAM\|DIAGNOSTIC_PANEL" mamey/ tools/ | grep -v test
 ```
 
 ---
+
+Historical: do not follow these steps. The v9.7.108 bundle named below is not shipped. The current route is the [current audit request](../../../debugging_modules/CURRENT_AUDIT_REQUEST.md).
 
 ## How to Run a Session
 
@@ -201,7 +203,7 @@ At the end of your session, include:
 - **hglE-KS-PREV-001** habitat-non-specific
 - **Corrected BGC count** = Interior + ½·Edge + ¼·Full-contig
 - **Assembly tiers:** GOOD ≥70% / MODERATE ≥45% / POOR ≥20% / VERY_POOR <20%
-- **Affiliation:** 
+
 
 ---
 

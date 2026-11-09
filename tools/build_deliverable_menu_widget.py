@@ -19,8 +19,9 @@ cannot break out of its ``<script>`` element).  It is deterministic: identical i
 produce a byte-identical file (no timestamps, everything sorted).
 
 Usage:
-  python tools/build_deliverable_menu_widget.py                       # -> bundle_support/deliverable_menu_widget.html
-  python tools/build_deliverable_menu_widget.py --out menu.html
+  python tools/build_deliverable_menu_widget.py --out menu.html       # a new file; an existing one is refused
+  python tools/build_deliverable_menu_widget.py --replace             # maintainers: rewrite the shipped
+                                                                      # bundle_support/deliverable_menu_widget.html
   python tools/build_deliverable_menu_widget.py --stdout              # HTML to stdout
   python tools/build_deliverable_menu_widget.py --json                # payload to stdout (debug)
   python tools/build_deliverable_menu_widget.py --root /path/to/bundle
@@ -367,6 +368,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="output HTML path (default: bundle_support/deliverable_menu_widget.html)")
     parser.add_argument("--root", default=str(ROOT),
                         help="bundle root holding mamey/ (default: this tool's bundle)")
+    parser.add_argument("--replace", action="store_true",
+                        help="allow replacing an existing --out file (needed to rewrite the shipped page)")
     parser.add_argument("--stdout", action="store_true", help="write HTML to stdout, not a file")
     parser.add_argument("--json", action="store_true", help="write the JSON payload to stdout (debug)")
     args = parser.parse_args(argv)
@@ -381,6 +384,12 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(html_text)
         return 0
     out = Path(args.out)
+    if (out.exists() or out.is_symlink()) and not args.replace:
+        sys.stderr.write(f"refused: {out} already exists; pass a new --out, or --replace to rewrite it\n")
+        return 2
+    if out.is_symlink() or (out.exists() and not out.is_file()):
+        sys.stderr.write(f"refused: {out} is not a regular file\n")
+        return 2
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html_text, encoding="utf-8")
     sys.stdout.write(str(out) + "\n")

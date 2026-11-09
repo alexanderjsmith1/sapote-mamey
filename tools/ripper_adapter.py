@@ -234,7 +234,15 @@ def rich_biopython_dependencies():
 
 
 def validate_local_semantics(gbk, fasta, query):
-    """Optional strict input binding, not a BLAST/TE/function/membership test."""
+    """Optional strict input binding, not a BLAST/TE/function/membership test.
+
+    Record-level structure (parse, single record, contig identity, CDS location shape,
+    exception qualifiers, codon_start, translation table, explicit unique CDS IDs) still
+    refuses the whole record. Translation defects are judged per CDS: a CDS whose bases
+    are ambiguous, whose /translation is missing or invalid, whose first codon is not a
+    start codon of its translation table, or whose computed translation differs is
+    excluded and listed. The record is admitted without it, unless it is the subject CDS.
+    """
     try:
         Bio,SeqIO,ExactPosition,SimpleLocation,TranslationError=rich_biopython_dependencies()
     except (RuntimeError,OSError) as exc:
@@ -251,8 +259,13 @@ def validate_local_semantics(gbk, fasta, query):
     if len(records) != 1 or len(proteins) != 1:
         raise ValueError('LOCAL_SEMANTIC_SINGLE_RECORD_QUERY_REQUIRED')
     record, protein = records[0], proteins[0]
-    if not nonempty(record.id) or record.id != query['full_contig']:
+    # The LOCUS name is the record's own contig name. antiSMASH region files can carry a
+    # VERSION line whose decimal part lost its leading zeros (..._cov_55.054054 written as
+    # ..._cov_55.54054), and Biopython builds record.id from that line. Either value is
+    # copied from the record; nothing else is accepted.
+    if not nonempty(record.id) or query['full_contig'] not in (record.id, record.name):
         raise ValueError('LOCAL_SEMANTIC_RECORD_QUERY_CONTEXT_MISMATCH')
+    contig_source = 'record_id' if query['full_contig'] == record.id else 'locus_name'
     if not len(record) or record.annotations.get('molecule_type', '').upper() != 'DNA' or not re.fullmatch(r'[ACGTN]+', str(record.seq).upper()):
         raise ValueError('LOCAL_SEMANTIC_DNA_RECORD_INVALID')
     query_sequence = str(protein.seq)
@@ -260,6 +273,7 @@ def validate_local_semantics(gbk, fasta, query):
         raise ValueError('LOCAL_SEMANTIC_PROTEIN_QUERY_INVALID')
     seen = set()
     cds_rows = []
+    excluded = []
     for feature in record.features:
         if feature.type != 'CDS':
             continue
@@ -298,40 +312,63 @@ def validate_local_semantics(gbk, fasta, query):
         if table not in ('1', '11'):
             raise ValueError('LOCAL_SEMANTIC_UNSUPPORTED_TRANSLATION_TABLE')
         translation = qualifier('translation')
-        if translation is None or not re.fullmatch(r'[ACDEFGHIKLMNPQRSTVWY]+', translation):
-            raise ValueError('LOCAL_SEMANTIC_VALID_TRANSLATION_REQUIRED')
+        place = dict(subject_cds_id=subject, source_id_qualifier=id_key,
+                     start_0based=int(loc.start), end_exclusive=int(loc.end), strand=loc.strand,
+                     translation_table=int(table))
         dna = feature.extract(record.seq)
-        if not re.fullmatch(r'[ACGT]+', str(dna).upper()) or not str(dna).upper().startswith('ATG'):
-            raise ValueError('LOCAL_SEMANTIC_UNAMBIGUOUS_ATG_CDS_REQUIRED')
-        try:
-            computed = str(dna.translate(table=int(table), cds=True))
-        except (ValueError, TranslationError) as exc:
-            raise ValueError('LOCAL_SEMANTIC_CDS_TRANSLATION_INVALID: '+str(exc)) from exc
-        if computed != translation:
-            raise ValueError('LOCAL_SEMANTIC_CDS_TRANSLATION_MISMATCH')
-        cds_rows.append(dict(subject_cds_id=subject, source_id_qualifier=id_key,
-                             start_0based=int(loc.start), end_exclusive=int(loc.end), strand=loc.strand,
-                             translation_table=int(table), aa_length=len(translation),
+        start_codon = str(dna[:3]).upper()
+        reason = detail = None
+        if translation is None or not re.fullmatch(r'[ACDEFGHIKLMNPQRSTVWY]+', translation):
+            reason = 'LOCAL_SEMANTIC_VALID_TRANSLATION_REQUIRED'
+        elif not re.fullmatch(r'[ACGT]+', str(dna).upper()):
+            reason = 'LOCAL_SEMANTIC_UNAMBIGUOUS_CDS_REQUIRED'
+        else:
+            # cds=True checks the first codon against the table's start codons, translates
+            # it as M, and refuses an internal stop, a missing stop or a partial codon.
+            try:
+                computed = str(dna.translate(table=int(table), cds=True))
+            except (ValueError, TranslationError) as exc:
+                reason, detail = 'LOCAL_SEMANTIC_CDS_TRANSLATION_INVALID', str(exc)
+            else:
+                if computed != translation:
+                    reason = 'LOCAL_SEMANTIC_CDS_TRANSLATION_MISMATCH'
+        if reason:
+            excluded.append(dict(place, reason=reason, detail=detail, start_codon=start_codon,
+                                 translation_qualifier_matches_query=translation == query_sequence))
+            continue
+        cds_rows.append(dict(place, start_codon=start_codon,
+                             start_codon_rule='TABLE_'+table+'_START_TRANSLATED_AS_M',
+                             aa_length=len(translation),
                              translation_sha256=hashlib.sha256(translation.encode()).hexdigest(),
                              query_exact_match=translation == query_sequence))
+    for row in excluded:
+        if row['subject_cds_id'] == query['enzyme_accession']:
+            raise ValueError(row['reason']+': subject CDS '+row['subject_cds_id']+(' ('+row['detail']+')' if row['detail'] else ''))
     if not cds_rows:
         raise ValueError('LOCAL_SEMANTIC_NONEMPTY_CDS_INVENTORY_REQUIRED')
     selected = [row for row in cds_rows if row['subject_cds_id'] == query['enzyme_accession']]
     if len(selected) != 1:
         raise ValueError('LOCAL_SEMANTIC_EXPECTED_SUBJECT_CDS_NOT_BOUND')
-    exact = [row for row in cds_rows if row['query_exact_match']]
+    exact = [row for row in cds_rows if row['query_exact_match']]+[row for row in excluded if row['translation_qualifier_matches_query']]
     if len(exact) > 1:
         raise ValueError('LOCAL_SEMANTIC_AMBIGUOUS_EXACT_QUERY_MATCH')
     if exact and exact[0]['subject_cds_id'] != query['enzyme_accession']:
         raise ValueError('LOCAL_SEMANTIC_DECLARED_SUBJECT_CONFLICTS_WITH_EXACT_QUERY')
+    starts = {}
+    for row in cds_rows:
+        starts[row['start_codon']] = starts.get(row['start_codon'], 0) + 1
     return dict(status='PASS_INPUT_BINDING_ONLY', validator='Biopython', version=Bio.__version__,
-                record_id=record.id, record_length=len(record), cds_count=len(cds_rows), cds=cds_rows,
+                record_id=record.id, record_locus_name=record.name, contig_identity_source=contig_source,
+                record_length=len(record), cds_count=len(cds_rows), cds=cds_rows,
+                start_codon_counts=dict(sorted(starts.items())),
+                excluded_cds_count=len(excluded), excluded_cds=excluded,
+                excluded_cds_scope='Listed CDS failed a per-CDS translation check and are not admitted inputs; the record bytes are unchanged and nothing is inferred about those genes.',
                 selected_subject_cds=selected[0], query_fasta_id=protein.id,
                 query_sequence_sha256=hashlib.sha256(query_sequence.encode()).hexdigest(),
                 query_relation='EXACT_SEQUENCE_SELF_MATCH_ONLY' if exact else 'HOMOLOGY_UNASSESSED',
                 blast_selection='UNASSESSED', gene_function='UNASSESSED', candidate_membership='UNVERIFIED',
                 upstream_execution='NOT_EXECUTED',
-                supported_scope='exact contiguous complete ATG CDS; codon_start1; tables1/11; explicit unique safe source-priority IDs')
+                supported_scope='exact contiguous complete CDS; first codon a start codon of table 1 or 11 (table 11: ATG, GTG, TTG, CTG, ATT, ATC, ATA), translated as M; codon_start 1; explicit unique safe source-priority IDs; translation defects excluded per CDS and listed; the subject CDS must pass')
 
 
 def owned_module(name):
@@ -351,7 +388,7 @@ def run_binding_module():
 
 
 def binding_api():
-    return dict(json_input=json_input,load_bytes=load_bytes,binding=binding,stream_binding=stream_binding,tool_binding=tool_binding,publish=publish,source_contract=source_contract,owned_module=owned_module,queries_input=queries_input,validate_local_semantics=validate_local_semantics)
+    return dict(json_input=json_input,load_bytes=load_bytes,binding=binding,stream_binding=stream_binding,tool_binding=tool_binding,publish=publish,source_contract=source_contract,owned_module=owned_module,queries_input=queries_input,validate_local_semantics=validate_local_semantics,nonempty=nonempty)
 
 
 def local_plan(queries_path, genbank_path, query_fasta_path, config_path, out, profile_id, semantic_validation=False, run_binding_path=None, bound_files=None, adapted_profile_path=None):
@@ -603,6 +640,15 @@ def main(argv=None):
     p.add_argument('--native-admission')
     p.add_argument('--resume-preflight',action='store_true')
     p.add_argument('--cancel-file')
+    p = sub.add_parser('lifecycle-batch',help='one admitted roster of record x bait pairs; each pair keeps its own lifecycle receipts')
+    for arg in ('spec','roster','run-root','adapted-profile'):
+        p.add_argument('--'+arg,required=True)
+    p.add_argument('--file',action='append',required=True,help='shared role=path (every role except genbank, query_fasta, queries)')
+    p.add_argument('--pair-file',action='append',required=True,help='PAIR_ID:genbank=PATH or PAIR_ID:query_fasta=PATH')
+    p.add_argument('--execute-native',action='store_true')
+    p.add_argument('--batch-admission')
+    p.add_argument('--resume-preflight',action='store_true')
+    p.add_argument('--cancel-file')
     p = sub.add_parser('native-result',help='inspect explicit retained N3 native terminal/raw bytes; no execution or annotation')
     for arg in ('terminal','out'):p.add_argument('--'+arg,required=True)
     p.add_argument('--raw')
@@ -637,6 +683,9 @@ def main(argv=None):
         elif args.command == 'lifecycle':
             data=owned_module('ripper_lifecycle').lifecycle(binding_api(),args.spec,args.file,args.run_root,args.adapted_profile,args.execute_stub,args.cancel_file,args.execute_native,args.native_admission,args.resume_preflight)
             args.out=args.run_root
+        elif args.command == 'lifecycle-batch':
+            data=owned_module('ripper_batch').batch(binding_api(),args.spec,args.roster,args.file,args.pair_file,args.run_root,args.adapted_profile,args.execute_native,args.batch_admission,args.resume_preflight,args.cancel_file)
+            args.out=args.run_root
         elif args.command == 'native-result':
             data=owned_module('ripper_native_result').native_result(binding_api(),args.terminal,args.raw,args.out,args.control_result)
         elif args.command == 'native-coordinates':
@@ -660,6 +709,8 @@ def main(argv=None):
                      data.get('semantic_validation', {}).get('status', 'NOT_APPLICABLE'), data['query_count'], Path(args.out).resolve())
         elif args.command == 'lifecycle':
             LOG.info('RiPPER lifecycle %s; mode=%s; upstream_execution=%s; raw_candidates=%s; output_admission=%s; BGC_membership=UNVERIFIED; output %s', data['status'],data.get('mode','UNDECLARED'),data['upstream_execution'],data.get('raw_discovery',{}).get('candidate_count') if data.get('output_admission')=='SCOPED_BOUND_BYTES_ONLY' else None,data.get('output_admission','NOT_ADMITTED'),Path(args.out).resolve())
+        elif args.command == 'lifecycle-batch':
+            LOG.info('RiPPER lifecycle batch %s; phase=%s; pairs=%s; status_counts=%s; BGC_membership=UNVERIFIED; output %s',data['status'],data['phase'],data['pair_count'],data['status_counts'],Path(args.out).resolve())
         elif args.command == 'native-result':
             LOG.info('RiPPER native result %s; raw_candidates=%s; HMM=%s; coordinates=%s; BGC_membership=%s; canonical_import=%s; output %s',data['terminal_status'],data['raw_candidate_count'],data['hmm_annotation'],data['coordinate_status'],data['candidate_membership'],data['canonical_import'],Path(args.out).resolve())
         elif args.command == 'native-coordinates':
@@ -671,6 +722,10 @@ def main(argv=None):
                      data['import_status'], data['evidence_kind'], data['upstream_execution'],
                      data['declared_upstream_state'], data['query_count'], Path(args.out).resolve())
         if args.command=='native-result' and data['raw_admission']!='EXPLICIT_HASH_BOUND_RAW_SCOPE_ONLY':return 2
+        if args.command=='lifecycle-batch':
+            if data['status']=='INTERRUPTED':return 130
+            if data['phase']=='execution' and any(x['status'] in {'FAILED','AMBIGUOUS','HOLD','UNAVAILABLE','REFUSED_EXECUTION'} for x in data['pairs']):return 2
+            if data['status']=='NOT_ADMISSIBLE':return 2
         if args.command=='lifecycle':
             if data['status']=='INTERRUPTED':return 130
             if data['status'] in {'FAILED','AMBIGUOUS'} or ((args.execute_stub or args.execute_native) and data['status'] in {'UNAVAILABLE','HOLD'}):return 2

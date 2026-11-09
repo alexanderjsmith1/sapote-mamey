@@ -1,13 +1,31 @@
-# Synthetic exact-tip track example
+# Synthetic tree-track example
 
-All observations, query/reference names and tree distances are synthetic fixtures. They represent no experimental finding, taxonomic assignment or activity claim. The supplied 48-hour and 72-hour selections are distinct; do not pool them or transfer their scopes into production evidence.
+Every value, name and tree distance here is synthetic. Nothing in this folder is an experimental result, a taxonomic assignment or an activity claim. The 48-hour and 72-hour selections are separate. Do not pool them.
 
-The adapter configs `single.json` and `grouped.json` pin `metadata.tsv` and the supplied Figure Factory receipt bytes. The factory configs `factory_48.json` and `factory_72.json` use `observations.csv`, fixed synthetic selection rosters and `render_with_r: false`. A data-ready factory receipt is not a rendered-figure receipt. See [the tree-track guide](../../docs/TREE_ASSAY_TRACK_RENDERING.md) for adapter versus R validation and output scopes.
+## Files
 
-## Minimal reproduction preparation
+| File | Use |
+|---|---|
+| `tree.newick` | The tree to draw against. |
+| `metadata.tsv` | Maps each tip to a strain, label and role. |
+| `single.json` | Adapter config with one track (48 h). |
+| `grouped.json` | Adapter config with several tracks. |
+| `factory_48.json`, `factory_72.json` | Figure Factory configs. They use `observations.csv` and fixed synthetic selections, with `render_with_r: false`. |
+| `factory_48/`, `factory_72/` | Receipts the adapter configs point to. |
+| `observations.csv` | Synthetic assay values for the factory configs. |
 
-Use the existing fixture files in place as read-only sources; do not copy the entire example or bundle. Create a new external work/output directory and copy only the JSON config files that must change. Record the reason, expected small size and source path/SHA-256 before copying. In copied adapter configs set `input_root` to the original fixture directory when using the supplied receipts; config-relative `.` otherwise points to the copied directory and will not find those inputs. Give the adapter a new external output directory.
+## Run it
 
-If independently rebuilding fixture outputs is authorized, create a separate external input/output arrangement with only the required config edits and small input files or verified references, using unused factory output paths. The factory's root/path rules differ from the adapter's config-relative `input_root`: resolve the [Figure Factory contract](../../docs/BIOASSAY_FIGURE_FACTORY.md) before invoking it. Keep original fixture observations and receipts unchanged. Update receipt paths and hashes in copied adapter configs only after the newly produced bytes are inventoried and verified. Do not delete existing factory directories to make a run succeed, or overwrite an authoritative experimental receipt.
+Nothing is written inside `examples/`. Choose an output folder that does not exist yet, outside the bundle:
 
-Adapter preparation and R rendering are separate steps. The adapter does not read `tree.newick`; the R renderer later requires an exact tip set. Positive, recorded zero, negative and unmeasured fixture values remain distinct, and reference/outgroup roles receive no query assay values. Retain metadata, adapter receipt and a final artifact/hash inventory. Synthetic display success is not assay, phylogeny or scientific approval; this documentation audit did not execute or render the example.
+```bash
+python3 tools/build_tree_tracks.py --config examples/tree_tracks/grouped.json --out /path/to/new-track-output
+```
+
+It prints nothing and exits 0 on success. The folder then holds `tracks.tsv`, `series.tsv` and `track_adapter_receipt.json`. A refusal prints `TREE_TRACK_REFUSED` and exits 2. Draw the figure with the R command in [the tree-track guide](../../docs/TREE_ASSAY_TRACK_RENDERING.md).
+
+To change a config, copy only that JSON file to a work folder. Set its `input_root` to the original `examples/tree_tracks/` folder so it still finds the supplied receipts. To rebuild the factory outputs, read the [Figure Factory contract](../../docs/BIOASSAY_FIGURE_FACTORY.md) first. Its path rules differ from the adapter's.
+
+## What to expect
+
+The adapter does not read `tree.newick`. The R renderer does, and it needs the tree tips to match `metadata.tsv` exactly. In `tracks.tsv` a query tip that was not measured and every reference or outgroup tip are both blank. The table does not tell them apart; the `role` column does. The renderer keeps them apart: a query with no value is marked x (`NOT_MEASURED`), a reference or outgroup tip has no mark (`NOT_APPLICABLE`), a recorded zero is a dot, and positive and negative values are bars. `OUT_PREFIX.cell_states.tsv` lists the state of every cell. A data-ready Figure Factory receipt means the data are prepared, not that a figure was drawn. A drawn figure is a display check, not assay or phylogeny approval.

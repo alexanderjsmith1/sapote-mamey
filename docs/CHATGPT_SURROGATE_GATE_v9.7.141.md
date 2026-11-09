@@ -1,4 +1,4 @@
-# ChatGPT surrogate gate — v9.7.141
+# Fast surrogate test gate
 
 ## Actual coverage, exit and write limits
 

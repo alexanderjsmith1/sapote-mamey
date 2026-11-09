@@ -10,8 +10,10 @@
 > Lead_Board, so inflated counts and spurious couplings never enter A/B promotion.
 
 ## 1. When it is offered (gate, not optional)
-Runs **early — right after intake/counts, before `lead_board.py` / `build_priority_leads.py`** — on every cohort,
-especially a fresh or type-strain set. Incomplete delivery = banking leads from an unchecked cohort. The module recommends this ordering; the tool is operator-invoked (`tools/gate_registry.tsv`: OPERATOR_ONLY), not automatically launched by the engine. Bind the actual emitted receipt before using its hold list.
+Run it **early — right after intake/counts, before `lead_board.py` / `build_priority_leads.py`** — on each cohort,
+especially a fresh or type-strain set. The bank fallback evaluates strains that have BGC rows. A `strains.json`
+member with no BGC rows gets status `NOT_CHECKED` and is listed in `not_checked`; it is not a pass. Compare
+the output roster with the cohort you meant to check. Incomplete delivery = banking leads from an unchecked cohort. The module recommends this ordering; the tool is operator-invoked (`tools/gate_registry.tsv`: OPERATOR_ONLY), not automatically launched by the engine. Bind the actual emitted receipt before using its hold list.
 
 ## 2. Inputs required
 | File / field | Feeds | Required for |
@@ -34,9 +36,15 @@ python tools/assembly_qc_check.py --banked-dir cohort --out cohort/assembly_qc.j
 python tools/assembly_qc_check.py --snapshot snap.json --literal-or --out cohort/assembly_qc.json
 ```
 
+`--out` must be a new path. An existing file is refused unless `--replace` is given, and then only a regular
+file is replaced. `--out` is never allowed to be an input (the snapshot, `bgc_data.json`, `strains.json` or the
+genus table), even with `--replace`. A strain listed twice in the snapshot or in `strains.json` is refused.
+Refusals print `REFUSED` and exit 2 before any file is written.
+
 ## 4. Outputs & behavioural contract
 - `assembly_qc.json` (this writer does not create an `Assembly_QC` workbook sheet): `strain, genome_bp, contigs, n50, raw_bgcs, interior_pct,
-  status (PASS/WARN/FLAG), reasons[]`, plus `held_qc[]` and `warn[]` lists.
+  status (PASS/WARN/FLAG/NOT_CHECKED), reasons[]`, plus `held_qc[]`, `warn[]` and `not_checked[]` lists.
+  A `NOT_CHECKED` row keeps its measurements blank (`null`), never 0. `held_qc` holds FLAG strains only.
 - **Implemented consumer:** `tools/build_lead_tiers.py` reads `assembly_qc.json` under its
   `--banked-dir` and emits HOLD-QC rows for held strains. A missing receipt does not force a hold;
   an existing unreadable receipt fails closed. `lead_board.py` and `build_priority_leads.py` do not

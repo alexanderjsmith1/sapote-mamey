@@ -6,6 +6,13 @@ a project folder and the installed bundle. This example uses one run, `EXAMPLE`.
 
 ## Register the package
 
+Three things to know before you run the examples:
+
+- `register` on a path that is already listed replaces its saved manifest hash.
+- `verify` on a root with no catalog can create an empty catalog. Check the entry count.
+- `export-private` has no redaction step. The archive holds every registered
+  package in full.
+
 From the program folder:
 
 ```bash
@@ -17,13 +24,12 @@ python tools/project_catalog.py verify --project-root runs/EXAMPLE
 Replace the example paths with your project and package. The package must be
 inside the chosen project root and have a `manifest.json` containing its strain ID.
 Registration writes `project_outputs/project_catalog.json` under that root.
-Older projects can keep an existing `lab_quest_outputs/` location.
 
 Verification prints the registered paths and entry count. Expect one entry for
 this example. Running it against a new root can create an empty catalog, so check
 the count instead of treating exit 0 as a complete inventory. Verification checks
 manifest hashes; use the [package validator](reader/03_READ_RESULTS.md) to check
-package contents. Registering the same path again replaces its saved manifest hash.
+package contents.
 
 <a id="optional-portfolio-configuration"></a>
 
@@ -56,12 +62,30 @@ lineage. Check those inputs before relying on a recorded result. An AVAILABLE
 assay inventory can contain NOT_TESTED, NOT_RETURNED or UNBOUND entries; read each
 result state, material, condition and target alongside the count.
 
-For the detailed field rules, see [the registry reader](../mamey/project_registry.py)
-and [portfolio binding code](../mamey/portfolio_config.py). A failed binding can
-print a traceback; keep it with the input files so the failing field can be found.
+A sample registry is `examples/project_registry.example.json`. Copy it and replace its
+example names. A failed binding can print a traceback; keep it with the input files
+so the failing field can be found.
 
 
 ## Export and test the archive
+
+**Read this first.** `export-private` refuses a package straight from the
+[first run](reader/01_FIRST_RUN.md). The run writes the full path of your input
+ZIP into `manifest.json` (`input_zip`), and the exporter refuses any manifest
+that holds an absolute path. The refusal reads:
+
+```text
+ValueError: private handoff refuses package package: manifest.input_zip contains an absolute locator.
+```
+
+The bundle has no command that removes the path. `register` and `verify` work
+on such a package. To send the package itself, use the standard transfer ZIP in
+the [package transfer guide](FILES_STORAGE_AND_HANDOFF.md).
+
+The export and import commands below work once the package manifest holds no
+absolute path. That means changing `manifest.json`, so the package is no longer
+the sealed original. If you do it, do it on a copy, run `validate` again, and
+run `register` again, because the saved manifest hash goes stale.
 
 Choose a new ZIP filename outside the project root:
 
@@ -72,8 +96,17 @@ python tools/project_catalog.py import-private \
   --project-root restored-EXAMPLE --input EXAMPLE-private.zip
 ```
 
-The import destination must be empty or absent. A successful import prints the
-archive hash, catalog hash, package paths and entry count. Compare them with the
+A successful export prints the archive path and nothing else.
+
+The import destination must be empty or absent. The importer opens and checks
+the ZIP before it creates anything. It then unpacks to a staging folder beside
+the destination and checks the catalog (and portfolio binding, if present)
+there. A staged tree that passes is moved into place in one rename. If the
+destination gained files in the meantime, the rename is refused and nothing is
+copied into it. A refusal the importer can catch removes its staging folder and
+any parent folders it created; an absent destination stays absent. A killed
+process can leave a `mamey_project_import_*` staging folder beside the
+destination. A successful import prints the archive hash, catalog hash, package paths and entry count. Compare them with the
 exported project before using the imported files. Test the copy before sending it.
 
 The archive contains **every registered package**, including extra files inside
@@ -87,12 +120,12 @@ sharing and send the ZIP's SHA-256 separately through a trusted channel.
 
 The exporter refuses an existing output file, package symlinks, stale hashes and
 absolute-location strings in manifests. Keep project files unchanged during
-export. If a location is refused, preserve the original manifest and resolve
-relocation before trying again. Export also needs a filesystem that supports
+export. Export also needs a filesystem that supports
 hard links for its final write.
 
-The importer checks archive integrity, safe member paths, file hashes and the
-catalog's package bindings. On failure, keep the error and use a new empty
+The importer checks archive integrity, safe member paths, file hashes, the
+catalog's package bindings and, when present, the portfolio binding hashes. All
+of these run on the staged tree before the move. On failure, keep the error and use a new empty
 destination after correcting the cause. See
 [project data locations](PROJECT_DATA_HOME.md) for keeping source data separate
 from these copied outputs. For one package's standard transfer ZIP, use the

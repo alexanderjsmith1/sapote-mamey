@@ -80,10 +80,10 @@ DATASETS: dict[str, Dataset] = {
         default_subdir="literature",
         legacy_path="mamey/data/literature/_corpus",
         probe="literature_corpus.jsonl",
-        upstream="build locally with mamey/data/literature/_corpus/pubmed_ingest.py (NCBI E-utilities)",
+        upstream="build locally from saved PubMed search-result PDFs with mamey/data/literature/_corpus/pubmed_ingest.py (offline; no E-utilities fetch)",
         licence="PubMed RECORDS are US-Government-funded metadata, but ABSTRACTS are copyrighted by "
-                "their publishers and are NOT redistributable. Build the corpus locally from "
-                "E-utilities under your own institutional access.",
+                "their publishers and are NOT redistributable. Build the corpus locally from PubMed "
+                "search-result PDFs you saved under your own institutional access.",
         approx_size="~10.8 MB for ~7.6k records",
         what="PMID/DOI/title/abstract corpus for §5 literature enrichment",
     ),

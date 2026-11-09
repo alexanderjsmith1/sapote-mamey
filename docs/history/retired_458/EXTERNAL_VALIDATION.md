@@ -33,11 +33,11 @@ marine, type-strain, and now a **termite-symbiont** genome, across *Streptomyces
 *Actinomadura* — diverse genomes the pipeline was not tuned on. (A private VERY_POOR attine symbiont, ≈37%
 retention, is plotted de-identified as the fragmented contrast point.)*
 
-**Figure.** `figures/validation_panel_corrected_vs_raw.png` (data: `resources/validation_runs.csv`, regenerate with
+**Figure.** `figures/validation_panel_corrected_vs_raw.png` (not shipped: `find` over the tree returns no file of that name; data: `resources/validation_runs.csv`, regenerate with
 `tools/build_validation_panel.py`). Raw vs corrected BGC-count percentile against the 96-strain panel; the y=x line
 is the only non-data element. The six public genomes sit **on or above** the line (high retention holds or floats
 their rank: 80th–99th corrected); the fragmented symbiont sits **below** (it loses percentile on correction).
-The corrected count, not the raw count, is the honest measure of resolved biosynthetic potential.
+The corrected count is a boundary-weighted heuristic statistic, not a validated count of resolved biosynthetic potential ([evidence axes](../../modules/KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md)).
 
 ## What these runs validate
 

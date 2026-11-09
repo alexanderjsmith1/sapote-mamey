@@ -28,10 +28,10 @@ The parse-layer write-up (`parsers.py` / `_gbk_shim.py`, Part 6) overlaps the ma
 
 ## Part 1 — The CLI Surface
 
-**Source modules:** `mamey/cli.py` (2427 lines), `mamey/chatgpt_commands.py` (649 lines), `mamey/package_inspector.py` (301 lines)
+**Source modules:** `mamey/cli.py` (2427 lines when written; 9,378 now), `mamey/chatgpt_commands.py` (649; 845 now), `mamey/package_inspector.py` (301; 723 now)
 **Entry point:** `mamey_run.py` → `mamey.cli:main()` → `build_parser()` → subcommand dispatch
 
-The CLI is the user-facing map of everything the engine can do. Every other module in the system is orchestrated from here. Reading `build_parser()` (line 2164) and `run_one_strain()` (line 437) together gives the complete picture of what runs, in what order, with what guardrails.
+The CLI is the user-facing map of everything the engine can do. Every other module in the system is orchestrated from here. Reading `build_parser()` (line 2164 when written; 6835 now) and `run_one_strain()` (line 437 when written; 1479 now) together gives the complete picture of what runs, in what order, with what guardrails.
 
 ### Subcommand table
 
@@ -50,7 +50,7 @@ The CLI is the user-facing map of everything the engine can do. Every other modu
 | `domain-level` | `cli.py:_domain_level_command` | Post-seal domain-level Mode B enrichment | Sealed package dir | `domain_level/` CSV outputs |
 | `ingest-receipts` | `mode_b_receipt.py:ingest_receipts_command` | Ingest Sapote judgment receipts into the register | Package dir + receipt JSON | Updated judgment register + optional workbook E1 reconcile |
 
-The recommended ChatGPT workflow (printed by `chatgpt-init`) is: `doctor → inspect → run(--chatgpt-safe) → validate → list-bgcs → mode-b → render-figures → ingest-receipts`.
+The recommended ChatGPT workflow (printed by `chatgpt-init`) is: `doctor → inspect → run(--capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts`.
 
 ### `run` — the core extraction command
 
@@ -73,7 +73,7 @@ Key flags:
 | `--release` | PRIVATE when no profile or override is supplied | A local PUBLIC/PRIVATE tag uses the selected profile or guarded override. Identifier prefixes alone confer no public authority; retain the exact policy decision. |
 | `--bioactivity` | omitted (`NOT_SUPPLIED`) | Deprecated scalar compatibility context; it never supplies a named assay target |
 | `--brief` | `standard` | `none` = no brief; `minimal` = ~2pp; `standard` = ~3pp including figures |
-| `--chatgpt-safe` | False | Profile switch: sets `--brief none --json-evidence off --require-workbook --locus-maps off`. Use inside any wall-clock-capped LLM session. |
+| `--chatgpt-safe` (deprecated alias of `--capped-session`; `run --help`) | False | Profile switch: sets `--brief none --json-evidence off --require-workbook --locus-maps off`. Use inside any wall-clock-capped LLM session. |
 | `--json-evidence` | `bounded` | `bounded` uses its byte/leaf/time limits; `off` disables the main walker, while record-level JSON and GBK extraction are separate. `full` refuses each uncompressed JSON member above 80,000,000 bytes; this is not a RAM or completeness guarantee. |
 | `--locus-maps` | `auto` | `auto` = render unless capped run (brief=none) with >20 BGCs; `off` = never; `on` = always. Expensive on large strains. |
 | `--antismash-profile` | `auto` | Reads strictness from the ZIP. An explicit value is used, with PROFILE_MISMATCH reported on disagreement; preserve that state for cross-strain comparisons. |
@@ -217,7 +217,7 @@ The dependency banner printed at every run shows the live state of all these cap
 
 The run command detects when `--strain` looks like an NCBI accession shape (RefSeq `NC_/NZ_/NW_/NT_/NG_`, WGS `NZ_XXXX*`, assembly `GC[AF]_*`) and suggests a real strain name. Advisory: the accession is still used as the label, but the flag surfaces the fallback so it never silently propagates into every deliverable.
 
-### The `chatgpt-safe` profile
+### The `chatgpt-safe` profile (now `--capped-session`; `--chatgpt-safe` is a deprecated alias)
 
 **Source:** `cli.py:run_command` (lines 1851–1857)
 
@@ -269,7 +269,7 @@ The master workbook is the persistent cross-strain analysis substrate. Every `ru
 | Dark green `375623` | Per-strain sheets (`[code]_Summary`, `[code]_Triage`, etc.) | One set per strain, added once |
 | Dark orange `833C00` | A1_Dashboard | Top-level summary only |
 
-Per-strain sheet names are derived via `_sheet_code()` (lines 132–146): the last underscore-split token of the strain ID, capped at 14 characters. So `Actinomadura_rubrisoli_H3C3` → `H3C3`; `AS-XXX` → `AS-XXX`.
+Per-strain sheet names are derived via `_sheet_code()` (lines 132–146): the last underscore-split token of the strain ID, capped at 14 characters. So `Actinomadura_rubrisoli_H3C3` → `H3C3`; `<strain>` → `<strain>`.
 
 **The append-by-header pattern** (`_append_row_by_header`, `_col_map`): all writes build a column-index map from row 1 headers and write only to matching positions. This means (a) extra columns written by Sapote or the operator are preserved on re-ingest; (b) new schema columns don't break old workbooks; (c) row-dict keys must match header text exactly (an unknown key is silently skipped). The v1.9.2 `_repair_leading_blank_header` handles workbooks where `ws.append()` placed the header in row 2, leaving row 1 blank.
 
@@ -381,8 +381,8 @@ The `STATUS_GLOSSARY` carries **13** status codes: `COMPLETE_NATIVE`, `COMPLETE_
 > current .213 tree — and was never updated through the v9.7.155 module-consolidation pass. Verified
 > against the live `mamey/` tree on 2026-07-06: **4 of the 15 named modules no longer exist** —
 > *cohort_figures_d.py*, *cohort_figures_g.py*, *cohort_figures_bridge.py*, *cohort_figure_captions.py*.
-> Two are independently confirmed elsewhere in-bundle as rename artifacts: `docs/BUNNY_HOP_WISHLIST_v9.7.150e.md`
-> notes *cohort_figures_g.py* was *make_figures_complement.py*; `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`
+> Two are independently confirmed elsewhere in-bundle as rename artifacts: `docs/history/retired_458/BUNNY_HOP_WISHLIST_v9.7.150e.md`
+> notes *cohort_figures_g.py* was *make_figures_complement.py*; `docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`
 > notes `cohort_figures.py` (which survives) absorbed *make_figures_v3.py*. Current equivalents, per a live
 > `ls mamey/*figure* mamey/cohort*`: `bgc_figures.py`, `cohort_cards.py`, `cohort_class_heatmap.py`,
 > `cohort_figures.py`, `cohort_resolver.py`, `cohort_synthesis.py`, `collection_figures.py`,
@@ -769,7 +769,7 @@ This cluster covers everything that happens after the source-scan and scoring ph
 **Source:** `gene_context.py:write_gene_context`, `gene_context.py:build_gene_context`, `gene_context.py:load_gene_context`  
 **Role:** Serializes normalized per-CDS records into the package so Mode B and gene-by-gene walkthroughs work post-seal without re-opening the original antiSMASH ZIP.
 
-**The problem it solves (roadmap #1 / AS-XXX finding E):** Before v9.7.88, the sealed package had no gene-level context. The gene-by-gene builder fell back to a single synthetic `<bgc>_NOLOCUS` row per BGC — not gene-resolved. Mode B could not do true gene-by-gene walkthroughs in a ChatGPT/sealed context.
+**The problem it solves (roadmap #1 / STRAIN_ID finding E):** Before v9.7.88, the sealed package had no gene-level context. The gene-by-gene builder fell back to a single synthetic `<bgc>_NOLOCUS` row per BGC — not gene-resolved. Mode B could not do true gene-by-gene walkthroughs in a ChatGPT/sealed context.
 
 **Schema:** `gene_context/1.0`
 
@@ -1257,7 +1257,7 @@ The front door the judgment layer lacked: a documented JSON contract that a Sapo
 ```json
 {
   "schema_version": "mode-b-receipt-1.0",
-  "strain_id": "AS-XXX",
+  "strain_id": "<strain>",
   "session_id": "sapote_2026-06-19_AF",
   "cards": [
     {
@@ -1365,7 +1365,7 @@ This resolves patch flag P3-F2: `cohort_figures.py` reads `gene_data.json`, whic
 
 **Source:** `cohort_resolver.py:resolve_cohort`, `cohort_resolver.py:actino_status`, `cohort_resolver.py:ACTINO_GENERA`
 
-**`resolve_cohort(strain_id, organism)`:** Returns `{cohort, actino_status, resolved_sid, note}`. Cohort vocabulary: AS / SID / OTHER. SID strains deposited under WGS accessions (e.g. `WWGG00000000` with organism "Streptomyces sp. SID-XXX") resolve to SID via `_SID_RE` matching on the organism string. Non-actinomycetes fire a loud note.
+**`resolve_cohort(strain_id, organism)`:** Returns `{cohort, actino_status, resolved_sid, note}`. Cohort vocabulary: AS / SID / OTHER. SID strains deposited under WGS accessions (e.g. `WWGG00000000` with organism "Streptomyces sp. STRAIN_ID") resolve to SID via `_SID_RE` matching on the organism string. Non-actinomycetes fire a loud note.
 
 **`actino_status(organism)`:** "actinomycete" / "non_actinomycete" / "unknown". "unknown" is a **review tag**, not a silent pass — it means the genus is absent from both allowlists and should be surfaced in the issue_log. `ACTINO_GENERA` covers 57 genera across Streptomycetales, Pseudonocardiaceae, Micromonosporaceae, Streptosporangiaceae, Nocardiaceae, and related families. `NON_ACTINO_GENERA` covers 35+ non-actinomycete genera including bee-associated endosymbionts (Melissococcus, Gilliamella, Snodgrassella), fungi, and kingdom-level tokens (fungi, eukaryota).
 
@@ -1802,7 +1802,7 @@ The original shim `_Location` dataclass had no `strand` field. `extract_cds_feat
 
 **v9.7.104 — missing `annotations` dict (P0, 2026-06-xx)**
 
-`_Record` was missing the `annotations` dict field. `parsers.py` accesses `(rec.annotations or {}).get("topology", "")` in `parse_bgcs_from_zip` for the circular-genome origin Edge fix. On any shim-path run touching a GBK with a topology annotation, this produced `AttributeError: '_Record' object has no attribute 'annotations'`. The crash was caught on AS-XXX real-data verification. Fix: added `annotations: dict = field(default_factory=dict)` to `_Record` and populated it from the LOCUS line.
+`_Record` was missing the `annotations` dict field. `parsers.py` accesses `(rec.annotations or {}).get("topology", "")` in `parse_bgcs_from_zip` for the circular-genome origin Edge fix. On any shim-path run touching a GBK with a topology annotation, this produced `AttributeError: '_Record' object has no attribute 'annotations'`. The crash was caught on STRAIN_ID real-data verification. Fix: added `annotations: dict = field(default_factory=dict)` to `_Record` and populated it from the LOCUS line.
 
 **v9.7.104 — duplicate `annotations` line (P2, same version)**
 

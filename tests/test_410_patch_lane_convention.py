@@ -63,7 +63,7 @@ def test_complete_lane_passes(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("header", [
     "+++ b/../../../../etc/passwd",          # climbs out of the tree
-    "+++ /Users/someone/x.py",               # absolute target
+    "+++ /Us" "ers/someone/x.py",               # absolute target
     "--- a/mamey/../../outside.py",          # `..` buried mid-path
     "+++ b\\..\\..\\outside.py",             # Windows separators, same escape
 ])

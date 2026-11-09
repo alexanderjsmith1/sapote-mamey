@@ -8,4 +8,4 @@ The module imports pyhmmer and Biopython, extracts translated CDS of at least 40
 
 Hold: there is no implemented registry-scan/profile dispatcher here. Do not fabricate an output profile or promote registry `test_status` after loading the helper. Find the selected task's actual supported pipeline interface and source-bound evidence route before authorizing a run. Dependencies, HMM payloads, input identities and gate validation are separate prerequisites; input FASTA alone does not clear this hold.
 
-Capacity hypotheses remain distinct from product or activity evidence. This source review did not run the helper, build models or execute searches. See [Wheelhouse inventory and writes](../../../Wheelhouse/README.md) and [external-data routes](../../EXTERNAL_DATA.md).
+Capacity hypotheses remain distinct from product or activity evidence. The helper has not been run for this page; no models were built and no searches were executed. See [Wheelhouse inventory and writes](../../../Wheelhouse/README.md) and [external-data routes](../../EXTERNAL_DATA.md).

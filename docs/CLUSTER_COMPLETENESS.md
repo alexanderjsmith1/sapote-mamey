@@ -1,31 +1,84 @@
 # Cluster completeness: reference-dependent homology coverage
 
-`tools/cluster_completeness.py` compares translated CDS inventories with a selected reference panel. It reports a computational coverage score and a positional heuristic. It cannot determine whether an unmatched gene is biologically absent or lost through assembly, nor establish orthology, physical linkage, compound identity or activity.
+`tools/cluster_completeness.py` asks how many of the genes in complete reference clusters also appear in your query cluster. It reports a coverage score and a positional heuristic. It cannot tell whether an unmatched gene is biologically absent or was lost to assembly. It does not show orthology, physical linkage, compound identity or activity.
+
+Setup is in [the first-run recipe](reader/01_FIRST_RUN.md). The tool needs Biopython and runs local protein alignments, so check the input size and your machine's limits first. It is not a BLAST job.
+
+## Run it
 
 ```bash
-python tools/cluster_completeness.py --query LABEL:query.gbk --reference REF1:ref1.gbk --reference REF2:ref2.gbk --outdir <fresh-dir> [--min-id 30] [--query-boundary TEXT]
+python tools/cluster_completeness.py \
+  --query EXAMPLE:query_region.gbk \
+  --reference REF1:ref1.gbk --reference REF2:ref2.gbk \
+  --query-boundary interior \
+  --outdir completeness_out
 ```
 
-## Inputs and denominator
+| Flag | Meaning | Default |
+|---|---|---|
+| `--query LABEL:path.gbk` | One antiSMASH region GenBank file, or one RG-GMCI group file (one record per fragment). It is read as a single query. | required |
+| `--reference LABEL:path.gbk` | A complete reference cluster. Repeat the flag for each reference. | required |
+| `--min-id` | Minimum global percent identity for a match. | 30 |
+| `--query-boundary` | Free text from triage: `interior`, `edge` or `full-contig`. It only selects which wording the interpretation uses. If you leave it blank, the interpretation treats the query as interior and says contig-end truncation does not explain the missing genes. Set it from triage before you rely on that sentence. | blank |
+| `--outdir` | Output folder. The tool creates it and reuses it if it exists. | `completeness_out` |
 
-The CLI requires `--query LABEL:path.gbk` and one or more repeated `--reference LABEL:path.gbk`; `--outdir`, `--query-boundary` and `--min-id` configure reporting. The default identity threshold is 30%. This computation needs Biopython's Bio.Align/BLOSUM62 APIs even when a bundled shim can parse a GenBank input. It performs local global protein alignments, not an inert inventory read or an external BLAST job; bind the permitted input size/resources before execution. Only CDS features carrying a translation enter the inventories; empty or unsupported translated strings are not independently admitted as valid proteins.
+Choose complete reference clusters of the type you are testing, each from a different source. Each `--reference` entry counts as its own reference, even if two entries are the same file. Duplicates inflate the majority rule. [RG-GMCI](GLOSSARY.md) is the shared-reference linkage used to group fragments.
 
-Use a finite threshold in [0,100] and record it. The tool does not check this range. Zero also admits zero-similarity/zero-initialized match values, so it cannot support a homology-based presence claim. Require a meaningful reviewed positive threshold for interpretation. Preserve strain, full contig/node, antiSMASH region and BGC alias in the accompanying identity record; a short CLI label is not an identity validator. Bind every input path to its SHA-256 and selected reference version and scope.
+Only CDS features that carry a translation are used. Use a threshold from 0 to 100. The tool does not check the range, and 0 admits zero-similarity matches, so it cannot support a presence claim. Keep a reviewed positive value and record it.
 
-Reference homology groups use thresholded global protein alignments and single-linkage connections across references, with a strict-majority recurrence rule (both references when there are two; all genes are eligible with one). This is not one-to-one ortholog assignment: related copies can merge through a chain, and one query protein can satisfy multiple reference groups. The representative protein is the first group member, so reference ordering is material provenance. Repeated `--reference` entries are counted as separate reference indices even when their labels, file paths or bytes repeat; no duplicate/independence check protects the majority denominator. Curate and bind a unique intended panel, retain its order, and keep repeated transport copies or correlated references separate from independent recurrence claims. Query presence uses the rounded best identity; the per-fragment presence list uses unrounded identities, and near-threshold results can differ.
+## What you should see
 
-Completeness is present groups / eligible reference groups, with near-complete ≥85%, substantial ≥60%, partial ≥35%, and fragment below 35%. These are software tiers, not a biological completeness certificate. Zero eligible reference groups produces 0%, rather than an explicit unmeasured state; hold that result as an invalid denominator, not measured absence. Empty translations or an inappropriate panel likewise require review.
+The console prints one line and one interpretation sentence:
 
-## Positional interpretation holds
+```text
+[cluster_completeness] EXAMPLE: <pct>% complete (<tier>), <present>/<total> cluster genes; <n> missing.
+```
 
-The program orders groups in the reference containing most groups. Missing groups outside the span of matches contribute to an end-missing heuristic; missing groups inside contribute to an interior-missing heuristic. Not every group necessarily occurs in that frame. If no query match exists, positional counts remain zero while `missing_end_loaded` can still be true. Do not accept emitted prose about “all missing genes at the ends” or “genuine biological difference” without checking the actual matched span and denominator. `--query-boundary` is free text, not a validated assembly receipt; blank values follow the non-edge interpretation branch.
+With no eligible reference group the first line reads `unmeasured complete (unmeasured)` and the second line is the `HOLD UNMEASURED_NO_ELIGIBLE_REFERENCE_GENES` sentence.
 
-Read any truncation or loss text as a review hypothesis. Reference divergence, translation omissions, threshold effects and assembly gaps remain possible explanations. For multi-record queries, the program reports combined coverage, fragment coverage and partner-supported groups; neither multi-record inclusion nor a discovered RG-GMCI members table proves physical linkage or owner acceptance.
+The output folder holds:
 
-## Outputs, status and recovery
+- `EXAMPLE_completeness.json`: keys include `completeness_pct`, `denominator_state`, `tier`, `n_present`, `n_cluster_genes`, `n_missing`, `present`, `missing`, `fragments`, `references`, `query`, `query_boundary` and `interpretation`.
+- `EXAMPLE_missing_genes.csv`: columns `status`, `gene_label`, `n_refs_with_it`, `query_best_id_pct`. Despite the name, it lists both `MISSING` and `present` genes.
+- `EXAMPLE_genes_by_fragment.csv`: only when the query has more than one fragment. One column per fragment marks where each reference gene was found.
 
-Outputs are `LABEL_completeness.json` and `LABEL_missing_genes.csv`. Despite its name, the CSV includes both present and missing groups. Multi-record translated inventories also produce `LABEL_genes_by_fragment.csv`; records without translated CDS do not reliably receive a fragment column. Outputs contain reference labels and query label, not input hashes or a validated full-locus identity binding. The reader automatically loads a same-stem `.members.tsv` beside the supplied GBK. When the report has more than one inferred fragment, any nonempty parsed member list sets the RG-GMCI flag, and its row order supplies displayed fragment labels. This path does not validate member schema, record count/order, complete identity, source hashes or accepted group linkage. Inspect and separately bind that optional table to the exact GenBank record roster; a stale or unrelated sibling can change the report's labels without changing any sequence comparison. If the membership binding is unresolved, hold those labels/group attribution for owner reconciliation rather than deleting the original evidence.
+Exit code 0 means the files were written. It is not a scientific acceptance. If the run fails or stops, inspect every file in the folder before retrying. There is no fresh-output guard, so use a new folder for each attempt.
 
-Fragment count is inferred through the highest record index carrying translated CDS. At a positive threshold, empty records before that index appear as zero-covered fragments, while trailing records with no translated CDS are omitted. An empty translated-CDS query still defaults to one inferred fragment. Compare the full source record roster with reported fragments/columns; neither zero-covered nor omitted records establish measured biological absence.
+## How to read the score
 
-The tool creates/reuses the output directory, writes named outputs directly and returns zero after report creation. There is no fresh-output guard or transaction across files. Use a reviewed, contained label and a fresh candidate destination; this tool does not provide the containment guard used by `scope_cluster`. On failure or interruption, inspect every file rather than retrying over prior evidence. Preserve the original evidence in place and record output hashes separately. Zero exit is report production, not scientific acceptance.
+Completeness is present groups divided by eligible reference groups. The tiers are software labels, not a biological certificate:
+
+| Tier | Completeness |
+|---|---|
+| near-complete | 85% or more |
+| substantial | 60% or more |
+| partial | 35% or more |
+| fragment | below 35% |
+
+Zero eligible reference groups leaves `completeness_pct` and each fragment's percentage blank (`null`), sets `denominator_state` to `UNMEASURED_NO_ELIGIBLE_REFERENCE_GENES` and `tier` to `unmeasured`, and replaces the interpretation with a hold sentence. No missing-gene or absence sentence is written. With a denominator, `denominator_state` is `MEASURED`. An empty translation set or a poorly chosen reference panel needs review for the same reason.
+
+## How the score is computed
+
+- Reference genes are grouped by thresholded global protein alignment. Groups form by single linkage across references, so related copies can merge through a chain.
+- A group is eligible when a strict majority of references carry it. With two references, both must. With one, every gene is eligible.
+- The first member of a group is its representative, so reference order matters. Keep the order and record it.
+- A query gene counts as present using its rounded best identity. The per-fragment list uses unrounded identity, so near-threshold calls can differ between the two.
+- This is not one-to-one ortholog assignment. One query protein can satisfy several groups. The emitted interpretation calls the measure thresholded, reference-dependent similarity, not orthology, function or locus identity.
+
+## Positional heuristic
+
+The tool orders groups along the reference that holds the most groups. Missing groups outside the span of matches feed an "end-missing" heuristic. Missing groups inside it feed an "interior-missing" heuristic. If there is no query match, the positional counts stay zero while `missing_end_loaded` can still be true.
+
+Do not accept emitted phrases such as "all missing genes at the ends" without checking the matched span and the denominator. Read any truncation or loss text as a hypothesis. Reference divergence, translation gaps, the threshold and assembly gaps are all possible causes.
+
+## Multi-fragment queries
+
+For a query with several records, the tool reports combined coverage, per-fragment coverage and genes carried only by a partner fragment. Having several records, or an RG-GMCI members table, does not prove the fragments are physically joined.
+
+The tool loads a same-stem `.members.tsv` next to the query GenBank file if one exists. When there is more than one fragment, any non-empty members list sets the RG-GMCI flag and supplies the fragment labels. It does not check the table's schema, record count or order. A stale or unrelated sibling file changes the labels without changing any alignment, so confirm the table matches the query's records.
+
+The fragment count comes from the highest record index with a translated CDS. Empty records before it show as zero-covered fragments. Trailing empty records are omitted. Compare the reported fragments with your full record list.
+
+## Keep your own record
+
+The outputs hold the reference and query labels, not input hashes or a checked full-locus identity. Record each input path with its SHA-256, the reference version, the threshold, and the complete `strain / full contig / region / BGC alias` for the query. A short `--query` label does not validate identity.

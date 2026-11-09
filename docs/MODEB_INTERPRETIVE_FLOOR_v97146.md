@@ -45,6 +45,8 @@ Required for every T1PKS/NRPS/hybrid BGC:
 2. What structural feature is *determined* by a specific domain or domain combination? (e.g. "the ER in M20 produces a fully saturated carbon at that position, creating the third polyene chain interruption")
 3. One sentence distinguishing this from the nearest named comparator based on domain evidence (e.g. "the three-ER architecture predicts a tripartite chromophore distinct from nystatin's single interruption")
 
+> Historical: do not use items 2 and 3 as templates. They predict structure from domains. A current card states the domain architecture and its class-level reading, names the comparator as a similarity, and leaves structure to evidence that establishes it.
+
 **Not sufficient:** "The KS domain catalyses Claisen condensation." That is domain naming, not interpretation.
 
 ---
@@ -71,7 +73,10 @@ Required:
 - If the BGC has *more* P450s than the reference compound: state what additional modification the extra P450(s) imply
 - If an ER is at an unusual position: state the structural consequence at that position
 - If a specific tailoring combination is unprecedented (e.g. dual luciferase-like oxygenases): state what that predicts about the compound's structural novelty
-- If no MIBiG hit: report "no admissible MIBiG match in the searched reference set" — a search-negative, **not** a novel-compound-class claim. MIBiG is not exhaustive, so absence of a reference hit is *reference-dark* status, never evidence of novelty; defer any novelty judgement to gene-level architecture plus phylogenomic evidence, framed as a class-level hypothesis with judgement deferred
+
+> Historical: do not follow the P450, ER and tailoring items above as written. A count of tailoring enzymes or an unusual domain position is a hypothesis about modification, not a structure or a novelty finding. State it at class level, with the evidence and its alternative.
+
+- If no MIBiG hit: first confirm that the MIBiG search ran, its output was read, and it covered the reference set you name. Only then report "no admissible MIBiG match in the searched reference set" — a search-negative. A search that was not run, could not be read or is not bound to this locus stays `NOT_RUN` or `UNAVAILABLE`, never a negative. A search-negative is **not** a novel-compound-class claim. MIBiG is not exhaustive, so absence of a reference hit is *reference-dark* status, never evidence of novelty; defer any novelty judgement to gene-level architecture plus phylogenomic evidence, framed as a class-level hypothesis with judgement deferred
 
 **Not sufficient:** "Biosynthetic capacity consistent with nystatin-family polyene." That is the claim ceiling, not the interpretation.
 
@@ -105,9 +110,9 @@ Required structure:
 
 ---
 
-## Pre-§19 internal check (add to Sapote judgment layer)
+## Pre-§19 check for the card author
 
-Before drafting §19, verify:
+This checklist is optional guidance. No command runs it. Before you draft §19, check:
 - [ ] §5 connects domain architecture to structural consequences (not just names domains)
 - [ ] §9 weighs each alternative against evidence (does not just list them)
 - [ ] §11 connects tailoring complement to scaffold complexity implications
@@ -129,4 +134,4 @@ If any box is unchecked, expand that section before writing §19.
 
 ---
 
-*Sapote–Mamey v9.7.146  ·  Applies to all Mode B §1–§20 cards*
+*Written for the retired §1–§20 card format. The §5, §9, §11, §12 and §19 titles it uses still match the current full48 profile. For current profiles see [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md).*

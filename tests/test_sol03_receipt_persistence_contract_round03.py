@@ -47,8 +47,8 @@ def _package(root: Path, *, with_orphan_card: bool = False) -> Path:
         encoding="utf-8",
     )
     (package / f"{STRAIN}_4_triage_board.csv").write_text(
-        "BGC_ID,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
-        f"{BGC},NRPS,1,Interior,Inventory\n",
+        "BGC_ID,Contig,antiSMASH_Region,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
+        f"{BGC},{NODE},{REGION},NRPS,1,Interior,Inventory\n",
         encoding="utf-8",
     )
     if with_orphan_card:

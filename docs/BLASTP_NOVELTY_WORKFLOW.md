@@ -1,135 +1,96 @@
-# BLASTp → BGC-novelty workflow (four unmixed channels)
+# BLASTp and BGC novelty: how to read four channels
 
-## Scope and grading contract
+This page is a reading guide for people who already ran the pipeline and have BLASTp results. It tells you what each BLASTp channel can answer and how to combine them without mixing them. To run the searches and load the results, use [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md). To use the results in a card, see the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). Terms are in the [glossary](GLOSSARY.md).
 
-This page proposes an advisory interpretation rubric. Reading it changes no files; actual ingestion can write a workbook and package overlays. See [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md). Suggested classifications below are not guaranteed output files from one command.
+The page changes no files. Everything below produces class-level capacity hypotheses.
 
-The proposed family-anchor thresholds below are not the parser's tier contract. `mamey/kcb_frontpage.py` labels `STRONG` at similarity ≥40 and matching genes ≥8, `MODERATE` at ≥25/≥5, with separate WEAK/COINCIDENTAL/LARGE_GENERIC/LOW states. Carry the grading source, channel, reference identity and denominator with every label. Ordinary ClusterBlast is a general cluster-similarity channel; it does not certify a characterized reference. Reviewed SwissProt and unreviewed UniProt records likewise need distinct provenance.
+## Claim ceiling
 
-Low nr identity is a divergence observation within the searched database and query/result scope. It cannot establish taxonomic or chemical novelty. Remote concurrency numbers below are historical project guidance, not a current service guarantee or a globally enforced RID cap. The per-service rolling daily-submit ledger (`mamey/blast_ledger.py`) is a separate control. Remote runs require the current project authorization.
+- Similarity is not identity. A BLASTp percent identity is homology, not the same molecule.
+- A few genes that resemble a characterized cluster are a class-level anchor, not that compound.
+- A close hit in nr does not mean "known". nr is dominated by genomes never assayed for natural products. A close hit means a similar sequence exists.
+- A distant nr hit is a prior that says "worth a look". It is not activity, and it is not taxonomic or chemical novelty. It holds only inside the database, query and settings you searched.
+- This layer ranks where to look. Judgment is deferred.
 
-*Post-seal interpretation guide. It sets how the four BLASTp channels are run, kept separate, and combined into a
-**novelty prior** that feeds the phylogeny overlay (`PHYLOGENETICS_WORKFLOW.md`) and Mode B evidence
-(`MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md`)*.
+## The four channels
 
-## Claim ceiling (read first)
-Everything below produces **class-level capacity hypotheses**, never product/structure/activity claims.
-- **similarity ≠ identity** — a BLASTp %id is homology, not the same molecule.
-- **a per-gene reference hit ≠ product identity** — a few genes resembling a characterized cluster is a
-  *class-level anchor*, not that compound.
-- **high nr %id ≠ known/characterized** — nr is dominated by taxonomy genomes never assayed for natural
-  products; closeness in nr means a close *sequence* exists, not that the product is known.
-- **nr distance = a novelty prior, not activity** — divergence flags "worth looking at," nothing more.
-- Judgment is deferred to the Sapote tiers. This layer ranks where to look; it does not conclude.
+Each channel answers one question. Never mix them. Keep each channel's results in their own folder and keep its channel label. The label column differs by output: `blastp-online` writes `<BGC>_online_blastp.csv` with `channel` and `source_channel`, identity in `pct_identity` and positives in `pct_positive`. The SQLite BLASTp store (`hits` table, loaded by `tools/ingest_blastp_rollups.py`) uses `subject_db` and `channel`, with `pct_identity` and `pct_positives`. Not every output carries a `subject_db` tag. Identity and positives stay separate columns in both. Never average or merge them, and keep a blank cell blank.
 
-## Report-wrapper completion boundary
-
-`tools/mamey_pipeline.py` collects package hashes, validation output, explanation
-output and optional figure-stage text into a report. The current wrapper returns 1
-if validation or explanation fails, a requested figure directory is unavailable,
-or the requested figure renderer returns nonzero; otherwise it returns 0 after
-report creation. It can still write a report containing failed stages. Optional
-literature-helper failure is recorded but does not independently fail the wrapper.
-Inspect each stage's output and actual artifacts: a child's zero exit or soft skip
-is not independent artifact validation. Comparator and BLASTp steps in the diagram
-require separate authorized commands and their own receipts.
-
-The package manifest records files found before validation and explanation. The
-wrapper does not check that package bytes remain unchanged through those stages,
-or bind engine files and figure inputs in that manifest. Keep the selected source
-snapshot and producer identity separate from the current run; verify stability
-and retain the stage receipts and output hashes before admitting its results.
-
-Choose a fresh report destination. Report, manifest and diagnostic filenames are
-replaced directly on rerun. When `--figures` is supplied, the wrapper invokes
-`tools/lab_office_render.py` without its `--out` option: render outputs go to
-`<figure-directory>/_rendered`, independently of the wrapper's report directory.
-Select an authorized writable figure directory outside immutable evidence and
-verify the actual renderer outputs and failures. A previous figure file left by
-a failed attempt is not evidence of current completion.
-
-## Where this sits in the program
-```
-seal package ──▶ mamey_pipeline (validate + explain + figures + REPORT)
-                        │
-                        ├─▶ comparator_discovery ──▶ (download) ──▶ ANI / genome tree   [PHYLOGENETICS_WORKFLOW]
-                        │
-                        └─▶ FOUR-CHANNEL BLASTp ──▶ anchor × nr-distance rank ──┐
-                                                                                 ├─▶ tree × BGC overlay
-                                                                                 └─▶ Mode B admission (U=0)
-```
-
-## The four channels — each answers ONE question. NEVER mix them.
-Every channel keeps its **own store, own output folder, own `subject_db` tag**, and reports
-`pct_identity` and `pct_positives` as **separate columns** (never averaged or conflated).
-
-| Channel | DB / locus | Runs | The question it answers |
+| Channel | Database | Runs | Question it answers |
 |---|---|---|---|
-| **nr** | NCBI `nr` (remote) | paced RID crawl | **Sequence-divergence prior** — how similar is each gene to its best returned sequence in the selected database/search? This is bounded by database version, query/result coverage and search settings, rather than every deposited sequence or a taxonomic-novelty determination. |
-| **MIBiG / KnownClusterBlast** | antiSMASH KnownClusterBlast (local, in the package) | at parse time | **Anchor capacity** — does the locus resemble a *characterized reference FAMILY* by real multi-gene support? Graded, not binary. |
-| **Swiss-Prot / other UniProt inputs** | exact selected local database, with release and review-status provenance | local search under its own resource budget | **Per-gene function hypothesis** — keep reviewed Swiss-Prot and unreviewed records distinct. A named subject annotation does not verify the query's function; preserve unavailable and no-hit evidence separately. |
-| **ClusteredNR** | NCBI `nr_cluster_seq` (remote) | paced RID crawl (own ledger) | **Deep representative channel** — clustered nr surfaces a representative per cluster; complements nr where nr is saturated or a gene is promiscuous. |
+| nr | NCBI `nr`, the non-redundant protein database (remote) | submitted to NCBI one batch at a time | How close is each gene to its best returned sequence? This is a divergence prior, bounded by database version, coverage and settings. |
+| MIBiG / ClusterBlast | antiSMASH KnownClusterBlast, read from your package (local) | when the package is built | Does the locus resemble a characterized reference cluster, across several genes? |
+| SwissProt (Swiss-Prot) and other UniProt | the exact local database you selected | local search | What function does a reviewed or unreviewed protein suggest for each gene? A named subject does not verify the query's function. Keep reviewed and unreviewed records apart. |
+| ClusteredNR | NCBI `nr_cluster_seq`, one representative per cluster of nr (remote) | submitted to NCBI one batch at a time | A representative per cluster. It helps where nr is saturated. |
 
-**Unmixed rule (hard):** a hit from one channel is never merged into, averaged with, or relabeled as another.
-The stores stay physically separate so a later reader can always tell which DB produced a number.
+A hit from one channel is never merged into, averaged with, or relabeled as another. Unavailable evidence stays a hold. It is never a negative. A channel that did not run reads "stream not run", not "no hit".
 
-## Grading the MIBiG/ClusterBlast anchor (capacity, not identity)
-A per-gene hit is graded into a **family anchor** by *real support*, never by a single best gene.
-- **STRONG** — ≥4 genes hit one reference family, covering ≥25% of the BGC's true gene count, at ≥55% median id.
-- **PARTIAL** — ≥2 anchor genes but below the STRONG bar.
-- **promiscuous-only** — the only hits are to genes that recur across many unrelated clusters (scaffold/tailoring);
-  gated OUT of "anchored," because a promiscuous gene is capacity noise, not a family call.
-- **NO_MIBiG** — no family anchor observed in the completed, declared channel scope. Unrun, unavailable, unreadable, partial or unbound evidence remains a separate hold; it cannot supply this negative classification.
-Print the honest form `Ng @ X% → <family>`. Never print `= <compound>`.
+## What your package prints for the MIBiG / ClusterBlast channel
 
-## Combining: the anchor × nr-distance rank (the lead signal)
-The highest-value lead is **real machinery in a novel background**: a STRONG family anchor **and** nr-distant.
-- **nr-distance = 100 − nr median %id** across the BGC's genes.
-- Rank STRONG-anchored BGCs by ascending nr %id (most divergent first).
-- **Denominator honesty (mandatory):** always carry the **number of genes** behind the nr median. A "62% nr"
-  computed over 2 genes is not comparable to one over 40; treat nr-distance from <~5 genes as *soft* and say so.
-- **Over-merge caveat:** a fused antiSMASH region (COMPOSITE_SEPARABLE) confounds *both* axes — the anchor span
-  and the nr median span two biosynthetic units. Flag it and verify the split before trusting either number.
+Use the package's own labels. `READING_YOUR_RESULTS.md` explains the evidence states and the percent bands. In short:
 
-Reads produced: a per-strain **anchored / neighborhood / divergent+dark** classification, and a cohort
-shortlist of anchored BGCs ranked by nr-distance.
+- `KCB_similarity_pct` is antiSMASH's similarity percent for the top KnownClusterBlast hit. The package turns it into a band: high at 70 or above, moderate at 40 or above, low above 0, `none` at exactly 0. Blank is not zero. See [Reading your results](READING_YOUR_RESULTS.md).
+- `mamey/kcb_frontpage.py` also gives a front-page tier from similarity and the number of matching genes:
 
-**Candidate split interpretation — retain both loci and the evidence limits.**
-`COMPLEMENTARY_SPLIT` and `TERMINUS_TRUNCATION_SPLIT` are values of
-`subject_tiling_verdict`, not `functional_rescue_class`. The latter reports
-`COMPLEMENTARY`, `BOTH_CORE`, `ACCESSORY_ONLY`, `AMBIGUOUS` or `UNKNOWN_NO_PROFILE`
-from the inspected gene-role profiles. Read these fields separately with the exact
-reference/channel support, geometry, contradictory evidence and each endpoint
-(`strain / full physical contig / region / BGC alias`).
+| Tier | Rule |
+|---|---|
+| STRONG | similarity 40 or above, and 8 or more matching genes |
+| MODERATE | 25 or above, and 5 or more genes |
+| COINCIDENTAL | 80 or above, but 2 or fewer genes |
+| WEAK | 15 or above, and 4 or more genes |
+| LARGE_GENERIC | 8 or more genes, under 15 |
+| LOW | none of the above |
 
-These computational categories can prioritize a candidate fragmented-locus
-interpretation; they do not prove physical adjacency, a complete single pathway,
-product identity or exclusion of paralogy. A HIGH score or a complementary category
-does not authorize collapsing loci or subtracting a rescue from a biological BGC
-count. Keep both source records visible, preserve unresolved/unavailable evidence,
-and require independent sequence/assembly and compatible synteny evidence plus
-scientific review before adopting a physical join or revised pathway count.
-Sources: `mamey/clusterblast_genes.py`, `mamey/rggmci.py`.
+Quote the label with its source, the channel, the reference name and the gene count. Write it as `N genes at X% similarity, <family>`. Never write `= <compound>`. A hit only to genes that recur across many unrelated clusters (scaffold or tailoring genes) is capacity noise, not a family call.
 
-## Concurrency discipline for the remote channels (nr + ClusteredNR)
-Both remote channels draw on the **same NCBI concurrent-search budget**.
-- Submit **serially** (one panel per sleep interval), never a burst.
-- Keep **total open RIDs across nr + ClusteredNR ≤ ~10–15**. Holding ~40 open searches trips NCBI's
-  concurrent-search limit and earns an **IP-level submit cooldown** (new submits fail even at in-flight 0,
-  while status GETs still return 200 — the tell-tale signature).
-- When running both channels at once, **split the budget** (e.g. nr in-flight 6 + ClusteredNR in-flight 5),
-  don't run each at the full cap.
-- Never attach an email or personal identifier to an outbound NCBI/API request.
+## Combine anchor and nr distance by hand
 
-## Feeds downstream
-- **Phylogeny overlay** — the per-strain novelty load (anchored-vs-novel counts, top nr-distances) becomes a
-  column painted onto tree tips, keyed to the tree's exact leaf labels. Governed by the sign-off gate in
-  `PHYLOGENETICS_WORKFLOW.md` (outgroup sanity, ANI-boundary honesty, comparator provenance, label integrity).
-- **Mode B admission** — an anchored lead may only be *promoted* in a Mode B card once its per-gene channel is
-  fresh for the complete declared current-gene roster (U = 0 under the selected card contract). Its query/result evidence must be independently bound. The card must also carry OBSERVATION / INFERENCE / ALTERNATIVE / FALSIFIER
-  structure. `tools/modeb_evidence_gate.py` is a text lint with an optional supplied freshness boolean; it does not verify the gene roster, query hashes or job receipts. Novelty from weak/thin evidence is a HOLD, not a lead.
+The strongest lead is real machinery in a distant background: a clear MIBiG family match and a low nr identity. The tools do not compute this rank. You compute it from the package tables.
 
-## Exclusions (carry through every channel)
-Respect the engine's exclusion accessors (`mamey/exclusions.py`); never hardcode them. Contaminated strains are
-hard-excluded everywhere. Chimeric/void assemblies are excluded from raw per-gene/BLASTp readers (their branch
-lengths and per-gene distances are untrustworthy) even where they remain in governed conclusions.
+1. Take nr distance as 100 minus the median nr percent identity across the BGC's genes.
+2. Sort the BGCs with a strong family match by nr identity, lowest first.
+3. Carry the number of genes behind each median. A median over 2 genes is not comparable to one over 40. Treat a distance from fewer than about 5 genes as soft, and say so.
+4. Check for an over-merged region (`COMPOSITE_SEPARABLE`, an antiSMASH region that holds two biosynthetic units). It distorts both numbers. Verify the split first.
+
+## Split loci
+
+Two loci can be two halves of one pathway. Two fields describe that. Read them separately:
+
+- `subject_tiling_verdict` holds `COMPLEMENTARY_SPLIT` or `TERMINUS_TRUNCATION_SPLIT`.
+- `functional_rescue_class` holds `COMPLEMENTARY`, `BOTH_CORE`, `ACCESSORY_ONLY`, `AMBIGUOUS` or `UNKNOWN_NO_PROFILE`.
+
+These fields come from the RG-GMCI rescue step. See [the rescue atlas](RGGMCI_RESCUE_ATLAS.md). They can mark a candidate split. They do not prove adjacency, one pathway, product identity, or the absence of paralogs. Keep both source records visible, with each endpoint written as `strain / full contig / region / BGC alias`. Do not collapse the loci or subtract a rescue from a BGC count without independent assembly and synteny evidence and review.
+
+## Running the remote channels
+
+Details and commands are in [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md). The rules that matter here:
+
+- nr and ClusteredNR share one NCBI search budget. Submit one batch at a time, never a burst, and keep few open RIDs (a RID is NCBI's job ID for one search). `auto-blastp` paces itself at about one query every 8 minutes.
+- If NCBI refuses new submissions while status checks still return results, you have too many searches open. Stop and wait.
+- The daily submission ledger (`mamey/blast_ledger.py`) counts searches against NCBI's soft limit of about 100 per 24 hours.
+- NCBI submissions carry no e-mail address or personal identifier. The EMBL-EBI route (`blastp-ebi`) is different: EBI requires a contact `--email`.
+- Send only sequence you may make public.
+
+## Using the result downstream
+
+- Phylogeny overlay: the per-strain count of anchored and divergent BGCs can be painted on tree tips that use the tree's exact leaf labels. The checks are in [PHYLOGENETICS_WORKFLOW.md](PHYLOGENETICS_WORKFLOW.md).
+- Mode B: an anchored lead can be promoted in a card only when the per-gene BLASTp channel is current for every gene on the declared roster (no unresolved genes, "U = 0"). The query and result must be bound to each other. The card also needs the observation, inference, alternative and falsifier structure. Thin or weak evidence is a hold, not a lead.
+
+`python tools/modeb_evidence_gate.py <card.md> [--fresh-blastp yes|no]` lints a card file for this structure. It is a text check. It does not verify the gene roster, the query hashes or the job receipts. You supply the freshness answer yourself.
+
+## Exclusions
+
+Respect the engine's exclusion list in `mamey/exclusions.py`. Do not hard-code exclusions. The accessors have separate scopes: `raw_analysis_excluded()` (contaminated plus void raw assemblies) for readers of raw per-gene and BLASTp tables, and `governed_excluded()` for governed conclusions. With no cohort exclusion file bound (`OFFICIAL_DATA/exclusions.json` via `MAMEY_OFFICIAL_DATA` or `MAMEY_DATA_ROOT`), the shipped default excludes nothing. Not every reader applies an accessor: `blastp-followup` parses the Hit Table you give it and does not filter strains, and `tools/ingest_blastp_rollups.py` skips only the strains named in the `SAPOTE_EXCLUDE_STRAINS` environment variable (comma-separated), not the `mamey/exclusions.py` list. Record which exclusion file and version a result used, and check the input roster against it yourself.
+
+## The report wrapper
+
+`tools/mamey_pipeline.py` collects the package hashes, the validation output, the explanation output and optional figure text into one report.
+
+```bash
+python tools/mamey_pipeline.py --strain EXAMPLE --package runs/EXAMPLE/package \
+  --engine . --out report_run
+```
+
+`--figures <dir>` and `--lit-refs <tool>` are optional. Choose a new `--out` folder. Report files are overwritten on a rerun. Figures render into `<figures dir>/_rendered`, not into `--out`.
+
+Exit 0 means the report was written. Exit 1 means validation or explanation failed, a requested figure folder was missing, or the figure renderer failed. A report can still contain failed stages, so read each stage's output. A zero exit from a child step is not proof that its files are good. The wrapper does not check that package bytes stay unchanged while it runs. Keep the stage receipts and hashes. It does not run BLASTp or comparator searches. Those need their own commands and receipts.

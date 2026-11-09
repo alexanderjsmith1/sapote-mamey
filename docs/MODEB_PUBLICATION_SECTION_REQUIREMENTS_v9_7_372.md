@@ -1,7 +1,14 @@
 # Expanded Mode B publication-candidate contract (§1–§50)
 
-This contract governs scientific card authoring and audit. Mamey still performs deterministic
-extraction; Sapote/Codex/Claude perform interpretation. Passing the deterministic scaffold means
+This page holds the 50-section authoring requirements behind the opt-in `current50_v2` profile. The
+default profile is `full48`; choose between them in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md).
+Pass `--contract current50_v2` to both `emit-modeb-template` and `verify-modeb`, or you get the
+48-section profile. The section map here is the earlier proposal. The implemented profile,
+`mamey/data/mode_b/modeb_current50_v2_contract.json`, differs: its §22 is GECCO evidence and its §26 is
+the contigs rescued into the BGC, while the table below puts the RiPP search in §22 and OSMAC in §26.
+Use the emitted template's titles and the [current50 guide](MODEB_CURRENT50_V2_CONTRACT.md) for section
+numbers. Mamey performs deterministic extraction; Sapote,
+or the person authoring the card, interprets. Passing the deterministic scaffold means
 only that the evidence is presented for scientific review. It does not establish product identity,
 production, activity, novelty, owner acceptance, integration, rendering approval, release, or
 publication approval.
@@ -31,12 +38,19 @@ claim publication completeness before an author reviews and fills the evidence-d
 
 Use this route:
 
-1. emit the current §1–§50 scaffold;
+1. emit the §1–§50 scaffold to a new file:
+   `python mamey_run.py emit-modeb-template --package runs/EXAMPLE/package --bgc BGC001 --contract current50_v2 --out reviews/EXAMPLE-mode-b.md`;
 2. freeze and bind the exact-locus evidence packet;
 3. replace every prompt and placeholder, including the §50 channel matrix and all §28 disposition
    rows, using bare typed states from the closed vocabularies below;
 4. save the authored candidate to disk; and
-5. run the publication gate against those saved bytes and the independently bound gene roster.
+5. verify those saved bytes against the package, so the gene roster is bound:
+   `python mamey_run.py verify-modeb reviews/EXAMPLE-mode-b.md --package runs/EXAMPLE/package --bgc BGC001 --contract current50_v2 --report-json reviews/EXAMPLE-verify-1.json`.
+
+"Publication gate" on this page means step 5. `verify-modeb --contract current50_v2` runs the shared
+structure, depth, class, claim-safety and evidence checks and the `current50_v2` checks. It does not
+run the full48 publication gate in `mamey/modeb_publication_gate.py`, whose checks are keyed to the
+48-section numbering.
 
 Do not run the publication gate against a fresh template and interpret its expected placeholder
 findings as an emitter failure. Conversely, do not call an authored card publication-gate-clean
@@ -63,7 +77,10 @@ alias-only, length-only, or result-without-query-receipt rows remain visible as 
 evidence.
 
 Before writing, open the predecessor card, V7 evidence, historical locus map, exact antiSMASH GBK,
-and current sealed Mamey package. A successor may refine or withdraw earlier content, but it may not
+and current sealed Mamey package. "V7 evidence" is an earlier evidence workup of the locus; the
+gate treats it as one of three historical sources, with the historical card and the historical
+locus map (`HISTORICAL_SOURCES` in `mamey/modeb_publication_gate.py`). Record `NOT_APPLICABLE` for a
+historical source that does not exist for your locus. A successor may refine or withdraw earlier content, but it may not
 silently omit it. Every section has a reconciliation row with named evidence and one predecessor
 disposition: `RETAIN`, `REFINE`, `WITHDRAW_WITH_REASON`, or `NOT_APPLICABLE`.
 
@@ -153,6 +170,6 @@ publication approval. Those remain distinct external gates.
 
 Each §48/§49 entry supplies an identifiable citation and direct DOI/PMID/publisher link, what the source supports, its relevance to the focal locus, and its transfer limits. State abstract-only versus full-text consultation. Prefer primary sources for mechanistic claims; label reviews as synthesis. No arbitrary citation quota, invented references, or generic relevance filler. A paper may appear in both sections only with distinct relevance. Broader taxa/topics are permitted when justified.
 
-Migrate the former §48 synthesis into §19 without loss and the former §4 matrix into §50 without duplication. Update navigation, anchors, section reconciliation and layout consumers together. Legacy 48-section cards remain readable as legacy; do not silently reinterpret their §48. This document change alone does not migrate emitters, gates or parsers.
+Migrate the former §48 synthesis into §19 without loss and the former §4 matrix into §50 without duplication. Update navigation, anchors, section reconciliation and layout consumers together. Legacy 48-section cards remain readable as legacy; do not silently reinterpret their §48. `emit-modeb-template` and `verify-modeb` accept `--contract current50_v2` and read `mamey/data/mode_b/modeb_current50_v2_contract.json`, which defines 50 sections with §48–§50 as described here; §22 and §26 differ, as the opening note says.
 
 Preserve existing predecessor/package/V7 sources by path or portable locator plus SHA-256; the source freeze is a source register, not a requirement to copy whole packages, databases or report assets. This retained requirements table does not authorize searches, experimentation, external messaging, writes or adoption beyond the current user task.

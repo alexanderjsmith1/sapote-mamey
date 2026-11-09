@@ -109,7 +109,7 @@ def test_high_density_convergence_tier_is_sequence_evidence_only():
         {"BGC001": {"products": ["T1PKS"], "edge_status": "Interior"}},
     )
     assert convergence[0]["convergence_tier"] == "H1_HIGH_DENSITY"
-    assert "not proof of exact product identity" in convergence[0]["claim_safety"]
+    assert "does not prove" in convergence[0]["claim_safety"] and "product identity" in convergence[0]["claim_safety"]
 
 
 def test_coverage_over_100_is_preserved_but_capped_for_interpretation(tmp_path):

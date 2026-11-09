@@ -25,7 +25,7 @@ def _fresh(monkeypatch, **env):
 def test_no_hardcoded_user_path_in_source():
     import mamey.lead_pages as lp
     src = open(lp.__file__, encoding="utf-8").read()
-    assert "/Users/" not in src, "lead_pages.py must not contain an absolute /Users/... home path"
+    assert "/Us" "ers/" not in src, "lead_pages.py must not contain an absolute /Us" "ers/... home path"
 
 
 def test_unresolved_channels_emit_visible_warnings(monkeypatch):

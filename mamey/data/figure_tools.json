@@ -16,6 +16,7 @@
   {"id": "T05", "name": "dDDH with the closest type strain", "draws": "Digital DDH (d4) of each sequenced isolate with its closest type strain, with confidence intervals.", "tool": "tools/taxonomy_T05_figures.py"},
   {"id": "T06", "name": "16S identity against dDDH", "draws": "Scatter of 16S identity against dDDH, with the 98.65% and 70% thresholds.", "tool": "tools/taxonomy_T06_figures.py"},
   {"id": "C02", "name": "Genera by isolation source", "draws": "Genus composition of the isolates in each isolation-source group.", "tool": "tools/genus_composition_figures.py"},
+  {"id": "C03", "name": "Genera by sampling unit", "draws": "Isolates by sampling unit (for example colony) and genus, units grouped under their group exactly as the input gives it; the caption counts the stated basis of each group.", "tool": "tools/genus_composition_figures.py"},
   {"id": "B01", "name": "BGC classes by group", "draws": "antiSMASH region classes summed over the isolates of each group.", "tool": "tools/bgc_class_groups.py"},
   {"id": "B02", "name": "BGC classes per genome", "draws": "antiSMASH region classes of each genome, with contig-edge counts.", "tool": "tools/bgc_classes_per_genome.py"},
   {"id": "B03", "name": "Biosynthetic protein identity against genus references", "draws": "Each isolate's region proteins against reference genomes of its genus.", "tool": "tools/region_protein_by_genus.py", "note": "Codex card waiting on its rebase onto page_defaults."},

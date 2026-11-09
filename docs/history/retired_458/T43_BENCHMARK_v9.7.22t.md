@@ -88,7 +88,7 @@ Parity guards that enforce the sync: `tests/test_b2_registry_parity.py`
 `tests/test_marker_catalog.py`.
 
 ## 7. Verification
-- All four tiers, full suite, no regression: **CODE 536 · CAF 534 · SID 536 · MERGED 535** passed.
+- All four tiers, full suite, no regression: **CODE 536 · CAF 534 · public-ID tier 536 · MERGED 535** passed.
 - New guard `tests/test_cctt_word_boundaries.py` (3 tests) in all tiers.
 - Teeth proven: reverting `\blanm\b`/`\blanc\b` in the **active registry** fails
   `test_lan_does_not_fire_on_translation_substring`; restored → green.

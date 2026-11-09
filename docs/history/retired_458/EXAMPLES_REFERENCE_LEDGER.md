@@ -47,7 +47,7 @@ instead say "supply your own antiSMASH ZIP / workbook."
 |---|---|
 | `examples/layperson_guide_exemplar.md` | `prompts/CLAUDE_SYSTEM_PROMPT.md`, `prompts/FULL_RUN_PROFILE.md`, `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`, `docs/RELEASE_CHECKLIST_v9.md` |
 | `examples/bench_guide_exemplar.md` | `prompts/CLAUDE_SYSTEM_PROMPT.md`, `prompts/FULL_RUN_PROFILE.md`, `docs/HOW_TO_USE.md`, `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` |
-| `examples/fermentation_card_exemplar.md` | `prompts/CLAUDE_SYSTEM_PROMPT.md`, `docs/HOW_TO_USE.md`, `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` |
+| `examples/fermentation_card_exemplar.md` (moved to [`docs/history/retired_458/fermentation_card_exemplar.md`](fermentation_card_exemplar.md); no file exists at the `examples/` path) | `prompts/CLAUDE_SYSTEM_PROMPT.md`, `docs/HOW_TO_USE.md`, `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` |
 | `examples/citation_library_exemplar.md` | `prompts/CLAUDE_SYSTEM_PROMPT.md`, `docs/HOW_TO_USE.md`, `docs/BERT_MODE_PROTOCOL.md` |
 | `examples/judgment_18strain/Lit_Verification_DAPR_New_Leads.md` | `docs/DAPR_CLASS_FRAMEWORK.md` |
 | `examples/judgment_18strain/Lit_Verification_Routed_Out.md` | `docs/DAPR_CLASS_FRAMEWORK.md` |

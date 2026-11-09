@@ -726,7 +726,7 @@ def _edge_status(start: int, end: int, contig_len: int, flank_bp: int = 5000,
         return "Edge"
     return "Interior"
 
-def architecture_grade(edge_status: str, products: list[str], length_bp: int, kcb_score=None,
+def architecture_grade(edge_status: str, products: list[str], length_bp: int, kcb_similarity_pct=None,
                        has_chemical_hybrid: bool = False) -> tuple[str, str]:
     """Assign source-derived architecture confidence.
 
@@ -765,7 +765,10 @@ def architecture_grade(edge_status: str, products: list[str], length_bp: int, kc
             family = product_family(label)
             core_classes.add(label if family == "other" else family)
     distinct_core = len(core_classes)
-    high_kcb = kcb_score is not None and kcb_score >= 10000
+    # Strong KCB support means a high percent similarity, never a large cumulative score.
+    from .precision import KCB_PCT_HIGH, kcb_pct_value
+    _pct = kcb_pct_value(kcb_similarity_pct)
+    high_kcb = _pct is not None and _pct >= KCB_PCT_HIGH
     # A chemical_hybrid signal is only meaningful with >=2 distinct core classes fused (R1).
     hybrid_coherent = bool(has_chemical_hybrid) and distinct_core >= 2
     hybrid_note = (
@@ -945,6 +948,11 @@ def project_rggmci_records(bgcs) -> list[dict]:
             for bgc in bgcs]
 
 
+# Biopython position classes that say a boundary is not known exactly. A plain integer or ExactPosition is exact.
+_FUZZY_POSITION_TYPES = frozenset({"BeforePosition", "AfterPosition", "WithinPosition", "BetweenPosition",
+                                   "OneOfPosition", "UncertainPosition", "UnknownPosition"})
+
+
 def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
                             embedded_coordinate_diagnostic=None, intake_diagnostics=None):
     """Yield the common region intake with one coordinate-error admission policy.
@@ -957,7 +965,10 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
     diagnostics = intake_diagnostics if intake_diagnostics is not None else []
     with warnings.catch_warnings(record=True) as source_warnings:
         warnings.simplefilter("always")
-        records = read_genbank_records(zip_path, region_only=True) or read_genbank_records(zip_path, region_only=False)
+        records = read_genbank_records(zip_path, region_only=True)
+        whole_record_fallback = not records
+        if whole_record_fallback:
+            records = read_genbank_records(zip_path, region_only=False)
         orig_bounds = _region_orig_bounds_from_zip(zip_path)
         contig_lengths = _contig_length_map_from_zip(zip_path)
     for warning in source_warnings:
@@ -976,6 +987,66 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
     for name, rec in records:
         is_region_record = "region" in Path(name).name.lower()
         contig_id = _record_contig_id(rec)
+        fallback_region = fallback_region_number = None
+        if whole_record_fallback:
+            # No region GBKs: a whole record is admitted only when it carries exactly one antiSMASH
+            # region feature with its own region number. A record with no biosynthetic feature is a
+            # contig, not a BGC. Several regions, protoclusters with no region, or a missing or
+            # conflicting region number would each force a guess at the boundary or identity, so
+            # the record is held instead.
+            _regions = [f for f in rec.features if f.type == "region"]
+            _n_bgc = sum(1 for f in rec.features if f.type in {"region", "protocluster", "cand_cluster"})
+            _hold = None
+            if _n_bgc == 0:
+                _hold = "WHOLE_RECORD_WITHOUT_REGION_SKIPPED"
+            elif len(_regions) > 1:
+                _hold = "WHOLE_RECORD_MULTI_REGION_HELD"
+            elif not _regions:
+                _hold = "WHOLE_RECORD_REGION_FEATURE_MISSING_HELD"
+            else:
+                _raws = {str(v).strip() for v in (_regions[0].qualifiers.get("region_number") or [])}
+                if len(_raws) > 1:
+                    # Two different region numbers on one feature: picking either one is a guess.
+                    _hold = "WHOLE_RECORD_REGION_NUMBER_CONFLICT_HELD"
+                else:
+                    try:
+                        fallback_region_number = int(next(iter(_raws), ""))
+                    except ValueError:
+                        _hold = "WHOLE_RECORD_REGION_NUMBER_MISSING_HELD"
+                    else:
+                        if fallback_region_number < 1:
+                            # antiSMASH numbers regions from 1. Zero or a negative number is not an identity.
+                            _hold = "WHOLE_RECORD_REGION_NUMBER_INVALID_HELD"
+                if _hold is None:
+                    _m = re.search(r"region(\d+)", Path(name).name, flags=re.I)
+                    if _m and int(_m.group(1)) != fallback_region_number:
+                        _hold = "WHOLE_RECORD_REGION_NUMBER_CONFLICT_HELD"
+                if _hold is None:
+                    _loc = _regions[0].location
+                    try:
+                        _parts = list(getattr(_loc, "parts", None) or [_loc])
+                        _exact = not any(type(pos).__name__ in _FUZZY_POSITION_TYPES
+                                         for part in _parts for pos in (part.start, part.end))
+                        fallback_region = (int(_loc.start) + 1, int(_loc.end))
+                    except GbkSizeGuardRefusal:
+                        raise
+                    except (TypeError, ValueError, AttributeError):
+                        _hold = "WHOLE_RECORD_REGION_COORDINATES_UNREADABLE_HELD"
+                    else:
+                        if len(_parts) > 1:
+                            # A joined location (for example across the origin of a circular record) has
+                            # no single start and end; its outer endpoints would read as the whole contig.
+                            _hold = "WHOLE_RECORD_REGION_COMPOUND_LOCATION_HELD"
+                        elif not _exact:
+                            # A fuzzy bound (<start or >end) says the true boundary is not known.
+                            _hold = "WHOLE_RECORD_REGION_FUZZY_BOUNDS_HELD"
+                        elif fallback_region[0] < 1 or fallback_region[1] > len(rec.seq) \
+                                or fallback_region[0] > fallback_region[1]:
+                            _hold = "WHOLE_RECORD_REGION_OUTSIDE_RECORD_HELD"
+            if _hold is not None:
+                diagnostics.append(dict(code=_hold, member=name, record=contig_id,
+                                        region_features=len(_regions)))
+                continue
         # PARSE-03: a clipped region GBK has no true contig length; len(rec.seq) is only the
         # region span, so falling back to it forced every region-only BGC to "Full-contig".
         # When this is a region record with no true contig length in the map, use 0 so
@@ -993,6 +1064,8 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
         m = re.search(r"region(\d+)", Path(name).name, flags=re.I)
         if m:
             region_num = int(m.group(1))
+        if whole_record_fallback:
+            region_num = fallback_region_number
         products, start, end = [], 1, contig_len
         # Embedded-only metadata is evaluated at its legacy point, including before dedup.
         embedded = embedded_metadata(rec) if embedded_metadata is not None else None
@@ -1004,7 +1077,7 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
         for feature_index, f in enumerate(rec.features):
             if f.type in {"region", "protocluster", "cand_cluster"}:
                 products.extend(_feature_products(f))
-                if not (is_region_record and name in orig_bounds):
+                if not (is_region_record and name in orig_bounds) and not whole_record_fallback:
                     try:
                         start = int(f.location.start) + 1
                         end = int(f.location.end)
@@ -1017,6 +1090,9 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
                                                 exception_type=type(exc).__name__, start=start, end=end))
                         if embedded_coordinate_diagnostic is not None:
                             embedded_coordinate_diagnostic(exc, name)
+        if whole_record_fallback:
+            # The region feature is the boundary; nested protoclusters and candidates lie inside it.
+            start, end = fallback_region
         products = sorted(set(products))
         if not products:
             for f in rec.features:
@@ -1060,8 +1136,9 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
                          core_snapshot_out: dict | None = None) -> list[BGCRecord]:
     # evidence: if a caller already parsed antiSMASH evidence (the run path parses it once for the
     # status dict), pass it in to avoid a second full record parse. Standalone callers leave it None
-    # and the evidence is parsed here as before. Either way the result is identical: apply_evidence_to_bgcs
-    # reads only by_region, which does not depend on want_tigrfam.
+    # and the evidence is parsed here with the same status parser the run path uses, so both read the
+    # same record evidence. The KCB percent rides the record pass that TIGRFAM requests; a parse
+    # without it would leave every percent PCT_NOT_READ in off mode and grade architecture differently.
     bgcs = []
     snapshot_sha = archive_sha256(zip_path) if core_snapshot_out is not None else None
     snapshot_records, intake_diagnostics = [], []
@@ -1097,7 +1174,7 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         products, start, end = fields["products"], fields["start"], fields["end"]
         edge, region_num, contig_id = fields["edge_status"], fields["region_number"], fields["contig"]
         # Pre-evidence grade: provides initial values for BGCRecord construction.
-        # Overwritten post-evidence (line ~392) once kcb_cumulative is available.
+        # Overwritten post-evidence, below, once kcb_similarity_pct is available.
         grade, rationale = architecture_grade(edge, products, fields.get("validated_circular_span_bp") if fields.get("validated_circular_span_bp") is not None else end - start + 1,
                                               has_chemical_hybrid=(hybrid_cc > 0))
         notes=[f"source_gbk={name}"]
@@ -1128,11 +1205,11 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         enrich_bgc_crosswalk(bgc, name)
         bgcs.append(bgc)
     if evidence is None:
-        evidence = parse_antismash_evidence(zip_path, json_mode=json_mode)
+        evidence = parse_antismash_evidence_status(zip_path, json_mode=json_mode)
     apply_evidence_to_bgcs(bgcs, evidence)
     for b in bgcs:
         grade, rationale = architecture_grade(b.edge_status, b.products, b.validated_circular_span_bp if b.validated_circular_span_bp is not None else (b.end - b.start + 1),
-                                              b.kcb_cumulative, has_chemical_hybrid=b.has_chemical_hybrid)
+                                              b.kcb_similarity_pct, has_chemical_hybrid=b.has_chemical_hybrid)
         b.architecture_confidence = grade
         b.architecture_rationale = rationale
     if core_snapshot_out is not None:
@@ -1249,6 +1326,65 @@ def _parse_float_maybe(x):
         return float(str(x).replace(",", ""))
     except Exception:
         return None
+
+RECORD_SCOPE_NOTES = {
+    "WHOLE_RECORD_GENBANK": "CDS and domain reads use whole-record GenBank; whole-genome only if that record set is the whole assembly",
+    "REGION_RECORDS_ONLY": "no whole-record GenBank; CDS and domain reads cover the antiSMASH region records only, not the genome",
+    "WHOLE_RECORD_UNREADABLE": "whole-record GenBank is present but yielded no records; no CDS or domain records were read, and region records were not used in its place",
+    "NO_RECORDS_READ": "GenBank members are present but none yielded a record; no CDS or domain records were read",
+    "NO_GENBANK": "no GenBank member; no CDS or domain records were read",
+    "ARCHIVE_UNREADABLE": "archive could not be listed; record scope unknown",
+}
+
+
+def _is_region_name(name: str) -> bool:
+    return "region" in Path(name).name.lower()
+
+
+def genbank_record_scope(zip_path: str | Path, *, records=None) -> dict[str, str]:
+    """Which GenBank record set the CDS and domain readers actually read for this input.
+
+    ``read_genbank_records(..., exclude_regions=True)`` keeps region records only when no
+    whole-record GenBank is present. A count over those records is region-scoped, so a
+    caller must not label it genome-wide. The state is derived from the records read, not
+    from member names: a whole-record file that yields no records is
+    ``WHOLE_RECORD_UNREADABLE``, never ``WHOLE_RECORD_GENBANK``. ``records`` is the
+    ``(member, record)`` list a caller already read with ``exclude_regions=True``; when it is
+    omitted the archive is read here. A bare ``.gbk``/``.gb``/``.gbff`` file is accepted, as
+    the reader accepts one. The state names the record set; it does not certify assembly
+    completeness.
+    """
+    whole_members: list[str] = []
+    region_members: list[str] = []
+    label = archive_label_path(zip_path)
+    try:
+        if not isinstance(zip_path, ArchiveSnapshot) and label.is_file() and label.suffix.lower() in GBK_EXTS:
+            (region_members if _is_region_name(label.name) else whole_members).append(label.name)
+        else:
+            with snapshot_zip(zip_path) as zf:
+                for n in regular_file_names(zf):
+                    if not Path(n).name.lower().endswith(GBK_EXTS) or is_macos_cruft(n):
+                        continue
+                    (region_members if _is_region_name(n) else whole_members).append(n)
+        if records is None:
+            records = (read_genbank_records(zip_path, exclude_regions=True)
+                       if whole_members or region_members else [])
+    except (OSError, zipfile.BadZipFile, ValueError):
+        state = "ARCHIVE_UNREADABLE"
+    else:
+        read_names = [name for name, _record in records]
+        if any(not _is_region_name(name) for name in read_names):
+            state = "WHOLE_RECORD_GENBANK"
+        elif whole_members:
+            state = "WHOLE_RECORD_UNREADABLE"
+        elif read_names:
+            state = "REGION_RECORDS_ONLY"
+        elif region_members:
+            state = "NO_RECORDS_READ"
+        else:
+            state = "NO_GENBANK"
+    return {"state": state, "note": RECORD_SCOPE_NOTES[state]}
+
 
 def _region_record_offsets(zip_path: str | Path) -> dict[str, int]:
     """Offset that puts a clipped region record's features on the contig's coordinates.

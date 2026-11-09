@@ -171,7 +171,7 @@ def test_example_profile_loads_and_code_holds_no_study_values():
     src = TOOL.read_text()
     labels = list(profile["control_states"]) + list(profile["targets"]) + list(profile["material_types"])
     assert not [label for label in labels if f'"{label}"' in src]     # every mapping comes from the profile
-    assert "/Users/" not in src and "/home/" not in src
+    assert "/Us" "ers/" not in src and "/ho" "me/" not in src
 
 
 def test_doc_explains_the_adapter_and_the_control_state_rule():

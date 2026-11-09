@@ -3,7 +3,7 @@
 **In short.**
 
 - `tools/bigslice_query.py` is optional. It places your antiSMASH regions against one BiG-SLiCE model (`query`), builds a new model from your regions (`cluster`), or reads finished results back (`read`).
-- It runs only after you have reviewed and recorded the exact BiG-SLiCE install, model and resources. Until then it refuses, by design.
+- It runs only after you have reviewed and recorded the exact BiG-SLiCE install and model, and set its resource limits. Until then it refuses, by design. Whether the model fits your machine is your check; the tool does not estimate it.
 - It never changes Mamey scores, boards, cards or packages.
 - `query` writes into the model folder you name; every run writes its receipts to a new `--out` folder.
 - A family or a nearest-centroid distance is relatedness to that model only. It is not compound identity, activity, production or novelty.
@@ -27,6 +27,12 @@ Supply `--identity-tsv` with these exact columns (extra columns are retained in 
 relative_path bytes sha256 strain full_contig region bgc_alias
 manifest_path manifest_sha256 inventory_row_sha256
 source_zip source_zip_sha256 source_member
+```
+
+One row looks like this (tabs shown as spaces; `<64-hex>` stands for a SHA-256 you compute). It follows the shape the contract tests build in `tests/_bigslice_contract_fixture.py`:
+
+```
+object1.region001.gbk  1234  <64-hex>  <strain>  CP000001.1  region001  BGC001  /path/to/package/manifest.json  <64-hex>  <64-hex>  /path/to/antiSMASH.zip  <64-hex>  object1.region001.gbk
 ```
 
 The actual separator is TAB. `relative_path` is a canonical path under `--input`; source ZIP/member bytes must exactly match that file. The native Mamey `manifest_path` must bind the original ZIP via `input_zip_sha256`, carry `strain_id`, and contain exactly one BGC row with the supplied `inventory_row_sha256`. That row supplies contig, producer-normalized node key, region, alias and exact `source_gbk`; the existing typed native identity validator checks their roles. Row hashes use UTF-8 JSON with sorted keys, separators `(',', ':')`, and `ensure_ascii=True`. Hashes bind bytes/provenance, not biological truth or human authorization. No bare alias, filename substring or shortened NODE token repairs a missing identity. Every input GBK must appear exactly once, and every parsed DB BGC must resolve to one selected source record.
@@ -69,15 +75,15 @@ The entry is probed with `--help`, whose argparse banner must contain exactly on
 }
 ```
 
-These are operator-supplied review records, not permission tokens or self-authenticating proof. Preserve the actual supporting installation/model receipts. Normalization is explicit; `legacy-unnormalized` additionally requires `--allow-legacy-profile` and the exact matching model descriptor. Cluster uses v2 l2 normalization and threshold 0.4 by default. The conservative adapter requires model run status 7, exactly one clustering/HMM binding and a unique GCF roster. This is stricter than upstream's clustering-ready query allowance. The HMM directory is explicit, inventoried and checked against the selected run's library MD5 identifiers. It must have the compatible upstream layout; a historical download label does not prove compatibility.
+These are operator-supplied review records, not permission tokens or self-authenticating proof. Preserve the actual supporting installation/model receipts. Normalization is explicit; `legacy-unnormalized` additionally requires `--allow-legacy-profile` and the exact matching model descriptor. Cluster uses v2 l2 normalization and threshold 0.4 by default. The conservative adapter requires model run status 7 (a finished upstream BiG-SLiCE run), exactly one clustering/HMM binding and a unique GCF roster. This is stricter than upstream's clustering-ready query allowance. The HMM directory is explicit, inventoried and checked against the selected run's library MD5 identifiers. It must have the compatible upstream layout; a historical download label does not prove compatibility.
 
 ## Write and resource boundary
 
-`--out` is always a fresh receipt/export root under explicit `--write-root`; an occupied path is refused without changing its contents. Query also writes into `--working-model`, an existing writable result directory under that permitted root. `--allow-model-write` acknowledges this boundary. Use repeated `--read-only-root` for protected research/source roots; this campaign's research workspace remains read-only. Resolve symlinks before admission. Input, output, model, runtime, HMM and source manifests/archives may not alias mutable destinations. Never silently copy a multi-GB model to make it writable.
+`--out` is always a fresh receipt/export root under explicit `--write-root`; an occupied path is refused without changing its contents. Query also writes into `--working-model`, an existing writable result directory under that permitted root. `--allow-model-write` acknowledges this boundary. Use repeated `--read-only-root` for protected research/source roots. Resolve symlinks before admission. Input, output, model, runtime, HMM and source manifests/archives may not alias mutable destinations. Never silently copy a multi-GB model to make it writable.
 
 The working model is cooperatively locked by `.mamey-bigslice-lease`; an occupied lease refuses and is never automatically broken. Query names default to UUID-bearing tokens. Explicit names allow alphanumeric characters, dots and hyphens, and must be new. A failed upstream report row is preserved; retries require a fresh output/query name. Query report/index/cache paths and all allowed writes are recorded before launch. Existing model DB and cached resource bytes must remain unchanged; new cache/report files are recorded. The adapter never unpickles model caches itself; their provenance must be admitted before the external tool consumes them.
 
-Defaults are one thread (allowed 1–4), serial foreground computation, `nice -n 15`, 3.8 GB observed process-tree RSS stop, 1800 seconds per watched child (runtime identity, help probe and native run each have a separate clock; admission/readback have no overall attempt timeout), at least 2 GB free disk, and a 2 GB filesystem-free-space consumption proxy shared across all attempt phases. The existing watcher samples periodically and stops owned processes; it is not a kernel memory sandbox or exact per-job disk quota. Working model, scratch and exports must share the monitored filesystem. Unrelated filesystem changes can affect the disk proxy. Record actual watcher receipts and cleanup errors. These ceilings are not feasibility measurements: unknown model size/platform/resource estimates hold native admission. Child scratch is placed under the new export root, and no detached background fan-out is used.
+Defaults are one thread (allowed 1–4), serial foreground computation, `nice -n 15` (before each watched child the watcher runs a tiny probe child under `nice -n 15` and checks that its niceness really dropped, because `nice` can warn and still run the command at the old priority; the result, `status` `APPLIED` or `NOT_APPLIED`, is in the `priority` field of each `*_process.json`; `NOT_APPLIED` prints a warning on stderr and the run continues, and only the watcher's `strict_priority` option refuses it with `RESOURCE_POLICY_HOLD`), 3.8 GB observed process-tree RSS stop, 1800 seconds per watched child (runtime identity, help probe and native run each have a separate clock; admission/readback have no overall attempt timeout), at least 2 GB free disk, and a 2 GB filesystem-free-space consumption proxy shared across all attempt phases. The existing watcher samples periodically and stops owned processes; it is not a kernel memory sandbox or exact per-job disk quota. Working model, scratch and exports must share the monitored filesystem. Unrelated filesystem changes can affect the disk proxy. Record actual watcher receipts and cleanup errors. These ceilings are not feasibility measurements. The adapter does not check a model-size, platform or resource estimate before launch, and recording the platform in a child probe does not judge feasibility. Treat an unknown model size, platform fit or resource need as an operator hold: settle it, and record how, before you run native admission. Child scratch is placed under the new export root, and no detached background fan-out is used.
 
 ## Commands after separately authorized admission
 
@@ -115,6 +121,8 @@ Query read requires the explicit producer `SELECTED_RESULT.json` with COMPLETE P
 For clustering readback omit query/report/producer-receipt arguments. Use `--cluster-view` only when DB source paths follow the declared `cohort/<filename>` staging grammar. Otherwise exact absolute original input paths are required. An explicit missing path never causes recursive discovery or database creation. SQLite inputs must be quiescent and checkpointed; nonempty WAL/journal sidecars hold. Connections use `mode=ro` and `query_only`; no `immutable=1` bypass is used.
 
 ## Completion and result meaning
+
+A successful `query`, `cluster` or `read` exits 0 and prints `BiG-SLiCE complete selected-model export: <out>/bigslice_assignment.tsv`. The `--out` folder then holds `bigslice_assignment.tsv`, `SELECTED_RESULT.json` and `RUN_STATE.json` with `"status": "COMPLETE"`, beside the request, manifest and event receipts. Any other state is not a result. A refused or failed attempt exits 2, and once its `--out` folder exists it writes `RUN_STATE.json` with `"status": "FAILED"` and an `error_code`.
 
 Fresh attempts record request, immutable plan, state/events and child logs/resource receipts. A preflight failure may have only request/state/events and no admitted plan; this is FAILED. Exceptions/signals preserve non-complete state and diagnostic files. Occupied outputs and failed historical reports are not deleted.
 

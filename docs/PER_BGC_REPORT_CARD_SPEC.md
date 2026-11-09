@@ -1,46 +1,70 @@
 # Make a quick per-BGC overview
 
-Use `report-card` when you want an automatic Markdown overview from package CSVs, with slots for authored interpretation. For a full authored Mode B card, follow the [card walkthrough](MODE_B_USER_WALKTHROUGH.md) instead. This page describes the shipped command; older designs are historical.
+`report-card` writes a Markdown overview of each biosynthetic gene cluster (BGC) in a package. It reads the package CSVs and leaves slots for your own interpretation. It is not a Mode B card. For a full card, follow the [card walkthrough](MODE_B_USER_WALKTHROUGH.md).
+
+You need a package that passed `validate`. If you do not have one, start with the [first-run recipe](reader/01_FIRST_RUN.md). Terms are in the [glossary](GLOSSARY.md).
 
 ## 1. Generate the overview
 
+Run this from the bundle root, with the same `python` you used for `doctor`:
+
 ```text
-python mamey_run.py report-card --package <bound-package> --bgc <package-scoped-alias> --out <new-markdown-path>
+python mamey_run.py report-card --package runs/EXAMPLE/package --bgc BGC001 --out reviews/EXAMPLE-BGC001-card.md
 ```
 
-Run with the selected compatible interpreter from the bundle root containing `mamey_run.py`. Omitting `--bgc` selects all triage rows; omitting `--out` emits Markdown to the console. The lookup alias is scoped to the bound package. Always preserve full strain / full node-or-contig / region / BGC alias in the reviewed report and source crosswalk. The command does not validate those components as a complete identity gate.
+- `--bgc` takes the `BGC_ID` value from the package's triage board (case does not matter). Leave it out to get every row.
+- Leave out `--out` to print the Markdown to the screen. Parent folders of `--out` are created. An existing file is overwritten, so use a new name.
 
-Read the output by layer:
+What you should see with `--out`:
 
-| Layer | What to read or complete |
+```text
+[report-card] EXAMPLE: 1 card(s) (1 with predicted polymer) -> reviews/EXAMPLE-BGC001-card.md
+```
+
+With a single `--bgc`, the card count must be 1. The command also exits 0 with `0 card(s)` when the alias is not found, so read that number. The count of cards with a predicted polymer can be lower than the card count. That is normal for clusters that are not NRPS or PKS.
+
+If the rescue-evidence source cannot be read, the file opens with `RESCUE_PROVIDER_UNAVAILABLE`. That means the rescue evidence is unresolved, not that there is none.
+
+## 2. Read the layers
+
+Each card has four layers. The headings in the file are:
+
+| Heading | What it holds |
 |---|---|
-| L0 | Overview, heuristic badges and suggested actions; check their scope before using them. |
-| L1 | Package-predicted polymer/SMILES; retain unknown positions and structure uncertainty. |
-| L2 | Annotation/comparator context and authoring slots to fill from admitted evidence. |
-| L3 | Provenance and unresolved-evidence context to review and complete. |
+| `L0 · Headline` | Predicted class, three heuristic badges and a suggested action. |
+| `L1 · Predicted molecule` | Package-predicted backbone and SMILES, a calculated mass, and the boundary. |
+| `L2 · Evidence (auto)` | Per-module substrate calls, the engine's capacity read, the KnownClusterBlast comparator and the over-merge flag. It ends with an `AUTHOR L2` comment for you to fill. |
+| `L3 · Provenance & claim ceiling` | What the package supports and what it does not. It ends with an `AUTHOR L3` comment. |
 
-Successful command completion does not mean all layers are authored or verified.
+Success means the file was written. It does not mean the author slots are filled or the content is checked.
 
-## 2. Confirm the selected card before authoring
+## 3. Check where the modules came from
 
-After generation, check that the requested card is present. The command can return 0 with zero cards when the requested alias is not found. Existing output Markdown is overwritten; parent directories are created. A rescue-provider problem yields an unresolved warning rather than evidence of no rescue. Use a fresh output path, inspect the selected-card count and each warning, and verify expected regions/modules against the source roster.
+The L2 module line ends with a tag that says how modules were matched to this BGC.
 
-## 3. Reconcile the input rows
+- `gene-table region assignment`: modules were joined by the BGC's own genes, from the package file `<strain>_gene_by_gene_all_bgcs.csv`. This is the normal case. Two regions on one contig get their own modules.
+- `some module mapping unresolved`: some modules could not be tied to a contig. Rows left out are not negative evidence.
+- `single-region contig fallback`: the package has no gene table, so modules were joined by contig. This works only when the contig holds one region and its name contains `NODE_<N>`.
+- `module mapping unresolved`: the package has no gene table and the contig holds several regions, or the contig name has no `NODE_<N>`. The card then lists no modules. That is not a biological no-call.
 
-The consumer reads the package's triage, predicted-polymers and NRPS prediction CSVs. Strain selection can fall back to the package directory name when expected CSV naming is absent; engine version is read from the package manifest with explicit fallbacks. It has no input/hash/output receipt or freshness admission. Independently bind package identity, input hashes, engine/workflow version and output hash.
+Check the module list against the region's gene roster before you rely on it.
 
-Polymer lookup uses contig plus normalized region number and keeps the longest polymer when duplicates share that key. Module lookup uses the `ctg<N>_` locus prefix from a `NODE_<N>` contig; it does **not** restrict modules to the exact antiSMASH region. Multiple regions on the same node can therefore borrow each other's module rows. Public accession contigs without that node pattern receive no modules through this adapter. Reconcile every included module against the exact-region gene roster before accepting the card; do not interpret missing modules as absent biology. A code-owner fix should join explicit exact-region membership rather than a contig prefix.
+## 4. Read the input rows
 
-## 4. Author within the evidence
+The command reads the package's `<strain>_4_triage_board.csv`, `<strain>_predicted_polymers.csv` and `<strain>_nrps_prediction.csv`. The strain name comes from the triage board file name, or from the package folder name if that file is absent. The engine version is the package's `manifest.json` `workflow_version`. If the manifest is absent, unreadable or invalid, or has no `workflow_version`, the card shows the version of the engine running the command instead, with the reason in brackets, for example `(running engine; package manifest.json absent)`. That is not necessarily the engine that built the package. Check the package's own run records before you cite a version.
 
-Novelty, activity and tractability labels are legacy heuristic routing fields. They do not establish chemical novelty, product identity, phenotype, or experimental feasibility. KCB similarity is a comparator channel; lack of a strong match is measured database/context missingness, not a global novelty result. Source AB/AF priors are not measured extract bioactivity and cannot be assigned to an individual BGC. Generated actions are suggestions, not approved scientific decisions.
+The polymer is matched by contig and region number. If two rows share that key, the longest polymer is kept.
 
-Mass calculation is optional RDKit processing of the supplied wildcard-free SMILES. Missing, wildcard, unparsable or unavailable-RDKit states remain pending/error states. The command does not repair unknown polymer positions from prediction tables. A calculated formula/mass describes the supplied candidate structure; it does not identify a detected molecule, establish a pathway product, or bind assay evidence. Keep assembly truncation and structure uncertainty explicit.
+The command writes no hash or receipt. Record the package path, the input hashes and the output hash yourself (`shasum -a 256 <file>`).
 
-The cross-channel join key is exact source-scoped locus/gene/sequence identity and appropriate receipts, not an unverified predicted structure. Molecular comparisons and assay/LC-MS observations require their own identifiers and evidence, with no automatic transfer of compound, activity, or causality claims.
+## 5. Author within the evidence
 
-## 5. Save for review or continue to a full card
+- The novelty, activity and tractability badges are routing hints. They do not show chemical novelty, product identity, phenotype or feasibility.
+- A weak KnownClusterBlast (KCB) match is a low similarity score against the references in that database release. Report the score, the reference and the database version as they are. A weak match does not show why the score is low, that the cluster is new, or that the database lacks a relative. KCB similarity is not identity.
+- Bioactivity priors describe a strain's extract, not one BGC.
+- The mass comes from the supplied SMILES by RDKit (a chemistry library). If the region has no SMILES, the card says `Predicted mass: no SMILES for this region.` If the SMILES contains wildcards, cannot be parsed, or RDKit is missing, the card says `Predicted mass: pending —` and the reason. The mass describes that candidate structure. It does not show that the molecule was detected.
+- Keep the full identity **strain / full node-or-contig / region / BGC alias** in anything you write from this card. The command does not check it for you.
 
-Keep the original automatic overview and a separately bound reviewed revision, with source paths/hashes, output hash and unresolved warnings. Successful generation does not replace evidence verification or scientific-owner review.
+## 6. Continue
 
-For current Mode B work, `verify-modeb` offers `full48` (default) and `current50_v2`; choose the actual work-order contract explicitly. The old §1–§20 description is not the current verification profile. See [two-stage modular reports](TWO_STAGE_MODULAR_BGC_REPORTS.md) and the separate page-layout contract for rendering requirements. No legacy badge, source-artwork file, or zero exit grants scientific acceptance or release.
+Save the automatic file and keep your edited copy as a separate file. For a full card, choose a profile in the [profile guide](MODEB_PROFILE_MATRIX.md). `verify-modeb` offers `full48` (default) and `current50_v2`. For page layout, see the [region page layout](PER_BGC_PAGE_LAYOUT_SPEC.md).

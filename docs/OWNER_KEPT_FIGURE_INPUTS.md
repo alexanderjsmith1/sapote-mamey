@@ -1,70 +1,117 @@
 # Owner-kept Figure Factory inputs
 
-`tools/build_owner_kept_figure_inputs.py` prepares current, source-bound data for the nine
-legacy Figure Factory designs retained by scientific-owner review. It does **not** render or
-accept a figure. The adapter exists so a growing strain collection can be reprojected once,
-then reviewed or plotted without re-authoring the older tables.
+This page is for a **cohort** of sealed packages. It does not apply to a single strain.
 
-## Required sequence
+`tools/build_owner_kept_figure_inputs.py` prepares source-bound data tables for nine earlier
+cohort figure designs, kept so they can be rebuilt without redoing the extraction. The designs are
+F03a, F03b, F03c (domain counts), F04f, F04g, F09a (product-class counts), F05a (cassette
+families), F06d (resistance families) and F09e (BGC density). The tool does **not** render or
+accept a figure. Run it once on the cohort, then review or plot from its tables.
 
-1. Build current widget data from the intended sealed-package cohort.
-2. Run `codex-figure-sources` against those exact package ZIPs. The source bundle now includes
-   `STRAIN_CONTEXT.csv`, `DOMAIN_CATEGORY_COUNTS.csv`, `CASSETTE_FAMILY_COUNTS.csv`, and
-   `RESISTANCE_FAMILY_COUNTS.csv`, derived from each sealed
-   `Project_Memory_Snapshot.json`. Missing snapshots remain typed missingness.
-3. Build the owner-kept input projection:
+## Steps
 
-```bash
-python tools/build_owner_kept_figure_inputs.py \
-  --widget-data AS_All_Strains_Widget_Data.json \
-  --source-bundle FIGURE_SOURCE_BUNDLE \
-  --outdir OWNER_KEPT_INPUTS
-```
+You need a `runs` folder with one run per strain, laid out as `runs/<STRAIN>/package/`, and
+each strain's sealed package ZIP. Step 2 reads the ZIPs, not the folders. Each ZIP must contain
+`Project_Memory_Snapshot.json`; a strain without a ZIP, or without that file, is recorded as
+missing, not zero.
 
-The output directory must not already exist. Source receipt hashes and the widget-data hash
-must match before any output is written.
+1. Build the cohort widget data:
 
-## Output tables
+   ```bash
+   python mamey_run.py interactive-figures --runs-dir runs --out reviews/cohort/AS_All_Strains_Widget_Data.json
+   ```
 
-- `domain_counts.csv` — strain × source-derived domain category; used by F03a–F03c.
-- `class_by_strain.csv` — strain × antiSMASH product-class membership count; used by
-  F04f, F04g, and F09a.
-- `cassette_types.csv` — strain × current cassette-registry family; used by F05a.
-- `resistance_families.csv` — strain × current resistance-scan family; used by F06d.
-- `strain_context.csv` — governance, host group, cohort role, denominator membership,
-  taxonomy/genus, genome size, corrected-BGC count, assembly tier, and snapshot state.
-- `genus_selection.tsv` — an editable downstream plotting surface. It does not infer taxonomic
-  scope. Owners may exclude or add comparison genera without changing extraction code.
-- `FIGURE_REBUILD_READINESS.tsv` — one row for each of F03a, F03b, F03c, F04f, F04g,
-  F05a, F06d, F09a, and F09e.
-- `FIGURE_INPUT_RECEIPT.json` — exact source hashes, row counts, study denominator, benchmark
-  selection, and readiness holds.
+   The command writes the JSON file you name. Pass `--strains` to build from a chosen list. It
+   records each strain's package ZIP name, taken from a `*.zip` in `runs/<STRAIN>/` or
+   `runs/<STRAIN>/package/`. If the strains were run under different antiSMASH strictness, the
+   figure steps refuse; add `--acknowledge-mixed-antismash-profile` here and name the mix in the
+   caption. A strain whose strictness is recorded as `unknown` is refused even with that flag.
 
-## Denominators and external benchmarks
+2. Build the source bundle from that file and the packages it names. `--package-dir` must be
+   one flat folder that holds the package ZIPs, named as in the widget data. The ZIPs sit inside
+   `runs/<STRAIN>/`, so `runs` itself is not such a folder. Copy the ZIPs into a new folder first;
+   the originals are not changed:
 
-Records typed `EXTERNAL_BENCHMARK` must declare `include_by_default=false`. They remain absent
-unless their exact identifier is selected with a repeated `--external-benchmark` option. A
-selected external benchmark is available for a sensitivity/comparison panel but never enters
-the study denominator or study percentages. Unrecognized selections and default-on benchmarks
-fail before output creation.
+   ```bash
+   mkdir package_zips && cp -n runs/*/*.zip runs/*/package/*.zip package_zips/ 2>/dev/null
+   ls package_zips | wc -l
+   python mamey_run.py codex-figure-sources \
+     --widget-data reviews/cohort/AS_All_Strains_Widget_Data.json \
+     --package-dir package_zips --outdir reviews/cohort/FIGURE_SOURCE_BUNDLE
+   ```
 
-Genus-aware interpretation is required whenever ecological groups contain different genus
-mixtures. The adapter therefore carries genus on every selected strain and holds F03b, F03c,
-F04f, F04g, F06d, F09a, and F09e if a study strain lacks genus. It does not infer genus from
-strain identifiers or host labels.
+   `mkdir` fails if `package_zips` already exists, and the `&&` then skips the copy, so an old
+   folder does not get new ZIPs mixed in. Pick a new folder name in that case. `cp -n` does
+   not overwrite, so two ZIPs with the same name leave only the first; the `ls` count should
+   equal the number of strains. A ZIP the folder lacks reads `MISSING_PACKAGE` for that strain,
+   and one missing ZIP is enough to make the receipt status `FAIL`, which stops step 3. A
+   failed run leaves its output folder, so use a new `--outdir` for the next try. The command
+   name is historical; it is the only command that builds this bundle.
 
-## Interpretation boundary
+3. Build the owner-kept input tables. The output folder must not exist yet:
 
-Domain, cassette, resistance-family, and product-class values are annotation-derived genomic
-capacity summaries. They are not expression, metabolite production, activity, product identity,
-novelty, or causal ecological adaptation. Corrected BGCs per Mbp are an assembly-aware inventory
-projection, not a rate of metabolite production. Caption construction and scientific comparison
-remain separate downstream steps.
+   ```bash
+   python tools/build_owner_kept_figure_inputs.py \
+     --widget-data reviews/cohort/AS_All_Strains_Widget_Data.json \
+     --source-bundle reviews/cohort/FIGURE_SOURCE_BUNDLE \
+     --outdir reviews/cohort/OWNER_KEPT_INPUTS
+   ```
 
-## Readiness, additional projections, and changed selections
+Source receipt hashes and the widget-data hash must match before any output is written. A
+mismatch, or an unusable source bundle, stops the run with nothing written. The tool prints
+`OUTPUT_REFUSED: ...` and exits 2.
 
-The CLI exits 0 when the projection is written, including `PASS_WITH_HOLDS`. Read each row of `FIGURE_REBUILD_READINESS.tsv`: `REBUILD_READY` means its listed input requirements passed, not complete strain-level coverage or scientific acceptance. The current checks use overall row presence for domain/class/cassette/resistance inputs and study genus/density presence. They do not prove every study strain has every expected category or that an absent row is zero. Reconcile per-strain coverage and typed missingness before aggregation.
+## Output
 
-The producer additionally emits `a8_boundary_inventory.csv`, `a8_architecture_features.csv`, `a8_manifest_scan_counts.csv`, `a8_resistance_routing.csv`, `a9_kcb_scores.csv` and `A8_PROVISIONAL_READINESS.tsv`. A8 rows remain `PROVISIONAL_BINDING`; Q017_SCI01A always has `SCOPE_1_VS_RENDER_CONTRADICTION`. The overall receipt's status is computed from the nine legacy readiness rows, so `PASS` can coexist with an A8 hold. Inspect that register separately. Preserve each individual locus's complete identity; aggregate category files are not exact-locus records.
+The exit code is 0 when the tables are written, even if some designs are on hold. Open
+`FIGURE_REBUILD_READINESS.tsv` before you plot.
 
-`genus_selection.tsv` is a downstream review surface, not an executable selector in this builder. Editing it changes a receipt-hashed output; record that as a new review artifact with its own hash and an explicit plotting consumer, instead of claiming the original input receipt covers the edit. Rebuild in a fresh directory when source inputs or benchmark selection change.
+| File | Content |
+|---|---|
+| `domain_counts.csv` | Strain by domain category |
+| `class_by_strain.csv` | Strain by antiSMASH product-class membership count |
+| `cassette_types.csv` | Strain by cassette-registry family |
+| `resistance_families.csv` | Strain by resistance-scan family |
+| `strain_context.csv` | Governance, host group, cohort role, denominator membership, genus, genome size, corrected-BGC count, assembly tier, snapshot state |
+| `genus_selection.tsv` | An editable table for choosing comparison genera in a later plot. It does not infer taxonomic scope |
+| `FIGURE_REBUILD_READINESS.tsv` | One row per design with `REBUILD_READY` or `HOLD` and the reasons |
+| `FIGURE_INPUT_RECEIPT.json` | Source hashes, row counts, study denominator, benchmark selection and holds |
+| `a8_boundary_inventory.csv`, `a8_architecture_features.csv`, `a8_manifest_scan_counts.csv`, `a8_resistance_routing.csv`, `a9_kcb_scores.csv` | Inputs for five provisional designs |
+| `A8_PROVISIONAL_READINESS.tsv` | Readiness for those five. Every row is `PROVISIONAL_BINDING`, and one design always carries a scope hold named `SCOPE_1_VS_RENDER_CONTRADICTION` |
+
+Read the readiness files this way:
+
+- `REBUILD_READY` means the listed inputs were present. It does not mean every strain has every
+  category, that an absent row is zero, or that a figure is accepted.
+- The receipt's overall status comes from the nine main rows. It can read `PASS` while the
+  provisional file holds a design. Check both files.
+- Aggregate category files are not exact-locus records. For any individual BGC, keep the full
+  identity: **strain / full contig / region / BGC alias**.
+
+## Benchmarks and genus
+
+A record typed `EXTERNAL_BENCHMARK` must declare `include_by_default=false`. It stays out of the
+tables unless you name its exact identifier with `--external-benchmark`, repeated once per
+benchmark. A selected benchmark can feed a comparison panel. It never enters the study
+denominator or study percentages. An unknown identifier, or a benchmark that is on by default,
+stops the run before any output exists.
+
+Designs that compare groups need a genus for every study strain. The genus is the first word of
+the `taxonomy` field in the strain's `Project_Memory_Snapshot.json`. If one is missing, the
+affected designs are held with `MISSING_STUDY_GENUS`; fix the taxonomy in the package, not the
+table. The tool does not infer genus from strain names or host labels. Other holds are
+`MISSING_STUDY_DENSITY_INPUT` (BGC density needs genome size and corrected-BGC count) and
+`NO_<KIND>_ROWS` (the design's source table is empty).
+
+## Rebuild and edits
+
+Rebuild into a new folder when the source packages or benchmark selection change. Editing
+`genus_selection.tsv` does not change the tool's receipt. Save the edited file with its own hash
+and name the plot that reads it.
+
+## What the numbers mean
+
+Domain, cassette, resistance-family and product-class values are annotation-based genomic
+capacity. They do not show expression, production, activity, product identity or novelty.
+Corrected BGCs per Mbp uses a boundary-weighted BGC count: interior regions count 1, edge regions 0.5 and full-contig regions 0.25 (`mamey/assembly.py:142-143`). That weighting is a heuristic, not a corrected biological count or a production rate. Keep the raw counts beside it.
+Write captions and make comparisons as separate later steps.

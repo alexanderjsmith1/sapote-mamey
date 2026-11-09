@@ -186,12 +186,16 @@ def _front_matter(plan: dict[str, Any]) -> str:
     return "---\n" + yaml.safe_dump(meta, sort_keys=False, allow_unicode=True).rstrip() + "\n---\n\n"
 
 
-def _copy_assets(*, body: str, source: Path, normalized_dir: Path) -> None:
+def _copy_assets(*, body: str, source: Path, normalized_dir: Path, reserved: Path) -> None:
+    """Copy each image beside the normalized Markdown; refuse one that would land on ``reserved``."""
+    reserved_key = tuple(part.casefold() for part in reserved.resolve().parts)
     for asset_locator in sorted(set(_IMAGE.findall(body))):
         asset = _contained(source.parent, asset_locator, kind="ASSET")
         if not asset.is_file():
             raise DocumentFactoryError(f"ASSET_MISSING:{source}:{asset_locator}")
         target = normalized_dir / asset_locator
+        if tuple(part.casefold() for part in target.resolve().parts) == reserved_key:
+            raise DocumentFactoryError(f"ASSET_PATH_COLLIDES_WITH_DOCUMENT:{source}:{asset_locator}")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(asset, target)
 
@@ -210,8 +214,8 @@ def _normalize(plan: dict[str, Any], normalized_root: Path) -> Path:
             raise DocumentFactoryError(f"MODEB_H1_EXACT_LOCUS_MISMATCH:{plan['id']}")
     normalized_dir = normalized_root / plan["id"]
     normalized_dir.mkdir(parents=True, exist_ok=False)
-    _copy_assets(body=body, source=plan["source"], normalized_dir=normalized_dir)
     normalized = normalized_dir / f"{plan['id']}.md"
+    _copy_assets(body=body, source=plan["source"], normalized_dir=normalized_dir, reserved=normalized)
     normalized.write_text(_front_matter(plan) + body, encoding="utf-8")
     model = parse_path(normalized)
     validation = validate_model(model, require_assets=True)

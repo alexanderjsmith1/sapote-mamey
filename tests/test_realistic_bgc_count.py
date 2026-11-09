@@ -149,5 +149,6 @@ def test_cli_csv_and_summary_carry_both_denominators():
             summ = json.load(open(os.path.join(out, "realistic_bgc_count_summary.json")))
             assert summ["total_corrected_count_bw"] == 1.5
             # the note names both denominators so they are never silently compared
-            assert "distinct" in summ["denominator_note"].lower()
+            assert "heuristic" in summ["denominator_note"].lower()
+            assert "not physical joins" in summ["denominator_note"].lower()
             assert "boundary-weighted" in summ["denominator_note"].lower()

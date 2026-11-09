@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "bundle": "9.7.457",
-    "engine": "1.9.177",
-    "build": "20261023v97457a"
+    "bundle": "9.7.464",
+    "engine": "1.9.180",
+    "build": "20261108v97464a"
   },
   "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority. Baseline identifies the selected source anchors, not execution or semantic certification of every route.",
   "routes": [
@@ -182,6 +182,21 @@
         "missing/failed/no-hit distinctions"
       ],
       "completion_limit": "Do not turn stored evidence review into an unrequested live submission."
+    },
+    {
+      "id": "specialist_commands",
+      "name": "Choose a specialist command",
+      "request": "Which command answers this question about my package, figures or ledgers, and how do I call it?",
+      "inputs": [
+        "existing package or saved evidence",
+        "new output folder"
+      ],
+      "guide": "docs/user_guides/CHOOSE_NEXT_COMMAND.md",
+      "outputs": [
+        "a command line to run",
+        "the files that command writes"
+      ],
+      "completion_limit": "A written report is not a finding. Read each command's status and exit code."
     },
     {
       "id": "recovery",

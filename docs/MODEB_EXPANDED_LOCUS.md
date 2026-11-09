@@ -1,14 +1,22 @@
 # Include supported external loci in a Mode B card
 
 Use this route when a `current50_v2` interpretation needs saved rescue evidence
-outside its focal region. You need the complete assembly GenBank, matching
-package, saved rescue results and reviewed rulings. The focal card identity
-stays **strain / full node-or-contig / region / BGC alias**.
+outside its focal region. You need:
+
+- the antiSMASH ZIP and the matching package;
+- saved gap-rescue results, made by `python mamey_run.py gap-rescue`. That command is heavy and runs one genome at a time. See the [gap-rescue guide](MODEB_GAP_RESCUE_READER.md) for what it needs and what it writes;
+- any reviewed gene rulings.
+
+The focal card identity stays **strain / full node-or-contig / region / BGC alias**. Terms are in the [glossary](GLOSSARY.md).
 
 ## Build the assembly inventory
 
-Select the whole-assembly member from the ZIP, not a region GBK. This example
-calls it `EXAMPLE.gbk`; replace that name with the actual archive member:
+Select the whole-assembly GenBank member from the ZIP, not a region GBK. To list the members, run
+`unzip -l inputs/EXAMPLE.zip`. The whole-assembly member is the one `.gbk` file that is not a region file.
+antiSMASH names region files with `.regionNNN.gbk` (for example `.region001.gbk`), so skip those.
+Give the member name exactly as `unzip -l` prints it, including any folder. The command refuses a
+name that matches no member or more than one. This example calls it `EXAMPLE.gbk`; replace that
+name with the member you found:
 
 ```bash
 python tools/build_modeb_locus_inventory.py --input inputs/EXAMPLE.zip \
@@ -16,13 +24,27 @@ python tools/build_modeb_locus_inventory.py --input inputs/EXAMPLE.zip \
   --out reviews/EXAMPLE-inventory.json
 ```
 
-The inventory binds the archive/member and package CDS table by hash. It records
-contig, locus tag, one-based inclusive coordinates, strand, translated length,
-normalized protein hash and region identity. Unflagged loci say
+The command prints one JSON line when it succeeds, with the keys `inventory` (the output path),
+`sha256` and `translated_CDS` (the gene count). It fails if the member does not contain every gene in
+the package's CDS table, or if a gene's coordinates or length disagree with that table.
+
+That is the only coverage check. The command does not read a separate list of the assembly's contigs,
+so it cannot show that the member holds every contig, including contigs with no translated CDS. The
+inventory records this in `coverage_check`: `package_cds_reconciled` is `true`,
+`contigs_with_translated_cds` gives the count it read, and `whole_assembly_contig_coverage` is
+`NOT_VERIFIED_NO_INDEPENDENT_CONTIG_ROSTER`. Compare that count with the assembly's contig count
+yourself if whole-assembly coverage matters.
+
+The inventory file binds the archive, the member and the package CDS table by hash. For each gene it
+records the contig, locus tag, one-based inclusive coordinates, strand, translated length,
+normalized protein hash and region identity. Genes outside any region say
 `no antiSMASH region / no BGC alias`.
 
-Choose a new output file. The exporter refuses an input alias but can replace
-an unrelated existing output. Keep the source files stable while it reads them.
+`--out` must be a new file. The command refuses an existing file, or a path that is one of its inputs,
+before it reads anything, and leaves that file unchanged. It writes the inventory to a hidden
+temporary file in the same folder and links it into place only when it is complete, so a failure
+leaves no file at `--out`. If the run is killed, look for a leftover `.<name>.*.tmp` file in that
+folder and inspect it before you remove it. Keep the source files unchanged while it reads them.
 
 ## Emit and write the card
 
@@ -46,10 +68,14 @@ of one gene do not increase coverage.
 ## Understand the selected scope
 
 External matches join through normalized protein hash and exact locus/location.
-Effective SUPPORTED anchors select their CDS plus 2,500 bp on either side,
+An effective SUPPORTED anchor selects its CDS plus 2,500 bp on either side,
 clipped to the contig. Overlapping or adjacent windows merge. Each overlapping
-CDS is included whole, without recursively expanding the window; shared CDSs
-count once and distant windows stay separate.
+CDS is included whole, without widening the window again. A shared CDS
+counts once. Distant windows stay separate.
+
+Example: one anchor CDS spans 10,000 to 10,900 on a contig. Its window is 7,500 to 13,400. A
+second anchor at 13,500 to 14,000 has the window 11,000 to 16,500. The windows overlap, so they
+merge into 7,500 to 16,500. Every CDS that overlaps that span is selected whole.
 
 The roles are `CORE`, `SUPPORTED_ANCHOR` and `NEIGHBOUR_CONTEXT`. Neighborhood
 context is not automatic pathway membership. Weaker matches and split-piece
@@ -88,16 +114,8 @@ selects it when expanded-inventory or gene-adjudication inputs are supplied;
 
 `modeb-round` and `deliverable-queue` keep the full48 scaffold. Expanded-specific
 inputs can produce per-card `EXPANDED_LOCUS_CONTRACT_REQUIRED` skips while an
-index or empty worklist is still written. Check emitted counts.
-`modeb-round --from-precompute` is unavailable and returns
-`COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE`; it cannot replace this source-bound route.
+index or empty worklist is still written. Check the emitted counts.
 
 See [saved gap-rescue inputs](MODEB_GAP_RESCUE_READER.md) for required files and
 recovery. Keep inventory, source hashes, rulings, authored card and verification
 findings together without duplicating the assembly archive or whole package.
-
-<a id="offline-inventory-and-inputs"></a>
-<a id="selection-and-interpretation"></a>
-<a id="verification-and-limits"></a>
-<a id="reader-admission-safeguards"></a>
-<a id="owned-outputs-and-source-selection"></a>

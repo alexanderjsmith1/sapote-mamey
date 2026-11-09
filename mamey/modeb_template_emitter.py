@@ -358,7 +358,10 @@ def _header_block(facts: dict, contract: dict) -> str:
     thing the author reads, so the gate confirms the work instead of discovering it is thin.
     """
     bgc = facts.get("bgc_id") or "?"
-    node = facts.get("node") or facts.get("contig") or "?"
+    # The identity header carries the full contig, the field ingest compares against. Node_ID
+    # can be display-shortened (a SPAdes coverage decimal is dropped), so it is only a fallback.
+    _contig = facts.get("contig")
+    node = (_contig if _contig and _contig != "—" else None) or facts.get("node") or "?"
     strain = facts.get("strain_id") or "?"
     products = facts.get("products") or "?"
     qg = contract.get("quality_gate") or []
@@ -375,7 +378,6 @@ def _header_block(facts: dict, contract: dict) -> str:
     if contract.get("schema_version") == "modeb_current50_v2":
         # v2 cards carry the full contig name and the contract sha from emission, so nobody stamps them by hand.
         from .modeb_current50_v2 import header_line
-        node = facts.get("contig") or node
         lead = header_line(strain, node, facts.get("region") or "?", bgc) + "\n"
     else:
         lead = ""
@@ -907,7 +909,10 @@ def _section_body(num: int, facts: dict, sect: dict) -> str:
     """Return the pre-filled body for section `num`. For sections without a
     pre-fill rule, returns a single-line authoring prompt."""
     bgc = facts.get("bgc_id") or "?"
-    node = facts.get("node") or facts.get("contig") or "?"
+    # Ruling 479: the section line "Node / contig" names the full contig, as the header does.
+    # A stored package's Node_ID can be the legacy short form, so it is only the fallback.
+    _contig = facts.get("contig")
+    node = (_contig if _contig and _contig != "—" else None) or facts.get("node") or "?"
 
     if num == 26 and facts.get("_gap_rescue"):
         from .modeb_gap_rescue import render_section
@@ -1402,28 +1407,37 @@ def _render_blastp_matrix_scaffold(rows: list[dict]) -> str:
     placeholder only after exact query/protein binding and keeps nr,
     ClusteredNR, and local Swiss-Prot separate. The publication gate is run on
     the saved authored card, never on this unfilled scaffold.
+
+    The metric placeholders name what the gate checks in every bound cell:
+    percent identity, percent positives and query coverage, where a lane that
+    did not report coverage is written "qcov not reported". The last column
+    carries the antiSMASH call and its reconciliation verdict on the same row,
+    which is where the core-gene BLASTp check looks for it. Its placeholder
+    avoids the verdict words, so an unfilled row never reads as reconciled.
+    The header uses the column names the matrix gate recognises; the earlier
+    "top hit / identity" header failed BLASTP_MATRIX_CHANNELS as emitted.
     """
+    metric = "<% identity / % positives / qcov %, or qcov not reported>"
+    verdict = "<antiSMASH call; reconciliation verdict and its reason>"
     header = (
-        "| Gene | NCBI nr top hit | NCBI nr identity | "
-        "NCBI ClusteredNR top hit | ClusteredNR identity | "
-        "Local Swiss-Prot top hit | Swiss-Prot identity |\n"
-        "|---|---|---|---|---|---|---|"
+        "| Gene | NCBI nr accession + matched protein | nr id/pos/qcov | "
+        "NCBI ClusteredNR accession + matched protein | ClusteredNR id/pos/qcov | "
+        "local Swiss-Prot accession + matched protein | Swiss-Prot id/pos/qcov | "
+        "antiSMASH call and reconciliation |\n"
+        "|---|---|---|---|---|---|---|---|"
     )
     if not rows:
         return (header + "\n"
                 "| — | WORKFLOW_GAP_ROSTER_UNAVAILABLE | not reported | "
                 "WORKFLOW_GAP_ROSTER_UNAVAILABLE | not reported | "
-                "WORKFLOW_GAP_ROSTER_UNAVAILABLE | not reported |")
+                "WORKFLOW_GAP_ROSTER_UNAVAILABLE | not reported | — |")
     output = [header]
     for row in rows:
         locus = row.get("locus_tag") or "—"
         output.append(
-            f"| `{locus}` | <accession · matched protein · organism · state> | "
-            "<identity / aligned length / qcov> | "
-            "<accession · matched protein · organism · state> | "
-            "<identity / aligned length / qcov> | "
-            "<accession · matched protein · organism · state> | "
-            "<identity / aligned length / qcov> |"
+            f"| `{locus}` | <accession · matched protein · organism · state> | {metric} | "
+            f"<accession · matched protein · organism · state> | {metric} | "
+            f"<accession · matched protein · organism · state> | {metric} | {verdict} |"
         )
     return "\n".join(output)
 

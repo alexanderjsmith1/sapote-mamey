@@ -45,9 +45,20 @@ def load_source(item,base,max_bytes):
         if not isinstance(obj,dict):raise ValueError('JSON object required')
         return row,obj
     except (ValueError,UnicodeError):row['byte_state']='INVALID_JSON';return row,None
-def build(manifest,base,now,resource_root):
+CLOCK_TOLERANCE_SECONDS=300
+def clock_record(supplied,system):
+    """Compare a supplied --now with the system clock. A supplied time more than
+    CLOCK_TOLERANCE_SECONDS away makes every age a simulated, historical assessment."""
+    if supplied is None:return {'source':'SYSTEM_CLOCK','used':system.isoformat(),'system_clock':system.isoformat(),'state':'CURRENT_CLOCK'}
+    if supplied.tzinfo is None:raise ValueError('OFFSET_AWARE_CLOCK_REQUIRED')
+    gap=abs((supplied-system).total_seconds())
+    return {'source':'SUPPLIED_CLOCK','used':supplied.isoformat(),'system_clock':system.isoformat(),'offset_seconds':(supplied-system).total_seconds(),
+       'state':'SIMULATED_CLOCK' if gap>CLOCK_TOLERANCE_SECONDS else 'SUPPLIED_MATCHES_SYSTEM_CLOCK'}
+def build(manifest,base,now,resource_root,clock=None):
     if manifest.get('schema')!=SCHEMA:raise ValueError('SCHEMA_HOLD')
     if now.tzinfo is None:raise ValueError('OFFSET_AWARE_CLOCK_REQUIRED')
+    clock=clock or {'source':'CALLER_SUPPLIED_UNCOMPARED','used':now.isoformat(),'state':'UNCOMPARED_CLOCK'}
+    simulated=clock.get('state')=='SIMULATED_CLOCK'
     cap=manifest.get('max_source_bytes',20000000)
     if type(cap) is not int or cap<1:raise ValueError('POSITIVE_BYTE_BUDGET_REQUIRED')
     items=manifest.get('sources');ids=set();kinds={};facts=[];payload={};actions=[]
@@ -73,13 +84,14 @@ def build(manifest,base,now,resource_root):
         elif p.stat().st_size>manifest.get('max_source_bytes',20000000):binding='LIVE_LEDGER_UNVERIFIED_BUDGET'
         else:binding='LIVE_LEDGER_MATCH' if digest(p)==source['sha256'].lower() else 'LIVE_LEDGER_CHANGED'
         count=inbox.get('open_unique_id_count');valid_count=type(count) is int and count>=0
-        current=binding=='LIVE_LEDGER_MATCH' and timing=='WITHIN_DECLARED_AGE' and valid_count
-        inbox_fact={'state':'CURRENT_SNAPSHOT' if current else 'REFRESH_REQUIRED','ledger_binding':binding,'age_state':timing,
+        current=binding=='LIVE_LEDGER_MATCH' and timing=='WITHIN_DECLARED_AGE' and valid_count and not simulated
+        inbox_fact={'state':'CURRENT_SNAPSHOT' if current else 'SIMULATED_CLOCK_ASSESSMENT' if simulated else 'REFRESH_REQUIRED','ledger_binding':binding,'age_state':timing,
            'reported_open_count':count,'current_open_count':count if current else None,
            'count_state':'VALID_REPORTED_COUNT' if valid_count else 'INVALID_OR_MISSING_REPORTED_COUNT',
            'reported_unledgered_directories':inbox.get('unledgered_directories',[]),
            'native_check':inbox.get('native_inbox_bookkeeping_check'),'scope':'Inbox bookkeeping only, not full master or scientific acceptance.'}
-        if not current:actions.append({'source':'inbox','action':'Refresh the read-only Inbox receipt; do not present stale counts as current.'})
+        if simulated:actions.append({'source':'inbox','action':'Ages were measured against a supplied clock that differs from the system clock; rerun without --now before calling the Inbox receipt current.'})
+        elif not current:actions.append({'source':'inbox','action':'Refresh the read-only Inbox receipt; do not present stale counts as current.'})
         if current and inbox_fact['current_open_count']:actions.append({'source':'inbox','action':'Route pending submissions for independent native verification; do not auto-apply.'})
         if inbox_fact['reported_unledgered_directories']:actions.append({'source':'inbox','action':'Review unledgered directory ownership and content before any ledger repair.'})
     usage=shutil.disk_usage(resource_root);allocation=one('allocation');resource={'disk_free_bytes':usage.free,'disk_floor_bytes':15000000000,
@@ -91,6 +103,7 @@ def build(manifest,base,now,resource_root):
         if allocation.get('schema')!='sapote.scheduler-allocation.v1':state='ALLOCATION_SCHEMA_HOLD'
         elif allocation.get('host_id')!=resource['host_id']:state='DIFFERENT_HOST'
         elif isinstance(cores,bool) or not isinstance(cores,(int,float)) or not math.isfinite(cores) or cores<=0:state='INVALID_ALLOCATION'
+        elif simulated and state=='WITHIN_DECLARED_AGE':state='SIMULATED_CLOCK_ASSESSMENT'
         resource['allocation_state']=state
         if state=='WITHIN_DECLARED_AGE':resource['allocated_cores']=cores;resource['queue']=allocation.get('queue','UNAVAILABLE')
     if resource['disk_state']=='BELOW_FLOOR':actions.append({'source':'disk','action':'Hold new output writes and compute; report the measured resource condition.'})
@@ -108,7 +121,7 @@ def build(manifest,base,now,resource_root):
                 receipt['target_state']='TARGET_NOT_LISTED' if not listed else 'TARGET_CHANGED_OR_UNVERIFIED'
                 if re.fullmatch('[a-fA-F0-9]{64}',target) and any(r['byte_state']=='HASH_MATCH' and r['sha256']==target.lower() for r in listed):receipt['target_state']='TARGET_BYTES_RECHECKED'
             receipts.append(receipt)
-    return {'schema':SCHEMA,'status':'CHECKPOINT_FACTS_WITH_EXPLICIT_HOLDS','observed_at':now.isoformat(),'goal':goal,
+    return {'schema':SCHEMA,'status':'CHECKPOINT_FACTS_WITH_EXPLICIT_HOLDS','observed_at':now.isoformat(),'clock':clock,'goal':goal,
        'sources':facts,'QC_receipts':receipts,'inbox':inbox_fact,'resources':resource,
        'deliverables':[r for r in facts if r['kind']=='deliverable'],'patch_candidates':[r for r in facts if r['kind']=='patch'],
        'ledger_review':'Native owner routes required; checkpoint does not mutate ledgers.',
@@ -117,7 +130,11 @@ def build(manifest,base,now,resource_root):
 def markdown(r):
     def cell(value):return str(value).replace('|','\\|').replace('\n',' ').replace('\r',' ')
     resource=r['resources'];inbox=r['inbox'];cores=resource['allocated_cores']
-    lines=['# Checkpoint', '', 'Observed: '+r['observed_at'], '', 'Overall goal reported by the supplied snapshot: **'+cell(r['goal']['reported_status'])+'**. Completed milestones do not end it.','',
+    clock=r.get('clock') or {}
+    clock_line={'SIMULATED_CLOCK':'Clock: supplied time '+cell(clock.get('used'))+' differs from the system clock '+cell(clock.get('system_clock'))+'; every age below is a simulated, historical assessment and nothing is current.',
+       'SUPPLIED_MATCHES_SYSTEM_CLOCK':'Clock: supplied time, within '+str(CLOCK_TOLERANCE_SECONDS)+' s of the system clock '+cell(clock.get('system_clock'))+'.',
+       'CURRENT_CLOCK':'Clock: system clock.'}.get(clock.get('state'),'Clock: caller-supplied, not compared with the system clock.')
+    lines=['# Checkpoint', '', 'Observed: '+r['observed_at'], '', clock_line, '', 'Overall goal reported by the supplied snapshot: **'+cell(r['goal']['reported_status'])+'**. Completed milestones do not end it.','',
       '## Resources','',
       '- Free disk: '+format(resource['disk_free_bytes']/1e9,'.2f')+' GB; floor '+format(resource['disk_floor_bytes']/1e9,'.0f')+' GB ('+cell(resource['disk_state'])+').',
       '- Logical CPUs: '+cell(resource['logical_CPUs'])+'. Allocated cores: '+('unknown' if cores is None else cell(cores))+'.',
@@ -144,8 +161,13 @@ def main():
     if not a.out.parent.is_dir():p.error('output parent must already exist')
     if a.out.resolve().is_relative_to(Path(__file__).resolve().parents[1]):p.error('output must remain outside the tool source tree')
     raw=a.manifest.read_bytes();manifest=json.loads(raw)
-    now=dt.datetime.fromisoformat(a.now) if a.now else dt.datetime.now(dt.timezone.utc)
-    r=build(manifest,a.manifest.resolve().parent,now,a.out.parent);r['manifest_sha256']=hashlib.sha256(raw).hexdigest()
+    system=dt.datetime.now(dt.timezone.utc)
+    try:
+        supplied=dt.datetime.fromisoformat(a.now) if a.now else None
+        clock=clock_record(supplied,system)
+    except ValueError as exc:p.error('--now must be an offset-aware ISO time: '+str(exc))
+    now=supplied or system
+    r=build(manifest,a.manifest.resolve().parent,now,a.out.parent,clock);r['manifest_sha256']=hashlib.sha256(raw).hexdigest()
     r['producer']={'path':str(Path(__file__).resolve()),'sha256':digest(Path(__file__)),'scope':'Read-only presenter code bytes; not proof of external execution or acceptance.'}
     if r['resources']['disk_state']=='BELOW_FLOOR':print(json.dumps(r,indent=2));raise SystemExit(2)
     a.out.mkdir();(a.out/'CHECKPOINT.json').write_text(json.dumps(r,indent=2)+'\n');(a.out/'CHECKPOINT.md').write_text(markdown(r));print(json.dumps({'status':r['status'],'goal':r['goal']['reported_status'],'inbox':r['inbox'],'resources':r['resources']},indent=2))

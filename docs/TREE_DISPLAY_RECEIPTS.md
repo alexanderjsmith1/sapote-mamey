@@ -1,136 +1,99 @@
-# Reference clade display derivatives
+# Shrink a reference tree for drawing
 
-A display tree is a reproducible drawing input derived from an unchanged analysis tree. A group of near-identical reference sequences is a display choice, not a species assignment, ecological grouping, or scientific acceptance. The analysis Newick, alignment, and original metadata remain unchanged.
+A reference panel often has many near-identical reference sequences that crowd a figure. This page shows how to fold them into one labeled tip for the drawing, and how to prove the drawn tree came from your original tree. Your analysis tree, alignment and metadata are never changed.
 
-## Prepare explicit inputs
+The steps: add source labels (optional), collapse, verify, render. A fold is a display choice. It does not assign a species, an ecological group, or scientific acceptance. A receipt in this page is an integrity record, not a signature or approval.
 
-Provide one aligned nucleotide FASTA, one Newick, and one TSV with exactly matching tip identities. Duplicate tips, duplicate headers, malformed rows, unequal sequence lengths, empty sequences, and invalid nucleotide symbols are refused. Every non-root branch must have a finite, nonnegative length. The root may omit its length.
+## What you need
 
-Metadata requires the four columns `tip`, `label`, `role`, and `taxon`. An absent `taxon` header is refused. Roles are exactly `query`, `reference`, or `outgroup`. Supply `taxon` from the bound source record for references eligible to collapse; blank taxon cells remain uncollapsed. Names or an accession parser do not establish a taxon. Existing panels using `kind` require an explicit producer/schema adaptation to this contract; column position or a generic source category is not a role declaration. Query-like machine keys that conflict with a reference role are refused. Ordinary outgroup display labels remain ordinary organism labels; the outgroup role belongs in metadata and Methods.
+- One aligned nucleotide FASTA, one Newick tree, and one metadata TSV. The tip names must match exactly in all three.
+- Metadata columns: `tip`, `label`, `role`, `taxon`. `role` is `query`, `reference` or `outgroup` (lowercase). A table with only a `kind` column is refused: add a `role` column.
+- Take `taxon` from the source record of each reference you want to be able to fold. A blank taxon is never folded. A name or an accession pattern does not set a taxon.
+- Every non-root branch needs a finite, nonnegative length.
 
-## Create an additive display
+These inputs are refused: duplicate tips or headers, malformed rows, unequal or empty sequences, symbols other than nucleotides, and a `role` that conflicts with a query-like key.
 
-```bash
-python tools/collapse_near_identical.py panel.aln.fasta panel.nwk panel_meta.tsv \
-  --max-nt 2 --min-cols 500 --out-prefix figures/panel
-```
+## 1. Add deposited source labels (optional)
 
-Both numerical limits are required. Mismatches count only columns where both sequences contain A, C, G, or T; gaps and ambiguous bases provide no shared-column support. Every pair in a collapsed group must meet both limits, and the entire group must form an exclusive clade in the analysis tree with the same recorded taxon. The largest qualifying clades are selected first. Smaller clades are still considered when their parent fails. All query tips and outgroups are excluded from collapse; `--protect EXACT_TIP` adds further retained tips and can be repeated. An absent protected tip is a refusal.
-
-Representatives maximize the number of unambiguous bases, with exact tip identity breaking ties. Branch lengths serialize with 17 significant digits. Retained-tip patristic distances are preserved within floating-point precision, including when branches are joined during pruning. The original analysis tree bytes are never rewritten.
-
-The default retains outgroup tips. Explicit `--prune-outgroup` only permits removal when all declared outgroups form one exclusive root-sister clade. An explicitly protected outgroup cannot be pruned. The display must retain at least two tips. This option does not authorize rerooting, changing the analysis topology, or accepting the outgroup scientifically.
-
-Outputs are `<prefix>_display.nwk`, `<prefix>_display_meta.tsv`, `<prefix>_collapse_ledger.tsv`, and `<prefix>_display_receipt.json`. Existing outputs are refused. Each ledger row retains the full original metadata as JSON, with the tip, representative, disposition, pairwise summary, and mismatch/shared-column counts. Every input tip appears exactly once, including representatives, retained queries, and explicitly pruned outgroups.
-
-With the default `--group-label group`, collapsed labels describe the shared
-recorded taxon, member count, mismatch ceiling and representative; member-specific
-fields are cleared on grouped rows. With `--group-label representative`, the
-representative retains its own label and fields. `placement_display.py` currently
-selects representative mode. Those values remain properties of that record,
-not shared habitat or other properties of the collapsed members. Both modes
-retain the original member metadata and comparisons in the ledger and use
-`display_source_scope=member_records_in_ledger` for grouped rows.
-
-## Verify and render
-
-Creation prints the receipt path and its SHA-256. Carry that expected digest in the invoking run manifest or command record. A receipt is an integrity binding, not a signature or scientific approval. Its relative locators can move with the input/output directory structure.
-
-```bash
-python tools/gate_stem_aware.py figures/panel_display.nwk \
-  --metadata figures/panel_display_meta.tsv \
-  --receipt figures/panel_display_receipt.json \
-  --receipt-sha256 EXPECTED_SHA256 --parent panel.nwk
-```
-
-The verifier checks the externally supplied receipt digest, all input and output hashes and byte counts, the requested tree/metadata/parent paths, and the complete schema. It rebuilds the display from the bound inputs in memory and requires exact output bytes, including the membership ledger. Rehashing an arbitrary display does not make it a valid derivative. There is no sibling-filename receipt trust or newest-bundle selection. The checker is always the gate wrapper's sibling `tree_sanity_check.py`. Missing machinery returns exit 3 and blocks rendering; invalid bindings or gate failures return exit 2.
-
-The wrapper delegates branch checks to its sibling `tree_sanity_check.py`.
-Outgroup-only branches receive the engine's outgroup treatment. A dominating
-ingroup stem is not exempt merely because it is the root sister of an exclusive
-outgroup clade. The extra locked-outgroup route requires explicit
-`--locked-root-receipt` and `--locked-root-receipt-sha256` arguments selecting
-the tree being gated and recording the locked accession. Only the matching
-ingroup half of that root edge is exempt from `DOMINATING_BRANCH`; other ingroup
-branches and terminal checks remain. The command above supplies no such lock.
-The helper checks the receipt digest/schema, selected tree path and accepted
-variant, but does not establish external registry authority or replay every
-root-variant binding. A separately verified diagnostic render retains strict
-`gate_pass=false` and diagnostic-only authority; neither it nor gate PASS
-establishes scientific acceptance.
-
-```bash
-GG_DISPLAY_RECEIPT=figures/panel_display_receipt.json \
-GG_DISPLAY_RECEIPT_SHA256=EXPECTED_SHA256 \
-GG_GATE_TREE=panel.nwk GG_FIGID='Figure reference panel' GG_STRIPS=0 \
-Rscript tools/ggtree_rect_heatmap.R figures/panel_display.nwk \
-  figures/panel_display_meta.tsv figures/reference_panel QUERY_A
-```
-
-`GG_GATE_TREE` is optional when the receipt selects the analysis parent; if supplied, it must match that parent. An ordinary render retains its existing sibling-checker path. A distinct parent without a verified receipt, `GG_SKIP_GUARD`, and `GG_GATE_EXEMPTION` remain refusals. The renderer preserves exact metadata joins, ordinary outgroup labels, plain query fonts by default, a scale bar, optional titled strips, and named figures. `GG_STRIPS` accepts 0, 1, or 2; `GG_STRIP1_TITLE` and `GG_STRIP2_TITLE` name the actual columns being shown.
-
-The caption identifies the display tip count, pruned outgroup count, mismatch/shared-column limits, query retention, and membership ledger. After drawing, the receipt is verified again; a separate `.render_receipt.json` binds the PDF, PNG, session information, analysis tree, display receipt, renderer, checker, and gate wrapper. Existing bound render outputs are refused. If final binding fails, generated graphics remain unverified and no render receipt authorizes them.
-
-## Page title choice and source replay
-
-`tools/ggtree_rect_heatmap.R` draws the pagination heading Page i of n only when
-`GG_PAGE_TITLE` is exactly `1`. The default is off: unset, empty, `0`, `true` and
-other values do not enable it. This switch controls the pagination heading, not
-scientific titles, captions, root policy or biological acceptance. Pagination is
-still recorded in `<prefix>.pages.json`, with the actual title choice in its
-root-level Boolean `page_titles` field.
-
-When exporting a replay through `tools/export_tree_figure_source_package.py`,
-that actual Boolean `page_titles` value takes precedence over a conflicting
-`render_environment.GG_PAGE_TITLE` in the display summary. The generated helper
-exports the frozen choice, so ambient environment opt-in does not silently change
-it. For legacy records with an absent or non-Boolean `page_titles`, the fallback
-uses the display summary's recorded render environment: only the literal string
-`1` enables titles; other or missing values become off. Inspect the selected page
-sidecar and generated helper rather than inferring the choice from a filename.
-
-This choice is a display/replay parameter. It does not prove that all exported
-inputs are admitted, pages were visually reviewed, or the figure meets every
-house rule. Keep the export and validation limits below.
-
-## Add deposited source labels before collapsing
+Do this before collapsing, so the labels are part of the original metadata that the ledger records.
 
 ```bash
 python tools/add_reference_source_labels.py panel_meta.tsv \
   --db frozen_reference.sqlite --out panel_with_sources.tsv
 ```
 
-The database is explicit and read-only. It must be a frozen, checkpointed SQLite snapshot with a `record.acc_version` column; active journal/WAL sidecars are refused. Exact versioned accessions use the existing canonical parser. Versionless, conflicting, missing, and ambiguous lookups retain typed unresolved states. No shared numeric accession body or filename alias supplies identity.
+The database is read-only. It must be a frozen SQLite snapshot with a `record.acc_version` column, with no live journal or WAL files. Lookups use the exact versioned accession. A missing or ambiguous accession stays marked as unresolved.
 
-Only reference labels can change. The field order is deposited `isolation_source`, then `host`, then `geo_loc_name`; a geographic fallback is labeled `location:`. Full original labels, type tokens, accession versions, source fields, and raw record values are retained. Existing bracketed sources remain unchanged with an explicit review state. Query and outgroup labels remain unchanged. Missing source fields are unavailable evidence, not a negative biological observation. A sidecar receipt binds the original metadata, frozen database, and additive output. Perform this step before collapse so source values are part of the display's original metadata and ledger.
+Only reference labels change. The text comes from the deposited `isolation_source`, then `host`, then `geo_loc_name`. A location is prefixed `location:`. A missing field means the evidence is unavailable. It is not a negative result. The run writes a receipt beside the output.
 
-## Export an editable figure-source copy
+## 2. Collapse
 
-Request `tools/export_tree_figure_source_package.py` for a separately identified copy of one already-rendered rectangular display folder. It copies selected existing files and renderer/gate helpers; it does not infer a tree, verify a scientific interpretation or run a renderer. Inspect its input inventory and estimated copy size first. When an editable copy is unnecessary, reference the existing evidence in place by path and hash.
+The files below are named `panel.aln.fasta`, `panel.nwk` and `panel_meta.tsv`.
+
+```bash
+python tools/collapse_near_identical.py panel.aln.fasta panel.nwk panel_meta.tsv \
+  --max-nt 2 --min-cols 500 --out-prefix figures/panel
+```
+
+`--max-nt` and `--min-cols` are both required. A fold needs every pair in the group to differ at no more than `--max-nt` positions, counted over at least `--min-cols` columns where both sequences have A, C, G or T. The group must also be one clade of your tree, with one recorded taxon. Queries and outgroups are never folded. `--protect TIP` keeps one more tip, and you can repeat it. A protected tip that is not in the tree is refused.
+
+Success: exit 0. The tool prints the receipt path and its SHA-256, and writes four files that must not already exist:
+
+- `figures/panel_display.nwk`, the drawing tree.
+- `figures/panel_display_meta.tsv`, with one folded row per group.
+- `figures/panel_collapse_ledger.tsv`, with one row per input tip: its original metadata, representative, outcome, and the mismatch counts.
+- `figures/panel_display_receipt.json`.
+
+Copy the printed SHA-256 into your run notes. You need it in step 3.
+
+The representative is the member with the most unambiguous bases. Distances between the tips you keep are preserved. A folded row is labeled with the taxon, member count, mismatch limit and representative. Use `--group-label representative` to keep the representative's own label instead. The ledger keeps every member either way.
+
+`--prune-outgroup` drops the outgroup from the drawing only if the outgroups form one clade that is the sister of the rest. It never reroots. At least two tips must remain.
+
+## 3. Verify
+
+```bash
+python tools/gate_stem_aware.py figures/panel_display.nwk \
+  --metadata figures/panel_display_meta.tsv \
+  --receipt figures/panel_display_receipt.json \
+  --receipt-sha256 <SHA-256 printed in step 2> --parent panel.nwk
+```
+
+Exit 0 means the gate passed: the printed digest matches the receipt, every recorded hash and size matches, the display can be rebuilt byte for byte from the bound inputs, and the tree has no long or dominating branch. The output ends with a line starting `PASS`. Exit 2 means a binding or the tree check failed, for example `DISPLAY_RECEIPT_HASH_MISMATCH_OR_MISSING`. Exit 3 means a sibling tool is missing. Do not draw after exit 2 or 3.
+
+## 4. Render
+
+```bash
+GG_DISPLAY_RECEIPT=figures/panel_display_receipt.json \
+GG_DISPLAY_RECEIPT_SHA256=<SHA-256 printed in step 2> \
+GG_GATE_TREE=panel.nwk GG_FIGID='Figure reference panel' GG_STRIPS=0 \
+GG_METHODS="$(cat figures/reference_panel_caption.txt)" \
+Rscript tools/ggtree_rect_heatmap.R figures/panel_display.nwk \
+  figures/panel_display_meta.tsv figures/reference_panel QUERY_TIP
+```
+
+The three arguments are the display tree, the display metadata and the output prefix. The optional fourth is a comma-separated list of tips to highlight. Here it is `QUERY_TIP`, a query tip name from your own table. `GG_STRIPS` is the number of annotation strips: 0, 1 or 2. `GG_STRIP1_TITLE` and `GG_STRIP2_TITLE` name the columns shown. `GG_GATE_TREE` is optional when the receipt names the parent. If you give it, it must match.
+
+The page heading "Page i of n" is off unless `GG_PAGE_TITLE=1` is set exactly. Other values leave it off.
+
+Success: exit 0, and a line `wrote figures/reference_panel: 1 pages ... minimum 8 pt; N tips`. The folder then holds the PDF and PNG, `reference_panel.render_receipt.json` (which binds the figure to the display receipt), `.methods.txt`, `.pages.json` and `.session.txt`. With a display receipt, the renderer refuses before drawing if any output it can write already exists: the PDF, PNG, SVG, `.session.txt`, `.render_receipt.json`, `.methods.txt`, `.pages.json`, `.activity_audit.tsv`, `.annotation_audit.tsv`, or any `<prefix>_page*` file. Always open the figure.
+
+No caption is generated for you. The renderer draws a caption only from `GG_METHODS`, and writes the same text to `.methods.txt`. Without `GG_METHODS`, no caption is drawn and `.methods.txt` reads `Methods not supplied.` Write `figures/reference_panel_caption.txt` yourself before step 4, from the receipt and ledger of step 2. Give the tip count, the pruned outgroups, the mismatch limit (`--max-nt`, `--min-cols`) and the ledger file name. Then read the drawn caption on the page.
+
+If the final binding fails, treat the graphics as unverified. A diagnostic render keeps `gate_pass=false`. A passing gate is not scientific acceptance.
+
+## Optional: editable copy of a finished figure
+
+`tools/export_tree_figure_source_package.py` copies one finished display folder into a new folder, with the helper scripts, so someone else can edit the figure. It does not draw, check hashes, or interpret anything.
 
 ```bash
 python tools/export_tree_figure_source_package.py inputs/rendered_panel \
   --out outputs/editable_panel_new
 ```
 
-The source needs exactly one `*_display.nwk`, one matching-stem PNG/PDF `*_rect02` pair, exactly one `*_rect02.methods.txt`, fixed `display_input.tsv` and `display_input.fasta`, `METHODS.md`, and one stem-specific `*_display_receipt.json` excluding the generic placement summary. `--caption` can select another existing text file, but the unique default methods sidecar is still required by discovery. A separate `placement_display_receipt.json` is copied when present. The receipt's selected analysis tree and every input/output record must resolve to existing files directly in the source directory; valid displays whose original bound inputs reside elsewhere are not automatically adapted.
-
-The exporter does not verify the display receipt schema, recorded hashes/bytes or replay, nor reconcile the selected display/clean figures/fixed input names against that receipt. Verify the original source and its actual display/render bindings before export; a newly hashed copy does not repair a stale or mismatched receipt. The original clean figure's `.render_receipt.json` is not automatically selected. Retain it in place with its hash, or deliberately include it as a reviewed supplement without assuming that relocation preserves its relative bindings.
-
-Select a new output directory outside the source and all preserved evidence; existing output is refused. Review receipt locators as safe single basenames, with no absolute paths or `..` components, and confirm all generated destinations remain inside the selected output. The current source-parent check does not guard the destination built from the same locator: a path can resolve into the source directory for reading yet escape the export directory for writing. Check unique destination names across receipt records, generated helper/README/manifest names and supplements before running.
-
-Copies include figure-specific tree/analysis-tree/metadata/alignment/caption/methods/clean-figure aliases, original receipt-bound names, the display receipt and local R/Python helper sources. Selected ledger/selection/pairing/custom TSVs and named provenance JSONs are copied automatically into `supplementary_ledgers/`; repeated `--supplement FILE` adds explicit files. Distinct supplements with the same basename are copied to the same target, and a later copy can silently replace an earlier one. Keep the original evidence and an explicit source-to-destination inventory; a single final filename is not proof that every selected source survived.
-
-Export creates the output directory before all receipt-bound sources, helper files and explicit supplements are fully admitted, then copies/writes sequentially. A later refusal or I/O failure can leave a partial directory without `MANIFEST.json`; retrying to it is refused because it exists. Preserve partial output and diagnostics, correct the inputs and choose another fresh directory. Success prints the output path and writes a final file-hash/size manifest; it provides no frozen consumed-source snapshot or group transaction. Its `source_dir` is an absolute source locator, so review that metadata and the copied evidence before sharing.
-
-## Editable aliases, replay and refreshed manifests
-
-The generated `<stem>_rerender_captioned.sh` invokes `<stem>_render_figure.R` with the original tree and metadata paths named by the display receipt. The convenient `<stem>_tree.nwk`/`<stem>_metadata.tsv` aliases are not substituted automatically. Editing an alias can therefore have no effect on the helper's render. Inspect its actual arguments and keep all receipt-bound scientific inputs unchanged for a replay. A changed tree/alignment/scientific metadata needs a separately admitted derivative and new receipt, not just a refreshed package manifest.
-
-The export includes both the figure-specific R entry and a canonical `ggtree_rect_heatmap.R` copy. The current render gate binds the canonical filename as renderer provenance even when the helper executes the figure-specific entry. If that entry is edited, retain its actual executed file hash separately; do not describe the canonical copy's hash as proof of the modified renderer used. Shell interpolation is quoted, and the exported helper retains receipt-bound display checking, but export itself does not execute that check. A bound rerender refuses existing output-prefix artifacts; retain prior results and select a fresh reviewed prefix before an authorized rerender.
-
-The helper finishes by running its sibling `refresh_figure_source_manifest.py`, which directly replaces that exported folder's `MANIFEST.json` with hashes of current eligible files. It omits symlinks, caches/bytecode and files named `MANIFEST.json`; it is an inventory refresh, not display replay, complete source provenance, rendered-page inspection or scientific acceptance. Preserve the previous manifest as separate evidence before adopting an edited derivative. R packages and Python gate dependencies must be available on the destination machine; copying helper sources is not environment provisioning.
-
-## Validation boundary
-
-Generic tests exercise retained distances, role protection, exclusive clades, complete-linkage limits, alignment and metadata failures, source-version conflicts, mutation refusal, deterministic replay, relocation, and real R rendering when the graphics stack is available.
+- Use a new `--out` folder. If an export fails, delete the partial folder and run it again.
+- The source folder must be the output folder of `tools/placement_display.py` (see [the placement metadata figures page](PLACEMENT_METADATA_FIGURES.md) and [the placement workflow](EPA_NG_PLACEMENT_WORKFLOW.md)). Steps 1 to 4 above do not make it: step 4 names its output `figures/reference_panel`, not `*_rect02`. The folder needs one `*_display.nwk`, one matching `*_rect02` PNG and PDF pair, one `*_rect02.methods.txt`, `display_input.tsv`, `display_input.fasta`, `METHODS.md`, and one `*_display_receipt.json`. `--caption FILE` picks another caption file. `--supplement FILE` adds a file, and you can repeat it. Give each supplement a different file name.
+- Run the gate on the original first. The export does not check the receipt.
+- The rerender script `<stem>_rerender_captioned.sh` uses the original tree and metadata named in the receipt. Editing the `_tree.nwk` or `_metadata.tsv` copies has no effect on it.
+- The copy needs R and the Python gate tools on the new machine. A changed tree, alignment or scientific metadata needs a new display and receipt.
+- `MANIFEST.json` lists the folder's file hashes and a `source_dir` path from your machine. Check it before you share the copy.

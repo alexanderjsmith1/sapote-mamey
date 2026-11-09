@@ -32,7 +32,7 @@ Sapote–Mamey turns antiSMASH output into interpreted, capacity-level BGC asses
 
 **Layer 3 — Analysis modes (new this cycle).**
 - `bgc_walk` — ordered HMM readout along a cluster (validated on ionostatin's 7 modules).
-- `rare_motif_scan` — flag interesting BGCs by rare / high-value motifs (surfaced AS-XXX's phosphonate, azole-RiPP, lasso).
+- `rare_motif_scan` — flag interesting BGCs by rare / high-value motifs (surfaced one cohort strain's phosphonate, azole-RiPP and lasso signals).
 - Cross-strain: BGC similarity networks, capability matrices, ANI.
 
 **Layer 4 — Judgment & reporting (Sapote).** The §1–§30 Mode B cards, KCB sweeps, synopsis/chapter compilation, in Claude's document voice.
@@ -64,7 +64,7 @@ Steps 1–2 are cheap and should be automatic for every strain. 3–6 are where 
 
 **Solid:** deterministic extraction, BGC counting, workbook, the two-bundle offline install, ANI (pyskani/pyfastani validated to 0.15%), the pyHMMER engine, the KCB front-page reader (new, fixes the miss).
 
-**Working but partial:** scanner registry (validated on AS-XXX 4/4, selvamicin, now the ansamycin gate; but LP01 lipopeptide is SPECIFIED_PARTIAL; scanners are actinomycete-trained and don't transfer to Gram-negatives). Domain-name proxy vs real HMM — engine proven, not yet the default path.
+**Working but partial:** scanner registry (validated on one cohort strain 4/4, selvamicin, now the ansamycin gate; but LP01 lipopeptide is SPECIFIED_PARTIAL; scanners are actinomycete-trained and don't transfer to Gram-negatives). Domain-name proxy vs real HMM — engine proven, not yet the default path.
 
 **Known gaps / not built:** front-page reader needs wiring as step 1 of the standard run (built as a module, not yet the default entry point). Scanner corroboration of KCB hits (using domain overlap to grade a KCB match) is designed but not automated. Fragmented assemblies hide large clusters — handled upstream by RG-GMCI, not inside the pipeline.
 

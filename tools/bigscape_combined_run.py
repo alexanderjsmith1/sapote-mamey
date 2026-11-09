@@ -51,10 +51,17 @@ Requires: BiG-SCAPE 2 (pip install from GitHub), HMMER 3, BioPython.
 
 import argparse
 import os
+import re
 import sqlite3
 import subprocess
 import sys
 import tempfile
+
+
+def _names_strain(path: str, strain: str) -> bool:
+    """True when a GBK path names this strain as a whole component or a filename prefix ('…/STRAIN/…',
+    '…/STRAIN_NODE_1.gbk', '…/STRAIN.gbk'). 'SYN-7' does not name 'SYN-70' or 'SYN-701'."""
+    return re.search(r"(?:^|[\\/])" + re.escape(strain) + r"(?=$|[\\/_.])", path or "") is not None
 
 
 def reconstruct_gbks(db_path: str, outdir: str, exclude_strain: str = "") -> int:
@@ -76,14 +83,10 @@ def reconstruct_gbks(db_path: str, outdir: str, exclude_strain: str = "") -> int
     db = sqlite3.connect(db_path)
     cur = db.cursor()
 
-    # Build exclusion filter
-    if exclude_strain:
-        where = f"WHERE path NOT LIKE '%{exclude_strain}%'"
-    else:
-        where = ""
-
-    cur.execute(f"SELECT id, path, nt_seq FROM gbk {where}")
-    gbks = cur.fetchall()
+    # Exclusion by strain: the strain must be a whole path component or a filename prefix ending at '_' or '.'.
+    # The old SQL substring filter (NOT LIKE '%SYN-7%') also dropped SYN-70 and SYN-701, and put the value into SQL.
+    cur.execute("SELECT id, path, nt_seq FROM gbk")
+    gbks = [g for g in cur.fetchall() if not (exclude_strain and _names_strain(g[1], exclude_strain))]
     sys.stdout.write((f"[reconstruct] {len(gbks)} GBKs to reconstruct from {db_path}") + "\n")
 
     written = 0

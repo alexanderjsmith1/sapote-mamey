@@ -24,7 +24,9 @@ COUNTING BY ASSEMBLY (v1.1.0; the M5 duplicate-assembly rule of 21 Oct 2026)
     A genome collection can hold one assembly several times: CP053892 and CP053892.1, a WGS id and its GCA, GCF and GCA forms,
     a complete-genome CP/AP entry and the GCA entry of the same genome, or local re-assemblies. Each strain gets an assembly
     key: its assembly_accession, else its own id when that is a GCA/GCF accession, else its own id (GCF folded to GCA, version
-    dropped in every case). Then strains of one genus with identical total_bp are merged into one key. A key counts once
+    dropped in every case). Then strains of one genus with identical total_bp are merged into one key, but only when
+    at most one distinct explicit accession (assembly_accession or an own GCA/GCF id) is among them; otherwise they
+    stay separate and RECEIPT.json lists them as review candidates (ruled 6 Nov 2026). A key counts once
     in each role (public reference, SID, isolate); a key passes a threshold when any of its strains does.
     ASSEMBLY_KEYS.tsv lists every strain's key and the rule that set it. Without total_bp only the id rules apply.
 
@@ -137,20 +139,53 @@ def assembly_keys(entries):
         while parent.get(k, k) != k:
             k = parent[k]
         return k
-    first = {}
-    for e in entries:                                  # same genus + identical total length = one assembly
+    slots = {}
+    for e in entries:                                  # same genus + identical total length
         bp = (e.get("total_bp") or "").strip()
         if not bp or bp == "0":
             continue
-        slot, k = (e["genus"], bp), key[e["strain"]]
-        if slot not in first:
-            first[slot] = k; continue
-        a, b = find(first[slot]), find(k)
-        if a != b:
-            keep, drop = sorted((a, b), key=lambda x: (x.startswith("id:"), x))
-            parent[drop] = keep
-    return {s: (find(k), rule[s] + ("" if find(k) == k else f"; merged with {find(k)} (identical total_bp in genus)"))
-            for s, k in key.items()}
+        slots.setdefault((e["genus"], bp), []).append(e["strain"])
+    held = {}
+    for members in slots.values():
+        if len(members) < 2:
+            continue
+        # Ruled 6 Nov 2026: equal length merges entries only when at most one distinct explicit
+        # assembly accession (assembly_accession, or an own GCA/GCF id) is among them. Two different
+        # explicit accessions stay separate; the length match is listed as a review candidate.
+        explicit = {find(key[m]) for m in members if rule[m] != "own id"}
+        if len(explicit) > 1:
+            for m in members:
+                held[m] = [x for x in members if x != m]
+            continue
+        for m in members[1:]:
+            a, b = find(key[members[0]]), find(key[m])
+            if a != b:
+                keep, drop = sorted((a, b), key=lambda x: (x.startswith("id:"), x))
+                parent[drop] = keep
+    out = {}
+    for s, k in key.items():
+        text = rule[s] + ("" if find(k) == k else f"; merged with {find(k)} (identical total_bp in genus)")
+        if s in held:
+            text += (f"; same total_bp as {', '.join(held[s])} in genus, kept separate "
+                     "(different explicit accessions; review candidate)")
+        out[s] = (find(k), text)
+    return out
+
+
+ASSEMBLY_KEY_POLICY = ("heuristic: accession folding (GCF to GCA, version dropped) and identical total_bp within a genus "
+                       "merge entries into one key; a length merge happens only when at most one distinct explicit "
+                       "accession is involved; a merge is a review candidate, not a verified same-assembly match")
+
+
+def length_merges(keys):
+    """Strains whose key came from the identical-total_bp merge, for review: [{strain, assembly_key, rule}]."""
+    return [dict(strain=s, assembly_key=k, rule=r) for s, (k, r) in sorted(keys.items())
+            if "identical total_bp in genus" in r]
+
+
+def length_review_candidates(keys):
+    """Strains with an equal-length match that was NOT merged (two or more different explicit accessions)."""
+    return [dict(strain=s, assembly_key=k, rule=r) for s, (k, r) in sorted(keys.items()) if "kept separate" in r]
 
 
 BASES = ("assembly", "entry")
@@ -299,7 +334,9 @@ def run(a):
     receipt = dict(tool="locus_rarity_by_genus", version=__version__, utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                    kit={"REGION_CDS.faa": sha256(faa), "REGION_CDS_META.tsv": sha256(mtsv)},
                    genome_table=(dict(path=a.genome_table, sha256=sha256(a.genome_table)) if a.genome_table else None),
-                   denominators=denom, count_by=a.count_by,
+                   denominators=denom, count_by=a.count_by, assembly_key_policy=ASSEMBLY_KEY_POLICY,
+                   assembly_key_length_merges=length_merges(keys),
+                   assembly_key_length_review_candidates=length_review_candidates(keys),
                    counted=dict(entries=sum(len(v) for g in totals.values() for v in g.values()),
                                 assemblies=len({(role, keys[s][0]) for g in totals.values() for role, v in g.items() for s in v})),
                    diamond=version, query=dict(strain=a.query_strain, region=a.query_region, alias=a.alias,

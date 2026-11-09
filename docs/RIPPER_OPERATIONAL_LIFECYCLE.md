@@ -1,170 +1,126 @@
-# Optional RiPPER byte admission and bounded lifecycle
+# RiPPER byte admission and bounded lifecycle
 
-This candidate extends the optional adapter. Default preflight launches nothing.
-A fully supplied, explicitly parent-reviewed native discovery profile can execute
-only with --execute-native. See [native discovery](RIPPER_NATIVE_DISCOVERY.md)
-for its exact contract. Earlier lifecycle-only tests launched no native RiPPER; the later recorded fabricated native attempt is described in that guide. Its scoped result is separate from those earlier software tests.
-The archive profile remains pinned to original revision
-`e90b3e6e74ddee99685183ca421323737012a991`. Lane05's local adaptation is a
-separate **review-only** source profile, not original upstream bytes or a release.
-No install, discovery, model download, biological success or license acceptance
-is implied. Candidate BGC membership remains `UNVERIFIED`.
+For maintainers of the optional RiPPER adapter. Skip this page unless you run RiPPER on a named strain. Core runs never need it.
 
-## Select an adaptation explicitly
+The `lifecycle` subcommand checks a set of files, then optionally runs one supervised process. It has two modes:
+- `synthetic_stub`: runs a tiny script you wrote, to test the supervisor. No RiPPER runs.
+- `adapted_local05`: the native discovery route. Setup and review are in [RIPPER_NATIVE_DISCOVERY.md](RIPPER_NATIVE_DISCOVERY.md). Commands are in [RIPPER_CLI_METHODS.md](RIPPER_CLI_METHODS.md).
 
-`adapted-profile --owner-receipt FILE --base-source FILE --source-patch FILE
---adapted-source FILE --out FRESH_DIRECTORY` hashes four explicit inputs. The
-base must match the archive pin. A strict in-memory single-file unified patch
-must reproduce the supplied adapted source exactly, and the owner's saved
-receipt must name those patch/postimage hashes. The source must declare the
-explicit run/temp-root interface. These are byte/interface checks only; no Perl
-is imported or executed. Owner receipt content is bound, not authenticated.
+By default `lifecycle` launches nothing. It hashes files, checks limits and writes `PREFLIGHT.json` and `TERMINAL.json` in the run root. Only `--execute-stub` or `--execute-native` launches a process. Neither shows biological success, a license grant or BGC membership. Membership stays `UNVERIFIED`.
 
-`ADAPTED_SOURCE_PROFILE.json` records separate base, patch, adapted source and
-owner-receipt hashes. To use it with `bind-run`, `local-plan` or `import`, select
-`--adapted-profile FILE` and explicitly supply the four roles `archived_base`,
-`source_patch`, `upstream_source`, `adaptation_receipt` with the run's other file
-roles. The run binding records the exact adapted profile hash. Every boundary
-rechecks the supplied files and patch relation. An operator-supplied adaptation
-without that selection fails the original upstream source pin. Changing or
-omitting the explicit selected profile also fails. The output TSV contract still
-uses the archived headers; compatibility of a native adapted run is unverified.
+## Bind an adapted source
 
-## Hash large models without copying them
+The adapted source is a locally patched copy of the archived RiPPER script. The archived script is pinned to revision `e90b3e6e74ddee99685183ca421323737012a991`.
 
-A run-binding manifest or lifecycle spec may select `model_byte_budget` (positive
-integer, maximum 16 GiB per file) and `hash_timeout_seconds` (positive finite
-number, maximum 600 seconds per file; default 30). Only these explicit file roles
-use streaming: `pfam_model`, `ripp_model`, and `pfam_index_h3f/h3i/h3m/h3p` or
-`ripp_index_h3f/h3i/h3m/h3p`. Each name after the slash denotes a separate suffix,
-for example `pfam_index_h3f`. Hashing uses 1 MiB chunks, checks file metadata,
-and repeats before publication and at subsequent admission boundaries. The
-budget is per file, not a whole-roster quota. The roster is capped at 32 files.
-No files are copied and no model-format/index-readiness claim follows.
+```sh
+python tools/ripper_adapter.py adapted-profile \
+  --owner-receipt FILE --base-source FILE --source-patch FILE \
+  --adapted-source FILE --out FRESH_DIRECTORY
+```
 
-Configuration, queries, context, source, receipts and output parsing retain the
-5 MiB limit. The separately named executable roles python_runtime, perl_runtime,
-makeblastdb, blastp, blastn, prodigal_short and hmmsearch use streamed hashes in
-1 MiB chunks. Explicit executable_byte_budget (positive integer, maximum512MiB)
-and executable_hash_timeout_seconds (positive finite, maximum300seconds; default30)
-select the executable policy in a manifest or lifecycle spec. Budgets are per file.
-For existing BLAST+2.17.0 leaves,32MiB/10seconds per file accommodates the observed
-18.3–23.4MB bodies without copying or executing them. It does not establish native
-format compatibility, module availability or source execution admission.
+The four inputs:
+- owner receipt: a saved JSON file from whoever made the adaptation. It names the patch hash and the adapted-source hash. The adapter binds its bytes. It does not authenticate the author.
+- base source: the original archived script. Its hash must match the pin.
+- source patch: a single-file unified patch.
+- adapted source: the patched script. It must declare the run-root and temp-root interface.
 
-Omitting the executable byte budget keeps the historical16MiB/30second limit and
-receipt shape, now hashed in chunks instead of a full bounded-memory read.
-Changing executable timeout without an explicit byte budget refuses. Executable
-and model policies are independent; neither expands config/query limits or borrows
-the other's budget. Fresh admission/publication rehashes the selected policy.
-File-descriptor and final-path identity checks refuse read-time replacement or
-changes; symlink leaves are refused. No automatic tool discovery or download occurs.
+The command rebuilds the adapted source from base plus patch in memory and compares it with yours. No Perl is run. It writes `ADAPTED_SOURCE_PROFILE.json`, which records the four hashes separately.
+
+To use the profile with `bind-run`, `local-plan`, `import` or `lifecycle`, pass `--adapted-profile FILE` and supply the roles `archived_base`, `source_patch`, `upstream_source` and `adaptation_receipt`. Without the profile, adapted bytes fail the original pin.
+
+## Hash large files without copying them
+
+Two sets of roles are hashed in 1 MiB chunks. The files are not copied.
+
+| Roles | Budget key (per file) | Timeout key | Maximum | Default timeout |
+|---|---|---|---|---|
+| `pfam_model`, `ripp_model`, `pfam_index_h3f`, `_h3i`, `_h3m`, `_h3p`, and the same four for `ripp_index_` | `model_byte_budget` | `hash_timeout_seconds` | 16 GiB | 30 s (max 600 s) |
+| `python_runtime`, `perl_runtime`, `makeblastdb`, `blastp`, `blastn`, `prodigal_short`, `hmmsearch` | `executable_byte_budget` | `executable_hash_timeout_seconds` | 512 MiB | 30 s (max 300 s) |
+
+Set them in the spec. Config, queries, receipts and other inputs keep a 5 MiB limit. Without an executable budget, executables keep a 16 MiB, 30 s limit. A timeout without a byte budget is refused. Large BLAST+ binaries exceed 16 MiB, so set a budget, for example 32 MiB. A spec may bind at most 32 files. Symlinks are refused. Nothing is found or downloaded on its own.
 
 ## Lifecycle spec and invocation
 
-`lifecycle --spec FILE --file ROLE=PATH ... --run-root ABSOLUTE_FRESH_PATH`
-performs preflight and writes `PREFLIGHT.json` and `TERMINAL.json`. It launches
-nothing by default. The spec is `ripper-lifecycle-spec/1` with `mode`, the
-archived `profile_id` and `source_revision`, `files` mapping exact role to
-SHA256, and `limits` containing all four fields:
+```sh
+python tools/ripper_adapter.py lifecycle --spec SPEC.json \
+  --file ROLE=PATH [--file ROLE=PATH ...] --run-root ABSOLUTE_FRESH_PATH
+```
 
-- `wall_seconds`: positive finite, at most 3600;
-- `rss_bytes`: positive integer, at most 1 GiB for synthetic stubs or 2 GiB for the separately admitted `adapted_local05` native route;
-- `disk_bytes`: positive integer, at most 256 MiB;
-- `poll_seconds`: finite, 0.01 through 0.25.
+The run root must not exist; an existing root is refused. The one exception is a reviewed native run with `--resume-preflight`: it reuses the run root that its own earlier preflight reserved, and only when that folder is pristine and its source, files, profile, root and review request still match (see [native discovery](RIPPER_NATIVE_DISCOVERY.md)). No other existing folder is accepted. The spec is JSON. This one runs the stub mode:
 
-For mode=adapted_local05, select the distinct --adapted-profile and lane05
-source_closure. Native discovery requires exact Perl/BLAST/short-Prodigal,
-module/runtime/recipe and semantic input evidence; it does not require HMM models.
-Missing actual prerequisites or parent review produce HOLD. Exact argv, executable
-opt-in, review binding and reserved-preflight resume are documented in
-[native discovery](RIPPER_NATIVE_DISCOVERY.md). Raw SQLite/FASTA discovery remains
-separate from the final HMM-enriched table.
+```json
+{
+  "schema_version": "ripper-lifecycle-spec/1",
+  "mode": "synthetic_stub",
+  "profile_id": "archived-e90b3e6-mergeRidePfam",
+  "source_revision": "e90b3e6e74ddee99685183ca421323737012a991",
+  "files": {
+    "python_runtime": "<sha256 of the Python executable>",
+    "stub_script": "<sha256 of your script>",
+    "config": "<sha256 of the config file>"
+  },
+  "limits": {
+    "wall_seconds": 60,
+    "rss_bytes": 268435456,
+    "disk_bytes": 1048576,
+    "poll_seconds": 0.1
+  }
+}
+```
 
-For `mode=synthetic_stub`, the required roles are `python_runtime`, `stub_script`
-and `config`. **Only** the explicit `--execute-stub` flag launches the selected
-script through the bound Python executable with `-I -S -B` and one argument,
-`<run-root>/result.tsv`. This is for self-authored tiny synthetic validation;
-caller-supplied scripts are executable code and their synthetic label is a
-declaration, not a safety sandbox or proof of authorship. Optional psutil is
-required before either native or stub launch; missing it produces `UNAVAILABLE`, without installation.
+`files` maps each role to the SHA-256 of the file you pass with `--file ROLE=PATH`. A hash that does not match the file is refused. `profile_id` and `source_revision` must match the `id` and `revision` in `tools/ripper_source_profile.json`. A mismatch is refused. The three hashes in `files` are placeholders for your own.
 
-The supervisor writes STARTED, then LAUNCHED with PID/process group, stdout and
-stderr logs, and TERMINAL. It monitors wall time, sampled process-tree RSS and
-fresh-root disk use. `--cancel-file ABSOLUTE_PATH` checks existence only, before
-launch and at each sample; it never creates that file. Keyboard interruption,
-cancellation or a resource trigger stops the process group with SIGKILL and
-reaps the direct child. A supervision denial is retained as `UNAVAILABLE` with
-cleanup errors; it is not a successful cancellation claim. Limits can overshoot
-between polls and do not enforce OS quotas or restrict network/filesystem
-access. Detached/reparented descendants and native fork behavior remain
-uncertified; native workflow/process behavior still requires real validation. SIGKILL of the supervisor or machine loss
-can leave STARTED/LAUNCHED without TERMINAL. Those are not completion.
+All four `limits` fields are required:
 
-Final receipts bind explicit input/model/tool bytes, supervisor version, logs
-and regular output files under the fresh root. They rehash inputs after a stub
-run. Existing run roots are refused, and artifacts are retained on failures.
-Missing/empty/malformed outputs or nonzero exits are `FAILED`; cancellation and
-resource limits are `INTERRUPTED`. A strict 11-column header-only synthetic
-output is `NO_HIT` **only within the self-authored stub scope**. Retained stub
-rows are `SUCCESS_UNBOUND`. Both retain `upstream_execution=NOT_EXECUTED`,
-`biological_absence_inferred=false` and membership `UNVERIFIED`. CLI execution failure/unavailability/HOLD returns 2 and interruption returns 130.
-Preflight itself returns 0 with its explicit held/unavailable status. None of these
-receipts is automatically an importable real RiPPER completion declaration.
+| Field | Rule |
+|---|---|
+| `wall_seconds` | positive, at most 3600 |
+| `rss_bytes` | positive integer, at most 1 GiB (stub) or 2 GiB (`adapted_local05`) |
+| `disk_bytes` | positive integer, at most 256 MiB |
+| `poll_seconds` | 0.01 through 0.25 |
 
-## Validation scope
+For the native mode, use `"mode": "adapted_local05"`, add `--adapted-profile` and bind the roles listed in [RIPPER_NATIVE_DISCOVERY.md](RIPPER_NATIVE_DISCOVERY.md#source-runtime-and-input-admission). It also accepts `bind_observed_runtime_closure` and the budget keys above.
 
-Tests use only self-authored tiny scripts and synthetic byte fixtures. Archive
-and lane05 inputs are opt-in explicit read-only inputs for patch/hash checks.
-Native process signalling/inspection permissions are required for supervisor
-controls; sandbox denials are not passes. No original or adapted Perl, BLAST,
-Prodigal, HMMER or biological upstream workflow is executed by these tests.
+Success for a preflight is exit 0 and a `PREFLIGHT.json` that lists the roster. A `HOLD` or `UNAVAILABLE` status still exits 0 on preflight. Read the status in the file.
 
-## Finalization integrity
+## Stub mode
 
-Catchable final hashing/parsing interruption records an interrupted terminal when
-the filesystem permits. Permission denial in process inspection or group cleanup
-stays unavailable supervision; an exited leader alone does not prove its group
-is gone. Cleanup uncertainty prevents no-hit/row admission. Parsed stub bytes must
-match their captured digest, and retained output digests are rechecked before the
-terminal. Native SQLite is queried from the consumed in-memory snapshot. Primary
-errors and secondary cleanup/finalization failures remain separately recorded.
-Repeated interruption while writing the terminal, SIGKILL and machine loss remain
-outside this guarantee. Output hashes describe the admitted snapshot/boundary,
-not immutable storage for all future time.
+Roles: `python_runtime`, `stub_script`, `config`. Add `--execute-stub` to launch. The supervisor runs your script with the bound Python as `python -I -S -B SCRIPT <run-root>/result.tsv`. The script is executable code. Write it yourself. The word "synthetic" is a label, not a sandbox.
 
-### Terminal publication and interruption
+`psutil` must be installed before any launch. If it is not, the status is `UNAVAILABLE`, and nothing is installed for you.
 
-Terminal JSON is serialized and closed in an exclusive `<terminal>.staging` file
-before the canonical `TERMINAL.json` or `EXECUTION_TERMINAL.json` is published
-through an exclusive hard link. Staging files are retained and never constitute
-completion. Publication is the final filesystem operation; no cleanup error can
-follow it and masquerade as a failed serialization with canonical success bytes.
-The receipt records this protocol and canonical filename.
+A strict 11-column, header-only output gives `NO_HIT`. Retained rows give `SUCCESS_UNBOUND`. Both report `upstream_execution=NOT_EXECUTED`, `biological_absence_inferred=false` and membership `UNVERIFIED`. A stub result is never an importable RiPPER completion.
 
-A first catchable `KeyboardInterrupt` during serialization withdraws row/candidate
-count admission and writes `INTERRUPTED` through a separate recovery staging file.
-Original partial bytes are retained in place and hash-bound. An I/O failure during
-write/close/preservation or publication, or a repeated interruption, can prevent
-publication; no canonical terminal means no completed result. Prior primary,
-cleanup and immediately preceding write reasons remain separate. A successful
-preflight retains its staging alias; pristine native resume validates that alias
-against the canonical terminal without removing either. Existing evidence is never
-overwritten. SIGKILL/machine loss and errors with ambiguous OS outcomes cannot be
-made transactional by this supervisor; retain all evidence and inspect publication.
+## What the supervisor does
 
-### Observed process absence and RSS contributions
+It writes `STARTED`, then `LAUNCHED` (with process ID, process group, stdout log and stderr log), then the terminal. It samples wall time, the memory of the process tree and disk use of the run root. A limit hit, Ctrl-C or the cancel file stops the process group with SIGKILL and reaps the child.
 
-Cleanup records whether a process-group signal was sent, the group was already
-absent at that check, or signaling was unavailable. Leader kill/reap outcomes are
-recorded separately. Observed group absence does not create cleanup uncertainty;
-permission denial or failed reaping retains the existing unavailable/HOLD behavior.
-These observations do not certify detached processes outside the selected group.
+`--cancel-file ABSOLUTE_PATH` is checked before launch and at every sample. The adapter only checks that it exists. It never creates it. To cancel, create that file yourself.
 
-RSS sampling explicitly assigns zero only to a member or tree reported vanished
-or zombie at that sample, with bounded aggregate counters in
-`rss_sampling_observations`. The counters distinguish vanished members, zombie
-members and absent/zombie trees. Inspection denial is not treated as a zero
-contribution; it remains `SUPERVISION_UNAVAILABLE`, with output counts unadmitted.
-Polling and process-tree membership can change between samples; these observations
-do not alter the existing sampled-enforcement or scientific scope.
+Limits are checks at poll time. They can overshoot, and they are not operating-system quotas or a network or file sandbox. Detached child processes are not covered. If the supervisor is killed with SIGKILL or the machine dies, a run can end with `STARTED` or `LAUNCHED` and no terminal. That run did not complete.
+
+If a permission denial stops process inspection, the status is `UNAVAILABLE`, not a clean cancel. Unclear cleanup blocks any `NO_HIT` or row admission.
+
+## Result and exit codes
+
+The terminal and receipts bind the input hashes, supervisor version, logs and output files. Inputs are rehashed after a stub run. Artifacts stay on failure.
+
+| Result | Meaning |
+|---|---|
+| `FAILED` | missing, empty or bad output, or nonzero exit |
+| `INTERRUPTED` | cancel or resource limit |
+| `NO_HIT` / `SUCCESS_UNBOUND` | see the status table in [RIPPER_NATIVE_DISCOVERY.md](RIPPER_NATIVE_DISCOVERY.md#statuses) |
+
+| Exit code | When |
+|---|---|
+| `0` | preflight finished, or the run finished without failure |
+| `2` | refusal, `FAILED`, `AMBIGUOUS`, or `HOLD` or `UNAVAILABLE` on an execute run |
+| `130` | interrupted |
+
+## Recovery
+
+The terminal is written to `<name>.staging` first, then published as `TERMINAL.json` or `EXECUTION_TERMINAL.json` by an exclusive hard link. A staging file alone is not a result. If there is no canonical terminal, the run did not complete. Keep all files. Do not overwrite or delete them.
+
+A first Ctrl-C while the terminal is being written records `INTERRUPTED` through a recovery staging file and keeps the partial bytes. A second interrupt, a write failure, SIGKILL or machine loss can leave no terminal. Output hashes describe the checked bytes at that moment. They do not lock the storage afterward.
+
+Maintainer notes on finalization and cleanup are in the [development record](history/RIPPER_DEVELOPMENT_RECORD.md).

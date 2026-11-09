@@ -818,6 +818,22 @@ def _titles_match(found: str, expected: str, *, exact: bool = False) -> bool:
 Finding = dict  # alias for clarity
 
 
+_NA_TOKEN_RE = re.compile(r"\bNOT[_ ]APPLICABLE\b", re.I)
+
+
+def _not_applicable_without_reason(body: str) -> bool:
+    """True when a section body is a NOT_APPLICABLE disposition with no written reason.
+
+    The token itself, markup and punctuation are removed; fewer than three remaining
+    words counts as no reason. A body without the token is not judged here.
+    """
+    if not _NA_TOKEN_RE.search(body):
+        return False
+    rest = _NA_TOKEN_RE.sub(" ", body)
+    words = re.findall(r"[A-Za-z][A-Za-z'-]*", rest)
+    return len(words) < 3
+
+
 def lint_card(card_md: str,
               bgc_context: Optional[dict] = None,
               contract: Optional[dict] = None,
@@ -919,6 +935,37 @@ def lint_card(card_md: str,
                     f"'{by_num.get(num, {}).get('title')}'. The legacy scaffold "
                     f"is superseded by the §1–§48 contract — see "
                     f"`docs/MODE_B_20_SECTION_CANONICAL_TITLES.md`."))
+
+    # ----- finished-profile section rule (owner ruling 9, .464) -----
+    # A contract may name a finished profile that requires every section. When the card
+    # declares that profile, an absent section of any kind is an ERROR and a NOT_APPLICABLE
+    # section must give a reason. Drafts, and contracts without the rule, keep the per-section
+    # required/conditional/optional behavior below.
+    _finished_rule = contract.get("finished_profile_section_rule") or {}
+    _finished_all = bool(_finished_rule.get("all_sections_required")
+                         and _finished_rule.get("profile")
+                         and _finished_rule["profile"] in card_md)
+    if _finished_all:
+        _bodies_fp = extract_section_bodies(card_md, contract)
+        for s in sections:
+            num = s["number"]
+            if num not in detected_by_num:
+                if s.get("required") == "always":
+                    continue  # reported below as MISSING_REQUIRED_SECTION
+                findings.append(_mk(
+                    "ERROR", "MISSING_FINISHED_PROFILE_SECTION", num,
+                    s["title"], None,
+                    f"§{num} '{s['title']}' is absent. A card declaring "
+                    f"{_finished_rule['profile']} must contain every section; write a "
+                    f"NOT_APPLICABLE disposition with its reason instead of omitting it."))
+                continue
+            if _finished_rule.get("not_applicable_requires_reason") and \
+                    _not_applicable_without_reason(_bodies_fp.get(num) or ""):
+                findings.append(_mk(
+                    "ERROR", "NOT_APPLICABLE_WITHOUT_REASON", num,
+                    s["title"], detected_by_num[num],
+                    f"§{num} says NOT_APPLICABLE but gives no reason. State why the "
+                    f"section does not apply to this locus."))
 
     # ----- always-required sections -----
     for s in sections:
@@ -1970,6 +2017,26 @@ _S4_MATRIX_SIM_RE = re.compile(r"\d+(?:\.\d+)?\s*%\s*(?:sim|positives?)\b", re.I
 _S4_MATRIX_QCOV_RE = re.compile(
     r"(?:qcov|query coverage)\s+(?:\d+(?:\.\d+)?\s*%|\d+\s*/\s*\d+|NR|not reported)", re.I)
 _S4_MATRIX_SUBJECT_RE = re.compile(r"^\s*`?[A-Za-z0-9_.-]+`?\s*(?:—|-)\s*\S+")
+_S4_MATRIX_SUBJECT_PREFIX_RE = re.compile(r"^\s*`?[A-Za-z0-9_.-]+`?\s*(?:—|-)\s*")
+_S4_MATRIX_BRACKET_SPAN_RE = re.compile(r"\[[^\]]*\]")
+_S4_MATRIX_DESCRIPTION_WORD_RE = re.compile(r"[A-Za-z]{2,}")
+
+
+def _matrix_match_has_description(match_value: str) -> bool:
+    """True when a named-match cell carries protein-description words.
+
+    The cell shape is ``accession — description [organism]``. An accession,
+    a separator and a bracketed organism alone is not a description: the
+    organism span (bracketed, or a recognized genus and the next word) is
+    removed before looking for a word of two or more letters. This is a
+    syntax check only; it does not bind the wording to a BLASTp source.
+    """
+    rest = _S4_MATRIX_SUBJECT_PREFIX_RE.sub("", match_value, count=1)
+    rest = _S4_MATRIX_BRACKET_SPAN_RE.sub(" ", rest)
+    if not _BRACKET_ORG_RE.search(match_value):
+        rest = re.sub(_GENUS_RE.pattern + r"(?:\s+\S+)?", " ", rest)
+    rest = rest.replace("*", " ").replace("`", " ")
+    return bool(_S4_MATRIX_DESCRIPTION_WORD_RE.search(rest))
 
 
 def matrix_gene_tag(gene_cell: str) -> Optional[str]:
@@ -2162,7 +2229,8 @@ def _section4_complete_blastp_matrix_findings(
             if match_missing:
                 continue
             if not (_S4_MATRIX_SUBJECT_RE.search(match_value)
-                    and (_BRACKET_ORG_RE.search(match_value) or _GENUS_RE.search(match_value))):
+                    and (_BRACKET_ORG_RE.search(match_value) or _GENUS_RE.search(match_value))
+                    and _matrix_match_has_description(match_value)):
                 bad_subjects.append(f"{gene}:{label}")
             complete_metrics = (bool(_S4_MATRIX_ID_RE.search(metric_value))
                                 and bool(_S4_MATRIX_SIM_RE.search(metric_value))

@@ -1,99 +1,73 @@
-# DELIVERABLE — Ecological Synthesis (ECO)
+# DELIVERABLE: Ecological Synthesis
 
-> **Current scope:** Prompt/reporting guidance only. The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions; the monolith is a design/history reference and cannot override them. Named triggers and auto-delivery language do not execute tools or authorize additional work. The worked closer is retained historical illustration with incomplete/scrubbed identity, not current locus binding or a validated ecological result.
+**What this is.** A writing guide for a short ecological section on one strain. No tool produces it. You, or an assistant you direct, write it by hand from a validated package. Every statement is a labeled hypothesis. Nothing here is computed.
 
-> **Filing.** `docs/modules/DELIVERABLE_EcologicalSynthesis.md`.
-> **Extends / references:** `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 14 (§ECO — the compressed synthesis this module expands), `DELIVERABLE_ReviewerAttack.md` (an ecological-overreach RAS block follows the integrated model), `DELIVERABLE_CONTRACT.md` (claim-safety). **Do not restate claim-safety — point to it.**
-> **Precedence.** [DELIVERABLE_CONTRACT.md](../DELIVERABLE_CONTRACT.md) and the code win over this page. This module restores the §17 **eleven-step structure** that kernel M14 compressed to a single synthesis; M14's one-paragraph form is the abstract, this is the method.
-> **Status:** `PROMPT_BACKED`. Every output is a labeled hypothesis; nothing here is computed.
-> **One-line purpose.** Translate BGC-level evidence into testable ecological hypotheses about how predicted chemistry maps onto host biology — each hypothesis citing specific BGC evidence, each labeled by confidence, with null results reported as findings.
+**Purpose.** Turn BGC-level evidence into testable ideas about how the strain's predicted chemistry could fit its host or habitat. Each idea cites specific BGC evidence, carries a confidence label, and names a test. A null result is a finding. Report it.
 
----
+The [deliverable contract](../DELIVERABLE_CONTRACT.md) and the code win over this page. Claim-safety rules live in the contract. Terms such as BGC (biosynthetic gene cluster), TFBS (transcription factor binding site), KCB (KnownClusterBlast) and RG-GMCI are in the [glossary](../GLOSSARY.md).
 
-## 1. When it is offered (Deliverable Offer Protocol)
+## When to write it
 
-Auto-trigger at the end of a Full-Run Profile when host metadata is present; standalone trigger `Run ecological synthesis for [Strain]. [Host]. [Habitat].`; fast-mode `Run fast ecological synthesis…`. **Incomplete delivery** = an ecological narrative with no per-hypothesis BGC citation, or omitting a null result (a *null is informative and must be stated*, §17.4).
+Write it after the Mode B cards are done and the strain has host or habitat metadata. Mode B cards are the per-locus write-ups described in [MODE_B_WRITE.md](MODE_B_WRITE.md). A section with no per-hypothesis BGC citation, or one that leaves out a null result, is incomplete.
 
----
+## Inputs
 
-## 2. Inputs required (run after Mode B is complete)
-
-| Input | Feeds |
+| Input | Used for |
 |---|---|
-| `manifest.json → source` (host/substrate) | **provenance only** — caveated context, NOT the synthesis frame; isolation source ≠ ecological function. Never escalate into a functional claim. |
-| TFBS hits ≥18 across BGCs | Step 1 regulatory coupling |
-| GH/LPMO/CotH/t2fas domains within cluster boundaries | Step 2 polysaccharide gating |
-| bldA tier (kernel M8) | Step 3 developmental mapping |
-| strain bioactivity (extract level) + class calls | Step 4 disease-defense matching |
-| HGT flags, RiQ, KCB top | Steps 5–6 novel signals + integrated model |
+| Deposited isolation source, from `manifest.json` | Context only. Report it as deposited. Isolation source is not ecological function. |
+| TFBS hits across the BGCs | Regulatory coupling (step 1) |
+| GH, LPMO, CotH and t2fas domains inside cluster boundaries | Polysaccharide gating (step 2) |
+| `bldA` TTA tier | Developmental mapping (step 3) |
+| Extract-level bioactivity and class calls | Matching to host defense (step 4) |
+| HGT flags and the KCB top hit | Novel signals and the integrated model (steps 5 and 6) |
 
-**Skip-not-fake / §17.2A evidence ceilings:**
+A missing input, an unrun scan or a failed parse is "not available". It is not a null result. A null result is a completed, source-bound check that found nothing, reported with its scope.
 
-| Evidence basis | Allowed claim strength |
+## Evidence ceilings
+
+| Evidence basis | Strongest allowed wording |
 |---|---|
-| Direct assay | Activity under the recorded material/assay conditions; fractionation alone does not establish compound identity or BGC causation. Keep structure, activity and genetic linkage evidence separate. |
-| Bioinformatic BGC | "contains domains consistent with" / "predicted to encode" |
-| Regulatory prediction | "predicts" / "consistent with regulated activation under…" |
-| Ecological analogy | "could represent" / "is hypothesized to" |
-| Literature verified | cited, cautious; no untested strain-specific causality |
+| Direct assay | Activity under the recorded material and assay conditions. Fractionation alone does not give compound identity or BGC causation. |
+| Bioinformatic BGC | "contains domains consistent with" or "predicted to encode" |
+| Regulatory prediction | "predicts" or "consistent with regulated activation under" |
+| Ecological analogy | "could represent" or "is hypothesized to" |
+| Literature | Cited, with no strain-specific causality claimed |
 
-If a completed, source-bound assessment found no retained signal, report that bounded null with its scope. Missing inputs, unrun scans, failed parsing and unreviewed evidence remain unavailable or pending; they are not null results. Do not invent an ecological story.
+## The eleven steps
 
----
+1. **TFBS regulatory coupling table.** By working convention, a regulator seen in 2 or more BGCs is a coupled network and one seen in 6 or more is a genome-wide network. Read each in the host's context.
+2. **Polysaccharide substrate coupling.** BGCs with GH or LPMO domains plus a matching TFBS are polysaccharide-gated candidates. State a null network explicitly.
+3. **`bldA` tier to host development.** Map tiers T1 to T4 (the count of TTA codons in the scan: zero, 1-2, 3-5, 6 or more; see [Concepts Q&A](../GUIDE/06_Concepts_QandA.md#what-are-the-blda-tiers)) to the host's seasonal or developmental phases.
+4. **Host disease-defense matching.** Match the strain's class capacity to the host's known pathogens. Capacity is not protection.
+5. **Novel regulatory signals.** Regulators or contexts outside your standing set.
+6. **Integrated model.** One falsifiable account that ties steps 1 to 5 to the host.
+7. **BGC-by-BGC matrix.** One row per BGC: evidence, ecological role hypothesis, confidence.
+8. **Ranking.** Rank hypotheses by how many evidence streams support them.
+9. **Hypothesis format.** `[claim] based on [BGC, locus, domain, bitscore or TFBS], confidence [H/M/L], test: [experiment]`.
+10. **Claim-safety pass.** Check every sentence against the ceilings above.
+11. **Reviewer-attack block.** Append an ecological-overreach block. See [DELIVERABLE_ReviewerAttack.md](DELIVERABLE_ReviewerAttack.md), category 4.
 
-## 3. Pipeline — the eleven steps (restored from §17.3–17.11)
+The host-context tables (TFBS to ecology, `bldA` to phase, host to pathogen to class) are yours to fill. Use your own habitat categories and cite the source for each.
 
-1. **TFBS regulatory coupling table** — regulators in ≥2 BGCs = coupled network; ≥6 = genome-wide network. Interpret each in *host* context (the common error is dismissing a habitat-specific signal as generic stress — e.g. IolR in a polyol-rich niche is a catabolism signal, not stress).
-2. **Polysaccharide substrate coupling** — BGCs with GH/LPMO + cognate TFBS = polysaccharide-gated candidates. **A null network is reported explicitly.**
-3. **bldA tier → host developmental mapping** — map T1–T4 to the host's seasonal/developmental phases.
-4. **Host disease-defense matching** — match strain class capacity to the host's known pathogens (claim-safe: capacity, not protection).
-5. **Novel regulatory signals** — regulators/contexts not in the project's standing set.
-6. **Integrated model** — one coherent, falsifiable narrative tying Steps 1–5 to the host.
-7. **BGC-by-BGC ecological matrix** — one row per BGC: evidence → ecological role hypothesis → confidence.
-8. **Scoring rubric** — rank hypotheses by evidence-stream count.
-9. **Hypothesis format** — each as `[claim] — based on [BGC/locus/domain/bitscore/TFBS] — confidence [H/M/L] — test: [experiment]`.
-10. **Claim-safety pass** — apply §17.2A ceilings to every sentence.
-11. **Reviewer-attack (ecological)** — append an ecological-overreach RAS block (`DELIVERABLE_ReviewerAttack.md` category 4).
+## Standing constraints
 
-Host-context lookups (TFBS→ecology, bldA→phase, host→pathogen→class) are **project-specific worked examples**; populate the columns with your own isolate-source categories rather than copying the reference project's Hymenoptera/Attine/Bryophyte cells.
+NAPAA is neutral in the rules registry: the engine neither downgrades it nor blocks it as a lead. By project rule it is left out of family (BiG-SCAPE) analyses and strain decks, so do not build family-level comparative claims on it. Whether NAPAA may carry other ecological comparisons is an open project decision: the registry rationale allows it, while some report builders still exclude it. Until it is decided, report NAPAA with its evidence and do not make it the basis of an ecological claim. The retired Nosema hypothesis stays retired. Where you do mention NAPAA, report it with its evidence like any other class.
 
----
+Historical hglE-KS prevalence is context. It is not a habitat claim, so do not tie hglE-KS to a habitat. See the NAPAA and hglE-KS rows in the [glossary](../GLOSSARY.md).
 
-## 4. Outputs & contract surface
+## Output
 
-`[Strain]_Ecological_Synthesis_YYYY-MM-DD.pdf` + the BGC-by-BGC ecological matrix + an ecology memory line in the Project Memory Snapshot. **Standing constraints enforced:** NAPAA excluded from comparative/ecological claims; hglE-KS habitat-non-specific; retired hypotheses (BRYO-HGT-001, Nosema/NAPAA) not revived.
+A document you write by hand. Name it for your strain and keep it with the package it came from. Include the BGC-by-BGC matrix. To put it in the compiled report, run `python mamey_run.py write-narrative <package> --section ecological_synthesis --file <your.md>`.
 
----
+## Checklist
 
-## 5. Acceptance checklist
+- [ ] Every hypothesis cites a BGC locus as `strain / full contig / region / BGC alias`.
+- [ ] Every hypothesis has a confidence label and a named test.
+- [ ] Null results are stated.
+- [ ] Every sentence respects the evidence ceilings.
+- [ ] The reviewer-attack block is appended.
+- [ ] Open holds are listed at the end.
 
-- [ ] Every hypothesis cites specific BGC evidence (node/locus/domain/bitscore/TFBS).
-- [ ] Every hypothesis carries a confidence label and a named test.
-- [ ] Null results stated explicitly (polysaccharide gating, absent networks).
-- [ ] §17.2A claim ceilings applied to every sentence.
-- [ ] Standing constraints enforced; no retired hypotheses revived.
-- [ ] Ecological RAS block appended.
-- [ ] Host-context tables are the user's own categories, not reference-project cells.
-- [ ] Hand back the result, its evidence and open holds.
+## Template for one hypothesis
 
----
-
-## 6. Knowledge inventory
-
-| Piece | Owner |
-|---|---|
-| Eleven-step method | this module (expansion of kernel M14) |
-| Evidence ceilings (§17.2A) | this module + `DELIVERABLE_CONTRACT.md` |
-| TFBS extraction | Mamey scans / kernel M8 context |
-| Standing constraints | parent monolith |
-
----
-
-## 7. Worked next-paths closer (SID-XXX — insect microbiome)
-
-> Ecological synthesis (claim-safe): iron-economy hypothesis (catecholate siderophore SID-XXX / <contig> / region<NNN> / BGC019 diOH-Bz + NI-siderophore SID-XXX / <contig> / region<NNN> / BGC062) — competitive Fe piracy, confidence M, test: CAS assay under iron limitation. Chemical-warfare hypothesis (enediyne SID-XXX / <contig> / region<NNN> / BGC047 + thioamitide SID-XXX / <contig> / region<NNN> / BGC012) — antagonism in a crowded community, confidence M, bioinformatic only. NAPAA excluded; no hglE-KS habitat claim. Next paths:
-> 1. Build the BGC-by-BGC ecological matrix for all interior leads.
-> 2. Append the ecological-overreach RAS block.
-> 3. Populate the host-context TFBS table with insect-microbiome categories.
-> 4. Test the iron-economy hypothesis design against the metabolomics CAS-assay plan.
-> 5. Bank a second insect-microbiome strain to test recurrence of the iron + warhead pairing.
+> Iron-economy hypothesis: `<strain> / <full contig> / region<NNN> / <BGC alias>` carries a siderophore-type locus, which could support competition for iron. Confidence M. Test: CAS assay under iron limitation. Bioinformatic evidence only.

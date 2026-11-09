@@ -1,88 +1,106 @@
-# Reporting v2 — per-gene MIBiG convergence & structured antiSMASH tables
+# Per-gene MIBiG convergence tables
 
-Read this before citing any convergence field or tier label in a Mode B card, manuscript or slide.
+Read this before you cite a convergence field or tier label in a card, manuscript or slide.
 
-## What this is — and is not
+A convergence table shows how many genes in one BGC (biosynthetic gene cluster) match genes of one
+MIBiG reference cluster. MIBiG is the database of characterized clusters. See the
+[glossary](GLOSSARY.md) for other terms.
 
-These are **new deterministic reporting outputs**, not new judgments and not a scoring change.
-Multi-gene convergence is **direct sequence evidence for pathway-family relatedness**. It does
-**not** prove exact product identity, expression, production, bioactivity, resistance, novelty, or
-physical linkage across contigs. The tiers below are **reporting strata, not Sapote judgments** —
-they stratify how much per-gene reference agreement a BGC shows, nothing more.
+## What the tables are and are not
 
-**Source-scoped reporting boundary:** the current extraction `scoring.py` and `rules.py` do not directly consume this module. Current downstream consumers also include comparator-coverage, gene-first exploration, roster, widget and other report paths, so the old “only three importers” statement is not a current consumer inventory. There is no AB/AF bonus from convergence — the
-"report-only" contract holds in the import graph. The modules carry it in code:
-`mibig_per_gene.REPORT_ONLY_CONTRACT = "REPORT_ONLY_NO_SCORING"`,
-`length_weighted.TRIAL_ONLY_NO_SCORING`, and a `CLAIM_SAFETY` denial string in `antismash_tables.py`.
+The tables are reporting only. They add no score and no bonus, and they change no triage or count.
+`mibig_per_gene.REPORT_ONLY_CONTRACT` is `REPORT_ONLY_NO_SCORING`.
 
-## The new package files (sealed gold package, `3_*` prefix)
+The tables parse the gene-level hits that antiSMASH saved in its KnownClusterBlast summaries. Many
+matching genes are bounded support for the hypothesis that two clusters belong to related pathways.
+Matches can come from generic or shared genes, so a pathway relationship needs locus-specific review.
+The saved summaries do not prove the exact query bytes that were searched or a complete gene roster.
+They do not show the same product, expression, production, bioactivity, resistance, novelty or
+physical linkage across contigs. The named MIBiG compound is a comparator, not an identified product.
 
-| file | what it holds |
+## Get the files
+
+The `run` command writes them into the strain's package folder
+(`runs/<strain>/package/`; see [first run](reader/01_FIRST_RUN.md)). Nothing else is needed. To get
+them for an older package, run the strain again. Old packages are not upgraded in place.
+
+| File | What it holds |
 |---|---|
-| `3_mibig_per_gene.{json,csv}` | one retained row per **`(query gene, MIBiG accession)`** pair — the repeated-reference signal (not one best ref per gene) |
-| `3_mibig_convergence.{json,csv}` | per **BGC × MIBiG accession**: distinct query/subject genes, query-gene share, recognizable-gene share, median/min identity, median coverage, best antiSMASH reference rank, class concordance, boundary status, **evidence tier** |
-| `3_mibig_profile.csv` | per BGC: dominant accession, compound-family label, gene count, tier (denominator = all query-cluster genes, so the dark-matter fraction stays meaningful) |
-| `3_antismash_structured.json` | combined structured module/RiPP/motif/RRE-Finder evidence |
-| `3_antismash_modules.csv` · `3_antismash_ripp_motifs.csv` · `3_antismash_motifs.csv` · `3_antismash_rrefinder.csv` | the structured tables, split |
-| `3_length_weighted_capacity.csv` · `3_length_weighted_summary.json` | P-LWC assembly-sensitivity capacity descriptor (trial; **not a lead score, not a BGC count**) |
+| `<strain>_3_mibig_per_gene.{json,csv}` | One row per query gene and MIBiG accession pair. |
+| `<strain>_3_mibig_convergence.{json,csv}` | One row per BGC and MIBiG accession, with the tier. |
+| `<strain>_3_mibig_profile.csv` | One row per BGC: the dominant accession, gene counts and tier. |
+| `<strain>_3_antismash_structured.json` | Module, RiPP motif and RRE-Finder evidence together. |
+| `<strain>_3_length_weighted_capacity.csv` and `<strain>_3_length_weighted_summary.json` | A trial capacity measure for assembly sensitivity. It is not a lead score and not a BGC count. |
 
-Workbook sheets mirror these: `MIBiG_Per_Gene`, `MIBiG_Convergence`, `MIBiG_Profile`,
-`antiSMASH_Modules`, `antiSMASH_RiPP_Motifs`, `antiSMASH_Motifs`, `antiSMASH_RREfinder`.
+The workbook has matching sheets: `MIBiG_Per_Gene`, `MIBiG_Convergence`, `MIBiG_Profile`,
+`antiSMASH_Modules`, `antiSMASH_RiPP_Motifs`, `antiSMASH_Motifs` and `antiSMASH_RREfinder`.
 
-## The evidence-tier vocabulary (deterministic strata)
+To read the result, open `<strain>_3_mibig_convergence.csv`. The columns to look at are `bgc_id`,
+`mibig_accession`, `distinct_query_genes`, `median_pct_identity`, `median_pct_coverage`,
+`class_concordance`, `convergence_tier`, `dominant_reference` and `dominance_status`.
 
-A tier is computed for each BGC × MIBiG comparator row; the profile then takes its dominant row under tier-first ordering. Class-mismatch precedence is per comparator, not a veto over positive tiers from other references. Preserve dominant/runner-up status with the displayed tier, as detailed below. **The declared thresholds below remain unchanged.**
+## Tiers
 
-| tier | requires |
+Each BGC and MIBiG row gets one tier. The thresholds come from `_convergence_tier` in
+`mamey/mibig_per_gene.py`. The tiers sort rows by how much per-gene agreement there is. They are not
+judgments.
+
+| Tier | Requires |
 |---|---|
-| **H1_HIGH_DENSITY** | ≥12 query genes · median identity ≥70% · median coverage ≥80% · recognizable-gene share ≥0.65 · best reference rank ≤3 · no broad class conflict |
-| **H2_STRONG_FAMILY** | ≥8 genes · median id ≥55% · median cov ≥75% · recognizable-gene share ≥0.40 · no class conflict |
-| **H3_MULTI_GENE** | ≥4 genes · median id ≥40% · median cov ≥60% · no class conflict |
-| **H4_REPEATED_SUPPORT** | ≥2 genes · median id ≥35% · no class conflict |
-| **CAUTION_CLASS_MISMATCH** | numerical convergence is real but the **broad antiSMASH/MIBiG classes conflict** — **cannot be promoted**, has hard precedence over every positive tier above |
-| **H5_SINGLE_OR_WEAK** | everything else |
+| `H1_HIGH_DENSITY` | At least 12 query genes, median identity 70% or more, median coverage 80% or more, recognizable-gene share 0.65 or more, best reference rank 3 or better. |
+| `H2_STRONG_FAMILY` | At least 8 genes, identity 55% or more, coverage 75% or more, share 0.40 or more. |
+| `H3_MULTI_GENE` | At least 4 genes, identity 40% or more, coverage 60% or more. |
+| `H4_REPEATED_SUPPORT` | At least 2 genes, identity 35% or more. |
+| `HOLD_COVERAGE_UNMEASURED` | At least 4 genes and identity 40% or more, but no hit for this reference has a numeric coverage. H1 to H3 need coverage, so the row is held, not scored as 0% coverage. |
+| `CAUTION_CLASS_MISMATCH` | The antiSMASH class and the MIBiG class conflict. Checked first, so it replaces any H tier for that reference. |
+| `H5_SINGLE_OR_WEAK` | Everything else. |
 
-`CAUTION_CLASS_MISMATCH` **wins over density**: a 20-gene convergence with a discordant class is
-`CAUTION`, not H1. The whole-region query-gene share is reported independently and is **not**
-substituted for recognizable-gene dominance.
+The class mismatch applies to one reference, not to the whole BGC. A BGC can be `CAUTION_CLASS_MISMATCH`
+against one MIBiG cluster and `H3_MULTI_GENE` against another. The profile picks its dominant
+reference with tier first, so a weaker positive tier from another reference can outrank a larger
+mismatch. Read `dominance_status` and the runner-up columns with the tier.
 
-## How to cite these (authoring guidance)
+## What the numbers mean
 
-- **Do** say: *"N proteins converge on the <family> comparator (median id X%, coverage Y%), tier
-  H2_STRONG_FAMILY — a related biosynthetic cassette."* Cite strain / full node-or-contig / region / BGC alias, source accession/version and the tier.
-- **Do** carry the boundary status: an **edge/truncated** region means the observed annotations are incomplete context; completeness/actionability require separate review even when sequence support is strong.
-- **Don't** read a tier as a product call, an activity claim, or novelty. `H2_STRONG_FAMILY` is not
-  "this strain makes compound X." The named MIBiG metabolite is a **comparator, not an identified
-  product**.
-- **Don't** double-count: convergence and KnownClusterBlast derive from the **same antiSMASH
-  channel** — they are not independent replication.
-- **Coverage >100%** is preserved as-sourced but flagged `SOURCE_GT100_CAPPED_FOR_INTERPRETATION`;
-  interpret with the cap, and never silently mutate the source value.
+- **Query genes.** The count comes from the parsed query table plus genes that appear in hits. It is
+  not a checked list of every gene. A trimmed query table shrinks the count and raises the fractions.
+- **Recognizable.** In the convergence table it means a query gene with a hit. In the profile it
+  applies a minimum-identity rule. The two shares are not interchangeable.
+- **One hit per pair.** For each query gene and reference, the row with the highest BLAST score is
+  kept. This is not a one-to-one match between genes.
+- **Coverage over 100%.** The source value is kept and flagged `SOURCE_GT100_CAPPED_FOR_INTERPRETATION`.
+  Tiers use the capped value.
+- **Missing coverage.** A blank or non-numeric coverage cell stays blank. It is not 0% and it is not
+  in range. The row's `coverage_qc_flag` then includes `MISSING_OR_NONNUMERIC_COVERAGE`, and
+  `coverage_missing_row_count` gives how many hits lacked it. The coverage medians use the hits that
+  have a value; they are blank when none do.
+- **Bad files.** A file that fails to parse adds to `parse_error_count`. The overall status can still
+  read `PASS` if other files gave rows. Check the count.
+- **Empty or missing input.** `NULL_NO_MIBIG_GENE_HITS` covers an empty, missing, skipped or failed
+  parse. Look at the source and error context to tell which. A KnownClusterBlast file that is present
+  with no hits is reported as `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` in the KnownClusterBlast evidence
+  state. See [reading your results](READING_YOUR_RESULTS.md). It is not a validated negative.
+- **`KNOWN_ANCHORED`.** This label means an accession pattern plus a profile fraction of 0.20 or more.
+  It is not compound identity. The dark-matter labels are reporting labels, not novelty findings.
 
-## Backward compatibility
+## How to cite
 
-The `reporting_v2_gate` fires **only** when the manifest declares
-`reporting_features.schema_version == sapote_reporting_features_v2`. Packages without the v2 reporting schema
-return **`LEGACY_NOT_APPLICABLE`** and are not retroactively invalidated. Re-run a strain only to
-**obtain** the new tables — existing scoring/counting/triage are unchanged, so cross-strain
-comparability is preserved with no re-scoring.
+- Do write: "antiSMASH reported N proteins with similarity to the <family> comparator (median identity
+  X%, coverage Y%), tier H2_STRONG_FAMILY. This supports the hypothesis of a related biosynthetic
+  cassette, pending locus-specific review." Give the locus as
+  strain / full node-or-contig / region / BGC alias, plus the MIBiG accession and version.
+- Do say when the region is on a contig edge. Its annotations are then incomplete context.
+- Do not read a tier as a product, activity or novelty claim.
+- Do not count convergence and KnownClusterBlast as two separate confirmations. Both come from the
+  same antiSMASH output.
 
-## Provenance / status
+## Checks and limits
 
-The lineage doc cites a trial of 38 AS antiSMASH ZIPs → 1,507 BGCs / 45,767 retained rows / 0 parse
-errors. That is a **self-reported trial**; the tier logic is otherwise exercised by unit tests and by
-an evidence-free smoke ZIP (which yields 0 convergence rows by design). **A real KCB-bearing strain
-run is still owed before the convergence tiers are trusted on live output.** Until then, treat
-live-run tiers as provisional.
+Packages without the v2 reporting schema return `LEGACY_NOT_APPLICABLE` from the reporting gate. That
+is not a claim that the old evidence is complete. The gate checks the declared schema, files, headers,
+row counts and workbook match. It does not check source bytes or full locus identity.
 
-## Current denominator, aggregation and missingness contracts
-
-`mamey/mibig_per_gene.py` maps knownclusterblast TXT files to contig+region, then stores rows under BGC alias. Duplicate context keys can overwrite; unmapped files are skipped. Versioned references are collapsed at the first dot for the query/reference key, and the highest BLAST-score subject row is retained for each query/reference pair. This is not reciprocal one-to-one gene matching. Keep source file, full reference version and full locus map separately. Per-file exceptions increment `parse_error_count`; overall status can still be `PASS` when other rows exist. `NULL_NO_MIBIG_GENE_HITS` conflates empty/unavailable/skipped/failed parsing unless source/error context is inspected. CLI catches module-level exceptions into `ERROR_<type>` with empty per-gene data (`mamey/cli.py`).
-
-The query denominator comes from the parsed query table **plus hit-derived fallback genes**, not a verified complete CDS roster. Trimmed/missing query tables can shrink the denominator and inflate fractions. In convergence, “recognizable” means hit-bearing query genes; in the BGC profile it applies the profile's minimum-identity rule. These two recognizable denominators are not interchangeable. `KNOWN_ANCHORED` is an accession-pattern anchor plus profile fraction≥0.20, not compound identity or accepted reference biology. The dark-matter names are saved-annotation reporting labels, not novelty findings.
-
-Raw coverage and capped interpretive coverage remain separate. Missing/non-numeric coverage is flagged, but helpers are not comprehensive finite-number admission guards; independently reject invalid values before interpreting tiers. Tier code uses capped interpretive median; raw median is for provenance. A class-discordant reference receives CAUTION, but dominant sorting places that reference after positive tiers from **other references**: mismatch precedence is per reference, not a universal BGC veto. Dominant status and runner-up margin must travel with the tier; tier-first ordering can make a lower-density positive reference dominant over a larger mismatch.
-
-The reporting gate checks declared schema, files, row/header/count and workbook parity. It is not an exact source-byte/full-locus/biological validator. `LEGACY_NOT_APPLICABLE` applies to undeclared reporting schema, not a retroactive claim that legacy evidence is complete. Package sealing/hash validation and current50 authoring verification are separate boundaries. Re-running an old package is a separately authorized new run, not an in-place upgrade.
-
-The old 38-ZIP/1,507-BGC/45,767-row trial remains a self-reported historical scope. Freeze exact source ZIP/package/sidecar/code hashes and parameters before citing a convergence result; report uncertainty and denominator completeness alongside reference agreement. See [current ranker admission](DEFINITIVE_BGC_RANKER.md) for the additional limits of consuming these per-gene tables.
+The tier logic is covered by unit tests. A self-reported trial on 1,507 BGCs gave 45,767 retained rows
+and no parse errors. Treat live tiers as provisional. Before you cite a result, record the source ZIP,
+package and parameters, and report how complete the query-gene count is. For ranking limits, see
+[the BGC ranker](DEFINITIVE_BGC_RANKER.md).

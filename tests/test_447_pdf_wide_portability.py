@@ -7,6 +7,25 @@ from mamey import markdown_pdf as pdf
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def _image_ast(target, alt):
+    """Pandoc JSON for one paragraph holding one image, for a fixture that stands in for pandoc."""
+    return json.dumps({"pandoc-api-version":[1,23,1],"meta":{},"blocks":[{"t":"Para","c":[
+        {"t":"Image","c":[["",[],[]],[{"t":"Str","c":alt}],[target,""]]}]}]})
+
+
+def _fake_pandoc(path, ast_json, log=None):
+    """A pandoc stand-in: answers the preparer's `-f markdown -t json` parse with a fixed AST and,
+    on a render call, logs argv, the Markdown and the resource map, then writes the -o target."""
+    body=('import json,os,pathlib,sys\nargs=sys.argv[1:]\n'
+          'if args[:4]==["-f","markdown","-t","json"]:\n    sys.stdout.write('+repr(ast_json)+');raise SystemExit(0)\n')
+    if log is not None:
+        body+=('m=os.environ.get("SAPOTE_PDF_RESOURCE_MAP","")\n'
+               'pathlib.Path('+repr(str(log))+').write_text(json.dumps({"argv":args,"markdown":pathlib.Path(args[0]).read_text(),'
+               '"resource_map":json.loads(pathlib.Path(m).read_text()) if m else None}))\n')
+    body+='pathlib.Path(args[args.index("-o")+1]).write_text("fixture latex")\n'
+    write_python_fixture(path, body)
+
+
 def test_43_columns_and_long_last_cell_are_retained_in_real_pdf(tmp_path):
     headers=[f'Field{i:02}' for i in range(43)]
     values=[f'Value{i:02}' for i in range(43)];values[-1]='x'*650+'TAIL_SENTINEL'
@@ -43,7 +62,12 @@ def test_resource_preflight_preserves_original_relative_image(tmp_path):
     spec=importlib.util.spec_from_file_location('pdf_resources',ROOT/'tools/prepare_pdf_resources.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
     source=tmp_path/'source';source.mkdir();image=source/'a.png';image.write_bytes(b'fixture')
     md=source/'a.md';md.write_text('![a](a.png)\n');dest=tmp_path/'temp'/'safe.md';dest.parent.mkdir()
-    mod.prepare(md,dest);assert str(image.resolve()) in dest.read_text()
+    pandoc=tmp_path/'pandoc';_fake_pandoc(pandoc,_image_ast('a.png','a'))
+    mod.prepare(md,dest,pandoc=str(pandoc))
+    # The Markdown is kept unchanged; the absolute location travels in the resource map.
+    assert dest.read_text()=='![a](a.png)\n'
+    resource_map=json.loads(dest.with_suffix('.resource_map.json').read_text())
+    assert Path(resource_map['targets']['a.png']).resolve()==image.resolve()
 
 
 def test_extra_table_cells_are_refused_not_clipped():
@@ -58,14 +82,17 @@ def test_fallback_passes_absolute_resources_and_reports_missing_dependencies(tmp
     caller=tmp_path/'caller';caller.mkdir();bins=tmp_path/'bin';bins.mkdir();log=tmp_path/'pandoc_log.json'
     wrapper=bins/'python3'
     write_python_fixture(wrapper, 'import os,sys\nif len(sys.argv)>1 and sys.argv[1].endswith("render_deliverable_pdf.py"):raise SystemExit(1)\nos.execv('+repr(sys.executable)+', ['+repr(sys.executable)+']+sys.argv[1:])\n')
-    pandoc=bins/'pandoc';write_python_fixture(pandoc, 'import sys,json,pathlib\nargs=sys.argv[1:];pathlib.Path('+repr(str(log))+').write_text(json.dumps({"argv":args,"markdown":pathlib.Path(args[0]).read_text()}))\npathlib.Path(args[args.index("-o")+1]).write_text("fixture latex")\n')
+    pandoc=bins/'pandoc';_fake_pandoc(pandoc,_image_ast('panel.png','panel'),log)
     latex=bins/'xelatex';write_python_fixture(latex, 'import pathlib,sys\nout=next(a.split("=",1)[1] for a in sys.argv if a.startswith("-output-directory="))\n(pathlib.Path(out)/"d.pdf").write_bytes(b"%PDF mocked latex output")\n')
     env=dict(os.environ,PATH=str(bins)+os.pathsep+os.environ['PATH'],PYTHON=str(wrapper));out=caller/'out.pdf'
     r=subprocess.run(['bash',str(ROOT/'tools/md_to_pdf.sh'),str(md),str(out)],cwd=caller,env=env,capture_output=True,text=True)
     assert r.returncode==0,r.stderr
-    receipt=json.loads(log.read_text());assert str(source/'panel.png') in receipt['markdown']
+    receipt=json.loads(log.read_text())
+    assert Path(receipt['resource_map']['targets']['panel.png']).resolve()==(source/'panel.png').resolve()
     assert '--resource-path='+str(source) in receipt['argv']
-    latex.unlink();out.unlink()
+    assert any(a.startswith('--lua-filter=') and a.endswith('pdf_resource_filter.lua') for a in receipt['argv'])
+    latex.unlink()
+    for earlier in caller.glob('out.*'): earlier.unlink()  # .464: earlier PDF and sidecars are never replaced
     # A forced primary failure cannot claim success when fallback is unavailable.
     # .452: a host with a real xelatex (Linux CI images often have one) made `command -v xelatex` succeed here, so
     # the test depended on the host. Link every other command on PATH and leave the TeX engines and pandoc out.

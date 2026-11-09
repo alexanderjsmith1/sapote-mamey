@@ -25,7 +25,8 @@ use a fresh outdir/registry for a reviewed migration. NEEDS_ANTISMASH is retryab
 and never a successful-completion receipt. Existing unbound packages are held;
 failed attempts without a package remain retryable. Receipts provide integrity binding, not authenticity.
 
-Peak memory uses psutil (subprocess RSS incl. children); falls back to resource.ru_maxrss if absent.
+Peak memory uses psutil (sampled subprocess RSS incl. children); falls back to resource.ru_maxrss
+(RUSAGE_CHILDREN, converted per platform: bytes on macOS, KiB elsewhere) if absent.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -136,6 +137,25 @@ def assign_unique_names(zips):
     return out
 
 
+def ru_maxrss_to_mb(value, platform=None):
+    """Convert ``ru_maxrss`` to decimal MB (1e6 bytes), the unit the psutil path reports.
+
+    macOS reports ``ru_maxrss`` in bytes; Linux and the other platforms report KiB.
+    """
+    platform = sys.platform if platform is None else platform
+    as_bytes = float(value) if platform == "darwin" else float(value) * 1024.0
+    return as_bytes / 1e6
+
+
+PEAK_METHOD_NOTE = {
+    True: ("psutil: RSS of the engine child and its descendants, sampled while it runs. "
+           "Sampling can miss a short peak."),
+    False: ("ru_maxrss (psutil not installed): the largest resident size of any finished child "
+            "of this harness so far, not of this input alone. A later input can repeat an "
+            "earlier, larger value."),
+}
+
+
 def run_monitored(cmd, timeout=None, **kw):
     """Return (returncode, wall_s, peak_mb, combined_output).
 
@@ -200,8 +220,12 @@ def run_monitored(cmd, timeout=None, **kw):
     if _HAVE_PSUTIL:
         peak_mb = peak / 1e6
     else:
+        # Self-contained (tests load this function alone): macOS reports ru_maxrss
+        # in bytes, Linux and the others in KiB. Same rule as ru_maxrss_to_mb().
         import resource
-        peak_mb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0
+        import sys as _platform_sys
+        _maxrss = float(resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
+        peak_mb = (_maxrss if _platform_sys.platform == "darwin" else _maxrss * 1024.0) / 1e6
     return p.returncode, round(time.perf_counter()-t0, 3), round(peak_mb, 1), out
 
 
@@ -355,9 +379,13 @@ class AmbiguousRegionDirectories(ValueError):
 
 def detect_and_stage(zip_path, stage_root, name):
     """Return (kind, input_zip_or_none, clusterblast_dir_or_none, organism)."""
-    d = os.path.join(stage_root, name)
-    shutil.rmtree(d, ignore_errors=True)
-    os.makedirs(d, exist_ok=True)
+    # Each attempt gets its own fresh folder. An earlier attempt's stage, or anything
+    # else under stage_root, is never removed or overwritten; it stays for inspection.
+    import tempfile
+    os.makedirs(stage_root, exist_ok=True)
+    attempt = tempfile.mkdtemp(prefix=name + ".attempt-", dir=stage_root)
+    d = os.path.join(attempt, "extract")
+    os.mkdir(d)
     with zipfile.ZipFile(zip_path) as z:
         _safe_extract_zip(z, d)
     shutil.rmtree(os.path.join(d, "__MACOSX"), ignore_errors=True)
@@ -384,8 +412,8 @@ def detect_and_stage(zip_path, stage_root, name):
         )
     if organism and is_placeholder_taxonomy(organism):
         organism = None
-    input_zip = os.path.join(stage_root, name + ".input.zip")
-    with zipfile.ZipFile(input_zip, "w", zipfile.ZIP_DEFLATED) as z:
+    input_zip = os.path.join(attempt, name + ".input.zip")
+    with zipfile.ZipFile(input_zip, "x", zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(gdir):
             for fn in files:
                 if "__MACOSX" in root or fn.startswith("._"):
@@ -757,6 +785,7 @@ def _write_report(path, label, reg, met, smoke):
             _ev = "?"
         f.write(f"# Intake — {label}\n\nMamey v{_ev}\n\n")
         f.write("## Performance\n\n")
+        f.write("Peak memory (MB = 10^6 bytes) method: " + PEAK_METHOD_NOTE[_HAVE_PSUTIL] + "\n\n")
         f.write("| Reference (user) | This run |\n|---|---|\n")
         # AUDIT_371: smoke's rc was captured but never checked here, so a failed
         # subprocess (e.g. --mode smoke, retired at v9.7.161 -> argparse rejects it near-

@@ -61,9 +61,37 @@ def exact_identity_parts(value: str) -> tuple[str, str, str, str]:
     return strain, node, region, alias
 
 
-def _median(values) -> float:
+def _median(values):
+    """Median of the recorded values, or "" (unmeasured) when none was recorded."""
     vals = [_number(v) for v in values if v not in (None, "")]
-    return statistics.median(vals) if vals else 0.0
+    return statistics.median(vals) if vals else ""
+
+
+def _rounded(value, digits):
+    return "" if value == "" else round(value, digits)
+
+
+# Gate and score inputs that can be unmeasured, with the value the calculation uses in their place.
+# The value gives no credit (0 coverage/identity, rank 999), so an unmeasured field can never help a
+# pair pass a gate or gain score. The output row keeps the field blank.
+_CALC_DEFAULTS = {
+    "reference_protein_coverage": 0.0, "reference_total_proteins": 0,
+    "median_identity": 0.0, "median_alignment_coverage": 0.0,
+    "subject_disjointness": 0.0, "max_reference_rank": 999,
+}
+
+
+def _calc(row: dict) -> dict:
+    """A copy of ``row`` with blank (unmeasured) gate inputs given their no-credit value."""
+    view = dict(row)
+    for key, default in _CALC_DEFAULTS.items():
+        if view.get(key, "") == "":
+            view[key] = default
+    return view
+
+
+def unmeasured_fields(row: dict) -> str:
+    return "; ".join(key for key in _CALC_DEFAULTS if row.get(key, "") == "")
 
 
 def _protein_key(value: str) -> tuple:
@@ -108,6 +136,8 @@ def reference_topology(a: set[str], b: set[str], order: dict[str, int]) -> tuple
 
 
 def _generic_modular(locus_a: dict, locus_b: dict, row: dict) -> bool:
+    row = _calc(row)
+
     def text(locus):
         return " ".join(str(locus.get(k, "")) for k in (
             "current_antismash_products", "architecture_first_pathway_type", "functional_logic_tags"
@@ -134,6 +164,7 @@ def boundary_evidence_state(row: dict) -> str:
 
 
 def evidence_tier(row: dict) -> tuple[str, str]:
+    row = _calc(row)
     both = min(row["unique_subjects_a"], row["unique_subjects_b"])
     ordered = row["reference_tiling_topology"] in {
         "DISJOINT_ADJACENT_SEGMENTS", "DISJOINT_SEPARATED_SEGMENTS"
@@ -160,6 +191,7 @@ def evidence_tier(row: dict) -> tuple[str, str]:
 
 
 def evidence_score(row: dict) -> float:
+    row = _calc(row)
     balance = min(row["unique_subjects_a"], row["unique_subjects_b"]) / max(
         row["unique_subjects_a"], row["unique_subjects_b"], 1)
     score = (
@@ -228,12 +260,15 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
                 "shared_subjects": len(overlap), "combined_unique_subjects": len(union),
                 "subject_disjointness": round(1 - len(overlap) / len(union), 4) if union else 0.0,
                 "reference_roster_state": "LOADED" if roster_loaded else "REFERENCE_ROSTER_NOT_LOADED",
-                "reference_total_proteins": int(roster["protein_count"]),
-                "reference_protein_coverage": round(len(union) / roster["protein_count"], 4) if roster["protein_count"] else 0.0,
-                "median_identity_a": round(_median(h.get("pct_identity") for h in ha), 2),
-                "median_identity_b": round(_median(h.get("pct_identity") for h in hb), 2),
-                "median_identity": round(_median(h.get("pct_identity") for h in ha + hb), 2),
-                "median_alignment_coverage": round(_median(h.get("pct_coverage_interpretation") for h in ha + hb), 2),
+                # Blank when the roster never loaded: the denominator was not measured.
+                "reference_total_proteins": int(roster["protein_count"]) if roster_loaded else "",
+                "reference_protein_coverage": (round(len(union) / roster["protein_count"], 4)
+                                               if roster_loaded and roster["protein_count"] else
+                                               (0.0 if roster_loaded else "")),
+                "median_identity_a": _rounded(_median(h.get("pct_identity") for h in ha), 2),
+                "median_identity_b": _rounded(_median(h.get("pct_identity") for h in hb), 2),
+                "median_identity": _rounded(_median(h.get("pct_identity") for h in ha + hb), 2),
+                "median_alignment_coverage": _rounded(_median(h.get("pct_coverage_interpretation") for h in ha + hb), 2),
                 "best_reference_rank_a": min(ranks_a, default=999),
                 "best_reference_rank_b": min(ranks_b, default=999),
                 "max_reference_rank": max(min(ranks_a, default=999), min(ranks_b, default=999)),
@@ -249,21 +284,25 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
             priority = {"DISJOINT_ADJACENT_SEGMENTS": 4, "DISJOINT_SEPARATED_SEGMENTS": 3,
                         "DISJOINT_INTERLEAVED_REFERENCE_PROTEINS": 2,
                         "OVERLAPPING_REFERENCE_PROTEINS": 1, "REFERENCE_ORDER_UNAVAILABLE": 0}
-            best = max(candidates, key=lambda r: (min(r["unique_subjects_a"], r["unique_subjects_b"]),
-                priority.get(r["reference_tiling_topology"], 0), r["combined_unique_subjects"],
-                r["reference_protein_coverage"], r["subject_disjointness"],
-                -r["max_reference_rank"], r["median_identity"]))
+            best = max(candidates, key=lambda r: (lambda c: (min(c["unique_subjects_a"], c["unique_subjects_b"]),
+                priority.get(c["reference_tiling_topology"], 0), c["combined_unique_subjects"],
+                c["reference_protein_coverage"], c["subject_disjointness"],
+                -c["max_reference_rank"], c["median_identity"]))(_calc(r)))
         else:
+            # No reference was recorded for both loci in the supplied hit tables. The subject counts
+            # are observed zeros for that join; every reference measurement is blank (not measured),
+            # because there is no shared reference to measure.
             best = {"strain": pa[0], "pair": pair.get("pair", f"{pa[3]}+{pb[3]}"),
                     "identity_a": ida, "identity_b": idb, "shared_reference": "",
                     "shared_reference_product": "", "query_genes_a": 0, "query_genes_b": 0,
                     "unique_subjects_a": 0, "unique_subjects_b": 0, "subjects_a_total": 0,
                     "subjects_b_total": 0, "shared_subjects": 0, "combined_unique_subjects": 0,
-                    "subject_disjointness": 0.0, "reference_total_proteins": 0,
-                    "reference_protein_coverage": 0.0, "median_identity_a": 0.0,
-                    "median_identity_b": 0.0, "median_identity": 0.0,
-                    "median_alignment_coverage": 0.0, "best_reference_rank_a": 999,
-                    "best_reference_rank_b": 999, "max_reference_rank": 999,
+                    "subject_disjointness": "", "reference_roster_state": "NO_SHARED_REFERENCE",
+                    "reference_total_proteins": "",
+                    "reference_protein_coverage": "", "median_identity_a": "",
+                    "median_identity_b": "", "median_identity": "",
+                    "median_alignment_coverage": "", "best_reference_rank_a": "",
+                    "best_reference_rank_b": "", "max_reference_rank": "",
                     "reference_tiling_topology": "NO_SHARED_EXACT_REFERENCE",
                     "reference_segment_gap_proteins": "", "subjects_a": "", "subjects_b": ""}
         la, lb = loci[ida], loci[idb]
@@ -280,6 +319,13 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
         best["generic_modular_caution"] = _generic_modular(la, lb, best)
         best["evidence_score_0_100"] = evidence_score(best)
         best["evidence_tier"], best["tier_reason"] = evidence_tier(best)
+        if best["reference_tiling_topology"] == "NO_SHARED_EXACT_REFERENCE":
+            best["tier_reason"] = ("No MIBiG reference was recorded for both loci in the supplied hit tables; "
+                                   "this is not evidence that no shared reference exists.")
+        elif best.get("reference_roster_state") == "REFERENCE_ROSTER_NOT_LOADED":
+            best["tier_reason"] += (" The reference roster was not loaded, so reference coverage was not "
+                                    "measured and gave no credit.")
+        best["unmeasured_fields"] = unmeasured_fields(best)
         best["claim_ceiling"] = CLAIM_CEILING
         ranked.append(best)
 

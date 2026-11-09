@@ -1,9 +1,11 @@
 # Cluster protein-inventory comparison
 
-Use the declared `one_to_one_v1` metric for a bounded, symmetric inventory comparison:
+Always pass `--metric one_to_one_v1`. The default metric, `legacy_checked`, exists only to reproduce old results. The command compares protein inventories of two or more clusters and draws a descriptive tree:
 
     python tools/cluster_relate.py --metric one_to_one_v1 \
-      --gbk "FixtureA:fixture_a.gbk" --gbk "FixtureB:fixture_b.gbk" --outdir OUT --pdf
+      --gbk "ExampleA:region_a.gbk" --gbk "ExampleB:region_b.gbk" --outdir OUT --pdf
+
+Give each `--gbk` one cluster GenBank file, normally one antiSMASH region, as `LABEL:path`. Repeat it for each cluster. `--outdir` defaults to `cluster_relate_out`. On success the console prints the cluster count and the output list, and the exit code is 0.
 
 The metric globally aligns every cross-inventory protein pair using Bio.Align,
 BLOSUM62 and gap penalties -11/-1. It excludes identities below `--min-id` (default
@@ -20,10 +22,16 @@ are unmeasured and refused. Identities must be finite percentages.
 alignment: a prefilter would change the admitted edge set. The requested and
 effective engine are recorded separately. This can be slower than a prefilter.
 
-The default `legacy_checked` preserves the historical directed best-hit/minimum-
+The `legacy_checked` default preserves the historical directed best-hit/minimum-
 inventory formula for compatibility. It checks both directions before rounding,
 requires bounded finite values and matching shared-count/mean-identity details,
 and refuses disagreements. It never silently substitutes the named metric.
+
+`tree.nwk` and `dendrogram.png` are built from unrounded distances. `distance_matrix.csv`
+shows them rounded to 4 decimals, so two CSV values can look equal when the tree
+treats them as different. When two pairs are exactly equally close, UPGMA merges the
+pair met first in `--gbk` order. `comparison_contract.json` records both rules
+(`distance_precision`, `upgma_tie_policy`).
 
 Outputs are `distance_matrix.csv`, `tree.nwk`, `dendrogram.png`,
 `comparison_contract.json`, and optional `comparison.pdf`. The contract records
@@ -34,9 +42,7 @@ preserve exact Newick leaf identity through the installed parser; unsupported
 quoted spellings and control characters are refused before outputs.
 
 The dendrogram needs SciPy, plotting needs Matplotlib, and alignment needs
-Biopython. Tests check the assignment against an independent exhaustive oracle,
-copy-count behavior, symmetry, bounds, engine route and legacy refusals. These
-controls verify the declared computation, not a biological interpretation.
+Biopython. Install them with `python -m pip install -e '.[figures]'` from the bundle root (see [install](INSTALL.md#3-add-the-features-you-need)). Without SciPy the tool finishes its comparison, then stops with a `ModuleNotFoundError` and writes no outputs.
 
 ## Receipt binding and publication limits
 

@@ -64,13 +64,11 @@ def test_alias_refused_and_sources_preserved(tmp_path, monkeypatch, source, kind
     assert refused and before == after, {"refused": refused, "changed_paths": [p for p in before if before.get(p) != after.get(p)], "new_paths": sorted(after.keys() - before.keys())}
 
 
-@pytest.mark.parametrize("destination", ["default", "new", "existing"])
+@pytest.mark.parametrize("destination", ["default", "new"])
 def test_nonalias_output_retains_existing_behavior(tmp_path, monkeypatch, destination):
     pkg, gbks, inputs = setup(tmp_path)
     before = {key: path.read_bytes() for key, path in inputs.items()}
     out = None if destination == "default" else tmp_path / "result.json"
-    if destination == "existing":
-        out.write_text("previous generated output")
     invoke(monkeypatch, pkg, gbks, out)
     result = json.loads((out or pkg / "lead_detail.json").read_text())
     assert result["strain_id"] == "SOFTWARE-FIXTURE"

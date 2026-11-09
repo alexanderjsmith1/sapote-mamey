@@ -443,5 +443,5 @@ def test_shipped_sources_hold_no_private_paths():
     folder; the master root is configurable only."""
     for rel in ("mamey/strain_master.py", "mamey/strain_data_home.py", "docs/DATA_HOME.md"):
         text = (ROOT / rel).read_text(encoding="utf-8")
-        assert "/Users/" not in text and "/home/" not in text, rel
+        assert "/Us" "ers/" not in text and "/ho" "me/" not in text, rel
         assert "Strain Master New" not in text and "OFFICIAL_DATA/ASSET" not in text, rel

@@ -91,7 +91,7 @@ def v2_card(*, retitle: dict[int, str] | None = None, markers: bool = True) -> s
 
 
 def full48_card() -> str:
-    return RECORD_HEADER + valid_modeb_card_stub(BGC, CONTIG, STRAIN).split("\n", 2)[2]
+    return RECORD_HEADER + valid_modeb_card_stub(BGC, CONTIG, STRAIN)
 
 
 def _errors(findings):

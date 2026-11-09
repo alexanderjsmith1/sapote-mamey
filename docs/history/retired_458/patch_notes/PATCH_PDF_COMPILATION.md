@@ -4,13 +4,11 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 
 The G1–G5 proposal, renderer description and unchecked implementation list below record .121; they are not proof of present wiring. The selected bundle’s `tools/compilation_gate.py` exists as a separate CLI. It calls the 13-row manifest checker and the structure/depth helpers, counts distinct BGC aliases against a supplied number, applies Markdown heuristics and optionally counts PDF pages. It does not independently reconcile an exact strain/node/region/BGC roster. Locator reconciliation is warning-only. Without `--pdf`, G3 is deferred and can be true with no page count; a pre-render PASS is not a checked PDF. Page and heading counts do not certify evidence or visual layout.
 
-`tools/md_to_pdf.sh` first attempts the ReportLab renderer and uses preflight/pandoc/XeLaTeX as fallback; it does not call the compilation gate or automatically rename a failure to `_PARTIAL_`. Existing output paths can be replaced. Keep the separately selected gate receipt, inspect actual rendered pages and review the [current export contract](../../../PDF_OUTPUT_CONTRACT_v97144.md). Select the [Mode B profile](../../../MODEB_PROFILE_MATRIX.md) separately: the compilation helper's legacy prose does not establish current-profile acceptance. This patch changes documentation only.
+`tools/md_to_pdf.sh` first attempts the ReportLab renderer and uses preflight/pandoc/XeLaTeX as fallback; it does not call the compilation gate or automatically rename a failure to `_PARTIAL_`. `tools/md_to_pdf.sh` refuses an existing PDF or sidecar path before either route runs (`tools/md_to_pdf.sh:29-38`). Keep the separately selected gate receipt, inspect actual rendered pages and review the [current export contract](../../../PDF_OUTPUT_CONTRACT_v97144.md). Select the [Mode B profile](../../../MODEB_PROFILE_MATRIX.md) separately: the compilation helper's legacy prose does not establish current-profile acceptance. This patch changes documentation only.
 
 The Markdown preflight is a table-routing helper, not the renderer or a complete
 export validator. Its processed-body PASS does not cover routed appendix tables.
-Without `--appendix-md`, the CLI does not save those tables; output files can be
-written even on failure. Select explicit fresh destinations and review all
-requested sidecars. See [current preflight and lint usage](../../../user_guides/tools_reference.md#markdown-preflight-and-advisory-text-lint)
+When a wide table is routed and no `--appendix-md` is given, `tools/sapote_md_preflight.py` publishes `<out>.appendix.md` beside the output and never replaces an existing file; with no routed table it writes no automatic appendix, and an explicit `--appendix-md` is always written. It refuses (exit 2) an existing output, appendix or QA file unless `--replace` is given, and never writes over the input (`tools/sapote_md_preflight.py:130-215`). Select explicit fresh destinations and review all requested sidecars. See [current preflight and lint usage](../../../user_guides/tools_reference.md#check-text-tables-or-source-files)
 for output, status and skipped-scope limits.
 
 ---
@@ -77,7 +75,7 @@ The rendered PDF must meet a minimum page count scaled to genome size:
 | 15–35 | 60 | typical small *Streptomyces* / *Micromonospora* |
 | 36–70 | **100** | full mid-size actinomycete genome |
 | 71–110 | 140 | large genome |
-| > 110 | 180 | very large / highly fragmented (e.g. AS-XXX) |
+| > 110 | 180 | very large / highly fragmented (e.g. STRAIN_ID) |
 
 The floor is a **lower bound, not a target** — a thin PDF below the floor is a signal
 that Mode B depth or deliverables are missing, not an instruction to pad. Padding to
@@ -115,7 +113,7 @@ session compendium markdown
   post-render page-count check (G3/G5)  ──fail──▶  label _PARTIAL_, report gap
         │ pass
         ▼
-  AS-XXX_COMPENDIUM_vN.pdf  +  gate receipt JSON
+  <strain>_COMPENDIUM_vN.pdf  +  gate receipt JSON
 ```
 
 G1/G2/G4/G5 run on the markdown pre-render. G3 runs post-render (page count needs the
@@ -128,7 +126,7 @@ Every gated compile emits a receipt alongside the PDF:
 
 ```json
 {
-  "strain": "AS-XXX",
+  "strain": "<strain>",
   "scorable_bgcs": 48,
   "mode_b_cards": 48,
   "contract_items_present": 13,
@@ -136,7 +134,7 @@ Every gated compile emits a receipt alongside the PDF:
   "page_count": 116,
   "page_floor": 100,
   "gate": "PASS",
-  "filename": "AS-XXX_COMPENDIUM_v1.pdf"
+  "filename": "<strain>_COMPENDIUM_v1.pdf"
 }
 ```
 

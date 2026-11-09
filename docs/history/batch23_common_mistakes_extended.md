@@ -51,7 +51,7 @@ This expands on the 11 failure modes documented in `docs/COMMON_MISTAKES.md` wit
 python mamey_run.py run --input-zip GCA_009862675.fna.gz
 
 # Right — antiSMASH output
-python mamey_run.py run --input-zip AS-XXX_antismash_results.zip
+python mamey_run.py run --input-zip <strain>_antismash_results.zip
 ```
 
 **Mode B implication:** None — Mamey fails cleanly before Mode B is reached. But if someone has run "Mode B" on raw GBK files without a Mamey package, the output lacks: corrected boundary computation, WL/AB/AF scores, CCTT triggers, UMED/FLBR/RGGMCI outputs. It is not a valid Mode B — flag every fact that would change with a real Mamey run.
@@ -79,7 +79,7 @@ python mamey_run.py run --input-zip AS-XXX_antismash_results.zip
 **Fix:**
 ```bash
 python mamey_run.py run \
-  --strain AS-XXX \
+  --strain <strain> \
   --input-zip NZ_QHHY.zip \
   --taxonomy "Streptomyces sp." \
   --source "bee-associated"
@@ -118,7 +118,7 @@ python mamey_run.py run --json-evidence off --input-zip ...
 **Fix:** Use the ingest path instead:
 ```bash
 python tools/ingest_package.py \
-  --package runs/AS-XXX/package \
+  --package runs/<strain>/package \
   --ww WWGP0000000 \
   --merge \
   --banked-dir cohort
@@ -146,14 +146,14 @@ python tools/build_workbook.py \
 
 ## Mistake 7: Taxonomy as `.` or blank organism
 
-**Symptom:** Display name shows `. strain AS-XXX`
+**Symptom:** Display name shows `. strain <strain>`
 
 **Root cause:** antiSMASH GBK for some private strains deposit `ORGANISM  .` (no genus), which Mamey normalises to avoid propagating a literal dot.
 
 **Fix:** Always supply `--taxonomy` explicitly:
 ```bash
 python mamey_run.py run \
-  --strain AS-XXX \
+  --strain <strain> \
   --taxonomy "Streptomyces sp." \
   --input-zip ...
 ```
@@ -190,7 +190,7 @@ pip install numpy matplotlib
 
 **Fix B:** Re-render after cache builds:
 ```bash
-python mamey_run.py render-figures --package runs/AS-XXX/package
+python mamey_run.py render-figures --package runs/<strain>/package
 ```
 Or increase timeout: `MAMEY_RENDER_TIMEOUT_S=300 python mamey_run.py run ...`
 
@@ -235,6 +235,7 @@ pip install wheels/pytest*.whl wheels/pluggy*.whl wheels/iniconfig*.whl --break-
 **Root cause:** Mode B cards that live only in a chat window are lost when the session ends. The `ingest-receipts` command commits cards into the durable judgment store.
 
 **Fix:**
+Historical: do not copy this command. The current form is `python mamey_run.py ingest-receipts ...` (see [AGENTS.md](../../AGENTS.md)); `python mamey_run.py ingest-receipts --help` lists the current options, including `--package`, `--receipt`, `--auto-detect`, `--master` and `--contract`.
 ```bash
 # After Mode B session, commit receipts
 python -m mamey ingest-receipts \

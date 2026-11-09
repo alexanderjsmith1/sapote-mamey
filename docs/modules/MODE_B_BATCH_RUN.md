@@ -1,28 +1,51 @@
-# Mode B batches: progress, verification, and completion
+# Mode B batches: progress and completion
 
-Use small, source-bound batches to author and review the selected exact-locus roster. Batch size is a scheduling choice, not an evidence denominator or a current-profile requirement. Preserve complete strain / full node-or-contig / region / BGC alias for each work unit; triage rank is a routing prior rather than biological truth.
+A **Mode B card** is the write-up of one biosynthetic gene cluster (see the [glossary](../GLOSSARY.md)). This page covers doing many cards in a row: the commands, the progress counters, and how to tell that the work is done. To write one card, start with the [Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md). The profiles (`full48`, `current50_v2`) are in the [profile matrix](../MODEB_PROFILE_MATRIX.md).
 
-## Current sequence
+## Commands for each batch
 
-1. Bind the package/version, exact locus roster, source hashes and selected `full48` or `current50_v2` work-order contract. Use the [profile matrix](../MODEB_PROFILE_MATRIX.md); older §1–§10/20/30 descriptions are history.
-2. Author each saved card from the bound evidence, retaining missingness and contradictory channels. Accessible evidence, scientific interpretation and independent review have their own authority.
-3. If persisting through `record_mode_b`, inspect returned quality/locator/claim findings and `persistence_warnings`. The passive register does not refuse an incomplete draft. See [write behavior](MODE_B_WRITE.md).
-4. Run the actual selected-profile verifier on each final saved card with the bound package and alias. Preserve its warning/error census, roster/coverage flags, invocation and card/source hashes. Update a per-card review ledger separately from legacy register progress.
-5. Resume from that ledger and inspect actual file bytes. `batch_status` reports cached legacy quality state; it does not validate a saved card or infer current source freshness.
-6. Before compiling a full-strain delivery, reconcile the complete expected roster, all card verification receipts and unresolved holds. Apply the separate artifact/layout and owner review gates. A partial source-bound draft may be retained, with its actual coverage stated.
+Work on a copy of the package. Pick a batch size that suits you. The size is a scheduling choice and is not an evidence count. For each cluster in the batch, use file names that carry its BGC ID, so one cluster's files never land on another's:
 
-## What the helper states mean
+```bash
+python mamey_run.py emit-modeb-template --package PKG --bgc BGC_ID --out BGC_ID-template.md
+# write the card in a new file, BGC_ID-card.md, keeping the section titles
+python mamey_run.py verify-modeb BGC_ID-card.md --package PKG --bgc BGC_ID
+python mamey_run.py ingest-receipts --package PKG --card BGC_ID-card.md
+```
 
-`record_mode_b` marks register status COMPLETE while separately storing `quality_tier`; SHALLOW/UNKNOWN cards can therefore increase `completion_pct`. `record_batch_complete` can mark aliases without card content. `batch_status` requires status COMPLETE plus cached `quality_tier=FULL` for its FULL count, and appends any registered aliases outside a caller's supplied order. Its denominator is the resulting alias list, not a freshly validated complete inventory.
+If you use `current50_v2`, add `--contract current50_v2` to all three commands: `emit-modeb-template`, `verify-modeb` and `ingest-receipts`.
 
-`compile_ready(package_dir, ranked_bgc_ids)` returns `(ok, reason)`, not a boolean. Test `ok`, because even `(False, reason)` is a truthy Python tuple. Its legacy gate uses cached FULL tiers and blocks an unrecovered corrupt register; it does not run a current-profile verifier, check card hashes, or grant scientific acceptance. A regenerated source or edited card invalidates old cached verdicts until rechecked.
+`emit-modeb-template --out` refuses a path that already exists and leaves that file as it was. `--batch` is different: it writes `<package>/mode_b_templates/` and its `_INDEX.md`, and replaces files of the same name there. Move any edits out of that folder before you emit again.
 
-## Legacy quality policy
+`emit-modeb-template --batch --scope pending` picks the clusters the register lists with a status other than `COMPLETE`. A cluster missing from the register is not picked. If there is no register, or it cannot be read, it falls back to every row of the triage board. The command prints how many templates it emitted and lists any it skipped; compare that with the clusters you expected.
 
-The passive evaluator's current character floors are HIGH 12,000 (rank 1–10), MID 11,000 (11–25), LOW 10,000 (otherwise). It also checks structural/gene-density conditions and a 2,000-character enrichment floor. A boundary Edge/Full-contig locus with supplied CDS count no greater than 22 can use a 2,500-character floor; missing boundary/CDS values do not grant this reduction. Text below 2,000 characters is STUB. These are legacy engineering thresholds, not licenses to pad text or bypass the selected finished profile.
+`verify-modeb` checks the card against the profile. Read every ERROR and WARN it prints. `ingest-receipts --card` records one card in the package register. `ingest-receipts --auto-detect` scans `<package>/judgment/` for `*_mode_b.md` files and records only cards that pass its checks. It skips a card whose cluster is not in the register, is already `COMPLETE`, cannot be read, has no content, names a different strain, contig or region, or fails the structure gate, and it prints each skip. Read those lines; a scan does not record every file it finds.
 
-## Failure and safe continuation
+Keep the full identity with each card: **strain / full node-or-contig / region / BGC alias**. Triage rank only sets the order you work in.
 
-Preserve current and prior card files, register/last-good backup and review receipts. File writes are individually atomic but card/note/register publication is not one transaction. Repeating a write can duplicate optional reader notes; reconcile those files deliberately. Do not fix a corrupt roster by guessing its denominator or resetting history. Resume only from source-bound identities and a reconciled expected roster, then independently verify the current saved cards.
+## What the progress counters mean
 
-Source owners: `mamey/judgment_store.py:346–484,489–512,679–820`; `mamey/mode_b_quality_gate.py:60–99,264–291`; `mamey/authored_verify.py:68–109,591–680,804–891`.
+The register is the file `<strain>_judgment_register.json` at the package root, with a `.last-good` backup beside it. Cards and reader notes sit under `judgment/`; the register does not. It holds one row per cluster, with a `status` and a cached `quality_tier` from an older check (`FULL`, `SHALLOW`, `STUB` or `UNKNOWN`).
+
+- A saved card gets `status=COMPLETE` even when its tier is `SHALLOW` or `UNKNOWN`. So `completion_pct` counts saved cards, not verified ones.
+- `verify-modeb` is the check that counts. A register row does not record the card's hash, so if you edit a card, run `verify-modeb` again.
+- Before you compile a strain delivery, list the clusters you expected and confirm each has a saved card that passed `verify-modeb`. Keep a short ledger of that. The register will not do it for you.
+
+## For scripts
+
+Scripts can call `mamey.judgment_store` directly. See [persisting a card](MODE_B_WRITE.md).
+
+- `batch_status` reports the register's cached state. It adds any registered aliases outside the order you pass in, so its denominator is not a checked roster.
+- `record_batch_complete` marks aliases COMPLETE without any card text. Avoid it for real work.
+- `compile_ready(package_dir, ranked_bgc_ids)` returns a tuple `(ok, reason)`. Test `ok`; a tuple is always truthy. It reads cached tiers and blocks on a corrupt register. It does not open the cards.
+
+## The older character floors
+
+The older check in `mamey/mode_b_quality_gate.py` wants at least 12,000 characters for ranks 1 to 10, 11,000 for ranks 11 to 25 and 10,000 for the rest. A card under 2,000 characters is a `STUB`. An edge or full-contig cluster with 22 or fewer CDS can use a 2,500 floor. These numbers are a sanity check. Do not pad text to meet them, and do not use them in place of `verify-modeb`.
+
+## If a batch breaks
+
+- Keep the card files, the register and its `.last-good` backup.
+- A write of a card, its notes and the register is not one transaction. Repeating a write can add the same reader note twice, so check those files.
+- If the register is corrupt, copy it aside and ask before you rebuild it. Do not guess the roster.
+- Resume from your ledger, then run `verify-modeb` on the saved cards.

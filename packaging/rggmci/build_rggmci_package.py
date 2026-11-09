@@ -56,7 +56,9 @@ LIFT = {  # target module -> [(source module, [top-level names])]
                                      "extract_contig_sequences", "validate_region_intake_resources", "_open_region_core_snapshot",
                                      "extract_cds_features", "extract_domain_features"])],
     "_feature_records.py": [("models.py", ["CDSFeature", "DomainFeature"])],
-    "_gene_context.py": [("gene_context.py", ["build_gene_context"])],
+    # gene_context.py imports the joined-CDS overlap test from source_scans.py inside a function; lift it too.
+    "_gene_context.py": [("gene_context.py", ["build_gene_context"]),
+                         ("source_scans.py", ["_bgc_overlap_or_near"])],
     "_functional_profiles.py": [("clusterblast_genes.py", ["functional_profile_from_gene_context",
                                     "modular_profile_from_gene_context", "rescue_functional_complementarity",
                                     "modular_continuation"])],
@@ -66,6 +68,8 @@ LIFT = {  # target module -> [(source module, [top-level names])]
                       ("blastp_followup.py", ["HitRecord", "parse_hit_table_csv", "parse_xml2", "merge_hit_xml",
                                               "best_hits_by_query", "parse_query_id", "_cov_str", "CLAIM_SAFETY"])],
 }
+# Function-local imports of a name lifted into the same module. The name is module-level after the lift.
+LOCAL_IMPORT_DROPS = {"_gene_context.py": ["from .source_scans import _bgc_overlap_or_near\n"]}
 
 
 def sha(p: pathlib.Path) -> str:
@@ -205,7 +209,20 @@ def main(argv=None) -> int:
         dup = sorted({d for d in defined if defined.count(d) > 1})
         if dup:   # two source modules lifted the same name: one would silently shadow the other
             raise SystemExit(f"LIFT_NAME_CLASH in {target}: {dup}")
+        for drop in LOCAL_IMPORT_DROPS.get(target, []):
+            if body.count(drop) != 1:
+                raise SystemExit(f"LOCAL_IMPORT_DROP_FAILED in {target}: {drop.strip()!r} not found exactly once")
+            body = body.replace(drop, "")
         (pkg / target).write_text(body)
+
+    # Guard: every relative import in the package, including one inside a function, names a module it ships.
+    shipped_modules = {q.stem for q in pkg.glob("*.py")} | {q.stem for q in (TEMPLATES / "src/rggmci").glob("*.py")}
+    for q in sorted(pkg.glob("*.py")) + sorted((TEMPLATES / "src/rggmci").glob("*.py")):
+        for node in ast.walk(ast.parse(q.read_text())):
+            if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module \
+                    and node.module.split(".")[0] not in shipped_modules:
+                raise SystemExit(f"STANDALONE_IMPORT_UNRESOLVED: {q.name}:{node.lineno} imports .{node.module}, "
+                                 "which the package does not ship")
 
     # Guard: every engine BGCRecord field the scorer touches must exist on the standalone record.
     eng_fields = [s.target.id for n in ast.parse((m / "models.py").read_text()).body

@@ -7,22 +7,26 @@ one package, the standard cohort section for strain comparisons, and the extende
 section for its alternative count-based views. The overlap map below helps choose
 between related panels.
 
-The family names and tier numbers include historical designs. Match a selected
-entry to its actual emitted filename, sidecar data and receipt; the list is not a
-promise that every panel will be produced. F11/F13 holds and skipped panels are
-explained beside their entries and under **Actual emitted-artifact census**.
+Panel names here may differ a little from the files a run writes. Match the entry to the real
+file name, its sidecar data and its receipt. A panel with a HOLD (F11 and F13 below) writes a
+HOLD JSON file instead of artwork. `GOLD_FIGURES_SKIPPED.md` is written only when the whole gold-figure step fails with an error; it holds that error, not a list of panels.
+Terms such as KCB, CCTT, TTA and A-domain are defined in the [glossary](GLOSSARY.md).
 
 For domain-level definitions, see [cohort figure captions](COHORT_FIGURE_CAPTIONS.md).
-A displayed token is a retained annotation occurrence whose source class must be
-checked. Counts summarize annotation support, not measured products or phenotypes.
-Read region counts with boundary status: edge/full-contig calls are fragment-limited;
-G04 and extended fig8 show that context without estimating a dataset-specific correction.
+Counts summarize annotation support, not measured products or phenotypes. Read region counts
+together with boundary status. Edge and full-contig calls are limited by the assembly. G04 and
+extended fig8 show that context.
 
 ---
 
 ## Tier 1 — Single-strain gold figures (per gold run)
 
-Gold mode attempts figures in `package/gold_figures/`; panel counts vary with admitted input fields. Locus-map selection depends on the calling worklist/top-N and can include skipped loci; it is not always one map per inventory BGC. Check actual receipts and coverage.
+A gold run (the full analysis mode) tries these figures and writes them to `package/gold_figures/`.
+The number of panels depends on which input fields the run admitted. To see what was made,
+compare the files in `gold_figures/` with this catalog, and read the run's console line
+`Gold figures: N figure(s)`. If the step failed,
+`gold_figures/GOLD_FIGURES_SKIPPED.md` holds the error. Locus maps are made for the top-ranked loci, not for
+every BGC.
 
 ### D-series — dashboards / scatter (per-BGC relationships)
 - **D01 bubble_productclass_size_length** — product class vs size vs length; bubble map of where the big
@@ -39,7 +43,7 @@ Gold mode attempts figures in `package/gold_figures/`; panel counts vary with ad
 - **D11 scatter_tta_vs_modularity** — TTA/bldA dependency vs megasynthase modularity.
 
 ### F-series — per-BGC / per-gene heatmaps
-- **F01 perBGC_domain_heatmap** — BGC × domain-family presence; the strain's domain fingerprint.
+- **F01 perBGC_domain_heatmap** — per-BGC counts of eight catalytic domain classes (PKS_KS, PKS_AT, PKS_KR, PKS_DH, NRPS_C, NRPS_A, NRPS_T_PCP, TE_release), shown on a log color scale labeled `domain count`. It draws at most 40 BGCs, those with the most of these domains, so it is not the whole inventory. A zero count is an empty cell. The plotted values are in the `..._<strain>_perBGC_domain_heatmap_data.csv` sidecar beside the image.
 - **F02 perGene_active_site_completeness** — per-gene active-site completeness; which catalytic centers look intact.
 - **F03 perBGC_cctt_resistance** — CCTT triggers and resistance tier per BGC together.
 
@@ -74,14 +78,25 @@ Emitted to the cohort output dir. Each PNG has a sidecar CSV of its underlying v
 - **F12 bgc_pca_by_cluster** — BGCs colored by architecture cluster.
 - **F13 strain_ordination_2d** — strains ordinated by mean BGC domain profile. Check the rendered layout for label, legend and axis collisions. The separately named `F13_bgc_domain_pca_2d` needs a hash-bound cohort manifest and independent denominator registry; absent these, its HOLD JSON is the result, not a figure.
 
-The historical F11–F15 list conflated design names with emitted file IDs. When citing a panel, use the actual filename and receipt, and do not treat a HOLD file as artwork.
+When you cite a panel, use the file name the run wrote. Do not treat a HOLD file as artwork.
+
+F10 shows selected raw domain tokens from the domain hits table. It is not a regulator caller.
+One counted observation is one retained domain-hit occurrence assigned to a BGC overlap. Its
+caption names the displayed tokens and the upstream antiSMASH annotation types (`aSDomain`,
+`PFAM_domain`). Whole-record GBKs are preferred, and region copies are excluded when whole-record
+files exist. Friendly family labels are display names, not validated function calls.
+`LysR_substrate` is a substrate-binding domain and does not alone show a LysR regulator.
+
+F11 `F11_domain_clustermap_top40` holds because the domain hits table does not record whether a
+token is a Pfam, aSDomain, motif or TIGRFAM record. It cannot be called "the 40 most abundant Pfam
+domains". The HOLD JSON states what is missing.
 
 ---
 
-## Tier 3 — Cross-strain cohort, extended (11-figure suite, fused v9.7.319)
+## Tier 3 — Cross-strain cohort, extended (11 figures)
 
-Auto-emitted by `cohort-figures` (default; `--no-extended` to skip) and regenerable standalone via
-`tools/cohort_figure_prototypes.py`. Full captions incl. the domain glossary in `COHORT_FIGURE_CAPTIONS.md`.
+`cohort-figures` writes these by default. Add `--no-extended` to skip them. You can also rebuild
+them with `tools/cohort_figure_prototypes.py`. Full captions incl. the domain glossary in `COHORT_FIGURE_CAPTIONS.md`.
 
 - **fig1 census_notier** — F01 census with the assembly-tier strip removed to the caption line.
 - **fig2 pks_bars** — each PKS BGC a bar, height = length (kb), stacked by gene-type coding bp; gray = non-CDS.
@@ -109,25 +124,40 @@ annotation. These are alternative views, not independent evidence to add togethe
 - **census** → F01 (Tier 2) = fig1 (Tier 3, no tier strip).
 - **CCTT** → F05 (metric × strain heatmap) vs fig7 (BGCs carrying each).
 - **resistance** → F06 (signal heatmap) vs fig10 (per-strain stacked BGC counts).
-- **strain layout** → actual strain-ordination filename (historical F15 label) vs fig3 (per-BGC size/richness scatter).
+- **strain layout** → F13 strain ordination vs fig3 (per-BGC size/richness scatter).
 Prefer the Tier-3 cut when you want counts by source-derived tier; prefer Tier 2 when you
 want the fine-grained family × strain matrix.
 
 ## BiG-SCAPE supporting figures
 
-The bundle ships [strain-centric GCF and clinker consumers](BIGSCAPE_FIGURES.md). They are separate from inferred biosynthetic architecture and KCB, with their own run/cutoff/source roster and incomplete-attempt states. Historic private panel sizes/path names are not portable examples or the current denominator.
+The bundle ships [strain-centric GCF and clinker consumers](BIGSCAPE_FIGURES.md). They are separate from the figures above. Each has its own run, cutoff and source list, and its own states for attempts that did not finish.
 
-## Honest caveats to carry into any manual text
-- A displayed domain token records annotation support within the producer's admitted input scope. It does not independently confirm a complete functional domain, biosynthetic capacity or compound production; never state a strain "produces" a compound from the figure.
-- KCB / BLASTp = **similarity, not identity**; "dark" describes the loaded comparator/search scope; absence of a named match is not global novelty.
-- Resistance and TTA tiers are **source-derived mechanism calls**, not measured phenotype or expression.
-- Fragmentation can affect called-region counts — read counts against fig8 / G04 boundary status. Those panels do not estimate the magnitude or direction of a count correction for an individual dataset.
-- Confirm each producer's counting unit and grouping key. For fig9, repeated tokens within an input BGC group are reduced to a set; this does not establish the same deduplication rule for every cataloged figure.
+## Limits that apply to every panel
+- A displayed domain token records annotation support. It does not show a complete domain, capacity
+  or a product. Never write that a strain "produces" a compound from a figure.
+- KCB and BLASTp results show similarity, not identity. No named match does not mean the BGC is
+  new. "Dark" means dark in the loaded search scope.
+- Resistance and TTA tiers are calls from the annotation. They are not measured phenotype or
+  expression.
+- Check each panel's counting unit and grouping key. For fig9, repeated tokens in one BGC group
+  count once.
 
-## Actual emitted-artifact census
+## What a run actually wrote
+Single-strain gold figures are made on a best-effort basis. A skipped figure does not stop the
+package from being sealed or validated. Look in the run folder:
 
-Single-strain gold emission is best-effort and does not block package seal/validation; inspect `GOLD_FIGURES_SKIPPED.md`, `RUNS_DIR_NOTE.md`, logs, output data and expected-panel census. Cohort figures are a separate path; extended failure is warned/skipped while the surrounding command can succeed. Existing output reuse can include stale figures in an overall count. Use actual filenames, per-attempt receipts/holds and fresh output directories rather than assuming F/G/D aliases or catalog counts certify coverage.
+- `gold_figures/GOLD_FIGURES_SKIPPED.md` exists only if the gold-figure step failed, and holds the error.
+- The files present in `gold_figures/` show which panels were written; a panel without input data is simply absent.
+- `RUNS_DIR_NOTE.md` and the logs list other notes and errors.
+- The sidecar CSV beside each PNG holds the plotted values.
 
-F11/F13 holds are separate channel results. [F13 input/status guidance](F13_BGC_DOMAIN_PCA.md) describes its multi-strain F-series invocation and stale-artwork limits. Default compile-report attempts v8 only for the top five triage targets, then collects package images recursively; paired PNG/SVG may be two file references for one figure. The default inventory/recursive image count is not an admitted panel denominator.
+Cohort figures are a separate command. If the extended set fails, `cohort-figures` warns, skips it
+and can still succeed. Reusing an output folder can leave old figures in the count, so use a fresh
+folder.
+
+F11 and F13 holds are results of their own. See [F13 input and status](F13_BGC_DOMAIN_PCA.md). The
+compile report makes locus maps for the top five triage targets. It then collects every image
+under the package, so one figure saved as PNG and SVG counts as two files. That count is not the
+number of admitted panels.
 
 Source: `mamey/cli.py`, `mamey/cohort_figures.py`, `mamey/compile_report.py`, `mamey/locus_map_v8.py`.

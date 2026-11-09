@@ -1,36 +1,47 @@
 # BGC functional logic workup
 
-`tools/bgc_functional_logic_workup.py` explains the definitive ranking at gene resolution. It preserves direct MIBiG and ClusterBlast evidence while adding a separate architecture-first channel for genes that do not align to the selected reference.
+`tools/bgc_functional_logic_workup.py` explains the [definitive ranking](DEFINITIVE_BGC_RANKER.md) at gene level. It keeps direct MIBiG and ClusterBlast matches. It adds a separate architecture-first channel for genes that do not align to the selected reference. The next tool in the chain is [strain-level BGC logic](STRAIN_LEVEL_BGC_LOGIC.md), which reads this tool's output. Terms such as KnownClusterBlast (KCB), MIBiG and BGC are in the [glossary](GLOSSARY.md).
 
-This distinction matters because a gene can support pathway logic without being reported as a ClusterBlast match. Examples include a locally annotated precursor peptide, maturation enzyme, glycosyltransferase, regulator, transporter, or resistance candidate that is absent from the chosen MIBiG record, too divergent for the admitted match, or outside the reference's annotated gene set.
-
-## Evidence channels
-
-Each gene is represented in three independent fields:
-
-1. **Direct reference match:** whether the gene has any admitted MIBiG hit and whether it maps specifically to the dominant reference used by Definitive BGC Ranker.
-2. **Functional annotation logic:** antiSMASH `gene_functions`, `sec_met_domains`, product annotations, gene kind, and gene order are classified into core, precursor, maturation, tailoring, transport, regulatory, resistance, or other roles.
-3. **Architecture-first inference:** the existing KCB-blind `mamey.architecture_first` classifier assesses domain architecture without reading the reference match. Its pathway type, confidence, diagnostic markers, reasoning, reference concordance, and final bounded assignment are reported.
-
-Direct similarity and functional logic are not interchangeable. The workup never converts an annotation-only gene into a reference match, and it never converts reference similarity into proof of a complete pathway or exact product.
+A gene can support pathway logic without being a ClusterBlast match. Examples are a locally annotated precursor peptide, a maturation enzyme, a glycosyltransferase, a regulator, a transporter or a resistance candidate. Such a gene may be missing from the chosen MIBiG record, too divergent to count, or outside the reference's annotated genes.
 
 ## Usage
 
-Supply the exact package set, rather than a broad historical root, whenever multiple package versions may exist.
+You need two inputs.
+
+- Packages: sealed Mamey package folders. Each needs `manifest.json` and exactly one each of `*_cds_table.csv`, `*_3_mibig_per_gene.csv` and `*_2_inventory.csv`.
+- The ranking: `ALL_BGC_DEFINITIVE_EVIDENCE_RANK.tsv`, made by `tools/definitive_bgc_ranker.py` from the same packages. See the [ranker guide](DEFINITIVE_BGC_RANKER.md).
 
 ```bash
 python tools/bgc_functional_logic_workup.py \
   --package-list /path/to/exact_package_paths.txt \
-  --definitive-rank /path/to/ALL_BGC_DEFINITIVE_EVIDENCE_RANK.tsv \
+  --definitive-rank /path/to/definitive-ranking/ALL_BGC_DEFINITIVE_EVIDENCE_RANK.tsv \
   --strain-aliases /path/to/STRAIN_ALIASES.csv \
   --out /path/to/functional_logic_workup
 ```
 
-The package list contains one package directory per line. Duplicate source strains fail closed.
+Name the packages in any of three ways, and combine them if you like:
+
+- `--package PATH`, repeated once per package;
+- `--package-list FILE`, a text file with one package folder per line (a line that starts with `#` is a comment; relative paths resolve from where you run the command);
+- `--packages-root DIR`, which scans every folder under DIR for `*_cds_table.csv` next to a `manifest.json`.
+
+Prefer `--package-list`. `--packages-root` also picks up old copies of a package. `--strain-aliases` is optional: a CSV with the columns `source_strain,display_strain`. Use a new `--out` folder.
+
+When it works you should see the output files below in `--out`, including `RECEIPT.json` with `"status": "COMPLETE"`. A source strain that appears in two packages stops the run.
+
+## Evidence channels
+
+Each gene has three separate fields:
+
+1. **Direct reference match:** whether the gene has any admitted MIBiG hit, and whether it maps to the dominant reference chosen by the ranker.
+2. **Functional annotation logic:** antiSMASH `gene_functions`, `sec_met_domains`, product annotations, gene kind and gene order sort the gene into core, precursor, maturation, tailoring, transport, regulatory, resistance or other.
+3. **Architecture-first inference:** a classifier (`mamey.architecture_first`) that does not look at KnownClusterBlast results reads the domain architecture. The output gives its pathway type, confidence, diagnostic markers, reasoning, agreement with the reference and a bounded final call.
+
+Direct similarity and functional logic are not interchangeable. The workup never turns an annotation-only gene into a reference match. It never turns reference similarity into proof of a complete pathway or an exact product.
 
 ## Functional reference relationships
 
-- `ARCHITECTURE_CORROBORATES_REFERENCE`: KCB-blind architecture and the reference family agree.
+- `ARCHITECTURE_CORROBORATES_REFERENCE`: domain architecture, read without KCB results, agrees with the reference family.
 - `ARCHITECTURE_REFERENCE_DISCORDANT`: domain architecture and reference assignment disagree; inspect the genes driving each channel.
 - `ARCHITECTURE_UNRESOLVED_REFERENCE_DOMINANT`: architecture cannot resolve the class and the reference provides the principal provisional signal.
 - `ARCHITECTURE_EXTENDS_WEAK_REFERENCE`: independent architecture is present and unmatched functional genes extend a weak reference comparison.
@@ -55,11 +66,11 @@ Every BGC uses `strain / full node-or-contig / region / BGC alias`. The workup s
 
 ## Limits
 
-- Inputs require a `manifest.json` plus exactly one each of `*_cds_table.csv`, `*_3_mibig_per_gene.csv` and `*_2_inventory.csv` per package. The manifest is required and hashed; this tool does not verify its contents or revalidate a package seal. Package-list relative paths resolve against the process working directory; only lines starting directly with `#` are comments.
-- Rank lookup uses `complete_identity`; duplicate rank identities collapse to the last row in a dictionary. BGC grouping is by `bgc_id` within a package and takes the first gene row's contig/region identity. Independently check identity uniqueness and mixed-locus rows before running. The final count equality is not proof that those source identities or annotations are correct.
-- Alias CSV columns are `source_strain,display_strain`; duplicate source aliases use the last value. Duplicate source strains across packages fail, but distinct source strains mapping to one display name are not separately rejected. Sanitized per-strain folder names can collide. Keep aliases unique and verify every output identity and per-strain folder.
-- Dominant MIBiG accession versions are stripped for matching. Role calls are annotation-pattern classification; an admitted table hit is not newly computed alignment evidence. A regulator, transporter or resistance annotation is not measured regulation, transport or self-resistance.
-- `--out` is created early and existing named TSV/JSON outputs are overwritten sequentially. There is no transactional rollback or empty-directory refusal; a later error can leave partial output or stale prior files. Use a new output directory and keep failed runs separate.
-- `SOURCE_HASHES.tsv` hashes the four package input files, not the definitive-rank or alias table. `RECEIPT.json` records counts and relation labels; it does not itself bind every output hash or scientific inference. Record the rank/alias paths and SHA-256 alongside the run and verify output completeness independently. Retain the original research-result hashes and bind any new calculation separately.
+- The tool does not verify `manifest.json` or re-check a package seal. It hashes the manifest.
+- The ranking is looked up by `complete_identity`. If two ranking rows share one identity, the last wins. Each BGC takes its contig and region from its first gene row. Check that identities are unique, and that no BGC mixes two loci, before you run.
+- Role calls are annotation patterns. A regulator, transporter or resistance annotation is not measured regulation, transport or self-resistance. A table hit is not new alignment evidence. MIBiG accession versions are stripped for matching.
+- Keep strain aliases unique. Two source strains that map to one display name are not rejected, and their per-strain folders can collide. Check every output identity and folder.
+- The tool overwrites named outputs one at a time. A later error can leave partial output or stale files, so use a new folder and keep failed runs apart.
+- `SOURCE_HASHES.tsv` hashes the four package input files, not the ranking or alias file. `RECEIPT.json` holds counts and relation labels, not every output hash. Record the SHA-256 of the ranking and alias files with the run.
 
 `COMPLETE` means the tool finished. It is not scientific acceptance.

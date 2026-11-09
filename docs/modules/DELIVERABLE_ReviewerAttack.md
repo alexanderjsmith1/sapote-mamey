@@ -1,142 +1,95 @@
-# DELIVERABLE — Reviewer Attack Simulation (RAS)
+# DELIVERABLE: Reviewer Attack Simulation
 
-> **Current scope:** Prompt/reporting guidance only. The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions; the monolith is a design/history reference and cannot override them. Named triggers and auto-delivery language do not execute tools or authorize additional work. The worked example is historical and has incomplete/scrubbed identity. Its claims about definitive class calls, independent support and assay confirmation are not current scientific calibration or evidence of compound/locus attribution.
+**What this is.** A template for a short block that lists the criticisms a peer reviewer would raise against a strain's strongest claim, and a safer wording for each. No tool builds it. You or an assistant write it by hand.
 
-> **Filing.** `docs/modules/DELIVERABLE_ReviewerAttack.md`.
-> **Extends / references:** `DELIVERABLE_CONTRACT.md` (Offer Protocol, Contig-ID Mandate, Next-Paths, claim-safety), `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 13 (Mode B), MODULE 14 (ecology synthesis), MODULE 5 (§34 Hallucination-Trap — the bioinformatics-only defense draws on it). **Do not restate claim-safety language — point to the contract.**
-> **Precedence.** [DELIVERABLE_CONTRACT.md](../DELIVERABLE_CONTRACT.md) and the code win over this page. This module is the authority for the *reviewer-attack format and required categories*; the *claims* it stress-tests are owned by the Mode B / synopsis that produced them.
-> **Status:** `PROMPT_BACKED` (Sapote-only; no deterministic artifact). There is nothing to compute — the value is structured adversarial judgment against claims the package already supports.
-> **One-line purpose.** Before a claim leaves the building, surface the criticisms a peer reviewer would raise and the manuscript-safe revision for each — so every report ships pre-hardened against fragmentation, overclaiming, and causality objections.
+**Purpose.** Harden a claim before it leaves the repo. The block tests claims the package already supports. It does not create claims.
 
----
+The [deliverable contract](../DELIVERABLE_CONTRACT.md) and the code win over this page. Claim-safety wording lives in the contract. The current task and [assistant governance](../ASSISTANT_GOVERNANCE.md) decide what you may do. Terms such as BGC (biosynthetic gene cluster) and KCB (KnownClusterBlast) are in the [glossary](../GLOSSARY.md).
 
-## 1. When it is offered (Deliverable Offer Protocol)
+## When to write it
 
-Per `DELIVERABLE_CONTRACT.md`, auto-build it; the user must not need to ask.
+Write one whenever a report states a class-level, mechanistic or ecological claim. Place it right after the executive summary in a strain report, right after the integrated model in an [ecological synthesis](DELIVERABLE_EcologicalSynthesis.md), and in any manuscript-bound output that asserts a strain finding. A report with such a claim and no block is incomplete. So is a block that skips an applicable category.
 
-- **Auto-place** it:
-  - in the **Deep Dive Synopsis**, immediately after the Executive Summary;
-  - in the **Ecological Synthesis**, immediately after the integrated model;
-  - in **any manuscript-bound output** where a strain finding is asserted.
-- **Offer as a next-path** whenever a strong, contestable claim has been made (novel class call, mechanism→activity link, ecological hypothesis) but no RAS block accompanies it.
-- **Incomplete delivery** = a report that makes a class-level, mechanistic, or ecological claim with no RAS block, or a RAS block that omits any of the five required categories (§4) that apply to the report.
+## Inputs
 
----
-
-## 2. Inputs required
-
-| Source | Feeds | Required for |
+| Source | Used for | Category |
 |---|---|---|
-| The report's strongest claim(s) (from Mode B §4 / Synopsis exec summary) | the "Claim or interpretation" line | Every RAS block |
-| `manifest.json → bgc_counts.assembly_tier`, `assembly.quality` | the fragmentation criticism + its defense | Category 1 |
-| `_4_triage_board.csv → KCB_score, Novelty_auto`, MIBiG hits | the dereplication / known-compound criticism | Category 2 |
-| Mode B §6 mechanism→bioactivity link (if made) | the causality criticism | Category 3 |
-| Ecology synthesis hypothesis (if made) | the ecological-overreach criticism | Category 4 |
-| Standing constraints (NAPAA exclusion, hglE-KS habitat-non-specific, [E-signal] enediyne notes) | pre-empt known reviewer objections the project has already settled | All |
+| The report's strongest claim, in its own wording | The "Claim or interpretation" line | All |
+| `manifest.json → bgc_counts.assembly_tier`, `assembly.quality` | The fragmentation criticism and its defense | 1 |
+| `*_4_triage_board.csv` columns `KCB_score` and `Novelty_auto`, plus MIBiG hits | The compound-identity criticism | 2 |
+| The Mode B mechanism-to-activity link, if you drew one | The bioactivity-to-BGC criticism | 3 |
+| The ecological hypothesis, if you made one | The ecological criticism | 4 |
 
-**Skip-not-fake.** A category whose claim was never made is marked **"not applicable — no [ecological / causal] claim made,"** never answered with an invented criticism. RAS hardens real claims; it does not manufacture them.
+If a category's claim was never made, write "not applicable, no <ecological or causal> claim made". Do not invent a criticism.
 
----
-
-## 3. Template (port of v7.5.2 §36.3 — use verbatim structure)
+## Template
 
 ```text
-Reviewer Attack Simulation — [Strain ID] [BGC_ID (contig · regionXXX) if BGC-specific]
+Reviewer Attack Simulation: <strain> <BGC alias> (<full contig> · region<NNN>) if locus-specific
 
 Claim or interpretation:
-[State the report's strongest claim, in its actual claim-safe wording]
+<the report's strongest claim, in its claim-safe wording>
 
 Likely reviewer criticism:
-1. [Assembly / fragmentation criticism]
-2. [Bioinformatics-only criticism]
-3. [Dereplication / known-compound criticism]
-4. [Ecological overreach criticism]   (omit/Not-applicable if no ecological claim)
-5. [Need-for-chemical-validation criticism]
+1. <assembly fragmentation>
+2. <compound identity>
+3. <bioactivity-to-BGC causality, or "not applicable">
+4. <ecological causality, or "not applicable">
+5. <need for chemical validation>
 
-Defense / safe revision:
-1. [How the report already limits the claim — cite the Mamey field/number]
-2. [Evidence supporting the class-level interpretation — domain bitscore, KCB, RiQ]
-3. [The specific experiment that resolves it — long-read / HRMS / bioassay]
-4. [Manuscript-safe wording that survives the objection]
-5. [What chemical evidence would upgrade the claim from "consistent with"]
+Defense or safe revision:
+1. <how the report limits the claim; cite the field and number>
+2. <evidence for the class-level reading: domain bitscore, KCB, comparator>
+3. <the recorded material and assay scope, or "not applicable">
+4. <manuscript-safe wording, or "not applicable">
+5. <the experiment that would upgrade the claim: HRMS, NMR, isolation>
 
 Recommended manuscript wording:
-"[One sentence suitable for Results or Discussion, claim-safe per the contract]"
+"<one claim-safe sentence>"
 ```
 
----
+## The five categories
 
-## 4. Required reviewer-attack categories
+1. **Assembly fragmentation.** "Your BGC count or boundaries are an assembly artifact." It always applies when `bgc_counts.assembly_tier` is `VERY_POOR`. That tier is the share of regions whose boundaries are interior, not a contiguity measure; report it beside `assembly.quality.fragmentation_tier` (from contig and N50 metrics), and name which one you cite. Answer with the edge status of each cluster. The corrected count is a boundary-weighted heuristic (interior 1, edge 0.5, full-contig 0.25), not a recovered count of missing regions; cite it as such, beside the raw count.
+2. **Compound identity.** "A domain hit is not a compound." Defend with the diagnostic-domain bitscore and the architecture grade.
+3. **Bioactivity to BGC causality.** "Extract activity does not implicate this cluster." It applies whenever you draw a mechanism link. Defend with the recorded material and assay scope. Fractionation alone does not establish compound identity or BGC causation.
+4. **Ecological causality.** "Genomic capacity is not in-host function." It applies only if you made an ecological claim.
+5. **Need for chemical validation.** "No HRMS or NMR, so unproven." Defend by naming the experiment.
 
-Every report includes at least one criticism + response for each category **that applies**:
+## Checklist
 
-1. **Assembly fragmentation** — "your N BGCs / boundaries are an assembly artifact." (Always applies when tier is POOR/VERY POOR.)
-2. **Compound-identity overclaiming** — "a domain hit is not a compound."
-3. **Bioactivity-to-BGC causality** — "extract activity does not implicate this cluster." (Applies whenever a mechanism link is drawn.)
-4. **Ecological causality** — "genomic capacity is not in-host function." (Applies only if an ecological claim is made.)
-5. **Need for chemical validation** — "no HRMS / NMR, therefore unproven."
+- [ ] The claim line states the report's actual strongest claim.
+- [ ] Every applicable category has a criticism and a defense. Inapplicable ones are marked.
+- [ ] Each defense cites a field or number from the package.
+- [ ] There is exactly one recommended manuscript sentence.
+- [ ] Every locus is written as `strain / full contig / region / BGC alias`.
+- [ ] The block sits in the right place.
+- [ ] Open holds are listed.
 
-The defense to (1) is the corrected count + edge-status discipline; to (2) the diagnostic-domain bitscore + Architecture grade; to (3) the recorded material/assay scope and independent attribution evidence (fractionation alone does not establish compound identity or BGC causation); to (4) the claim-safe ecological wording (kernel MODULE 14); to (5) the named experiment.
-
----
-
-## 5. Acceptance checklist ("done" = all)
-
-- [ ] Claim line states the report's *actual* strongest claim, in its real claim-safe wording.
-- [ ] Every applicable category (§4) has a criticism **and** a defense; inapplicable ones are explicitly marked, not skipped silently.
-- [ ] Each defense cites a Mamey field / number (bitscore, KCB, corrected count) — not assertion.
-- [ ] Standing constraints pre-empted where relevant (NAPAA, hglE-KS habitat, [E-signal] enediyne note).
-- [ ] Exactly one recommended manuscript sentence, claim-safe per `DELIVERABLE_CONTRACT.md`.
-- [ ] Contig-ID locator on any BGC referenced.
-- [ ] Placed correctly (after exec summary / after integrated model).
-- [ ] No retired codenames.
-- [ ] Hand back the result, its evidence and open holds.
-
----
-
-## 6. Knowledge inventory
-
-| Piece | Owner |
-|---|---|
-| Claim-safety wording rules | `DELIVERABLE_CONTRACT.md` (do not restate) |
-| Fragmentation / corrected-count discipline | kernel MODULE 1–2 (§4) |
-| Bioinformatics-only defense evidence | kernel MODULE 5 (§34 Hallucination-Trap) |
-| Ecological claim-safety | kernel MODULE 14 (§ECO) |
-| Standing constraints to pre-empt | parent monolith |
-
----
-
-## 7. Worked example + next-paths closer (SID-XXX, BGC047 enediyne)
+## Example shape
 
 ```text
-Reviewer Attack Simulation — SID-XXX  BGC047 (WWFW01000137.1 · region001)
+Reviewer Attack Simulation: EXAMPLE BGC001 (contig_1 · region001)
 
 Claim or interpretation:
-"BGC047 shows biosynthetic capacity consistent with an enediyne chromoprotein."
+"BGC001 shows biosynthetic capacity consistent with an enediyne-type locus."
 
 Likely reviewer criticism:
-1. The cluster is Edge (Arch C) on a POOR assembly — boundaries unreliable.
-2. This is an antiSMASH 'RiPP-like/T1PKS' region; the enediyne call is over-read.
-3. No isolated compound; class is asserted from homology alone.
-4. (Not applicable — no in-host ecological function is claimed.)
-5. No HRMS/NMR evidence of an enediyne warhead.
+1. The cluster sits on a contig edge in a VERY_POOR assembly. The boundaries are unreliable.
+2. The enediyne call rests on one domain hit, and a domain hit is not a compound.
+3. Not applicable, no bioactivity-to-BGC link drawn.
+4. Not applicable, no ecological claim made.
+5. No HRMS or NMR evidence for the warhead.
 
-Defense / safe revision:
-1. Claim is class-level, not structural; boundaries flagged, long-read named Priority 1.
-2. ene_KS bitscore = 830.8 (genome-max single-domain hit) + TIGR03604 + YcaO + an
-   NCBI-annotated 'enediyne biosynthesis protein' (GTY63_26925) — three independent supports.
-3. Gene-level homology supports the class call even where the cluster-level MIBiG score is low; it does not identify the compound.
-4. n/a.
-5. SEC/UV-DAD + cytotoxicity readout on the fraction would confirm the warhead.
+Defense or safe revision:
+1. The claim is class-level. Boundaries are flagged. Long-read sequencing is named as the next step.
+2. The call rests on <domain, bitscore, supporting annotations from the package>. Homology supports the class. It does not identify a compound.
+3. Not applicable.
+4. Not applicable.
+5. HRMS and NMR on an isolated compound would test it. A chromatography and UV-DAD readout on the fraction is a first step.
 
 Recommended manuscript wording:
-"WWFW01000137.1 encodes an ene_KS-containing locus consistent with an enediyne
-biosynthetic gene cluster."
+"The assembly contains a locus with domains consistent with an enediyne-type cluster."
 ```
 
-> Next paths:
-> 1. Generate RAS blocks for the other Immediate/Strong leads (BGC063, 025, 074, 019).
-> 2. Feed the recommended sentences into the manuscript Results draft.
-> 3. Pair each RAS with its §34 Hallucination-Trap row to show the audit trail.
-> 4. Add RAS to the Ecological Synthesis once the integrated model is written.
-> 5. Bank a control strain to test the fragmentation defense against a Good assembly.
+The example is a shape. Every value in a real block comes from your package.

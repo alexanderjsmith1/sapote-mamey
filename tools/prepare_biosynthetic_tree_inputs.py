@@ -81,21 +81,33 @@ def resolve_path(raw: str, base: Path) -> Path | None:
 
 
 def read_inventory(path: Path) -> dict[str, str]:
+    """BGC inventory -> {bgc_id: products}. A repeated bgc_id is refused, never overwritten."""
     products: dict[str, str] = {}
     with path.open(newline="", encoding="utf-8-sig") as handle:
-        for source_row in csv.DictReader(handle):
+        for line_number, source_row in enumerate(csv.DictReader(handle), start=2):
             row = lower_row(source_row)
             bgc_id = row.get("bgc_id", "")
             if not bgc_id:
                 continue
+            if bgc_id in products:
+                raise ValueError(f"{path}: line {line_number}: BGC_ID {bgc_id!r} appears more than once; "
+                                 "resolve the repeated inventory row before preparing tree inputs")
             products[bgc_id] = row.get("products", row.get("product", row.get("classes", "")))
     return products
 
 
 def read_fasta(path: Path) -> dict[str, str]:
+    """Protein FASTA -> {identifier: sequence}. A repeated identifier is refused, never overwritten."""
     records: dict[str, str] = {}
     current = ""
     chunks: list[str] = []
+
+    def keep(identifier: str) -> None:
+        if identifier in records:
+            raise ValueError(f"{path}: FASTA identifier {identifier!r} appears more than once; "
+                             "resolve the repeated record before preparing tree inputs")
+        records[identifier] = clean_sequence("".join(chunks))
+
     with path.open(encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -103,13 +115,15 @@ def read_fasta(path: Path) -> dict[str, str]:
                 continue
             if line.startswith(">"):
                 if current:
-                    records[current] = clean_sequence("".join(chunks))
-                current = line[1:].split()[0]
+                    keep(current)
+                current = line[1:].split()[0] if line[1:].split() else ""
+                if not current:
+                    raise ValueError(f"{path}: FASTA header without an identifier")
                 chunks = []
             else:
                 chunks.append(line)
     if current:
-        records[current] = clean_sequence("".join(chunks))
+        keep(current)
     return records
 
 
@@ -161,7 +175,7 @@ def base_decision(strain: str, bgc_id: str, locus: str, target: str, subtype: st
         "target": target,
         "subtype_or_family": subtype,
         "bgc_products": products,
-        "aa_length": str(len(sequence)),
+        "aa_length": str(len(sequence)) if sequence else "",
         "sequence_sha256": sha256_bytes(sequence.encode()) if sequence else "",
         "source_file": str(source),
         "source_row": str(row_number),
@@ -264,11 +278,19 @@ def rre_decisions(source: dict, args, products: dict[str, str]) -> list[dict[str
             bgc_id, locus = row.get("bgc_id", ""), row.get("locus_tag", "")
             product_text = products.get(bgc_id, "")
             family_text = " ".join((row.get("rre_family", ""), row.get("rre_description", ""), product_text))
-            sequence = proteins.get(locus, "")
-            start, end = row.get("protein_start", ""), row.get("protein_end", "")
-            if sequence and start.isdigit() and end.isdigit():
-                left, right = max(0, int(start) - 1), int(end)
-                sequence = sequence[left:right]
+            full_protein = proteins.get(locus, "")
+            start, end = row.get("protein_start", "").strip(), row.get("protein_end", "").strip()
+            coordinate_hold = ""
+            sequence = ""
+            if full_protein:
+                if not start or not end:
+                    coordinate_hold = "RRE_COORDINATES_MISSING"
+                elif not (start.isdigit() and end.isdigit()):
+                    coordinate_hold = "RRE_COORDINATES_NOT_INTEGER"
+                elif not (1 <= int(start) <= int(end) <= len(full_protein)):
+                    coordinate_hold = "RRE_COORDINATES_OUTSIDE_PROTEIN"
+                else:
+                    sequence = full_protein[int(start) - 1:int(end)]
             item = base_decision(source["strain_id"], bgc_id, locus, "RRE",
                                  row.get("rre_family", ""), product_text, path, row_number, sequence)
             if row.get("mapping_status", "").upper() != "MAPPED":
@@ -277,6 +299,8 @@ def rre_decisions(source: dict, args, products: dict[str, str]) -> list[dict[str
                 item["status"], item["reason"] = "HOLD", "BGC_NOT_IN_INVENTORY"
             elif not family_matches(family_text, args.family):
                 item["status"], item["reason"] = "EXCLUDED", "RIPP_FAMILY_MISMATCH"
+            elif coordinate_hold:
+                item["status"], item["reason"] = "HOLD", coordinate_hold
             elif not sequence:
                 item["status"], item["reason"] = "HOLD", "PROTEIN_OR_RRE_SEQUENCE_MISSING"
             elif len(sequence) < args.min_aa:

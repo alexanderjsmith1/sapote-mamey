@@ -357,9 +357,9 @@ def s8_suite(pkg, deliv, ctx):
     # subprocess raised and the gate silently degraded to PENDING with a spurious reason.
     pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tool = os.path.join(pkg_root, "tools", "check_deliverable_suite.py")
-    man = os.path.join(pkg, "manifest.json")
+    # The checker reads the filled DELIVERABLE_MANIFEST found above, not the package manifest.json.
     try:
-        r = subprocess.run([sys.executable, tool, "--manifest", man, "--mode", "gold"],
+        r = subprocess.run([sys.executable, tool, "--manifest", dm, "--mode", "gold"],
                            capture_output=True, text=True, timeout=120)
         ok = r.returncode == 0
         tail = (r.stdout or r.stderr).strip().splitlines()[-1:] or [""]
@@ -369,11 +369,18 @@ def s8_suite(pkg, deliv, ctx):
 
 
 def s9_receipt(pkg, deliv, ctx):
-    man = _load_json(os.path.join(pkg, "manifest.json")) or {}
+    man = _load_json(os.path.join(pkg, "manifest.json"))
+    # Fail closed: a missing or unreadable manifest cannot show that the judgment pending flag
+    # has been cleared, so it must not read as PASS.
+    if not isinstance(man, dict):
+        return PENDING, "package manifest.json missing or unreadable; judgment state not established"
     gc = json.dumps(man).find("JUDGMENT_PENDING")
     receipt = _first(pkg, "*judgment_receipt*") or (os.path.join(pkg, "commit_receipt.json") if os.path.exists(os.path.join(pkg, "commit_receipt.json")) else None)
     if gc != -1:
-        return PENDING, "manifest still carries JUDGMENT_PENDING (run tools/sapote_judgment_receipt.py to flip gold_completeness)"
+        # tools/sapote_judgment_receipt.py writes a separate receipt; it does not edit manifest.json,
+        # so producing a receipt alone does not clear this step.
+        return PENDING, ("manifest still carries JUDGMENT_PENDING; W9 reads manifest.json only, and a "
+                         "separate judgment receipt does not change it")
     return PASS, f"gold_completeness not JUDGMENT_PENDING; receipt={os.path.basename(receipt) if receipt else 'n/a'}"
 
 
@@ -474,6 +481,39 @@ def _emit_shared_5(out, e) -> None:
     emit(f'[ledger] could not write {out}: {e}', file=sys.stderr)
 
 
+def _refuse_ledger_out(ledger_out, pkg, deliverables) -> str | None:
+    """Check an explicit --ledger-out before any work. Return a refusal message, or None.
+
+    The ledger must be a fresh file outside the package and deliverables folders it reads, and must
+    not be (or resolve to) any file there. The default ledger inside the package is unchanged."""
+    if not ledger_out:
+        return None
+    try:
+        from .output_transaction import preflight_output_roster
+    except ImportError:
+        from mamey.output_transaction import preflight_output_roster
+    out_real = os.path.realpath(ledger_out)
+    for source in (pkg, deliverables):
+        if source and os.path.isdir(source):
+            root = os.path.realpath(source)
+            if os.path.commonpath([out_real, root]) == root:
+                return (f"--ledger-out {ledger_out!r} is inside the source folder {source!r}; "
+                        "choose a fresh path outside the package and deliverables")
+    try:
+        preflight_output_roster([ledger_out], protected_paths=[p for p in (pkg, deliverables) if p])
+    except ValueError as exc:
+        if os.path.lexists(ledger_out):
+            return f"--ledger-out {ledger_out!r} already exists and will not be replaced"
+        return f"--ledger-out {ledger_out!r} refused: {exc}"
+    return None
+
+
+def _write_ledger(out, md, *, fresh) -> None:
+    """Write the ledger; an explicit --ledger-out is created exclusively."""
+    with open(out, "x" if fresh else "w", encoding="utf-8") as fh:
+        fh.write(md)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Mandatory Sapote workflow driver / gate.")
     ap.add_argument("--package", required=True, help="sealed Mamey package dir")
@@ -487,6 +527,10 @@ def main():
     if not os.path.isdir(pkg):
         _emit_shared_1(pkg)
         return 2
+    refusal = _refuse_ledger_out(a.ledger_out, pkg, a.deliverables)
+    if refusal:
+        sys.stderr.write(f"OUTPUT_REFUSED: {refusal}\n")  # direct write keeps the print_calls ratchet flat
+        return 2
 
     ctx, results, order = run(pkg, a.deliverables, a.strict)
     md = render_md(ctx, results, order)
@@ -498,8 +542,7 @@ def main():
 
     out = a.ledger_out or os.path.join(pkg, f"{ctx['strain']}_SAPOTE_WORKFLOW_LEDGER.md")
     try:
-        with open(out, "w", encoding="utf-8") as fh:
-            fh.write(md)
+        _write_ledger(out, md, fresh=bool(a.ledger_out))
         if not a.json:
             _emit_shared_4(out)
     except Exception as e:
@@ -520,6 +563,10 @@ def workflow_command(args) -> int:
     if not _os.path.isdir(pkg):
         _emit_shared_1(pkg)
         return 2
+    refusal = _refuse_ledger_out(getattr(args, "ledger_out", None), pkg, getattr(args, "deliverables", None))
+    if refusal:
+        sys.stderr.write(f"OUTPUT_REFUSED: {refusal}\n")  # direct write keeps the print_calls ratchet flat
+        return 2
     ctx, results, order = run(pkg, getattr(args, "deliverables", None), bool(getattr(args, "strict", False)))
     md = render_md(ctx, results, order)
     if getattr(args, "as_json", False):
@@ -529,8 +576,7 @@ def workflow_command(args) -> int:
     out = getattr(args, "ledger_out", None) or _os.path.join(
         pkg, f"{ctx['strain']}_SAPOTE_WORKFLOW_LEDGER.md")
     try:
-        with open(out, "w", encoding="utf-8") as fh:
-            fh.write(md)
+        _write_ledger(out, md, fresh=bool(getattr(args, "ledger_out", None)))
         if not getattr(args, "as_json", False):
             _emit_shared_4(out)
     except OSError as e:

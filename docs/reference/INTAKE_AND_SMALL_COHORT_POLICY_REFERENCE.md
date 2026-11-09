@@ -1,54 +1,68 @@
-> Technical reference. Start with the [reader page](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md). This reference preserves the detailed policy and operation descriptions.
+# Batch intake and small-cohort rules (reference)
 
-# Operating directives — intake/batch, small-N deliverables, ecology grounding
-**Sapote–Mamey project workflow policy; execution remains scoped by the current user task.**
+Start with the [reader page](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md). If the two pages differ, the reader page wins. This page holds the detail. For terms, see the [glossary](../GLOSSARY.md). Mamey is the extraction engine. Sapote is the judgment layer that writes cards and guides from a Mamey package.
 
-Two failure modes seen in the field, plus the strict line between them:
-- the **extraction layer** (Mamey) running one strain for many minutes instead of taking an intake and batching;
-- the **judgment layer** (Sapote) refusing legitimate per-strain deliverables on a small cohort, *and* the opposite risk of fabricating ungrounded ecology to avoid refusing.
+## 1. Run a batch with the harness
 
-The point of this doc is to force what is genuinely doable and forbid what isn't — both strictly.
+First list every input ZIP: strain ID, taxonomy, source and release. Decide which to run now and which to defer. Then run the harness:
 
----
+```bash
+python tools/intake_harness.py --inputs <dir> --outdir <out> --registry <reg.csv> --metrics <m.csv> --resume \
+  [--source "..."] [--release PUBLIC|PRIVATE]
+```
 
-## 1 · Intake-first + batch + stall guard (extraction layer)
-1. **Intake first.** On any multi-file set, inventory **every** input ZIP → strain ID / taxonomy / source / release, and announce the batch plan (committed, deferred, sessions needed) BEFORE running a single strain.
-2. **Drive the batch with the harness.**
-   `python tools/intake_harness.py --inputs <dir> --outdir <out> --registry <reg.csv> --metrics <m.csv> --resume [--source "..."] [--release PUBLIC|PRIVATE]`
-   - New batches default to PRIVATE and source "not verified". Reviewed public inputs need `--release PUBLIC --source "<verified source>"`. PRIVATE is not redaction or permission to export.
-   - `--inputs` takes ZIP files, folders or both. A folder is read one level deep: only the `*.zip` files directly inside it.
-   - The harness names each strain from its ZIP filename, with assembly boilerplate removed. Inputs whose cleaned names collide get an assembly tag or a number. Check the names in the registry before you rely on them.
-   - The harness runs each input through the engine and Diagnostic Rescue and records wall time and memory per strain. Each package lands in `<out>/<name>/package/`, with its completion receipt in `<out>/<name>/intake_completion_receipt.json`.
-   - `--resume` skips an input only when its completion receipt matches the input bytes, engine, options and output package. A changed release, source, mode, taxonomy map, per-input timeout, engine or harness code, or Python interpreter puts the input on hold; use a fresh output folder and registry.
-   - Without `--resume`, a rerun with the same output folder or registry holds every input that already has a package, a completion receipt or a success row.
-   - `NEEDS_ANTISMASH` can be retried. An archive with region files in several parent folders is refused rather than picking one assembly. A failed attempt with no package left can be retried; an existing unbound package needs review and a fresh output folder.
-3. **Stall guard.** Mamey never re-runs antiSMASH — it consumes the cached parse. A slow strain requires phase-specific diagnosis; elapsed time alone does not establish an input/parse defect. Optional reference completion, scans, finalization or rendering can also take time. Preserve the current package/logs, confirm process ownership and cleanup, then continue only when resources permit; diagnose the stalled strain via `prompts/RUN_DIAGNOSIS_PROMPT.md`. Never loop/retry one strain for minutes.
+- New batches default to `PRIVATE` with source "not verified". For reviewed public inputs, pass `--release PUBLIC --source "<verified source>"`. `PRIVATE` is not redaction and does not permit export.
+- `--inputs` takes ZIP files, folders or both. A folder is read one level deep: only the `*.zip` files directly inside it.
+- Each strain is named from its ZIP filename with assembly boilerplate removed. Colliding names get an assembly tag or a number. Check the registry names before you rely on them.
+- Each input runs through the engine and Diagnostic Rescue. The harness records wall time and memory. The package lands in `<out>/<name>/package/` and the completion receipt in `<out>/<name>/intake_completion_receipt.json`.
+- `--resume` skips an input only when its completion receipt matches the input bytes, engine, options and output package. A change to release, source, mode, taxonomy map, timeout, engine, harness code or Python puts the input on hold. Use a fresh output folder and registry.
+- Without `--resume`, a rerun into the same output folder or registry holds every input that already has a package, receipt or success row.
+- `NEEDS_ANTISMASH` can be retried. An archive with region files in several parent folders is refused. A failed attempt with no package left can be retried. Each attempt stages into its own new folder, `<out>/_stage/<name>.attempt-<random>/`, so a retry never removes or overwrites an earlier attempt's staged files or anything else under `_stage/`. Keep those folders as evidence; remove them yourself after review when you need the space. A package left by an unfinished attempt needs review and a fresh output folder.
 
-## 2 · Small-N is not a disqualifier (judgment layer)
-The full per-strain suite is produced at **any N ≥ 1**. `tools/check_deliverable_suite.py` checks the reported 13-row manifest text; it does not establish artifact or scientific completeness against [`prompts/FULL_RUN_PROFILE.md`](../../prompts/FULL_RUN_PROFILE.md) (tiered Mode B: Full / candidate / abbreviated / one-line; hard batch rule >60 BGCs → groups of 15, announced, no silent omission). Never decline a per-strain deliverable for "too few strains" or "not qualified." In scope at N≥1: BGC-by-BGC Mode B · cassette registry + §34 hallucination-trap · separate AB/AF DAPR · RG-GMCI for every multi-contig genome (Mamey wrote the evidence; Sapote promotes it) · resistance/self-protection · missing-hallmark + negative-evidence · metabolomics/fermentation/induction/extraction/assay planning · Technical Report + Bench Guide + Layperson-Ranked Guide · per-strain workbook + dated ZIP.
+## 2. A slow strain
 
-## 3 · Ecology grounding — the strict line
-**Interpretation is source-independent.** Sapote reads the GENOME / BGC evidence; the isolation source does not enter the biosynthetic-capacity call. So an unknown source **never blocks** the per-strain ecology read — and a known source is **never over-read** into a functional claim. The true ecological role of most environmental actinomycetes is genuinely unknown; isolation source is a weak, often-unreliable proxy.
+Mamey never reruns antiSMASH. It reads the antiSMASH output already in the ZIP. Elapsed time alone does not show a defect. Optional reference completion, scans, finalization and rendering can all take time.
 
-| Item | Status at N≥1 | Rule |
+If one strain stalls, do not retry it in a loop:
+
+1. Save the log and the current package folder.
+2. Confirm the process has stopped.
+3. Rerun that one input alone with `--resume`, or follow `prompts/RUN_DIAGNOSIS_PROMPT.md`.
+
+`--per-input-timeout SECONDS` is optional and off by default. An input that passes it is recorded as `RUN_FAILED` with an `INPUT_TIMEOUT` message, and the harness moves on. It stops only the engine process the harness started, not necessarily its children, and it does not promise a full log. It cannot be combined with `--capture-policy`. The harness does not use `--capped-session`. Each engine call gets `--json-evidence bounded --brief none`.
+
+## 3. Read the harness result
+
+| Harness exit | Meaning | Next step |
 |---|---|---|
-| Per-strain ecological **interpretation** | **DO IT — never refuse, source or no source** | General, well-supported framing: actinomycetes broadly carry antimicrobial / defensive biosynthetic capacity. Claim-safe, capacity-level, tagged `assumed`. Same interpretation whether source is known, unknown, or unreliable. |
-| **Isolation source** | **provenance only — never a functional claim** | Report a known source as caveated provenance; never escalate it into ecology ("bee-associated → co-evolved symbiont"). Unknown source is fine — it does not change the interpretation. |
-| Habitat-keyed comparisons (CCSM) | **exploratory + caveated** | Pattern-finding over isolation categories, explicitly flagged isolation-source ≠ function; N-limited at small cohorts. Never a functional assertion, never a gate on the per-strain suite. |
-| Deep literature reviews | **doable but paced** | Verified citations only (DOI/PMID/PMCID, real numbers from full text, claim-safe, copyright-limited). Time-boxed pass across top AB+AF leads — never an unverifiable citation. |
-| Project-bundle **aggregates** (cross-strain rankings, RG-GMCI / cassette-family / hallucination stats, qualified-null/validation, completion audit + manifest + SHA-256) | **after per-strain** | Aggregate finished runs; correct sequencing, not foot-dragging — never a reason to defer the per-strain suite. |
+| 0 | No attempted row was `RUN_FAILED`. Rows may still be `NEEDS_ANTISMASH`. Resume skips are not counted. | Open the registry, metrics, completion receipts and each package before you call the set complete. |
+| 1 | The summary ends with `BATCH_INCOMPLETE`: at least one attempted row failed. | Find the `RUN_FAILED` rows in the metrics CSV and the matching diagnostic lines in the harness output, then follow section 2. A failed input usually has no registry row. If writing the completion receipt fails, the registry can hold a success row while metrics say `RUN_FAILED`: check the package and its `intake_completion_receipt.json`, and do not judge success or failure from the registry alone. |
 
-## 4 · What "be strict" means here, in one line
-Produce every per-strain deliverable (ecology interpretation included) at any N, grounded in the genome and independent of isolation source — **and** never over-interpret the source into a functional/ecological claim, never fabricate, never emit aggregates before the per-strain runs exist. Refusing on unknown source and over-reading a known source are *both* violations; the interpretation comes from the genome, not the collection label.
+A registry row alone is not a resume receipt. Keep existing packages. After a hold, use a fresh output folder and registry.
 
-## Harness recovery and checker limits
+The harness does not pass `--master` to `run`, so it updates no master workbook. To keep packages in a Strain Master, submit each `*_Complete_Package.zip` through the inbox. See [where Mamey outputs land](../DATA_HOME.md#where-mamey-outputs-land). For one cross-strain table, run:
 
-The harness has an optional `--per-input-timeout SECONDS`. By default there is no limit. An input that runs past the limit is recorded as `RUN_FAILED` with an `INPUT_TIMEOUT` message, and the harness moves on to the next input. The limit stops only the engine process the harness started. It does not promise to stop that process's children or to keep a full log. It cannot be combined with `--capture-policy`. The harness does not use `--capped-session`; each engine call gets `--json-evidence bounded --brief none`. Save available diagnostics through the authorized task's checkpoint policy.
+```bash
+python mamey_run.py cohort-assemble --runs-dir <out> --out <out>/COHORT_MASTER.csv
+```
 
-Harness exit 0 means no attempted row was `RUN_FAILED`; it can include `NEEDS_ANTISMASH`, while verified resume skips are not counted as attempted rows. Inspect registry, metrics, completion receipts and the exact package before reporting whole-set completion. A registry row alone is not a resume receipt; retain existing unbound packages and use a fresh reviewed output root/registry after a binding hold.
+## 4. Small cohorts
 
-The staged harness does not pass `--master` to `run`, so it updates no master workbook. To keep the packages in a Strain Master, submit each `*_Complete_Package.zip` through the inbox; see [where Mamey outputs land](../DATA_HOME.md#where-mamey-outputs-land). For one cross-strain table, run `python mamey_run.py cohort-assemble --runs-dir <out> --out <out>/COHORT_MASTER.csv`.
+The full per-strain set can be made at any cohort size, including one strain. A small sample limits comparative statistics. It is not a reason to skip a per-strain deliverable. Cross-strain tables come after the per-strain runs exist. What you can finish still depends on runtime, evidence and scope. Say what is unresolved.
 
-The deliverable checker requires reported statuses/reasons and certain gold text/count fields, but does not open artifact paths, compare checksums, bind counts to the package, require unique rows or enforce the batch-size policy above. Its default mode is `standard`; pass `--mode gold` explicitly for the gold text checks. It rejects JUDGMENT_PENDING but does not independently validate every other reported gold state. A missing standing-constraint line is not itself rejected. Preserve those gaps as independent checks; a zero exit cannot certify the suite's content, profile compliance or scientific validity. See [deliverable contract](../DELIVERABLE_CONTRACT.md) and [the manifest template](../DELIVERABLE_MANIFEST_TEMPLATE.md).
+Ecology follows the genome, not the collection label:
 
-Small sample size alone does not justify discarding an authorized per-strain deliverable. Runtime, available evidence and user scope still determine what can actually be completed. State unresolved evidence and output holds honestly; no policy here grants new experimental, online, publication or release authority.
+- Read ecology from the genome and BGC evidence. An unknown isolation source does not block it.
+- Report a known source as provenance. Do not turn it into a functional claim.
+- Habitat comparisons are exploratory. Source is not function.
+- Cite only verified references.
+
+## 5. Check a deliverable manifest
+
+```bash
+python tools/check_deliverable_suite.py --manifest <file> [--mode {smoke,standard,gold}] [--artifact-root <dir>]
+```
+
+The manifest is a 13-row table; use [the template](../DELIVERABLE_MANIFEST_TEMPLATE.md). The checker requires the reported statuses, reasons and some gold text and count fields. Default mode is `standard`; pass `--mode gold` for the gold text checks. It rejects `JUDGMENT_PENDING`.
+
+It checks artifact paths only when you pass `--artifact-root <folder>`. It does not compare checksums, tie counts to the package, require unique rows or enforce batch size. A zero exit does not certify content or scientific validity. See the [deliverable contract](../DELIVERABLE_CONTRACT.md).

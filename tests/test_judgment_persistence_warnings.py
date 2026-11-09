@@ -100,8 +100,8 @@ def test_corrupt_recovery_state_cannot_become_complete_on_repeat_card_write(tmp_
     register.write_text("{truncated", encoding="utf-8")
     card = f"# Mode B — {STRAIN} / {NODE} / {REGION} / {BGC}\n§1 content"
 
-    judgment_store.record_mode_b(pkg, BGC, card)
-    judgment_store.record_mode_b(pkg, BGC, card)
+    judgment_store.record_mode_b(pkg, BGC, card, identity_checked_by_caller=True)
+    judgment_store.record_mode_b(pkg, BGC, card, identity_checked_by_caller=True)
     recovered = judgment_store.read_register(pkg)
 
     assert recovered["judgment_status"] == "CORRUPT_RECOVERY_INCOMPLETE"
@@ -114,7 +114,7 @@ def test_repeat_card_write_on_trustworthy_register_can_remain_complete(tmp_path)
     pkg = _package(tmp_path)
     card = f"# Mode B — {STRAIN} / {NODE} / {REGION} / {BGC}\n§1 content"
 
-    judgment_store.record_mode_b(pkg, BGC, card)
-    judgment_store.record_mode_b(pkg, BGC, card)
+    judgment_store.record_mode_b(pkg, BGC, card, identity_checked_by_caller=True)
+    judgment_store.record_mode_b(pkg, BGC, card, identity_checked_by_caller=True)
 
     assert judgment_store.read_register(pkg)["judgment_status"] == "COMPLETE"

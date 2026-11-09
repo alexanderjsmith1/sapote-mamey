@@ -85,7 +85,9 @@ def _logic_proof_state(row):
     """PRESENT, NOT_MET or UNRESOLVED for the RG-GMCI biosynthetic-logic proof of one _4A row.
 
     UNRESOLVED: the disjoint-reference fallback cleared its bar but the overlapping_subject_refs cell is
-    present and blank or malformed, so the absence of contradicting evidence is not established.
+    blank or malformed, so the absence of contradicting evidence is not established.
+    UNRESOLVED_NO_OVERLAP_COLUMN: the same, for a legacy _4A table with no overlapping_subject_refs column.
+    A missing count is unmeasured, never zero (owner ruling 6 Nov 2026, superseding 14 Oct).
     """
     conf = (row.get("rggmci_confidence") or "").strip()
     frc = (row.get("functional_rescue_class") or "").strip()
@@ -111,16 +113,17 @@ def _logic_proof_state(row):
     if cdr < 3:
         return "NOT_MET"
     if "overlapping_subject_refs" not in row:
-        # Legacy _4A schema without the column: read as zero, as before (pinned by
-        # test_rescue_two_proof_mixed_subject_signal). Owner ruling 14 Oct: keep passing, but say so in the receipt.
-        return "PRESENT_NO_OVERLAP_COLUMN"
+        # Legacy _4A schema without the column. Owner ruling 6 Nov 2026: hold it as unmeasured, exactly like a
+        # blank cell (LOGIC_EVIDENCE_HOLD). It never reads as zero overlap and never lets the logic proof pass.
+        return "UNRESOLVED_NO_OVERLAP_COLUMN"
     ov = _count_cell(row.get("overlapping_subject_refs"))
     if ov is None:
         return "UNRESOLVED"
     return "PRESENT" if ov == 0 else "NOT_MET"
 
 
-_LOGIC_PRESENT = ("PRESENT", "PRESENT_NO_OVERLAP_COLUMN")
+_LOGIC_PRESENT = ("PRESENT",)
+_LOGIC_UNRESOLVED = ("UNRESOLVED", "UNRESOLVED_NO_OVERLAP_COLUMN")
 
 
 def _logic_proof(row):
@@ -157,7 +160,7 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                     # complementarity still owed. Advisory HOLD, never a rescue (surfacer only). This is the
                     # subset previously mislabeled KS_CLADE_ONLY even though RG-GMCI DID rank the pair.
                     v = "MULTI_CHANNEL_HOLD"
-                elif logic_state == "UNRESOLVED":
+                elif logic_state in _LOGIC_UNRESOLVED:
                     # P300-144: the overlap cell is blank or malformed, so the logic proof is neither met nor
                     # refuted. Hold it; never WEAK ("below both bars") and never a rescue.
                     v = "LOGIC_EVIDENCE_HOLD"
@@ -173,7 +176,7 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                     "functional_rescue_class": (row.get("functional_rescue_class") or "").strip(),
                     "ks_clade_id": ";".join(sorted(shared)) if shared else "",
                     "bgc_a": (row.get("bgc_a") or "").strip(), "bgc_b": (row.get("bgc_b") or "").strip(),
-                    "_overlap_column_absent": logic_state == "PRESENT_NO_OVERLAP_COLUMN",
+                    "_overlap_column_absent": logic_state == "UNRESOLVED_NO_OVERLAP_COLUMN",
                 })
     # 2) KS-clade links RG-GMCI never ranked (reference-dark) -> KS_CLADE_ONLY
     for c in ks_scan.get("cross_contig_clades", []):
@@ -192,19 +195,21 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                 })
     summary = (f"two-proof rescue: {counts['TWO_PROOF_RESCUE']} TWO_PROOF, "
                f"{counts['MULTI_CHANNEL_HOLD']} MULTI_CHANNEL_HOLD (2 homology channels, complementarity owed), "
-               f"{counts['LOGIC_EVIDENCE_HOLD']} LOGIC_EVIDENCE_HOLD (overlap count unreadable), "
+               f"{counts['LOGIC_EVIDENCE_HOLD']} LOGIC_EVIDENCE_HOLD (overlap count blank, unreadable or absent), "
                f"{counts['KS_CLADE_ONLY']} KS-only (reference-dark), {counts['RGGMCI_ONLY']} RGGMCI-only. "
-               f"Candidates for adjudication — not merges. Judgment deferred.")
+               f"Candidates for adjudication — not merges. Second-proof channels share the candidate's source archive; "
+               f"they corroborate computationally and are not independent source evidence. Judgment deferred.")
     return rows, summary, counts
 
 
-TWO_PROOF_LOGIC_VERSION = "3"  # .368: +MULTI_CHANNEL_HOLD (2). .452: +LOGIC_EVIDENCE_HOLD, legacy-overlap note (3). bump on gate change.
-_LEGACY_OVERLAP_NOTE = "overlap count absent (legacy _4A without overlapping_subject_refs); read as zero"
+TWO_PROOF_LOGIC_VERSION = "4"  # .368: +MULTI_CHANNEL_HOLD (2). .452: +LOGIC_EVIDENCE_HOLD, legacy-overlap note (3). .464: missing overlap column held as unmeasured (4). bump on gate change.
+_LEGACY_OVERLAP_NOTE = ("overlap count absent (legacy _4A without overlapping_subject_refs); held as unmeasured, "
+                        "not read as zero; re-run the package to measure it")
 _INTERP = {
     "TWO_PROOF_RESCUE": "complementary two-proof candidate (RG-GMCI logic + KS-clade homology)",
     "MULTI_CHANNEL_HOLD": ("two homology channels concordant (RG-GMCI HIGH/MODERATE + KS-clade), complementarity "
                            "proof NOT met — advisory HOLD, NOT a rescue; COMPLEMENTARY_SPLIT still required"),
-    "LOGIC_EVIDENCE_HOLD": ("RG-GMCI HIGH/MODERATE with disjoint references, but the overlapping-reference count is "
+    "LOGIC_EVIDENCE_HOLD": ("RG-GMCI HIGH/MODERATE with disjoint references, but the overlapping-reference count is absent, "
                             "blank or unreadable — logic proof unresolved, HOLD, NOT a rescue"),
     "KS_CLADE_ONLY": "reference-dark KS-clade link (surface for adjudication)",
     "RGGMCI_ONLY": "logic-only rescue (no shared KS clade)",
@@ -212,11 +217,24 @@ _INTERP = {
 }
 
 
+# Every second-proof channel is computed from the same antiSMASH result the candidate pair came from.
+# A separate computational feature is corroboration, not independent source evidence or validated linkage.
+SOURCE_DEPENDENCY = {
+    "KS_CLADE": ("SAME_SOURCE: KS clades come from the package's own KS scan of the same assembly; "
+                 "computational corroboration, not independent source evidence"),
+    "CORE_COMPLETION": ("SAME_SOURCE: class-core reading from the same antiSMASH archive as the candidate review; "
+                        "separate from homology but not independent source evidence"),
+    "INTACT_RELATIVE_POSITION": ("SAME_SOURCE_AND_SHARED_HOMOLOGY: reads the same ClusterBlast hits as RG-GMCI; "
+                                 "not independent of the candidate channel"),
+    "NONE": "",
+}
+
+
 def write_4d_csv(rows, out_path, strain_id=""):
     cols = ["strain", "contig_a", "contig_b", "verdict", "interpretation", "rggmci_confidence", "rggmci_score",
             "functional_rescue_class", "ks_clade_id", "bgc_a", "bgc_b", "two_proof_logic_version", "claim_note", "rule_policy", "identity_a", "identity_b",
             "second_proof_channel", "independent_proof_state", "position_verdict", "position_reference", "kcb_role",
-            "core_completion"]
+            "core_completion", "second_proof_source_dependency"]
     note = ("two-proof candidate for adjudication; homology-guided linkage, NOT a merge or nucleotide join; "
             "the review lane adjudicates; judgment deferred")
     order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "LOGIC_EVIDENCE_HOLD": 2, "KS_CLADE_ONLY": 3,
@@ -247,6 +265,7 @@ def write_4d_csv(rows, out_path, strain_id=""):
             r2.setdefault("position_verdict", "NOT_READ")
             r2.setdefault("kcb_role", "SUPPORTING_ONLY; never independent second proof")
             r2.setdefault("core_completion", "")
+            r2["second_proof_source_dependency"] = SOURCE_DEPENDENCY.get(r2.get("second_proof_channel") or "NONE", "")
             r2["two_proof_logic_version"] = (r2["rule_policy"] if r2.get("rule_policy") in ("nonks_position_v1", "class_routed_v1")
                                              else TWO_PROOF_LOGIC_VERSION)
             w.writerow(r2)

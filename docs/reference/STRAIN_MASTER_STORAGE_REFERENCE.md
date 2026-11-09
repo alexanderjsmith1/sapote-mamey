@@ -28,8 +28,8 @@ folder bypasses that record.
 
 | Home | What belongs there | Who writes |
 |---|---|---|
-| The bundle | Code, docs and shipped reference seeds. Never study data. Post-seal output never goes inside a sealed bundle. | Release owner, at a cut |
-| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after `verify` by a different id (`--chat`) |
+| The bundle | Code, docs and shipped reference seeds. Never study data. Post-seal output never goes inside a sealed bundle. | Whoever cuts the release |
+| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after `verify` by a different id. `--chat` is the name you sign with (see [Data home](../DATA_HOME.md)) |
 | Record homes | The tables where records are edited (strain metadata, hosts, exclusions, rulings). The master holds copies of them. | An accepted record edit through the inbox, with a backup and a CHANGELOG line |
 | Raw stores | Large raw inputs filed once and never edited: antiSMASH ZIPs of record, genome FASTA, sealed packages too large to copy. Named in the master's settings. | Intake, once |
 | Asset registry | Machine-level tool assets: HMM sets, BLAST and MIBiG databases, conda environments. Not study data. | Whoever installs the asset |
@@ -46,7 +46,7 @@ folder bypasses that record.
 
 ## The layout
 
-`Source tables` holds copied records. `Built` holds tables a script makes from them. `*` means one folder per item. Every area may also hold `Superseded/`.
+This is the default layout `init` writes. A master's own `LAYOUT.md` rules, and you can drop folders you do not need (for example `ToC` or `Rulings`). `Source tables` holds copied records. `Built` holds tables a script makes from them. `*` means one folder per item. Every area may also hold `Superseded/`.
 
 | Area | Subfolders |
 |---|---|
@@ -78,8 +78,8 @@ A kind name can stand in for the folder in `--target` or a submission manifest's
 ## Naming
 
 - A file keeps its source name unless `--as` gives a clearer one. Put the strain ID first when the file is about one strain, so `where` finds it.
-- A new folder under a `*` area gets a descriptive name: what it is, then the run or version when there are several (`Protein space/run 7`). No dates unless they tell runs apart. No chat, agent or session names.
-- A new subfolder inside an area must be added to `LAYOUT.md` first. That change needs the owner's approval.
+- A new folder under a `*` area gets a descriptive name: what it is, then the run or version when there are several (`Protein space/<run label>`). No dates unless they tell runs apart. No chat, agent or session names.
+- A new subfolder inside an area must be added to `LAYOUT.md` first. That change needs the master's maintainer to approve it. The maintainer is the person who runs the master.
 
 ## The one way in
 
@@ -103,18 +103,18 @@ The verifier's checklist:
 1. The staged files match their submitted SHA-256 values. `verify` also compares each original source when it is still available; otherwise that source comparison remains unverified.
 2. The stated counts reproduce from the source files, by recount.
 3. Every strain, contig, region and alias is copied from one source record.
-4. No value contradicts a record or a ruling. A contradiction stops the submission until the owner rules.
+4. No value contradicts a record or a ruling. A contradiction stops the submission until the maintainer rules.
 5. The target folder is in `LAYOUT.md`, and the README line is drafted. Run by `verify`.
 6. There is no claim beyond the evidence and no private path in a shareable file.
 
 - `verify` refuses the submitter as verifier. To accept, `--checks` must number what was run for items 2, 3, 4 and 6, and items 1 and 5 must pass.
 - `verify --return --checks "<what was run>" --notes "<why>"` sends a submission to `00 Inbox/Returned/`.
-- A record edit is submitted with `--kind record-edit --changeset <tsv>` (columns `file`, `key_column`, `key`, `field`, `old`, `new`, `ruling`). Every file must sit in a record home named in the settings. `apply` changes a cell only if it still holds the old value and its key matches one row, keeps a `.bak_<time>_inbox` copy, and writes a CHANGELOG line. The re-copied record is then submitted as an import.
+- A record edit is submitted with `--kind record-edit --changeset <tsv>` (columns `file`, `key_column`, `key`, `field`, `old`, `new`, `ruling`; `ruling` records the decision that justifies the edit). Every file must sit in a record home named in the settings. `apply` changes a cell only if it still holds the old value and its key matches one row, keeps a `.bak_<time>_inbox` copy, and writes a CHANGELOG line. The re-copied record is then submitted as an import.
 - A whole replacement for one record table, for row changes a cell edit cannot express, is submitted with `--kind record-replace --replaces <record table> <new file>`. The table must sit in a record home. Its SHA-256 and size at submission are booked in `TARGET.tsv`. `apply` refuses with `RECORD_CHANGED` if the table changed since, keeps a `.bak_<time>_inbox` copy, writes the new bytes into the same file (hard links stay shared) and writes one CHANGELOG line.
 - Every `.bak_<time>_inbox` copy is a new file. When that name is taken, by an earlier copy in the same minute or by anything else, the next free name (`_2`, `_3`, …) is used; an existing file or link at that name is never written through.
 - `store` alone is the step `apply` uses. It is refused unless the settings set `"direct_store": true`, which a single-person master may choose.
 - The ledger, `00 Inbox/INBOX_LEDGER.tsv`, has one row per submission: id, submitted, submitter, kind, topic, target, files, status (SUBMITTED, ACCEPTED, RETURNED, APPLIED), verifier, verified, checks, findings, applied, changelog.
-- A submission id is the minute, the submitter and the topic. A second submission with the same id is refused (`SUBMISSION_EXISTS`); wait a minute or change the topic. A ledger that already holds a duplicated id resolves it to its live row, not a WITHDRAWN one. WITHDRAWN rows (written by a master's own inbox script) are kept in `00 Inbox/Returned/`.
+- A submission id is the minute, the submitter and the topic. A second submission with the same id is refused (`SUBMISSION_EXISTS`); wait a minute or change the topic. A ledger that already holds a duplicated id resolves it to its live row, not a WITHDRAWN one. The code reads WITHDRAWN rows, but no bundled command writes them.
 
 ## Copying a folder with its subfolders
 
@@ -145,8 +145,8 @@ python mamey_run.py strain-master submit --kind import-tree --chat <your id> --t
 
 1. no junk files (FAIL);
 2. the top level and area subfolders against `LAYOUT.md` (FAIL). `LAYOUT.md` may be a table of entries (as `init` writes it, which also checks root files and warns on an allowed folder missing on disk) or a list of allowed folders;
-3. every file and folder is named in a README (WARN);
-4. every README with a `| File | SHA-256 |` table lists exactly the files on disk, with matching SHA-256 (FAIL);
+3. each file and folder name appears somewhere in the text of its folder's README, its parent's README or the top README (WARN). This is a text search for the name, not a check of a record row. It skips the inbox, `Superseded` folders, hidden names and `coverage_exempt` paths. A PASS does not show that each file has a record;
+4. each README selected by `checksum_readmes` that holds a `| File | SHA-256 |` table lists exactly the files on disk, with matching SHA-256 (FAIL). READMEs under `Superseded`, staged trees and byte-copied folders are skipped. The check's name gives the files and tables it compared. When it compared no table at all, it is a WARN that says nothing was verified, not a PASS;
 5. the latest recognized CHANGELOG digest for each logged path matches its current file (FAIL); a missing CHANGELOG is WARN;
 6. inbox bookkeeping: every submission has a ledger row, no one verified their own, nothing ACCEPTED waits a day or more, each row's folder is where its status says (FAIL);
 7. every path in backticks in a README exists (WARN);
@@ -180,7 +180,7 @@ The root comes from `--master` or `SAPOTE_STRAIN_MASTER`. The bundle source name
 
 | Kind of record | Home |
 |---|---|
-| Strain metadata, hosts, isolation source as deposited, exclusions, rulings, cohort rosters and denominators | Master, `01 Strains/Source tables` (copies); edited at the record home until the owner moves editing to the master |
+| Strain metadata, hosts, isolation source as deposited, exclusions, rulings, cohort rosters and denominators | Master, `01 Strains/Source tables` (copies); edited at the record home until the maintainer moves editing to the master |
 | Genome inventory, reference strain and pool registries, 16S provenance, GenBank correction logs, assembly tiers | Master, `03 Genomes/Source tables` |
 | Cohort denominators for gene clusters, BLASTp evidence density | Master, `04 Gene clusters/Source tables` |
 | Tree strain and tip metadata, outgroup registry | Master, `05 Trees/Source tables` |

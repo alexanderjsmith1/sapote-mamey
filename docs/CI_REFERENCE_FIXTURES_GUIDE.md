@@ -1,25 +1,68 @@
-# Reference fixtures: CI scope and source admission
+# Run the reference-panel test
 
-This guide explains current test behavior; it is not an instruction to run antiSMASH, fetch genomes or add public sequence payloads. Keep source evidence in place with exact paths/hashes, and stage only approved minimal documentation or fixtures. Public database availability does not by itself authorize redistribution or establish an exact locus/answer key. See [external reference policy](../resources/reference_seed_inputs/README.md).
+This page is for a maintainer. It explains how to run the test that checks the bundle's
+reference cluster library, and how to point the test at a folder of antiSMASH ZIPs for a
+second, deeper check. You do not need it to run an analysis.
 
-## What the reference-panel tests actually check
+The task: run the reference-panel test and tell a pass from a skip.
 
-`tests/test_reference_panel.py` skips the entire module when its curated `mamey/data/reference_bgc_library.json` is absent. The bundle ships that library; confirm it is present. A bundled library alone does not establish a test pass or external ZIP availability.
+## Run it
 
-The module's integrity layer checks required fields, marker syntax, duplicate accession and recorded signature consistency. Concordance requires `MAMEY_REF_ZIPS` naming a directory of top-level `.zip` files; filenames are indexed by the test's accession regex, with the first matched ZIP retained for each key. A ZIP filename alone is not proof of source or exact locus identity. No conftest default wires a bundled slice automatically.
+From the bundle root:
 
-Concordance selects the largest `obs_size_kb` parsed region from each matching ZIP and compares its computed markers to recorded `found_markers`, not to an independently verified `expected_marker_set`. Adding arbitrary multi-region ZIPs or naming a file after an accession cannot establish that the intended reference region was tested. Missing ZIPs skip, not pass. These are regression checks against recorded observations, not independent sensitivity/specificity or biological/product validation.
+```bash
+pytest -q -rs tests/test_reference_panel.py
+```
 
-## Ledger inspection and outputs
+The bundled library is `mamey/data/reference_bgc_library.json`. The whole file skips if the library is missing.
 
-The ledger tool's positional interface is `python tools/reference_panel_ledger.py <selected-zips-directory> <fresh-output.csv>`. Both paths are required; the tool has no workspace-specific default. It runs during a separately authorized execution task. It runs local extraction/source scans, so a documentation-only review must read its source instead. Correct output columns include `obs_region_type` and `cmp_t43_markers`; there is no `obs_t43_markers` field (`tools/reference_panel_ledger.py`).
+## What it checks
 
-The CLI discovers only top-level `.zip` filenames, catches individual archive errors and prints `skip`, and directly overwrites the selected CSV when rows exist. When no rows exist it prints `NO_ROWS` to stderr, exits 1 and writes nothing; a missing argument or source directory exits 2. A normal exit or a summary mentioning N ZIPs still does not certify all N archives produced rows. Preserve original inputs and inspect logs, per-source rows, output counts and exact bindings. Use an existing permitted output directory and a fresh file path.
+- **Library check.** Needs no extra input. It checks required fields, marker syntax, duplicate accessions and recorded signatures.
+- **ZIP check.** Needs a folder of antiSMASH result ZIPs. For each library entry it finds the matching ZIP by accession in the file name, takes the largest region, recomputes the markers and compares them with the markers recorded in the library (`found_markers`). The recorded markers are earlier observations, not an independently verified answer. A match means the scanner still agrees with itself. It does not show the product or the biology.
 
-## Fixture adoption holds
+To turn the ZIP check on, name the folder. Only top-level `.zip` files in it are used:
 
-Before adopting a real reference fixture, record exact accession/version, strain/contig/region/BGC identity, source archive/hash, admitted source subset and answer-key basis, software/cut versions and evaluated question. Record synthetic/minimized fixtures explicitly as such. Tests of synthetic annotation logic do not become observed biological evidence.
+```bash
+MAMEY_REF_ZIPS=/path/to/reference_zips pytest -q -rs tests/test_reference_panel.py
+```
 
-The old instruction to block every AS-shaped identifier through `test_no_unpublished_ids_in_public_tier` is obsolete: that test's current policy is not a universal AS-prefix ban. Exact privacy/source-disclosure policies and release review govern sharing. Neither prefix nor fixture size clears those gates. Record any CI/fixture change and its executed checks separately.
+## Pass and skip
 
-See [tests and gated coverage](../tests/README.md), [fixture index](../tests/fixtures/README.md) and [historical external-validation limitations](history/retired_458/EXTERNAL_VALIDATION.md).
+Without `MAMEY_REF_ZIPS`, every ZIP test skips with `MAMEY_REF_ZIPS not set`. Some library
+tests skip too: an entry with no recorded `architecture_signature` skips its signature check.
+With the variable set, entries with no matching ZIP skip with
+`no source zip for <accession> in MAMEY_REF_ZIPS`. A skip is not a pass. Run with `-rs` to see
+each skip and its reason, and report library skips and ZIP skips separately. A run on the shipped library
+without `MAMEY_REF_ZIPS` ended `228 passed, 77 skipped`: 75 ZIP skips and 2 signature skips.
+Expect different numbers if the library changes.
+
+## List what the ZIPs produce
+
+```bash
+python tools/reference_panel_ledger.py <zip-directory> <new-output.csv>
+```
+
+Both paths are required. The tool scans the top-level ZIPs, prints `skip` for any archive that
+fails, and writes one CSV row per parsed BGC region. A multi-region ZIP gives several rows, and a ZIP
+with no parsed region gives none. Columns include `obs_region_type` and `cmp_t43_markers`. It
+overwrites the CSV if rows exist, so give it a new path.
+Exit 0 means rows were written. Exit 1 prints `NO_ROWS` and writes nothing. Exit 2 means a missing argument or folder.
+
+Do not compare the row count with the ZIP count. Read the `zip roster:` line instead: it gives the
+number of ZIPs, how many produced rows, how many had no parsed region (each listed under
+`no regions:`), and how many were skipped. Compare the distinct `source_file` values with the ZIPs you
+supplied.
+
+The strain part of `identity` is the ZIP file name stem, not a bound strain record;
+`identity_strain_basis` reads `zip_filename_stem_unbound`. Bind each row to its strain and full locus
+record before you cite it.
+
+## Adding a real fixture
+
+Write down the accession and version, the strain, contig, region and cluster, the source
+archive and its hash, which part of it you kept, how the expected answer was decided, and the
+software versions. Label synthetic fixtures as synthetic. Public availability of a genome does not
+by itself allow you to ship it; see the [reference seed inputs policy](../resources/reference_seed_inputs/README.md).
+
+See also [tests and gated coverage](../tests/README.md) and the [fixture index](../tests/fixtures/README.md).

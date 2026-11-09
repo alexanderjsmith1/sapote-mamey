@@ -18,9 +18,9 @@ def _make_pkg_with_register(tmp_path: pathlib.Path) -> pathlib.Path:
     (pkg / "manifest_short.json").write_text(json.dumps({
         "strain_id": "AS-XXX", "assembly_tier": "POOR", "interior_pct": 25.0}))
     (pkg / "AS-XXX_4_triage_board.csv").write_text(
-        "BGC_ID,Node_ID,Contig,Products,Boundary,AB_auto,AF_auto,"
+        "BGC_ID,Node_ID,Contig,antiSMASH_Region,Products,Boundary,AB_auto,AF_auto,"
         "Lead_tier_auto,Corrected_rank,KCB_top\n"
-        "BGC033,NODE_7,ctg7,NRPS,Interior,65,40,HIGH,1,nystatin\n"
+        "BGC033,NODE_7,ctg7,region033,NRPS,Interior,65,40,HIGH,1,nystatin\n"
     )
     (pkg / "AS-XXX_judgment_register.json").write_text(json.dumps({
         "schema_version": "1.0",
@@ -35,6 +35,10 @@ def _make_pkg_with_register(tmp_path: pathlib.Path) -> pathlib.Path:
             "session_id": None, "timestamp": None}},
     }))
     return pkg
+
+
+# The four-part exact-locus header every ingest route requires to match the triage row.
+IDENTITY_HEADER = "# Mode B — AS-XXX / ctg7 / region033 / BGC033\n\n"
 
 
 def _full_card():
@@ -66,13 +70,14 @@ def _full_card():
         (28, "Evidence provenance ledger"),
         (30, "Experimental decision tree"),
     ]
-    return "".join(f"## §{n} {t}\n\nbody\n\n" for n, t in sections)
+    return IDENTITY_HEADER + "".join(f"## §{n} {t}\n\nbody\n\n" for n, t in sections)
 
 
 def _legacy_card():
     """The BGC033-pattern card."""
     return (
         "<!-- MODE B: BGC033 | strain: AS-XXX | session: S-test | 2026-06-30 -->\n\n"
+        + IDENTITY_HEADER +
         "## §1 Identity\nbody\n\n"
         "## §2 Assembly\nbody\n\n"
         "## §9 Activation\nbody\n\n"

@@ -29,7 +29,7 @@ GenBank/query FASTA and a `ripper-coordinate-map/1` sidecar. It writes a fresh
 `RIPPER_COORDINATE_BINDING.json`; it never rewrites imported evidence or canonical
 packages. Current upstream scripts do not emit this sidecar. It is an interface
 proposal for a separately reviewed producer or operator declaration, not a claimed
-live RiPPER output. Lane05 owns upstream adaptation; this adapter consumes declarations.
+live RiPPER output. This adapter only consumes declarations; it does not adapt the upstream tool.
 
 ```text
 python tools/ripper_adapter.py bind-coordinates --evidence evidence.json \

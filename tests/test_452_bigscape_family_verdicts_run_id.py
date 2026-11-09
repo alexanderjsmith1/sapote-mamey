@@ -51,11 +51,17 @@ def _build(p, run_id=None):
     return bfv.build(str(p), 0.3, re.compile(r"^([A-Za-z]+-\d+)_"), ("SID_", "TYPE_"), run_id=run_id)
 
 
-def test_reused_database_reads_the_latest_run_only(tmp_path):
-    rows, placement = _build(_db(tmp_path))
+def test_reused_database_without_run_id_is_refused(tmp_path):
+    # v9.7.464: two finished runs and no --run-id is ambiguous; the reader no longer picks the latest silently.
+    with pytest.raises(SystemExit, match="RUN_AMBIGUOUS"):
+        _build(_db(tmp_path))
+
+
+def test_reused_database_reads_only_the_named_run(tmp_path):
+    rows, placement = _build(_db(tmp_path), run_id=2)
     assert sorted(r["family_id"] for r in rows) == [30, 31]                 # not 10: run 1's copy is not counted again
     assert {r["verdict"] for r in rows} == {"QUERY_SHARED_REFERENCE", "QUERY_PRIVATE_MIBIG_MATCHED"}
-    assert placement == [{"cutoff": 0.3, "region_records": 4, "records_with_family_row": 4, "singleton_records": 0}]
+    assert placement == [{"cutoff": 0.3, "region_records": 4, "records_with_family_row": 4, "singleton_records": 0, "run_id": 2}]
     assert bfv.build.last_run == (2, [1, 2])
 
 
@@ -80,7 +86,7 @@ def test_database_without_run_column_is_read_as_before(tmp_path):
 
 def test_cli_reports_the_run_it_read(tmp_path, capsys):
     out = tmp_path / "v.tsv"
-    assert bfv.main([str(_db(tmp_path)), str(out)]) == 0
+    assert bfv.main([str(_db(tmp_path)), str(out), "--run-id", "2"]) == 0
     text = capsys.readouterr()
     assert "run 2 of 2 run(s)" in (text.out + text.err)
     assert out.read_text().count("\n") == 3                                 # header + 2 families

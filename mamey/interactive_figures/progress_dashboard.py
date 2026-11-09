@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from mamey.figure_save import save_figure
+from mamey.figure_save import _inside, save_figure
 
 
 class ProgressDashboardRefusal(RuntimeError):
@@ -166,6 +166,21 @@ def render_progress_dashboard(
     root = Path(package_dir).resolve()
     stem = Path(out_stem).resolve()
     data_path = stem.with_suffix(".csv")
+    receipt_path = stem.with_name(stem.name + "_receipt.json")
+    roster = [stem.parent / f"{stem.name}.png", stem.parent / f"{stem.name}.svg", data_path, receipt_path]
+    # Admit every destination before writing anything: the artwork, the CSV and the receipt must each
+    # be inside the package, not a symlink, and not exist yet. save_figure checks containment only
+    # after this CSV would already exist, and the receipt was previously written without any check.
+    if any(not _inside(path, root) or path.is_symlink() for path in [stem, *roster]):
+        plt.close(fig)
+        raise ProgressDashboardRefusal("PROGRESS_OUTPUT_OUTSIDE_PACKAGE: out_stem, its CSV and its receipt must be "
+                                       "contained by package_dir and not be symlinks")
+    try:
+        from mamey.output_transaction import preflight_output_roster
+        preflight_output_roster(roster)
+    except ValueError as exc:
+        plt.close(fig)
+        raise ProgressDashboardRefusal(f"PROGRESS_OUTPUT_NOT_FRESH: {exc}; choose a fresh out_stem") from exc
     data_path.parent.mkdir(parents=True, exist_ok=True)
     fields = ["series", "window_hours", "completed_at", "units", "cumulative_units", "interval_start", "bin_hours"]
     with data_path.open("w", newline="", encoding="utf-8") as stream:
@@ -190,6 +205,6 @@ def render_progress_dashboard(
                  "sha256": _sha(data_path), "bytes": data_path.stat().st_size},
         "figure_receipt": figure_receipt,
     }
-    receipt_path = stem.with_name(stem.name + "_receipt.json")
-    receipt_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    with receipt_path.open("x", encoding="utf-8") as stream:   # create-only: never replaces a receipt
+        stream.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result

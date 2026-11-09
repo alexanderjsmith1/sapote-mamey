@@ -214,6 +214,10 @@ def build_source_catalog(
     collection_rows: dict[tuple[str, str], dict] = {}
     truncation_reason = ""
     scan_errors = []
+    # Directories whose files entered no collection. Material-suffix files there
+    # hold completeness; other files are listed so nothing is silently dropped.
+    uncataloged_material: list[dict] = []
+    uncataloged_other: list[dict] = []
 
     def record_scan_error(path, reason):
         try:
@@ -279,6 +283,10 @@ def build_source_catalog(
         relative = directory.relative_to(root).as_posix() or "."
         rule = _match_rule(relative, local_files, rules)
         material = any(Path(name).suffix.lower() in MATERIAL_SUFFIXES for name in local_files)
+        if not rule and local_files and not (material and depth <= registry.get("unclassified_max_depth", 2)):
+            entry = {"relative_path": relative, "depth": depth, "file_count": len(local_files),
+                     "apparent_bytes": local_bytes}
+            (uncataloged_material if material else uncataloged_other).append(entry)
         if rule or (material and depth <= registry.get("unclassified_max_depth", 2)):
             collection_type = rule["collection_type"] if rule else "UNCLASSIFIED_MATERIAL"
             collection_relative = _collection_anchor(relative, rule) if rule else relative
@@ -316,7 +324,8 @@ def build_source_catalog(
                 )
 
     status = (truncation_reason or ("TRUNCATED_DEPTH_LIMIT" if pruned_depth else "")
-              or ("INCOMPLETE_FILESYSTEM_SCAN" if scan_errors else "PASS_COMPLETE"))
+              or ("INCOMPLETE_FILESYSTEM_SCAN" if scan_errors else "")
+              or ("INCOMPLETE_UNCATALOGED_MATERIAL" if uncataloged_material else "PASS_COMPLETE"))
     collections = list(collection_rows.values())
     collections.sort(key=lambda row: (row["collection_type"], row["relative_path"]))
     return {
@@ -334,11 +343,19 @@ def build_source_catalog(
             "depth_pruned_directory_count": pruned_depth,
             "collection_count": len(collections),
             "unadmitted_filesystem_surface_count": len(scan_errors),
+            "uncataloged_material_directory_count": len(uncataloged_material),
+            "uncataloged_material_file_count": sum(row["file_count"] for row in uncataloged_material),
+            "uncataloged_other_directory_count": len(uncataloged_other),
+            "uncataloged_other_file_count": sum(row["file_count"] for row in uncataloged_other),
         },
+        "unclassified_max_depth": registry.get("unclassified_max_depth", 2),
+        "uncataloged_material_directories": uncataloged_material,
+        "uncataloged_other_directories": uncataloged_other,
         "collections": collections,
         "non_claims": [
             "Discovery does not confer source authority or current-evidence admission.",
             "Discovery does not establish product identity, production, activity, novelty, physical linkage, release, or publication readiness.",
+            "PASS_COMPLETE means every material-suffix file seen within the scan limits entered a collection; it is not an independently reconciled evidence inventory.",
         ],
     }
 

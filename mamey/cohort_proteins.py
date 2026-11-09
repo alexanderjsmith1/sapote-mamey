@@ -280,9 +280,19 @@ def build_catalog(cohort_roots: Iterable[tuple[str, Path]], out: Path, *, replac
                   gbk_registers: Iterable[Path] = ()) -> dict:
     """Build a content-addressed occurrence catalog from Mamey packages."""
     out = out.resolve()
+    receipt = out.with_suffix(".receipt.json")
+    cohort_roots = list(cohort_roots)
+    gbk_registers = list(gbk_registers)
+    if not replace:
+        # The database and its receipt are one pair: refuse if either exists.
+        for existing in (out, receipt):
+            if existing.exists() or existing.is_symlink():
+                raise FileExistsError(f"catalog output already exists: {existing}; pass --replace to rebuild")
+        from .output_transaction import preflight_output_roster
+        preflight_output_roster(
+            [out, receipt],
+            protected_paths=[Path(root) for _, root in cohort_roots] + [Path(r) for r in gbk_registers])
     out.parent.mkdir(parents=True, exist_ok=True)
-    if out.exists() and not replace:
-        raise FileExistsError(f"catalog already exists: {out}; pass --replace to rebuild")
     all_rows: list[dict] = []
     quarantine: list[dict] = []
     packages_by_cohort: dict[str, int] = defaultdict(int)
@@ -368,13 +378,34 @@ def build_catalog(cohort_roots: Iterable[tuple[str, Path]], out: Path, *, replac
                 "distinct_protein_sequences": con.execute("SELECT COUNT(DISTINCT protein_sha256) FROM protein_occurrence WHERE cohort=?", (cohort,)).fetchone()[0],
             }
         con.close()
-        os.replace(temp_path, out)
+        stats["database"] = {"path": str(out), "sha256": _sha256_file(temp_path),
+                             "byte_count": temp_path.stat().st_size}
+        with tempfile.NamedTemporaryFile("w", prefix=receipt.name + ".", suffix=".tmp", dir=out.parent,
+                                         delete=False, encoding="utf-8") as handle:
+            receipt_temp = Path(handle.name)
+            handle.write(json.dumps(stats, indent=2) + "\n")
+        try:
+            if replace:
+                os.replace(temp_path, out)
+                os.replace(receipt_temp, receipt)
+            else:
+                # Hard links refuse an occupied name, so a path that appeared
+                # since the preflight is never overwritten.
+                os.link(temp_path, out)
+                try:
+                    os.link(receipt_temp, receipt)
+                except BaseException:
+                    owned = temp_path.stat()
+                    actual = out.lstat()
+                    if (actual.st_dev, actual.st_ino) == (owned.st_dev, owned.st_ino):
+                        out.unlink()
+                    raise
+        finally:
+            if receipt_temp.exists():
+                receipt_temp.unlink()
     finally:
         if temp_path.exists():
             temp_path.unlink()
-    receipt = out.with_suffix(".receipt.json")
-    stats["database"] = {"path": str(out), "sha256": _sha256_file(out), "byte_count": out.stat().st_size}
-    receipt.write_text(json.dumps(stats, indent=2) + "\n", encoding="utf-8")
     return stats
 
 
@@ -525,7 +556,6 @@ def compare_catalog(database: Path, package: Path, alias: str, outdir: Path, *,
                     prefilter_n: int = 40, query_cohort: str | None = None) -> dict:
     """Compare selected focal proteins to every cohort and emit Mode-B-ready tables."""
     database, package, outdir = database.resolve(), package.resolve(), outdir.resolve()
-    outdir.mkdir(parents=True, exist_ok=True)
     display, query = _load_query(package, alias, genes)
     con = sqlite3.connect(f"file:{database}?mode=ro&immutable=1", uri=True)
     con.row_factory = sqlite3.Row
@@ -538,6 +568,32 @@ def compare_catalog(database: Path, package: Path, alias: str, outdir: Path, *,
             "distinct_protein_sequences": con.execute("SELECT COUNT(DISTINCT protein_sha256) FROM protein_occurrence WHERE cohort=?", (cohort,)).fetchone()[0],
         } for cohort in cohorts
     }
+    focal_strain = query[0]["query_strain"] if query else _package_strain(
+        package, _read_rows(_one(package, "*_2_inventory.csv")))
+    focal_rows_by_cohort = {
+        row[0]: row[1] for row in con.execute(
+            "SELECT cohort, COUNT(*) FROM protein_occurrence WHERE strain=? GROUP BY cohort ORDER BY cohort",
+            (focal_strain,))
+    }
+    if query_cohort is not None:
+        if query_cohort not in cohorts:
+            con.close()
+            raise ValueError(f"--query-cohort {query_cohort!r} is not a cohort label in the database; "
+                             f"labels are: {', '.join(cohorts) or '(none)'}")
+        if query_cohort not in focal_rows_by_cohort:
+            con.close()
+            raise ValueError(f"--query-cohort {query_cohort!r} holds no rows for the focal strain "
+                             f"{focal_strain!r}; nothing would be excluded")
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "__", display)
+    output_names = [f"{stem}__COHORT_PROTEIN_MATCHES.tsv", f"{stem}__COHORT_NEIGHBORHOOD_SUMMARY.tsv",
+                    f"{stem}__MODEB_SECTION45_PAYLOAD.md", f"{stem}__COHORT_PROTEIN_COMPARISON_RECEIPT.json"]
+    from .output_transaction import fresh_output_set, preflight_output_roster
+    try:
+        # Refuse before any alignment work: an earlier comparison is never replaced.
+        preflight_output_roster([outdir / name for name in output_names], protected_paths=[database, package])
+    except ValueError:
+        con.close()
+        raise
     aligner = _aligner()
     matches: list[dict] = []
     for q in query:
@@ -613,11 +669,17 @@ def compare_catalog(database: Path, package: Path, alias: str, outdir: Path, *,
             "allowed_inference": "component-level within-project navigation; not complete pathway identity",
         })
     neighborhoods.sort(key=lambda row: (-row["matched_query_gene_count"], row["comparator_cohort"], row["comparator_exact_locus"]))
-    stem = re.sub(r"[^A-Za-z0-9_.-]+", "__", display)
-    matches_path = outdir / f"{stem}__COHORT_PROTEIN_MATCHES.tsv"
-    neighborhood_path = outdir / f"{stem}__COHORT_NEIGHBORHOOD_SUMMARY.tsv"
-    payload_path = outdir / f"{stem}__MODEB_SECTION45_PAYLOAD.md"
-    receipt_path = outdir / f"{stem}__COHORT_PROTEIN_COMPARISON_RECEIPT.json"
+    final_paths = [outdir / name for name in output_names]
+    with fresh_output_set(outdir, output_names) as stage:
+        return _publish_comparison(stage, output_names, final_paths, display, query, cohorts, denominator,
+                                   matches, neighborhoods, query_cohort, focal_strain, focal_rows_by_cohort,
+                                   prefilter_n)
+
+
+def _publish_comparison(stage, output_names, final_paths, display, query, cohorts, denominator, matches,
+                        neighborhoods, query_cohort, focal_strain, focal_rows_by_cohort, prefilter_n):
+    """Write the four comparison files into the fresh staging folder; the caller publishes them."""
+    matches_path, neighborhood_path, payload_path, receipt_path = (stage / name for name in output_names)
     _write_tsv(matches_path, matches)
     _write_tsv(neighborhood_path, neighborhoods)
     lines = [
@@ -657,16 +719,22 @@ def compare_catalog(database: Path, package: Path, alias: str, outdir: Path, *,
         "schema": "mamey.cohort-protein-comparison/1", "created_utc": datetime.now(timezone.utc).isoformat(),
         "status": "PASS", "query_exact_locus": display, "query_gene_count": len(query),
         "query_genes": [row["query_gene"] for row in query], "cohort_denominator": denominator,
-        "query_cohort": query_cohort, "target_strain_excluded_from_query_cohort": bool(query_cohort),
+        "query_cohort": query_cohort, "focal_strain": focal_strain,
+        # True only when the focal strain had rows in the named cohort and they were left out.
+        "target_strain_excluded_from_query_cohort": bool(query_cohort and query_cohort in focal_rows_by_cohort),
+        "focal_strain_rows_by_cohort": focal_rows_by_cohort,
+        "focal_strain_excluded_cohorts": [query_cohort] if query_cohort in focal_rows_by_cohort else [],
+        # Same strain label in another cohort stays eligible as a comparator.
+        "focal_strain_still_ranked_in_cohorts": sorted(c for c in focal_rows_by_cohort if c != query_cohort),
         "candidate_prefilter": f"top {prefilter_n} length-gated 4-mer candidates per query gene and cohort",
         "alignment": "local BLOSUM62; gap open -11; gap extend -1; identity/positives denominator includes gaps",
         "rank_rule": "local alignment score, then query coverage, identity, exact locus and gene",
         "claim_ceiling": CLAIM_CEILING, "artifacts": {},
     }
-    for path in (matches_path, neighborhood_path, payload_path):
-        receipt["artifacts"][str(path)] = {"sha256": _sha256_file(path), "byte_count": path.stat().st_size}
+    for path, final in zip((matches_path, neighborhood_path, payload_path), final_paths):
+        receipt["artifacts"][str(final)] = {"sha256": _sha256_file(path), "byte_count": path.stat().st_size}
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-    receipt["receipt_path"] = str(receipt_path)
+    receipt["receipt_path"] = str(final_paths[3])
     return receipt
 
 
@@ -722,7 +790,7 @@ def add_cli_parser(subparsers) -> argparse.ArgumentParser:
     compare.add_argument("--query-cohort", default=None, help="Cohort label containing the focal strain; excludes that strain from within-cohort ranking")
     compare.add_argument("--top-n", type=int, default=3, help="Nonredundant exact comparator loci retained per query gene/cohort")
     compare.add_argument("--prefilter-n", type=int, default=40, help="Length/4-mer candidates aligned per query gene/cohort")
-    compare.add_argument("--outdir", required=True, help="Additive output directory")
+    compare.add_argument("--outdir", required=True, help="Output directory; existing comparison files for this BGC are refused, never replaced")
     compare.set_defaults(func=command)
     return parser
 

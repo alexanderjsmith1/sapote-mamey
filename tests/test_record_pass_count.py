@@ -13,8 +13,9 @@ This test makes that counter permanent. _run_record_extractors is the single dri
 extractor routes through, so counting its invocations counts record passes directly.
 
 Invariant for a run on a single-contig input:
-  * bounded -> exactly ONE pass, carrying all 7 handlers (the 2 tigrfam readers + the 5 json-evidence extractors)
-  * off     -> exactly ONE pass, carrying ONLY the 2 tigrfam readers
+  * bounded -> exactly ONE pass, carrying all 8 handlers (the 2 tigrfam readers + the 5 json-evidence extractors
+    + the KCB percent reader, which rides any pass and never opens the JSON on its own)
+  * off     -> exactly ONE pass, carrying ONLY the 2 tigrfam readers + the KCB percent reader
 
 The tigrfam channel has two readers of the same record: the tier-1 hits and, since v9.7.445, their report-only
 competitors for the dominated-diagnostic report. Both ride the one pass; neither opens the JSON in off mode.
@@ -55,11 +56,11 @@ def test_bounded_run_makes_one_record_pass(monkeypatch, synthetic_single_contig_
     counts = _run_counting_passes("bounded", monkeypatch, synthetic_single_contig_full_locus_zip)
     assert len(counts) == 1, f"expected ONE record pass in bounded mode, got {len(counts)}: {counts}"
     # tigrfam + tigrfam competitors (report-only) + nrps_pks + active_site + product_class + ripp + rrefinder
-    assert counts[0] == 7, f"bounded pass should carry all 7 handlers, got {counts[0]}"
+    assert counts[0] == 8, f"bounded pass should carry all 8 handlers, got {counts[0]}"
 
 
 def test_off_run_makes_one_tigrfam_only_pass(monkeypatch, synthetic_single_contig_full_locus_zip):
     counts = _run_counting_passes("off", monkeypatch, synthetic_single_contig_full_locus_zip)
     assert len(counts) == 1, f"expected ONE record pass in off mode, got {len(counts)}: {counts}"
     # off mode: only the two tigrfam readers (the json-evidence extractors are gated off)
-    assert counts[0] == 2, f"off-mode pass should carry only the 2 tigrfam readers, got {counts[0]}"
+    assert counts[0] == 3, f"off-mode pass should carry the 2 tigrfam readers and the KCB percent reader, got {counts[0]}"

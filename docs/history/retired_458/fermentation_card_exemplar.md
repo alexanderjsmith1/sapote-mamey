@@ -1,12 +1,14 @@
 # Fermentation Card — Format Exemplar + Regulator→Induction Lookup
 
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Bench guide exemplar](../../../examples/bench_guide_exemplar.md).
+This file was the fermentation-card example in the `examples` folder before it moved here; no file of that name exists there now.
+
 
 > **Historical planning example:** the lookup and worked conditions below are retained context, not source-validated experimental instructions. Motif scores do not establish induction, activity or universal chemical novelty. For current evidence-first format use [the bench guide exemplar](../../../examples/bench_guide_exemplar.md); leave experimental fields unresolved until their specific sources and approvals are bound. The historical shortened loci must not be reused: each target requires `strain / full node-or-contig / region / BGC alias`.
 
 **Sapote-Mamey Bundle v9.7.96 | Layer C fermentation-planning deliverable**
 **[EXAMPLE: all strain IDs, BGC numbers, and values below are illustrative. Replace with real data from the Mamey scan output (TFBS counts, RiQ, bldA tiers).]**
-Source reference: AS-XXX / AS-XXX Fermentation Cards, Actinomycetes Project, May 2026.
+Source reference: STRAIN_ID / STRAIN_ID Fermentation Cards, Actinomycetes Project, May 2026.
 
 ---
 
@@ -57,7 +59,7 @@ the upstream-motif scan, and the card should mark them `(protein-level call)`.
 
 ---
 
-## Card format (matches AS-XXX / AS-XXX)
+## Card format (matches STRAIN_ID / STRAIN_ID)
 
 ```
 [StrainID] — [Taxonomy]
@@ -113,7 +115,7 @@ signal (extra tailoring genes confirmed, a diagnostic CCTT trigger, a pigment ma
 
 ## Worked example (illustrative — format reference only)
 
-### AS-XXX — *Streptosporangium* sp.
+### STRAIN_ID — *Streptosporangium* sp.
 Bumblebee-associated · MRSA-active · Candida-active · antiSMASH 8.0.4
 
 ```

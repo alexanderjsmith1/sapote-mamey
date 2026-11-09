@@ -62,7 +62,7 @@ def test_e1_rows_written_per_bgc(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
-    record_mode_b(pkg, "BGC001", "# §1\nContent.", "Lay text for BGC001.", "Ferm text.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nContent.", "Lay text for BGC001.", "Ferm text.", "batch_1", identity_checked_by_caller=True)
 
     result = update_e1_from_judgment(pkg, wb_path)
 
@@ -89,7 +89,7 @@ def test_e1_no_all_placeholder_after_update(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     update_e1_from_judgment(pkg, wb_path)
 
     from openpyxl import load_workbook as _lw
@@ -105,7 +105,7 @@ def test_complete_bgc_has_layperson_summary(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1\nContent.", "BGC001 encodes azole-RiPP capacity.", "Grow at 28C.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nContent.", "BGC001 encodes azole-RiPP capacity.", "Grow at 28C.", "batch_1", identity_checked_by_caller=True)
     update_e1_from_judgment(pkg, wb_path)
 
     from openpyxl import load_workbook as _lw
@@ -125,7 +125,7 @@ def test_pending_bgc_has_no_layperson_summary(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "BGC001 lay.", "BGC001 ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "BGC001 lay.", "BGC001 ferm.", "batch_1", identity_checked_by_caller=True)
     update_e1_from_judgment(pkg, wb_path)
 
     from openpyxl import load_workbook as _lw
@@ -145,7 +145,7 @@ def test_a4_updated_to_in_progress(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     result = update_e1_from_judgment(pkg, wb_path)
 
     assert "IN_PROGRESS" in result["e1_audit_status"]
@@ -167,7 +167,7 @@ def test_a4_updated_to_complete_when_all_done(pkg, tmp_path):
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
     for bgc in ["BGC001", "BGC002", "BGC003"]:
-        record_mode_b(pkg, bgc, "# §1", f"{bgc} lay.", f"{bgc} ferm.", "batch_1")
+        record_mode_b(pkg, bgc, "# §1", f"{bgc} lay.", f"{bgc} ferm.", "batch_1", identity_checked_by_caller=True)
     result = update_e1_from_judgment(pkg, wb_path)
     assert result["e1_audit_status"] == "COMPLETE"
 
@@ -177,10 +177,10 @@ def test_idempotent_second_call_replaces_rows(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay1.", "Ferm1.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay1.", "Ferm1.", "batch_1", identity_checked_by_caller=True)
     update_e1_from_judgment(pkg, wb_path)
     # Batch 2: BGC002 now complete
-    record_mode_b(pkg, "BGC002", "# §1", "Lay2.", "Ferm2.", "batch_2")
+    record_mode_b(pkg, "BGC002", "# §1", "Lay2.", "Ferm2.", "batch_2", identity_checked_by_caller=True)
     update_e1_from_judgment(pkg, wb_path)
 
     from openpyxl import load_workbook as _lw
@@ -205,7 +205,7 @@ def test_result_summary_counts(pkg, tmp_path):
     wb_path = tmp_path / "master.xlsx"
     _make_minimal_workbook(wb_path)
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     result = update_e1_from_judgment(pkg, wb_path)
     assert result["bgcs_written"] == 3
     assert result["bgcs_complete"] == 1

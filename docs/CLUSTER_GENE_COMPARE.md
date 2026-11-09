@@ -1,7 +1,9 @@
 # Gene-by-gene homology comparison
 
-    python tools/cluster_gene_compare.py --gbk "FixtureA:fixture_a.gbk" \
-      --gbk "FixtureB:fixture_b.gbk" --outdir OUT --pdf
+    python tools/cluster_gene_compare.py --gbk "ExampleA:region_a.gbk" \
+      --gbk "ExampleB:region_b.gbk" --outdir OUT --pdf
+
+Give each `--gbk` one cluster GenBank file, normally one antiSMASH region, as `LABEL:path`. Repeat the flag for each cluster you compare. The label becomes a column name. `--outdir` defaults to `cluster_compare_out`. Exit 0 and a console line giving the cluster, pair and group counts mean the files were written.
 
 Labels must be unique safe basenames, including when compared ignoring case. The
 complete output set must be fresh; an existing artifact or symlink is refused.
@@ -38,7 +40,7 @@ All copies remain in the two canonical CSVs. No compound, activity, evolutionary
 outgroup or functional assignment follows from this comparison. Truncated inputs
 and approximate gene boundaries limit the supplied inventory.
 
-Global alignment uses canonical sequence orientation to preserve tie behavior when inputs are swapped. Group metadata records identity/coverage thresholds and the requested engine.
+Global alignment uses canonical sequence orientation to preserve tie behavior when inputs are swapped. Group metadata records identity/coverage thresholds and the engine. The recorded engine is the one that ran: if `--engine pyswrd` is requested and pyswrd cannot be imported or cannot align on the machine, the command stops with `CLUSTER_GENE_COMPARE_ENGINE_UNAVAILABLE` (exit 2) before writing outputs, instead of falling back to the exhaustive comparison.
 
 ## Inventory, receipt and rendering boundaries
 
@@ -46,8 +48,8 @@ Inventory extraction includes translated CDS from **all** GenBank records, with 
 
 Coverage is alignment columns containing residues in both sequences divided by the longer input protein length; it is not query-only coverage. Admission uses unrounded identity/coverage, while exported measured pairs round identity to one decimal and coverage to an integer. Near-threshold inspection must use the declared computation, not infer admission by re-thresholding the rounded CSV.
 
-There is no comparison-contract JSON, source-hash manifest or output-hash receipt in the emitted roster. Qualifier metadata records grouping parameters but does not bind source bytes or scientific acceptance. The heatmap is 150 dpi with width `1.6 + 1.15 × inputs` inches and height `max(3.5,0.32 × groups +1.2)` inches; labels truncate at 34 characters and no SVG is emitted. Full identity belongs in the canonical tables/receipt, not an abbreviated axis.
+There is no comparison-contract JSON, source-hash manifest or output-hash receipt in the emitted roster. Qualifier metadata records grouping parameters but does not bind source bytes or scientific acceptance. Heatmap axis labels truncate at 34 characters, and no SVG is emitted. Full identity belongs in the canonical tables/receipt, not an abbreviated axis.
 
 The fresh complete-set transaction rolls back owned publication links on ordinary failure; it is not crash-atomic. Cleanup failure can return an error after outputs were published. Inspect the actual roster and diagnostics before retrying, without overwriting prior outputs. Zero exit is software output production, not absence, orthology, visual clearance or scientific adoption. See the [cluster relationship guide](CLUSTER_RELATE.md) for the shared transaction limits.
 
-Inspect the optional PDF's methods separately: its current template says every cross-input CDS pair was aligned and reports the identity cutoff, even when the requested `pyswrd` path restricts candidates; it also omits the coverage cutoff from that methods sentence. Retain the actual engine and both thresholds in the external run record, and correct the candidate PDF methods before reader-facing use. Creating the PDF does not verify that embedded prose accurately describes the selected computation.
+Read the optional PDF's methods sentence with care. It says every cross-input CDS pair was aligned and it omits the coverage cutoff, even when `--engine pyswrd` restricted the candidates. The engine and both thresholds are in the run settings you passed, so record them yourself. Do not cite that sentence as the method until it matches the settings you used.

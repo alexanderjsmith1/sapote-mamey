@@ -48,7 +48,7 @@ def test_init_register_creates_register(pkg):
 def test_init_register_idempotent_preserves_progress(pkg):
     """Re-running init_register must not wipe Sapote progress."""
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1\nContent", "Layperson text", "Ferm note", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nContent", "Layperson text", "Ferm note", "batch_1", identity_checked_by_caller=True)
     # Re-init with a different BGC list (BGC003 added)
     reg = init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
     assert reg["bgcs"]["BGC001"]["status"] == "COMPLETE"   # preserved
@@ -70,7 +70,7 @@ def test_init_register_no_manifest(tmp_path):
 
 def test_record_mode_b_writes_file(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
-    result = record_mode_b(pkg, "BGC001", "# §1\nMode B content.", "Lay para.", "Ferm note.", "batch_1")
+    result = record_mode_b(pkg, "BGC001", "# §1\nMode B content.", "Lay para.", "Ferm note.", "batch_1", identity_checked_by_caller=True)
     path = result["path"]
     assert path.exists()
     assert "Mode B content" in path.read_text()
@@ -78,7 +78,7 @@ def test_record_mode_b_writes_file(pkg):
 
 def test_record_mode_b_updates_register(pkg):
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay para", "Ferm", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay para", "Ferm", "batch_1", identity_checked_by_caller=True)
     reg = read_register(pkg)
     assert reg["bgcs"]["BGC001"]["status"] == "COMPLETE"
     assert reg["bgcs"]["BGC002"]["status"] == "PENDING"
@@ -87,22 +87,22 @@ def test_record_mode_b_updates_register(pkg):
 
 def test_record_mode_b_appends_layperson(pkg):
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "BGC001 layperson text.", "", "batch_1")
-    record_mode_b(pkg, "BGC002", "# §1", "BGC002 layperson text.", "", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "BGC001 layperson text.", "", "batch_1", identity_checked_by_caller=True)
+    record_mode_b(pkg, "BGC002", "# §1", "BGC002 layperson text.", "", "batch_1", identity_checked_by_caller=True)
     lay = read_laypersons(pkg)
     assert "BGC001 layperson text" in lay
     assert "BGC002 layperson text" in lay
 
 def test_record_mode_b_appends_fermentation(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1", "", "Grow at 28°C in ISP2.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "", "Grow at 28°C in ISP2.", "batch_1", identity_checked_by_caller=True)
     ferm = read_fermentation(pkg)
     assert "28°C in ISP2" in ferm
 
 def test_record_mode_b_empty_optional_fields(pkg):
     """Empty layperson_paragraph and fermentation_note must not create empty files."""
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1\nContent.", "", "", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nContent.", "", "", "batch_1", identity_checked_by_caller=True)
     lay_path = pkg / "judgment" / "AS-TEST_laypersons_section.md"
     ferm_path = pkg / "judgment" / "AS-TEST_fermentation_section.md"
     # Files should not exist if nothing was appended
@@ -110,7 +110,7 @@ def test_record_mode_b_empty_optional_fields(pkg):
 
 def test_record_mode_b_creates_judgment_dir(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     assert (pkg / "judgment").is_dir()
 
 
@@ -143,7 +143,7 @@ def test_read_mode_b_missing_returns_empty(pkg):
 
 def test_read_mode_b_after_write(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1\nThe content.", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nThe content.", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     content = read_mode_b(pkg, "BGC001")
     assert "The content" in content
 
@@ -152,7 +152,7 @@ def test_read_mode_b_after_write(pkg):
 
 def test_list_complete_and_pending(pkg):
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
-    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "Lay.", "Ferm.", "batch_1", identity_checked_by_caller=True)
     assert list_complete_bgcs(pkg) == ["BGC001"]
     assert set(pending_bgcs(pkg)) == {"BGC002", "BGC003"}
 
@@ -161,13 +161,13 @@ def test_list_complete_and_pending(pkg):
 
 def test_is_judgment_complete_false_when_pending(pkg):
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "", "", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "", "", "batch_1", identity_checked_by_caller=True)
     assert not is_judgment_complete(pkg)
 
 def test_is_judgment_complete_true_when_all_done(pkg):
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1", "", "", "batch_1")
-    record_mode_b(pkg, "BGC002", "# §1", "", "", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1", "", "", "batch_1", identity_checked_by_caller=True)
+    record_mode_b(pkg, "BGC002", "# §1", "", "", "batch_1", identity_checked_by_caller=True)
     assert is_judgment_complete(pkg)
 
 def test_is_judgment_complete_false_for_empty_register(tmp_path):
@@ -180,10 +180,10 @@ def test_cross_batch_accumulation(pkg):
     """Batch 2 progress must not overwrite Batch 1 progress."""
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
     # Batch 1: BGC001 and BGC002
-    record_mode_b(pkg, "BGC001", "# §1\nBatch1.", "Lay1.", "Ferm1.", "batch_1")
-    record_mode_b(pkg, "BGC002", "# §1\nBatch1.", "Lay2.", "Ferm2.", "batch_1")
+    record_mode_b(pkg, "BGC001", "# §1\nBatch1.", "Lay1.", "Ferm1.", "batch_1", identity_checked_by_caller=True)
+    record_mode_b(pkg, "BGC002", "# §1\nBatch1.", "Lay2.", "Ferm2.", "batch_1", identity_checked_by_caller=True)
     # Batch 2: BGC003
-    record_mode_b(pkg, "BGC003", "# §1\nBatch2.", "Lay3.", "Ferm3.", "batch_2")
+    record_mode_b(pkg, "BGC003", "# §1\nBatch2.", "Lay3.", "Ferm3.", "batch_2", identity_checked_by_caller=True)
     reg = read_register(pkg)
     assert reg["complete_bgcs"] == 3
     assert is_judgment_complete(pkg)
@@ -199,7 +199,7 @@ def test_record_mode_b_stamps_verdict(pkg):
     from mamey.judgment_store import record_mode_b, read_register
     init_register(pkg, "AS-TEST", ["BGC001"])
     # A short stub card -> verdict should be STUB, stamped in the register
-    result = record_mode_b(pkg, "BGC001", "# §1\nshort.", "Lay.", "Ferm.", "batch_1", rank=1)
+    result = record_mode_b(pkg, "BGC001", "# §1\nshort.", "Lay.", "Ferm.", "batch_1", rank=1, identity_checked_by_caller=True)
     assert result["verdict"]["tier"] in ("STUB", "SHALLOW")
     reg = read_register(pkg)
     assert reg["bgcs"]["BGC001"]["quality_tier"] in ("STUB", "SHALLOW")
@@ -207,7 +207,7 @@ def test_record_mode_b_stamps_verdict(pkg):
 def test_incomplete_cards_lists_non_full(pkg):
     from mamey.judgment_store import record_mode_b, incomplete_cards
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "# §1\nshort stub.", "L.", "F.", "batch_1", rank=1)
+    record_mode_b(pkg, "BGC001", "# §1\nshort stub.", "L.", "F.", "batch_1", rank=1, identity_checked_by_caller=True)
     inc = incomplete_cards(pkg)
     ids = {r["bgc_id"] for r in inc}
     assert "BGC001" in ids  # the stub is flagged incomplete
@@ -218,7 +218,7 @@ def test_incomplete_cards_lists_non_full(pkg):
 def test_batch_status_rank_ordered(pkg):
     from mamey.judgment_store import record_mode_b, batch_status
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002", "BGC003"])
-    record_mode_b(pkg, "BGC002", "# §1 stub", "L", "F", "batch_1", rank=2)
+    record_mode_b(pkg, "BGC002", "# §1 stub", "L", "F", "batch_1", rank=2, identity_checked_by_caller=True)
     st = batch_status(pkg, ["BGC001", "BGC002", "BGC003"])
     assert st["total"] == 3
     assert st["not_started"] == 2
@@ -228,7 +228,7 @@ def test_batch_status_rank_ordered(pkg):
 def test_compile_ready_blocks_until_all_full(pkg):
     from mamey.judgment_store import record_mode_b, compile_ready
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "# §1 stub", "L", "F", "batch_1", rank=1)
+    record_mode_b(pkg, "BGC001", "# §1 stub", "L", "F", "batch_1", rank=1, identity_checked_by_caller=True)
     ok, reason = compile_ready(pkg, ["BGC001"])
     assert ok is False
     assert "not FULL" in reason
@@ -241,7 +241,7 @@ def test_record_mode_b_claim_safety_clean(pkg):
     card = ("## BGC001 (NODE_1 · region001)\n"
             "§1 Identity. Biosynthetic capacity consistent with a kirromycin-like compound.\n"
             "§5 Pharmacology. Capacity consistent with the elfamycin class.")
-    result = record_mode_b(pkg, "BGC001", card)
+    result = record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     cs = result["verdict"].get("claim_safety")
     assert cs is not None
     assert cs["clean"] is True
@@ -256,7 +256,7 @@ def test_record_mode_b_claim_safety_flags_overclaim(pkg):
     card = ("## BGC001 (NODE_1 · region001)\n"
             "§1 Identity. This BGC produces kirromycin.\n"
             "§5 Pharmacology content.")
-    result = record_mode_b(pkg, "BGC001", card)
+    result = record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     cs = result["verdict"].get("claim_safety")
     assert cs["clean"] is False
     assert any("overclaim" in f for f in cs["findings"])
@@ -285,13 +285,16 @@ def test_record_mode_b_locator_pass(pkg):
 
 
 def test_record_mode_b_locator_node_mismatch(pkg):
-    """A drifted node in the card heading is flagged MISMATCH but the card still writes."""
+    """A drifted node in the card heading is an identity hold (.464 ruling): nothing is written."""
+    from mamey.judgment_store import ModeBIdentityHold
     init_register(pkg, "AS-TEST", ["BGC001"])
     _seed_triage(pkg, [["1", "BGC001", "NODE_10", "NODE_10", "region001", "RiPP", ""]])
     card = "# Mode B — AS-TEST / NODE_99 / region001 / BGC001\n§1 content."
-    result = record_mode_b(pkg, "BGC001", card)
-    assert result["verdict"]["locator"]["status"] == "MISMATCH"
-    assert result["path"].exists()  # passive, non-blocking
+    with pytest.raises(ModeBIdentityHold) as hold:
+        record_mode_b(pkg, "BGC001", card)
+    assert hold.value.exit_code == 2 and hold.value.refusal_reason == "IDENTITY_CONFLICT"
+    assert "full contig" in hold.value.components
+    assert not list(pkg.rglob("*_mode_b.md"))
 
 
 def test_record_mode_b_locator_region_conflict_is_mismatch(pkg):
@@ -299,16 +302,24 @@ def test_record_mode_b_locator_region_conflict_is_mismatch(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
     _seed_triage(pkg, [["1", "BGC001", "NODE_30", "NODE_30", "region002", "PKS", ""]])
     card = "# Mode B — AS-TEST / NODE_30 / region009 / BGC001\n§1 content."
-    result = record_mode_b(pkg, "BGC001", card)
+    from mamey.judgment_store import ModeBIdentityHold
+    with pytest.raises(ModeBIdentityHold) as hold:
+        record_mode_b(pkg, "BGC001", card)
+    assert hold.value.refusal_reason == "IDENTITY_CONFLICT" and hold.value.components == ["region"]
+    # The verdict is still computed for ingest routes, which gate identity themselves.
+    result = record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     assert result["verdict"]["locator"]["status"] == "MISMATCH"
-    assert result["verdict"]["locator"]["refusal_reason"] == "IDENTITY_CONFLICT"
 
 
 def test_record_mode_b_locator_no_triage_row(pkg):
-    """If no triage board is present, locator records NO_TRIAGE_ROW (degrades gracefully)."""
+    """With no triage row the identity cannot be bound: the direct writer holds (.464 ruling)."""
+    from mamey.judgment_store import ModeBIdentityHold
     init_register(pkg, "AS-TEST", ["BGC001"])
     card = "## BGC001 (NODE_10 · region001)\n§1 content."
-    result = record_mode_b(pkg, "BGC001", card)
+    with pytest.raises(ModeBIdentityHold) as hold:
+        record_mode_b(pkg, "BGC001", card)
+    assert hold.value.refusal_reason == "NO_TRIAGE_ROW"
+    result = record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     assert result["verdict"]["locator"]["status"] == "NO_TRIAGE_ROW"
 
 
@@ -330,7 +341,7 @@ def test_shallow_high_card_gets_enrichment_augmentation(pkg):
     _seed_gene_table(pkg, "BGC001", n_genes=8)
     init_register(pkg, "AS-TEST", ["BGC001"])
     thin = "## BGC001 (NODE_1 · region001)\n§1 §2 §3 §4 §5 §6 §7 §8 §9 §10 brief. §11 thin."
-    result = record_mode_b(pkg, "BGC001", thin, rank=1)
+    result = record_mode_b(pkg, "BGC001", thin, rank=1, identity_checked_by_caller=True)
     assert result["verdict"]["tier"] in ("SHALLOW", "STUB")
     aug = result["verdict"].get("enrichment_augmentation")
     assert aug is not None and aug.get("available")
@@ -341,7 +352,7 @@ def test_augmentation_not_offered_when_no_gene_table(pkg):
     """Without a gene table, no augmentation is offered (degrades gracefully, never errors)."""
     init_register(pkg, "AS-TEST", ["BGC001"])
     thin = "## BGC001 (NODE_1 · region001)\n§1 brief."
-    result = record_mode_b(pkg, "BGC001", thin, rank=1)
+    result = record_mode_b(pkg, "BGC001", thin, rank=1, identity_checked_by_caller=True)
     aug = result["verdict"].get("enrichment_augmentation")
     # either absent, or present-but-not-available; must never raise
     assert aug is None or aug.get("available") in (False, None)

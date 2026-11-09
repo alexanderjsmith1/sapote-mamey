@@ -2,8 +2,8 @@
 
 ## 0. Header block
 > **Filing.** `docs/modules/DELIVERABLE_SubsetPanel.md`.
-> **Extends / references:** `FIGURE_STYLE.md` (data-only figures), `FIGURE_REPRODUCIBILITY` (CSV + `--replot`),
-> `DELIVERABLE_INSTRUCTION_TEMPLATE.md` (tier palette + locus-label format), `GENERIC_PROMPT_LIBRARY.md` (G2, G6).
+> **Extends / references:** [FIGURE_STYLE.md](../FIGURE_STYLE.md) (data-only figures), [FIGURE_REPRODUCIBILITY.md](../FIGURE_REPRODUCIBILITY.md) (CSV + `--replot`),
+> [DELIVERABLE_INSTRUCTION_TEMPLATE.md](../../deliverables/DELIVERABLE_INSTRUCTION_TEMPLATE.md) (tier palette + locus-label format), [GENERIC_PROMPT_LIBRARY.md](../../deliverables/GENERIC_PROMPT_LIBRARY.md) (G2, G6).
 > Do not restate those rules here — they are inherited.
 > **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. Use the selected figure contracts and actual source; the monolith is a design/history reference.
 > **Status:** `CODE_BACKED` — `tools/build_subset_panel.py` produces the artifact.
@@ -24,25 +24,34 @@ user need not know the tool exists: build the panel and hand it back, or offer i
 | `modeb_verdicts.csv` (status) | verdict + Confirmed tier | tier coloring |
 | `tfbs_coupling.json` (per-BGC SARP coupling) | SARP y/n column | SARP annotation (per-BGC, not strain-level) |
 
-**Skip-not-fake:** a field absent for a locus is left blank/`[EG]` and labelled, never invented; a verdict that
-isn't in `modeb_verdicts.csv` is shown as `[EG]` (offline), not upgraded. **SARP is the per-BGC `tfbs_coupling.json`
+**Missing values:** `sarp` is `y` or `n` only when `tfbs_coupling.json` has a record for that BGC; with no table,
+strain or BGC record it is blank. A missing `length_kb` is blank in the CSV, the locus is not placed on the size
+axis, and the run prints how many loci were left off; the panel title counts placed loci. A verdict that isn't in
+`modeb_verdicts.csv` is shown as `[EG]` (offline), not upgraded.
+
+**Which loci.** The figure policy removes pure-saccharide regions before the tag or strain filter, and the run
+prints how many it removed. The panel is therefore the matching loci after that policy, not every matching locus.
+Rows carry `sid`, `contig`, `region` and `bgc_id`; copy the full **strain / full node-or-contig / region / BGC alias**
+from the bound inventory before citing one. **SARP is the per-BGC `tfbs_coupling.json`
 set (canonical, per `KNOWLEDGE_Evidence_Axes`), not the strain-level `SARP_BTAD_like` count.**
 
 ## 3. Pipeline (exact, ordered commands)
 ```bash
 # product-tag panel (G2)
-python tools/build_subset_panel.py --banked-dir merged_cohort --tag {PRODUCT_TAG} --out-dir figures
+# output names are fixed; an existing CSV or PNG is refused (exit 2, OUTPUT_REFUSED), so use a fresh --out-dir
+python tools/build_subset_panel.py --banked-dir merged_cohort --tag {PRODUCT_TAG} --out-dir <fresh-figure-root>
 # strain-set panel (G6 subset)
 python tools/build_subset_panel.py --banked-dir merged_cohort --strain-set "<exact-ID-1>,<exact-ID-2>" --out-dir <fresh-figure-root>
 # reproduce from the banked CSV
-python tools/build_subset_panel.py --replot --csv figures/subset_{label}_loci.csv --out-dir figures
+python tools/build_subset_panel.py --replot --csv figures/subset_{label}_loci.csv --out-dir <fresh-figure-root>
 ```
-Reproducibility: `--replot` re-renders from the emitted `subset_{label}_loci.csv` with no recompute. Single source
+Reproducibility: `--replot` re-renders from the emitted `subset_{label}_loci.csv` with no recompute. A missing CSV is
+refused (exit 2, `REPLOT_INPUT_MISSING`); it is never rebuilt from the bank. Single source
 of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (a separate copy of the atlas function in `generate_bgc_atlas.py`; the two differ, because this one also treats a missing `closest_mibig` as dark).
 
 ## 4. Outputs & manifest surface
 - `fig_subset_{label}[_PRIVATE].png` — the panel (lanes = genera, chips = loci, color = confidence tier).
-- `subset_{label}_loci.csv` — the locus table (sid, region, genus, class, kcb, kb, edge, sarp, verdict, tier);
+- `subset_{label}_loci.csv` — the locus table (sid, region, contig, bgc_id, genus, class, kcb, kb, edge, sarp, verdict, tier);
   this CSV is the stable, citable artifact and the `--replot` source. `_PRIVATE` suffix is set automatically when
   any AS strain is in the subset.
 

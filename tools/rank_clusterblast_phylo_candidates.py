@@ -37,6 +37,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import hashlib
 import json
+import math
 import re
 import statistics
 import sys
@@ -257,7 +258,9 @@ def _pick(row: dict, names: tuple[str, ...]) -> str:
     return ""
 
 
-def inventory_region_map(path: Path) -> tuple[dict[str, str], int]:
+def inventory_region_map(path: Path, skipped: list | None = None) -> tuple[dict[str, str], int]:
+    """Inventory -> {contig_c<region>: BGC_ID}. A row missing BGC ID, contig or region is skipped and,
+    when `skipped` is given, recorded there; a present region that is not a finite integer is an error."""
     if not path.is_file():
         raise CandidateError(f"BGC inventory not found: {path}")
     with path.open(newline="", encoding="utf-8-sig") as fh:
@@ -268,6 +271,10 @@ def inventory_region_map(path: Path) -> tuple[dict[str, str], int]:
         contig = _pick(row, ("Contig", "contig"))
         region = _pick(row, ("Region", "region_number"))
         if not (bgc and contig and region):
+            if skipped is not None:
+                missing = [n for n, v in (("BGC_ID", bgc), ("Contig", contig), ("Region", region)) if not v]
+                skipped.append({"inventory_file": str(path), "line": line_number,
+                                "reason": "missing " + ", ".join(missing)})
             continue
         try:
             number = Decimal(region)
@@ -297,7 +304,19 @@ def channel_of_member(name: str) -> str | None:
     return None
 
 
-def parse_hit_rows(block: str) -> list[dict]:
+def _percent(value: str) -> float | None:
+    """A finite percentage in 0..100, else None."""
+    try:
+        x = float(value)
+    except ValueError:
+        return None
+    return x if math.isfinite(x) and 0.0 <= x <= 100.0 else None
+
+
+def parse_hit_rows(block: str, rejected: list | None = None) -> list[dict]:
+    """Gene-level hit rows. A row whose identity or coverage is not a finite 0..100 percentage, or
+    whose BLAST score is present but not a finite nonnegative number, is left out and, when
+    `rejected` is given, recorded there with the reason."""
     m = HIT_TABLE_RE.search(block)
     if not m:
         return []
@@ -306,26 +325,38 @@ def parse_hit_rows(block: str) -> list[dict]:
         parts = line.split("\t")
         if len(parts) < 6:
             continue
-        try:
-            identity = float(parts[2])
-        except ValueError:
+
+        def reject(reason: str) -> None:
+            if rejected is not None:
+                rejected.append({"row": line.strip()[:200], "reason": reason})
+
+        identity = _percent(parts[2])
+        if identity is None:
+            reject("identity not a finite 0..100 percentage")
             continue
-        def num(value: str) -> float | None:
-            try:
-                return float(value)
-            except ValueError:
-                return None
+        coverage = _percent(parts[4])
+        if coverage is None and parts[4].strip():
+            reject("coverage not a finite 0..100 percentage")
+            continue
+        try:
+            score = float(parts[3]) if parts[3].strip() else None
+        except ValueError:
+            score = float("nan")
+        if score is not None and not (math.isfinite(score) and score >= 0):
+            reject("BLAST score not a finite nonnegative number")
+            continue
         if parts[0].strip() and parts[1].strip():
             out.append({
                 "query_gene": parts[0].strip(), "subject_gene": parts[1].strip(),
-                "pct_identity": identity, "blast_score": num(parts[3]),
-                "pct_coverage": num(parts[4]), "evalue": parts[5].strip(),
+                "pct_identity": identity, "blast_score": score,
+                "pct_coverage": coverage, "evalue": parts[5].strip(),
             })
     return out
 
 
 def parse_clusterblast_txt(strain_id: str, bgc_id: str, region_key: str,
-                           source_file: str, text: str, max_rank: int) -> list[Block]:
+                           source_file: str, text: str, max_rank: int,
+                           rejected: list | None = None) -> list[Block]:
     blocks = []
     for raw in BLOCK_SPLIT_RE.split(text)[1:]:
         rank_m = re.match(r"\s*(\d+)\.\s+(\S+)", raw)
@@ -338,7 +369,11 @@ def parse_clusterblast_txt(strain_id: str, bgc_id: str, region_key: str,
         typ = re.search(r"^Type:\s*(.+)$", raw, re.M)
         nprot = re.search(r"Number of proteins with BLAST hits to this cluster:\s*(\d+)", raw)
         score = re.search(r"Cumulative BLAST score:\s*([\d.]+)", raw)
-        hits = parse_hit_rows(raw)
+        bad: list = []
+        hits = parse_hit_rows(raw, bad)
+        if rejected is not None:
+            rejected.extend({"strain_id": strain_id, "bgc_id": bgc_id, "source_file": source_file,
+                             "reference_rank": rank, **row} for row in bad)
         if not hits:
             continue
         blocks.append(Block(
@@ -375,12 +410,13 @@ def legacy_export_audit(source: SourceRow) -> dict:
     }
 
 
-def extract_sources(sources: list[SourceRow], max_rank: int):
+def extract_sources(sources: list[SourceRow], max_rank: int, rejected: list | None = None,
+                    skipped: list | None = None):
     all_blocks, provenance, channels, unmapped, legacy = [], [], [], [], []
     for source in sources:
         provenance.append(assembly_provenance(source))
         legacy.append(legacy_export_audit(source))
-        region_map, inventory_rows = inventory_region_map(source.bgc_inventory_csv)
+        region_map, inventory_rows = inventory_region_map(source.bgc_inventory_csv, skipped)
         with zipfile.ZipFile(source.antismash_zip) as zf:
             members = [n for n in zf.namelist()
                        if n.lower().endswith(".txt") and "__macosx" not in n.lower()
@@ -404,7 +440,7 @@ def extract_sources(sources: list[SourceRow], max_rank: int):
                                      "region_key": key, "reason": "no exact inventory strain+BGC mapping"})
                     continue
                 text = zf.read(member).decode("utf-8", errors="replace")
-                all_blocks.extend(parse_clusterblast_txt(source.strain_id, bgc, key, member, text, max_rank))
+                all_blocks.extend(parse_clusterblast_txt(source.strain_id, bgc, key, member, text, max_rank, rejected))
         for channel in ("clusterblast", "knownclusterblast", "subclusterblast"):
             channels.append({
                 "strain_id": source.strain_id, "channel": channel,
@@ -534,7 +570,8 @@ def build(manifest: Path, out_dir: Path, resolver_path: Path | None = None,
         raise CandidateError("max_reference_rank must be 1..50")
     sources = read_manifest(manifest)
     resolver = read_resolver(resolver_path)
-    blocks, provenance, channels, unmapped, legacy = extract_sources(sources, max_reference_rank)
+    rejected, skipped = [], []
+    blocks, provenance, channels, unmapped, legacy = extract_sources(sources, max_reference_rank, rejected, skipped)
     candidates, children, gene_rows = aggregate(blocks, resolver)
     out_dir.mkdir(parents=True, exist_ok=False)
     write_tsv(out_dir / "source_assembly_provenance.tsv", provenance)
@@ -542,6 +579,9 @@ def build(manifest: Path, out_dir: Path, resolver_path: Path | None = None,
     write_tsv(out_dir / "legacy_mamey_export_audit.tsv", legacy)
     write_tsv(out_dir / "unmapped_region_holds.tsv", unmapped,
               ["strain_id", "source_file", "region_key", "reason"])
+    write_tsv(out_dir / "rejected_hit_rows.tsv", rejected,
+              ["strain_id", "bgc_id", "source_file", "reference_rank", "row", "reason"])
+    write_tsv(out_dir / "inventory_skipped_rows.tsv", skipped, ["inventory_file", "line", "reason"])
     write_tsv(out_dir / "clusterblast_gene_hits.tsv", gene_rows)
     write_tsv(out_dir / "clusterblast_bgc_children.tsv", children)
     write_tsv(out_dir / "clusterblast_phylo_candidates.tsv", candidates)
@@ -562,6 +602,8 @@ def build(manifest: Path, out_dir: Path, resolver_path: Path | None = None,
         "resolved_assembly_candidates": sum(bool(r["assembly_accession"]) for r in candidates),
         "assembly_accession_holds": len(holds),
         "unmapped_region_holds": len(unmapped),
+        "rejected_hit_rows": len(rejected),
+        "inventory_skipped_rows": len(skipped),
         "max_reference_rank_used_per_bgc": max_reference_rank,
         "panel_total_tip_options": list(PANEL_OPTIONS),
         "candidate_pool_note": "top20/top40/top60 flags are resolved-reference candidate pools, not final total-tip trees; query and outgroup slots remain governed by build_phylo_panel.py",

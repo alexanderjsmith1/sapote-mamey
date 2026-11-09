@@ -6,7 +6,7 @@
 
 Current `render-all-figures` has independent per-set statuses and `PASS_WITH_SKIPS`; successful render execution does not imply every panel exists or that any figure is publication-approved (`mamey/render_all_figures.py:113–230,630–739`). It can write into package directories. Preserve sealed sources and use an authorized candidate/output route. The obsolete first-run one-liner omitted required inputs and should not be copied as a complete invocation. Current50 card approval is separate from figure generation.
 
-**Authored:** 2026-06-30 (Opus audit chat)
+**Authored:** 2026-06-30
 **Trigger:** "the figures are basically nonexistent"
 **Verdict:** The complaint is structurally accurate for the typical single-strain workflow. The figure modules exist in code but most are gated behind `gold` mode or explicit `mamey render-figures --figure-set <X>` invocations. A default `mamey run` (the common starting point) historically produced only **3 PNGs + a variable number of locus map SVGs**. That is the entire automatic figure output. Everything else requires extra commands the working chat may not know to run.
 
@@ -17,6 +17,8 @@ This is a **separate concern from the W9 structure-gate firebreak**. Recording f
 ## What actually fires by default
 
 ### `mamey run` (default first-pass; historically invoked as `--mode smoke`)
+
+Historical: do not run the `mamey run` forms in this section. The current form is `python mamey_run.py run ...`, as in the workflow in [AGENTS.md](../../AGENTS.md). `smoke` is no longer a `--mode` value; `python mamey_run.py run --help` lists `standard` and `gold`, and describes `standard` as deprecated.
 
 Auto-fires inside `run_one_strain()`:
 
@@ -32,6 +34,8 @@ Auto-fires inside `run_one_strain()`:
 3. **Nothing else.** The 13 other figure modules (cohort_figures, domain_figures, cross_strain_figures, master_figure_atlas, figures_extra, figures_sapote, figures_split, collection_figures, mamey_native_figures, cohort_figures_d, cohort_figures_g, cohort_figure_captions, figure_policy) do not fire in smoke mode.
 
 ### `mamey run --mode standard`
+
+Historical: `--mode standard` is now deprecated and runs gold (`python mamey_run.py run --help`).
 
 Same as smoke. The "standard" mode (back-compat alias for "gold" downstream per v9.7.92+) still does not auto-fire cohort/gold figures because the `if mode == "gold"` check at cli.py:1292 only matches the literal string `"gold"`.
 
@@ -115,4 +119,4 @@ These together transform the default-run figure output from "3 PNGs" to "20+ PNG
 
 This diagnostic is a finding doc, not an implementation. the Developer or User picked **A + B + D for this cut** (the structure gate + template emitter + manifest update). The figures fixes above belong to a separate session — flagged for the next round so the W9 firebreak ships clean without scope creep.
 
-— Opus
+

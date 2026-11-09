@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """af_leadboard_widget.py — cohort-wide ANTIFUNGAL lead-board dashboard, single
-self-contained HTML (graduated into the engine as a first-class deliverable tool,
-v9.7.349x candidate).
+self-contained HTML.
 
 Flagship dashboard for the Sapote-Mamey bee/wasp actinomycete cohort: one sortable/
 filterable table of AF-capacity leads across every AS strain, plus an AF-vs-novelty

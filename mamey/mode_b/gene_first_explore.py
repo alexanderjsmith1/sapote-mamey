@@ -473,6 +473,13 @@ def _channel_summary(observations: Sequence[Mapping[str, str]]) -> list[dict[str
             "status": status,
             "record_count": len(matches),
             "gene_specific_records": sum(bool(row.get("gene")) for row in matches),
+            # The status is the strongest state present, so a channel bound for 19 of 26 genes reads
+            # BOUND. The per-state counts keep the unbound genes visible beside it.
+            "state_counts": ";".join(f"{state}={n}" for state, n in sorted(
+                Counter(row["evidence_state"] for row in matches).items(),
+                key=lambda item: -precedence.get(item[0], 0))),
+            # A channel bound for some genes and not others is still a workflow gap for the rest.
+            "partly_bound": status == "BOUND" and any(state != "BOUND" for state in states),
             "source_locators": ";".join(sorted({row["source_locator"] for row in matches if row.get("source_locator")})),
             "scope_note": "SEPARATE_CHANNEL_NO_SUBSTITUTION",
         })
@@ -552,11 +559,14 @@ def choose_next_analysis(
     by_id = {str(row["channel"]): row for row in channels}
     top_gene = str(ranked_genes[0]["locus_tag"])
     for channel in _NEXT_ANALYSIS_ORDER:
-        if by_id[channel]["status"] != "BOUND":
+        if by_id[channel]["status"] != "BOUND" or by_id[channel].get("partly_bound"):
+            # For a partly bound channel, point at the highest-ranked gene that channel does not cover.
+            gene = next((str(row["locus_tag"]) for row in ranked_genes
+                         if channel not in str(row.get("bound_gene_channels") or "").split(";")), top_gene)
             return {
                 "analysis_id": f"FILL_{channel.upper()}_GAP",
                 "channel": channel,
-                "target": f"{identity['exact_identity']} / {top_gene}",
+                "target": f"{identity['exact_identity']} / {gene}",
                 "action": _NEXT_ACTION[channel],
                 "selection_basis": (
                     "First unresolved channel in the fixed offline information-gain order; "
@@ -607,8 +617,11 @@ def _render_synthesis(
     channels: Sequence[Mapping[str, Any]], next_analysis: Mapping[str, str], historical_count: int,
 ) -> str:
     role_counts = Counter(str(row["review_priority_category"]) for row in ranked)
-    bound_channels = [str(row["label"]) for row in channels if row["status"] == "BOUND"]
-    gap_channels = [str(row["label"]) for row in channels if row["status"] != "BOUND"]
+    bound_channels = [str(row["label"]) for row in channels
+                      if row["status"] == "BOUND" and not row.get("partly_bound")]
+    gap_channels = [str(row["label"]) if row["status"] != "BOUND"
+                    else f"{row['label']} (partly bound: {row.get('state_counts')})"
+                    for row in channels if row["status"] != "BOUND" or row.get("partly_bound")]
     products = bgc.get("products") or []
     if isinstance(products, str):
         products = [products]
@@ -644,13 +657,13 @@ def _render_synthesis(
         "",
         "## Evidence channels",
         "",
-        "| Channel | Status | Records | Gene-specific records | Contract |",
-        "|---|---|---:|---:|---|",
+        "| Channel | Status | Records | Gene-specific records | States | Contract |",
+        "|---|---|---:|---:|---|---|",
     ])
     for row in channels:
         lines.append(
             f"| {_md_escape(row['label'])} | {row['status']} | {row['record_count']} | "
-            f"{row['gene_specific_records']} | {row['scope_note']} |"
+            f"{row['gene_specific_records']} | {row['state_counts'] or '—'} | {row['scope_note']} |"
         )
     lines.extend([
         "",
@@ -758,6 +771,7 @@ def run_gene_first_exploration(
         "evidence_observations": observations,
         "historical_lead_count": historical_count,
         "channel_status": {row["channel"]: row["status"] for row in channels},
+        "channel_state_counts": {row["channel"]: row.get("state_counts", "") for row in channels},
         "highest_information_next_analysis": next_analysis,
         "outputs": [
             {"path": path.name, "sha256": _sha256(path), "bytes": path.stat().st_size}

@@ -2,6 +2,8 @@
 
 # BUNDLE PATCH NOTES — Sapote–Mamey v9.6.21
 
+> **Do not apply these edits.** This is a record of one old patch. The steps, file replacements and tier checklist below do not describe the current tree and would overwrite current work. Changes to the current tree go through the cut process in [CUT_PROTOCOL](../../CUT_PROTOCOL.md), and the verified state is in [CHANGELOG](../../CHANGELOG.md). The test runs in the Verification section have no bundled receipts, so they are unverified here.
+
 > **Status (this build):** ALL items below are applied to **all four tiers**
 > (MERGED-PRIVATE-scaffold, CODE, CODE-analysis-free, SID-public) and to the
 > root-level validator copy. Items 6 (root copy) and 7 (ijson dedup), previously
@@ -10,6 +12,8 @@
 > none). See the **Verification** appendix at the end for the gold-mode run on real
 > strains.
 
+
+Historical: the next paragraph tells the reader to apply these edits by hand or drop in the patched files. Do not do that on the current tree. The container run it mentions has no bundled receipt.
 
 Changes applied in this pass, each verified in a Python 3.12 container. Use this to
 apply the same edits to your working bundle by hand, or drop in the patched files
@@ -74,6 +78,8 @@ work for a **root-level** copy of the validator — see item 6.
 
 ## 2. `requirements.txt` — declare matplotlib + numpy; retire reportlab
 
+Historical: do not retire reportlab. The current `pyproject.toml` lists `reportlab>=4.0,<5.0` as a core dependency again, and `requirements.txt` marks it required.
+
 **File:** `requirements.txt`
 
 - **Added `matplotlib>=3.7,<4.0`** and **`numpy>=1.24`**. matplotlib is imported by 11
@@ -86,6 +92,8 @@ work for a **root-level** copy of the validator — see item 6.
 - Kept `openpyxl` and `ijson` as core; kept the optional `biopython` note.
 
 ## 3. `pyproject.toml` — figures/all extras; reportlab out of core
+
+Historical: the core-dependency change below is obsolete. `reportlab` is core in the current `pyproject.toml`, and the `figures` extra now has a different package list.
 
 **File:** `pyproject.toml`
 
@@ -166,6 +174,8 @@ both `_here` and its parent), so:
 
 ## 7. ijson import consolidated (APPLIED)
 
+Historical: the code below describes `ijson` as optional. The current `pyproject.toml` lists `ijson` in core dependencies, and a copy is vendored under `mamey/_vendor/ijson`. Do not paste this block into `mamey/antismash_evidence.py`.
+
 **File:** `mamey/antismash_evidence.py`
 
 There were two `try/except` import blocks, both setting `_HAVE_IJSON`. They were **not**
@@ -211,6 +221,8 @@ BUNDLE_PATCH_NOTES_v9.6.21.md         # new — this file
 
 ## Apply-to-all-tiers checklist — ALL DONE this build
 
+Historical: do not run this checklist. It names four retired tier routes. The current route is [CUT_PROTOCOL](../../CUT_PROTOCOL.md).
+
 - [x] item 1 → each tier's `mamey/workbook_schema_check.py` (4 tiers)
 - [x] item 1 → root-level `workbook_schema_check.py` — item 6
 - [x] items 2–3 → `requirements.txt` + `pyproject.toml` in each tier
@@ -227,15 +239,15 @@ Ran the patched engine end-to-end on two real antiSMASH 8 genomes, chained into 
 
 | strain | regions | raw / corrected BGCs | assembly | status | time |
 |---|---|---|---|---|---|
-| AS-XXX | 51 | 51 / 27.0 | POOR | MAMEY_COMPLETE | ~24 s |
-| AS-XXX | 64 | 64 / 23.5 | VERY_POOR | MAMEY_COMPLETE | ~18 s |
+| <strain> | 51 | 51 / 27.0 | POOR | MAMEY_COMPLETE | ~24 s |
+| <strain> | 64 | 64 / 23.5 | VERY_POOR | MAMEY_COMPLETE | ~18 s |
 
 - Combined master validated: `status: PASS`, 25 sheets, 2 strains, 0 column errors,
   0 consistency errors. Dashboard: 2 strains, 115 total BGC records (51 + 64).
-- Evidence-conservation paths fired: TIGRFAM diagnostics merged (AS-XXX: 2, AS-XXX: 6),
-  GBK Pfam tier-1 hits (AS-XXX: 20, AS-XXX: 38).
+- Evidence-conservation paths fired: TIGRFAM diagnostics merged (<strain>: 2, <strain>: 6),
+  GBK Pfam tier-1 hits (<strain>: 20, <strain>: 38).
 - Gold-mode receipt: every BGC assigned to the full-Mode-B depth floor
-  (`full_mode_b: 64/64` for AS-XXX), `gold_completeness: JUDGMENT_PENDING` — extraction
+  (`full_mode_b: 64/64` for <strain>), `gold_completeness: JUDGMENT_PENDING` — extraction
   complete, manifest handoff ready for the Sapote (Mamey v1.2) judgment layer to write the
   Mode B cards.
 - Handoff `manifest.json` produced with the full key set (top_bgc_targets,

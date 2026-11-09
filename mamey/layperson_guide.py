@@ -218,6 +218,8 @@ def _comparison_text(row: dict[str, Any]) -> str:
         if not (has_top and has_locator):
             return "PARTIAL: comparison state is recorded, but the package does not contain a complete bound comparison."
         return "MATCH: the package contains a bound comparison. The source label is withheld here; similarity does not establish product identity, production, or activity."
+    if state == "KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED":
+        return "NO_HIT_REPORTED: KnownClusterBlast reported no hits for this region. This is a scoped search report, not biological absence or proof of novelty."
     if state in {"PARTIAL", "CLUSTERBLAST_FALLBACK_OBSERVED"}:
         return "PARTIAL: some comparison evidence is present, but this package cannot support a complete comparison."
     if state in {"", "MISSING", "UNKNOWN_KCB", "NOT_RUN", "UNBOUND"}:

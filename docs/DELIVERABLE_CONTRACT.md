@@ -1,331 +1,186 @@
 # Check a strain or project delivery
 
-Use this checklist to assemble the outputs requested for a strain or project.
-You need an [extracted working package](reader/03_READ_RESULTS.md), the requested
-output list and the evidence behind each result. A figure delivery can be complete without a separate Mode B card
-or report; include those when they are part of the task. After a strain analysis,
-offer the available full-strain report set below.
+Use this page to check a finished strain or project delivery before you hand it over. Work through the sections in order: check the package, check the written reports, record completion, check the files to send.
 
-<a id="sapote-mamey-deliverable-contract"></a>
-
-<a id="deliverable-selection-within-the-authorized-task"></a>
-
-<a id="part-a--per-strain-deliverables"></a>
-
-<a id="a1--mamey-extraction-outputs-code_backed"></a>
+This is a checklist scoped to the task. Which outputs are required comes from the list of outputs the task asked for, not from this page. You need an [extracted working package](reader/03_READ_RESULTS.md), that list, the evidence behind each result, and any holds the run recorded. A figure delivery can be complete without a Mode B card or a report. Include those only when the task asks for them. Terms such as Mode B, card, DAPR and KCB are defined in the [glossary](GLOSSARY.md).
 
 ## Check the package
 
-For a delivery that requires the workbook:
+Run this when the delivery requires the workbook:
 
 ```bash
 python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
 ```
 
-`--workbook-strict` makes a missing or failed workbook fail this check. Read the
-individual gate results and `WORKBOOK_CONTENT`. Validation updates the working
-copy's `package_status.json`; keep the original Complete_Package ZIP.
+`--workbook-strict` makes a missing or failed workbook fail the check. If more than one matching workbook exists, it reports `FAIL_WORKBOOK_AMBIGUOUS`. Keep exactly one.
 
-Open `OPEN_ME_FIRST.html`, the workbook and `issue_log.md`. The main reading files are:
+Read the individual gate results and `WORKBOOK_CONTENT`. The result also carries a `package_status_receipt_write` field, but only when the status file could not be written. If you see it with `"state": "FAILED"`, the package status receipt was not written, whatever the main status says. Fix the write problem and validate again. Validation rewrites the working copy's `package_status.json`. Keep the original Complete_Package ZIP untouched. The main first-run recipe is in [first run](reader/01_FIRST_RUN.md).
 
-- `AS-40_2_inventory.csv`: regions and their evidence fields.
-- `AS-40_2b_bgc_crosswalk.csv`: source-locus and alias mappings.
-- `AS-40_3_scan_states.json`: scan/channel states and reasons.
-- `AS-40_4_triage_board.csv`: ranked regions and treatment fields.
-- `AS-40_5_workbook.xlsx`: the per-strain workbook.
-- `manifest.json`, `checksums_sha256.txt` and `commit_receipt.json`: evidence pointers,
-  tracked-file hashes and run records.
+Then open `OPEN_ME_FIRST.html`, the workbook and `issue_log.md`. The main reading files are:
 
-The validator's required-file list is defined in
-[`mamey/validate.py`](../mamey/validate.py). Reporting and enrichment checks apply
-when enabled. Briefs and locus maps can be deferred by a capped run; record their
-state and use [Make and review figures](FIGURES_START_HERE.md) when they are requested.
-For each selected figure, keep its plotted data, source identities/hashes,
-calculations/parameters, caption, methods, execution status and visual-review
-record. List omitted or held requested figures and their reasons. Use completed
-companion outputs; EPA-ng, GToTree and BiG-SLiCE have separate input/resource
-contracts in the [companion guide](companion_tools.md).
+- `EXAMPLE_2_inventory.csv`: regions and their evidence fields.
+- `EXAMPLE_2b_bgc_crosswalk.csv`: source-locus and alias mappings.
+- `EXAMPLE_3_scan_states.json`: scan and channel states, with reasons.
+- `EXAMPLE_4_triage_board.csv`: ranked regions and treatment fields.
+- `EXAMPLE_5_workbook.xlsx`: the per-strain workbook.
+- `manifest.json`, `checksums_sha256.txt` and `commit_receipt.json`: evidence pointers, file hashes and run records.
 
-A Project Memory Snapshot with `alias_of: manifest.json` points to that manifest;
-resolve the target before reading findings from it.
+The validator's required-file list is in [`mamey/validate.py`](../mamey/validate.py). A capped run can defer briefs and locus maps. Record their state, and use [Make and review figures](FIGURES_START_HERE.md) when they are requested.
+
+For each figure you deliver, keep its plotted data, source identities and hashes, parameters, caption, methods, run status and visual-review record. List every requested figure you omitted or held, with the reason. EPA-ng, GToTree and BiG-SLiCE outputs come from separate runs with their own input and resource rules; see the [companion guide](companion_tools.md).
 
 ## Keep each locus identifiable
 
-Use **strain / full node-or-contig / region / BGC alias**, bound to the package
-and source record. The strain is in `manifest.json`; the inventory supplies
-`Contig`/`Node_ID`, `antiSMASH_Region` and `BGC_ID`. `User_Label` alone can omit
-the strain. Keep unknown identity
-fields unresolved rather than joining records on an alias alone.
+Write every locus as **strain / full node-or-contig / region / BGC alias**, copied from the package. The strain is in `manifest.json`. The inventory supplies `Contig` or `Node_ID`, `antiSMASH_Region` and `BGC_ID`. `User_Label` alone can omit the strain. If an identity field is unknown, leave it unresolved. Do not join records on an alias alone.
 
-Tie every number and locus attribution to its source; preserve the user's edits
-and scientific decisions. Use the selected privacy/release profile and recorded
-project/affiliation fields.
-Leave missing metadata explicit. Check private identifiers before a public export.
-[AGENTS.md](../AGENTS.md) and [scope rules](ASSISTANT_GOVERNANCE.md) govern which
-work and exports are authorized.
-
-<a id="a2--selected-sapote-interpretation-documents-prompt_backed"></a>
+Tie every number and locus claim to its source, and keep the user's edits and scientific decisions. Leave missing metadata explicit. Check for private identifiers before a public export. [AGENTS.md](../AGENTS.md) and the [scope rules](ASSISTANT_GOVERNANCE.md) say which work and exports are authorized.
 
 ## Select the written reports
 
-For a full-strain report set, account for the applicable items below:
+For a full-strain report set, account for each item:
 
-- **Layperson-Ranked BGC Guide:** strain header, a short narrative, a five-BGC ranked
-  table with plain-language headlines, assembly context and the next action.
-- **Technical Full-Analysis Report:** summarize intake, assembly and all ten scan
-  results. Show every region on the ranked triage board, separate antibacterial
-  and antifungal DAPR, and the selected card depth for each region. Include the
-  decision matrix, metabolomics/fermentation planning, ecology, cohort context
-  and method limits. Finish with reviewer critique, figures, a literature-search
-  list and PNAS-style references.
-- **Compound Detection and Isolation Bench Guide:** the selected HIGH/MEDIUM
-  regions' detection, extraction, LC-MS and isolation plans, explained plainly
-  and tied to the evidence used to propose them.
+- **Layperson-Ranked BGC Guide:** strain header, a short narrative, a five-BGC ranked table with plain-language headlines, assembly context and the next action.
+- **Technical Full-Analysis Report:** intake, assembly and all ten scan results. Show every region on the ranked triage board, with separate antibacterial and antifungal [DAPR](GLOSSARY.md) lists and the card depth chosen for each region. Add the decision matrix, metabolomics and fermentation planning, ecology, cohort context and method limits. Finish with a reviewer critique, figures, a literature-search list and PNAS-style references.
+- **Compound Detection and Isolation Bench Guide:** detection, extraction, LC-MS and isolation plans for the HIGH and MEDIUM regions, tied to the evidence behind each plan.
 
-Use full cards for HIGH/HIGH* regions, candidate cards for MEDIUM and minimum
-candidate entries for remaining regions in the selected full-strain workflow.
-For a focused locus task, author only the requested cards and keep the other
-regions visible on the triage board. Choose the [Mode B profile](MODEB_PROFILE_MATRIX.md)
-before writing; its emitted titles and evidence requirements control the card.
-
-<a id="a5--ported-deliverable-modules"></a>
+Use full cards for HIGH and HIGH* regions, candidate cards for MEDIUM regions, and minimum candidate entries for the rest. For a focused locus task, write only the requested cards and keep the other regions visible on the triage board. Choose the [Mode B profile](MODEB_PROFILE_MATRIX.md) before writing. The template it emits sets the titles and evidence requirements.
 
 ### Report modules
 
-Within a selected full-strain interpretation workflow, use the applicable format:
+Use the module that fits the report you are writing:
 
-- For Mode B or a synopsis: [Wet-Lab Decision Matrix](modules/DELIVERABLE_WetLabMatrix.md), including four action scores.
-- For contestable claims: [Reviewer Attack Simulation](modules/DELIVERABLE_ReviewerAttack.md), with all required categories.
-- For class calls: [Diagnostic Domain Combos](modules/KNOWLEDGE_DiagnosticDomainCombos.md), with supporting evidence.
-- For the section 42.2 trigger: [LMPKS Rescue](modules/DELIVERABLE_LMPKSRescue.md), including its explicit null case.
-- For the full report: [Metabolomics Readiness](modules/DELIVERABLE_MetabolomicsReadiness.md).
-- At the end of the full report with host metadata: [Ecological Synthesis](modules/DELIVERABLE_EcologicalSynthesis.md), with source-linked hypotheses and nulls.
-- For a complete strain report: [Figure Suggestion](modules/DELIVERABLE_FigureSuggestion.md).
+- Mode B or a synopsis: [Wet-Lab Decision Matrix](modules/DELIVERABLE_WetLabMatrix.md), with four action scores.
+- Contestable claims: [Reviewer Attack Simulation](modules/DELIVERABLE_ReviewerAttack.md), with all required categories.
+- Class calls: [Diagnostic Domain Combos](modules/KNOWLEDGE_DiagnosticDomainCombos.md), with supporting evidence.
+- The section 42.2 trigger: [LMPKS Rescue](modules/DELIVERABLE_LMPKSRescue.md), including its explicit null case.
+- Full report: [Metabolomics Readiness](modules/DELIVERABLE_MetabolomicsReadiness.md).
+- End of a full report with host metadata: [Ecological Synthesis](modules/DELIVERABLE_EcologicalSynthesis.md), with source-linked hypotheses and nulls.
+- Complete strain report: [Figure Suggestion](modules/DELIVERABLE_FigureSuggestion.md).
 - After the inventory: [Cross-Strain Family Seeds](modules/DELIVERABLE_FamilySeeds.md).
-
-<a id="a26--poorvery_poor-equal-visibility-rule"></a>
 
 ### POOR/VERY_POOR equal-visibility rule
 
-In these assemblies, all detected BGCs must remain visible. Sort by
-`Corrected_rank` when present or the selected priority axis. Keep boundary labels;
-do not put every edge/full-contig region below every interior region.
+In POOR and VERY_POOR assemblies, all detected BGCs must remain visible. Sort by `Corrected_rank` when present, or by the selected priority axis. Keep the boundary labels. Do not put every edge or full-contig region below every interior region.
 
-Each requested locus gets its selected card depth or an explicit status. A
-minimum candidate card includes the full identity, class hypothesis, boundary,
-source KCB metric/state, one supported interpretation and the next action.
-Distinguish a completed no-hit search from not run, unavailable, unread or unbound
-evidence. Keep an identity hold when the required fields are missing.
+Each requested locus gets its selected card depth or an explicit status. A minimum candidate card holds the full identity, class hypothesis, boundary, source KCB metric and state, one supported interpretation and the next action. Separate a completed search with no hits from a search that was not run, unavailable, unread or unbound. If a required identity field is missing, keep an identity hold.
 
-Boundary context belongs in sections 3 and 19; it does not reduce interpretable
-reasoning in sections 4, 5 and 11. The edge/full-contig DAPR penalty is zero for
-POOR/VERY_POOR assemblies unless a documented non-assembly reason makes the
-fragment uninterpretable.
-
-<a id="a25--per-bgc-page-layout-in-the-mode-b--gene-by-gene-compilation-co-location-mandate"></a>
+Boundary context belongs in sections 3 and 19. It does not reduce the reasoning in sections 4, 5 and 11. The edge and full-contig DAPR penalty is zero in POOR and VERY_POOR assemblies, unless a documented non-assembly reason makes the fragment uninterpretable.
 
 ### Map and card layout
 
-Keep the locus map, predicted-class line and card together. The map takes about
-45% of the page, with the class line and analysis below it. If the card overflows,
-keep the map with sections 1–4 and continue the remaining text with a continuation
-marker. Follow the [page layout specification](PER_BGC_PAGE_LAYOUT_SPEC.md)
-with the selected card profile.
-
-<a id="a21--cross-strain-cohort-context-block-for-a-selected-full-strain-interpretation-report"></a>
-
-<a id="a22--method-caveats-block-for-a-selected-interpretation-report"></a>
-
-<a id="a27--cross-strain-gcf-network-big-scape--a-series-cohort-deliverable"></a>
-
-<a id="a28--reference-anchored-versus-unanchored-cross-strain-gcf-status--a-series-cohort-deliverable"></a>
-
-<a id="part-b--project-bundle-deliverables"></a>
+Keep the locus map, predicted-class line and card together. The map takes about 45% of the page, with the class line and analysis below it. If the card overflows, keep the map with sections 1 to 4 and continue the text with a continuation marker. Follow the [page layout specification](PER_BGC_PAGE_LAYOUT_SPEC.md) for the selected card profile. To record a finished card in the package, see the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md) and [from package to a recorded card](INGEST_AND_PRINCIPLES_WHITEPAPER.md#from-package-to-a-recorded-mode-b-card).
 
 ## Read comparisons in their source scope
 
-For cohort context, report the selected roster and denominator, corrected-count
-rank, assembly tier, shared/strain-unique class calls, reference-dark footprint
-and diagnostics. The `Strain_Cohort_Context`, `Cross_Strain_Class_Prevalence` and
-`Cross_Strain_Findings` overlays are separate from the frozen master schema;
-use the outputs built for the selected cohort. See [workbook schema](WORKBOOK_SCHEMA.md).
+For cohort context, report the selected roster and denominator, corrected-count rank, assembly tier, shared and strain-unique class calls, reference-dark footprint and diagnostics. The `Strain_Cohort_Context`, `Cross_Strain_Class_Prevalence` and `Cross_Strain_Findings` overlays are separate from the frozen master schema. Use the outputs built for the selected cohort. See the [workbook schema](WORKBOOK_SCHEMA.md).
 
-The overlay's `zero_KCB_share_of_cohort` reports this strain's rows lacking a
-`kcb_top` value against all such banked rows. Check their search states before
-calling these completed no-hit results.
+In that overlay's `Strain_Cohort_Context` sheet, `no_KCB_hit_recorded_regions` is this strain's count of rows with no recorded KnownClusterBlast hit. `no_KCB_hit_recorded_share` shows the same count as "N of M", where M is all such banked rows. Check the search state of those rows before you call them completed no-hit results.
 
-Use source quantities accurately: label KCB values as cumulative scores. RG-GMCI
-HIGH-pair statistics measure reference-anchored homologous-pair richness with
-BGC-content gates; report assembly fragmentation separately; the four common
-classes saccharide, fatty_acid, other and terpene are excluded from shared/novel
-arguments; `hglE-KS-PREV-001` prevalence belongs to its measured collection.
-Keep class calls separate from measured chemistry.
+Use each quantity for what it measures:
 
-Include RG-GMCI for every multi-contig genome. Its outputs cover candidate
-pairs, related loci and groups. Keep interior-region or same-contig pairs as
-related loci. Group files keep the members' source region records separate. Use the
-[fragmented-locus guide](MODEB_GAP_RESCUE_READER.md) for their evidence requirements.
+- Label KCB values as cumulative scores.
+- RG-GMCI HIGH-pair statistics measure the richness of reference-anchored homologous pairs, with BGC-content gates.
+- Report assembly fragmentation separately.
+- Leave the four common classes (saccharide, fatty_acid, other, terpene) out of shared and novel arguments.
+- A marker's prevalence belongs to the collection it was measured in.
+- Keep class calls separate from measured chemistry.
 
-BiG-SCAPE requires its actual analysis outputs and Pfam data. Keep
-`cross_strain_GCFs.tsv`, the browsable HTML and the full member-identity crosswalk.
-In `known_vs_novel_GCFs.tsv`, KNOWN marks a family with a MIBiG member; NOVEL
-marks a family without one in that run's loaded panel. Record the panel, cutoff
-and member denominator. Follow [BiG-SCAPE](BIGSCAPE_GCF_WORKFLOW.md) before
-joining families to triage or card records.
+Run RG-GMCI for every multi-contig genome. Its outputs cover candidate pairs, related loci and groups. Keep interior-region and same-contig pairs as related loci. Group files keep each member's source region record separate. The [fragmented-locus guide](MODEB_GAP_RESCUE_READER.md) lists the evidence each needs.
 
-Build a requested project comparison from completed per-strain results and the
-actual source roster. State denominators and what each success/failure count measures.
-Include the selected outputs:
+BiG-SCAPE needs its actual analysis outputs and Pfam data. Keep `cross_strain_GCFs.tsv`, the browsable HTML and the full member-identity crosswalk. In `known_vs_novel_GCFs.tsv`, KNOWN marks a family with a MIBiG member and NOVEL marks a family without one in that run's loaded panel. Record the panel, cutoff and member denominator. Follow [BiG-SCAPE](BIGSCAPE_GCF_WORKFLOW.md) before you join families to triage or card records.
 
-- Antibacterial and antifungal top-ten rankings, with class, WL score, assembly
-  tier and bioactivity evidence.
-- RG-GMCI success rate, failure reasons and provisional-rescue counts by habitat;
-  cassette-family frequencies and habitat enrichment; hallucination-trap PASS/FLAG/DISQUALIFY counts
-  and domain types.
-- Habitat/class composition, novelty-gradient and known-bioactive distributions,
-  plus proposed induction strategies and targets. Label reference annotations
-  and measured activity by their actual evidence basis.
-- Deduplicated PNAS-style literature index; expected-but-absent families by habitat
-  and positive-control recoveries; per-BGC completion audit; file/size/SHA-256 manifest.
+Build a project comparison from completed per-strain results and the actual source roster. State the denominators and what each success or failure count measures. Include the outputs the task selected:
 
-For absence claims, record the executed search and its coverage.
+- Antibacterial and antifungal top-ten rankings, with class, WL score, assembly tier and bioactivity evidence. The WL score is defined in the [glossary](GLOSSARY.md).
+- RG-GMCI success rate, failure reasons and provisional-rescue counts by habitat; cassette-family frequencies and habitat enrichment; hallucination-trap PASS, FLAG and DISQUALIFY counts and domain types.
+- Habitat and class composition, novelty-gradient and known-bioactive distributions, and proposed induction strategies and targets. Label reference annotations and measured activity by their actual evidence basis.
+- A deduplicated PNAS-style literature index; expected-but-absent families by habitat and positive-control recoveries; a per-BGC completion audit; a file, size and SHA-256 manifest.
 
-<a id="a24--figure-ready-tidy-export-standardized-portable-for-downstream-figure-workflows"></a>
-
-<a id="a3--workbook-sheets-schema_backed"></a>
+For an absence claim, record the search you ran and its coverage.
 
 ## Export a coded master
 
-The coded master and the per-strain workbook are different files. Use the
-[master export recipe](FIGURES_START_HERE.md#export-a-master-workbook) to create
-and check the master and write tidy CSVs. Keep the workbook hash, CSVs,
-`DATA_DICTIONARY.md` and `release_policy.json` together. The
-[workbook schema](WORKBOOK_SCHEMA.md) defines the coded names; its current builder
-is [`mamey/master_workbook.py`](../mamey/master_workbook.py).
+The coded master and the per-strain workbook are different files. Use the [master export recipe](FIGURES_START_HERE.md#export-a-master-workbook) to create and check the master and write the tidy CSVs. Keep the workbook hash, the CSVs, `DATA_DICTIONARY.md` and `release_policy.json` together. The [workbook schema](WORKBOOK_SCHEMA.md) defines the coded names. The builder is [`mamey/master_workbook.py`](../mamey/master_workbook.py).
 
 ## Author a layered BGC guide
 
-Choose a locus from the inventory, keeping its complete identity. This example
-uses the package's BGC001 selector:
+A layered guide explains one locus for both a lay and a technical reader. Pick the locus from the inventory and keep its complete identity. This example uses the package's BGC001 selector:
 
 ```bash
 python mamey_run.py guide --package runs/EXAMPLE/package --bgc BGC001 \
-  --outdir reviews/EXAMPLE-guide
+  --outdir ../reviews/EXAMPLE-guide
 ```
 
-`--bgc` selects one locus. Choose a fresh `--outdir` outside the package so
-earlier writing stays intact.
-Defaults cover both audiences and write Markdown plus Word when python-docx is
-installed. The Markdown file is `reviews/EXAMPLE-guide/AS-40_BGC001_Guide.md`.
+`--bgc` selects one locus. Choose a fresh `--outdir` outside the package so earlier writing stays intact. By default the command writes Markdown for both audiences, plus a Word file when python-docx is installed. The Markdown file is `../reviews/EXAMPLE-guide/EXAMPLE_BGC001_Guide.md`.
 
-Keep the generation receipt with the five-Part guide. Fill every
-`<!-- LAY: ... -->` slot from the source evidence. The generated `OK`
-checks the skeleton. Check the saved writing:
+Keep the generation receipt with the five-Part guide. Fill every `<!-- LAY: ... -->` slot from the source evidence. The `OK` printed at generation checks the skeleton only. Check your finished writing:
 
 ```bash
-python mamey_run.py verify-guide reviews/EXAMPLE-guide/AS-40_BGC001_Guide.md
+python mamey_run.py verify-guide ../reviews/EXAMPLE-guide/EXAMPLE_BGC001_Guide.md
 ```
 
-Verification fails for missing Parts, unfilled slots, thin prose, short gene
-summaries or claim-safety findings. Read its errors and revise the actual file.
-Use the same audience for generation and checking if you change that option.
+Verification fails for missing Parts, unfilled slots, thin prose, short gene summaries or claim-safety findings. Read the errors and revise the file. If you change the audience option, use the same one for generation and checking.
 
 <a id="record-a-bounded-judgment-completeness-result"></a>
 
 ## Check written-report completion
 
-Use the reviewed package, explicit judgment-register file and completed
-[delivery manifest](DELIVERABLE_MANIFEST_TEMPLATE.md). Create `reviews/EXAMPLE`
-first, then choose a new receipt filename:
+You need the reviewed package, the judgment-register file and the completed [delivery manifest](DELIVERABLE_MANIFEST_TEMPLATE.md). The register filename starts with the strain ID. Create `../reviews/EXAMPLE` first, then choose a new receipt filename:
 
 ```bash
 python tools/sapote_judgment_receipt.py --package runs/EXAMPLE/package \
-  --register runs/EXAMPLE/package/AS-40_judgment_register.json \
-  --manifest reviews/EXAMPLE/DELIVERABLE_MANIFEST_AS-40.md \
-  --out reviews/EXAMPLE/judgment-receipt-01.json
+  --register runs/EXAMPLE/package/EXAMPLE_judgment_register.json \
+  --manifest ../reviews/EXAMPLE/DELIVERABLE_MANIFEST_EXAMPLE.md \
+  --out ../reviews/EXAMPLE/judgment-receipt-01.json
 ```
 
-The register filename starts with the strain ID. The helper runs the manifest checker. It reports COMPLETE only when the card
-count covers the package's raw count and the checker passes. Missing inputs,
-timeouts or inconsistent checker results leave completion pending.
-If `modeb_card_source` is `none`, check the register path and JSON; its zero
-is unmeasured.
+The helper runs the manifest checker. It reports COMPLETE only when the card count covers the package's raw count and the checker passes. Missing inputs, timeouts or inconsistent checker results leave completion pending. COMPLETE exits 0. JUDGMENT_PENDING exits 1. Read the written JSON and its findings. Keep the earlier receipt when you retry.
 
-Reconcile the actual package/card/register roster independently: these counts
-are not bound to each card's current identity or hash. Save those hashes beside
-the receipt. COMPLETE exits zero; JUDGMENT_PENDING exits one. Read the written
-JSON and findings, and preserve the earlier receipt on retry.
+`modeb_card_source` reads `judgment_register_unavailable` when `--register` was given but could not be read and no `--modeb` fallback was given. It reads `none` when neither `--register` nor `--modeb` was given. In both cases `modeb_cards_written` is `null` and `modeb_card_count_status` is `UNKNOWN`: the cards were not counted, which is not zero cards. `judgment_register_status` and `judgment_register_error` say why the register was not read.
 
-<a id="a4--provenance-and-packaging-code_backed--prompt_backed"></a>
-
-<a id="handoff-gate--run-before-handing-work-over"></a>
+The counts are not bound to each card's identity or hash. Reconcile the package, card and register rosters yourself, and save those hashes beside the receipt.
 
 ## Check files to send
 
-Choose the matching structural check for a ready output folder, patch set or reply:
+Pick the structural check that matches what you are sending: an output folder, a patch set or a reply.
+
+The receipt file must live outside the program folder. If you run the tool from the program folder with a
+`reviews/` folder inside it, the tool stops with `OUTPUT_INSIDE_BUNDLE`. The examples below put `reviews/`
+beside the program folder (`../reviews`).
 
 ```bash
-python tools/handoff_gate.py deliverable reviews/EXAMPLE --index OPEN_FIRST.md \
-  --receipt reviews/EXAMPLE/file-check-01.json
-python tools/handoff_gate.py patches reviews/EXAMPLE-patches \
-  --compose reviews/EXAMPLE-patches/compose.sh --receipt reviews/EXAMPLE-patches/check-01.json
-python tools/handoff_gate.py reply reviews/EXAMPLE/reply.md --root reviews/EXAMPLE \
-  --receipt reviews/EXAMPLE/reply-check-01.json
+python tools/handoff_gate.py deliverable ../reviews/EXAMPLE --index OPEN_FIRST.md \
+  --receipt ../reviews/EXAMPLE/file-check-01.json
+python tools/handoff_gate.py patches ../reviews/EXAMPLE-patches \
+  --compose ../reviews/EXAMPLE-patches/compose.sh --receipt ../reviews/EXAMPLE-patches/check-01.json
+python tools/handoff_gate.py reply ../reviews/EXAMPLE/reply.md --root ../reviews/EXAMPLE \
+  --receipt ../reviews/EXAMPLE/reply-check-01.json
 ```
 
-`--index` names the entry page. `--receipt` preserves a separately named check;
-change its filename on retry. Add `--figure-dir` for each selected PNG folder.
-The patch check reads literal `step`/`copy` file entries in the composition;
-adding `--replay` executes its shell script.
-Inspect that script and use a disposable destination before selecting replay. For
-repeated `card.diff` names, this version reports ambiguous digest findings;
-that check remains held until its path matching is fixed.
+`--index` names the entry page. `--receipt` saves the check result; change its filename on each retry. Add `--figure-dir` for each folder of selected PNGs.
 
-Read the check counts. Identity scanning covers Markdown and root TSVs; check
-CSV identity joins and actual rendered figures separately. Reply mode expects
-percent-encoded targets and does not parse angle-wrapped local paths; keep the
-application's actual link check separate. Preserve the
-selected results, source hashes, captions, methods, checks and unresolved items
-with the original package. For a full-strain transfer, include that package,
-selected reports, workbook and check records in the delivery ZIP; list the files,
-sizes and SHA-256 values.
+The patch check reads the literal `step` and `copy` entries in the composition file. Adding `--replay` runs its shell script, so inspect the script first and use a disposable destination. If two patch cards share a file name such as `card.diff`, the digest check may report ambiguous findings.
 
-<a id="part-c--treatment-status-vocabulary"></a>
+Read the counts the check prints. Identity scanning covers Markdown and root TSVs. Check CSV identity joins and rendered figures yourself. Reply mode expects percent-encoded link targets and does not parse angle-wrapped local paths, so check the links in your application as well.
 
-<a id="part-d--deferred-ledger"></a>
+Keep the selected results, source hashes, captions, methods, checks and unresolved items with the original package. For a full-strain transfer, put the package, selected reports, workbook and check records in the delivery ZIP, and list the files, sizes and SHA-256 values.
 
 ## Treatment labels and missing work
 
-Record one treatment label for every BGC in each selected strain:
+Give every BGC in each selected strain one treatment label:
 
 | Status | Meaning |
 |---|---|
-| `full Mode B` | Finished selected-profile card: `FINISHED_FULL48_CURRENT_EVIDENCE` or `FINISHED_FULL50_CURRENT50_V2`. |
-| `candidate card` | Abbreviated candidate card for MEDIUM priority. |
-| `minimum candidate card` | Minimum-field interpretation for LOW/DEPRIORITIZED or evidence-thin regions. |
+| `full Mode B` | Finished card under the selected [profile](MODEB_PROFILE_MATRIX.md): `FINISHED_FULL48_CURRENT_EVIDENCE` or `FINISHED_FULL50_CURRENT50_V2`. |
+| `candidate card` | Abbreviated card for a MEDIUM region. |
+| `minimum candidate card` | Minimum-field interpretation for LOW, DEPRIORITIZED or evidence-thin regions. |
 | `deferred` | Reason and completion path recorded. |
-| `not applicable` | BGC is a known housekeeping cluster (e.g., ectoine, epsilon-PL); explicitly excluded from interpretation |
+| `not applicable` | Known housekeeping cluster (for example ectoine or epsilon-PL), excluded from interpretation. |
 
-The existing `not applicable` row needs its rule/source checked before using that
-exclusion. For each deferred item, record its name/type, reason, required inputs,
-which extraction/writing step completes it and what must happen next. An unlogged
-missing item is missing, rather than deferred.
-
-<a id="a23--literature-search-handoff-list-replaces-inline-lit-review-for-a-separate-literature-search-session"></a>
-
-<a id="citation-compact-output"></a>
+Check the rule and source for `not applicable` before you use it. For each deferred item, record its name and type, the reason, the inputs it needs, the step that completes it and the next action. An item with no log entry is missing, not deferred.
 
 ## Citation-Compact Provenance and Citation Status
 
-For dense citations and a single shared genome-mining caveat, use
-[citation-compact output](CITATION_COMPACT_MODE.md). Keep `interpretation_scope`,
-`evidence_basis`, `citation_basis`, `uncertainty_flags` and `next_experiment`
-with the leads; EXCEPTIONAL/HIGH leads need a citation basis or `citation_needed`.
+For dense citations and a single shared genome-mining caveat, use [citation-compact output](CITATION_COMPACT_MODE.md). Keep `interpretation_scope`, `evidence_basis`, `citation_basis`, `uncertainty_flags` and `next_experiment` with the leads. EXCEPTIONAL and HIGH leads need a citation basis or `citation_needed`.
 
-Method references are antiSMASH 8.0 (`10.1093/nar/gkaf334`) and MIBiG 4.0
-(`10.1093/nar/gkae1115`). `operator_supplied` carries existing evidence;
-`citation_needed` records a literature gap. `Literature_Search_WorkOrder.md/json`
-lists searches still to do. Read the relevant checker for `PASS_STRUCTURE`:
-the emitter checks priority-citation/caveat structure, while the separate package
-gate checks its required files, schema and tracking. Verify the cited passages
-for the report's claims.
+Method references are antiSMASH 8.0 (`10.1093/nar/gkaf334`) and MIBiG 4.0 (`10.1093/nar/gkae1115`). `operator_supplied` marks evidence supplied at run time. `citation_needed` marks a literature gap. `Literature_Search_WorkOrder.md/json` lists searches still to do. `PASS_STRUCTURE` is a structure result only: the emitter checks priority-citation and caveat structure, and the package gate checks required files, schema and tracking. Neither verifies the cited passages, so check them against the report's claims.

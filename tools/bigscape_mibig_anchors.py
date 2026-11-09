@@ -5,6 +5,7 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse
 import collections
+import contextlib
 import os
 import re
 import sqlite3
@@ -13,7 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mamey.bigscape_namespace import (  # noqa: E402
     NamespaceError, atomic_write_text, build_family_identity, normalize_cutoff,
-    normalize_run_id, public_error,
+    normalize_run_id, open_database_read_only, public_error,
 )
 
 # v9.7.374 fix (AUDIT_374), PRESERVED THROUGH THE v9.7.405 NAMESPACE-GUARD REBASE — the
@@ -78,7 +79,7 @@ def parse_strain(path):
 
 def build_rows(db, run_id, cutoff):
     selected_run = normalize_run_id(run_id); selected_cutoff = normalize_cutoff(cutoff)
-    with sqlite3.connect(db) as connection:
+    with contextlib.closing(open_database_read_only(db)) as connection:
         source = connection.execute("""
           select fam.run_id,fam.cutoff,fam.id,g.path,br.product,br.category,br.id
           from bgc_record_family rf join family fam on fam.id=rf.family_id
@@ -147,6 +148,8 @@ def main(argv=None):
         # would have dropped their PRE-EXISTING prints from the count too: a lower
         # measure without paying anything.
         sys.stderr.write(public_error(error) + "\n"); return 2
+    except FileNotFoundError as error:
+        sys.stderr.write(f"ERROR: {error}\n"); return 2
     emit(f"wrote {len(rows)} qualified anchoring edges")
     return 0
 

@@ -77,6 +77,32 @@ def atomic_dump(obj, path, indent=None):
     return path
 
 
+def write_new_entry(obj, path, indent=2, protected=()):
+    """Export an entry to a path that must not exist yet; never replace a file.
+
+    The bytes are staged in a private sibling and published with a hard link,
+    which refuses an occupied name even if one appears after the check.
+    """
+    from pathlib import Path
+    from mamey.output_transaction import preflight_output_roster
+    target = Path(path)
+    if target.exists() or target.is_symlink():
+        raise FileExistsError(f"--out already exists; choose a new entry-file path: {target}")
+    preflight_output_roster([target], protected_paths=tuple(Path(p) for p in protected))
+    tmp = _private_tmp(str(target))
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(obj, fh, indent=indent)
+        try:
+            os.link(tmp, target)
+        except FileExistsError as exc:
+            raise FileExistsError(f"--out already exists; choose a new entry-file path: {target}") from exc
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+    return str(target)
+
+
 def _private_tmp(path: str) -> str:
     """v9.7.410 hostile audit: the stage file used to be the FIXED name ``<path>.tmp``, so two
     processes banking into the same cohort dir raced on it — one ``os.replace`` found the stage
@@ -578,13 +604,16 @@ def main():
         ap.error("--package is required unless --recover is selected")
     if a.validate:
         validate(a.validate, a.package, a.banked_dir); return
+    if a.out and (os.path.lexists(a.out)):
+        # Checked before any work, so a collision never reaches the merge.
+        raise SystemExit(f"--out already exists; choose a new entry-file path: {a.out}")
     snap = load(find_snapshot(a.package))
     cohort = a.cohort or infer_cohort(snap.get("strain_id",""), snap.get("taxonomy") or snap.get("display_name",""), a.source)
     e = build_entry(snap, a.ww, a.package, cohort=cohort, accession=a.accession)
     sys.stdout.write((f"built entry for {e['sid']}: {len(e['bgcs'])} bgcs; scan_agg EFLS={e['scan_agg']['EFLS_pairs']} "
           f"FLBR_megasynth={e['scan_agg']['FLBR_megasynth']} CCTT={e['scan_agg']['CCTT_triggers']}") + "\n")
     if a.out:
-        atomic_dump(e, a.out, indent=2); sys.stdout.write((str("wrote") + " " + str(a.out)) + "\n")
+        write_new_entry(e, a.out, indent=2, protected=(a.package, a.banked_dir)); sys.stdout.write((str("wrote") + " " + str(a.out)) + "\n")
     if a.merge:
         merge(e, a.banked_dir, allow_dup=a.allow_dup, package=a.package, force_schema=a.force_schema)
 

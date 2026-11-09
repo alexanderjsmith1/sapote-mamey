@@ -49,6 +49,26 @@ class NativeLegacyEvidenceAnchorBinding:
     board_identity: NativeManifestBGCIdentity
 
 
+def legacy_short_node_id(contig: object) -> str:
+    """Return the short Node_ID that engines up to 1.9.179 stored for ``contig``.
+
+    This is the frozen pre-1.9.180 shortening. It exists to recognize stored
+    values only; new packages store the full contig.
+    """
+    # Local import keeps the generic identity helpers independent of the model-heavy
+    # crosswalk module unless a native-producer path is selected.
+    from .crosswalk import legacy_short_node_id as _legacy
+
+    return _legacy("" if contig is None else str(contig).strip(), "")
+
+
+def accepted_node_id_forms(contig: object) -> frozenset:
+    """Return the stored Node_ID values accepted for ``contig``: full or legacy short."""
+    from .crosswalk import node_id_forms
+
+    return node_id_forms("" if contig is None else str(contig))
+
+
 def _is_region_label(text: str) -> bool:
     """True only for regionNNN with a positive ordinal; region000 names no region."""
     return bool(_REGION.fullmatch(text)) and int(text[6:]) > 0
@@ -127,9 +147,10 @@ def exact_locus_from_native_manifest_bgc(
     """Validate one current native manifest BGC without conflating typed fields.
 
     Native Mamey manifests carry the authoritative physical ``contig`` alongside
-    a producer-normalized ``node_id`` used by existing database joins.  The
-    relationship is validated from the full contig alone: source paths are never
-    consulted.  Every other supplied synonym remains visible to the generic
+    a ``node_id`` used by existing database joins.  From engine 1.9.180 that
+    ``node_id`` is the full contig; older stored packages hold its legacy short
+    form.  The relationship is validated from the full contig alone: source paths
+    are never consulted.  Every other supplied synonym remains visible to the generic
     conflict checker.
     """
     package_strain = _required(strain, "strain")
@@ -138,14 +159,14 @@ def exact_locus_from_native_manifest_bgc(
     region = _required(row.get("antismash_region"), "native manifest antismash_region")
     bgc_alias = _required(row.get("bgc_id"), "native manifest bgc_id")
 
-    # Local import keeps the generic identity helpers independent of the model-heavy
-    # crosswalk module unless the explicitly typed native-producer path is selected.
-    from .crosswalk import infer_node_id
-
-    expected_node_id = infer_node_id(full_contig, "")
-    if normalized_node_id != expected_node_id:
+    # Ruling 479: from engine 1.9.180 a new package stores node_id equal to the full
+    # contig. A stored package from an older engine holds the legacy short form. Both
+    # are derived from this row's own contig; any other value is refused. No name
+    # pattern decides it, because some stored contigs end in a whole-number coverage.
+    if normalized_node_id not in accepted_node_id_forms(full_contig):
         raise ExactLocusIdentityError(
-            "native manifest node_id does not match the producer normalization of contig"
+            "native manifest node_id does not match the producer normalization of contig: "
+            "it is neither the full contig nor its legacy short form"
         )
 
     # Remove only the already-validated native lower-case join field.  Upper-case
@@ -245,7 +266,9 @@ def validate_native_legacy_evidence_anchor(
         )
     if values["strain"] != board_identity.strain:
         raise ExactLocusIdentityError("legacy evidence strain conflicts with admitted board")
-    if values["contig"] != board_identity.normalized_node_id:
+    # v9.7.409 anchors carry the legacy short form. Anchors written from engine 1.9.180
+    # carry the full contig. Accept exactly those two forms of the board's own contig.
+    if values["contig"] not in accepted_node_id_forms(board_identity.full_contig):
         raise ExactLocusIdentityError("legacy evidence normalized contig conflicts with admitted board")
     if values["region"] != board_identity.region:
         raise ExactLocusIdentityError("legacy evidence region conflicts with admitted board")

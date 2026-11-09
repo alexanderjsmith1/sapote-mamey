@@ -43,6 +43,8 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _ROOT)
 from mamey.chitin_reference_eval import evaluate_strain, ChitinReferenceEvalError
+from mamey.output_transaction import preflight_output_roster
+from pathlib import Path
 
 
 class Refusal(Exception):
@@ -141,6 +143,15 @@ def main(argv: list[str] | None = None) -> int:
     ap = build_arg_parser()
     ns = ap.parse_args(argv)
     try:
+        # Optional output files must be fresh, distinct, and never an input (counts, manifest or registry).
+        outputs = [Path(x) for x in (ns.out_json, ns.out_tsv) if x]
+        if outputs:
+            inputs = [Path(ns.registry)] + ([Path(ns.package) / "manifest.json", Path(ns.package)]
+                                            if ns.package else [Path(ns.cgad_json)])
+            try:
+                preflight_output_roster(outputs, protected_paths=inputs)
+            except ValueError as exc:
+                raise Refusal(f"MAMEY_CHITIN_REFERENCE_EVAL_REFUSAL: output refused before any write: {exc}")
         if ns.package:
             counts, manifest_strain_id, manifest_taxon = _load_cgad_counts_from_package(ns.package)
         else:
@@ -152,7 +163,10 @@ def main(argv: list[str] | None = None) -> int:
                 "MAMEY_CHITIN_REFERENCE_EVAL_REFUSAL: no strain_id available from the package "
                 "manifest -- pass --strain-id")
         registry_rows = _load_registry(ns.registry)
-        evaluation = evaluate_strain(strain_id, counts, registry_rows, taxon, ns.genus_alias)
+        scope = ("PACKAGE_MANIFEST_SCAN_RECORD_COVERAGE_UNREVIEWED" if ns.package
+                 else "UNRESOLVED_SCOPE_COUNTS_NOT_SOURCE_BOUND")
+        evaluation = evaluate_strain(strain_id, counts, registry_rows, taxon, ns.genus_alias,
+                                     source_scope_state=scope)
     except Refusal as exc:
         sys.stderr.write(str(exc) + "\n")
         return 1

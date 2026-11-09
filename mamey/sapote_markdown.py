@@ -137,6 +137,23 @@ def _parse_front_matter(text: str) -> tuple[dict[str, Any], str, int]:
     return parsed, "\n".join(lines[end + 1 :]), end + 2
 
 
+def _text_field(raw: dict[str, Any], key: str, *, where: str = "") -> str:
+    """Read one metadata text field without inventing a value.
+
+    An absent key or a YAML null is empty, so a required field is reported missing
+    instead of becoming the literal text ``None``. Text and whole numbers are kept;
+    any other YAML type (true/false, dates, lists, mappings) is refused.
+    """
+    value = raw.get(key)
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    raise SapoteMarkdownError(f"META_FIELD_TYPE_INVALID:{where}{key} must be text, not {type(value).__name__}")
+
+
 def _meta_from_mapping(raw: dict[str, Any]) -> DocumentMeta:
     exact_raw = raw.get("exact_locus")
     exact = None
@@ -144,22 +161,22 @@ def _meta_from_mapping(raw: dict[str, Any]) -> DocumentMeta:
         if not isinstance(exact_raw, dict):
             raise SapoteMarkdownError("EXACT_LOCUS_OBJECT_REQUIRED")
         exact = ExactLocus(
-            strain=str(exact_raw.get("strain", "")).strip(),
-            node_or_contig=str(exact_raw.get("node_or_contig", "")).strip(),
-            region=str(exact_raw.get("region", "")).strip(),
-            bgc_alias=str(exact_raw.get("bgc_alias", "")).strip(),
+            strain=_text_field(exact_raw, "strain", where="exact_locus."),
+            node_or_contig=_text_field(exact_raw, "node_or_contig", where="exact_locus."),
+            region=_text_field(exact_raw, "region", where="exact_locus."),
+            bgc_alias=_text_field(exact_raw, "bgc_alias", where="exact_locus."),
         )
     return DocumentMeta(
-        schema_version=str(raw.get("schema_version", "")).strip(),
-        document_type=str(raw.get("document_type", "")).strip(),
-        title=str(raw.get("title", "")).strip(),
-        subtitle=str(raw.get("subtitle", "")).strip(),
-        audience=str(raw.get("audience", "")).strip(),
-        authority=str(raw.get("authority", "")).strip(),
-        render_profile=str(raw.get("render_profile", "")).strip(),
-        claim_safety_footer=str(raw.get("claim_safety_footer", "")).strip(),
+        schema_version=_text_field(raw, "schema_version"),
+        document_type=_text_field(raw, "document_type"),
+        title=_text_field(raw, "title"),
+        subtitle=_text_field(raw, "subtitle"),
+        audience=_text_field(raw, "audience"),
+        authority=_text_field(raw, "authority"),
+        render_profile=_text_field(raw, "render_profile"),
+        claim_safety_footer=_text_field(raw, "claim_safety_footer"),
         exact_locus=exact,
-        source_manifest=str(raw.get("source_manifest", "")).strip(),
+        source_manifest=_text_field(raw, "source_manifest"),
     )
 
 

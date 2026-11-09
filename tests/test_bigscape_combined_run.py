@@ -165,6 +165,20 @@ class TestGBKReconstruction:
         fnames = os.listdir(self.out_dir)
         assert not any("SYNTHETIC-CASE-026" in f for f in fnames)
 
+    def test_exclude_strain_is_not_a_substring_match(self):
+        """Card 464_bigscape_exclude_whole_strain: excluding SYN-7 keeps SYN-70 and SYN-701."""
+        db = sqlite3.connect(self.db_path)
+        cur = db.cursor()
+        for i, p in ((97, "/fake/SYN-7_NODE_1.gbk"), (98, "/fake/SYN-70_NODE_1.gbk"), (99, "/fake/SYN-701/r1.gbk")):
+            cur.execute("INSERT INTO gbk VALUES (?, ?, ?, 'ATGC', '.', '.', '.')", (i, p, f"h{i}"))
+            cur.execute("INSERT INTO cds VALUES (?, ?, 100, 400, 1, 1, 'biosynthetic', 'MTEST')", (i, i))
+        db.commit()
+        db.close()
+        n = self._reconstruct(exclude_strain="SYN-7")
+        assert n == 5  # the 3 originals plus SYN-70 and SYN-701; only SYN-7 is left out
+        fnames = os.listdir(self.out_dir)
+        assert "SYN-70_NODE_1.gbk" in fnames and "r1.gbk" in fnames and "SYN-7_NODE_1.gbk" not in fnames
+
     def test_cds_translation_present(self):
         """CDS features carry /translation with the amino acid sequence."""
         self._reconstruct()

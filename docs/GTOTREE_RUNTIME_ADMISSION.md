@@ -8,7 +8,7 @@ The supplied `tools/gtotree_runtime_profile.json` binds one reviewed editable in
 
 The profile's HMM engine requests two pyhmmer search workers per concurrently searched genome (`2 * jobs`) and uses gathering cutoffs. Each concurrent SCG alignment requests the selected MUSCLE threads; up to `jobs` alignments run concurrently. The phase-worker estimate is `max(2 * jobs, jobs * MUSCLE threads)`; IQ-TREE's selected threads must also fit the caller's positive budget and observed available CPU count. These counts do not bound total OS threads/CPU use. All six one-thread environment controls are pinned. Periodic process-tree RSS/disk/time monitoring is not a kernel limit or an aggregate concurrency guarantee.
 
-To opt into software imports, supply all four options together on `plan`, `run_planned_tree.py`, or the packet-mode `gtotree_execution_gate.py` command:
+To opt into software imports, supply all four options together on `tools/plan_gtotree_iqtree.py plan`, `tools/run_planned_tree.py`, or the packet-mode `tools/gtotree_execution_gate.py` command:
 
 ```text
 --gtotree-runtime-manifest tools/gtotree_runtime_profile.json
@@ -17,7 +17,17 @@ To opt into software imports, supply all four options together on `plan`, `run_p
 --gtotree-runtime-probe-dir /absolute/approved/fresh_diagnostics
 ```
 
-The probe directory must be absent, its existing parent must be permitted, and it cannot overlap the runtime roots or the source bundle. No new sibling is guessed. An occupied or symlinked path is refused. Default watched ceilings are 3.8 GB RSS, 2 GiB minimum free disk and 900 seconds, configured by `--gtotree-rss-limit`, `--gtotree-min-disk`, and `--gtotree-timeout`. These portable finite settings can be explicitly changed by the caller; current campaign executions remain governed by their separate ceilings. The requested phase-worker budget defaults to four (`--gtotree-cpu-budget`). The existing planner retains its own maximum-four concurrent budget.
+### What you see
+
+`tools/plan_gtotree_iqtree.py plan` prints JSON with a `state` and writes the same state to the run's `RUN_STATE.json`:
+
+- `"state": "PLANNED_AWAITING_APPROVAL"` and exit 0: every planner check passed, including runtime admission. The plan still needs your approval before anything runs;
+- `"state": "HOLD_RESOURCE_PROFILE"` and exit 2: the resource check did not pass. For v2 this is what you get without the four options above, or when the probe fails;
+- another `HOLD_…` state and exit 2: an earlier check failed (panel cap, duplicate query, outgroup, network, missing query, missing tool or tool interface). Those are checked before the resource profile, so fix them first.
+
+The probe's own record is `RECEIPT.json` in the probe directory. It reads `PASS_SOFTWARE_PROBE_ONLY` or `FAILED`. A pass covers software behavior only.
+
+The probe directory must be absent, its existing parent must be permitted, and it cannot overlap the runtime roots or the source bundle. No new sibling is guessed. An occupied or symlinked path is refused. Default watched ceilings are 3.8 GB RSS, 2 GiB minimum free disk and 900 seconds, configured by `--gtotree-rss-limit`, `--gtotree-min-disk`, and `--gtotree-timeout`. These portable finite settings can be explicitly changed by the caller; current campaign executions remain governed by their separate ceilings. On `tools/run_planned_tree.py` and `tools/gtotree_execution_gate.py`, the requested phase-worker budget is `--gtotree-cpu-budget` (default four). On `tools/plan_gtotree_iqtree.py plan` the budget is `--max-concurrent-cores` (1 to 4, default four): the plan records it and writes it into the runner command as `--gtotree-cpu-budget`. `plan` accepts `--gtotree-cpu-budget` only when it equals `--max-concurrent-cores`; a different value stops the planner with `PREFLIGHT_ERROR` and exit 2, so a lower budget is never silently ignored.
 
 Planning with these explicit options executes software probes, not a genome/model job. Without them the gate API remains read-only and v2 cannot pass resource admission. The probe sanitizes cwd, HOME, temporary/cache paths, PATH, Python user-site/safe-path/bytecode settings and six thread variables. Installed startup files still execute: this is not an OS sandbox. Source, interpreter, selected helpers, startup rosters, imported module origins and loaded/distribution versions are checked before/after. The saved original observation contained 900 module-file records; the manifest's 1,034 unique paths also include the full 175-file editable Python roster and reviewed installation files. This does not close native dynamic libraries, built-in/frozen modules or every future inactive import.
 

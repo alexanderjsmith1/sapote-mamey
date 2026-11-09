@@ -19,7 +19,7 @@ assertion elsewhere on the same line.
 ## Note on disclaimer wording variants observed
 - philanthi/citrea-era: "...does not claim purified product identity."
 - venezuelae/gossypii/amethystogenes-era: "...not a confirmed product call and should be upgraded only with LC-MS/MS..."
-Both satisfy check 2. The audit MUST accept either.
+Both satisfied check 2. The audit accepted either.
 
 ## Scope limit
 This audits the CARDS only (template-locked, low risk). It does NOT cover Layer A/B/C narrative or Technical Report prose (free-form, higher overclaim risk) — those need a separate read.

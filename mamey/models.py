@@ -96,6 +96,10 @@ class BGCRecord:
     kcb_protein_hits: int | None = None
     # Typed source state. UNKNOWN_KCB is absence, not observed low similarity.
     kcb_evidence_state: str = "UNKNOWN_KCB"
+    # antiSMASH's rank-1 KnownClusterBlast percent similarity (0-100), read from the JSON ranking.
+    # None unless kcb_similarity_state is PCT_OBSERVED. Not the cumulative BLAST score.
+    kcb_similarity_pct: float | None = None
+    kcb_similarity_state: str = "PCT_NOT_READ"
     # v9.7.166: top-N ranked ClusterBlast hits WITH organism names, in antiSMASH rank order.
     # antiSMASH's clusterblast files carry a "Source:" (organism) line per hit block that the
     # parser already reads but previously discarded after taking rank-1. This preserves the
@@ -299,6 +303,10 @@ class RunContext:
     #   asserted  — supplied by a person with no on-disk trace (the safe default)
     # Descriptive only: it never changes a score, a tier or a gate verdict.
     source_provenance: str = "asserted"
+    # Where strain_id came from (strain_identity.StrainIdentity.source): supplied (--strain),
+    # archive (the archive's organism name) or zip_stem (the ZIP filename). "not recorded" for
+    # direct callers. It is about the strain ID, never the isolation source above.
+    strain_id_source: str = "not recorded"
     # v9.7.392 candidate: a typed metadata object, never a named assay default.
     # Direct and CLI construction share the central admission owner.  The
     # field stays descriptive and is never a scoring input.

@@ -2,7 +2,10 @@
 
 Use `python tools/ripper_adapter.py --help` to list commands. Choose a compatible
 Python environment and absolute input paths. Every output directory must be new
-and outside the bundle source tree; existing inputs and results are retained.
+and outside the bundle source tree; existing inputs and results are retained. The one exception is a
+reviewed native `lifecycle --execute-native --resume-preflight` run, which reuses the run root its own
+earlier preflight reserved, only when that folder is pristine and still matches (see
+[native discovery](RIPPER_NATIVE_DISCOVERY.md)).
 
 
 For a new local runtime, follow [explicit runtime preparation](RIPPER_NATIVE_DISCOVERY.md#prepare-an-explicit-local-runtime-before-native-preflight).
@@ -12,12 +15,21 @@ recorded native run used mixed system/private files, not a portable self-contain
 installer. Python SQLite snapshot support, execution-time psutil capability,
 config whitespace restrictions and exact executable budgets are part of setup.
 
+Terms used here:
+
+- **Byte binding** records the SHA-256 of each file you name for a role (`--file ROLE=PATH`), so later steps can check that exactly those bytes were used. It does not install or check that a tool works.
+- **Prodigal-short** is a modified Prodigal build for short open reading frames that RiPPER calls. Stock Prodigal prints the same version banner, so keep its build evidence (see [native discovery](RIPPER_NATIVE_DISCOVERY.md)).
+- **Executable budgets** are the byte-size and time limits the adapter applies when it reads and hashes each bound executable or file. A file larger than its byte budget, or slower to read than its time budget, is refused.
+
 | Need | Supported command and required evidence | Result |
 |---|---|---|
 | Prepare inputs | `plan` or `local-plan --semantic-validation` with the query roster, GenBank, query FASTA, config and source profile | Input plan; no upstream execution |
+| Export the archived output-column contract | `source-profile --profile … --out …` | A verified copy of the archived output-column profile; no execution |
+| Record file-role digests | `bind-run --manifest … --file ROLE=PATH --out …`, optionally `--adapted-profile …` | A digest record for each named role; no execution and no proof the setup is ready |
 | Bind an adapted source | `adapted-profile` with exact original source, cumulative patch, adapted source and source-owner receipt | Distinct hash-bound profile; does not silently accept changed source bytes |
 | Check a native setup | `lifecycle` with a native spec, explicit `--file ROLE=PATH` bindings and adapted profile | Preflight plus concrete review request; default launches nothing |
 | Run native discovery | `lifecycle --execute-native --native-admission …`; add `--resume-preflight` only for its matching pristine preflight | Supervised native discovery with execution and terminal receipts |
+| Check or run a roster of record and bait pairs | `lifecycle-batch --spec … --roster … --run-root … --adapted-profile … --file ROLE=PATH --pair-file PAIR_ID:genbank=PATH`; add `--execute-native --batch-admission …` to run | One lifecycle per pair, each with its own receipts; default launches nothing |
 | Inspect a completed native result | `native-result --terminal … --raw … --out …`; legacy publication also needs explicit `--control-result …` | Hash-bound raw-result summary; preserves raw status and missing annotation/coordinate evidence |
 | Import a separately annotated table | `import` with matching complete receipt, query coverage, raw TSV, columns, config, log and selected output profile/channel | Declared imported-table evidence; not BGC attribution |
 | Evaluate native reconstructed coordinates | `native-coordinates` with a native reconstruction packet, explicit 18-role artifact roster and legacy control receipt if needed | Native-qualified row/window/score/translation assessments; instrumented producer and BGC evidence remain separate |

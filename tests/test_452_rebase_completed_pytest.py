@@ -9,6 +9,7 @@ def test_incomplete_test_run_cannot_be_clean_delta(tmp_path, monkeypatch, rc, ou
     base.mkdir()
     card = tmp_path / "card"
     card.mkdir()
+    (card / "card.diff").write_text("")  # nonempty roster, so the pytest screen is what is tested
     def run(cmd, **kwargs):
         return (rc, out) if "pytest" in cmd else (0, "")
     monkeypatch.setattr(cut_audit, "_run", run)

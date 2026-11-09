@@ -19,9 +19,9 @@ def test_retry_replaces_reader_sections(tmp_path, monkeypatch):
     monkeypatch.setattr(js, "_mode_b_path", lambda _p, b: tmp_path / f"S1_{b}_mode_b.md")
     for text in ("first draft", "second draft"):
         js.record_mode_b(tmp_path, "BGC001", "## §1\nbody\n", layperson_paragraph=f"lay {text}",
-                         fermentation_note=f"ferm {text}")
+                         fermentation_note=f"ferm {text}", identity_checked_by_caller=True)
     js.record_mode_b(tmp_path, "BGC002", "## §1\nbody\n", layperson_paragraph="lay other",
-                     fermentation_note="ferm other")
+                     fermentation_note="ferm other", identity_checked_by_caller=True)
     for path, word in ((lay, "lay"), (ferm, "ferm")):
         text = path.read_text(encoding="utf-8")
         assert _sections(path, "BGC001") == 1 and _sections(path, "BGC002") == 1

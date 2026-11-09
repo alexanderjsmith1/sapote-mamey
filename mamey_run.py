@@ -194,7 +194,7 @@ def _refuse_foreign_bytecode():
                 sys.stderr.write(
                     "  Check write permission on each directory and on its parent, then remove\n"
                     "  them yourself, or:\n"
-                    f"    find {_HERE!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n")
+                    f"    find {os.path.join(_HERE, 'mamey')!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n")
                 raise SystemExit(2)
             sys.stderr.write(
                 "UNBOUND_BYTECODE_CLEARED: %d cache director%s under mamey/ carried no cut marker,\n"
@@ -217,38 +217,126 @@ def _refuse_foreign_bytecode():
         "  A same-version reseal changes module content while the version string does not, so\n"
         "  neither the version check below nor Python's (mtime, size) check can see it.\n"
         "  Remediation: re-run with --purge-bytecode, or:\n"
-        f"    find {_HERE!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n"
+        f"    find {os.path.join(_HERE, 'mamey')!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n"
         "  Nothing has been deleted for you.\n")
     raise SystemExit(2)
 
 
+# Top-level folders whose Python this bundle ships. `--purge-bytecode` clears caches in these
+# folders, plus the bundle root's own __pycache__, and nowhere else. A bundle-local .venv,
+# runs/ output and any other folder a user adds are not the engine's, so a purge never walks them.
+_ENGINE_SOURCE_DIRS = ("mamey", "tools", "deliverable_tools", "hooks", "sapote_hooks",
+                       "packaging", "scripts", "tests", "examples")
+# Never descend into these, even inside an engine folder.
+_PURGE_SKIP_NAMES = {".venv", "venv", "env", "site-packages", "node_modules", ".git"}
+_CACHE_MARKER_NAME = ".sapote_cut"
+
+
+def _purge_one_cache(target):
+    """Delete the bytecode in one __pycache__, then the folder if it is empty.
+
+    Removed: `*.pyc`, this runner's own cut marker, leftover bytecode temp files from an
+    interrupted write (`*.pyc.<digits>`) and Finder's `.DS_Store`. Anything else in the folder is
+    not derived bytecode, so it stays, and is returned so the caller can name it.
+    """
+    others = []
+    try:
+        names = os.listdir(target)
+    except OSError:
+        return others
+    for name in names:
+        path = os.path.join(target, name)
+        if os.path.isfile(path) and not os.path.islink(path) and (
+                name.endswith(".pyc") or name == _CACHE_MARKER_NAME
+                or name == ".DS_Store" or re.fullmatch(r".+\.pyc\.\d+", name)):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        else:
+            others.append(path)
+    if not others:
+        try:
+            os.rmdir(target)
+        except OSError:
+            pass
+    return others
+
+
+def _engine_cache_dirs(root=None):
+    """Every __pycache__ the purge may touch, sorted.
+
+    With `root`, only caches under that folder. Without it, the bundle root's own cache and the
+    caches under `_ENGINE_SOURCE_DIRS`. Symlinked folders, virtual environments (any folder
+    holding `pyvenv.cfg`) and `_PURGE_SKIP_NAMES` are pruned, so the walk never leaves the
+    engine's source.
+    """
+    if root is not None:
+        tops = [root]
+    else:
+        tops = [os.path.join(_HERE, name) for name in _ENGINE_SOURCE_DIRS]
+    found = []
+    if root is None:
+        own = os.path.join(_HERE, "__pycache__")
+        if os.path.isdir(own) and not os.path.islink(own):
+            found.append(own)
+    for top in tops:
+        if not os.path.isdir(top) or os.path.islink(top):
+            continue
+        for dirpath, dirnames, filenames in os.walk(top):
+            if "pyvenv.cfg" in filenames:
+                dirnames[:] = []
+                continue
+            keep = []
+            for name in sorted(dirnames):
+                path = os.path.join(dirpath, name)
+                if os.path.islink(path) or name in _PURGE_SKIP_NAMES:
+                    continue
+                if name == "__pycache__":
+                    found.append(path)
+                    continue
+                keep.append(name)
+            dirnames[:] = keep
+    return sorted(found)
+
+
 def _purge_bytecode(root=None, quiet=False):
-    """Clear every __pycache__ under `root` (the whole bundle by default) and report what went.
+    """Clear the engine's bytecode caches and report what went.
+
+    Scope: the bundle root's own __pycache__ and the caches under `_ENGINE_SOURCE_DIRS`, or only
+    those under `root` when it is given. Inside each cache only `*.pyc` and the cut marker are
+    deleted; any other file is left and named. A bundle-local .venv, runs/ output, or any folder
+    outside the engine's source is never walked.
 
     `quiet` is for the internal caller in `_refuse_foreign_bytecode`, which re-checks the result
     itself and prints a message specific to that case.
 
-    rmtree runs with ignore_errors=True, so a directory the filesystem refuses to give up is
-    skipped without raising. Counting attempts would then report a purge that did not happen,
-    and both refusals above send the operator here as their remediation -- so a silent failure
-    reads as "purged N" and the very next run refuses again, with no way out. Check each target
-    after the attempt and name the ones that still hold bytecode.
+    A file the filesystem refuses to delete is skipped without raising. Counting attempts would
+    then report a purge that did not happen, and both refusals above send the operator here as
+    their remediation -- so a silent failure reads as "purged N" and the very next run refuses
+    again, with no way out. Check each target after the attempt and name the ones that still
+    hold bytecode.
     """
-    removed, kept = 0, []
-    for dirpath, dirnames, _ in os.walk(root or _HERE):
-        for name in list(dirnames):
-            if name == "__pycache__":
-                import shutil
-                target = os.path.join(dirpath, name)
-                shutil.rmtree(target, ignore_errors=True)
-                dirnames.remove(name)
-                if _dirs_holding_bytecode(target):
-                    kept.append(target)
-                else:
-                    removed += 1
+    removed, kept, foreign = 0, [], []
+    for target in _engine_cache_dirs(root):
+        foreign.extend(_purge_one_cache(target))
+        if _dirs_holding_bytecode(target):
+            kept.append(target)
+        else:
+            removed += 1
     if not quiet:
         sys.stderr.write(f"purged {removed} __pycache__ director%s under this bundle\n"
                          % ("y" if removed == 1 else "ies"))
+        sys.stderr.write("  scope: engine source folders only (%s and the bundle root's own cache);\n"
+                         "  .venv, runs/ and other folders were not touched.\n"
+                         % ", ".join(_ENGINE_SOURCE_DIRS))
+        if foreign:
+            sys.stderr.write(
+                "PURGE_KEPT_NON_BYTECODE: %d file%s in a __pycache__ %s not bytecode and %s left in place.\n"
+                % (len(foreign), "" if len(foreign) == 1 else "s",
+                   "is" if len(foreign) == 1 else "are", "was" if len(foreign) == 1 else "were"))
+            for path in foreign:
+                sys.stderr.write(f"  kept: {path}\n")
         if kept:
             sys.stderr.write(
                 "PURGE_INCOMPLETE: %d cache director%s still hold .pyc after the purge.\n"
@@ -307,7 +395,7 @@ def _refuse_stale_bytecode():
         "  1980 timestamp and a version bump does not change the file's size, so Python's\n"
         "  default (mtime, size) check cannot tell the two cuts apart.\n"
         "  Remediation: remove the stale caches under this bundle, e.g.\n"
-        f"    find {_HERE!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n"
+        f"    find {os.path.join(_HERE, 'mamey')!r} -name __pycache__ -type d -prune -exec rm -rf {{}} +\n"
         "  Nothing has been deleted for you.\n")
     raise SystemExit(2)
 

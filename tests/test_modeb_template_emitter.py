@@ -137,7 +137,7 @@ def test_emit_template_prefills_bgc_facts(tmp_path):
     card = emit_card_template(pkg, "BGC033")
     # §1 should mention the BGC + node
     assert "BGC033" in card
-    assert "NODE_7" in card
+    assert "**Node / contig:** ctg7" in card  # ruling 479: §1 names the full Contig, not Node_ID
     # §3 should carry assembly tier
     assert "POOR" in card
     # §8 should seed kcb_top

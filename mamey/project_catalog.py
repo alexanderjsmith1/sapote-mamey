@@ -356,9 +356,16 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
     source = Path(input_zip).expanduser().resolve()
     if not source.is_file():
         raise FileNotFoundError(source)
-    root = _project_root(project_root)
-    if any(root.iterdir()):
+    if project_root is None or (isinstance(project_root, str) and not project_root.strip()):
+        raise ValueError("an explicit project root is required")
+    # Check the destination without creating it: a refused import must leave
+    # an absent destination absent.
+    root = Path(project_root).expanduser().resolve()
+    if root.is_symlink() or (root.exists() and not root.is_dir()):
+        raise ValueError("project root is not a directory")
+    if root.exists() and any(root.iterdir()):
         raise ValueError("private handoff import requires an empty destination project root")
+    created_parents: list[Path] = []
     with zipfile.ZipFile(source) as archive:
         if archive.testzip() is not None:
             raise ValueError("private handoff archive fails its CRC check")
@@ -381,7 +388,14 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
             raise ValueError("private handoff manifest lists a path more than once")
         if set(names) != set(declared) | {"handoff_manifest.json"}:
             raise ValueError("private handoff member set does not match its manifest")
+        parent = root.parent
+        while not parent.exists():
+            created_parents.append(parent)
+            parent = parent.parent
+        for folder in reversed(created_parents):
+            folder.mkdir()
         staging = Path(tempfile.mkdtemp(prefix="mamey_project_import_", dir=root.parent))
+        published = False
         try:
             for name, item in sorted(declared.items()):
                 member = _safe_member(name)
@@ -395,17 +409,38 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
             catalog_path = project_output_dir(staging) / CATALOG_FILENAME
             if not catalog_path.is_file() or _sha256(catalog_path) != manifest.get("catalog_sha256"):
                 raise ValueError("private handoff catalog is absent or hash-mismatched")
-            shutil.copytree(staging, root, dirs_exist_ok=True)
+            # every refusal happens here, on the staged tree, before anything reaches the destination
+            ProjectCatalog(staging).verification_report()
+            if manifest.get("portfolio") is not None:
+                from .portfolio_config import load_portfolio_binding
+                binding_path = project_output_dir(staging) / "portfolio_binding.json"
+                payload = json.loads(binding_path.read_text(encoding="utf-8"))
+                current = load_portfolio_binding(staging, str(payload.get("config_relative_path") or ""))
+                for key in ("config_sha256", "registry_sha256"):
+                    if manifest["portfolio"].get(key) != getattr(current, key):
+                        raise ValueError(f"imported portfolio binding hash mismatch: {key}")
+            # Publish the whole verified tree in one rename. rename() refuses a
+            # destination that is no longer empty, so nothing is merged into or
+            # overwritten in a folder another writer filled meanwhile.
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(staging, 0o777 & ~umask)  # mkdtemp is 0700; match a plain mkdir
+            try:
+                os.rename(staging, root)
+            except OSError as exc:
+                raise ValueError(
+                    "private handoff import destination is no longer empty or absent; "
+                    f"nothing was copied into it: {root}") from exc
+            published = True
         finally:
-            shutil.rmtree(staging, ignore_errors=True)
+            if not published:
+                # staging was made by this call with mkdtemp; nothing else lives in it.
+                shutil.rmtree(staging, ignore_errors=True)
+                for folder in created_parents:
+                    try:
+                        folder.rmdir()
+                    except OSError:
+                        break
     report = ProjectCatalog(root).verification_report()
-    if manifest.get("portfolio") is not None:
-        from .portfolio_config import load_portfolio_binding, project_output_dir
-        binding_path = project_output_dir(root) / "portfolio_binding.json"
-        payload = json.loads(binding_path.read_text(encoding="utf-8"))
-        current = load_portfolio_binding(root, str(payload.get("config_relative_path") or ""))
-        for key in ("config_sha256", "registry_sha256"):
-            if manifest["portfolio"].get(key) != getattr(current, key):
-                raise ValueError(f"imported portfolio binding hash mismatch: {key}")
     report.update({"handoff_sha256": _sha256(source), "handoff_class": PRIVATE_HANDOFF_CLASS})
     return report

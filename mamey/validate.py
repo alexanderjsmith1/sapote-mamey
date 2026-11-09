@@ -1132,7 +1132,7 @@ _REQUIRED_SHEETS = {
     "WetLab_Decision_Matrix": [("WetLab_Decision_Matrix", ("BGC_ID", "BGC"))],
     "Mode_B_Summary": [("Mode_B_Summary", ("BGC_ID", "BGC"))],
 }
-_MAX_ROWS = 200  # cap per sheet to avoid memory issues on large workbooks
+_MAX_ROWS = 200  # no longer a cap: every primary-key cell is checked (read_only streams rows)
 
 
 def _is_pending(value) -> bool:
@@ -1143,18 +1143,60 @@ def _is_pending(value) -> bool:
     return s == "" or s.upper() == "PENDING"
 
 
-def validate_workbook_content(workbook_path: str | Path) -> dict:
+_BGC_ID_FORMAT = re.compile(r"BGC\d{3,}")
+
+
+def _inventory_bgc_ids(workbook_path: Path) -> set[str] | None:
+    """BGC_IDs from the package inventory beside the workbook, or None when there is none.
+
+    The inventory CSV is the package's own BGC roster, so it is the authority for what a real
+    BGC ID is. Exactly one ``*_2_inventory.csv`` must sit beside the workbook; with none or
+    several, the caller falls back to the ID format check and says so.
+    """
+    import csv
+    candidates = sorted(workbook_path.parent.glob("*_2_inventory.csv"))
+    if len(candidates) != 1:
+        return None
+    try:
+        # utf-8-sig: Excel saves CSV with a byte-order mark, which would otherwise hide BGC_ID.
+        with candidates[0].open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            column = next((c for c in (reader.fieldnames or []) if c in ("BGC_ID", "bgc_id")), None)
+            if column is None:
+                return None
+            ids = {str(row.get(column) or "").strip() for row in reader}
+    except (OSError, UnicodeDecodeError, csv.Error):
+        return None
+    ids.discard("")
+    return ids or None
+
+
+def validate_workbook_content(workbook_path: str | Path,
+                              known_bgc_ids: set[str] | None = None) -> dict:
     """Validate that required workbook sheets are present and have real primary-key rows.
 
+    A primary-key cell counts as a real row only when it is a BGC ID of this package: a member
+    of ``known_bgc_ids``, or, when that is not given, of the ``*_2_inventory.csv`` beside the
+    workbook. With no inventory to read, the cell must at least have the ``BGC<digits>`` form,
+    and the result says ``bgc_id_authority: FORMAT_ONLY``.
+
     Per-sheet status:
-      PASS            — sheet present, at least one non-PENDING primary-key row
+      PASS            — sheet present, at least one real primary-key row, none unrecognized
       FAIL_empty      — sheet present, header only (no data rows)
       FAIL_all_pending — sheet present, all data-row primary keys are PENDING or empty
+      FAIL_unrecognized_primary_key — a primary-key cell is neither blank, PENDING nor a BGC ID
+                         of this package
+      FAIL_missing_primary_key — sheet present without its primary-key column
       MISSING         — sheet not in the workbook
+
+    A logical gate may be met by an older sheet name (``Triage_First_Board`` for
+    ``Triage_Board``) when the current name is absent; the sheet result then carries
+    ``legacy_alias: true``.
 
     Overall status: PASS only when every sheet is PASS.
 
-    Cap: at most 200 rows per sheet are inspected (openpyxl read_only=True).
+    Every row's primary-key cell is checked (openpyxl read_only=True streams the rows, so
+    there is no row cap). ``_MAX_ROWS`` is kept only as a name for older callers.
     """
     try:
         import openpyxl
@@ -1163,6 +1205,15 @@ def validate_workbook_content(workbook_path: str | Path) -> dict:
 
     path = Path(workbook_path)
     sheet_results: dict[str, dict] = {}
+    if known_bgc_ids is None:
+        known_bgc_ids = _inventory_bgc_ids(path)
+    authority = "PACKAGE_INVENTORY" if known_bgc_ids else "FORMAT_ONLY"
+
+    def _is_real_bgc_id(value) -> bool:
+        text = str(value).strip()
+        if known_bgc_ids:
+            return text in known_bgc_ids
+        return bool(_BGC_ID_FORMAT.fullmatch(text))
 
     try:
         wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
@@ -1210,16 +1261,24 @@ def validate_workbook_content(workbook_path: str | Path) -> dict:
 
         real_rows = 0
         rows_checked = 0
+        unrecognized: list[str] = []
+        unrecognized_rows = 0
         for row in rows_iter:
-            if rows_checked >= _MAX_ROWS:
-                break
             rows_checked += 1
             pk_val = row[pk_idx] if pk_idx < len(row) else None
-            if not _is_pending(pk_val):
+            if _is_pending(pk_val):
+                continue
+            if _is_real_bgc_id(pk_val):
                 real_rows += 1
+            else:
+                unrecognized_rows += 1
+                if len(unrecognized) < 5:
+                    unrecognized.append(str(pk_val).strip()[:80])
 
         if rows_checked == 0:
             status = "FAIL_empty"
+        elif unrecognized_rows:
+            status = "FAIL_unrecognized_primary_key"
         elif real_rows == 0:
             status = "FAIL_all_pending"
         else:
@@ -1231,12 +1290,16 @@ def validate_workbook_content(workbook_path: str | Path) -> dict:
             "sheet": sheet_name,
             "rows_checked": rows_checked,
             "real_rows": real_rows,
+            "unrecognized_rows": unrecognized_rows,
+            "unrecognized_examples": unrecognized,
+            "legacy_alias": sheet_name != aliases[0][0],
         }
 
     wb.close()
 
     overall = "PASS" if all(v["status"] == "PASS" for v in sheet_results.values()) else "FAIL"
-    return {"status": overall, "sheets": sheet_results, "path": str(path)}
+    return {"status": overall, "sheets": sheet_results, "path": str(path),
+            "bgc_id_authority": authority}
 
 
 def _checksum_reciprocal_exempt(rel: str) -> bool:

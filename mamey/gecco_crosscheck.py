@@ -9,12 +9,24 @@ import shutil
 import subprocess
 import zipfile
 from pathlib import Path
-from Bio import SeqIO
 from .companion_evidence import (archive_member, contig_key, identity_text,
     publication, read_manifest, table, unique_contigs, write_json, write_table)
 from .postseal_output import package_binding, resolve_source_archive, sha256_file
 
 CLAIM = 'GECCO is a second opinion; a call is not cluster proof and a low score is not evidence against a cluster.'
+
+BIOPYTHON_MISSING = ('GECCO_BIOPYTHON_MISSING: this adapter reads the genome GenBank with Biopython '
+                     'in the Python environment that runs Mamey (not the GECCO environment); '
+                     'install the bio extra there, for example pip install "biopython>=1.83,<2.0"')
+
+
+def _seqio():
+    """Biopython's SeqIO from the invoking Mamey environment, or a typed refusal."""
+    try:
+        from Bio import SeqIO
+    except ImportError as exc:
+        raise ValueError(BIOPYTHON_MISSING) from exc
+    return SeqIO
 
 def _p(value):
     if value in ('', None, 'NA', 'nan'):
@@ -34,7 +46,7 @@ def _whole_genome(archive, explicit=None):
     if len(members) != 1:
         raise ValueError('GECCO_GENOME_MEMBER_AMBIGUOUS: select --genome-member')
     raw = archive_member(archive, members[0])
-    records = list(SeqIO.parse(io.StringIO(raw.decode()), 'genbank'))
+    records = list(_seqio().parse(io.StringIO(raw.decode()), 'genbank'))
     if not records:
         raise ValueError('GECCO_GENOME_EMPTY')
     if len({r.id for r in records}) != len(records):
@@ -91,6 +103,7 @@ def _validated_tables(rawdir, records, source_genes):
 def crosscheck(package, source_zip=None, out=None, threshold=0.8, jobs=1, genome_member=None, gap_genes=(), executable='gecco'):
     if not math.isfinite(threshold) or not 0 <= threshold <= 1 or not isinstance(jobs, int) or jobs < 1:
         raise ValueError('GECCO_PARAMETERS_INVALID')
+    _seqio()  # refuse before probing or running GECCO when Mamey's Python lacks Biopython
     binary = shutil.which(executable)
     if binary is None:
         raise ValueError('GECCO_NOT_INSTALLED: optional companion; bundle does not install it')

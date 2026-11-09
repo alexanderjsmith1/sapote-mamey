@@ -29,7 +29,7 @@ from urllib.parse import quote
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mamey.bigscape_namespace import (
     NamespaceError, build_family_identity, normalize_cutoff, normalize_run_id,
-    parse_family_identity, public_error, strain_from_gbk_name,
+    open_database_read_only, parse_family_identity, public_error, strain_from_gbk_name,
 )
 
 LOCNODE = re.compile(r"_(NODE_\d+)_")
@@ -115,7 +115,10 @@ def main():
     ap.add_argument("--out-dir", default=None, help="write per-family domain TSVs + .newick here")
     a = ap.parse_args()
 
-    c = sqlite3.connect(a.db)
+    try:
+        c = open_database_read_only(a.db)
+    except FileNotFoundError as error:
+        sys.exit(f"ERROR: {error}")
     selected = list(families(c, a.run_id, a.cutoff, a.novel_only, a.qualified_family))
     if a.out_dir:
         os.makedirs(a.out_dir, exist_ok=True)

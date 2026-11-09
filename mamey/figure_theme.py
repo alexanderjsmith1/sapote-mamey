@@ -181,8 +181,9 @@ def save_figure_pair(fig: Any, stem: str | Path, *, profile: str = "screen") -> 
     spec = PROFILES[profile]
     stem = Path(stem)
     stem.parent.mkdir(parents=True, exist_ok=True)
-    png = stem.with_suffix(".png")
-    svg = stem.with_suffix(".svg")
+    # The caller provides a complete output stem, which may contain dots.
+    png = stem.parent / f"{stem.name}.png"
+    svg = stem.parent / f"{stem.name}.svg"
     fig.savefig(png, dpi=_safe_dpi(fig, spec.dpi), bbox_inches="tight",
                 metadata={"Software": "Sapote-Mamey governed figure theme"})
     # Matplotlib otherwise seeds SVG element IDs from process entropy.  Scope the

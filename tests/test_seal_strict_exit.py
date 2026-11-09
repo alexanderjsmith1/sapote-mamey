@@ -99,8 +99,8 @@ def test_malformed_card_fails_row_not_whole_seal(pkg, monkeypatch):
         ["2", "BGC002", "NODE_10", "NODE_10", "region002", "RiPP", ""],
     ])
     init_register(pkg, "AS-TEST", ["BGC001", "BGC002"])
-    record_mode_b(pkg, "BGC001", "## BGC001 (NODE_10 · region001)\n§1 EXPLODE content.")
-    record_mode_b(pkg, "BGC002", "## BGC002 (NODE_10 · region002)\n§1 clean content.")
+    record_mode_b(pkg, "BGC001", "## BGC001 (NODE_10 · region001)\n§1 EXPLODE content.", identity_checked_by_caller=True)
+    record_mode_b(pkg, "BGC002", "## BGC002 (NODE_10 · region002)\n§1 clean content.", identity_checked_by_caller=True)
 
     real_lint = claim_safety_linter.lint_claim_safety
 

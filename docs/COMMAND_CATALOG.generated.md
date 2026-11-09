@@ -8,7 +8,7 @@ python mamey_run.py run --help
 
 Replace `run` with another command name below. For a complete first run, use [Your first run](reader/01_FIRST_RUN.md). For a result to create, use [Choose an output](DELIVERABLE_MENU.md).
 
-Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.463, engine 1.9.179. Descriptions below come from the parser; aliases share their command's row.
+Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.464, engine 1.9.180. Descriptions below come from the parser; aliases share their command's row.
 
 ## Run and seal a strain
 
@@ -58,7 +58,7 @@ _Templates and checks for written interpretations._
 
 | command | what it does |
 |---|---|
-| `mode-b` | Emit a Mode B top-lead triage table and card scaffolds from a sealed package. NOT a finished 48-section Mode B card: finished cards are authored per wiki/Mode-B-Gene-First-and-48-Section-Manual.md and verified with `verify-modeb` (v9.7.405 wording). |
+| `mode-b` | Emit a Mode B top-lead triage table and card scaffolds from a sealed package. NOT a finished 48-section Mode B card: finished cards are authored per wiki/Mode-B-Gene-First-and-48-Section-Manual.md and verified with `verify-modeb`. |
 | `modeb-compile` | per-strain Mode B compilation (report+cards+majority-read overlay+figures) |
 | `modeb-export` | Export an authored Mode B card .md (or a mode_b/ dir) to .docx + .pdf |
 | `modeb-round` | Emit + scaffold-verify a round of N triage Mode B cards, write a stateful worklist (authoring is the Sapote step) |
@@ -73,7 +73,7 @@ _Templates and checks for written interpretations._
 | `surface-leads` | surface PROMISCUOUS_ONLY + coherent-LOW_ID review groups |
 | `layperson` | Render a claim-safe plain-language guide from one sealed package (post-seal) |
 | `emit-modeb-cards` | compact auto-filled per-BGC Mode-B data cards for a sealed package (composition, RG-GMCI banner, priors, architecture counts); non-blocking |
-| `emit-modeb-template` | Emit a canonical §1–§48 Mode B card template for one BGC or a batch (W9, v9.7.150+) |
+| `emit-modeb-template` | Emit a canonical §1–§48 Mode B card template for one BGC or a batch |
 | `emit-strain-modeb` | emit the strain-level Mode B (Full Strain Sapote, S1–S8) deterministic skeleton from a sealed package; non-blocking, structure-gated |
 | `modeb-availability` | Inventory and bind Mode B evidence streams before any card prose is authored |
 | `modeb-blastp` | Emit per-BGC BLASTP FASTA batches from the panel manifest (Mode B §16 automation) |
@@ -92,7 +92,7 @@ _Optional deeper evidence; every channel stays a separate lane._
 | `tool-database-inspect` | Inspect one explicit manifest-bound tool database read-only; no scientific admission |
 | `ingest-blastp` | Ingest an NCBI BLASTp HitTable CSV (+ optional Alignment XML) into a master workbook's B5_BLASTp_Hits sheet |
 | `ingest-blastp-trove` | Ingest a pre-organized per-BGC BLASTp trove into the package overlay (no workbook). |
-| `blastp-status` | Report per-BGC BLASTp overlay coverage (channels/genes) or flag ClusterBlast fallback. |
+| `blastp-status` | Report per-BGC BLASTp overlay coverage (channels/genes); a BGC without an overlay is reported as not assessed. |
 | `blastp-online` | Per-gene NCBI web BLASTp for a BGC (independent homology channel; fail-closed) |
 | `blastp-ebi` | EBI fallback BLASTp transport (no nr; DB-tagged provenance; coverage-preserving XML path) |
 | `blastp-round` | Plan/run a phased strain BLASTp round (full top-N + 1 per remaining BGC) |
@@ -125,7 +125,7 @@ _Aggregation across sealed packages._
 | `cohort-precompute` | Consolidate per-strain precompute sources into the 7 cohort tables (+ VERSION.json/MANIFEST.csv) |
 | `majority-read` | whole-BGC MIBiG majority read (minority/promiscuous-anchor flags) |
 | `novelty-shortlist` | composite multi-signal novelty shortlist (KCB-dark + low recognizability + RG-GMCI + cohort-unique domain); advisory |
-| `realistic-count` | corrected-denominator BGC count (marginal-drop + HIGH RG-GMCI merge); advisory |
+| `realistic-count` | heuristic merged-region count: regions left after an annotation-role drop, with regions joined by HIGH RG-GMCI candidate links counted once; the links are not physical joins, so this is not a validated count of loci; advisory |
 | `af-leadboard` | Emit the cohort ANTIFUNGAL (AF) capacity lead-board dashboard from the per-BGC master CSV + codex-judged cards |
 | `af-dossier` | Antifungal (AF) Lead Dossier: AF lead board x measured Candida activity (report-only) |
 | `genus-appendix` (alias: `af-ab-appendix`) | Antifungal/antibacterial candidate appendices, grouped by genus (report-only) |

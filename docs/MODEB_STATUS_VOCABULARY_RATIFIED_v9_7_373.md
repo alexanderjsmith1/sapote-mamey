@@ -1,15 +1,18 @@
 # Mode B status vocabulary: ratified mapping and current gate limits
 
-This page preserves the status mapping recorded for the .373 patch queue on 21 August 2026
-(`RATIFIED_STATUS_VOCABULARY_2026-08-21.md`). The retained record reports ratification of that mapping;
-this page does not create a new approval. For a new card, choose the current [profile](MODEB_PROFILE_MATRIX.md),
+This page keeps the ratified mapping between the Mode B status words, from the retained record
+`RATIFIED_STATUS_VOCABULARY_2026-08-21.md`. It does not create a new approval. One term differs from
+that record: the record names the fifth rung of the document ladder after the project owner
+(`<OWNER>_ACCEPTED`), and this page and the [protocol](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md#4-status-vocabulary)
+use the role name `MAINTAINER_ACCEPTED` for the same rung. This page does not cite a separate
+decision to rename it. For a new card, choose the current [profile](MODEB_PROFILE_MATRIX.md),
 then use the mapping below to keep document progress separate from evidence holds. The
 [current implementation boundary](#current-implementation-boundary-mapping-retained) explains what the verifier checks.
 
 ## The problem it closes
 Three status vocabularies were in use at once:
 1. **Legacy** — `FINISHED_CURRENT_EVIDENCE`, the literal trigger token of the .372 matrix gate.
-2. **Protocol §4 ladder** — the 8-state dual-writer/dual-auditor document ladder (ships in .372).
+2. **Protocol §4 ladder** — the 8-state document ladder in [§4 of the dual writer/auditor protocol](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md#4-status-vocabulary).
 3. **Full48 spec** — `document_state` (SCAFFOLD | CANDIDATE | FINISHED_CURRENT_EVIDENCE) plus an
    `evidence_state` typed-holds axis, and the strict profile name `FINISHED_FULL48_CURRENT_EVIDENCE`.
 
@@ -18,8 +21,8 @@ Three status vocabularies were in use at once:
 | Concept | Canonical term | Carries | Notes |
 |---|---|---|---|
 | **Strict finished profile** | `FINISHED_FULL48_CURRENT_EVIDENCE` | the gate trigger | the spec's name becomes the one finished-profile trigger |
-| **Document ladder** (one axis) | the protocol §4 **8-state ladder** | `document_state` field | `SOURCE_INVENTORY_ONLY → DRAFT_NOT_RECONCILED → EVIDENCE_RECONCILED_CANDIDATE → INDEPENDENT_CONTENT_QA_PASSED_CANDIDATE → MAINTAINER_ACCEPTED → …`; bans `finished`-as-adjective states |
-| **Evidence holds** (second axis) | `evidence_state` typed list | per-gene / per-stream | the spec's second axis; maps to the retention-ledger dispositions incl. the .373 `OBSERVED_UNBOUND` / `QUARANTINED` states from the sequence-first patch |
+| **Document ladder** (one axis) | the protocol §4 **8-state ladder** | `document_state` field | `SOURCE_INVENTORY_ONLY → DRAFT_NOT_RECONCILED → EVIDENCE_RECONCILED_CANDIDATE → INDEPENDENT_CONTENT_QA_PASSED_CANDIDATE → MAINTAINER_ACCEPTED → INTEGRATION_APPROVED → RELEASE_APPROVED → PUBLICATION_APPROVED`; bans `finished`-as-adjective states |
+| **Evidence holds** (second axis) | `evidence_state` typed list | per-gene / per-stream | the spec's second axis; maps to the retention-ledger dispositions, including the `OBSERVED_UNBOUND` and `QUARANTINED` states |
 | **Legacy token** | `FINISHED_CURRENT_EVIDENCE` | grandfathered **alias** → `FINISHED_FULL48_CURRENT_EVIDENCE` trigger | resolves the .372 trigger-token conflict in the same stroke; existing cards using it keep validating |
 | **Mechanical gate ceiling** | `EVIDENCE_MATRIX_VALIDATED` | deterministic states only | unchanged from .372; `RELEASE_READY` stays retired; no mechanical state ever says RELEASE/PUBLICATION |
 
@@ -30,10 +33,9 @@ orthogonal: a `FINISHED_FULL48_CURRENT_EVIDENCE` card can still carry `OBSERVED_
 rows — finished means *the reconciliation and contract are complete for the current evidence*, not
 that every channel is bound.
 
-## How the .373 sequence-first patch slots in
-The admitted Codex sequence-first patch introduces `OBSERVED_UNBOUND` / `QUARANTINED` / admitted as
-**evidence_state** values (not document_state). They are the typed holds for a BLASTp row that has a
-result but not a bound (query-hash + exact-locus + channel + receipt) join. This ratification places
+## Where the sequence-first states go
+`OBSERVED_UNBOUND`, `QUARANTINED` and admitted are **evidence_state** values (not document_state). They are the typed holds for a BLASTp row that has a
+result but not a bound (query-hash + exact-locus + channel + receipt) join. The mapping places
 them on the evidence axis, so they never collide with the document ladder.
 
 *Claim-safety: authoring-status vocabulary only; no science claims; judgment deferred. The project owner ratified this mapping.*

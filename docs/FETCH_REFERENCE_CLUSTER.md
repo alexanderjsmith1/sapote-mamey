@@ -1,100 +1,82 @@
-# fetch_reference_cluster — reference/cohort cluster GBKs, as a shared step
+# fetch_reference_cluster: reference and cohort cluster GenBank files
 
-Writes a MIBiG reference, a cohort cluster or an NCBI record as a GenBank file, so `clinker`, `cluster_gene_compare`,
-`bgc_reference_align` and `extract_cluster` can compare it. What it adds:
+`tools/fetch_reference_cluster.py` writes a reference cluster as a GenBank (`.gbk`) file. The reference can be a MIBiG cluster or a cohort cluster from a BiG-SCAPE database, or a record from NCBI. You then give the file to the comparison tools: `clinker` (draws gene-by-gene alignments, see [companion tools](companion_tools.md)), [cluster_gene_compare](CLUSTER_GENE_COMPARE.md), `tools/bgc_reference_align.py` and [extract_cluster](EXTRACT_CLUSTER.md).
 
-- **Annotated output.** For a CDS with stored Pfam hits (`hsp`), the DB route uses the
-  highest-bitscore hit for a `/gene` display label: a known short name or the accession.
-  CDS without a stored hit retain their rebuilt locus tag and receive no inferred `/gene`
-  label. Pfam-derived display labels can feed clinker and cluster_gene_compare; they do
-  not establish gene function or mean every CDS was domain-annotated.
+## Which route you can use
 
-## Usage
+- `--ncbi` needs only a network connection. **It contacts NCBI at once.** It is not a dry run. Use it only when you have decided to make that request.
+- `--acc` needs a BiG-SCAPE database (`--db`) that a BiG-SCAPE run wrote and that already holds the MIBiG and cohort clusters. Without such a run you cannot use `--acc`. See the [BiG-SCAPE cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Selecting from the database needs no network.
+- Both routes need Biopython installed.
 
-    # --acc <text>:<label>   a MIBiG or cohort cluster from the DB (repeatable)
-    # --ncbi <acc>:<label>   an NCBI nucleotide record (repeatable)
-    python tools/fetch_reference_cluster.py \
-        --db anchored.db \
-        --acc BGC0000877:polyoxin \
-        --acc AS-XXX_NODE_42_length_51234_cov_12.3.region001:AS-XXX_BGC043 \
-        --ncbi MF055656.1:nikkomycin \
-        --outdir refs/
+## Run it
 
-Writes `refs/<label>.gbk` per reference. Each `--acc` text must select **exactly one** record in the
-DB's `gbk.path`. MIBiG selectors require all seven digits; NCBI-shaped selectors require an explicit version and exact accession-token boundaries. A bare package BGC alias is not a reference accession. Other selectors use literal path-substring matching (SQL wildcards are escaped), which binds the chosen source path but does not independently establish accession or complete locus identity. No match stops with "not
-found". More than one match stops with the list of matching paths: give a longer substring, such as the
-full region file name. The selected path is printed on stderr and preserved in
-`refs/<label>.reference_selection.json`. Each receipt contains the requested selector, resolved DB
-path and SHA256, selected `gbk` row ID and original source path, CDS count, and output GBK path
-and SHA256. If a SQLite WAL exists, its path and SHA256 are included too. For NCBI inputs, the
-receipt records the request URL, returned record IDs and response SHA256 instead of a DB binding.
-Keep the receipt alongside the GBK; it records source selection and output bytes, without upgrading
-similarity into a compound or activity claim. A strain/contig fragment without the region can match several
-regions on the same contig; that is now refused rather than resolved to the first row.
+```bash
+python tools/fetch_reference_cluster.py \
+    --db anchored.db \
+    --acc BGC0000877:polyoxin \
+    --acc EXAMPLE_NODE_42_length_51234_cov_12.3.region001:EXAMPLE_BGC043 \
+    --ncbi MF055656.1:nikkomycin \
+    --outdir refs/
+```
 
-All requested references are resolved and the complete output/receipt set is staged before
-publication. Missing, ambiguous, or empty selections fail visibly with a nonzero exit. Labels must
-be unique, nonempty filename basenames; path separators and traversal names are refused.
-Existing output destinations are refused rather than overwritten. Use a fresh output directory
-for a new selection or rerun, and retain earlier GBK/receipt pairs as history.
+- `--acc <text>:<label>` selects a MIBiG or cohort cluster from the database. Repeat it for more.
+- `--ncbi <accession>:<label>` fetches an NCBI nucleotide record. Repeat it for more.
+- Use a new `--outdir` folder. The check is per destination: an existing folder is accepted, but any output file that already exists there (`<label>.gbk` or `<label>.reference_selection.json`) is refused, and nothing is written.
+- Each `<label>` must be unique and a plain file name, with no path separators.
 
-The query and every local or fetched GenBank reference must contain exactly one record; multiple
-records are refused rather than concatenated or silently truncated. All final paths are checked
-for containment within the resolved output directory. Ordinary publication errors roll back newly
-published files. This is not a concurrent atomic multi-file transaction or crash-recovery mechanism:
-keep sources stable, avoid concurrent output writers, and inspect an interrupted output directory
-before treating any set as complete.
+What you should see: for each reference, the selected path on stderr and these files in `refs/`:
 
-`bgc_reference_align` applies the same DB selection rule. Every requested DB, NCBI, or local GBK
-reference must contain translated CDS; a missing or empty member stops the comparison before its
-figure or CSV is written. A successful comparison also writes
-`<strain>_<bgc>_reference_selection.json` (or `<bgc>_reference_selection.json` without `--strain`),
-which binds the query GBK, each source selection, the global-identity threshold, and both output
-files to their SHA256 values. Local GBK references are bound to their resolved paths and bytes.
-Use a stable source DB during the run and retain any WAL with the DB when reproducing its state.
+```text
+refs/polyoxin.gbk
+refs/polyoxin.reference_selection.json
+refs/EXAMPLE_BGC043.gbk
+refs/EXAMPLE_BGC043.reference_selection.json
+refs/nikkomycin.gbk
+refs/nikkomycin.reference_selection.json
+```
 
-## Reconstruction and network boundaries
+Failure is a non-zero exit. A selection that is missing, ambiguous or empty fails visibly. The tool builds and checks the whole set before it publishes anything. If an ordinary publishing error occurs, it rolls back the files it wrote. It is not a crash-safe transaction. After an interrupted run, inspect the folder and use a new `--outdir`.
 
-The exported GBK is a derived protein/feature comparison transport: its nucleotide
-sequence is synthetic `N` characters, and its locus tags are rebuilt labels. Even
-an NCBI selection is reduced to translated CDS features before reconstruction.
-Do not use this derived GBK as a deposited nucleotide sequence, genuine CDS-DNA
-export, assembly or nucleotide alignment input. Preserve the original reference
-record/source separately when those bytes are needed. Pfam-derived gene labels
-are display annotations, not validated gene function.
+## How `--acc` picks a record
 
-`--ncbi` performs live remote retrieval immediately; it is not a planning flag or
-cache-only path. It requires a complete versioned nucleotide accession, exactly
-one returned record with matching ID and translated CDS. Use only when the user's
-selected task already authorizes that retrieval. Local DB selection needs no
-network. Both output reconstruction paths require Biopython for feature/record
-creation; the read shim alone cannot supply this writer. Before publication, the
-staged GBK must round-trip as one record with the same translated-CDS strings
-(whitespace normalized), and those strings must use the downstream BLOSUM62 matrix
-alphabet. A missing translation or unsupported symbol refuses the reconstruction;
-the writer does not drop or rewrite that CDS merely to make the comparison fit.
+Each `--acc` text must select exactly one record by its stored GenBank path.
 
-The demonstrated source-path substring and friendly output label are lookup/display
-values. For any project BGC used in interpretation, separately bind
-`strain / full node-or-contig / region / BGC alias` from its authoritative package;
-do not promote a nickname into a full locus identity.
+- A MIBiG selector needs all seven digits (`BGC0000877`).
+- An NCBI-shaped selector needs an explicit version.
+- A bare package BGC alias is not an accession.
+- Any other text matches as a literal piece of the path. This binds the chosen path. It does not prove the accession or the full locus identity.
+- No match stops with "not found".
+- More than one match stops and lists the paths. Give a longer piece, such as the full region file name.
+- A contig name with no region is matched like any other text. If it selects exactly one stored path, that path is used; if it matches several regions on the same contig, it is refused as ambiguous. Check the chosen path in the receipt against the complete locus identity `strain / full node-or-contig / region / BGC alias` before you use the file.
 
-## Why this closes a loop
+## The receipt
 
-    fetch_reference_cluster   accession -> annotated reference/cohort GBK   <-- this tool
-    extract_cluster           raw genome -> annotated cluster GBK
-    cluster_gene_compare      GBKs -> gene-by-gene deliverable
+`refs/<label>.reference_selection.json` records the requested selector, the database path and SHA-256, the chosen row and its original source path, the CDS count, `retained_cds_scope`, and the output file path and SHA-256. If a SQLite write-ahead file exists, its path and hash are included. For `--ncbi`, the receipt records the request URL, the returned record IDs and the response hash instead, plus `source_cds_feature_count` and `untranslated_cds_dropped`. Both routes record `cluster_completeness_state` and `characterization_state` as `NOT_ASSESSED`. Keep it beside the `.gbk`.
 
-Between these two ingress tools, every kind of cluster — your strains (antiSMASH), external
-genomes (extract_cluster), and characterized/cohort references (fetch_reference_cluster) — becomes
-a comparable GBK without hand-reconstruction.
+`--ncbi` needs a complete versioned nucleotide accession. It must return exactly one record with a matching ID and translated CDS.
 
-## Historical reconstruction example
+## What the output file is
 
-The retained example below is not a new validation of the current archive. Recover
-the original database/code versions, input/output hashes and run receipt before
-reusing its counts or treating it as current reference-admission evidence.
+The `.gbk` is a comparison file built from protein features, not a deposited record.
 
-Reconstructed polyoxin (BGC0000877) from the real anchored DB: 39 CDS, 35 annotated
-(FMO_monooxygenase, carbamoyltransferase, MFS_transporter, ...). Capacity/architecture-level:
-a reconstructed reference is the characterized cluster's genes; comparison to it is homology.
+- Its nucleotide sequence is a run of `N`. Its locus tags are rebuilt labels. Even an NCBI record is reduced to translated CDS features.
+- Do not use it as a nucleotide sequence, a CDS-DNA export, an assembly or an input to a nucleotide alignment. Keep the original record when you need those bytes.
+- A CDS with a stored Pfam hit gets a `/gene` display label from its best-scoring hit. A CDS without one keeps its rebuilt locus tag. These labels feed `clinker` and `cluster_gene_compare`. They are not gene function, and they do not mean every CDS was annotated.
+- The tool checks that the file reads back as one record with the same translations, and that they use only letters the downstream BLOSUM62 matrix accepts. Otherwise it refuses.
+- Every query and reference GenBank must hold exactly one record.
+
+`tools/bgc_reference_align.py` applies the same database selection rule. A reference with no translated CDS stops the comparison before it writes a figure or CSV. A successful run also writes `<strain>_<bgc>_reference_selection.json`, or `<bgc>_reference_selection.json` without `--strain`. It binds the query, each reference, the identity threshold and both outputs to their SHA-256 values. Keep the database, and its write-ahead file, stable during the run.
+
+## Labels are not locus identities
+
+The path piece and the output label are lookup and display names. For any BGC of yours that you interpret, take `strain / full node-or-contig / region / BGC alias` from its package. Do not turn a nickname into a locus identity.
+
+## Where this fits
+
+```text
+fetch_reference_cluster   accession -> annotated reference or cohort GBK
+extract_cluster           raw genome  -> annotated cluster GBK
+cluster_gene_compare      GBKs        -> gene-by-gene comparison
+```
+
+Your own strains come from antiSMASH, external genomes from `extract_cluster`, and references from this tool. All three end up as comparable GenBank files. A reconstructed reference holds only the CDS its source retained: the CDS rows stored in the database record (`CDS_ROWS_PRESENT_IN_SELECTED_DATABASE_RECORD`), or the translated CDS of the NCBI record (`TRANSLATED_CDS_FEATURES_OF_FETCHED_RECORD`). The tool does not check that every gene of a cluster was kept, and a cohort or NCBI record need not be a characterized cluster. Completeness, record identity and characterization are separate questions. Comparison to the file is homology, not product identity.

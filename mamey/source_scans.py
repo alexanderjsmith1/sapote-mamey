@@ -713,7 +713,7 @@ def apply_cctt_vetoes(cctt: dict, bgcs: list, cds_list: list, *, _record_key=Non
 def couple_kcb_ptm(bgcs: list[BGCRecord], cctt: dict, flbr: dict, *, _record_key=None) -> dict:
     """v9.7.19 §4-sibling for the HSAF/PTM antifungal class. The CDS-only T43-PTM scan misses
     KCB-identified HSAF/PTM clusters because the identity lives in the knownclusterblast neighbourhood,
-    not the product label (e.g. AS-XXX BGC020: a generic `NRPS,T1PKS` label but a KCB neighbourhood naming
+    not the product label (e.g. ABC-12 BGC020: a generic `NRPS,T1PKS` label but a KCB neighbourhood naming
     heat-stable-antifungal-factor / maltophilin / xanthobaccin, single hybrid-KS architecture). Per BGC,
     also test the KCB anchor (kcb_top + mibig_hits + closest_candidate_kcb_product) — Route A — and a LONE
     hybrid-KS megasynthase architecture carrying a tetramate/macrolactam signal — Route B, KCB-name-
@@ -1667,7 +1667,9 @@ def scan_primary_metabolism(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -
 
 
 # Gene-filter mis-anchor guards (v9.7.15). KCB = similarity, not identity: a product-name anchor that lacks
-# the class's committed diagnostic gene/architecture is a spurious hit for THIS locus.
+# the class's committed diagnostic gene/architecture in the supplied annotation is not credited for THIS
+# locus. This is a routing guard on the annotation as given; a missing gene can also reflect an incomplete
+# assembly or annotation, so the guard does not show the reference hit is biologically wrong.
 _AMINOGLYCOSIDE_ANCHOR = re.compile(
     r"(?:gentamicin|gentamycin|kanamycin|neomycin|tobramycin|butirosin|ribostamycin|paromomycin|sisomicin|"
     r"fortimicin|apramycin|kasugamycin|hygromycin|spectinomycin|streptomycin|aminoglycoside|"
@@ -1781,7 +1783,8 @@ def _check_kcb_class_compat(kcb_top: str, own_products: list[str]) -> tuple[bool
     """Return (mismatch_flag, reason_string) for a KCB anchor vs own product class.
 
     Returns (True, reason) when the KCB compound family is chemically incompatible with
-    the BGC's own antiSMASH product class — i.e. the anchor is a spurious similarity hit.
+    the BGC's own antiSMASH product class, so the anchor is not credited (a routing decision on the
+    supplied labels, not proof the similarity hit is biologically wrong).
     Returns (False, "") when compatible or when no rule fires.
 
     This is a conservative, compound-specific check. It fires only on known-bad compound
@@ -1811,8 +1814,9 @@ def scan_misanchor_guards(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> 
         enediyne compound -> spurious enediyne call)
     The anchor is the KCB product-similarity hit (kcb_top / closest_candidate_kcb_product), NOT the locus's own
     antiSMASH product class — so an `arylpolyene` class does not read as a polyene-macrolide anchor. A mis-anchor
-    means the KCB product name is spurious for this locus; the scorer suppresses the anchor-derived AB/AF/novelty
-    credit unless a Tier-1 diagnostic independently fires."""
+    means the KCB product name is not credited for this locus; the scorer suppresses the anchor-derived AB/AF/novelty
+    credit unless a Tier-1 diagnostic independently fires. The guard reads the supplied annotation only: an
+    absent gene can also reflect an incomplete assembly or annotation, so the interpretation stays open."""
     by_contig: dict[str, list[CDSFeature]] = {}
     for c in cds_list:
         by_contig.setdefault(c.contig, []).append(c)
@@ -1880,8 +1884,11 @@ def scan_misanchor_guards(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> 
                              "enediyne call requires a named enediyne natural product on a real enediyne PKS "
                              "([E-signal]) and is treated as a PREV-001 (hglE-KS/hexacosalactone glycolipid) "
                              "artifact when only a generic enediyne signal co-occurs with the hglE signature. "
-                             "Absent the diagnostic the anchor is spurious for this locus and its AB/AF/novelty "
-                             "credit is suppressed unless a Tier-1 diagnostic independently fires.")}
+                             "Absent the diagnostic in the supplied annotation, the anchor is not credited for this "
+                             "locus and its AB/AF/novelty credit is suppressed unless a Tier-1 diagnostic "
+                             "independently fires. This is a routing guard: a missing gene can also reflect an "
+                             "incomplete assembly or annotation, so it does not show the reference hit is wrong "
+                             "or rule out the class.")}
 
 
 def _native_bgc_profiles(bgcs, cds_list, domain_architecture, blda, cctt, flbr,
@@ -1920,7 +1927,26 @@ def _native_bgc_profiles(bgcs, cds_list, domain_architecture, blda, cctt, flbr,
     return {"schema_version": "native_bgc_profiles_v1", "records": records}
 
 
-def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs: dict[str, str], domains: list[DomainFeature] | None = None, organism: str = "") -> SourceScanBundle:
+_UNBOUND_COUNT_SCOPE = {
+    "state": "NOT_BOUND",
+    "note": "counts cover the CDS records supplied to this scan; the caller did not bind whether "
+            "they are whole-record GenBank or antiSMASH region records only",
+}
+
+
+def _count_scope(record_scope: dict[str, str] | None) -> dict[str, str]:
+    """Record set behind the FLBR KS counts and UMED hits.
+
+    The ``genome_wide_*`` key names are kept for compatibility. They are genome-wide only when
+    the state is WHOLE_RECORD_GENBANK; a region-only archive gives region-scoped counts.
+    """
+    if not record_scope:
+        return dict(_UNBOUND_COUNT_SCOPE)
+    return {"state": str(record_scope.get("state") or "NOT_BOUND"),
+            "note": str(record_scope.get("note") or _UNBOUND_COUNT_SCOPE["note"])}
+
+
+def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs: dict[str, str], domains: list[DomainFeature] | None = None, organism: str = "", record_scope: dict[str, str] | None = None) -> SourceScanBundle:
     from .class_architecture import annotate_architecture
     annotate_architecture(bgcs, cds_list, domains or [])  # v9.7.21: per-BGC class-capacity call onto each record
     chitin = _scan_patterns(cds_list, CHITINASE_PATTERNS); chitin["bgc_coupling"] = bgc_coupling(bgcs, chitin)
@@ -1932,6 +1958,7 @@ def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs:
     tfbs = scan_tfbs(contigs, cds_list)
     blda = scan_blda_tta(cds_list, bgcs, organism=organism)
     flbr = scan_flbr(cds_list, bgcs)
+    flbr["count_scope"] = _count_scope(record_scope)
     cctt = couple_kcb_ptm(bgcs, cctt, flbr)          # v9.7.19: KCB-aware HSAF/PTM coupling (Route A/B)
     # v9.7.19 — bridge per_bgc: the scorer's diagnostic-marker layer reads cctt["per_bgc"], but the CCTT
     # scan only ever set cctt["bgc_coupling"], so the AF/AB diagnostic bonus (T43-NUC etc.) was DEAD in
@@ -1957,6 +1984,7 @@ def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs:
     cctt["context_uncorroborated_by_bgc"] = _ubb
     cassettes = scan_cassettes(cds_list, bgcs)
     umed = scan_umed(cds_list, bgcs)
+    umed["count_scope"] = _count_scope(record_scope)
     efls = scan_efls(bgcs, cassettes, cctt, flbr)
     domain_architecture = scan_domain_architecture(bgcs, domains or [])
     resistance_tiers = resistance_tier_classification(bgcs, res, trans, cds_list=cds_list)

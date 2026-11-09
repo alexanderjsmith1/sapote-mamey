@@ -21,7 +21,7 @@ The 30-protein mixes and top-10 setting below are for manual NCBI web searches. 
 - `bgc-blastp-panel`: 20 proteins per file, a 30-protein first pass and 2 genes per BGC.
 - `blastp-online`: 10 proteins per submission (hard cap 30), 3 hits per query; databases `nr`, `refseq_protein` or `swissprot`.
 - `modeb-blastp`: 3 proteins per file.
-- ClusteredNR has its own workflow.
+- ClusteredNR has its own workflow: `auto-blastp --channel clustered_nr` (see [the BLASTp protocol](../ONLINE_BLASTP_PROTOCOL.md#search-many-clusters-slowly-auto-blastp)). `blastp-online` has no ClusteredNR option.
 
 Record the database, counts and hit settings you actually used.
 
@@ -53,13 +53,13 @@ Approximate total: 30 proteins.
 Use NCBI web BLASTP with:
 
 - Program: BLASTP
-- Database: nr or clustered nr
+- Database: nr for `blastp-online`; clustered nr only through `auto-blastp --channel clustered_nr`
 - Max target sequences: 10
 
 Download:
 
 1. Hit Table CSV
-2. Single-file XML2 only when needed for proof-grade details
+2. Single-file XML2 when you need alignment detail such as coverage and hit titles. It is supplemental evidence: a malformed or error XML2 can parse to nothing, and queries are matched by label or a BGC/gene fallback. Bind the raw results, the original query and the full locus identity separately.
 
 ## Failure recovery
 
@@ -122,7 +122,9 @@ Use the exact strain's approved disclosure scope and applicable private guards r
 
 Do not claim compound identity from BLASTP alone.
 
-## Bug-hunt checks
+## Maintainer checks
+
+These checks are for people changing the panel exporter, not for running this SOP.
 
 1. FASTA export should support ~30-protein batches.
 2. FASTA export should support fallback 10–15 protein batches.

@@ -140,7 +140,7 @@ def test_non_reclassification_action_cannot_smuggle_proposed_class(tmp_path):
 def test_personal_source_path_is_refused(tmp_path):
     source, receipt_path = decision(
         tmp_path,
-        source_summary_locator="/Users/example/private/summary.tsv",
+        source_summary_locator="/Us" "ers/example/private/summary.tsv",
     )
     with pytest.raises(OverlayHold, match="not portable"):
         build_summary_overlay(source, receipt_path)

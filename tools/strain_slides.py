@@ -57,6 +57,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _console import emit  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from mamey.missing_values import optional_float  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 TAG_DEFAULT = "v2"
@@ -97,6 +99,35 @@ def rows(path, delim="\t"):
         return [{k: (v or "").strip() for k, v in r.items() if k} for r in csv.DictReader(fh, delimiter=delim)]
 
 
+class SourceIdentityError(ValueError):
+    """An input repeats a key the deck joins on, so the join would silently pick one row."""
+
+
+def keyed(records, key, what):
+    """Index rows by `key`; a repeated key is a refusal, never a silent overwrite."""
+    out = {}
+    for r in records:
+        k = r.get(key, "")
+        if k in out:
+            raise SourceIdentityError(f"{what} repeats {key} {k!r}; fix the input before building a deck")
+        out[k] = r
+    return out
+
+
+def identity_text(hit):
+    """Percent identity of a stored hit, or an explicit label when the CSV gives none. Never 0%."""
+    value = optional_float(hit.get("pid"))
+    return "identity not recorded" if value is None else f"{value:.0f}%"
+
+
+def blastp_cell(hit):
+    if not hit:
+        return ""
+    if hit.get("conflict"):
+        return "conflicting stored hits"
+    return f"{hit['org'] or hit['acc']} {identity_text(hit)}"
+
+
 def node_key(contig):
     """`NODE_n_length_L`: GECCO and some tools rewrite the coverage part of a SPAdes contig name."""
     return contig.split("_cov")[0]
@@ -116,7 +147,7 @@ def load(src):
     pkg = Path(src["package"])
     D = {"strain": strain, "pkg": pkg, "src": src}
     D["manifest"] = json.load(open(pkg / "manifest.json")) if (pkg / "manifest.json").exists() else {}
-    D["inv"] = {r["BGC_ID"]: r for r in rows(pkg / f"{strain}_2_inventory.csv", ",")}
+    D["inv"] = keyed(rows(pkg / f"{strain}_2_inventory.csv", ","), "BGC_ID", f"{strain}_2_inventory.csv")
     D["genes"] = defaultdict(list)
     for r in rows(pkg / f"{strain}_gene_by_gene_all_bgcs.csv", ","):
         D["genes"][r["bgc_id"]].append(r)
@@ -135,7 +166,8 @@ def load(src):
             D["dom"][r["locus_tag"]].append((ev, r.get("domain", ""), r.get("description", ""), r.get("feature_type", "")))
         for k in D["dom"]:
             D["dom"][k].sort()
-    D["cds"] = {r["locus_tag"]: r for r in rows(opt("cds_table.csv"), ",")} if opt("cds_table.csv").exists() else {}
+    D["cds"] = keyed(rows(opt("cds_table.csv"), ","), "locus_tag", opt("cds_table.csv").name) \
+        if opt("cds_table.csv").exists() else {}
     D["polymer"] = defaultdict(list)
     if opt("predicted_polymers.csv").exists():
         for r in rows(opt("predicted_polymers.csv"), ","):
@@ -224,7 +256,11 @@ def gecco_overlaps(D):
 
 
 def blastp_hits(globs):
-    """Rank-1 hits per gene from stored BLASTp CSVs (columns gene, hit_rank, subject_acc, subject_organism, pct_identity)."""
+    """Rank-1 hits per gene from stored BLASTp CSVs (columns gene, hit_rank, subject_acc, subject_organism, pct_identity).
+
+    The CSVs carry only a locus tag, so the join is by locus tag alone. When two rank-1 rows for one gene name
+    different subject accessions, the gene is marked `conflict` and no hit is shown for it.
+    """
     import glob as _g
     best = {}
     for pat in globs:
@@ -237,8 +273,15 @@ def blastp_hits(globs):
                 if r.get("hit_rank") != "1" or not r.get("gene"):
                     continue
                 org = r.get("subject_organism", "")
-                if r["gene"] not in best or (org and not best[r["gene"]]["org"]):
-                    best[r["gene"]] = dict(org=org, pid=r.get("pct_identity", ""), acc=r.get("subject_acc", ""))
+                acc = r.get("subject_acc", "")
+                prior = best.get(r["gene"])
+                if prior is not None and prior.get("conflict"):
+                    continue
+                if prior is not None and acc and prior["acc"] and acc != prior["acc"]:
+                    best[r["gene"]] = dict(org="", pid="", acc="", conflict=True)
+                    continue
+                if prior is None or (org and not prior["org"]):
+                    best[r["gene"]] = dict(org=org, pid=r.get("pct_identity", ""), acc=acc or (prior or {}).get("acc", ""))
     return best
 
 
@@ -1565,11 +1608,12 @@ def region_slide(prs, D, bgc, n_order, assets, genome_box):
         fam = b.get("gcf_tightest", "")
         P.append([("BiG-SCAPE: ", True, INK), ((f"family {fam.replace(' c', ' (cutoff ', 1) + ')' if ' c' in fam else fam}." if fam and fam != "unplaced"
                                                  else "no family at any cutoff."), False, INK)])
-    hits = {g["locus_tag"]: D["blastp"][g["locus_tag"]] for g in gs if g["locus_tag"] in D["blastp"]}
+    hits = {g["locus_tag"]: D["blastp"][g["locus_tag"]] for g in gs
+            if g["locus_tag"] in D["blastp"] and not D["blastp"][g["locus_tag"]].get("conflict")}
     if hits:
         c1 = next(((t, h) for t, h in hits.items() if t in {g["locus_tag"] for g in core}), next(iter(hits.items())))
         P.append([("BLASTp: ", True, INK), (f"{len(hits)} of {len(gs)} genes searched; {c1[0]}'s best hit is "
-                                           f"{(c1[1]['org'] or c1[1]['acc'])[:40]}, {float(c1[1]['pid'] or 0):.0f}%.", False, INK)])
+                                           f"{(c1[1]['org'] or c1[1]['acc'])[:40]}, {identity_text(c1[1])}.", False, INK)])
     if D["gclusters"]:
         gm = gecco_max(D, bgc)
         sac = inv["Products"].strip().lower() == "saccharide"
@@ -1995,7 +2039,7 @@ def gene_tables(D, order, path):
                 h = D["blastp"].get(t)
                 body.append([t, g.get("aa_length", ""), g["gene_function_inference"], ", ".join(doms), d2,
                              f"{float(gp[t]):.2f}" if t in gp else "", mib.get(t, ""),
-                             f"{h['org'] or h['acc']} {float(h['pid'] or 0):.0f}%" if h else ""])
+                             blastp_cell(h)])
             table(s, hdr, widths, body, y=1.0, font=7, row_h=0.24)
             s.notes_slide.notes_text_frame.text = ("Blank = no record in that source, not a negative result. Domains sorted by "
                                                    "E-value, best first.")
@@ -2126,7 +2170,11 @@ def main(argv=None):
         return 0
     for sp in a.sources:
         p = Path(sp)
-        r = build(resolve(json.load(open(p)), p.parent), a.out, a.tag)
+        try:
+            r = build(resolve(json.load(open(p)), p.parent), a.out, a.tag)
+        except SourceIdentityError as exc:
+            sys.stderr.write(f"refused: {exc}\n")  # direct write keeps the strict-health print_calls ratchet flat
+            return 2
         emit(f"{r['deck']}: {r['slides']} slides; {r['regions']} regions; {r['gecco_only']} GECCO-only; "
               f"{r['gene_table_slides']} gene-table slides")
     return 0

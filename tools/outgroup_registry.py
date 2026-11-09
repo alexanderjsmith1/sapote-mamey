@@ -306,17 +306,33 @@ def get_16s(genus, scope="genus", out=None, force=False, quiet=False):
                 f"outgroup genus '{og_genus}' but DB record {acc} is titled '{title[:80]}'")
         # One accession, DB title verbatim, bounded 'outgroup' token for tree_sanity_check.
         header = f">{acc} {title} [outgroup for {row['ingroup_taxon']}]"
-        with open(cache_fa, "w") as fh:
+        # The new record is written to a fresh file this call creates and is checked there. An existing
+        # cache file is never opened for writing and never removed: a failing candidate is deleted (it
+        # is ours), and a passing one replaces the cache only after the old file is kept aside.
+        import tempfile
+        fd, candidate = tempfile.mkstemp(prefix=f".{safe}.", suffix=".candidate.fasta", dir=os.path.dirname(cache_fa))
+        with os.fdopen(fd, "w") as fh:
             fh.write(header + "\n")
             for i in range(0, len(body), 80):
                 fh.write(body[i:i + 80] + "\n")
-        ok, why = header_admissible(cache_fa)
+        ok, why = header_admissible(candidate)
         if not ok:
-            os.remove(cache_fa)
+            os.remove(candidate)
             raise RegistryAuthorityError(f"OUTGROUP_HEADER_INADMISSIBLE: {why}: {header[:100]}")
+        if os.path.exists(cache_fa):
+            import time
+            kept = f"{cache_fa}.replaced-{time.strftime('%Y%m%dT%H%M%S')}-{os.getpid()}"
+            try:
+                os.link(cache_fa, kept)
+            except OSError:
+                __import__("shutil").copy2(cache_fa, kept)
+            sys.stderr.write(f"NOTE: outgroup_registry: previous cache file kept as {kept}\n")
+        os.replace(candidate, cache_fa)
         if not quiet:
             sys.stdout.write((f"[cached] {og_genus} {species_strain} -> {acc}\n         {cache_fa}") + "\n")
     if out:
+        if os.path.lexists(out):
+            raise RegistryAuthorityError(f"OUTPUT_EXISTS: {out} already exists; choose a new --out path")
         __import__("shutil").copy(cache_fa, out)
         if not quiet:
             sys.stdout.write((f"[wrote] {out}") + "\n")
@@ -351,14 +367,23 @@ def cmd_genome(a):
     sys.stdout.write((f"{row['outgroup_genus']} {row['outgroup_species_strain']}\t{acc}\t(status={row['status']})") + "\n")
     if a.fetch:
         sh = os.path.join(_cache_dir("genomes"), f"fetch_{re.sub(r'[^A-Za-z0-9]+','_',acc)}.sh")
-        with open(sh, "w") as fh:
-            fh.write("#!/bin/bash\n# Outgroup genome fetch (run with network; download is a permissioned action).\n")
-            fh.write("set -euo pipefail\n")
-            fh.write(f'ACC="{acc}"\n')
-            fh.write('datasets download genome accession "$ACC" --include genome '
-                     f'--filename "{CACHE}/genomes/${{ACC}}.zip" || \\\n')
-            fh.write('  echo "datasets not found — use NCBI web or efetch for $ACC"\n')
-        os.chmod(sh, 0o755)
+        text = ("#!/bin/bash\n# Outgroup genome fetch (run with network; download is a permissioned action).\n"
+                "set -euo pipefail\n"
+                f'ACC="{acc}"\n'
+                'datasets download genome accession "$ACC" --include genome '
+                f'--filename "{CACHE}/genomes/${{ACC}}.zip" || \\\n'
+                '  echo "datasets not found — use NCBI web or efetch for $ACC"\n')
+        if os.path.lexists(sh):
+            with open(sh, encoding="utf-8", errors="replace") as fh:
+                same = fh.read() == text
+            if not same:
+                raise RegistryAuthorityError(f"FETCH_SCRIPT_EXISTS: {sh} exists with different content; "
+                                             "it was left unchanged. Move it aside and re-run.")
+            sys.stdout.write(f"[fetch-script] reused unchanged {sh}\n")
+        else:
+            with open(sh, "x") as fh:
+                fh.write(text)
+            os.chmod(sh, 0o755)
         sys.stdout.write((f"[fetch-script] {sh}\n  (NOT auto-run: downloading is a permissioned action — run it yourself)") + "\n")
     return 0
 

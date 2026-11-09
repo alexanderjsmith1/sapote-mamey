@@ -1,165 +1,106 @@
-# Sapote-Mamey Figure Style Rule
+# Figure style rule
 
-**Figures are data; interpretation lives in the caption.** Keep interpretive prose in an editable companion caption so revising it does not require redrawing unchanged plot geometry. Rebuild any presentation that embeds changed text, inspect it, and renew its manifest/receipt bindings.
+**A figure shows data. The caption carries the interpretation.** Keep interpretive prose in a
+separate caption file. Then you can reword the caption without redrawing the plot. If a caption is
+embedded in a caption band or a compiled document, rebuild that file and inspect it again.
 
-## A figure MAY contain
-- Data (bars, points, lines, histograms), axes, axis labels, units.
-- A **neutral, descriptive** title ("Chitinolytic gene complement per strain"), not an interpretive one ("...proves defensive symbiosis").
-- A legend, color-coding, and reference lines (mean/threshold) — these carry signal without prose.
-- **Numeric data labels** (the count on a bar) — these are data, not commentary.
+For the full checklist, see [Figure house rules](FIGURE_HOUSE_RULES.md). To find the renderer for a
+figure type, see [Figures start here](FIGURES_START_HERE.md).
 
-## A figure MUST NOT contain
-- **Arrows pointing to data points.** This is the primary rule.
-- Overlaid interpretive callout text or floating annotations ("= 0 — lineage control", "the exception that proves the rule").
-- Interpretive titles or subtitles that state a conclusion.
-- Highlight boxes/circles drawn around specific points to make an argument.
-- Governance labels, claim-ceiling ladders, release states, or policy footers on the plotted canvas.
-  Scientific limitations belong in ordinary caption prose and machine receipts, not as a visual track.
+## A figure may contain
+- Data (bars, points, lines, histograms), axes, axis labels and units.
+- A neutral, descriptive title, such as "Chitinolytic gene complement per strain". Do not use a
+  title that states a conclusion.
+- A legend, color coding, and reference lines such as a mean or threshold.
+- Numeric data labels, such as the count on a bar.
+- Arrows that encode strand, gene order or a defined graph relation. These are data. Define them in
+  the caption.
 
-## Where the interpretation goes instead
-1. **The figure caption** (the figure's `_CAPTION.md` file, as in [house rule 2](FIGURE_HOUSE_RULES.md#rules-for-every-figure)) — every callout, arrow target, and "note that X" belongs here. Editing the separate caption does not require redrawing unchanged plot geometry. If the caption is embedded in a band or compiled document, rebuild and inspect that presentation; any changed caption also needs a new manifest/receipt binding.
-2. **User-driven overlays** — the user adds arrows, circles, and callouts in PowerPoint / BioRender / Illustrator for a specific talk or panel, where they control placement and it doesn't touch the source figure.
+## A figure must not contain
+- Arrows that point at selected data points.
+- Callout text or floating annotations ("= 0, lineage control").
+- Titles or subtitles that state a conclusion.
+- Boxes or circles drawn around points to make an argument.
+- Claim-safety wording, claim-ceiling ladders, release states or policy footers on the plotted
+  canvas. Scientific limits go in the caption and the render receipt.
 
-## Fail before rendering meaningless output
+## Where interpretation goes
+1. **The caption.** Put callouts, "note that X" and arrow targets in the figure's `_CAPTION.md`
+   file (see [house rule 2](FIGURE_HOUSE_RULES.md#rules-for-every-figure)).
+2. **Your own overlays.** For a talk or a panel, add arrows and circles yourself in PowerPoint,
+   BioRender or Illustrator. Then the source figure stays clean.
 
-Every scalable renderer must invoke the shared preflight in `mamey.figure_policy` before it
-creates an output directory. The default quantitative policy refuses:
+## Size and file format
+These limits apply to every figure that goes into a paper or deck.
 
-- no plotted rows;
-- missing, nonnumeric, infinite, or NaN plotted values;
-- a quantitative panel whose declared values are all zero;
-- a scatter with fewer than two observations.
+- A single-column figure is 3.5 inches wide. A double-column figure is 7.2 inches wide.
+- The smallest plot text is at least 8 pt at that width. This covers labels, ticks and notes.
+- Caption text is no larger than 1.25 times the smallest plot text.
+- Prefer SVG with live text and vector shapes, and no embedded raster image.
+- A PNG needs at least 300 native pixels per inch. The DPI stored in the file does not count, and
+  upscaling a screen PNG is not allowed.
+- A screenshot of a PDF is for review only. It is never source artwork.
+- No label may collide with, touch or run past another label. Tick labels must stay outside the data
+  area of their own axes.
 
-A scatter with two or more observations but no variation on any declared axis is retained with
-a typed warning because equality across real observations can be a scientifically valid null
-result. It should remain in the publication queue only if that null result answers a named question.
+A PNG that looks fine on screen does not show that the text is legible in a compiled document.
+Check the compiled file at its printed size. Run
+`python tools/figure_render_qc.py <output_folder> --print-width-in <inches>` to find text below
+8 pt at that width. It reads text only from a PDF or SVG beside the PNG; without a print width, or
+without readable vector text, it reports the size as not checked or not measurable. It does not
+look for clipped or overlapping labels. Look at the figure at its printed size for those.
 
-A typed-state matrix or a named diagnostic-null panel may explicitly permit all observed-zero
-cells because observed zero can be the answer. The exception must use a registered semantic
-code and its exact canonical explanation; arbitrary prose length is not a semantic gate. Both
-must be declared in the chart configuration and receipt. Renderers must not synthesize either
-field or replace a refusal with an apparently
-successful blank plot, arbitrary origin point, or zero-height bar panel.
+## Refuse empty or meaningless plots
+A renderer should stop before it creates an output folder when:
+- there are no rows to plot;
+- a plotted value is missing, not a number, infinite or NaN;
+- a quantitative panel has only zeros; or
+- a scatter has fewer than two observations.
 
-## Caption and methods acceptance
+A scatter with two or more observations and no spread on an axis is kept with a warning. A real
+null result can be the answer. The shared check is `mamey.figure_policy`. A typed-state matrix or a
+named diagnostic-null panel may allow all-zero cells if its chart configuration and receipt say so.
+A renderer must never replace a refusal with a blank plot or a zero-height bar.
 
-Every retained figure has a separate, editable traveling caption/method record. It must state:
+## What each caption and methods file states
+Every kept figure has an editable caption and methods file. It states:
 
-1. the figure question and purpose of every panel;
-2. the exact source artifacts, source release, and software/version context;
-3. the unit of analysis represented by each point, row, cell, bar, branch, or count;
-4. inclusion, exclusion, external-benchmark, reference, and outgroup roles;
-5. total and per-group denominators, including missing and held records;
-6. transformations, aggregations, duplicate/hybrid handling, and counting rules;
-7. the complete visual grammar: colors, marks, lines, facets, order, thresholds, and compression;
-8. summary statistics, intervals, box/whisker/error-bar definitions, models, tests, and multiple-testing treatment where used;
-9. comparison groups and genus-control strategy;
-10. contradictions and limitations, including assembly fragmentation, edge, overmerge, and stale/unbound evidence; and
-11. the interpretation boundary for the plotted annotation or similarity.
+1. the question and the purpose of each panel;
+2. the source files, their SHA-256, the source release and the software versions;
+3. what one point, row, cell, bar, branch or count stands for;
+4. which items are included, excluded, references or outgroups;
+5. the total and per-group denominators, including missing and held records;
+6. transformations, aggregation, and how duplicates and hybrids are counted;
+7. the visual grammar: colors, marks, lines, facets, order, thresholds and compression;
+8. statistics, intervals, box and whisker definitions, tests and multiple-testing handling;
+9. the comparison groups and the genus-control strategy;
+10. limits: assembly fragmentation, edge and over-merged regions, stale or unbound evidence; and
+11. how far the interpretation may go.
 
-Caption/method records use the versioned `sapote-mamey.figure-caption-methods.v2` contract. The
-record must bind at least one exact source SHA-256 and must distinguish the overall study
-denominator from the actual per-group values encoded in plotted rows. It also carries typed
-missingness and external-benchmark sensitivity as separate fields. When a plotted-data table has
-no typed state column, the caption says so explicitly; it must not imply that missing, held,
-unmeasured, or not-applicable records are absent. Declared upstream artifact names without hashes
-remain visibly `NOT_SUPPLIED_BY_WIDGET` rather than being presented as exact bindings.
+If a plotted-data table has no state column for missing, held, unmeasured or not-applicable
+records, the caption says so. It must not imply those records are absent.
 
-For an invented or nonstandard visual, add a self-contained visual-grammar paragraph beneath
-the figure explaining its rows, columns, marks, colors, symbols, and summary values. Review HTML
-may display this prose directly below the clean SVG; the SVG remains reusable and free of policy
-footers.
+For a figure type with no registered renderer, add a short paragraph under the figure. It explains
+the rows, columns, marks, colors, symbols and summary values.
 
-These fields must travel with LLM-invented and other nonstandard figures until final manuscript
-construction. Treat validation before output creation as an acceptance requirement; actual renderer enforcement must be checked. An external
-benchmark is not a study-cohort member: it must be explicitly typed, excluded from study n and
-percentages, and default to not displayed unless the owner selects that benchmark comparison.
-The renderer never infers benchmark status from an identifier. A selected benchmark may enter
-only the separately reported sensitivity-comparison roster; it never enters strain-level study
-plots, study denominators, or study percentages. The render receipt records available and
-selected benchmark identifiers independently.
+## Cohorts, benchmarks and genus
+- An external benchmark is not a study member. Type it explicitly, leave it out of study n and
+  percentages, and keep it off by default. The renderer never guesses benchmark status from an
+  identifier. A selected benchmark appears only in a separate sensitivity comparison.
+- Compare within a genus by default. A cross-genus figure must be stratified, matched, modeled, or
+  show the genus mix. Do not pool genera silently.
+- A cohort manifest gives each identity a role, default inclusion, genus, cohort and assembly state.
+  Benchmarks and outgroups are always off by default. Assembly outliers marked default-off stay out
+  of the study denominator. Included assembly-flag rows get an open diamond.
+- The default cohort palette uses distinct solid fills. Hatching needs an explicit owner choice.
+- Heatmaps keep raw values. They use quantile limits for the color scale. They keep `OTHER` out of
+  that range so one extreme cell does not flatten the rest.
 
-## Genus-aware comparison presets
+## Which tools enforce this
+The page states the policy. Not every renderer enforces all of it. `mamey/figure_save.py` checks
+text policy for figures saved through it. Many renderers write directly and use their own DPI.
+Check the renderer you use, read its receipt, and look at the image. A missing check is a hold, not
+a pass. The [locus-map review contract](LOCUS_MAP_REVIEW_CONTRACT.md) and the
+[R workflows](R_FIGURE_WORKFLOWS.md) list route-specific gaps.
 
-Within-genus comparison is the default for strain-level interpretation. Cross-genus figures
-must be stratified, matched, modeled, or display genus composition. A renderer may expose
-additional genera as independent selectable options, but must not silently pool them into the
-default roster. Presets are explicit inputs and receipts, not a hardcoded project cohort.
-
-## Publication artwork gate
-
-Blurred plot text in a compiled PDF is a major output defect. Publication artwork is validated at
-its declared physical size before document rendering:
-
-- `SINGLE_COLUMN` is 3.5 inches wide and `DOUBLE_COLUMN` is 7.2 inches wide.
-- The smallest plot label, tick, support label, or annotation is at least 8 pt in both profiles.
-- SVG is preferred and must contain live text plus vector geometry, with no embedded raster image.
-- A PNG fallback must provide at least 300 native pixels per embedded inch. Metadata DPI does not
-  rescue a thumbnail, and upscaling a screen PNG is refused.
-- A PDF-derived screenshot is review evidence only and is never source artwork.
-- Caption text may not exceed 1.25 times the smallest plot text size.
-- Document compilation preserves suitable vectors. A high-resolution raster fallback is allowed
-  only when vector conversion is unavailable and the native-pixel gate passes.
-
-Standalone PNG inspection does not establish compiled-document legibility. The compilation receipt
-carries the physical profile, effective DPI for every raster, vector/live-text state, and embedded
-artwork result. Renderers also reject colliding, touching, or overflowing label boxes. After the
-final layout pass at declared physical width, every visible x/y tick-label bounding box must be
-disjoint from the data rectangle for its own axes; label-label clearance alone is insufficient.
-The reusable gate pairs labels and data rectangles by explicit `axis_id` and fails closed when an
-axis binding is absent or a label touches or enters a data rectangle.
-
-## Cohort, assembly, palette, and heatmap policy
-
-An authoritative cohort manifest declares every identity's role, default inclusion, genus, cohort,
-assembly state, and assembly reason. `EXTERNAL_BENCHMARK` and `OUTGROUP` are always default-off for
-study figures. `DEFAULT_OFF` assembly outliers remain outside the study denominator even when
-selected as sensitivity rows; included `FLAG` rows receive an open-diamond overlay. No private or
-project-specific identity is built into this rule.
-
-The default cohort palette is accessible and uses distinct solid fills. Hatching or other patterns
-require an explicit owner override. Heatmaps preserve raw values, use robust quantile limits for
-color normalization, and separate `OTHER` from the informative normalization range so a pooled or
-extreme cell cannot flatten the remaining signal.
-
-### F10 raw-domain-token provenance
-
-F10 is a visualization of selected raw domain-token occurrences carried through
-`deep_data.domain_hits`; it is not a regulator-gene caller. Its traveling caption/method record must
-name the displayed raw tokens, identify the upstream antiSMASH GBK `aSDomain`/`PFAM_domain`
-annotation types, and define one counted observation as one retained domain-hit occurrence assigned
-to a BGC overlap. It must disclose the upstream deduplication boundary. Whole-record GBKs are
-preferred, and region-file copies are excluded when those whole-record files exist. Identical feature
-keys are deduplicated, and distinct loci remain distinct. An upstream feature may be represented in
-more than one per-BGC row when BGC intervals overlap. Any friendly family label is a display aid
-chosen by Sapote-Mamey, not an independently validated functional call. `LysR_substrate` is a
-substrate-binding-domain token and alone does not establish a complete LysR regulator or regulatory
-role.
-
-### F11 source-class hold
-
-The legacy F11 clustermap is `REDESIGN_NOT_PUBLICATION_READY`. Its input
-`deep_data.domain_hits` flattens retained domain-architecture rows without carrying the source
-feature type and accession needed to distinguish Pfam records from aSDomain, motif, TIGRFAM, and
-tool-like tokens. A renderer must not describe that mixed-token matrix as the “40 most abundant
-Pfam domains.” Until a domain adapter binds feature type, accession, annotation source, source
-feature identity, and BGC-overlap assignment, F11 emits a typed hold instead of artwork.
-
-After that contract is supplied, the traveling methods must state the exact input files and hashes,
-antiSMASH and Mamey versions, and the observation and deduplication unit. They must also state the
-cohort/exclusion denominator, top-row ranking rule, matrix transformation, distance and linkage,
-raw/positive ranges and zeros, and the descriptive-only interpretation ceiling. Publication artwork must independently pass the
-declared-width vector/live-text, minimum 8 pt, and no-raster-embedding gates.
-
-## Why
-A clean figure + a separate caption is reusable across every context (paper, slide, poster) and lets anyone re-label without touching the plot code. Baking callouts into the PNG couples the figure to one narrative and forces a rebuild for every rewording. `tools/build_figures.py` must follow this rule — emit clean figures and a captions file, never overlaid callouts.
-
-## Policy requirement versus renderer coverage
-
-This is the intended figure acceptance policy, not certification that every current renderer calls every preflight or emits every caption/artifact field. The shared `save_figure` path checks containment/text policy and emits output-hashed `CANDIDATE_RENDERED` receipts; its provenance is caller-supplied text, not automatically verified input/source hashes or a complete scientific methods record. It creates output directories before saving. Other renderers write directly, may use smaller raster DPI or text, and may reuse outputs.
-
-Verify the specific producer's implementation and receipt rather than treating an SVG/PNG or absence of an exception as policy PASS. Missing capability is an explicit presentation/provenance hold. The [house rules](FIGURE_HOUSE_RULES.md), [locus-map review contract](LOCUS_MAP_REVIEW_CONTRACT.md) and [R workflow](R_FIGURE_WORKFLOWS.md) document route-specific gaps and any on-artwork note conflict. Preserve required interpretation limits in the caption/receipt and record unresolved presentation choices for owner review; a technical text gate alone is not scientific review.
-
-Arrows encoding strand, gene order or a defined graph relation are data geometry; they are distinct from interpretive callouts pointing at selected observations. Use a caption to define that visual grammar. The prohibitions above do not silently exclude lossless locus-map arrows.
-
-Source examples: `mamey/figure_save.py`, `mamey/bigscape_figures.py`, `tools/bgc_figures.py`, `tools/build_normalization_matrix.py`.
+Domain figures F10 and F11 have extra provenance rules. See [Figure catalog](FIGURE_CATALOG.md).

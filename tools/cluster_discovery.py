@@ -10,7 +10,7 @@ Incomplete search, result parsing or assembly resolution raises DiscoveryFailure
 the CLI returns 2 without writing a completed candidate table. Partial rows are
 incomplete evidence. A completed empty result does not establish biological absence.
 """
-import argparse, csv, io, json, sys, time, urllib.parse, urllib.request
+import argparse, csv, io, json, re, sys, time, urllib.parse, urllib.request
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -80,8 +80,14 @@ def parse_blast_hits(text):
     return out
 
 
+ASSEMBLY_ACCESSION = re.compile(r"GC[AF]_[0-9]{9}\.[0-9]+")
+
+
 def parse_ipg(text):
-    """IPG table -> [(assembly, organism, strain)] with GCF/GCA assemblies only."""
+    """IPG table -> [(assembly, organism, strain)] with complete versioned GCF/GCA accessions only.
+
+    Service text is untrusted: a value that is not exactly `GCF_/GCA_` + nine digits + `.version` is
+    not admitted, so it can never reach the generated download script."""
     rows = [l.split("\t") for l in text.strip().split("\n") if l.strip()]
     if len(rows) < 2:
         return []
@@ -91,12 +97,12 @@ def parse_ipg(text):
     out = []
     seen = set()
     for r in rows[1:]:
-        if ai is not None and len(r) > ai and r[ai].startswith(("GCF_", "GCA_")):
-            key = r[ai]
+        if ai is not None and len(r) > ai and ASSEMBLY_ACCESSION.fullmatch(r[ai].strip()):
+            key = r[ai].strip()
             if key in seen:
                 continue
             seen.add(key)
-            out.append((r[ai],
+            out.append((key,
                         r[oi] if oi is not None and len(r) > oi else "",
                         r[si] if si is not None and len(r) > si else ""))
     return out
@@ -178,9 +184,14 @@ def write_table(ranked, outdir, marker_name="marker"):
         w.writeheader()
         w.writerows(ranked)
     # datasets download command for convenience
-    accs = " ".join(r["assembly"] for r in ranked if r["assembly"].startswith("GCF_"))[:4000]
+    # Only validated, complete accessions reach the script, each shell-quoted. Review it before running.
+    import shlex
+    valid = [r["assembly"] for r in ranked
+             if r["assembly"].startswith("GCF_") and ASSEMBLY_ACCESSION.fullmatch(r["assembly"])]
+    accs = " ".join(shlex.quote(a) for a in valid)
     (op / "download_genomes.sh").write_text(
         "#!/bin/sh\n# fetch candidate genomes (requires NCBI 'datasets' CLI)\n"
+        "# Generated from NCBI service results; review before running. Not a validated roster.\n"
         f"datasets download genome accession {accs} --include genome\n")
     return str(p)
 
@@ -199,14 +210,27 @@ def main(argv=None):
         from Bio import SeqIO
     except ImportError:
         from mamey._gbk_shim import SeqIO
-    rec = next(SeqIO.parse(a.marker, "fasta"))
+    try:
+        rec = next(SeqIO.parse(a.marker, "fasta"))
+    except (OSError, StopIteration, ValueError) as exc:
+        sys.stderr.write(f"[cluster_discovery] INPUT_FAILED: cannot read one marker sequence from {a.marker} "
+                         f"({type(exc).__name__}: {exc}); no candidate table written\n")
+        return 2
     try:
         ranked = discover(str(rec.seq), Net(), entrez=a.entrez, evalue=a.evalue,
                           min_identity=a.min_identity, max_strains=a.max_strains)
     except DiscoveryFailure as exc:
         print(f"[cluster_discovery] {exc}; no completed candidate table written", file=sys.stderr)
         return 2
-    p = write_table(ranked, a.outdir, marker_name=rec.id)
+    except (OSError, ValueError) as exc:  # urllib network errors are OSError subclasses
+        sys.stderr.write(f"[cluster_discovery] SERVICE_FAILED: {type(exc).__name__}: {exc}; "
+                         "no completed candidate table written\n")
+        return 2
+    try:
+        p = write_table(ranked, a.outdir, marker_name=rec.id)
+    except OSError as exc:
+        sys.stderr.write(f"[cluster_discovery] OUTPUT_FAILED: {exc}; outputs may be partial\n")
+        return 2
     print(f'[cluster_discovery] wrote {p} ({len(ranked)} strains) + download_genomes.sh', '[cluster_discovery] next: run download_genomes.sh, then extract clusters and compare with cluster_gene_compare.py', sep="\n")
     return 0
 

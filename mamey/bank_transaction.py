@@ -48,6 +48,11 @@ def _write(path,data):
 
 def _json(path,obj):_write(path,(json.dumps(obj,sort_keys=True,indent=2)+'\n').encode())
 
+_BANK_STATE_NAMES=STORES+('deep_data.json',PENDING,STATE,'.ingest_transactions')
+
+def _has_bank_state(bank):
+    return any((bank/name).exists() or (bank/name).is_symlink() for name in _BANK_STATE_NAMES)
+
 def _empty_bundle_source(bank):
     """Recognize an empty Sapote source checkout, never an existing cohort bank.
 
@@ -56,8 +61,7 @@ def _empty_bundle_source(bank):
     destination, so bypassing lock creation cannot race a first bank generation.
     Marker-bearing roots with actual bank state retain ordinary shared locking.
     """
-    state_names=STORES+('deep_data.json',PENDING,STATE,'.ingest_transactions')
-    if any((bank/name).exists() or (bank/name).is_symlink() for name in state_names):
+    if _has_bank_state(bank):
         return False
     markers=('pyproject.toml','mamey/__init__.py','mamey/bank_transaction.py','tools/ingest_package.py')
     if not all((bank/name).is_file() and not (bank/name).is_symlink()
@@ -91,6 +95,12 @@ def lock(bank,writer=False):
         except ImportError as exc:raise BankError('BANK_LOCK_BACKEND_UNAVAILABLE: refuse unlocked access') from exc
         backend='msvcrt'
     if not bank.exists() and not writer:
+        yield bank
+        return
+    if not writer and not path.exists() and not path.is_symlink() and not _has_bank_state(bank):
+        # A folder with no lock, no store and no journal has nothing to read. A reader
+        # takes no lock there, so a read-only step never creates .ingest.lock. A
+        # cooperating writer creates the lock before its first write.
         yield bank
         return
     if not writer and not path.exists() and (bank/'manifest.json').exists():
@@ -241,11 +251,34 @@ def recover(bank,mode):
         phase='before' if mode=='rollback' else 'after'
         hashes=journal.get(phase+'_sha256',{})
         if not isinstance(hashes,dict) or not set(STORES)<=set(hashes) or set(hashes)-set(STORES)-{'deep_data.json'}:raise BankError('BANK_RECOVERY_MANIFEST_INVALID')
+        before_hashes=journal.get('before_sha256',{});after_hashes=journal.get('after_sha256',{})
+        if not isinstance(before_hashes,dict) or not isinstance(after_hashes,dict):raise BankError('BANK_RECOVERY_MANIFEST_INVALID')
         for name,expected in hashes.items():
             p=tx/phase/name;_regular(p)
             actual=_hash(p.read_bytes()) if p.exists() else None
             if expected!=actual:raise BankError('BANK_RECOVERY_IMAGE_MISMATCH: '+name)
             _regular(root/name)
+            # An interrupted publication leaves each store as its before or its
+            # after image. Anything else was written outside this transaction:
+            # refuse before touching any store, so those bytes are never lost.
+            current=_hash((root/name).read_bytes()) if (root/name).exists() else None
+            if current not in (before_hashes.get(name),after_hashes.get(name)):
+                raise BankError('BANK_RECOVERY_CONFLICT: '+name+' matches neither the before nor the after image; '
+                                'inspect it and preserve a copy before recovering')
+        if (root/STATE).exists():
+            current_state=(root/STATE).read_bytes()
+            committed_here=False
+            parse_error=None
+            try:
+                parsed=json.loads(current_state)
+                committed_here=isinstance(parsed,dict) and parsed.get('transaction')==tid and parsed.get('files_sha256')==after_hashes
+            except ValueError as exc:
+                # Unparseable bytes cannot be this transaction's commit; they are judged
+                # against the prior receipt's hash below and reported if they match neither.
+                parse_error=exc
+            if not committed_here and _hash(current_state)!=journal.get('prior_state_sha256'):
+                raise BankError('BANK_RECOVERY_CONFLICT: '+STATE+' matches neither the prior nor this transaction\'s commit state'
+                                +(' (it is not valid JSON)' if parse_error is not None else '')) from parse_error
         for name in hashes:
             p=tx/phase/name
             if p.exists():_write(root/name,p.read_bytes())

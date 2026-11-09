@@ -1,7 +1,7 @@
 # Sapote Full-Run Deliverable Manifest — [STRAIN_ID]
 <!-- Fill this template only for the user-selected full-run authoring suite; its presence does not authorize extra work. -->
 <!-- It turns FULL_RUN_PROFILE Section A (the 13-item contract) + Section H gate from trusted prose -->
-<!-- into a checkable artifact. tools/check_deliverable_suite.py validates it. -->
+<!-- into a checkable artifact. tools/check_deliverable_suite.py checks its structure. -->
 <!-- Status vocabulary (one per item): COMPLETE | SKIPPED | N/A  -->
 <!--   COMPLETE  → must give a path/filename in the Artifact column.  -->
 <!--   SKIPPED   → must give a one-line reason (e.g. "deferred to Batch 3 per user"). -->
@@ -52,7 +52,7 @@ This template records the selected full-run authoring suite, not extraction succ
 | Domain reference / realistic-count / novelty-shortlist (advisory) | COMPLETE/SKIPPED/N/A | ____ |
 
 ## Section H — output gate (self-reported, then machine-checked)
-- gold_completeness: [COMPLETE | JUDGMENT_PENDING]  ← must be COMPLETE for a gold run to pass
+- gold_completeness: [COMPLETE | JUDGMENT_PENDING]  ← must be COMPLETE for the gold **suite check** (`check_deliverable_suite.py --mode gold`) to pass; a gold extraction can still validate with JUDGMENT_PENDING
 - Mode B cards written: [n] / [raw BGC count]
 - BSL-2 / enediyne flags surfaced: [list BGCs or NONE]
 - NAPAA exclusions applied: [list BGCs or NONE]
@@ -60,8 +60,8 @@ This template records the selected full-run authoring suite, not extraction succ
 
 ## What the suite checker proves
 
-Run `python tools/check_deliverable_suite.py --manifest PATH --mode gold --json` when checking this selected full-run suite. It parses numbered rows 1–13, checks filled status/reason text and selected self-reported Section H fields. It does not open artifact paths, hash output bytes, verify scientific prose or validate the unnumbered packaging table. A nonempty fabricated filename can satisfy its textual path requirement.
+Run `python tools/check_deliverable_suite.py --manifest PATH --mode gold --json` when checking this selected full-run suite. It parses numbered rows 1–13, rejects an item number that appears more than once, checks filled status/reason text and selected self-reported Section H fields. It does not open artifact paths unless `--artifact-root` is given, hash output bytes, bind an independent roster, verify scientific prose or validate the unnumbered packaging table. A nonempty fabricated filename can satisfy its textual path requirement.
 
-The gold check rejects JUDGMENT_PENDING text but does not require the value to equal literal COMPLETE; standing-constraint absence is also not independently rejected. Confirm those fields and all requested artifacts yourself rather than treating checker PASS as complete admission. Preserve failed, held, skipped and unknown states instead of declaring scientific completion to satisfy the text gate.
+The gold check requires the value to be exactly COMPLETE (JUDGMENT_PENDING and any other value fail). A gold strain with `Mode B cards written: 0/0` still passes that line; standing-constraint absence is also not independently rejected. Confirm those fields and all requested artifacts yourself rather than treating checker PASS as complete admission. Preserve failed, held, skipped and unknown states instead of declaring scientific completion to satisfy the text gate.
 
 For each COMPLETE entry, additionally record an existing artifact, current hash, owning source/version, evidence scope and applicable gate receipt. For an individual locus, use `strain / full node-or-contig / region / BGC alias`. Treat authoring, structural validation, evidence review, owner acceptance and release authority as separate decisions.

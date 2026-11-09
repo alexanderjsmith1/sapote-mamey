@@ -85,12 +85,10 @@ def _absolute_sources(text: str) -> list[str]:
     return sorted(set(sources))
 
 
-def _ledger_row(ledger: Path, rank: int) -> dict | None:
+def _ledger_rows(ledger: Path, rank: int) -> list[dict]:
+    """Every ledger row whose priority_rank equals ``rank`` (a duplicate rank is a finding, not a pick)."""
     with ledger.open(newline="", encoding="utf-8") as handle:
-        for row in csv.DictReader(handle):
-            if _integer(row.get("priority_rank")) == rank:
-                return row
-    return None
+        return [row for row in csv.DictReader(handle) if _integer(row.get("priority_rank")) == rank]
 
 
 def audit_card(
@@ -233,9 +231,13 @@ def audit_card(
         if not ledger.is_file():
             result.add("LEDGER_MISSING", f"ledger does not exist: {ledger}")
         elif rank is not None:
-            row = _ledger_row(ledger, rank)
-            if row is None:
+            rows = _ledger_rows(ledger, rank)
+            row = rows[0] if len(rows) == 1 else None
+            if not rows:
                 result.add("LEDGER_ROW_MISSING", f"ledger has no row for rank {rank}")
+            elif len(rows) > 1:
+                result.add("LEDGER_DUPLICATE_RANK",
+                           f"ledger has {len(rows)} rows for rank {rank}; reconcile them before comparing")
             else:
                 checks = {
                     "markdown_path": str(card),

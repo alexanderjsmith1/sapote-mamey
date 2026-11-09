@@ -9,27 +9,39 @@ canonical DOCX/PDF renderer used by `sapote-render`.
 
 ## Setup and the short workflow
 
-From the bundle root, install the document extra if needed: `python -m pip install -e '.[documents]'`. The console scripts are installed entry points; they resolve to that environment's package. To pin source without depending on those entry points, use `python -m mamey.document_factory` from the selected bundle root with the same subcommands.
+From the bundle root, install the document extra once: `python -m pip install -e '.[documents]'`.
+This adds the Word and PDF libraries. If it is missing, `build` fails. `check` does not test for it. If you prefer not to rely on the installed
+`sapote-documents` script, run `python -m mamey.document_factory` from the bundle root with the same
+subcommands.
 
 ```bash
 # Create a starter project.
 sapote-documents init my_documents
 
-# Edit one YAML manifest and small body templates, then preflight everything.
+# Edit the YAML manifest and the small body templates, then check everything.
 sapote-documents check my_documents/sapote-documents.yml
 
-# Render the complete batch. The output directory must not already exist.
+# Render the batch. The output folder must not already exist.
 sapote-documents build my_documents/sapote-documents.yml \
   --outdir my_documents/rendered
 ```
 
-Run `init` in a new or empty authoring directory outside the installed bundle/source evidence. It writes `templates/`, the YAML manifest and the guide body sequentially. A failed initialization can leave a nonempty partial project that the next `init` refuses. Preserve those files, then repair the authoring project explicitly or initialize a fresh directory; `init` is not a resume command.
+What you should see: each command prints JSON. `init` and `check` print `"status": "PASS"`. `check`
+also lists the document IDs and a hash for each. `build` prints `"status": "PASS"`, one entry per
+DOCX and PDF it wrote, and the receipt. A failure prints `"status": "FAIL"` and exits 1.
 
-Document IDs must start with an ASCII letter or digit and contain only ASCII letters, digits, underscores or hyphens (maximum 80 characters). Choose IDs unique even when case is ignored: admission compares case sensitively, while output directory names can collide on a case-insensitive filesystem. Use an explicit fresh `--outdir` outside source evidence. If omitted, build uses `rendered_documents` beside the project YAML, rather than the example's `rendered` directory.
+Run `init` in a new or empty folder outside the bundle and outside any source evidence. It writes
+`templates/` and the YAML manifest. If `init` stops partway, the next `init` refuses the nonempty
+folder. Fix the files by hand or start in a fresh folder.
+
+Document IDs must start with an ASCII letter or digit and contain only ASCII letters, digits, underscores or hyphens (maximum 80 characters). Choose IDs unique even when case is ignored: admission compares case sensitively, while output directory names can collide on a case-insensitive filesystem. Use a fresh `--outdir` outside source evidence. If you leave it out, `build` writes `rendered_documents` beside the project YAML.
 
 The preflight normalizes and validates every document before the first DOCX or
 PDF is published. A missing placeholder, missing asset, incomplete exact locus,
 or malformed 48-section card therefore fails the project before rendering.
+An image whose path would land on the normalized `<document_id>.md` file, ignoring case,
+is refused with `ASSET_PATH_COLLIDES_WITH_DOCUMENT`. The asset check confirms each image
+file exists; it does not check that the file is a readable image. Open the rendered output.
 
 ## Project manifest
 
@@ -51,7 +63,7 @@ documents:
       topic: Inspect Before Interpretation
 ```
 
-Mode B entries must add the complete exact identity:
+`init` writes only `templates/guide.md`. For a Mode B entry, create the card template yourself (the example below uses `templates/modeb.md`). Mode B entries must add the complete exact identity:
 
 ```yaml
   - id: modeb_demo
@@ -91,7 +103,7 @@ Variables merge in this order: default variables, document-entry variables, then
 ## Output structure
 
 ```text
-rendered/
+<outdir>/
 ├── DOCUMENT_FACTORY_RECEIPT.json
 ├── normalized/
 │   └── <document_id>/<document_id>.md
@@ -118,14 +130,28 @@ shared templates.
 - Rendering integrity does not validate scientific claims or authorize release.
 
 
-## Preflight, failure and profile limits
+## Check, build and failure
 
-`check` normalizes the whole project in a temporary directory and returns validation status and normalized hashes. It does not publish the normalized Markdown, exercise DOCX/PDF renderer dependencies, inspect pages or verify scientific claims.
+`check` validates the whole project in a temporary folder and prints a hash for each normalized
+document. It writes nothing to your project. It does not test the Word or PDF libraries, look at
+pages or verify science.
 
-`build` normalizes every document, renders into a private staging directory beside the selected output, then renames that directory to the requested destination. It repairs render-receipt paths and writes `DOCUMENT_FACTORY_RECEIPT.json` after that rename. If a later receipt repair, hash/read or receipt write fails, the command can return failure while the published output directory remains. Inspect the directory and receipts before retrying; the next build refuses an existing destination. Preserve it as partial evidence and choose a fresh destination for a corrected retry.
+`build` renders into a private staging folder and then renames it to your `--outdir`. If `build`
+fails after that rename, the output folder can still exist. Keep it as evidence, choose a new
+`--outdir` and run `build` again.
 
-The factory's `mode_b_card` validator currently requires numbered sections 1–48. This is a renderer schema constraint, not automatic support for native Mode B `current50_v2` cards. Use the selected native profile's emitter and verifier for authorship, and choose a compatible export path without deleting required sections merely to satisfy a different renderer schema. See [Mode B profiles](MODEB_PROFILE_MATRIX.md) and [the Markdown authoring contract](SAPOTE_MARKDOWN_AUTHORING_CONTRACT.md).
+The `mode_b_card` document type needs numbered `## §N` sections that match the card's own contract.
+The contract comes from a header comment in the card, such as `<!-- MODE B | contract: current50_v2 -->`.
+With no header comment the card is held to `full48` (sections 1 to 48). A `current50_v2` card needs sections 1 to 50.
+A card whose sections do not match its contract fails `check`. Do not delete sections to satisfy this tool.
+See [Mode B profiles](MODEB_PROFILE_MATRIX.md) and
+[the Markdown authoring contract](SAPOTE_MARKDOWN_AUTHORING_CONTRACT.md).
 
-The factory receipt records DOCX/PDF hashes and template/project hashes; each document's render receipt also records its normalized Markdown input hash and canonical model hash. Referenced images are copied into each document's normalized directory, but these receipts do not enumerate image-byte hashes. Keep image sources and their separately recorded hashes with the handoff. Keep the YAML, templates and assets unchanged throughout check/build: the factory hashes YAML/templates after rendering rather than checking a frozen consumed-byte snapshot. A saved `check` result is not freshness evidence for a later build.
+The receipts record DOCX and PDF hashes, template and project hashes, and each document's normalized
+Markdown hash. They do not record image hashes, so keep the image files with the handoff. Do not
+change the YAML, templates or images between `check` and `build`. A saved `check` result does not
+prove a later build used the same bytes.
 
-Receipts contain absolute local paths; retain the relative project/output layout and update any handoff locator mapping explicitly when moving a project. The command prints its result JSON on stdout and exits 0 on success; caught command failures print `status: FAIL` on stdout and exit 1, while argument-parser errors exit 2. Save stdout and exit status when recording a run. No receipt establishes rendered-page quality or owner acceptance. Inspect requested outputs and pages separately before claiming they are usable for readers.
+Receipts hold absolute local paths. Exit codes are 0 for success, 1 for a caught failure and 2 for a
+command-line error. Open the Word and PDF files and read the pages before you share them. A receipt
+does not judge page quality.

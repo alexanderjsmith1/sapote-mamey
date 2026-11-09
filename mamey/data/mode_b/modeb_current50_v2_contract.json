@@ -21,7 +21,13 @@
   "current50_v1": "mamey/data/mode_b/modeb_full50_contract.json",
   "titles_and_conditions": "mamey/data/mode_b/modeb_full30_corrective_contract.json"
  },
- "section_policy": "§1–§50 in exact order. A section may carry a reasoned NOT_APPLICABLE disposition but is never omitted. §48 and §49 are the literature sections, with relevance. §50, the data evidence table, is the very last section; appendices are not allowed after it.",
+ "section_policy": "§1–§50 in exact order. A card declaring the FINISHED_FULL50_CURRENT50_V2 profile contains every section: a section may carry a NOT_APPLICABLE disposition with a written reason but is never omitted. A draft may omit the sections marked optional. §48 and §49 are the literature sections, with relevance. §50, the data evidence table, is the very last section; appendices are not allowed after it.",
+ "finished_profile_section_rule": {
+  "profile": "FINISHED_FULL50_CURRENT50_V2",
+  "all_sections_required": true,
+  "not_applicable_requires_reason": true,
+  "note": "Applies only to a card declaring this profile. 'optional' and 'conditional' in a section's required field describe drafts; the finished profile requires every section, with NOT_APPLICABLE plus a reason where it does not apply."
+ },
  "profiles": {
   "FINISHED_FULL50_CURRENT50_V2": "§1–§50 exactly once in order; literature in §48–§49; the data evidence table last in §50; no generic deferrals; reasoned typed evidence limitations retain their claim ceiling"
  },
@@ -331,7 +337,7 @@
    "title": "Region CDS census",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Exact region CDS census plus boundary-context census; independently reconciled denominators; no denominator-difference identity failure.",
    "change_from_v1": "unchanged"
   },
@@ -340,7 +346,7 @@
    "title": "Assembly-line inventory",
    "required": "conditional",
    "condition_key": "has_measured_assembly_line",
-   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it.",
    "requirement": "Assembly-line enzyme/domain inventory from measured architecture; absent modules distinguished from unmeasured modules.",
    "change_from_v1": "unchanged"
   },
@@ -349,7 +355,7 @@
    "title": "Module programming readout",
    "required": "conditional",
    "condition_key": "has_measured_assembly_line",
-   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it.",
    "requirement": "Module programming, substrate/extension/reduction logic and uncertainty; no collinearity assumption without support.",
    "change_from_v1": "unchanged"
   },
@@ -358,7 +364,7 @@
    "title": "Initiation & release logic",
    "required": "conditional",
    "condition_key": "has_measured_assembly_line",
-   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "condition_human": "the region carries a measured antiSMASH assembly line: a module count above zero (module_count / n_modules) or a has_assembly_line flag. A PKS/NRPS class label alone does not trigger it.",
    "requirement": "Initiation/loading and release/cyclization logic, candidate genes, alternatives and missing functions.",
    "change_from_v1": "unchanged"
   },
@@ -385,7 +391,7 @@
    "title": "Partner & accessory proteins",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Partner/accessory proteins classified as direct, plausible, broad context, or unbound; mechanism and coupling evidence stated.",
    "change_from_v1": "unchanged"
   },
@@ -403,7 +409,7 @@
    "title": "Cross-strain sequence identity",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Cross-strain identity/coverage on exact orthologous genes/loci with denominators and channels; no alias-only comparison.",
    "change_from_v1": "unchanged"
   },
@@ -412,7 +418,7 @@
    "title": "BiG-SCAPE family / cohort placement",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "BiG-SCAPE family, cutoff, run receipt, cohort/reference membership and private/shared scope; new run may update additively. Bind the current BiG-SCAPE run including MIBiG and reference-genome membership, per the companion-tool protocol, with its run receipt, parameters and compatible sequence/profile scope. If the required run is absent, state the actual evidence limitation rather than infer its results.",
    "change_from_v1": "updated (current BiG-SCAPE run)"
   },
@@ -421,7 +427,7 @@
    "title": "Protein / domain phylogeny",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Protein/domain phylogeny target, sequence binding, reference set, model limits and supported clade-level inference.",
    "change_from_v1": "unchanged"
   },
@@ -430,7 +436,7 @@
    "title": "Horizontal transfer evidence",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "HGT/composition evidence relative to a declared genomic baseline; mobile/context alternatives; GC deviation alone is insufficient.",
    "change_from_v1": "unchanged"
   },
@@ -448,7 +454,7 @@
    "title": "Within-cohort prevalence & tier",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Within-cohort prevalence with exact numerator/denominator, profile/class definition and governed exclusions. Also enumerate protein PCoA set membership for the exact BGC proteins and candidate partners, with input sequence identities, set/run receipts, embedding parameters and membership denominators. Separate set membership and visual proximity from supported functional or phylogenetic inference. Show the protein PCoA figure for the BGC: the compact two-set view, or the full PCoA where its proteins fall in more than two sets (Alex, 3 Oct: integrate the PCA plots into Mode B).",
    "change_from_v1": "updated (protein PCoA sets)"
   },
@@ -457,7 +463,7 @@
    "title": "Supervisor / university cohort comparison",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Supervisor/university cohort comparison with declared cohort, comparable denominator and source receipt; otherwise reasoned not-applicable.",
    "change_from_v1": "unchanged"
   },
@@ -466,7 +472,7 @@
    "title": "Type / reference strain comparison",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Type/reference-strain comparison on exact comparable loci and genes, including Mamey/antiSMASH profile compatibility and divergence.",
    "change_from_v1": "unchanged"
   },
@@ -475,7 +481,7 @@
    "title": "Host-matched unrelated reference",
    "required": "optional",
    "condition_key": null,
-   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "condition_human": "Optional in a draft. A FINISHED_FULL50_CURRENT50_V2 card must contain it, with a NOT_APPLICABLE disposition and a reason when it does not apply. If present: number, exact title, order, uniqueness and body extraction are enforced.",
    "requirement": "Host-matched unrelated reference comparison with verified host metadata, comparator rationale and transfer limits.",
    "change_from_v1": "unchanged"
   },

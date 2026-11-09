@@ -33,8 +33,10 @@ Report no shared comparator only after confirming every requested fragment and i
 2. **Tiling display** — order subject IDs by their trailing integer, a reference-order proxy rather than inspected genomic coordinates. The verdict uses overlap fraction relative to the smallest nonempty subject set, not a universal zero-or-one-gene allowance. Retain the emitted fraction and actual evidence denominator; a software verdict does not prove clean physical tiling.
 3. **CB re-annotation** — query genes the draft called "hypothetical" re-read against the
    reference (the poorly-annotated-BGC rescue).
-4. **Contig-flank census ("look downstream")** — every CDS on each contig flagged
-   `★ scaffold` / `· CB-family` / `unexplained`. Flank genes that do not hit are stated as
+4. **Region-file CDS census ("look downstream")** — every CDS parsed from each fragment's selected
+   region GenBank file, flagged `★ scaffold` / `· CB-family` / `unexplained`. A region file covers
+   the antiSMASH region and its flanks, not necessarily the whole parent contig, so this is not a
+   whole-contig census. Flank genes that do not hit are stated as
    the honest boundary, **never** assumed absent. (This is the C8 companion: the boundary
    walk states what the contig edge cannot resolve.)
 
@@ -50,7 +52,7 @@ Report no shared comparator only after confirming every requested fragment and i
 
 ## Current input/output and identity boundary
 
-For each retained alias the helper chooses the first matching ClusterBlast text and region GenBank from contig-prefix globs; it does not join the exact region or refuse multiple matches. Reconcile every selected path with the full source-bound strain / full node-or-contig / region / alias, especially when several regions share a contig. Missing requested aliases are skipped. Keep the requested and retained rosters separately; no full-locus admission receipt is emitted.
+For each retained alias the helper chooses the region GenBank in this order: the exact `source_gbk` basename recorded for the BGC; else `<contig>.regionNNN.gbk` for the BGC's region number; else the only `<contig>.region*.gbk` file. When several region files share the contig and none matches, the census marks that fragment `AMBIGUOUS` and lists no CDS (a hold, not an empty region); a missing file is `NOT_FOUND`. The report names the chosen file and how it was chosen. The ClusterBlast text is still the first match of a `<contig>_*.txt` glob and is not bound to the region. Reconcile every selected path with the full source-bound strain / full node-or-contig / region / alias. Missing requested aliases are skipped. Keep the requested and retained rosters separately; no full-locus admission receipt is emitted.
 
 Use explicit fresh external `--out` paths for both reconstruction and lead-detail helpers when preserving a package. Defaults write `reconstruction.md` and `lead_detail.json` inside the supplied package, replacing existing files. Atomic replacement of one output is not package validation, checksum refresh or scientific acceptance. Preserve original package evidence and bind source/output hashes separately.
 

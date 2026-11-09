@@ -1,30 +1,44 @@
-# Using the 50-section Mode B contract
+# The 50-section reference files
 
-The bundle includes `docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md` and a frozen machine-readable copy of its 50 requirement rows in `mamey/data/mode_b/modeb_full50_contract.json`.
+Most users do not need this page. To write a Mode B card, use the [profile guide](MODEB_PROFILE_MATRIX.md) and the [walkthrough](MODE_B_USER_WALKTHROUGH.md). This page is for someone who points a cohort tool at the 50-section text.
 
-The JSON records the Markdown SHA-256 and the consumers that require a 50-section shape. It is a reference artifact, not a new input format for those consumers.
+## What is shipped
 
-## Bind the input the consumer actually reads
+- `docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md` is the 50-section text, called current50 v1.
+- `mamey/data/mode_b/modeb_full50_contract.json` is a frozen copy of its 50 rows. It records the text's SHA-256 under `source_document.sha256`.
+- The newer opt-in card profile is current50_v2, described in the [v2 contract](MODEB_CURRENT50_V2_CONTRACT.md). It is a different file with its own hash.
 
-- `mamey/evidence_disagreements.py` reads a Markdown path and SHA-256 from the selection configuration's `contract` entry.
-- `mamey/cohort_enzyme_neighborhoods.py` reads pinned Markdown from `sources.current50_contract`.
-- `tools/cohort_tailoring/build_atlas.py` checks the selected contract text and hash against its bound database profile, then checks sections 1 through 50.
-- `mamey/structured_domain_motif_extension.py` checks section rows in its bound database.
+Check the hash of the text before you pin it:
 
-For Markdown consumers, select the bundled Markdown and verify its bytes against `source_document.sha256` in the JSON. Do not point a Markdown consumer at the JSON: its row parser will reject that format. Database consumers still need their existing database bindings and profile checks.
+```bash
+shasum -a 256 docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md
+```
 
-A supplied path and matching hash prove the selected bytes, not independent authority or scientific completeness. This addition does not change consumer resolution, evidence admission, or completion gates.
+The value must equal `source_document.sha256` in the JSON.
 
-## Preserve existing profiles
+## Which tools read it
 
-Keep the source Markdown unchanged while existing configurations pin its hash. A future revision needs an explicit new contract identity and updated bindings.
+Each tool reads the text in a different way. Point each at the input it reads.
 
-The separate `mamey/data/mode_b/modeb_full30_corrective_contract.json` contains the 48-section corrective profile. Its filename is historical. The 50-section reference does not supersede it.
+| Tool | What it reads |
+|---|---|
+| `mamey/evidence_disagreements.py` | A Markdown path and SHA-256 in the `contract` entry of its selection configuration. |
+| `mamey/cohort_enzyme_neighborhoods.py` | Pinned Markdown at `sources.current50_contract` in its configuration. |
+| `tools/cohort_tailoring/build_atlas.py` | The contract text and hash held in its database profile. It then checks sections 1 to 50. |
+| `mamey/structured_domain_motif_extension.py` | The section rows in its database. |
 
-Section requirements describe scope. Their presence does not supply evidence or establish biological conclusions. Judgment deferred.
+In the evidence-disagreements selection file, the pin is a JSON entry. The path is relative to the selection file:
 
-## Reader contract versus finished-card verification
+```text
+"contract": {"path": "MODEB_50_SECTION_CONTRACT_CANDIDATE.md", "sha256": "<value from the JSON>"}
+```
 
-Current50 v1's 50-row shape is distinct from the opt-in `current50_v2` **card** profile. Passing a consumer's row/hash/database-profile checks does not run `verify-modeb`, author a completed card, or establish independent roster/channel completeness. Keep the selected contract identity, pinned source bytes and downstream receipt with that consumer. Changing the contract text requires a new explicit binding; do not silently reuse a v1 pin for v2.
+If the file is missing or its hash differs, the tool stops with `CURRENT50_CONTRACT_PIN_HOLD`.
 
-Use the [profile matrix](MODEB_PROFILE_MATRIX.md) for the actual verifier/export handoff. The normative [v2 requirement text](MODEB_CURRENT50_V2_CONTRACT.md) is pinned by its own sha256; never edit it in place. Its own source-version/authority record and machine requirements remain separate from the pass/fail status of any card. A verifier receipt requires additional exact card/source hashes and argument binding before it can identify an immutable attempt.
+Do not point a Markdown tool at the JSON. Its row parser rejects it. A matching path and hash show that you chose those bytes. They do not show the content is complete or right.
+
+## What this does not do
+
+- It does not run `verify-modeb` or write a card. Passing a tool's hash check is not a card check.
+- It does not change the default full48 profile, which lives in `mamey/data/mode_b/modeb_full30_corrective_contract.json` and has 48 sections.
+- Changing the text means a new contract and new pins. Do not reuse a v1 pin for v2, and do not edit a pinned file in place.

@@ -1,6 +1,6 @@
 # Explicit-file evidence freshness
 
-`tools/evidence_freshness.py` is an offline read-only adapter for retained SHA-256 pins and declared dependency edges. It does not discover a cohort or update a manifest. Use the existing input-manifest, availability, package-integrity and release-checking tools for their owning scopes.
+`tools/evidence_freshness.py` is an offline adapter for retained SHA-256 pins and declared dependency edges. It never changes the manifest, the listed files or a baseline. Its only write is the receipt you name with `--out`. It does not discover a cohort or update a manifest. Use the existing input-manifest, availability, package-integrity and release-checking tools for their owning scopes.
 
 ## Manifest
 
@@ -40,9 +40,11 @@ The direct states are `HASH_MATCH`, `CHANGED`, `MISSING_FILE`, `UNVERIFIED_BASEL
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python tools/evidence_freshness.py retained_manifest.json \
-  --bundle /absolute/path/to/selected/bundle > current_recheck.json
+  --bundle /absolute/path/to/selected/bundle --out new_recheck_receipt.json
 ```
 
-Exit 0 means all listed checks passed; 1 means typed holds; 2 means invalid input. Keep the actual receipt and baseline separately. Investigate changed or missing sources before rebuilding an affected report. Do not rewrite the baseline to turn a hold green. Keep scientific holds even when every byte matches. This check does not supply rendered-page review, sequence equality, gene roster completeness, alignment coverage, taxonomy, compound identity, activity, release authority or publication acceptance.
+`--out` must name a new file. The adapter refuses an existing file, the manifest and any listed artifact, and then exits 2 with `OUTPUT_REFUSED`; it never truncates a retained receipt. Without `--out` the receipt goes to standard output. Do not redirect it with `>` onto a path you want to keep: the shell empties that file before the adapter starts, even when the input is then refused.
+
+Exit 0 means all listed checks passed; 1 means typed holds; 2 means invalid input or a refused `--out` path. Keep the actual receipt and baseline separately. Investigate changed or missing sources before rebuilding an affected report. Do not rewrite the baseline to turn a hold green. Keep scientific holds even when every byte matches. This check does not supply rendered-page review, sequence equality, gene roster completeness, alignment coverage, taxonomy, compound identity, activity, release authority or publication acceptance.
 
 Artifact reads are bounded by the remaining per-file and total byte budgets, including a file that grows after its size precheck. Descriptor size/identity are checked before accepting a complete digest. `hashed_bytes` counts actual payload bytes consumed, including discarded attempts; each row reports `read_bytes`. Cached unchanged aliases read no additional payload. Manifest and optional identity-owner code reads are outside those artifact-payload counters. API budgets, like CLI budgets, must be positive integers.

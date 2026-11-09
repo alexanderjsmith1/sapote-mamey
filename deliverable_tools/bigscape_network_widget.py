@@ -15,8 +15,12 @@ import html
 import json
 import math
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from mamey.output_transaction import preflight_output_roster  # noqa: E402
 
 CLAIM_CEILING = (
     "GCF membership and direct edge distance are run- and cutoff-specific "
@@ -751,7 +755,9 @@ def integrate_report_html(
     if anchor not in source:
         raise ValueError("REPORT_INTEGRATION_GATE: claim ceiling insertion anchor not found")
     output = source.replace(anchor, section + anchor, 1)
-    Path(out_path).write_text(output, encoding="utf-8")
+    # "x" mode: an existing report-out (including the source report) is refused, never replaced.
+    with Path(out_path).open("x", encoding="utf-8") as stream:
+        stream.write(output)
     return {
         "status": "PASS",
         "out_locator": Path(out_path).name,
@@ -845,6 +851,22 @@ def main(argv=None):
     parser.add_argument("--report-receipt-out")
     args = parser.parse_args(argv)
     try:
+        if args.report_html or args.report_out or args.report_receipt_out:
+            # The integrated report and its receipt are fresh outputs. They may not alias the
+            # source report, any evidence table, each other, or the two explorer pages.
+            fresh = [path for path in (args.report_out, args.report_receipt_out) if path]
+            protected = [path for path in (
+                args.report_html, args.membership, args.summary, args.pairwise, args.direct_edges,
+                args.curated_comparator_context, args.comparator_component_context,
+            ) if path]
+            protected += [str(Path(args.out) / "GCF_NETWORK_EXPLORER.html"),
+                          str(Path(args.out) / "STRAIN_SHARING_NETWORK.html")]
+            if args.mibig_json_dir:
+                protected.append(args.mibig_json_dir)
+            try:
+                preflight_output_roster(fresh, protected_paths=protected)
+            except ValueError as error:
+                raise ValueError(f"REPORT_INTEGRATION_GATE: {error}") from error
         result = build(
             args.membership, args.summary, args.pairwise, args.out,
             args.direct_edges, args.focal_strain or args.strain or "",
@@ -863,10 +885,8 @@ def main(argv=None):
                 args.comparator_component_context,
             )
             if args.report_receipt_out:
-                Path(args.report_receipt_out).write_text(
-                    json.dumps(result["report_integration"], indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8",
-                )
+                with Path(args.report_receipt_out).open("x", encoding="utf-8") as stream:
+                    stream.write(json.dumps(result["report_integration"], indent=2, sort_keys=True) + "\n")
     except ValueError as error:
         raise SystemExit(str(error))
     print(json.dumps(result, sort_keys=True))

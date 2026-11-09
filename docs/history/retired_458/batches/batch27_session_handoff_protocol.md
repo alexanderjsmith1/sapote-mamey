@@ -65,6 +65,8 @@ Follow the shared next-path and automatic SAVE STATE policy in `../../AGENTS.md`
 
 For every strain, run in this order. Skip-ahead causes issues:
 
+Historical: do not run these as written. They use `python -m mamey`, which can resolve to a different installed version than the bundle you are in. Use `python mamey_run.py <command>` from the bundle root (see [AGENTS.md](../../../../AGENTS.md)).
+
 ```bash
 # 1. Preflight
 python -m mamey doctor
@@ -117,6 +119,8 @@ Mode B cards that live only in a chat window are lost when the session ends.
 
 The judgment store is the durable per-BGC record inside the package. A card is not part of the permanent analysis record until it's been ingested:
 
+Historical: do not run this as written; it uses `python -m mamey`. Use `python mamey_run.py ingest-receipts` from the bundle root (see [AGENTS.md](../../../../AGENTS.md)).
+
 ```bash
 python -m mamey ingest-receipts \
   --package runs/[strain]/package \
@@ -141,7 +145,7 @@ The receipt is a JSON file with this structure:
 
 ```json
 {
-  "strain_id": "AS-XXX",
+  "strain_id": "<strain>",
   "session_id": "2026-06-29_session_01",
   "cards": [
     {

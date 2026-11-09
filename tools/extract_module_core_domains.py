@@ -13,7 +13,7 @@ TWO GATES (baked in, per the review lane/an audit lane 2026-08-10 — these are 
      COMPLETE at low KS count, so this tool NEVER emits a "missing modules" / "fragmented" claim from a count.
      It reports the raw PKS_KS count per BGC as an OBSERVATION with that caveat stamped on the manifest.
   2. STRAIN-INTERNAL ONLY: one strain per run (asserted from the region-GBK filenames). A cross-strain KS tree
-     would fuse e.g. AS-XXX Micromonospora KS with AS-XXX KS (contamination) into a fictitious pathway.
+     would fuse e.g. one strain's Micromonospora KS with another strain's KS (contamination) into a fictitious pathway.
 
 Header format (round-trips): >{strain}__{node}__{region}__{locus_tag}__{domain_id}
 CLI:

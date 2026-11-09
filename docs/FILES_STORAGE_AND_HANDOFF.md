@@ -1,101 +1,155 @@
 # Save and move a result
 
-Keep the complete result folder, its ZIP and the original antiSMASH ZIP together.
-This page shows what to save and how to move it without losing files. You need
-access to the originals and enough space for the destination copy.
+Keep the result folder, its ZIP and the original antiSMASH ZIP together. This page
+shows what to save and how to copy it to another computer without losing files.
+You need the originals and enough disk space for the copy. To keep results in a
+checked, logged store instead, see [Keep results in a Strain Master](DATA_HOME.md).
 
-## What each file is for
+## What to keep
 
-The program version and input ZIP identify how the run was made. Record their
-hashes. Keep the package as a unit: its manifest, tables, workbook, figures and
-logs link to one another. Keep any reference sequences used in later analyses too.
+A finished run writes `runs/EXAMPLE/`. It holds:
 
-The `*_Complete_Package.zip` is a snapshot from the end of extraction. Later
-cards, notes and other authored files may live outside it; save those separately.
-Figure rebuilds may also need their source tables, configs and reference data.
-Python environments and caches can be recreated from the dependency record.
+- `package/`, the folder with the manifest, tables, workbook and issue log;
+- `EXAMPLE_SapoteMamey_..._Complete_Package.zip`, a ZIP snapshot of that folder;
+- the run's logs.
 
-Check a file's role before deleting it. Failed-run logs can explain why a retry
-used different settings.
+Keep all of it, plus the original antiSMASH ZIP. Record the program version and
+each ZIP's hash (see below). Failed-run logs can explain why a retry used
+different settings, so check a file's role before you delete it.
+
+The `Complete_Package.zip` is a snapshot from the end of extraction. Written cards,
+notes and other files you add later live outside it; save those separately.
+Figure rebuilds may need their source tables and reference data. You can recreate
+Python environments and caches from `pyproject.toml` and [Install](INSTALL.md).
 
 ## Open a saved run without rerunning it
 
-Extract the package ZIP into a review folder and keep the original ZIP. Open
-`OPEN_ME_FIRST.html`, then follow [Read results](reader/03_READ_RESULTS.md).
-If the browser blocks local links, open the listed files from your file browser.
+Extract the package ZIP into a new review folder and keep the original ZIP. Open
+`<review folder>/package/OPEN_ME_FIRST.html`, then follow
+[Read one saved package](reader/03_READ_RESULTS.md). If the browser blocks local
+links, open the listed files from your file browser.
 
-Use the matching program version for command-line checks. `explain` reads saved
-summaries. Follow [Read results](reader/03_READ_RESULTS.md#run-a-fresh-check-if-needed)
-for fresh validation and its status-write result. Keep the old records and the
-new terminal results separately.
+Command-line checks need the matching program version. `explain` reads saved
+summaries. For a fresh validation, see
+[Run a fresh check](reader/03_READ_RESULTS.md#run-a-fresh-check-if-needed). Keep the old
+records and the new terminal output separately.
 
 ## Move a result to another computer
 
-Copy the ZIPs, notes and authored files. Compare the archive hash on both machines:
+Copy the ZIPs, notes and files you added. A hash is a fingerprint of a file's
+bytes. Run the same command on both computers and check that the two values are
+identical.
+
+macOS or Linux:
 
 ```bash
 shasum -a 256 ~/Downloads/EXAMPLE.zip
 ```
 
-Replace the path with the archive you are transferring. Matching hashes confirm
-that its bytes arrived intact. Extract into a fresh folder at the destination.
-Old absolute paths still name locations on the original machine; record the new
-locations beside the old records.
+Windows Command Prompt:
 
-PDFs and CSVs can be read without Python. Commands need a compatible environment;
-see [Install](INSTALL.md).
+```bat
+certutil -hashfile "%USERPROFILE%\Downloads\EXAMPLE.zip" SHA256
+```
+
+Windows PowerShell:
+
+```powershell
+Get-FileHash "$HOME\Downloads\EXAMPLE.zip" -Algorithm SHA256
+```
+
+Replace the path with each archive you are copying. Matching hashes mean the
+bytes arrived intact. Extract into a fresh folder at the destination. Old
+absolute paths still name locations on the original machine; write the new
+locations beside the old records. Compiled reports hold absolute image paths that
+point into a reader snapshot; see the
+[absolute-path note](POSTSEAL_READERS.md#compiled-report-image-links).
+
+PDFs and CSVs open without Python. Commands need a compatible environment; see
+[Install](INSTALL.md).
 
 ## Why the output is large
 
-A run keeps both an expanded package and its ZIP. Briefs and locus maps add figure
-files for each region. If you deliberately want tables without those renderings,
-add `--brief none --locus-maps off` to your chosen `run` command.
+A run keeps both an expanded package and its ZIP. The brief adds a PDF and its
+figures. Locus maps add one figure per region. To skip both, add
+`--brief none --locus-maps off` to your `run` command.
 
-`--capped-session` also changes JSON reading, workbook requirements, compression
-and progress output. It is not just a way to save figure space. The [input guide](ANTISMASH_INPUTS_CONSUMED.md)
-explains the evidence modes; leave the defaults for the [first run](reader/01_FIRST_RUN.md).
+`--capped-session` is a mode for tools with a time limit. It skips the brief and the
+main antiSMASH JSON walker, and turns automatic gene maps off unless you set `--locus-maps`.
+KnownClusterBlast text and a separate record pass are still read. It requires the workbook,
+writes an uncompressed ZIP unless `MAMEY_ZIP_COMPRESSION` is set, and prints a progress line
+every 20 seconds unless you set `--heartbeat-seconds`. It is not just a way to save space. The
+[input guide](ANTISMASH_INPUTS_CONSUMED.md) explains the evidence modes. The
+[first run](reader/01_FIRST_RUN.md) uses the capped command that `inspect` prints. The
+[Quick Guide](GUIDE/02_Quick_Guide.md#1-inspect-and-run-one-strain) says how to turn it into a full run.
 
 ## Archive to an external disk or iCloud
 
-Copy the selected files, verify their hashes and open a file from the copy.
-Update your location notes before deciding whether to delete any local original.
-Cloud placeholders and disconnected disks cannot supply inputs to a running analysis.
+Copy the files you chose, check their hashes, and open one file from the copy.
+Update your location notes before you decide whether to delete a local original.
+A cloud placeholder or a disconnected disk cannot supply inputs to a running
+analysis.
 
 ## What a checkpoint records
 
-Save a short note with the objective, input and program versions/hashes, output
-paths, settings, completed and failed steps, unresolved questions and next action.
-Keep any assistant transcript with that note. See the [save-state guide](ASSISTANT_USER_GUIDE.md#next-paths-automatic-save-state-and-transcripts).
+Save a short note with the objective, input and program versions and hashes,
+output paths, settings, completed and failed steps, open questions and the next
+action. Keep any assistant transcript with that note. The policy is in
+[AGENTS.md](../AGENTS.md#next-paths-automatic-save-state-and-transcripts).
 
 <a id="use-the-portable-handoff-builder-deliberately"></a>
 
 ## Build a portable ZIP
 
-The `handoff` command combines a package and selected raw region GenBank files.
-It does not include your Python environment or authored files outside the package.
-Create a new output folder first:
+Use `handoff` when the receiver needs to run online BLASTp. That search needs the
+protein sequences of each region. A package does not carry them. The region
+GenBank files from the antiSMASH ZIP do. `handoff` packs the package and those
+files into one ZIP, so you do not send the 20 to 120 MB antiSMASH ZIP. For any
+other transfer, copy `*_Complete_Package.zip`.
+
+`handoff` does not include your Python environment or files you added outside the
+package. Create a new output folder first:
 
 ```bash
 mkdir -p ../EXAMPLE-transfer
-python mamey_run.py handoff --package runs/EXAMPLE/package   --input-zip ~/Downloads/EXAMPLE.zip   --out ../EXAMPLE-transfer/EXAMPLE.zip
+python mamey_run.py handoff \
+    --package runs/EXAMPLE/package \
+    --input-zip ~/Downloads/EXAMPLE.zip \
+    --out ../EXAMPLE-transfer/EXAMPLE.zip
 ```
 
-Replace the run label and input path. Check the package and input hash first:
-the builder does not compare them for you. Use a new filename because both an
-existing destination and its `.tmp` file can be replaced. Run one build per destination.
+Before you run it, check that the package and the input ZIP belong together.
+Compare `shasum -a 256` (or the Windows command above) of the input ZIP with
+`input_zip_sha256` in `runs/EXAMPLE/package/manifest.json`. `handoff` does not
+compare them. Use a new filename: an existing destination is replaced. Run one
+build per destination.
 
-A region-only ZIP can change the protein set; compare query identifiers and sequence hashes before reusing a search plan or results.
+A good run prints:
 
-Read the reported region count and inspect the ZIP. A missing input archive can
-still return success with a package-only ZIP. For a limited region selection,
-`--top-n` uses ranked rows and the filename crosswalk; inspect the selected full
-identities and filenames because unmapped rows and filename collisions can
-change the result.
+```text
+handoff -> ../EXAMPLE-transfer/EXAMPLE.zip (2.9 MB)
+  region GBKs: 70  (all regions)
+```
 
-For several packages with their catalog, use [private project export](PROJECT_CATALOG.md#export-a-private-archive),
-which refuses an existing destination.
+Your size and count will differ. A `NOTE:` line means the input ZIP was missing
+and no region files went in. The result is a package-only ZIP and online BLASTp
+will not work from it. The ZIP root holds `HANDOFF_README.txt`, which lists what
+is inside.
 
-## Fingerprints have a narrower scope than archive integrity
+The output must sit outside the package folder and must not be an input file. A
+bad package path prints `ERROR:` and exits 1.
 
-A package fingerprint covers selected normalized table/state files. Use the
-whole-archive SHA-256 above to check a transfer, and validation to check package structure.
+A region-only ZIP can change the protein set. Compare query identifiers and
+sequence hashes before you reuse a search plan or results. With `--top-n N`, only
+the top N ranked regions are included. Check the selected region identities and
+filenames, because unmapped rows and filename collisions can change the result.
+
+To move several packages with their catalog, use
+[private project export](PROJECT_CATALOG.md#export-and-test-the-archive). It refuses an
+existing destination.
+
+## Fingerprints and archive integrity
+
+A package fingerprint covers selected normalized table and state files. Use the
+whole-archive SHA-256 above to check a transfer, and `validate` to check package
+structure.

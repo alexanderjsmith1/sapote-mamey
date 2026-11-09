@@ -35,4 +35,6 @@ def test_title_counts_plotted_rows_and_axis_names_only_the_score(tmp_path, monke
         assert plotted == min(count, limit)
         assert title.startswith(f"Top {plotted} ")
         assert "software-fixture" in title
-        assert xlabel == "DAPR auto score"
+    # Each axis names the triage-board routing prior it plots, not a DAPR score.
+    assert [xlabel for _, xlabel, _ in observed] == [
+        "Antibacterial routing prior (AB_auto)", "Antifungal routing prior (AF_auto)"]

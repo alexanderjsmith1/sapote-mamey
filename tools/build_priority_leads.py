@@ -26,6 +26,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 from _wbio import atomic_save, atomic_open, atomic_write_text
+from mamey.missing_values import is_missing  # noqa: E402  (bundle root is on sys.path above)
 
 # v9.7.151 (bunny-hop 60-file): scoring weights are TUNABLE not CALIBRATED.
 # Same status as `fragment_concordance_scorer.py` — picked from working
@@ -54,6 +55,30 @@ _SIGNAL_CAP        = 6
 _SIGNAL_W          = 0.15
 
 
+# Anchor placeholders beyond the shared `mamey.missing_values` tokens: the engine's UNRESOLVED
+# sentinel (and "UNRESOLVED (...)"), dash characters, "?" (the build_modeb_deepdive fallback),
+# "unknown", "N.A." and the assay state "n.t.". None of them names a comparator product.
+_ANCHOR_PLACEHOLDERS = frozenset({"unresolved", "unknown", "?", "\u2014", "\u2013", "n.a.", "n.t."})
+
+
+def kcb_anchor_named(value) -> bool:
+    """True only when a KCB anchor cell names at least one comparator product.
+
+    Blank, a `mamey.missing_values` placeholder, an anchor placeholder above, or a `;`/`,` list
+    made only of those is not a match (ruling 15). A numeric cell (openpyxl returns numbers as
+    numbers) names no product and is not a match; it never crashes the scorer.
+    """
+    if value is None or isinstance(value, (bool, int, float)):
+        return False
+    for part in str(value).replace(",", ";").split(";"):
+        token = part.strip()
+        folded = token.casefold()
+        if is_missing(token) or folded in _ANCHOR_PLACEHOLDERS or folded.startswith("unresolved"):
+            continue
+        return True
+    return False
+
+
 def score(row):
     s=0.0; axes=[]
     mb=(row.get('ModeB_Status') or '').strip()
@@ -65,8 +90,9 @@ def score(row):
     if 'DasR' in regs: s+=_W_DASR; axes.append('DasR')
     nother=sum(1 for r in regs.split(';') if r.strip() and 'SARP' not in r and 'DasR' not in r)
     s+=min(nother,_REG_DIVERSITY_CAP)*_REG_DIVERSITY_W
-    kcb=(row.get('KCB_anchor') or '').strip()
-    if kcb and kcb.lower() not in ('','none','-'): s+=_W_KCB_ANCHOR; axes.append('KCB')
+    # Ruling 15: a placeholder anchor is not a comparator match. Blank, NA, n/a, none, -, null,
+    # UNRESOLVED and a list of only placeholders earn no KCB bonus and so no Class C KCB flag.
+    if kcb_anchor_named(row.get('KCB_anchor')): s+=_W_KCB_ANCHOR; axes.append('KCB')
     if str(row.get('Tier') or '')=='1': s+=_W_TIER1; axes.append('T1')
     nsig=len([x for x in (row.get('signals') or '').split(',') if x.strip()])
     s+=min(nsig,_SIGNAL_CAP)*_SIGNAL_W

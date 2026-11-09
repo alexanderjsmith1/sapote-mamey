@@ -1,10 +1,10 @@
 # BiG-SCAPE Class Glossary
 
-This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary drives the TSV fields, report headings, network labels, and visible legends.
+This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-SCAPE reports and widgets. The same bundled vocabulary sets the `class_code` and `class_nickname` columns of `BIGSCAPE_GCF_SUMMARY.tsv` (`tools/bigscape_cohort_report.py`). The network widget uses it for each family heading's class code, the visible class legend and the expandable full key. Node labels show strain and BGC alias text and do not use it.
 
 ## How to read a network
 
-1. Start with the GCF number and cutoff. They identify one run-specific family, not a universal biological name.
+1. Start with the GCF number, the cutoff and the BiG-SCAPE run ID. Only the three together identify one family; the same number and cutoff in another run or database is a different family, and none of them is a universal biological name. The widget heading shows the number and cutoff; the run ID is in `BIGSCAPE_COHORT_REPORT_RECEIPT.json`.
 2. Expand the class code with the table below. Treat it as a broad routing label from source antiSMASH annotations.
 3. Hover or click a node and record the complete strain, node or contig, region, and BGC alias identity.
 4. Read the boundary state. CONTIG_EDGE is a caution that the called region touches a contig boundary.
@@ -32,8 +32,8 @@ This key explains the broad biosynthetic class codes shown in Sapote-Mamey BiG-S
 | NIS-SID | Nonribosomal independent siderophore | The source labels identify a siderophore assembled without an NRPS backbone. | NI-siderophore or NIS-siderophore source label. | Broad siderophore class only; metal preference, product, and activity remain unverified. |
 | METAL | Metallophore | The source labels identify a broad metal-chelating biosynthetic class without a more specific code. | Metallophore source label not already assigned to NRPS. | Broad metal-chelation class only; metal preference, product, and activity remain unverified. |
 | OTH | Other antiSMASH class | The source label is recognized but does not map to a more specific code in this compact vocabulary. | Other, fatty acid, ectoine, butyrolactone, or betalactone source label. | Routing category only; no pathway or product inference follows. |
-| MIX | Mixed broad classes | Members of the displayed GCF carry more than one broad class code. | Deterministic disagreement among member-level broad class codes. | Mixed routing label only; it does not establish a hybrid pathway or shared product. |
-| UNK | Unresolved class | The available source labels do not resolve to a code in this vocabulary. | No configured class term matched the available source labels. | Unknown means unresolved, not biologically absent or novel. |
+| MIX | Mixed broad classes | Members of the displayed GCF carry more than one resolved broad class code. Members whose labels resolve to no code (UNK) are left out of this decision, so a family with one resolved code and some unresolved members gets that code, not MIX; n_unresolved_class_records in the summary counts them. | Deterministic disagreement among the resolved member-level broad class codes. | Mixed routing label only; it does not establish a hybrid pathway or shared product. |
+| UNK | Unresolved class | The available source labels do not resolve to a code in this vocabulary. A family is UNK only when none of its members resolves. | No configured class term matched the available source labels. | Unknown means unresolved, not biologically absent or novel. |
 
 ## Reviewed subtype codes
 

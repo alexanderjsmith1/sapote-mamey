@@ -20,6 +20,8 @@ Capabilities depend on the current environment and granted tools, not the name C
 
 ---
 
+Historical: this role split between two named assistant platforms is a retired .149a convention. Current assistant guidance is in [Working with an assistant](../../../ASSISTANT_USER_GUIDE.md).
+
 ## The division of labour
 
 | Platform | Role | Writes |
@@ -116,7 +118,7 @@ When the ChatGPT ZIP arrives:
 9. Update A4 for new strains
 10. Append A3 run manifest row
 11. Append H1 handoff log row
-12. Save as `SID-XXX_master_v1_0_Claude_filled_{{N+1}}.xlsx`
+12. Save as `<strain>_master_v1_0_Claude_filled_{{N+1}}.xlsx`
 
 ---
 

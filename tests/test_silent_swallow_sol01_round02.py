@@ -32,8 +32,8 @@ def _package(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (package / f"{STRAIN}_4_triage_board.csv").write_text(
-        "BGC_ID,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
-        f"{BGC},NRPS,1,Interior,Inventory\n",
+        "BGC_ID,Contig,antiSMASH_Region,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
+        f"{BGC},{NODE},{REGION},NRPS,1,Interior,Inventory\n",
         encoding="utf-8",
     )
     judgment = package / "judgment"
@@ -116,7 +116,7 @@ def test_context_findings_survive_dual_lint_failure(tmp_path, monkeypatch):
     assert {"VERIFICATION_CONTEXT_MALFORMED", "CONTEXT_LINT_FAILED", "GATE_UNAVAILABLE"} <= codes
 
 
-def test_invalid_utf8_triage_refused_by_batch_ingest_but_absence_is_accepted(tmp_path):
+def test_invalid_utf8_triage_refused_by_batch_ingest_and_absence_is_an_identity_hold(tmp_path):
     malformed = _package(tmp_path / "malformed")
     (malformed / f"{STRAIN}_4_triage_board.csv").write_bytes(
         b"BGC_ID,Products\nBGC001,\xff\n"
@@ -128,12 +128,16 @@ def test_invalid_utf8_triage_refused_by_batch_ingest_but_absence_is_accepted(tmp
                for row in malformed_findings)
     refused = receipt.ingest_receipt(malformed, _receipt_file(tmp_path / "malformed"))
     assert refused["recorded"] == []
-    assert refused["skipped_structure_invalid"] == [(BGC, 1)]
+    # An unreadable triage board cannot bind the card identity: an identity hold.
+    assert [r["identity_hold"] for r in refused["skipped_identity_mismatch"]] == [
+        "TRIAGE_BOARD_UNREADABLE"]
 
+    # A missing triage board leaves the alias unbound, so the card is not recorded.
     absent = _package(tmp_path / "absent")
     (absent / f"{STRAIN}_4_triage_board.csv").unlink()
-    accepted = receipt.ingest_receipt(absent, _receipt_file(tmp_path / "absent"))
-    assert accepted["recorded"] == [BGC]
+    held = receipt.ingest_receipt(absent, _receipt_file(tmp_path / "absent"))
+    assert held["recorded"] == []
+    assert [r["identity_hold"] for r in held["skipped_identity_mismatch"]] == ["NO_TRIAGE_ROW"]
 
 
 def test_valid_non_object_gene_context_is_explicit_at_lint_caller(tmp_path):

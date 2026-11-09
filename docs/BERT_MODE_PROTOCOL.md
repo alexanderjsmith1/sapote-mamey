@@ -8,8 +8,10 @@ User-selected output formats and project requirements take precedence over prese
 
 Resolve the title, authors, publication venue, year and stable identifiers against a primary
 record. Read the passage or table supporting each summarized claim. Record the source locator,
-review date, reviewed passage location, applicability and unresolved fields. A DOI match verifies
-metadata; it does not verify that the paper supports a particular statement.
+review date, reviewed passage location, applicability and unresolved fields. A DOI match helps
+identify the record. It does not confirm the separately written title, authors, year or venue,
+so check each field against the record you selected. It also does not show that the paper
+supports a particular statement.
 
 Do not invent identifiers, missing bibliographic fields or quantitative results. If full text is
 unavailable, limit the summary to what was actually reviewed and identify the gap. Retained source
@@ -70,6 +72,9 @@ reference does not automatically support a strain-specific statement.
 ## Completion record
 
 Report what was reviewed, source counts and outstanding gaps. A bibliography is complete only for
-its declared scope; unresolved citations remain explicit. This document owns the bundled digest
-vocabulary. Keep `tests/test_bert_taxonomy_drift.py` synchronized when that vocabulary changes.
-Historical exemplars and older monolith sections require their own reconciliation before reuse.
+its declared scope; unresolved citations remain explicit. The older format example
+[`examples/citation_library_exemplar.md`](../examples/citation_library_exemplar.md) keeps a
+retired three-bucket vocabulary. Use the labels in the table above instead.
+
+Maintainer note: this page is the bundled source of the digest vocabulary.
+`tests/test_bert_taxonomy_drift.py` reads it, so update that test when the labels change.

@@ -224,6 +224,56 @@ def _strain_compound_names(
     return names
 
 
+_IDENTITY_COMPONENT_NAMES = {
+    "strain": "strain",
+    "full_node_or_contig": "full contig",
+    "region": "region",
+    "bgc_alias": "alias",
+    "identity": "four-part identity header",
+}
+
+
+class ModeBIdentityHold(ValueError):
+    """record_mode_b refused a card whose four-part identity is missing or conflicts.
+
+    Nothing was written: no card, no reader note, no register row. ``exit_code`` is 2 for
+    callers that turn this into a process exit. ``components`` names the parts involved
+    (strain, full contig, region, alias) and ``refusal_reason`` the reconciler's reason.
+    """
+
+    exit_code = 2
+
+    def __init__(self, bgc_id: str, refusal_reason: str, components: list[str], detail: str = ""):
+        self.bgc_id = bgc_id
+        self.refusal_reason = refusal_reason
+        self.components = components
+        names = ", ".join(components) or "unknown component"
+        super().__init__(
+            f"MODEB_IDENTITY_HOLD: {bgc_id}: {refusal_reason or 'identity not bound'} "
+            f"({names}){': ' + detail if detail else ''}. No card was written.")
+
+
+def _identity_hold(bgc_id: str, locator: dict) -> "ModeBIdentityHold | None":
+    """The hold for a failed locator verdict, or None when the identity passed."""
+    status = locator.get("status")
+    if status == "PASS":
+        return None
+    if status == "NO_TRIAGE_ROW":
+        return ModeBIdentityHold(bgc_id, "NO_TRIAGE_ROW",
+                                 ["strain", "full contig", "region", "alias"],
+                                 "no triage-board row binds this alias, so no part of its identity can be checked")
+    errors = locator.get("errors") or []
+    components = list(dict.fromkeys(
+        _IDENTITY_COMPONENT_NAMES.get(str(e.get("field")), str(e.get("field")))
+        for e in errors if isinstance(e, dict) and e.get("field")))
+    detail = "; ".join(
+        f"{_IDENTITY_COMPONENT_NAMES.get(str(e.get('field')), e.get('field'))}: card={e.get('card', '')!r} "
+        f"package={e.get('triage', '')!r} ({e.get('reason', '')})"
+        for e in errors if isinstance(e, dict)) or str(locator.get("error") or "")
+    return ModeBIdentityHold(bgc_id, str(locator.get("refusal_reason") or status or "ERROR"),
+                             components, detail)
+
+
 def _mode_b_path(package_dir: str | Path, bgc_id: str) -> Path:
     strain = _filename_component(_strain_from_pkg(Path(package_dir)), "strain")
     bgc_id = _filename_component(bgc_id, "card identifier")
@@ -344,8 +394,17 @@ def record_mode_b(
     rank: int | None = None,
     edge_status: str | None = None,
     cds_count: int | None = None,
+    *,
+    identity_checked_by_caller: bool = False,
 ) -> dict:
     """Record completed Mode B for one BGC. Called by Sapote (judgment layer).
+
+    Identity fails closed (owner ruling, .464): the card's exact four-part header
+    (strain / full node-or-contig / region / BGC alias) must match the package's triage row.
+    A missing, incomplete or conflicting identity, an alias with no triage row, or an
+    unreadable triage board raises ``ModeBIdentityHold`` (``exit_code`` 2) before anything is
+    written. ``identity_checked_by_caller`` is for the ``ingest-receipts`` routes, which run
+    their own identity gate first; the locator verdict is still recorded for them.
 
     Writes:
       - <strain>_<BGC_ID>_mode_b.md          (§15.3 per-BGC report)
@@ -428,7 +487,8 @@ def record_mode_b(
     except Exception as _cs_err:
         verdict["claim_safety"] = {"clean": None, "error": f"linter error: {_cs_err}"}
 
-    # Locator reconciliation at write time (v9.7.124 SM-P0-003 / STEP 5) — passive: records, never blocks.
+    # Locator reconciliation at write time (v9.7.124 SM-P0-003 / STEP 5). Recorded in the verdict; a
+    # failed identity then blocks the write below unless the caller ran its own identity gate.
     # Checks the card's header locator (node/region) against the BGC's canonical triage row. Surfaces
     # node mismatches / unparseable headers into the verdict so a drifted locator is caught at write time.
     try:
@@ -474,6 +534,11 @@ def record_mode_b(
             verdict["locator"] = {"status": "NO_TRIAGE_ROW", "errors": []}
     except Exception as _loc_err:
         verdict["locator"] = {"status": "ERROR", "error": f"locator error: {_loc_err}"}
+
+    if not identity_checked_by_caller:
+        _hold = _identity_hold(bgc_id, verdict.get("locator") or {})
+        if _hold is not None:
+            raise _hold
 
     # Write per-BGC Mode B file
     mb_path = _mode_b_path(package_dir, bgc_id)

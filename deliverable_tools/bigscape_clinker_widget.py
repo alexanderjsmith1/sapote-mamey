@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """bigscape_clinker_widget.py — self-contained, theme-aware, clinker-style within-GCF
-gene-alignment widget for the Sapote-Mamey BiG-SCAPE cohort deliverable (graduated into the
-engine, v9.7.349x).
+gene-alignment widget for the Sapote-Mamey BiG-SCAPE cohort deliverable.
 
 For one gene-cluster family (GCF), each member BGC is drawn as a horizontal gene-arrow track
 stacked vertically. Homologous genes (shared dominant Pfam = "orthogroup") are colour-linked

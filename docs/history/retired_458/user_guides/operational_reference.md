@@ -2,9 +2,7 @@
 
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Task router](../../../USER_TASK_ROUTER.md), [Install](../../../INSTALL.md) and [Online BLASTP protocol](../../../ONLINE_BLASTP_PROTOCOL.md).
 
-Before any `doctor` example below, read the [write-probe boundary](../../../INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
-untouched and report the hold; the diagnostic refuses an occupied probe location.
+Historical: the operating notes below are not current instructions. For `doctor`, read the [write-probe boundary](../../../INSTALL.md#doctor-scope-and-write-probe) first; the diagnostic refuses an occupied `runs/_doctor_probe` (`mamey/cli.py:5419-5433`).
 
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
@@ -15,8 +13,7 @@ Operational examples below use the bundle-local launcher. Run them with the sele
 > current source checking before reuse. Execute only the user's selected authorized operation.
 
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.457 · Engine 1.9.177**
-Hamilton, Ontario
+**Historical stamp: written at bundle v9.7.457, engine 1.9.177 (not the current version).**
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
 
@@ -74,7 +71,7 @@ The startup banner on every `python mamey_run.py run` prints a dependency line s
 
 ### Bundle tiers
 
-Tier names are defined in `tools/tier_vocabulary.py` (five tiers; `SID-public` is a retired historical label that now resolves to `COHORT-public`):
+Tier names are defined in `tools/tier_vocabulary.py` (five tiers; `public-ID` is a retired historical label that now resolves to `COHORT-public`):
 
 | Tier | Contents | Use for |
 |---|---|---|
@@ -100,9 +97,9 @@ The canonical command for a single strain:
 
 ```bash
 python mamey_run.py run \
-  --input-zip AS-XXX_antismash.zip \
-  --strain AS-XXX \
-  --display-name "Streptomyces sp. AS-XXX" \
+  --input-zip <strain>_antismash.zip \
+  --strain <strain> \
+  --display-name "Streptomyces sp. <strain>" \
   --taxonomy "Streptomyces sp." \
   --source "Apis mellifera, Ontario" \
   --release PRIVATE \
@@ -126,7 +123,7 @@ python mamey_run.py run \
 
 **Validate immediately after run:**
 ```bash
-python mamey_run.py validate runs/AS-XXX/package
+python mamey_run.py validate runs/<strain>/package
 ```
 
 Read the validator's `status` separately from run/package labels: `PASS`, `MAMEY_COMPLETE` (the extraction-complete/judgment-pending branch), or `FAIL`. Later integrity/provenance gates can override an earlier result. Retain individual gate findings, `package_status` and any status-receipt write failure; `MAMEY_COMPLETE_WITH_ISSUES` is not the validator's three-way vocabulary.
@@ -135,7 +132,7 @@ Read the validator's `status` separately from run/package labels: `PASS`, `MAMEY
 Use a separately identified working package copy when preserving the original seal. In .447, `render-all-figures` can write package data and refresh `post_seal_checksums.txt`; an external figure destination does not make the wrapper read-only. See [post-seal write boundaries](../../../POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447), then inspect actual per-set results rather than treating exit 0 as every requested figure being present.
 If the run used `--capped-session` or figures were skipped for any reason (`NO_FIGURES_RENDERED.md` present):
 ```bash
-python mamey_run.py render-all-figures --package runs/AS-XXX/package
+python mamey_run.py render-all-figures --package runs/<strain>/package
 ```
 
 ### Single-strain quickstart (abbreviated path)
@@ -168,7 +165,7 @@ python tools/mamey_intake.py --packages ../review_inputs/packages/ \
   --workbook ../review_output/project_master_new.xlsx
 
 # Option B: explicit two-step
-python tools/ingest_package.py --package runs/AS-XXX/package --ww WWGP0000000 --merge --banked-dir cohort
+python tools/ingest_package.py --package runs/<strain>/package --ww WWGP0000000 --merge --banked-dir cohort
 python tools/build_workbook.py --workbook project_master.xlsx --banked-dir cohort --full
 ```
 
@@ -247,7 +244,7 @@ For the selected BLASTp task, use [the current ingestion/submission protocol](..
 
 Mode B §4/§8 authored only from antiSMASH Pfam calls and KCB scores makes two concrete errors:
 1. **KCB score taken as identity** — a high aggregate KCB with low gene coverage is not a compound anchor
-2. **antiSMASH Pfam calls accepted without validation** — on BGC006/AS-XXX, BLASTp overturned two of ten domain calls: `Beta-lactamase` → EstA serine hydrolase, `Phenol_Hydrox` → ferritin-family protein. A third was sharpened to a specific named resistance enzyme.
+2. **antiSMASH Pfam calls accepted without validation** — on BGC006/STRAIN_ID, BLASTp overturned two of ten domain calls: `Beta-lactamase` → EstA serine hydrolase, `Phenol_Hydrox` → ferritin-family protein. A third was sharpened to a specific named resistance enzyme.
 
 Per-gene BLASTp is the independent channel that catches both. It also resolves strain taxonomy from the consensus top-hit organism across all genes.
 
@@ -257,7 +254,7 @@ Run for every BGC receiving a full Mode B card. Every CDS is eligible. Priority 
 
 ### The recipe
 
-**Batch size rule (current, v9.7.252):** a submission closes on protein count **or** a 30,000-aa `RESIDUE_BUDGET`, whichever hits first. `MAX_BATCH` is 30 (hard clamp), `DEFAULT_BATCH` is 10 (the courteous default when a caller omits `batch_size`), and `SUBMIT_GAP_S` spaces submissions. *(History: the batch cap was ≤10 pre-v9.7.245 — verified timing then: 61 proteins (21,756 aa) still WAITING at 2.5 min+, 10 proteins (2,943 aa) READY at ~2.5 min — then raised to 30 on the strength of AS-XXX's 878-protein run, with `RESIDUE_BUDGET` added in .252 so large-residue batches close early regardless of count.)*
+**Batch size rule (current, v9.7.252):** a submission closes on protein count **or** a 30,000-aa `RESIDUE_BUDGET`, whichever hits first. `MAX_BATCH` is 30 (hard clamp), `DEFAULT_BATCH` is 10 (the courteous default when a caller omits `batch_size`), and `SUBMIT_GAP_S` spaces submissions. *(History: the batch cap was ≤10 pre-v9.7.245 — verified timing then: 61 proteins (21,756 aa) still WAITING at 2.5 min+, 10 proteins (2,943 aa) READY at ~2.5 min — then raised to 30 on the strength of STRAIN_ID's 878-protein run, with `RESIDUE_BUDGET` added in .252 so large-residue batches close early regardless of count.)*
 
 **Large protein handling:** proteins >2,500 aa (`GIANT_AA`) run solo, never inside a batch of small genes.
 
@@ -439,7 +436,7 @@ Single zip: `<project>_master_vN_after_batchN.xlsx` + `batchN_summary_vN.md` + `
 9. Update A4 for new strains
 10. Append A3 run manifest row
 11. Append H1 handoff log row
-12. Save as `SID-XXX_master_v1_0_Claude_filled_N+1.xlsx`
+12. Save as `<strain>_master_v1_0_Claude_filled_N+1.xlsx`
 
 **Schema validation before any handoff (either direction):**
 ```bash
@@ -512,7 +509,7 @@ All report-only; every read is a class-level capacity hypothesis, judgment defer
 
 ## Section 10: Calibration Corpus
 
-Source: `docs/CALIBRATION_CORPUS_KNOWN_BGCS.md`. 15 known-compound reference BGCs for Mode B quality calibration.
+Source: `docs/history/retired_458/CALIBRATION_CORPUS_KNOWN_BGCS.md` (moved from `docs/`). 15 known-compound reference BGCs for Mode B quality calibration.
 
 **Purpose:** run gene-by-gene reads on known clusters; compare interpretation against published pathway; find where the read would have been wrong without literature access. The answer key exists for these clusters — it is the calibration.
 
@@ -571,7 +568,7 @@ The game produces audit findings suitable for a hostile reviewer, not a friendly
 
 ---
 
-*Sources: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`, `docs/BUNNY_HOP_AUDIT_GAME.md`, `docs/CALIBRATION_CORPUS_KNOWN_BGCS.md`. Compiled 2026-07-09 · bundle v9.7.241.*
+*Sources: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`, `docs/BUNNY_HOP_AUDIT_GAME.md`, `docs/history/retired_458/CALIBRATION_CORPUS_KNOWN_BGCS.md` (moved from `docs/`). Compiled 2026-07-09 · bundle v9.7.241.*
 
 ---
 
@@ -732,7 +729,7 @@ Delete every §4 and §16 paragraph containing `ctg12_71`. Then re-run `verify-m
 
 ### If `LOCUS_BGC_MISMATCH` fires (v9.7.256)
 
-The card cites a **real** locus, but under a BGC it does not belong to — the finding names the locus and its true home BGC. This is the AS-XXX BGC006/BGC010 class: templated boilerplate carried a real gene into another BGC's card. Move the observation to the correct BGC's card, or delete it if it was never made about the cited BGC. Do not simply relabel the BGC id without checking the gene's real membership.
+The card cites a **real** locus, but under a BGC it does not belong to — the finding names the locus and its true home BGC. This is the STRAIN_ID BGC006/BGC010 class: templated boilerplate carried a real gene into another BGC's card. Move the observation to the correct BGC's card, or delete it if it was never made about the cited BGC. Do not simply relabel the BGC id without checking the gene's real membership.
 
 ### If `PANEL_ABSENT_CLAIM` fires (v9.7.256)
 

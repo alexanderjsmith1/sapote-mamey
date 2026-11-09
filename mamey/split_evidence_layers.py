@@ -1,4 +1,7 @@
-"""Independent evidence layers for one candidate split pair, read from the antiSMASH result archive.
+"""Separate evidence layers for one candidate split pair, read from the antiSMASH result archive.
+
+Both layers come from the same archive as the candidate review, so they are computational corroboration, not
+independent source evidence and not a validated physical linkage.
 
 Used by the class-routed two-proof policy (`nonks_second_proof.py`, policy `class_routed_v1`) for clusters without a
 ketosynthase. Two layers, both computed from the archive the package was built from, never from a supplied table:
@@ -14,7 +17,8 @@ ketosynthase. Two layers, both computed from the archive the package was built f
   farther apart in a complete relative matched at >= 70% mean identity by both sides; APART_WEAK otherwise.
 
 The intact-relative layer reads the same ClusterBlast hits as RG-GMCI, so it is a stricter reading of homology, not an
-independent channel; the class-logic layer is independent of homology. Both are report-only here: the policy decides.
+independent channel; the class-logic layer does not use homology, but it reads the same archive. Both are report-only
+here: the policy decides.
 A verdict is a candidate for adjudication, never a join. Ported from the RG-GMCI benchmark scorecard (its 50-gene and
 70% values were set on that benchmark's three public lineages; they are not validated on held-out data).
 """

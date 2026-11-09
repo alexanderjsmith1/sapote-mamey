@@ -5,12 +5,14 @@ Gold is the only analysis mode. `--mode standard` is an alias that becomes `gold
 ## Expected output inventory (inspect actual phase results)
 - `manifest.json`, `manifest_short.json`
 - `<strain>_1_intake.json`, `<strain>_2_inventory.csv`, `<strain>_4_triage_board.csv`
-- `<strain>_4A_RGGMCI_ranked_pairs.csv`, `<strain>_RGGMCI_evidence.csv`
+- `<strain>_4A_RGGMCI_ranked_pairs.csv`, `<strain>_4A_RGGMCI_evidence.csv`
 - `gate_validation.json`, `gold_mode_receipt.json`, `checksums_sha256.txt`
 - `run_phase_receipts.jsonl`, `<strain>_timing_breakdown.{json,csv,md}`
 - `bgc_data.json` (single-strain bank)
 - **`<strain>_gene_context.jsonl` + `<strain>_cds_table.csv`** (the normalized gene
-  context; produced on every run because the CDS/domain objects are in hand at run time)
+  context). Every gold run attempts them while the CDS and domain objects are in hand. If writing
+  fails, the run continues and `run_phase_receipts.jsonl` holds a `gene_context` row with state
+  `ERROR` and the reason (`mamey/cli.py:1888-1898`). Check that the files exist before you use them.
 - `<strain>_gene_by_gene_top_leads.csv` (real CDS rows from the gene context)
 - **`deep_data.json` + `gene_data.json`** — gene-level scaffold/data inputs for
   `build_modeb_deepdive`. The CLI normalizes standard to gold, and `_emit_deep_data`

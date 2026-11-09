@@ -27,6 +27,13 @@ except ImportError:  # bare-script run: bundle root is one level up
 from mamey.class_architecture import product_family  # noqa: E402  antiSMASH family of a type the bucket map does not name
 from collections import Counter
 from _wbio import atomic_save, atomic_open
+from mamey.missing_values import optional_text  # noqa: E402
+from mamey.output_transaction import preflight_output_roster  # noqa: E402
+
+# strain + BGC alias alone cannot bind a locus (aliases are reused across assemblies), so every row also
+# carries the bank's contig and region and says whether all four identity parts were present.
+TAG_FIELDS = ['strain', 'bgc', 'Predicted_BGC_Class', 'KCB_anchor', 'GCF_Product_Family_Tag', 'match_basis',
+              'contig', 'region', 'identity_status']
 
 
 
@@ -131,18 +138,27 @@ def main():
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--thesaurus', default='resources/gcf_thesaurus.json')
     ap.add_argument('--workbook', default=None); ap.add_argument('--out-dir', default='analysis')
     a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir, exist_ok=True)
+    out_csv=os.path.join(a.out_dir,'GCF_Tags.csv')
+    bank_json=os.path.join(a.banked_dir,'bgc_data.json')
+    # GCF_Tags.csv is a fresh output: refuse an existing file (an earlier run's tags) and any alias of an input.
+    try:
+        preflight_output_roster((out_csv,), protected_paths=tuple(x for x in (bank_json, a.thesaurus, a.workbook) if x))
+    except ValueError as error:
+        ap.error(f"refusing {out_csv}: {error}; choose a new --out-dir")
     pairs, orphan = load_aliases(a.thesaurus)
-    bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); bgcs=bgc['bgcs']
+    bgc=_read_json(bank_json); bgcs=bgc['bgcs']
     rows=[]; tagc=Counter(); basis=Counter()
     for b in bgcs:
         pc=primary_class(b.get('products')); kcb=b.get('closest_kcb_product') or ''
         tag,why=tag_bgc(kcb, b.get('products'), pairs, orphan)
         tagc[tag]+=1; basis[why.split('~')[0].split('"')[0].strip()]+=1
+        parts = [optional_text(b.get(k)) for k in ('sid', 'contig', 'region', 'bgc_id')]
         rows.append({'strain':b['sid'],'bgc':b.get('bgc_id',''),'Predicted_BGC_Class':pc,
-                     'KCB_anchor':kcb,'GCF_Product_Family_Tag':tag,'match_basis':why})
-    out_csv=os.path.join(a.out_dir,'GCF_Tags.csv')
+                     'KCB_anchor':kcb,'GCF_Product_Family_Tag':tag,'match_basis':why,
+                     'contig': parts[1] or '', 'region': parts[2] or '',
+                     'identity_status': 'COMPLETE' if all(parts) else 'IDENTITY_HOLD'})
     with atomic_open(out_csv,'w',newline='') as f:
-        w=_SafeDictWriter(f,fieldnames=['strain','bgc','Predicted_BGC_Class','KCB_anchor','GCF_Product_Family_Tag','match_basis']); w.writeheader(); w.writerows(rows)
+        w=_SafeDictWriter(f,fieldnames=TAG_FIELDS); w.writeheader(); w.writerows(rows)
     emit(*_coverage_lines(tagc, len(bgcs)), sep="\n")
     for t,c in tagc.most_common(14):
         if t!='DARK_no_family': emit(f"    {c:4}  {t}")
@@ -151,9 +167,9 @@ def main():
         from openpyxl.styles import Font, PatternFill
         wb=openpyxl.load_workbook(a.workbook)
         if 'GCF_Tags' in wb.sheetnames: del wb['GCF_Tags']
-        ws=wb.create_sheet('GCF_Tags'); ws.append(['strain','bgc','Predicted_BGC_Class','KCB_anchor','GCF_Product_Family_Tag','match_basis'])
+        ws=wb.create_sheet('GCF_Tags'); ws.append(TAG_FIELDS)
         for c in ws[1]: c.font=Font(bold=True,color='FFFFFF'); c.fill=PatternFill('solid',fgColor='2E5E7E')
-        for r in rows: ws.append([r['strain'],r['bgc'],r['Predicted_BGC_Class'],r['KCB_anchor'],r['GCF_Product_Family_Tag'],r['match_basis']])
+        for r in rows: ws.append([r[k] for k in TAG_FIELDS])
         ws.freeze_panes='A2'; atomic_save(wb, a.workbook); emit(f"  GCF_Tags sheet added to {os.path.basename(a.workbook)}")
 
 if __name__=='__main__': main()

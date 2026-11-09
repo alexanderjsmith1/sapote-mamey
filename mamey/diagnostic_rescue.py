@@ -65,8 +65,10 @@ CLAIM_CEILING = (
 # precision floors for HIGH-confidence promotion
 COVERED_FLOOR = 8       # total reference genes the two arms must tile (BGC013+BGC001 = 8)
 PER_ARM_FLOOR = 2       # each arm must contribute >= this many genes to the shared scaffold
-# only TRUNCATED clusters can be halves of a split pathway. A complete (Interior) cluster is whole,
-# so a pair with an Interior member is co-occurrence, not a split — excluded from rescue entirely.
+# Selection rule: only regions recorded as Edge or Full-contig are considered as halves of a split
+# pathway. A pair with an Interior member is excluded from rescue. Interior means the region sits away
+# from a contig end; it does not show the pathway is biologically complete or rule out a split, so the
+# exclusion is a precision choice, not a completeness finding.
 # (Validated on public GOOD-assembly genomes, where Interior+Interior pairs flooded false HIGH leads.)
 TRUNCATED_EDGE = {"Edge", "Full-contig"}
 
@@ -351,8 +353,9 @@ def assess_pair(pair_rec: dict, cctt_a: Any, cctt_b: Any,
     else:
         return None
 
-    # EDGE GATE: only truncated fragments can be halves of a split pathway. If either member is a
-    # complete (Interior) cluster, this is co-occurrence on a shared reference, not a split — drop it.
+    # EDGE GATE (selection rule): only Edge / Full-contig regions are considered as split halves. A pair
+    # with an Interior member is dropped; that is a precision choice, not evidence the Interior region
+    # is a complete pathway.
     edge_a = str(pair_rec.get("edge_a") or "")
     edge_b = str(pair_rec.get("edge_b") or "")
     if edge_a not in TRUNCATED_EDGE or edge_b not in TRUNCATED_EDGE:

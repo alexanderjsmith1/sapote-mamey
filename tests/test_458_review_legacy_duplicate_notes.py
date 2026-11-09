@@ -9,7 +9,7 @@ def test_retry_consolidates_legacy_duplicate_sections(tmp_path,monkeypatch):
     monkeypatch.setattr(tool,'_mode_b_path',lambda p,b:tmp_path/'mode_b.md')
     monkeypatch.setattr(tool,'_update_register',lambda *a,**k:[])
     tool.record_mode_b(tmp_path,'BGC001','## §1\nsynthetic body\n',
-                       layperson_paragraph='current lay note',fermentation_note='current fermentation note')
+                       layperson_paragraph='current lay note',fermentation_note='current fermentation note', identity_checked_by_caller=True)
     for path in [lay,ferm]:
         text=path.read_text()
         assert text.count('## BGC001\n')==1

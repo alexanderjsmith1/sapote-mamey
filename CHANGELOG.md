@@ -1,3 +1,20 @@
+# v9.7.464 — unsealed cut candidate · build 20261108v97464a
+
+Build 20261108v97464a; engine 1.9.180.
+
+Builds on the sealed v9.7.463 (CODE zip, build 20261104v97463a). The engine moves to 1.9.180 because ranked and published fields change. `docs/ENGINE_LINEAGE.md` says what is not poolable across 1.9.179 and 1.9.180.
+
+- **KCB reads the percent.** The KCB band, the novelty −15, architecture grade B, Mode B claim ceilings and the workbook depth floor read antiSMASH's rank-1 percent (`kcb_similarity_pct`), with edges at 70 and 40. An empty KnownClusterBlast file gives `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`, not a ClusterBlast fallback.
+- **Identity.** Node_ID is the full contig in new packages. Mode B ingest refuses a card whose full identity does not match the package, on every route and before the structure gate (`CARD_IDENTITY_UNBOUND`); a legacy short header is accepted only for its own contig. Whole-record intake holds a region with a missing, zero, negative or conflicting region number, or a joined, fuzzy or out-of-record boundary.
+- **Missing values.** One shared rule (`mamey/missing_values.py`) keeps blank and placeholder cells blank. They no longer read as 0, a match or a pass in widgets, rollups, slides, figures, captions and lead reports.
+- **Habitat and leads.** The workbook habitat column holds the deposited isolation-source text. Every top-lead surface uses the three-flag lead exclusion. A placeholder KCB anchor earns no bonus and no Class C.
+- **Refusals instead of overwrites.** Tools that wrote `--out`, receipts, staging folders, PDFs or reports over an existing file, a source file or a package now refuse before writing.
+- **Exit codes and gates.** `run` exits 1 on a `[BLOCKING]` issue. W8 and W9 fail closed. A batch survives a single refusal. The release suite runner warns when `nice` fails and refuses only under strict priority.
+- **BiG-SCAPE, trees and figures.** The reference rebuild excludes whole strain names. UPGMA uses unrounded distances. The BiG-SCAPE launcher reports its own exit stage. Locus maps draw unknown strands as boxes. Duplicate keys are refused instead of overwritten.
+- **Figures and BLASTp lanes.** R figures write strain-ID hyphens as U+002D, not a minus sign. Tree figures can star tips by a metadata column and place support labels clear of branches. The region-protein renderer marks SID genomes and draws a comparator key. *Actinacidiphila* gets its own color (`#9977FF`), no longer close to *Pseudonocardia*. A BLASTp search NCBI no longer knows is requeued in the same run.
+- **Docs.** The user guides, monolith, history pages and A–Z docs were corrected against the code. The front-door, guide, glossary, wiki and subfolder rewrites are held for .465.
+- Accretion-justified: mamey/missing_values.py — one shared rule for missing values; 37 blocker findings showed blank or placeholder cells read as 0 or a match.
+
 # v9.7.463 — unsealed cut candidate · build 20261104v97463a
 
 Build 20261104v97463a; engine 1.9.179.

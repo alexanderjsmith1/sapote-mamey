@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """Render supplied assembly-level predicted-region amino-acid totals by genus.
 
+Optional input columns:
+  sid      yes/no on reference rows. sid = yes rows are drawn as outlined triangles (same gray fill) on top of the other
+           references, with a key entry; they stay references and count in n and in the box.
+  role = comparator rows get their own key entry, are drawn on top with an ink outline and are not counted in the
+           row's n, so the row n values add up to the key. Bottom space for comparator labels is reserved only when a
+           comparator label is drawn (label = no draws none).
+  tier     0, 1 or 2 on comparator rows: the label tier on a row shared with an isolate (0 above, 1 and 2 below);
+           without it the alternation by value is kept.
+  hjust    0, 0.5 or 1 on comparator rows: the label is not repelled; it is drawn at its tier, starting, centred or
+           ending at the point's value, with a short vertical leader.
+
 No sequence analysis is performed. Uses the M5 PCoA page-default minimum-text
 helpers alongside the publication layout. Candidate renderer only.
 """
@@ -114,7 +125,11 @@ if(length(boxes)) {
  write.table(b,paste0(cfg$out,"_box_summary.tsv"),sep="\t",quote=FALSE,row.names=FALSE)
 }
 write.table(d[,c("strain","genus","role","value","position")],paste0(cfg$out,"_point_positions.tsv"),sep="\t",quote=FALSE,row.names=FALSE)
-n_ref <- sapply(genera,function(g)sum(d$genus==g & d$role %in% c("reference","comparator")))
+# Comparator key: when every comparator genome carries one name (e.g. one species), the comparators get their own key
+# entry, are drawn on top outlined in ink and leave the row's n, so the row n values add up to the key. With several
+# names the labels name each genome, and comparators are drawn and counted as before.
+cmp_key <- "role" %in% names(d) && sum(d$role=="comparator") > 0 && length(unique(d$name[d$role=="comparator"])) == 1
+n_ref <- sapply(genera,function(g)sum(d$genus==g & (d$role=="reference" | (!cmp_key & d$role=="comparator"))))
 if (has_role) {
   iso <- d[d$role=="isolate",]
   # isolate labels: plain text in two tiers, alternating above and below the row by value within each genus, so a
@@ -134,23 +149,57 @@ if (has_role) {
     # two label layers (repelled separately) cannot meet,
     # in two staggered tiers below the row (alternating by value)
     shared <- cmpl$genus %in% iso$genus
-    cmpl$nudge[shared] <- ifelse(ctier[shared] %% 2 == 1, -cfg$label_offset, -2 * cfg$label_offset)
+    tier_set <- !is.null(cmpl$tier) && all(cmpl$tier %in% c("0","1","2",0,1,2))   # optional comparator tier
+    if (tier_set) ctier <- as.integer(cmpl$tier)
+    cmpl$nudge[shared] <- ifelse(ctier[shared] == 0, cfg$label_offset, ifelse(ctier[shared] %% 2 == 1, -cfg$label_offset, -2 * cfg$label_offset))
     cmpl$lab <- ifelse(nzchar(cmpl$strain_label), sprintf('italic("%s")~"%s"', cmpl$name, cmpl$strain_label),
                        sprintf('italic("%s")', cmpl$name))
-    p <- p + geom_point(data=cmp,shape=21,size=2.4,stroke=.6,colour=PUB_SUB,
-                        fill=ifelse(cmp$open=="yes","white",PUB_SUB)) +
-      geom_text_repel(data=cmpl,aes(label=lab),parse=TRUE,size=cfg$min_text_pt/.pt,family=PUB_FONT,colour=PUB_SUB,
+    fixed <- if (!is.null(cmpl$hjust)) cmpl$hjust %in% c("0","0.5","1",0,0.5,1) else rep(FALSE, nrow(cmpl))   # optional fixed labels
+    cmpf <- cmpl[fixed, ]; cmpl <- cmpl[!fixed, ]
+    if (nrow(cmpf)) {
+      cmpf$hj <- as.numeric(cmpf$hjust); cmpf$ly <- cmpf$position - cmpf$nudge   # scale_y_reverse: a positive nudge is above
+      p <- p + geom_segment(data=cmpf,aes(x=value,xend=value,y=position-sign(nudge)*0.12,yend=ly+sign(nudge)*0.1),
+                            inherit.aes=FALSE,colour="#6B7483",linewidth=.3) +
+        geom_text(data=cmpf,aes(x=value,y=ly,label=lab,hjust=hj),inherit.aes=FALSE,parse=TRUE,size=cfg$min_text_pt/.pt,
+                  family=PUB_FONT,colour=PUB_SUB)
+    }
+    if (!cmp_key) p <- p + geom_point(data=cmp,shape=21,size=2.4,stroke=.6,colour=PUB_SUB,
+                                      fill=ifelse(cmp$open=="yes","white",PUB_SUB))
+    p <- p + geom_text_repel(data=cmpl,aes(label=lab),parse=TRUE,size=cfg$min_text_pt/.pt,family=PUB_FONT,colour=PUB_SUB,
                       seed=7,nudge_y=cmpl$nudge,direction="x",min.segment.length=0,segment.colour="#6B7483",
                       segment.size=.3,box.padding=.25,point.padding=.3)
   }
-  p <- p + geom_point(data=d[d$role=="reference",],size=1,colour="#9AA3AE") +
+  # SID references as outlined triangles on top of the other references, with a key
+  if (is.null(d$sid)) d$sid <- "no"
+  d$sid[is.na(d$sid)] <- "no"
+  refs <- d[d$role=="reference",]
+  refs$mark <- factor(ifelse(refs$sid=="yes","SID","Public"),levels=c("Public","SID"))
+  n_sid <- format(sum(refs$mark=="SID"),big.mark=","); n_pub <- format(sum(refs$mark=="Public"),big.mark=",")
+  # comparators (e.g. Melissospora conviva) get their own key entry and are drawn on top, outlined in ink
+  cmpk <- d[d$role=="comparator",]
+  if (!cmp_key) cmpk <- cmpk[0, ]
+  cmp_name <- if (nrow(cmpk)) paste0("<i>",unique(cmpk$name)[1],"</i> (n = ",nrow(cmpk),")") else "Comparator"
+  if (nrow(cmpk)) cmpk$mark <- "Comparator"
+  KEYS <- c(Public=paste0("Other public genomes (n = ",n_pub,")"),SID=paste0("SID genomes (n = ",n_sid,")"),Comparator=cmp_name)
+  refs$mark <- factor(as.character(refs$mark),levels=c("Public","SID","Comparator"))
+  if (nrow(cmpk)) cmpk$mark <- factor(cmpk$mark,levels=levels(refs$mark))
+  p <- p + geom_point(data=refs[refs$mark=="Public",],aes(shape=mark,fill=mark,colour=mark,size=mark),stroke=.35) +
+    geom_point(data=refs[refs$mark=="SID",],aes(shape=mark,fill=mark,colour=mark,size=mark),stroke=.35) +
+    (if (nrow(cmpk)) geom_point(data=cmpk,aes(shape=mark,fill=mark,colour=mark,size=mark),stroke=.6) else NULL) +
+    scale_shape_manual(values=c(Public=21,SID=24,Comparator=21),drop=!nrow(cmpk),name=NULL,labels=KEYS) +
+    scale_fill_manual(values=c(Public="#9AA3AE",SID="#9AA3AE",Comparator=PUB_SUB),drop=!nrow(cmpk),name=NULL,labels=KEYS) +
+    scale_colour_manual(values=c(Public="#9AA3AE",SID=PUB_INK,Comparator=PUB_INK),drop=!nrow(cmpk),name=NULL,labels=KEYS) +
+    scale_size_manual(values=c(Public=1.0,SID=1.5,Comparator=2.4),drop=!nrow(cmpk),name=NULL,labels=KEYS) +
+    theme(legend.position="bottom",legend.text=element_markdown(size=8,colour="black"),legend.key.width=unit(10,"pt"),
+          legend.margin=margin(0,0,0,0),legend.box.margin=margin(-4,0,0,0)) +
     geom_point(data=iso,shape=23,size=2.8,fill=PUB_INK,colour="white",stroke=.4) +
     geom_text_repel(data=iso,aes(label=strain),size=cfg$min_text_pt/.pt,fontface="bold",family=PUB_FONT,colour=PUB_INK,
                     seed=7,nudge_y=iso$nudge,direction="x",min.segment.length=0,segment.colour="#6B7483",
                     segment.size=.3,box.padding=.25,point.padding=.3)
   ylab <- paste0("<i>",genera,"</i> ",ifelse(n_ref>0,paste0("(n = ",n_ref,")"),"(no public genomes)"))
   # room for the staggered comparator tiers under a shared row (ggrepel drops a label that falls outside the panel)
-  extra <- if (nrow(cmp) && any(cmp$genus %in% iso$genus)) 2 * cfg$label_offset else 0
+  # room only for comparator labels actually drawn (label = no draws none), so no blank band
+  extra <- if (nrow(cmp) && any(cmp$genus[cmp$label != "no"] %in% iso$genus)) 2 * cfg$label_offset else 0
 } else {
   extra <- 0
   p <- p + geom_point(size=1,colour="#9AA3AE")   # same reference points and italic genus labels as the role path
@@ -244,10 +293,15 @@ def main(argv=None):
     data = a.out/"plot_data.tsv"
     with data.open("w",newline="") as f:
         cols = FIELDS + (["role"] if rows and "role" in rows[0] else [])   # optional role: isolate, reference, comparator
+        if rows and "sid" in rows[0]: cols += ["sid"]   # optional SID flag
         if any(r.get("role") == "comparator" for r in rows):
             cols += COMPARATOR_FIELDS
             rows = [{**r, "strain_label": r.get("strain_label") or "", "open": r.get("open") or "no",
                      "label": r.get("label") or "yes"} for r in rows]
+        if rows and "hjust" in rows[0] and "hjust" not in cols:   # optional fixed comparator labels
+            cols += ["hjust"]; rows = [{**r, "hjust": r.get("hjust") or ""} for r in rows]
+        if rows and "tier" in rows[0] and "tier" not in cols:   # optional comparator label tier
+            cols += ["tier"]; rows = [{**r, "tier": r.get("tier") or ""} for r in rows]
         w = SafeDictWriter(f,fieldnames=cols,delimiter="\t"); w.writeheader()
         w.writerows([{k:r[k] for k in cols} for r in rows])
     cfg = dict(data=str(data.resolve()),out=str((a.out/TOOL).resolve()),bundle_layout=str(dependencies[0]),

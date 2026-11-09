@@ -8,7 +8,7 @@ import pytest
 from mamey.judgment_store import init_register, read_register
 from mamey.mode_b_receipt import ingest_receipt, RECEIPT_SCHEMA_VERSION
 
-from tests._modeb_card_fixtures import valid_modeb_card_stub
+from tests._modeb_card_fixtures import valid_modeb_card_stub, write_identity_triage_board
 
 
 def _make_package(tmp_path: Path, strain="AS-TEST", bgc_ids=("BGC001", "BGC002", "BGC003")):
@@ -18,6 +18,8 @@ def _make_package(tmp_path: Path, strain="AS-TEST", bgc_ids=("BGC001", "BGC002",
     # judgment_store resolves strain from a manifest.json or dir name; provide manifest.
     (pkg / "manifest.json").write_text(json.dumps({"strain_id": strain}))
     init_register(pkg, strain_id=strain, bgc_ids=list(bgc_ids))
+    # Ingest records a card only when its four-part header matches a triage row.
+    write_identity_triage_board(pkg, strain, bgc_ids)
     return pkg
 
 
@@ -110,10 +112,11 @@ def test_ingest_accepts_matching_card_header_identity(tmp_path):
 
 def _write_exact_inventory(pkg, *, full_node="NODE_7_length_12345_cov_20.500000",
                            node_id="NODE_7_length_12345_cov_20", region="region001"):
-    (pkg / "AS-TEST_2_inventory.csv").write_text(
-        "BGC_ID,Contig,Node_ID,antiSMASH_Region\n"
-        f"BGC001,{full_node},{node_id},{region}\n"
-    )
+    rows = ("BGC_ID,Contig,Node_ID,antiSMASH_Region\n"
+            f"BGC001,{full_node},{node_id},{region}\n")
+    (pkg / "AS-TEST_2_inventory.csv").write_text(rows)
+    # A real package carries the same locus on its triage board, which ingest binds to.
+    (pkg / "AS-TEST_4_triage_board.csv").write_text(rows)
 
 
 def _card_with_exact_header(*, node, region="region001"):

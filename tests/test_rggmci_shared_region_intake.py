@@ -91,7 +91,10 @@ def test_full_node_locus_survives_version_normalization(monkeypatch, physical, p
 
 
 def test_full_record_fallback_and_fallback_region_number(monkeypatch):
-    calls = bind(monkeypatch, [("whole.gbk", record(features=[feature(start=4, end=20)]))], fallback=True)
+    # The whole-record fallback reads the region number from the region feature itself; a region
+    # with no number is held (tests/test_464_whole_record_region_identity.py), never numbered by order.
+    calls = bind(monkeypatch, [("whole.gbk", record(features=[feature(start=4, end=20, region_number=["1"])]))],
+                 fallback=True)
     got = core()[0]
     assert calls == [True, False]
     assert (got["region_number"], got["start"], got["end"], got["contig_length"], got["edge_status"]) == (1, 5, 20, 100, "Edge")

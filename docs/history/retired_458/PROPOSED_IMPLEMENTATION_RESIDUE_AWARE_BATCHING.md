@@ -5,8 +5,8 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 ## Proposal versus shipped implementation
 
 The body below is a design proposal and illustrative tests, preserved without adoption. It is not the
-shipped helper; inspect `mamey/wise_fragmented_pks.py` and `mamey/cli.py` through the
-[queue handoff](../../NEXT_CHAT_HANDOFF_WISE_FRAGMENTED_PKS_WORKFLOW.md). Actual code sorts by rank, flushes
+shipped helper; inspect `mamey/wise_fragmented_pks.py` and `mamey/cli.py` and the
+[tools reference](../../user_guides/tools_reference.md). Actual code sorts by rank, flushes
 an existing batch before an oversized record and retains a warning-bearing singleton exception. Its writer
 can emit that exception as ready_to_run with under_100k=false; this remains an explicit implementation hold,
 not proof the universal proposed no-oversize acceptance criterion was met.

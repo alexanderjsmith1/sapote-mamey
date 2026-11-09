@@ -1,13 +1,13 @@
 # Domain-level Mode B
 
-Optional, after validation. It never changes scores or blocks the package.
+Optional, and run after `validate`. It never changes scores or blocks the package. For terms such as BGC, package and Mode B, see the [glossary](../GLOSSARY.md).
 
 ## What it does
 
 Domain-level Mode B turns each top-lead BGC's protein domains into a structured evidence
-review. It separates three things that AB/AF score and product label alone conflate:
+review. A top lead is a cluster near the top of the triage board, which ranks clusters by their antibacterial (AB) and antifungal (AF) scores. The review separates three things that a score and a product label blur together:
 
-1. **Score priority** — the AB/AF numbers (unchanged; from the engine).
+1. **Score priority** — the AB and AF numbers (unchanged; from the engine).
 2. **Architecture confidence** — how much real biosynthetic-core domain support a BGC has,
    versus accessory clutter (domain burden).
 3. **Claim ceiling** — the safest thing that may be said from domain evidence, always
@@ -19,33 +19,48 @@ Retained domain observations are mapped to controlled role categories, per-BGC b
 
 ```bash
 # full per-domain detail from the antiSMASH source zip
-python mamey_run.py domain-level --package COMPLETE_PACKAGE --source-antismash STRAIN.zip --top-n 10 --emit-figures
+python mamey_run.py domain-level --package runs/EXAMPLE/package --source-antismash path/to/antismash_result.zip --top-n 10 --emit-figures --out reviews/EXAMPLE-domain
 
-# or limited mode from the sealed gene context alone (domain names only)
-python mamey_run.py domain-level --package COMPLETE_PACKAGE --top-n 10
+# or limited mode from the package gene context alone (domain names only)
+python mamey_run.py domain-level --package runs/EXAMPLE/package --top-n 10 --out reviews/EXAMPLE-domain
 
-# Mode B cards that consume the domain evidence
-python mamey_run.py mode-b --package COMPLETE_PACKAGE --top-n 10 --with-domain-level
+# Mode B cards with a domain block (reads <package>/domain_level/ only)
+python mamey_run.py mode-b --package runs/EXAMPLE/package --top-n 10 --with-domain-level
 
-# figures only
-python mamey_run.py render-figures --package COMPLETE_PACKAGE --figure-set domain-level
+# figures only (reads <package>/domain_level/ only)
+python mamey_run.py render-figures --package runs/EXAMPLE/package --figure-set domain-level
 ```
 
-Run it on a working copy if the sealed package must stay unchanged; see [post-seal readers](../POSTSEAL_READERS.md).
+Pass `--out <new folder>` when the package is sealed and must stay unchanged; see [post-seal readers](../POSTSEAL_READERS.md). Without `--out`, the command writes `domain_level/` inside the package.
+
+The last two commands do not read a `--out` folder. They read `<package>/domain_level/`. If that folder has no `domain_complexity_metrics_by_bgc.csv`, they run domain-level themselves and write its tables into the package, and they print a line saying so. With `--with-domain-level`, `mode-b` uses tables already in `<package>/domain_level/` even when they came from an earlier run. So an external `--out` run is not picked up by these commands, and running them can change the package.
+
+The output folder must be fresh. If it already holds any file domain-level writes (a table, a card such as `DOMAIN_LEVEL_SKIPPED_NO_GBK.md`, or `domain_level_receipt.json`), the command prints `domain-level: REFUSED`, names the files, writes nothing and still exits 0. Choose a new `--out` folder; the earlier files are kept.
+
+### What you should see
+
+Open `OPEN_ME_FIRST_Domain_Level_ModeB.md` in the output folder. If you find `DOMAIN_LEVEL_SKIPPED_NO_GBK.md` instead, nothing was analyzed. The command can still exit 0 in that case, so check for the file.
 
 ## Two input paths
 
-- **Full (`--source-antismash`)** — re-parses the antiSMASH zip via `extract_domain_features`,
-  giving every domain's name, description, and e-value.
+- **Full (`--source-antismash`)** — re-reads the antiSMASH zip,
+  giving every retained domain's name, description, and e-value. The archive is used only when
+  its SHA-256 matches `input_zip_sha256` in the package manifest, because its features are joined
+  to the package's BGCs by contig name and coordinates. A mismatch writes
+  `DOMAIN_LEVEL_SOURCE_ZIP_MISMATCH.md` and a SKIPPED receipt. When either digest is missing
+  (an older package, or a source folder rather than a file), or the archive is not found, the
+  archive is not used and the run falls back to limited mode. The receipt records
+  `source_antismash_sha256` and `source_binding` (`MATCHES_MANIFEST_INPUT_ZIP_SHA256`,
+  `SOURCE_ZIP_DIGEST_MISMATCH`, `SOURCE_ZIP_DIGEST_UNBOUND` or `SOURCE_ZIP_UNAVAILABLE`).
 - **Limited (sealed package only)** — falls back to the package's gene context
   (`<strain>_gene_context.jsonl`), which carries domain **names** but not descriptions or
   e-values. Clearly marked with `MODE_B_LIMITED_DOMAIN_CONTEXT.md`.
 
-When neither route yields retained domain context, the helper writes `DOMAIN_LEVEL_SKIPPED_NO_GBK.md` and a SKIPPED receipt. A failed source parse can fall back to gene context; an empty source result also falls back. Read the actual `mode`, warnings and per-locus coverage. `full_source`/`FULL` identifies the source route, not a complete-source extraction certificate.
+When neither route yields domain context, the helper writes `DOMAIN_LEVEL_SKIPPED_NO_GBK.md` and a SKIPPED receipt. A failed or empty source read falls back to gene context. Read `mode` and the warnings in `domain_level_receipt.json` to see which route ran.
 
-The receipt initializes `core_package_valid=true`; it does not run package validation. This field and normal command completion cannot establish that an input was valid or sealed. Preserve and read the independent package validator and integrity evidence.
+`core_package_valid` in the receipt is always true. The command does not validate the package, so run `validate` yourself.
 
-## Outputs (`package/domain_level/`)
+## Outputs (`domain_level/` in the package, or your `--out` folder)
 
 | File | Contents |
 |------|----------|
@@ -57,9 +72,7 @@ The receipt initializes `core_package_valid=true`; it does not run package valid
 | `domain_level_receipt.json` | inputs, mode, counts, taxonomy/claim-safety versions |
 | `OPEN_ME_FIRST_Domain_Level_ModeB.md` | front-facing summary |
 
-Use `domain-level --out <fresh-external-directory>` when the package must remain unchanged. The default writes under the supplied package; existing fixed output names are reused. Tables, optional extensions and receipt are published separately, so failure can leave partial output or a previous receipt. Retain prior evidence and inspect the current artifact roster before a retry.
-
-The CLI can return zero for SKIPPED enrichment or failed optional figure rendering. Its receipt records counts and rule versions, not a complete source/output hash binding; preserve exact package/archive, code, configuration and output hashes separately. A rendered file is not visual QA. No enrichment receipt establishes scientific acceptance.
+Use a fresh `--out` folder for each run; an occupied one is refused (see above). The handled failures (missing rule files, no manifest, no eligible BGCs, no domain context, a source digest mismatch) write a named card and a SKIPPED receipt. Other errors, such as an unreadable manifest or triage board or a write error, stop the command without a receipt, and files written before the error stay in the folder. The command can exit 0 when enrichment is skipped or refused, or when figure rendering fails, so list the folder after every run. The receipt records counts, rule versions and the source digest, not output-file hashes. Look at each figure yourself.
 
 ## Rule files (versioned, auditable)
 
@@ -76,8 +89,7 @@ drift is auditable.
   fall to `Unknown/repeat/accessory`.
 - Limited mode has no e-values or descriptions; the burden counts still hold, but the per-domain
   detail columns are blank.
-- This is **annotate-only and post-seal**: it never changes scores and never blocks the package
-  seal. It adds an evidence layer; it does not re-rank.
+- It is annotate-only. It never changes scores or blocks the package, and it does not re-rank.
 
 ## Claim-safety reminder
 

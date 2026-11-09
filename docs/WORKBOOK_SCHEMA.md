@@ -1,296 +1,95 @@
-# Master workbook schema — design reference and deployed validation
+# Master workbook schema
 
-Read [the current validation guide](WORKBOOK_VALIDATION.md) before using this retained design reference. The checker derives required headers and sheets from the builder; historical column lists and audit receipts below do not prove current implementation or PASS. The frozen requirements remain a separate retained contract.
+This page lists the sheets and columns of the master workbook. A master workbook is one `.xlsx` that holds many strains. `python mamey_run.py run ... --master <path>` creates it and adds each run to it. The page matches the builder (`mamey/master_workbook.py`, `CANONICAL_V1_HEADERS`) and the checker (`mamey/workbook_schema_check.py`). To check a workbook, follow [Master workbook validation](WORKBOOK_VALIDATION.md).
 
+The schema version is v1.1. The sheet `H3_Schema_Version` carries the stamp. The frozen requirements are in [MASTER_SCHEMA_FROZEN_v1_1.md](MASTER_SCHEMA_FROZEN_v1_1.md). Terms are in the [glossary](GLOSSARY.md).
 
-## Current versions at a glance (read this first)
+## Rules
 
-| Artifact | Schema | Owner (builder / checker) | Checked by default | Opt-in |
-|---|---|---|---|---|
-| Master strain workbook | **v1.1, frozen** (`MASTER_SCHEMA_FROZEN_v1_1.md`) | `master_workbook.py` (stamps H3 = v1.1) / `mamey/workbook_schema_check.py` (`SCHEMA_VERSION = "v1.1"`) | derived sheets/headers, nonempty row counts; A2/B1 strain-set comparison below 26 nonblank A2 rows (duplicates count); general values/provenance are not checked | `--v12` for the v1.2 additions (D5 Fragment_Rescue_Tiers, Activity_Ref); `--full` forces the orphan check; v1.2 row checks require `--v12` too |
-| Sapote judgment sheets | Sapote Excel schema v1.1 (monolith §57) | a separate namespace | — | — |
-
-Required headers come from the builder, not from the column lists on this page, which are a design reference.
-The dated audit results near the end of this page are a historical receipt, not a current pass.
-
->
-> **✓ MASTER-SCHEMA FROZEN (v1.1, 2026-06-09).** The canonical *master strain workbook* schema (the cross-strain workbook) is FROZEN in `MASTER_SCHEMA_FROZEN_v1_1.md`. That file covers sheets B5–B12 and D4, three pre-freeze structural fixes, the KCB/MIBiG provenance gate (validated 3 ways + round-trip), and the append-only forward-compatibility contract (v2 must read v1). Per-strain (§57) and custom workbooks are intentionally NOT frozen. Frozen after provisional round-trip validation.
->
-> **Two independent schema namespaces — do not conflate.** This document is the **Mamey master-workbook schema (v1.1)**: the cross-strain workbook sheets (A–H groups below), validated by `workbook_schema_check.py`. It is distinct from the **Sapote Excel schema (v1.1)** referenced in monolith §57, which versions a different artifact — the per-analysis `CrypticClass_Triggers` / `Hallucination_Trap_Audit` judgment sheets (the "Class sub-grade" column). The two version numbers track separate schemas and advance independently.
-
-## Purpose
-
-This document retains the master-workbook design, dated additions and historical receipts. For deployed acceptance, use the current builder/checker and the validation guide above, with workbook/source hashes, roster and explicit flags. Checking before handoff is a reader obligation; the document does not prove automatic enforcement.
-
-## Related documents
-
-- [Workbook validation](WORKBOOK_VALIDATION.md) — how to check a workbook.
-- [Handoff protocol](CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md) — historical platform handoff rules.
-
-## Design principles
-
-1. **Sheet codes are stable identifiers.** Every sheet has a code (A1, B2, etc.) that never changes. Platforms reference sheets by code, not by name.
-2. **Columns are named exactly.** No synonyms. `Products` is always `Products`, never `Products/classes`.
-3. **Preserve typed missingness.** A blank may mean unavailable, not supplied, held or uncomputed depending on its source field; do not universally interpret it as pending computation. Do not impute zero or inactivity.
-4. **Handoff validation is mandatory.** On receipt, the receiving platform checks: (a) all expected sheets exist, (b) column headers match, (c) row counts are consistent across sheets.
-
----
+1. Every sheet has a stable code (`A1`, `B2`, and so on). The code never changes.
+2. Column names are exact. There are no synonyms.
+3. A blank cell is not a zero. It can mean not supplied, not computed or held. Do not fill a blank with 0 or "inactive".
+4. An assay column has four states: `+`, `−`, `n.t.` (not tested) and blank. Never turn one state into another. A strain with no test is not negative.
+5. The checker compares headers by position and ignores case. Extra trailing columns are allowed.
 
 ## Sheet index
 
-### Section A — Project administration
+The checker requires the 26 sheets below. Header-only sheets pass. Each sheet is checked for presence and header order. The checker also compares data-row counts across the per-strain sheets and, outside fast mode, checks that `A2_Strain_Registry` and `B1_BGC_Master` hold the same strains; either mismatch sets FAIL (`mamey/workbook_schema_check.py:328-370`). It does not validate cell content or science.
 
-| Code | Sheet name | Purpose | Owner | Rows |
+| Code | Sheet | What it holds | Rows | Columns (in order) |
 |---|---|---|---|---|
-| A1 | `A1_Dashboard` | Project summary stats, version, strain count | Auto | Fixed |
-| A2 | `A2_Strain_Registry` | One row per strain: identity, assembly, status, top leads | Both | 1/strain |
-| A3 | `A3_Run_Manifest` | One row per Mamey run: date, version, input, output | Runner | 1/run |
-| A4 | `A4_Completeness_Audit` | One row per strain: which sheets/fields are populated | Auto | 1/strain |
+| A1 | `A1_Dashboard` | Strain count, BGC count and version summary. | fixed | not column-checked |
+| A2 | `A2_Strain_Registry` | One row per strain: identity, assembly, status, top leads. | 1 per strain | `strain`, `taxonomy`, `ecology_source`, `habitat`, `assembly_bp`, `contigs`, `n50`, `gc_pct`, `bgc_count`, `interior_pct`, `assembly_tier`, `workflow_version`, `package_status`, `top_ab_bgc`, `top_ab_class`, `ab_score`, `ab_band`, `top_af_bgc`, `top_af_class`, `af_score`, `af_band`, `rggmci_state`, `gap_next_action`, `scope` |
+| A3 | `A3_Run_Manifest` | One row per run: date, version, mode, input, issues. | 1 per run | `run_date`, `strain`, `version`, `mode`, `antismash_profile`, `input_zip`, `raw_bgcs`, `corrected_bgcs`, `issues`, `package_path` |
+| A4 | `A4_Completeness_Audit` | Which sheets hold data for each strain. | 1 per strain | `strain`, `A2_registry`, `B1_bgc_master`, `B4_scans`, `C1_dapr_ab`, `C2_dapr_af`, `D1_rggmci`, `E1_mode_b`, `F1_ecology`, `overall`, `gap_action` |
+| B1 | `B1_BGC_Master` | One row per BGC (biosynthetic gene cluster): locus, coordinates, products, KnownClusterBlast (KCB) hit, claim limits. | 1 per BGC | `strain`, `assembly_locator`, `contig`, `region`, `BGC_ID`, `start`, `end`, `length_kb`, `products`, `boundary`, `arch`, `kcb_top`, `kcb_score`, `kcb_evidence_state`, `kcb_proteins`, `cctt_triggers`, `resistance_tier`, `tta_tier`, `ab_auto`, `af_auto`, `novelty_auto`, `lead_tier_auto`, `depth_floor`, `closest_product_provenance`, `source_kcb_file`, `source_kcb_locator`, `kcb_hit_rank`, `denominator_type`, `parse_confidence`, `needs_manual_kcb_check`, `product_claim_ceiling`, `efls_status`, `flank_census_tier1`, `flank_census_tier2_todo`, `cross_contig_candidate_set`, `efls_claim_ceiling`, `dkp_rank`, `dkp_cdps_evidence`, `dkp_oxidase_homology`, `dkp_provenance`, `dkp_claim_ceiling`, `diagnostic_signal_score`, `evidence_weight_tier`, `claim_confidence`, `claim_ceiling`, `safe_claim`, `engine_version` |
+| B2 | `B2_Product_Class_Matrix` | Strain by product-class counts. Raw antiSMASH counts, including classes the standing rules drop (saccharide, NAPAA, hglE-KS, ectoine, redox-cofactor). Filter before you make a lead-count claim. | 1 per strain | `strain`, `label_provenance`, `NRPS`, `NRPS-like`, `PKS`, `PKS-like`, `T1PKS`, `T2PKS`, `T3PKS`, `transAT-PKS`, `RiPP`, `terpene`, `carotenoid`, `saccharide`, `halogenated`, `lassopeptide`, `azole-containing-RiPP`, `lanthipeptide-class-i`, `lanthipeptide-class-ii`, `lanthipeptide-class-iii`, `NRP-metallophore`, `NI-siderophore`, `betalactone`, `fatty_acid`, `hglE-KS`, `NAPAA`, `RiPP-like`, `terpene-precursor`, `quinone_isoprenoid_chain`, `ectoine`, `butyrolactone`, `arylpolyene`, `RRE-containing`, `redox-cofactor`, `ranthipeptide`, `oligosaccharide`, `hydrogen-cyanide`, `aminopolycarboxylic-acid`, `HR-T2PKS`, `phosphonate`, `other`, `counts_reliability` |
+| B3 | `B3_Known_Cluster_Matrix` | Strain by KCB top-hit matrix. One column per reference, so the width varies. | 1 per strain | one `strain` column, then one column per reference |
+| B4 | `B4_Cross_Strain_Scans` | Per-strain scan totals. | 1 per strain | `strain`, `run_mode`, `KCB_status`, `RGGMCI_pairs`, `RGGMCI_HIGH`, `CCTT_triggers`, `CCTT_HAL`, `CCTT_LAN`, `CCTT_LASSO`, `CCTT_THA`, `CCTT_PHO`, `CCTT_ENE`, `CGAD_chitin`, `TFBS_DasR`, `TFBS_total`, `bldA_T4`, `resistance_T1`, `UMED_gaps`, `EFLS_pairs` |
+| B6 | `B6_Compound_Reference` | Compound reference for each KCB-named compound. | 1 per BGC | `strain`, `BGC_ID`, `kcb_named_compound`, `kcb_score`, `resolved`, `npclassifier_pathway`, `npclassifier_class`, `mol_formula`, `exact_mass`, `m_plus_h`, `m_plus_na`, `inchikey`, `npaid`, `primary_doi`, `primary_pmid`, `primary_year`, `evidence_tier`, `claim_ceiling` |
+| C1 | `C1_DAPR_Antibacterial` | Ranked antibacterial board. | 1 per lead | `strain`, `rank`, `assembly_locator`, `contig`, `BGC_ID`, `products`, `score`, `lead_tier`, `band`, `standing_rule`, `corrected_rank`, `kcb_top`, `kcb_score`, `boundary`, `arch`, `cctt`, `status_note`, `region`, then `Activity_Ref` when v1.2 is applied |
+| C2 | `C2_DAPR_Antifungal` | Ranked antifungal board. | 1 per lead | `strain`, `rank`, `assembly_locator`, `contig`, `BGC_ID`, `products`, `score`, `lead_tier`, `band`, `standing_rule`, `corrected_rank`, `kcb_top`, `kcb_score`, `boundary`, `arch`, `cctt`, `status_note`, `region`, then `Activity_Ref` when v1.2 is applied |
+| C3 | `C3_Lead_Tier_Summary` | Top antibacterial and antifungal lead per strain. | 1 per strain | `strain`, `top_ab_bgc`, `top_ab_products`, `ab_score`, `ab_band`, `top_af_bgc`, `top_af_products`, `af_score`, `af_band`, `sapote_composite`, `recommended_role` |
+| C4 | `C4_Strain_Decision_Table` | Composite score and recommended role per strain. | 1 per strain | `sapote_rank`, `strain`, `sapote_score`, `bgc_count`, `assembly_tier`, `top_lead`, `top_kcb_score`, `rggmci_high`, `class_diversity`, `high_value_hits`, `rare_class_hits`, `recommended_role` |
+| D1 | `D1_RGGMCI_All_Strains` | RG-GMCI (split-cluster signal) state per strain. | 1 per strain | `strain`, `contigs`, `review_required`, `final_state`, `promoted_grades`, `fragment_sets`, `promoted_bgcs`, `interpretation` |
+| D2 | `D2_RGGMCI_Top_Pairs` | Top RG-GMCI pairs. | about 10 per strain | `strain`, `rank`, `bgc_a`, `bgc_b`, `rggmci_score`, `confidence`, `products_a`, `products_b`, `shared_references`, `interpretation` |
+| D3 | `D3_RGGMCI_Promoted` | Promoted rescue groups, with evidence basis and claim ceiling. | 1 per group | `group_id`, `strain`, `grade`, `fragments`, `evidence_basis`, `claim_ceiling`, `chemistry_consequence`, `status` |
+| E1 | `E1_Mode_B_Index` | Which BGCs have a Mode B card. | 1 per BGC | `strain`, `BGC_ID`, `length_kb`, `products`, `subprograms`, `mode_b_status`, `analysis_platform`, `date`, `report_file`, `layperson_summary`, `fermentation_note` |
+| E2 | `E2_Comparative_Pairs` | BGC pairs across strains compared on banked product, domain and KCB-anchor signals. It runs no alignment and does not establish orthology or paralogy; `mean_pct_id_core` and `mean_pct_id_all` read `not_computed` (`mamey/comparative_pairs.py:12-23,144-145`). | 1 per pair | `pair_id`, `strain_a`, `bgc_a`, `strain_b`, `bgc_b`, `length_a_kb`, `length_b_kb`, `products`, `subprogram_match`, `mean_pct_id_core`, `mean_pct_id_all`, `a_domain_match`, `diverged_genes`, `interpretation` |
+| E3 | `E3_Megacluster_Registry` | BGCs over 150 kb flagged for long-read confirmation. | 1 per BGC | `strain`, `BGC_ID`, `length_kb`, `boundary`, `products`, `kcb_top`, `kcb_score`, `long_read_status`, `notes` |
+| E4 | `E4_A_Domain_Summary` | NRPS A-domain specificities for Mode B BGCs. | 1 per domain | `strain`, `BGC_ID`, `module_position`, `gene_locus_tag`, `stachelhaus_code`, `predicted_substrate`, `method`, `confidence`, `notes` |
+| F1 | `F1_Ecology_Readiness` | Taxonomy, deposited source and readiness per strain. | 1 per strain | `strain`, `taxonomy`, `source`, `habitat`, `assembly_tier`, `bgc_count`, `ab_lead`, `af_lead`, `tfbs_hits`, `cctt_classes`, `readiness`, `route` |
+| G1 | `G1_Literature_Index` | Literature entries per BGC. | 1 per citation | `strain`, `BGC_ID`, `track`, `citation`, `doi`, `evidence_purpose`, `verification_status` |
+| G2 | `G2_Validation_Roles` | Manuscript role per strain. | 1 per strain | `strain`, `primary_role`, `manuscript_use` |
+| H1 | `H1_Handoff_Log` | Handoff events with the workbook SHA-256. | 1 per event | `date`, `platform`, `direction`, `strains_affected`, `sheets_modified`, `file_sha256`, `validation_result`, `notes` |
+| H2 | `H2_Gap_Queue` | Open gaps with the input each needs. | 1 per gap | `priority`, `gap_class`, `strains`, `required_input`, `next_action`, `assigned_platform`, `status` |
+| H3 | `H3_Schema_Version` | Schema version stamp. | fixed | `Schema version`, `v1.1` |
 
-### Section B — BGC inventory (Tier 1 / Mamey extraction)
+## Columns that need a note
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| B1 | `B1_BGC_Master` | One row per BGC: coordinates, products, boundary, KCB, CCTT | Mamey | 1/BGC |
-| B2 | `B2_Product_Class_Matrix` | Strain × product-class count matrix — **raw antiSMASH product counts, including standing-rule DROP classes (saccharide, NAPAA, hglE-KS, ectoine, redox-cofactor).** Use for inventory overview; do not use for lead-count claims without filtering. | Mamey | 1/strain |
-| B3 | `B3_Known_Cluster_Matrix` | Strain × KCB-top-hit count matrix | Mamey | 1/strain |
-| B4 | `B4_Cross_Strain_Scans` | Strain × scan totals (DasR, CCTT, CGAD, bldA, resistance) | Mamey | 1/strain |
+- **`contig`** (B1, C1, C2) is the full contig name as antiSMASH reports it. Nothing shortens it.
+- **`assembly_locator`** (B1, C1, C2) is the contig first, with the BGC alias as a cross-reference. A single BGC is identified by `strain / full contig / region / BGC alias`. Take all four from the same row. C1 and C2 carry `region` as their last builder column, so all four come from one row there too (`mamey/master_workbook.py:233-234`). Rows written into an older master before that column existed have it blank.
+- **`habitat`** and **`ecology_source`** (A2, F1) hold the isolation source text as deposited. They are not binned into categories. Blank means none was deposited.
+- **`scope`** (A2) is `IN_SCOPE`, `OUT_OF_SCOPE` or `REVIEW`. It comes from the genus in `taxonomy`.
+- **`assembly_tier`** (A2) is `GOOD`, `MODERATE`, `POOR`, `VERY_POOR` or `UNKNOWN`. The tier comes from the share of BGCs that sit in the interior of a contig: 70 percent or more is `GOOD`, 45 or more `MODERATE`, 20 or more `POOR`, and below 20 `VERY_POOR`. `UNKNOWN` means the share could not be computed.
+- **`kcb_evidence_state`** (B1) says where the `kcb_*` values came from:
+  - `KNOWNCLUSTERBLAST_OBSERVED`: a KnownClusterBlast hit was read.
+  - `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`: the region's KnownClusterBlast text file was recognized as a no-hit report ("no hits" text, or empty "Significant hits:" and "Details:" sections) and no hit rows were parsed. The text is not checked against the JSON. The `kcb_*` fields stay empty, and no ClusterBlast hit is substituted. A missing or unreadable KnownClusterBlast file is not this state.
+  - `CLUSTERBLAST_FALLBACK_OBSERVED`: the region had no KnownClusterBlast record of either kind, and a ClusterBlast record was read (`mamey/antismash_evidence.py:1849-1862`). Treat the hit as weaker evidence.
+  - `UNKNOWN_KCB`: no record was found.
+- **`kcb_score`** (B1, C1, C2) is the KnownClusterBlast cumulative BLAST score. It is not a percent. A similar reference is not an identical compound.
+- **`lead_tier_auto`** (B1) and **`lead_tier`** (C1, C2) take one of `Exceptional`, `High`, `Medium`, `Low` or `Inventory`. `Low` and `Inventory` are routing labels for class-gated loci. They are not activity results.
+- **`band`**, **`ab_band`** and **`af_band`** (C1, C2, A2, C3) are score bands. They rank candidates. They do not measure activity.
 
-### Section C — Judgment (Tier 2 / Sapote-slim)
+## Fragment_Rescue_Tiers (code D5)
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| C1 | `C1_DAPR_Antibacterial` | Ranked antibacterial leads across all strains | Sapote | 1/lead |
-| C2 | `C2_DAPR_Antifungal` | Ranked antifungal leads across all strains | Sapote | 1/lead |
-| C3 | `C3_Lead_Tier_Summary` | One row per strain: top AB lead, top AF lead, tier, band | Sapote | 1/strain |
-| C4 | `C4_Strain_Decision_Table` | Sapote composite score, recommended role per strain | Sapote | 1/strain |
+This sheet is not in the 26 required sheets. `tools/build_dapr_rescue_sheets.py <master.xlsx>` builds it and rewrites the master in place. Copy the workbook first. The checker requires it only with `--v12`.
 
-### Section D — RGGMCI and split-locus rescue
+Columns, in order: `Tier`, `strain`, `Assembly`, `Contigs`, `N50`, `Frag_Loss`, `EFLS_Pairs`, `RG_GMCI_HIGH`, `FLBR_Megasynth`, `Recommendation`.
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| D1 | `D1_RGGMCI_All_Strains` | One row per strain: pair counts, promoted groups, state | Mamey | 1/strain |
-| D2 | `D2_RGGMCI_Top_Pairs` | Top 10 HIGH pairs per strain (or top 50 for focal strains) | Mamey | ~10/strain |
-| D3 | `D3_RGGMCI_Promoted` | Promoted rescue groups with evidence and claim ceiling | Sapote | 1/group |
-| D5 | `Fragment_Rescue_Tiers` | One row per strain: assembly metrics + fragment-rescue tier (A–D) | Mamey | 1/strain |
+The tier rule is fixed:
 
-### Section E — Deep analysis (Tier 3 / Sapote full / Mode B)
+| Tier | Condition |
+|---|---|
+| A | N50 of 1,000,000 or more |
+| D | else, EFLS_Pairs below 20 |
+| B | else, EFLS_Pairs of 600 or more |
+| C | everything else |
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| E1 | `E1_Mode_B_Index` | Which BGCs have full Mode B, link to per-strain sheets | Sapote | 1/BGC |
-| E2 | `E2_Comparative_Pairs` | Ortholog/paralog pairs with protein %ID summary | Sapote | 1/pair |
-| E3 | `E3_Megacluster_Registry` | BGCs >150 kb flagged for long-read confirmation | Mamey | 1/BGC |
-| E4 | `E4_A_Domain_Summary` | NRPS A-domain specificities for Mode B BGCs | Sapote | 1/domain |
+The tool reads blank N50 and scan counts as zero. A blank input can therefore yield a tier. Check the inputs before you read a tier. `Assembly` is copied from A2 `assembly_tier`. It is not derived from N50.
 
-### Section F — Ecology and regulatory context
+## Activity_Ref on C1 and C2
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| F1 | `F1_Ecology_Readiness` | Per-strain: taxonomy, source, habitat, readiness score | Both | 1/strain |
-| F2 | `F2_Regulatory_TFBS` | TFBS hits with TF family, target, score | Mamey | 1/hit |
-| F3 | `F3_Ecology_Theme_Board` | Cross-strain ecological themes (chitin, iron, etc.) | Sapote | 1/theme |
+The same tool adds or refreshes an `Activity_Ref` column at the end of C1 and C2. It looks up the KCB top hit in a fixed map (see [DAPR_CLASS_FRAMEWORK.md](DAPR_CLASS_FRAMEWORK.md)) and writes a tag such as `VERIFIED ...` or `ROUTED-OUT cytotoxic ...`. A tag is a literature pointer for the reference compound. It is not an activity result for your strain.
 
-### Section G — Literature and validation
+The tool refreshes a cell only when the KCB text and a mapped tag both exist. A blank or unmapped KCB leaves the old cell as it was. Compare retained tags with the current KCB text. The tool does not change rank, score or row selection.
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| G1 | `G1_Literature_Index` | Per-BGC citation/evidence entries | Sapote | 1/citation |
-| G2 | `G2_Validation_Roles` | Per-strain validation assignment for manuscript | Sapote | 1/strain |
-| G3 | `G3_Hallucination_Trap_Audit` | Trap checks with disposition and evidence | Sapote | 1/trap |
+## Other sheets
 
-### Section H — Handoff and audit
+- **`B5_BLASTp_Hits`** holds ingested BLASTp hit rows (see [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md)). It is optional. The checker checks it only when present. Columns: `strain`, `BGC_ID`, `contig`, `query_locus`, `query_len`, `hit_rank`, `subject_acc`, `subject_desc`, `sciname`, `pct_identity`, `positives_pct`, `align_len`, `mismatches`, `gap_opens`, `q_start`, `q_end`, `s_start`, `s_end`, `evalue`, `bitscore`, `subject_len`, `source`, `ingest_date`.
+- **Cohort overlays**: `Cross_Strain_Class_Prevalence`, `Cross_Strain_Findings` and `Strain_Cohort_Context` come from the cross-strain builder. They are not coded sheets and the checker does not require them.
+- **Optional coded sheets** the builder does not write: `F3_Ecology_Theme_Board` and `G3_Hallucination_Trap_Audit`. The checker allows them.
 
-| Code | Sheet name | Purpose | Owner | Rows |
-|---|---|---|---|---|
-| H1 | `H1_Handoff_Log` | Platform handoff events with SHA-256 and validation | Both | 1/event |
-| H2 | `H2_Gap_Queue` | Outstanding gaps with priority and required input | Both | 1/gap |
-| H3 | `H3_Schema_Version` | Schema version, column definitions, change log | Fixed | Fixed |
+## Changing the schema
 
----
-
-## Column specifications for core sheets
-
-> **Deployed structural spec:** `mamey/workbook_schema_check.py` derives `REQUIRED_SHEETS` from the v1.1 builder. Optional v1.2 checks require `--v12`. The lists below are historical design references; differences are reconciliation holds, and checker PASS does not satisfy unimplemented frozen requirements.
-
-### A2_Strain_Registry
-
-| Column | Type | Required | Source |
-|---|---|---|---|
-| strain | str | yes | Mamey |
-| taxonomy | str | no | User/literature |
-| ecology_source | str | no | User/literature |
-| habitat | str | no | User (attine/bee/bryophyte/marine/benchmark) |
-| assembly_bp | int | yes | Mamey |
-| contigs | int | yes | Mamey |
-| n50 | int | yes | Mamey |
-| gc_pct | float | yes | Mamey |
-| bgc_count | int | yes | Mamey |
-| interior_pct | float | yes | Mamey |
-| assembly_tier | str | yes | Mamey (GOOD/MODERATE/VERY_POOR) |
-| workflow_version | str | yes | Mamey (e.g. "v1.9.7") |
-| package_status | str | yes | Both (EXTRACTION_ONLY/JUDGMENT/MODE_B/COMPLETE) |
-| top_ab_bgc | str | no | Sapote |
-| top_ab_class | str | no | Sapote |
-| ab_score | float | no | Sapote |
-| ab_band | str | no | Sapote (Exceptional/Very_High/High/Medium/Exploratory) |
-| top_af_bgc | str | no | Sapote |
-| top_af_class | str | no | Sapote |
-| af_score | float | no | Sapote |
-| af_band | str | no | Sapote |
-| rggmci_state | str | yes | Mamey |
-| gap_next_action | str | no | Both |
-
-### B1_BGC_Master
-
-| Column | Type | Required | Source |
-|---|---|---|---|
-| strain | str | yes | Mamey |
-| BGC_ID | str | yes | Mamey (BGC001, BGC002, ...) |
-| contig | str | yes | Mamey |
-| region | str | yes | Mamey (region001, region002, ...) |
-| start | int | yes | Mamey |
-| end | int | yes | Mamey |
-| length_kb | float | yes | Mamey |
-| products | str | yes | Mamey (semicolon-separated) |
-| boundary | str | yes | Mamey (Interior/Edge/Full-contig) |
-| arch | str | yes | Mamey (A/B/C/D/E) |
-| kcb_top | str | yes | Mamey |
-| kcb_score | float | yes | Mamey |
-| kcb_proteins | int | yes | Mamey |
-| cctt_triggers | str | no | Mamey |
-| resistance_tier | str | no | Mamey |
-| tta_tier | str | no | Mamey |
-| ab_auto | float | no | Sapote-slim |
-| af_auto | float | no | Sapote-slim |
-| novelty_auto | float | no | Sapote-slim |
-| lead_tier_auto | str | no | Mamey routing prior (Exceptional/High/Medium/Low/Inventory); Low and Inventory are class-gated below-Medium labels, not activity states |
-| depth_floor | str | no | Sapote (full_mode_b/abbreviated/inventory_only) |
-
-### C1_DAPR_Antibacterial / C2_DAPR_Antifungal  (schema v1.2 — reconciled to deployed columns)
-
-**Hybrid sheet.** *Deterministic columns* are Mamey-regenerable (BGC data + framework lookup); *judgment columns* are the Sapote scoring/ranking overlay. For these two boards, `tools/build_dapr_rescue_sheets.py` refreshes mapped `Activity_Ref` cells while leaving the other existing board cells unchanged; it does not rebuild their identities, selection, KCB values or scores. It separately replaces the whole `Fragment_Rescue_Tiers` sheet. Preserve and inspect before/after workbooks for this selected mutation.
-
-| Column | Type | Required | Owner | Source |
-|---|---|---|---|---|
-| Rank | int | yes | Sapote | within-board ranking (judgment) |
-| strain | str | yes | Mamey | strain id (values may be lab IDs, e.g. SID-XXX) |
-| BGC_ID | str | yes | Mamey | BGC id (carry contig·region locator per §4 on first mention) |
-| Product_Class | str | yes | Mamey | antiSMASH product class(es) |
-| AN_Score | int | yes | Sapote | activity-association confidence (3 HIGH / 2 MED / 1 WATCH) |
-| WL_Score | int | yes | Sapote | wet-lab priority (completeness + value) |
-| Rationale | str | no | Sapote | evidence summary (judgment) |
-| KCB_Provenance | str | yes | Mamey | KnownClusterBlast nearest cluster |
-| Activity_Ref | str | yes | **Mamey (deterministic)** | framework citation lookup keyed on KCB compound → verification tag (VERIFIED / ROUTED-OUT / antifungal-adjacent), mirrored in `docs/DAPR_CLASS_FRAMEWORK.md` |
-
-**Refresh boundary:** `activity_ref()` selects the first framework-map substring match from `kcb_top`, but the workbook writer overwrites `Activity_Ref` only when both KCB text and a mapped tag are present. Blank/unmapped current KCB values leave an old cell untouched, so the final cell is not always a pure function of current source text. Reconcile retained references against the current KCB and map; a successful refresh does not prove stale cells were cleared. The *selection and ranking* of board rows remains a Sapote judgment pass (class-level hypotheses; typed metadata does not add a score; cytotoxic-adjacent + siderophore classes routed out).
-
-### E2_Comparative_Pairs
-
-| Column | Type | Required | Source |
-|---|---|---|---|
-| pair_id | str | yes | e.g. "BGC011_BGC055" |
-| strain_a | str | yes | |
-| bgc_a | str | yes | |
-| strain_b | str | yes | |
-| bgc_b | str | yes | |
-| length_a_kb | float | yes | |
-| length_b_kb | float | yes | |
-| products | str | yes | |
-| subprogram_match | str | yes | e.g. "17/17" |
-| mean_pct_id_core | float | yes | |
-| mean_pct_id_all | float | yes | |
-| a_domain_match | str | no | e.g. "7/7 identical Stachelhaus" |
-| diverged_genes | str | no | |
-| interpretation | str | yes | ortholog/paralog/unrelated |
-
----
-
-## Handoff protocol
-
-### Sender (platform completing work)
-
-1. Populate all sheets relevant to the work done
-2. Update A4_Completeness_Audit for affected strains
-3. Add row to H1_Handoff_Log: date, platform, SHA-256 of xlsx, sheets modified
-4. Validate: no orphan strains (every strain in A2 must appear in B1, B2, B4)
-5. Export xlsx and provide to user
-
-### Receiver (platform starting work)
-
-1. Open xlsx, read H3_Schema_Version — confirm compatible
-2. Read H1_Handoff_Log — identify what was last modified
-3. Validate: A2 row count = B2 row count = B4 row count = D1 row count
-4. Read A4_Completeness_Audit — identify gaps to fill
-5. Proceed with assigned work
-
-### User checkpoint
-
-The user can verify workbook health by checking:
-- A1_Dashboard: strain count, BGC count match expectations.
-- A4_Completeness_Audit: which strains have which sections populated.
-- H1_Handoff_Log: audit trail of who did what when.
-
----
-
-## Versioning
-
-This is Schema v1.1. Changes to column names or sheet codes require a version bump in H3_Schema_Version. Adding new sheets uses the next available code in the appropriate section.
-
-### Schema v1.2 additions (2026-06-11)
-
-Append-only changes, forward-compatible (v1.1 readers ignore the new column/sheet):
-
-1. **`C1/C2_DAPR` gain `Activity_Ref`** — a deterministic column (framework citation lookup keyed on the KCB nearest compound; see the reconciled C1/C2 spec above). Mamey-regenerable; the rank/score columns remain Sapote judgment.
-2. **`Fragment_Rescue_Tiers`** — new fully-deterministic sheet (spec below).
-3. **Cross-strain overlay sheets recognized:** `Cross_Strain_Class_Prevalence`, `Cross_Strain_Findings`, `Strain_Cohort_Context` are now schema-acknowledged overlay sheets (un-coded; emitted by the cross-strain builder). They were previously pending fold-in.
-
-Deterministic regeneration of items (1) and (2) is provided by `tools/build_dapr_rescue_sheets.py`. The framework citation map is the single source of truth for `Activity_Ref` and is mirrored in `docs/DAPR_CLASS_FRAMEWORK.md`.
-
-### Fragment_Rescue_Tiers (code D5; schema v1.2 — deterministic)
-
-Fully deterministic from assembly/scan metrics with fixed tier thresholds. Regenerated by `tools/build_dapr_rescue_sheets.py`.
-
-| Column | Type | Required | Source |
-|---|---|---|---|
-| Tier | str (A–D) | yes | tier rule below |
-| strain | str | yes | strain id |
-| Assembly | str | yes | copied A2 `assembly_tier` value; not independently derived from the D5 N50 thresholds |
-| Contigs | int | yes | assembly contig count |
-| N50 | int | yes | assembly N50 (bp) |
-| Frag_Loss | float | yes | raw − corrected BGC count |
-| EFLS_Pairs | int | yes | fragment-linkage recovery candidates (≈0 in closed genomes) |
-| RG_GMCI_HIGH | int | yes | reference-anchored recovery candidates |
-| FLBR_Megasynth | int | yes | genome-wide megasynthase census (NOT a fragmentation metric) |
-| Recommendation | str | yes | tier-derived re-sequencing guidance |
-
-**Declared tier rule:** `A` if N50 ≥ 1,000,000; else `D` if EFLS_Pairs < 20; else `B` if EFLS_Pairs ≥ 600; else `C`.
-
-The helper defaults missing/blank N50 and scan counts to zero. Missing A3 raw/corrected counts also become zero, with the last A3 row per strain selected by file order. These defaults can produce a tier, zero loss or strong recommendation text without measured supporting fields; reconcile input missingness and actual run identity before interpreting them. The `Failed assembly - negative control` label is generated policy text, not experimental or biological validation. No threshold is changed here.
-
----
-
-## Platform-specific notes
-
-Which sheets a run fills depends on the tools and data available. Run `python mamey_run.py doctor` to see what this environment can do.
-
----
-
-## Historical receipt: schema-vs-deployed status (v1.2 audit, 2026-06-11)
-
-> This section records a dated audit; it is not a current validation result. Run `mamey/workbook_schema_check.py` for the present state.
-
-Generated by `tools/schema_deployed_audit.py`. Its full report, `docs/SCHEMA_DEPLOYED_AUDIT.md`, is not shipped in this bundle; regenerate it with that tool if you need it.
-Of 29 coded sheets: **12 MATCHED**, **1 MAPPED**, **16 SCHEMA-ONLY**; 14 deployed sheets are detail/overlay sheets outside the coded index.
-
-**MATCHED (built):** A1, A2, A4, B1, B2, B3, B4, C1, C2, D1, D2, D5.
-
-**MAPPED (name to reconcile):** F2_Regulatory_TFBS ⇐ deployed `TFBS_Motifs`.
-
-**SCHEMA-ONLY → BUILD next (deterministic / seedable):** E3_Megacluster_Registry (from B1, BGCs >150 kb), G1_Literature_Index (seed from `Lit_Verification_*`), H3_Schema_Version (fixed metadata).
-
-**SCHEMA-ONLY → DEFERRED (Sapote judgment / per-analysis / on-demand):** A3, C3, C4, D3, E1, E2, E4, F1, F3, G2, G3, H1, H2.
-
-**DEPLOYED-ONLY (recognized detail/overlay, not yet coded):** About; BGC_Scan_Profile, BGC_Domain_Architecture, BGC_Class_Predictions; Gene_NRPS_PKS_Substrates, Gene_Active_Sites, Gene_RiPP_Cores, Gene_Domain_Hits; TFBS_Motifs (→F2); Cross_Strain_Compare; TIGRFAM_Check; Strain_Catalog; Cross_Strain_Class_Prevalence, Cross_Strain_Findings, Strain_Cohort_Context.
-
-**Naming reconciled (2026-06-11):** the strain key + taxonomy columns are now generic `strain`/`taxonomy` across all sheets (lab-specific `SID`/`Organism` retired from the schema; strain-ID *values* like `SID-XXX` remain as identifiers). Core validator reconciled to the deployed columns (2026-06-11): `workbook_schema_check.py` REQUIRED_SHEETS was then aligned with the built sheets. The 16 deferred coded sheets moved to OPTIONAL_SHEETS (documented, not required). The idealized column lists in 'Column specifications' above are retained as the design reference where they differ from the enforced deployed spec. Pick one canonical naming and align either the builder or the schema column specs. This is why the core validator reports column_errors even though the v1.2 deterministic checks pass.
+A change to a column name or a sheet code needs a new version in `H3_Schema_Version`. A new sheet takes the next free code in its group. Edit the builder first. This page and the checker follow it.

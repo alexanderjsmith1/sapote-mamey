@@ -269,8 +269,8 @@ The project works with two kinds of strain, and the boundary between them is a *
 - **Unpublished strains** — identifiers in the lab's internal series (the **AS-####, AJS-####, PENDING-**
   *families) — are under embargo pending the PI's clearance. They are* *PRIVATE.* *<span class="tag t-engine">\[engine\]</span>*\* (the hard-guarded
   patterns in `dedup_and_guard.py`).
-- **Public strains** — named reference genomes, NCBI accessions, and the **SID-public** series — are **PUBLIC**.
-  Note that a public SID strain's GenBank WGS contigs carry a **WW-** accession prefix (SID-XXX→WWKG…, SID-XXX→WWHM…);
+- **Public strains** — named reference genomes, NCBI accessions, and the **public-ID** series — are **PUBLIC**.
+  Note that a public SID strain's GenBank WGS contigs carry a **WW-** accession prefix (for example, a strain-to-WWKG… mapping);
   **WW- is therefore a *public* contig prefix, not an embargo class** — earlier drafts listed it as PRIVATE, which
   would have flagged every public SID strain's own contig IDs. The engine has no WW- guard pattern, and correctly so.
 
@@ -294,7 +294,7 @@ cost of a leak is a researcher's unpublished work; the guard is sized to that co
 
 ------------------------------------------------------------------------
 
-*End of Volume I. Next: Volume II — The Mamey Engine (ingest, the ten scans, evidence channels, boundary and
+*End of Volume I. Next: [Volume II](Encyclopedia-Volume-II.md) — The Mamey Engine (ingest, the ten scans (Volume XIII §XIII.3 counts twelve workbook scans; the two counts are not reconciled here), evidence channels, boundary and
 assembly tiers, the FLBR census, the package). Each subsequent volume is grounded in the running engine of its
 edition before it ships.*
 

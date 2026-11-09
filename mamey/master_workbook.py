@@ -84,6 +84,18 @@ HDR_FONT        = Font(color="FFFFFF", bold=True)
 COL_WIDTH       = 22
 
 
+
+def _kcb_cell(value):
+    """A KCB score for a workbook cell: a recorded 0 stays 0; only a missing score is blank."""
+    from .missing_values import optional_float
+    if value is None:
+        return ""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+    number = optional_float(value)
+    return "" if number is None else number
+
+
 def _style_header(ws, fill: PatternFill) -> None:
     for cell in ws[1]:
         cell.fill = fill
@@ -155,7 +167,7 @@ def _sheet_code(strain_id: str) -> str:
     and writes a sheet Excel can't open, and two long codes could silently collide/overwrite.
     """
     # e.g. Actinomadura_rubrisoli_H3C3 → H3C3
-    # e.g. AS-XXX is the public placeholder for a real AS-#### strain id
+    # e.g. ABC-12 is the public placeholder for a real AS-#### strain id
     _MAX_SUFFIX = len("_Lead_Propagation")  # 17 — the longest "{code}{suffix}" sheet name
     _CODE_CAP = 31 - _MAX_SUFFIX             # 14
     parts = strain_id.replace("-", "_").split("_")
@@ -218,8 +230,8 @@ CANONICAL_V1_HEADERS: dict[str, list[str]] = {
     # (npclassifier class, formula, exact mass, [M+H]/[M+Na], InChIKey, primary DOI/PMID). INVENTORY_ONLY.
     # NOT a BGC product-identity claim and carries NO genus-provenance field (see npatlas_resolver.py).
     "B6_Compound_Reference": ["strain", "BGC_ID", "kcb_named_compound", "kcb_score", "resolved", "npclassifier_pathway", "npclassifier_class", "mol_formula", "exact_mass", "m_plus_h", "m_plus_na", "inchikey", "npaid", "primary_doi", "primary_pmid", "primary_year", "evidence_tier", "claim_ceiling"],
-    "C1_DAPR_Antibacterial": ["strain", "rank", "assembly_locator", "contig", "BGC_ID", "products", "score", "lead_tier", "band", "standing_rule", "corrected_rank", "kcb_top", "kcb_score", "boundary", "arch", "cctt", "status_note"],
-    "C2_DAPR_Antifungal": ["strain", "rank", "assembly_locator", "contig", "BGC_ID", "products", "score", "lead_tier", "band", "standing_rule", "corrected_rank", "kcb_top", "kcb_score", "boundary", "arch", "cctt", "status_note"],
+    "C1_DAPR_Antibacterial": ["strain", "rank", "assembly_locator", "contig", "BGC_ID", "products", "score", "lead_tier", "band", "standing_rule", "corrected_rank", "kcb_top", "kcb_score", "boundary", "arch", "cctt", "status_note", "region"],
+    "C2_DAPR_Antifungal": ["strain", "rank", "assembly_locator", "contig", "BGC_ID", "products", "score", "lead_tier", "band", "standing_rule", "corrected_rank", "kcb_top", "kcb_score", "boundary", "arch", "cctt", "status_note", "region"],
     "C3_Lead_Tier_Summary": ["strain", "top_ab_bgc", "top_ab_products", "ab_score", "ab_band", "top_af_bgc", "top_af_products", "af_score", "af_band", "sapote_composite", "recommended_role"],
     "C4_Strain_Decision_Table": ["sapote_rank", "strain", "sapote_score", "bgc_count", "assembly_tier", "top_lead", "top_kcb_score", "rggmci_high", "class_diversity", "high_value_hits", "rare_class_hits", "recommended_role"],
     "D1_RGGMCI_All_Strains": ["strain", "contigs", "review_required", "final_state", "promoted_grades", "fragment_sets", "promoted_bgcs", "interpretation"],
@@ -409,7 +421,8 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
     top_ab = max(_leads, key=lambda t: t.ab_score, default=None) if _leads else None
     top_af = max(_leads, key=lambda t: t.af_score, default=None) if _leads else None
     today = date.today().isoformat()
-    habitat = _infer_habitat(run.context.source)
+    # Ruling 476: the habitat column carries the deposited isolation-source text, never an inferred bin.
+    habitat = _deposited_source(run.context.source)
     package_status = "MAMEY_COMPLETE" if run.context.analysis_mode == "gold" else "PASS"
 
     _append_row_by_header(wb["A2_Strain_Registry"], {
@@ -635,13 +648,18 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
                 "corrected_rank": t.corrected_rank if t.corrected_rank is not None else "",
                 "kcb_top": bgc.kcb_top or "", "kcb_score": bgc.kcb_cumulative,
                 "boundary": bgc.edge_status, "arch": bgc.architecture_confidence,
-                "cctt": ", ".join(cctt_coupling.get(bgc.bgc_id, [])), "status_note": note})
+                "cctt": ", ".join(cctt_coupling.get(bgc.bgc_id, [])), "status_note": note,
+                # The fourth identity part. Appended (not inserted) so column positions of older
+                # workbooks are unchanged; a lead row now carries strain / contig / region / BGC.
+                "region": bgc.antismash_region or (
+                    f"region{int(bgc.region_number):03d}"
+                    if str(bgc.region_number).strip().isdigit() else "")})
     _append_row_by_header(wb["C3_Lead_Tier_Summary"], {"strain": strain_id, "top_ab_bgc": top_ab.bgc_id if top_ab else "", "ab_score": top_ab.ab_score if top_ab else "", "ab_band": top_ab.lead_tier if top_ab else "", "top_af_bgc": top_af.bgc_id if top_af else "", "af_score": top_af.af_score if top_af else "", "af_band": top_af.lead_tier if top_af else "", "top_ab_products": (next((b.products[0] for b in run.bgcs if b.bgc_id == (top_ab.bgc_id if top_ab else "")), "") or "")[:60],
         "top_af_products": (next((b.products[0] for b in run.bgcs if b.bgc_id == (top_af.bgc_id if top_af else "")), "") or "")[:60],
         "recommended_role": "Mamey extraction complete; Sapote judgment pending"})
     _append_row_by_header(wb["C4_Strain_Decision_Table"], {"sapote_rank": "", "strain": strain_id, "sapote_score": "", "bgc_count": counts["raw"], "assembly_tier": counts["assembly_tier"], "top_lead": top_ab.bgc_id if top_ab else "", "rggmci_high": ss.rggmci.get("high_pairs", 0) if ss else 0,
         "class_diversity": len(class_counts),
-        "top_kcb_score": (next((b.kcb_cumulative for b in run.bgcs if b.bgc_id == top_ab.bgc_id), None) or "") if top_ab else "",
+        "top_kcb_score": _kcb_cell(next((b.kcb_cumulative for b in run.bgcs if b.bgc_id == top_ab.bgc_id), None)) if top_ab else "",
         "high_value_hits": sum(1 for t in triage if t.lead_tier in ("High", "Exceptional")),
         "rare_class_hits": sum(1 for t in triage if t.corrected_rank is not None and
             any(p.lower() not in ("saccharide","other","fatty_acid","terpene","butyrolactone") for p in
@@ -956,14 +974,10 @@ def _write_per_strain_sheets(wb: Workbook, run: MameyRun) -> None:
         dss = dss_per_bgc.get(bgc.bgc_id, {})
         cctt_hits = ", ".join(cctt_coupling.get(bgc.bgc_id, []))
 
-        # Depth floor determination (v1.2 §0 rules)
-        depth = "abbreviated_ledger"
-        if bgc.edge_status == "Interior":
-            depth = "full_mode_b"
-        elif cctt_hits:
-            depth = "full_mode_b"
-        elif bgc.kcb_cumulative and bgc.kcb_cumulative > 5000:
-            depth = "full_mode_b"
+        # Depth floor: the same rule the package triage board uses (cli._depth_floor). Gold gives
+        # every BGC full Mode B; the old Interior/CCTT/KCB-score heuristic was retired in v9.7.93.
+        from .cli import _depth_floor
+        depth = _depth_floor(bgc)
 
         ws_t.append([
             bgc.bgc_id,
@@ -1038,8 +1052,8 @@ def _write_per_strain_sheets(wb: Workbook, run: MameyRun) -> None:
     ws_m.append(["Assembly", "Edge/FC fragmentation",
                  f"{counts_dict['edge']+counts_dict['full_contig']} of {counts_dict['raw']} BGCs are Edge/FC",
                  "Long-read sequencing for high-priority leads"])
-    ws_m.append(["Judgment", "Mode B prose", "PENDING — load manifest into Mamey v1.2 prompt",
-                 "Run standard or gold judgment session"])
+    ws_m.append(["Judgment", "Mode B prose", "PENDING — authored in the Sapote judgment layer",
+                 "Run the Sapote judgment workflow on the validated package"])
     ws_m.append(["Chemistry", "HRMS/NMR", "Not performed", "Extract and fractionate top leads"])
 
 
@@ -1135,23 +1149,23 @@ def update_master_workbook(run: MameyRun, master_path: str | Path,
     atomic_save_workbook_safely(wb, output_path)
 
 
-def _infer_habitat(source: str) -> str:
-    s = source.lower()
-    if any(k in s for k in ("bee", "bumblebee", "apis", "bombus", "hymenoptera",
-                             "ant", "attine", "atta", "acromyrmex", "wasp")):
-        return "4_Hymenoptera"
-    if any(k in s for k in ("moss", "bryophyte", "sphagnum", "liverwort", "lichen")):
-        return "3_Bryophyte_lichen"
-    if any(k in s for k in ("soil", "rhizosphere", "root", "sediment", "arid", "desert")):
-        return "1_Terrestrial_soil"
-    if any(k in s for k in ("marine", "ocean", "sea", "sponge", "reef", "coral")):
-        return "2_Marine"
-    if any(k in s for k in ("fungal", "mushroom", "mycelium", "garden")):
-        return "7_Fungal"
-    # v9.7.8: do NOT infer habitat from strain provenance (type-strain/accession) or fall back to a
-    # taxonomy default — a wrong `1_Terrestrial_*` stamp can leak into ecological claims for bee/attine
-    # SID strains. Anything not matched from the user-supplied source string is an explicit placeholder.
-    return "ENGINE_DEFAULT_PLACEHOLDER"
+def _deposited_source(source: str) -> str:
+    """The isolation source exactly as deposited or supplied, with outer whitespace removed.
+
+    Ruling 476: no habitat category is inferred from this text. A keyword bin misfiled ordinary
+    words ("plant" read as "ant") and stamped a category the depositor never wrote. An empty
+    source stays empty, which means not deposited; it is never filled with a placeholder.
+    """
+    return (source or "").strip()
+
+
+def _same_deposited_source(a: str, b: str) -> bool:
+    """True when two deposited sources are the same text, ignoring case and runs of whitespace.
+
+    Two empty sources are not a match: a missing source says nothing about a shared origin.
+    """
+    na, nb = (" ".join(_deposited_source(x).casefold().split()) for x in (a, b))
+    return bool(na) and na == nb
 
 
 def cross_strain_context(master_path: str | Path,
@@ -1159,6 +1173,8 @@ def cross_strain_context(master_path: str | Path,
     """Read the master workbook and return cross-strain context for the manifest.
 
     Called after update_master_workbook() so the new strain is already present.
+    `habitat_peers_in_master` keeps its key for existing readers. It counts strains whose deposited
+    source is the same text as this strain's (ruling 476), not strains sharing an inferred bin.
     """
     master_path = Path(master_path)
     if not master_path.exists():
@@ -1168,8 +1184,6 @@ def cross_strain_context(master_path: str | Path,
                 "habitat_peers_in_master": 0}
 
     wb = load_workbook(master_path, read_only=True, data_only=True)
-    habitat = _infer_habitat(source)
-
     related: list[str] = []
     peers = 0
 
@@ -1183,7 +1197,7 @@ def cross_strain_context(master_path: str | Path,
                 continue
             src_idx = cm.get("ecology_source", cm.get("source", 2))
             src = str(row[src_idx]) if src_idx < len(row) and row[src_idx] else ""
-            if _infer_habitat(src) == habitat:
+            if _same_deposited_source(src, source):
                 peers += 1
                 related.append(sid)
 
@@ -1303,15 +1317,19 @@ def update_domain_level_sheets(domain_level_dir, master_workbook_path) -> dict[s
 
     # Domain_Architecture_Strings (ordered domain names per BGC)
     ws = wb["Domain_Architecture_Strings"]; _clear_strain_rows(ws)
-    arch: dict[str, list] = defaultdict(list)
-    meta: dict[str, dict] = {}
-    for r in sorted(rows_long, key=lambda x: (x.get("BGC_ID", ""), int(x.get("cds_start") or 0))):
-        arch[r["BGC_ID"]].append(r.get("domain_name", ""))
-        meta[r["BGC_ID"]] = {"Strain": r.get("Strain", ""), "Rank": r.get("Rank", ""),
-                             "Assembly_Locator": r.get("Assembly_Locator", ""),
-                             "Products": r.get("BGC_products", "")}
-    for bid, doms in arch.items():
-        m = meta[bid]
+    # v9.7.464: BGCnnn repeats in every strain; key by strain + locator + alias, never the bare alias.
+    arch: dict[tuple, list] = defaultdict(list)
+    meta: dict[tuple, dict] = {}
+    for r in sorted(rows_long, key=lambda x: (x.get("Strain", ""), x.get("Assembly_Locator", ""),
+                                              x.get("BGC_ID", ""), int(x.get("cds_start") or 0))):
+        key = (r.get("Strain", ""), r.get("Assembly_Locator", ""), r["BGC_ID"])
+        arch[key].append(r.get("domain_name", ""))
+        meta[key] = {"Strain": r.get("Strain", ""), "Rank": r.get("Rank", ""),
+                     "Assembly_Locator": r.get("Assembly_Locator", ""),
+                     "Products": r.get("BGC_products", "")}
+    for key, doms in arch.items():
+        m = meta[key]
+        bid = key[2]
         _append_row_by_header(ws, {"Strain": m["Strain"], "Rank": m["Rank"], "BGC_ID": bid,
                                    "Assembly_Locator": m["Assembly_Locator"],
                                    "Products": m["Products"],
@@ -1338,12 +1356,22 @@ def update_domain_level_sheets(domain_level_dir, master_workbook_path) -> dict[s
                 newc = b1.max_column + 1
                 b1.cell(1, newc).value = col
                 cmap[col] = newc
-        cx_by_bgc = {r["BGC_ID"]: r for r in complexity}
+        # v9.7.464: join on (strain, BGC_ID), plus the assembly locator when both sides carry one.
+        # A B1 without a strain column is not joined: the bare alias is not an identity.
+        cx_by_bgc: dict[tuple, list] = defaultdict(list)
+        for r in complexity:
+            cx_by_bgc[(str(r.get("Strain", "")), str(r["BGC_ID"]))].append(r)
         bgc_col = cmap.get("BGC_ID") or cmap.get("bgc_id")
-        if bgc_col:
+        strain_col = cmap.get("strain") or cmap.get("Strain")
+        loc_col = cmap.get("assembly_locator") or cmap.get("Assembly_Locator")
+        if bgc_col and strain_col:
             for r in range(2, b1.max_row + 1):
                 bid = b1.cell(r, bgc_col).value
-                cx = cx_by_bgc.get(bid)
+                loc = str(b1.cell(r, loc_col).value or "") if loc_col else ""
+                cands = [c for c in cx_by_bgc.get((str(b1.cell(r, strain_col).value or ""),
+                                                   str(bid or "")), [])
+                         if not (loc and c.get("Assembly_Locator")) or c["Assembly_Locator"] == loc]
+                cx = cands[0] if len(cands) == 1 else None
                 if cx:
                     b1.cell(r, cmap["Domain_total"]).value = cx.get("Domain_total", "")
                     b1.cell(r, cmap["Core_domain_burden"]).value = cx.get("Biosynthetic_core_domain_count", "")

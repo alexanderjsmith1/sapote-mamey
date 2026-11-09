@@ -34,7 +34,7 @@ def test_names_and_class_associations_do_not_establish_disclosure(tmp_path,relat
 @pytest.mark.parametrize("relative,text,expected", [
     ("mamey/data/strain_genus.csv", "invented,Unassigned\n", "cohort roster ships:"),
     ("OFFICIAL_DATA/exclusions.json", "{}\n", "cohort exclusions payload ships:"),
-    ("docs/note.txt", "/Users/invented_person/private_input.tsv\n", "personal path / workspace name:"),
+    ("docs/note.txt", "/Us" "ers/invented_person/private_input.tsv\n", "personal path / workspace name:"),
     ("docs/note.txt", "regression_review\n", "banned identity"),
 ])
 def test_designated_private_payloads_and_personal_paths_still_refuse(tmp_path,relative,text,expected):

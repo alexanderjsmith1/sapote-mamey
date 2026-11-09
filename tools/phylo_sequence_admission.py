@@ -218,6 +218,10 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
             "ceiling":"Mechanical admission only; taxonomy and metadata remain source-dependent."}
 
 
+class _InputUnreadable(Exception):
+    """The roster or FASTA could not be opened or decoded."""
+
+
 def main(argv=None):
     p=argparse.ArgumentParser()
     p.add_argument("--roster", required=True); p.add_argument("--fasta", required=True)
@@ -228,12 +232,23 @@ def main(argv=None):
     if a.json and Path(a.json).exists():   # a receipt is evidence; never replace one silently
         sys.stderr.write(f"ADMISSION_REFUSED: --json receipt already exists: {a.json}\n")  # direct write keeps the strict-health print_calls ratchet flat
         return 2
-    with open(a.roster, newline="", encoding="utf-8-sig") as h:
-        rows=list(csv.DictReader(h, delimiter="\t"))
+    rows=None
     try:
-        result=validate(rows, read_fasta(Path(a.fasta)), molecule=a.molecule,
+        # An input that cannot be read is an operational error, kept apart from a validation refusal.
+        try:
+            with open(a.roster, newline="", encoding="utf-8-sig") as h:
+                rows=list(csv.DictReader(h, delimiter="\t"))
+            sequences=read_fasta(Path(a.fasta))
+        except (OSError, UnicodeError, csv.Error) as e:
+            raise _InputUnreadable(f"{type(e).__name__}: {e}") from e
+        result=validate(rows, sequences, molecule=a.molecule,
                         min_length=a.min_length, max_length=a.max_length)
         rc=0
+    except _InputUnreadable as e:
+        result={"status":"ADMISSION_ERROR", "reason":str(e), "rows":None if rows is None else len(rows),
+                "molecule":a.molecule}
+        sys.stderr.write(f"ADMISSION_ERROR: input could not be read: {e}\n")
+        rc=2
     except ValueError as e:   # a refusal is an outcome, not a crash: typed, receipted, exit 2
         result={"status":"ADMISSION_FAIL", "reason":str(e), "rows":len(rows), "molecule":a.molecule}
         sys.stderr.write(f"ADMISSION_FAIL: {e}\n")
@@ -245,6 +260,9 @@ def main(argv=None):
                 receipt.write(text)
         except FileExistsError:
             sys.stderr.write(f"ADMISSION_REFUSED: --json receipt already exists: {a.json}\n")
+            return 2
+        except OSError as e:
+            sys.stderr.write(f"ADMISSION_ERROR: receipt could not be written: {a.json}: {e}\n")
             return 2
     print(text, end="")
     return rc

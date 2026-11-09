@@ -1,40 +1,121 @@
 # Enzyme neighborhood explorer
 
-This optional local view compares source annotations around existing DKP/CDPS owner candidates. It reuses the supplied immutable DKP and architecture readers and the shared gene-census reader. It performs no new biological scan or sequence search and creates no database copy. Open the generated `explorer.html` directly in a browser; it uses no external assets or network requests.
+This optional tool builds a local HTML view of the genes around loci that already carry a DKP or CDPS call. It reads evidence you pin; it runs no new scan or sequence search and copies no database. The result is a candidate view for review. It is not a finding.
 
-## Build and resume
+- **DKP**: diketopiperazine, a small cyclic dipeptide product class.
+- **CDPS**: cyclodipeptide synthase, the enzyme family that makes many DKPs.
+- **Owner candidate**: a locus whose source call state is `OWNER_DKP_CDPS_CANDIDATE`.
+- **Tested-no-call**: a locus whose source call state is `TESTED_NO_OWNER_CALL`. It was checked and had no call. It is a contrast case, not evidence of absence.
+- **current50**: the 50-section card requirements table, supplied as a Markdown source file you pin in the config (`current50_contract`). The view reports which sections its data can address. It never marks a section complete.
 
-From a bundle containing the shared `tool_database_reader` prerequisite:
+Other terms are in [the glossary](GLOSSARY.md). Setup is in [the first-run recipe](reader/01_FIRST_RUN.md).
 
-```sh
-python tools/build_enzyme_neighborhoods.py --config /work/evidence/view-config.json --out /work/derived/pilot --pilot
-python tools/build_enzyme_neighborhoods.py --config /work/evidence/view-config.json --out /work/derived/run001
+## What you need
+
+Run from the bundle root, in a bundle that includes the shared database-inspection code (`tool_database_reader`). You also need these frozen, hash-pinned sources:
+
+| Config key under `sources` | What it is |
+|---|---|
+| `dkp_manifest`, `dkp_database`, `dkp_reader` | DKP evidence manifest, its SQLite database, and the Python reader file |
+| `architecture_manifest`, `architecture_database`, `architecture_reader` | Gene architecture manifest, database and reader file |
+| `census_manifest`, `census_database` | Gene census manifest and database |
+| `domain_manifest`, `domain_database` | Domain manifest and database |
+| `current50_contract` | The 50-section requirements table (Markdown) |
+
+The reader files run as code after their hash is checked. A matching hash is not a sandbox. Pin only reader files you trust.
+
+Each reader is a Python file that defines a `read` function:
+
+- DKP reader: `read(database, manifest_sha256, identity, kind, limit, offset, include_raw=True)`. The kinds are `loci`, `genes`, `cds_context` and `domains`.
+- Architecture reader: `read(database, identity, kind, limit, offset, include_qualifiers=False)`. The kinds are `genes` and `features`.
+- Census and domain databases go through the shared `inspect_tool_database` check with `gene-census-v1`. They need no reader key.
+
+The tool does not search for evidence or pick a newest file. Every source is one you name in the config.
+
+## Config file
+
+Save this as `view-config.json`. Replace each `sha256` with the file's SHA-256 (`shasum -a 256 <file>`).
+
+```json
+{
+  "allowed_output_root": "/abs/path/to/work/derived",
+  "population": "EXAMPLE_COHORT",
+  "pilot_receipt": "/abs/path/to/work/derived/pilot/BUILD_AUDIT.json",
+  "pilot_receipt_sha256": "<fill in after the pilot finishes>",
+  "max_loci": 100,
+  "max_runtime_seconds": 1800,
+  "sources": {
+    "dkp_manifest": {"path": "evidence/dkp_manifest.json", "sha256": "<sha256>"},
+    "dkp_database": {"path": "evidence/dkp.sqlite", "sha256": "<sha256>"},
+    "dkp_reader": {"path": "evidence/dkp_reader.py", "sha256": "<sha256>"}
+  }
+}
 ```
 
-Supply JSON with `allowed_output_root`, `population`, `pilot_receipt`, `pilot_receipt_sha256` (after the pilot finishes), and `sources`. Each source entry has a `path` and exact SHA-256 in `sha256`. Source-entry paths may be absolute or relative to the config file; use absolute output-root and pilot-receipt paths (see caveats below). Explicit source keys are `dkp_manifest`, `dkp_database`, `dkp_reader`, `architecture_manifest`, `architecture_database`, `architecture_reader`, `census_manifest`, `census_database`, `domain_manifest`, `domain_database`, and `current50_contract`. The external reader files are trusted executable dependencies selected and pinned by the operator. Freeze them and all databases before running. Never supply untrusted code.
+The `sources` object must also list the other eight keys in the table above, in the same form. `max_loci` and `max_runtime_seconds` are optional; the values shown are the defaults.
 
-The DKP reader API is `read(database, manifest_sha256, identity, kind, limit, offset, include_raw=True)`. Its kinds are `loci`, `genes`, `cds_context`, and `domains`. The architecture API is `read(database, identity, kind, limit, offset, include_qualifiers=False)`, for `genes` and `features`. The shared census API remains `inspect_tool_database` with `gene-census-v1`. These are explicit dependencies; the widget does not rediscover evidence or choose a newest file.
+- `allowed_output_root` must already exist, and `--out` must be inside it.
+- Use absolute paths for `allowed_output_root` and `pilot_receipt`.
+- Source `path` values may be absolute or relative to the config file.
+- SQLite WAL, SHM or journal files beside a database are refused. Freeze the databases first.
 
-A pilot must select five distinct owner candidates before a full projection; it also selects one tested-no-call control when available. Full projection includes up to five available tested-no-call controls. Inspect actual selected identities and counts. The default cap is 100 selected loci, checked after the complete source locus roster is read; it is not a source-roster loading limit. Other limits are 1,800 seconds per invocation, 2,500 input gene/context rows and 10,000 feature rows per locus, and 32 MiB serialized embedded view data. Override only the cohort/runtime caps through the config. Repeat the same command to resume verified completed partitions. Within one build, pins cover selected source files, the builder file, template and selected identities; they do not cover every imported bundled helper. Changes to those bound inputs or completed partition/output bytes cause a hold. Use a new output directory for revised bindings. A crash between a partition write and its receipt leaves a hold. Existing source evidence and completed partitions are retained.
+## Run it
 
-## Meaning and limits
+1. Run the pilot.
 
-The four-part locus identity is checked before projection: strain / full contig / region / alias. Genes join by recorded locus tag, coordinates, strand and normalized protein hash. Exact DKP and census duplicate keys are refused, and their key sets must match the exact-region architecture key set. Architecture rows are first collapsed into a dictionary by that key, so repeated architecture keys are not separately refused and the last row supplies its retained raw projection; this is key-set parity rather than full row/cardinality equality. Domain links require the recorded parent fields to agree; names alone cannot establish a link. The drawer retains the selected DKP, census and architecture projections.
+   ```sh
+   python tools/build_enzyme_neighborhoods.py --config view-config.json --out /abs/path/to/work/derived/pilot --pilot
+   ```
 
-Coordinates are one-based inclusive. A gap is current start minus previous displayed end minus one; a negative gap is overlap. The first displayed gap is unknown. Maps use separate coordinate scales. Exact genes and sparse boundary/flank context are visually distinct. The flank source contains only owner-term matches, so gap values do not establish adjacency there. Unlinked features remain in locus evidence; a missing link is not domain absence.
+   The pilot needs five distinct owner candidates and adds one tested-no-call control when one exists.
+2. On success it prints `{"status": "EXTRACTION_QC_PASS_CANDIDATE", ...}` and exits 0. The pilot folder holds `BUILD_AUDIT.json`.
+3. Compute that file's SHA-256 and put it in `pilot_receipt_sha256`.
+4. Run the full build into a new folder.
 
-Recurrence counts three coordinate-ordered exact-region genes around a source-owner CDPS CDS term match, encoding recorded term groups and strands. It counts each locus once per pattern, preserves orientation and declares the eligible-locus denominator. It does not infer orthology, nucleotide conservation, conserved pathways or shared products. No-call controls are illustrative records outside this recurrence denominator, never evidence of biological absence.
+   ```sh
+   python tools/build_enzyme_neighborhoods.py --config view-config.json --out /abs/path/to/work/derived/run001
+   ```
 
-The source-pinned current50 table reports applicability to verbatim requirements and explicitly leaves completion unassessed. Older source profile metadata remains distinct. Per-locus cohort evidence-index sidecars are validated by `gene_first_explore.load_evidence_index`. BOUND describes the source-bound observation only. Unsupported channels and scientific claims are not manufactured.
+   The full build includes every owner candidate plus up to five tested-no-call controls. It checks that the pilot receipt matches its hash, reads `PASS`, and was built from the same sources. It does not re-check the pilot's builder, template or control choices.
+5. Open `run001/explorer.html` in a browser. It uses no network and no external assets.
 
-Missing inputs, parse failures, source tampering, mixed census bindings and roster conflicts cannot become empty successful results. Domain states distinguish observed linked features, tested no linked feature, unavailable sparse-flank coverage, and unbound/ambiguous source features. This tool is a private candidate view. Integration, scientific review, release and publication remain separate decisions.
+Success looks like `explorer.html`, `BUILD_AUDIT.json` with `"status": "PASS"`, `CURRENT50_APPLICABILITY.json` and `SOURCE_MANIFEST.json` in the output folder. `SOURCE_MANIFEST.json` lists a hash for every other output file but not for itself; record its hash separately. `PASS` is a bounded software check: the exact census, architecture and gene rosters each have one row per gene key and the same key set, the parent join ran, and the evidence-index sidecars load. `BUILD_AUDIT.json` says this in `pass_scope`. It is not a complete reconciliation of annotations, function or flank context, and it does not mean current50 is complete.
 
-## Exact pilot/resume and status caveats
+## If the run stops
 
-- Use absolute paths for `allowed_output_root` and `pilot_receipt`. The output root must already exist. Source-entry relative paths resolve against the config directory.
-- SQLite WAL/SHM/journal files beside a database are refused.
-- Reader Python files are run after hashing. A matching hash is not a sandbox.
-- A pilot needs five distinct candidates. No-call controls are optional. The receipt's scope text states the candidate and control counts actually selected, and says "no real no-call control" when none was. `source_no_call_loci` is all source loci minus candidates.
-- A full build checks the pilot receipt's hash and PASS, not the pilot's builder and template hashes or its controls.
-- `SOURCE_MANIFEST.json` is not in its own hash map; record its hash separately. After partial writes, keep completed partitions in place.
-- `BUILD_AUDIT.json` PASS means the joins worked, not that current50 is complete. Missing-source, parse and hold failures exit 2; other exceptions can end the run outside those checks.
+A hold prints `{"status": "HELD", "detail": ...}` and exits 2. Missing files print `MISSING_SOURCE` and unreadable JSON prints `PARSE_FAILED`; both also exit 2. Other unexpected errors are not caught and end the run with a Python traceback instead. A held or failed run never produces an empty "success".
+
+Limits that cause a hold:
+
+| Limit | Default | Config key |
+|---|---|---|
+| Selected loci | 100 | `max_loci` |
+| Run time per invocation | 1,800 seconds | `max_runtime_seconds` |
+| Gene plus context rows per locus | 2,500 | none |
+| Feature rows per locus | 10,000 | none |
+| Embedded view data | 32 MiB | none |
+
+The locus cap is checked after the full source locus list is read. It is not a loading limit.
+
+To recover:
+
+1. Read `detail` for the cause.
+2. For `RUNTIME_BUDGET_HOLD_RESUME_PARTITIONS`, run the same command again. Completed, hash-verified partitions are kept and the build resumes.
+3. If you change a source file, the config, or any bound input, use a new output folder. Changed bindings or changed partition bytes hold the run.
+4. A crash between a partition write and its receipt also leaves a hold. Keep the folder and ask for review before deleting anything.
+
+The binding covers the selected source files, the builder file, the template and the selected loci. It does not cover every helper module the builder imports.
+
+## How the view treats evidence
+
+- Each locus is identified as `strain / full contig / region / BGC alias`. The identity is checked before anything is drawn.
+- Genes join by locus tag, coordinates, strand and a normalized protein hash. Domain links need matching parent fields; a shared name is not a link.
+- Duplicate DKP, census or exact-region architecture keys are refused (`DUPLICATE_GENE_HOLD`, `DUPLICATE_ARCHITECTURE_GENE_HOLD`), and their key sets must match the architecture key set.
+- Coordinates are one-based and inclusive. A gap is the current start minus the previous displayed end minus one; a negative gap is an overlap. The first displayed gap is unknown. Each map has its own scale.
+- Flank context contains only owner-term matches, so its gap values do not show adjacency.
+- Domain states are: observed linked feature, tested with no linked feature, sparse-flank coverage unavailable, and unbound or ambiguous. A missing link is not domain absence.
+- Recurrence counts three coordinate-ordered genes around a CDPS term match, once per locus per pattern, with orientation kept and the eligible-locus count shown. It does not show orthology, conservation, a shared pathway or a shared product. Tested-no-call loci sit outside that count.
+- `BOUND` describes the source observation only. Channels without source data are left empty, not filled in.
+- `scope` in `BUILD_AUDIT.json` states how many candidates and controls were actually selected. It says "no real no-call control" when there were none.
+
+Integration, scientific review and release are separate decisions.

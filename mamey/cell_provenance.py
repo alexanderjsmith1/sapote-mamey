@@ -27,7 +27,7 @@ def _atomic_write_text(path: Path, text: str, encoding: str = 'utf-8') -> None:
 
 STATUS_GLOSSARY = {
     'COMPLETE_NATIVE': 'Filled from Mamey/antiSMASH extraction evidence.',
-    'COMPLETE_USER_METADATA': 'Filled from user-supplied metadata.',
+    'COMPLETE_USER_METADATA': 'Filled from metadata given to the run (CLI arguments; for strain_id possibly the archive organism name or ZIP filename). Not verified against a source record.',
     'COMPLETE_EXTERNAL_EVIDENCE': 'Filled from provided HMMER/DIAMOND/BLAST or other evidence.',
     'COMPLETE_INFERRED_LOW_CONFIDENCE': 'Filled by conservative inference; review before claims.',
     'NEEDS_ANTISMASH_OUTPUT': 'Needs antiSMASH output ZIP/folder; assembled FASTA alone is not enough.',
@@ -81,10 +81,12 @@ def build_cell_provenance(run: Any, package_dir: str | Path) -> list[dict[str, s
     # Package-level provenance.
     add(worksheet='Intake', cell_or_field='strain_id', data_label='Strain ID',
         current_value=strain, status_code='COMPLETE_USER_METADATA',
-        derived_from='CLI argument or ZIP stem', source_file=f'{strain}_1_intake.json',
-        source_parser='mamey.cli', evidence_type='metadata', confidence='high',
+        derived_from='CLI --strain, archive organism name or ZIP filename (this table does not record which)',
+        source_file=f'{strain}_1_intake.json',
+        source_parser='mamey.cli', evidence_type='metadata', confidence='not verified against a source record',
         how_to_fill='Supply --strain or use clear ZIP filename.', release_handling='Release 1 standalone',
-        notes_for_llm='Strain identifiers are user/project metadata; do not rewrite them without user instruction.')
+        notes_for_llm='Strain identifiers are user/project metadata; do not rewrite them without user instruction. '
+                      'A label taken from a filename is not a verified identity; bind it to its source record before citing it.')
     add(worksheet='Intake', cell_or_field='taxonomy', data_label='Taxonomy',
         current_value=getattr(run.context, 'taxonomy', ''), status_code='COMPLETE_USER_METADATA' if getattr(run.context, 'taxonomy', '') not in {'not verified', ''} else 'UNRESOLVED_METADATA',
         derived_from='User metadata or CLI default', source_file=f'{strain}_1_intake.json',

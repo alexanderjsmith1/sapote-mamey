@@ -9,6 +9,13 @@ import os
 import stat
 from pathlib import Path
 import re
+import sys
+import unicodedata
+
+_ROOT = str(Path(__file__).resolve().parents[1])
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+from mamey.missing_values import is_missing  # noqa: E402
 
 LIST_OPTIONS = (("owner_table", "--owner-table"), ("owner_table_original", "--owner-table-original"),
                 ("resolved_metadata", "--resolved"), ("reviewed", "--reviewed"),
@@ -59,8 +66,16 @@ def read_rows(path):
     return set(fields), rows
 
 
+def _cell_missing(value):
+    """Blank, a placeholder (NA, n/a, -, none, not available ...), or only invisible format
+    characters such as a zero-width space: missing evidence, never evidence."""
+    text = "".join(ch for ch in str(value if value is not None else "")
+                   if unicodedata.category(ch) != "Cf")
+    return is_missing(text)
+
+
 def _positive_row_basics(row):
-    if not TYPE_FIELDS <= set(row) or any(not row.get(key, "").strip() for key in TYPE_FIELDS):
+    if not TYPE_FIELDS <= set(row) or any(_cell_missing(row.get(key)) for key in TYPE_FIELDS):
         raise ValueError("HOLD_TYPE_EVIDENCE_MISSING")
     accession = row["source_accession"].strip()
     if not EXACT_ACCESSION.fullmatch(accession) or accession.startswith(("GCA_", "GCF_")):
@@ -210,7 +225,11 @@ def reviewed_type_map(paths, tip_labels, *, query_tips=(), resolved_paths=()):
             strain_anchor = _strain_anchor(tip, tip_labels[tip])
             if strain_anchor and strain_anchor != re.sub(r"[\s_]+", " ", row["strain"]).strip().casefold():
                 raise ValueError("HOLD_TYPE_STRAIN_IDENTITY_CONFLICT")
-            if row.get("accession") and row["accession"].strip() != accession:
+            # The reviewed table's `accession` cell is required on an affirmative row and must
+            # repeat the exact source accession; a blank cell is a hold, not a skipped check.
+            if _cell_missing(row.get("accession")):
+                raise ValueError("HOLD_TYPE_ACCESSION_MISSING")
+            if row["accession"].strip() != accession:
                 raise ValueError("HOLD_TYPE_SOURCE_ACCESSION_CONFLICT")
             value = {key: row[key].strip() for key in TYPE_FIELDS}
             if tip in result and result[tip] != value:

@@ -129,8 +129,8 @@ from .crosswalk import build_bgc_crosswalk, candidate_blastp_rows, assembly_loca
 RUN_STATEMENT = (
     "Mamey is running extraction analysis. "
     "All source-derived scans are performed from antiSMASH/GBK/JSON/TXT evidence. "
-    "Judgment (Mode B, ecological synthesis, WL interpretation) requires the "
-    "Mamey v1.2 prompt in a Claude session or Sapote-slim."
+    "Judgment (Mode B, ecological synthesis, wet-lab interpretation) is a separate "
+    "step: the Sapote judgment layer, run on the validated package with your chosen assistant."
 )
 
 
@@ -204,7 +204,8 @@ def _dependency_banner() -> str:
             ij = "system" if have("ijson") else "vendored"
             ij_line = "ijson(%s)\u2713 JSON streaming on" % ij
         else:
-            ij_line = "ijson\u2717 bounded\u2192TXT-only (drop in ijson, or it ships vendored)"
+            ij_line = ("ijson\u2717 bounded\u2192main JSON walker off; KCB TXT is still read, and the "
+                       "record pass still reads JSON files up to 80 MB (drop in ijson, or it ships vendored)")
     except Exception:
         ij_line = "ijson?"
     core = "openpyxl\u2713" if have("openpyxl") else "openpyxl\u2717 REQUIRED for workbooks \u2014 install it"
@@ -315,6 +316,50 @@ MAMEY_SEAL_FIRST = _os.environ.get("MAMEY_SEAL_FIRST", "1") not in ("0", "false"
 
 
 
+def _multibatch_issue(reason: str, batches: int, rggmci_high: int = 0) -> str:
+    """The MULTIBATCH issue text (one place, so tests read the engine's own wording)."""
+    return (f"MULTIBATCH: {reason} — Mode B review is easier in about {batches} batches "
+            f"of about 20 BGCs each. Use the batch plan to sequence them."
+            + (f" RG-GMCI HIGH pairs: {rggmci_high} (include split-cluster review in each batch)."
+               if rggmci_high else ""))
+
+
+def _json_skip_issues(evidence) -> list[str]:
+    """One JSON_EVIDENCE_SKIPPED issue per entry the evidence parser put in ``json_skipped``.
+
+    The text says what was still read, from the evidence itself: how many KnownClusterBlast TXT
+    files were parsed, and the record pass's own status for the same JSON
+    (``record_extraction.files[*].status``). A "no ijson" entry names no file and is worded on
+    its own.
+    """
+    if not isinstance(evidence, dict):
+        return []
+    txt = [n for n in (evidence.get("txt_files") or []) if "knownclusterblast" in str(n).lower()]
+    txt_note = (f"{len(txt)} KnownClusterBlast TXT file(s) were still read"
+                if txt else "no KnownClusterBlast TXT file was found to read instead")
+    record_status = {}
+    for item in ((evidence.get("record_extraction") or {}).get("files") or []):
+        if isinstance(item, dict) and item.get("source"):
+            record_status[str(item["source"])] = str(item.get("status") or "UNKNOWN")
+    out = []
+    for skipped in (evidence.get("json_skipped") or []):
+        text = str(skipped)
+        name = text.split(":", 1)[0] if ":" in text else ""
+        if name in record_status:
+            status = record_status[name]
+            record_note = ("the record pass read it" if status == "READ_COMPLETE"
+                           else f"the record pass status for it is {status}")
+            out.append(f"JSON_EVIDENCE_SKIPPED: {text}. The main JSON walk skipped this file; "
+                       f"{record_note}; {txt_note}.")
+        elif "ijson" in text:
+            out.append(f"JSON_EVIDENCE_SKIPPED: {text} No JSON file was walked by the main walker; "
+                       f"{txt_note}.")
+        else:
+            out.append(f"JSON_EVIDENCE_SKIPPED: {text}. The main JSON walk skipped this file; "
+                       f"{txt_note}.")
+    return out
+
+
 def _parse_evidence_with_budget(input_zip, json_mode, budget, stage):
     """Preserve the requested mode and actual CLI budget outcome in the saved receipt.
 
@@ -416,7 +461,8 @@ def _terminal_mamey_status(validator_status: str, issues: list[str] | tuple[str,
     return validator_status
 
 
-def _stamp_terminal_status(package_dir: Path, *, validator_status: str, issues: list[str] | tuple[str, ...]) -> str:
+def _stamp_terminal_status(package_dir: Path, *, validator_status: str, issues: list[str] | tuple[str, ...],
+                           refresh_entry_page: bool = False, after_zip: bool = False) -> str:
     """Persist terminal_status/issue_count before final manifest/checksum/ZIP seal.
 
     BCHERRY-374: manifest.json's "issues"/"issue_count" are refreshed here because
@@ -428,56 +474,172 @@ def _stamp_terminal_status(package_dir: Path, *, validator_status: str, issues: 
     stopped at 4 issues while manifest.json correctly shows all 5 once this function
     ran), but never received the equivalent refresh. Extending it here rather than
     filing a second, parallel mechanism.
+
+    ``refresh_entry_page`` (stamps made before the ZIP is written) also rebuilds
+    OPEN_ME_FIRST.html and the compiled report's run-level-issue list, and points their
+    checksum lines at the new bytes. ``after_zip`` (the stamp after sealing) leaves the
+    checksummed commit_receipt.json at its sealed bytes; a post-ZIP issue is recorded in
+    manifest.json, issue_log.md and package_status.json, which are not checksummed.
     """
     machine_status = _terminal_mamey_status(validator_status, issues)
-    try:
-        _mp = Path(package_dir) / "manifest.json"
-        _base = json.loads(_mp.read_text(encoding="utf-8")) if _mp.exists() else {}
-        _base["terminal_status"] = machine_status
-        _base["issue_count"] = len(issues or [])
-        _base["issues"] = list(issues or [])
-        _mp.write_text(json.dumps(_base, indent=2), encoding="utf-8")
-    except Exception as _e:
-        # A package sealing WITHOUT its terminal status must be visible, not silent:
-        # the phase log is the never-raises channel built for exactly this.
-        _phase_receipt(package_dir, "stamp_terminal_status", "FAIL", error=repr(_e))
-    # BCHERRY-374: refresh the two sibling issue surfaces from the same up-to-date
-    # `issues` list, same fail-open pattern as the manifest.json refresh above.
-    try:
-        _crp = Path(package_dir) / "commit_receipt.json"
-        if _crp.exists():
-            _cr = json.loads(_crp.read_text(encoding="utf-8"))
-            _cr["issues"] = list(issues or [])
-            _cr["status"] = "PASS_WITH_ISSUES" if issues else "PASS"
-            _crp.write_text(json.dumps(_cr, indent=2), encoding="utf-8")
-    except Exception as _e:
-        _phase_receipt(package_dir, "stamp_terminal_status_commit_receipt", "FAIL", error=repr(_e))
-    try:
-        _ilp = Path(package_dir) / "issue_log.md"
-        if issues:
-            _issue_text = "# Issue Log\n\n" + "\n".join(f"- {i}" for i in issues)
-        else:
-            _issue_text = "# Issue Log\n\n- No blocking issues recorded.\n"
-        _ilp.write_text(_issue_text, encoding="utf-8")
-    except Exception as _e:
-        _phase_receipt(package_dir, "stamp_terminal_status_issue_log", "FAIL", error=repr(_e))
-    try:
-        from .recovery_status import write_package_status_receipt as _wpsr
-        _wpsr(package_dir, validator_status=validator_status,
-              terminal_status=machine_status, issue_count=len(issues or []))
-    except Exception as _status_exc:
-        _phase_receipt(
-            package_dir,
-            "stamp_terminal_status_package_status",
-            "FAIL",
-            error_type=type(_status_exc).__name__,
-        )
-        with _suppress(Exception):
-            _LOGGER.warning(
-                "terminal package-status receipt write failed: %s",
-                type(_status_exc).__name__,
+
+    def _write_status_surfaces(current):
+        try:
+            _mp = Path(package_dir) / "manifest.json"
+            _base = json.loads(_mp.read_text(encoding="utf-8")) if _mp.exists() else {}
+            _base["terminal_status"] = _terminal_mamey_status(validator_status, current)
+            _base["issue_count"] = len(current or [])
+            _base["issues"] = list(current or [])
+            _mp.write_text(json.dumps(_base, indent=2), encoding="utf-8")
+        except Exception as _e:
+            # A package sealing WITHOUT its terminal status must be visible, not silent:
+            # the phase log is the never-raises channel built for exactly this.
+            _phase_receipt(package_dir, "stamp_terminal_status", "FAIL", error=repr(_e))
+        # BCHERRY-374: refresh the sibling issue surfaces from the same up-to-date list.
+        # After the ZIP, commit_receipt.json keeps its sealed bytes (it is checksummed).
+        if not after_zip:
+            try:
+                _crp = Path(package_dir) / "commit_receipt.json"
+                if _crp.exists():
+                    _cr = json.loads(_crp.read_text(encoding="utf-8"))
+                    _cr["issues"] = list(current or [])
+                    _cr["status"] = "PASS_WITH_ISSUES" if current else "PASS"
+                    _crp.write_text(json.dumps(_cr, indent=2), encoding="utf-8")
+            except Exception as _e:
+                _phase_receipt(package_dir, "stamp_terminal_status_commit_receipt", "FAIL", error=repr(_e))
+        try:
+            _ilp = Path(package_dir) / "issue_log.md"
+            if current:
+                _issue_text = "# Issue Log\n\n" + "\n".join(f"- {i}" for i in current)
+            else:
+                _issue_text = "# Issue Log\n\n- No blocking issues recorded.\n"
+            _ilp.write_text(_issue_text, encoding="utf-8")
+        except Exception as _e:
+            _phase_receipt(package_dir, "stamp_terminal_status_issue_log", "FAIL", error=repr(_e))
+        try:
+            from .recovery_status import write_package_status_receipt as _wpsr
+            _wpsr(package_dir, validator_status=validator_status,
+                  terminal_status=_terminal_mamey_status(validator_status, current),
+                  issue_count=len(current or []))
+        except Exception as _status_exc:
+            _phase_receipt(
+                package_dir,
+                "stamp_terminal_status_package_status",
+                "FAIL",
+                error_type=type(_status_exc).__name__,
             )
+            with _suppress(Exception):
+                _LOGGER.warning(
+                    "terminal package-status receipt write failed: %s",
+                    type(_status_exc).__name__,
+                )
+
+    _write_status_surfaces(issues)
+    # OPEN_ME_FIRST.html and the compiled report's "Run-level issues" list are written before
+    # late issues such as OVER_MERGE_CANDIDATES exist, so they showed a stale issue count.
+    # Stamps made before the ZIP is written rebuild both from the current issue list. They
+    # and commit_receipt.json (rewritten above) are in checksums_sha256.txt; once that file
+    # exists, their lines (and their manifest.json "files" entries) are pointed at the new
+    # bytes, so an issue added after write_manifest no longer breaks the checksum set.
+    # A failure here is raised as an issue (and the status surfaces rewritten), not only
+    # logged, so a stale page or a broken checksum line can never seal silently.
+    if refresh_entry_page:
+        failures = []
+        names = ["OPEN_ME_FIRST.html", "commit_receipt.json"]
+        try:
+            if (Path(package_dir) / "OPEN_ME_FIRST.html").exists():
+                from .package_addons import write_open_me_first as _womf
+                _womf(package_dir)
+        except Exception as _omf_exc:
+            failures.append(f"OPEN_ME_FIRST.html refresh ({type(_omf_exc).__name__})")
+            _phase_receipt(package_dir, "stamp_terminal_status_open_me_first", "FAIL",
+                           error_type=type(_omf_exc).__name__)
+        try:
+            report = _refresh_report_issue_block(Path(package_dir), list(issues or []))
+            if report:
+                names.append(report)
+        except Exception as _rep_exc:
+            failures.append(f"compiled report issue list refresh ({type(_rep_exc).__name__})")
+            _phase_receipt(package_dir, "stamp_terminal_status_compiled_report", "FAIL",
+                           error_type=type(_rep_exc).__name__)
+        try:
+            _rebind_checksums(Path(package_dir), tuple(names))
+        except Exception as _rb_exc:
+            failures.append(f"checksum rebind ({type(_rb_exc).__name__})")
+            _phase_receipt(package_dir, "stamp_terminal_status_rebind", "FAIL",
+                           error_type=type(_rb_exc).__name__)
+        if failures and isinstance(issues, list):
+            issues.append("[WARN] STATUS_SURFACE_REFRESH_FAILED: " + "; ".join(failures)
+                          + ". The entry page or compiled report may show an older issue count; "
+                            "issue_log.md and manifest.json are current.")
+            _write_status_surfaces(issues)
+            machine_status = _terminal_mamey_status(validator_status, issues)
     return machine_status
+
+
+def _refresh_report_issue_block(package_dir: Path, issues: list) -> str:
+    """Rewrite the "Run-level issues" list in ``<strain>_compiled_report.md`` from `issues`.
+
+    Returns the report's file name when it exists (so its checksum line can be rebound), or
+    "" when there is no report. The block is the one ``compile_report._assembly_table``
+    writes, rendered by the same helper, so the text is identical to a fresh report.
+    """
+    from .compile_report import render_run_level_issues
+    reports = sorted(package_dir.glob("*_compiled_report.md"))
+    if len(reports) != 1:
+        return ""
+    path = reports[0]
+    text = path.read_text(encoding="utf-8")
+    block = render_run_level_issues(issues)
+    start = text.find("\n**Run-level issues**")
+    if start >= 0:
+        end = text.find("\n# ", start + 1)
+        end = len(text) if end < 0 else end
+        new = text[:start] + block.rstrip("\n") + "\n" + text[end:]
+    else:
+        anchor = text.find("# 4. Assembly and strain summary")
+        if anchor < 0 or not block:
+            return path.name
+        end = text.find("\n# ", anchor + 1)
+        end = len(text) if end < 0 else end
+        new = text[:end].rstrip("\n") + "\n" + block.rstrip("\n") + "\n" + text[end:]
+    if new != text:
+        path.write_text(new, encoding="utf-8")
+    return path.name
+
+
+def _rebind_checksums(package_dir: Path, names: tuple[str, ...]) -> list[str]:
+    """Point checksums_sha256.txt and manifest.json "files" at the current bytes of `names`.
+
+    Only top-level files already listed in the checksum set are touched. Does nothing before
+    write_manifest has run (no checksums file yet). Returns the names whose entry changed.
+    """
+    import hashlib as _hashlib
+    sums = package_dir / "checksums_sha256.txt"
+    if not sums.exists():
+        return []
+    current = {}
+    for name in names:
+        path = package_dir / name
+        if path.is_file() and not path.is_symlink():
+            current[name] = (_hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_size)
+    lines = sums.read_text(encoding="utf-8").splitlines()
+    changed = []
+    for i, line in enumerate(lines):
+        parts = line.split("  ", 1)
+        if len(parts) == 2 and parts[1] in current and parts[0] != current[parts[1]][0]:
+            lines[i] = f"{current[parts[1]][0]}  {parts[1]}"
+            changed.append(parts[1])
+    if changed:
+        sums.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    manifest_path = package_dir / "manifest.json"
+    if changed and manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for entry in manifest.get("files") or []:
+            if isinstance(entry, dict) and entry.get("path") in changed:
+                entry["sha256"], entry["bytes"] = current[entry["path"]]
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return changed
 
 
 def _render_brief_nonblocking(package_dir, tier, on_issue, timeout_s=None):
@@ -986,6 +1148,7 @@ def _phase_environment(
     master_path: str | None,
     run_dir: Path,
     source_provenance: str = "asserted",   # AMBER-03-2
+    strain_id_source: str = "not recorded",
 ) -> tuple:
     """Environment setup: timing recorder, accession-label check, taxonomy
     normalization, display-name cleanup, and RunContext construction.
@@ -1038,6 +1201,7 @@ def _phase_environment(
         taxonomy=taxonomy,
         source=source,
         source_provenance=_norm_src_prov(source_provenance),
+        strain_id_source=strain_id_source,
         bioactivity=normalize_bioactivity(bioactivity),
         master_path=master_path,
     )
@@ -1188,8 +1352,10 @@ def _phase_package_seal(
                       f"terminal success {sorted(_TERMINAL_SUCCESS)}; sealed package regressed")
 
     # Enrichment validation above can itself add issues after write_manifest. Refresh every
-    # mutable status surface once more before zip_package captures the authoritative bytes.
-    _stamp_terminal_status(package_dir, validator_status=status, issues=issues)
+    # mutable status surface once more before zip_package captures the authoritative bytes,
+    # including the entry page and its checksum line.
+    _stamp_terminal_status(package_dir, validator_status=status, issues=issues,
+                           refresh_entry_page=True)
 
     # v9.7.84 naming fix: name the package after the SAPOTE BUNDLE version (the user-facing release
     # line), with the engine version retained as a provenance suffix. Previously this used only the
@@ -1346,6 +1512,7 @@ def run_one_strain(
     rggmci_residue_work_dir: str | None = None,
     rggmci_completion_work_dir: str | None = None,
     rggmci_label: str | None = None,
+    strain_id_source: str = "not recorded",  # strain_identity.StrainIdentity.source: supplied|archive|zip_stem
 ) -> dict:
     """Run Mamey extraction for one strain. Returns summary dict."""
 
@@ -1366,6 +1533,11 @@ def run_one_strain(
         if is_placeholder_taxonomy(taxonomy):
             metadata_error = ("TAXONOMY_PLACEHOLDER",
                               "supply taxonomy bound to the source record, or explicitly use 'not verified' if unresolved.")
+    if metadata_error is None:
+        from .cohort_resolver import is_template_placeholder
+        if is_template_placeholder(source):
+            metadata_error = ("SOURCE_PLACEHOLDER",
+                              "replace the <isolation source> template text with the deposited source, or omit --source.")
     if metadata_error:
         code, detail = metadata_error
         emit(f"ERROR: {code}: {detail}", file=_sys.stderr, flush=True)
@@ -1394,7 +1566,7 @@ def run_one_strain(
     _timer, _label_accession, taxonomy, display_name, context = _phase_environment(
         package_dir, strain_id, mode, json_mode, token_budget, input_zip, brief,
         display_name, taxonomy, source, bioactivity, master_path, run_dir,
-        source_provenance=source_provenance,
+        source_provenance=source_provenance, strain_id_source=strain_id_source,
     )
 
     # BR6-406-REBASE (originally Codex, engine-facing half): project-level privacy and
@@ -1493,6 +1665,7 @@ def run_one_strain(
     # rather than silently accepted. Regions from different strictness are not comparable, and a
     # wrong profile is harder to detect downstream than a missing one.
     _profile_issue = None
+    _profile_requested = antismash_profile
     if antismash_profile == "auto":
         antismash_profile = _as_input.strictness          # "unknown" only if truly unreadable
         if antismash_profile == "unknown":
@@ -1506,8 +1679,23 @@ def run_one_strain(
                           "continues under the supplied value at the operator's risk.")
     if _profile_issue:
         emit(f"  [profile] {_profile_issue}")
+    # The manifest's `antismash_profile` is the value the run used. When it was given
+    # explicitly it is not evidence of the archive's strictness, so keep the archive's own
+    # record and the agreement state beside it; a pooling check must read this record.
+    _archive_profile = _as_input.strictness
+    _profile_record = {
+        "requested": _profile_requested,
+        "used": antismash_profile,
+        "archive_recorded": _archive_profile,
+        "archive_evidence": getattr(_as_input, "strictness_evidence", "") or "",
+        "state": ("ARCHIVE_UNREADABLE" if _archive_profile == "unknown"
+                  else "READ_FROM_ARCHIVE" if _profile_requested == "auto"
+                  else "MATCHES_ARCHIVE" if _archive_profile == antismash_profile
+                  else "MISMATCH_ARCHIVE_DIFFERS"),
+    }
     # audit P1: bounded json-evidence streams large JSONs (ijson) and is the one step that can stall on a
-    # big strain. Run it under a wall-clock budget; on overrun, fall back to off (TXT-only) instead of
+    # big strain. Run it under a wall-clock budget; on overrun, fall back to the main JSON walker off
+    # (KCB TXT and the separate record pass are still read) instead of
     # hanging. Budget via MAMEY_BOUNDED_BUDGET_S (default 300s); 0 disables the guard.
     from .source_context import active as _budget_frame
     _captured_budget = _budget_frame()
@@ -1518,6 +1706,8 @@ def run_one_strain(
     _stage("parsing antiSMASH KCB/RiQ evidence")
     antismash_evidence, json_mode = _parse_evidence_with_budget(
         input_zip, json_mode, _budget, _stage)
+    if isinstance(antismash_evidence, dict):
+        antismash_evidence["antismash_profile_record"] = _profile_record
     _phase_receipt(package_dir, "antismash_parse", "END",
                    json_evidence=json_mode,
                    evidence_status=antismash_evidence.get("status") if isinstance(antismash_evidence, dict) else "")
@@ -1675,9 +1865,19 @@ def run_one_strain(
                    cds_count=len(cds), contig_count=len(contigs), domain_count=len(domains))
     _phase_receipt(package_dir, "source_scans", "START")
     _stage("running source scans (CCTT/CGAD/EFLS/resistance/TFBS/…)")
+    # FLBR and UMED counts are genome-wide only when the archive holds whole-record GenBank; bind
+    # the record set the readers used so `count_scope` says which. A parsers module without
+    # genbank_record_scope leaves the scans' own NOT_BOUND state in place.
+    try:
+        from .parsers import genbank_record_scope as _genbank_record_scope
+    except ImportError:
+        _genbank_record_scope = None
+    _scan_scope = ({"record_scope": _genbank_record_scope(input_zip)}
+                   if _genbank_record_scope is not None else {})
     try:
         with heartbeat_context("source_scans", enabled=(brief == "none"), seconds=heartbeat_seconds):
-            source_scans = run_source_scans(bgcs, cds, contigs, domains, organism=taxonomy)
+            source_scans = run_source_scans(bgcs, cds, contigs, domains, organism=taxonomy,
+                                            **_scan_scope)
         _phase_receipt(package_dir, "source_scans", "END",
                        raw_bgcs=len(bgcs),
                        efls_pairs=(source_scans.efls or {}).get("candidate_pair_count") if source_scans else None,
@@ -2086,6 +2286,11 @@ def run_one_strain(
         issues.append("No BGC GenBank region records parsed from antiSMASH archive.")
     if antismash_evidence.get("status") == "NO_KCB_SOURCE_FOUND":
         issues.append("KCB/RiQ parser found no antiSMASH JSON/TXT evidence; KCB fields may be blank.")
+    # A JSON skipped for size (full or bounded cap) or for a missing streaming parser used to be
+    # recorded only in the parse JSON, the manifest and the gate file, and the run exited 0 with
+    # nothing on the terminal. Raise it as an issue, which lands in issue_log.md and prints as
+    # one [ISSUE] line at the end of the run.
+    issues.extend(_json_skip_issues(antismash_evidence))
     # AUDIT_374: _kcb_recycling_audit() (antismash_evidence.py) computes a real structural
     # sanity check on KCB assignment right after apply_evidence_to_bgcs() above, and its own
     # docstring says a FAIL "should block manuscript/comparative use until inspected" — but the
@@ -2115,12 +2320,7 @@ def run_one_strain(
     if _needs_mb:
         import math as _math
         _batches = _math.ceil(raw / 20)
-        issues.append(
-            f"MULTIBATCH: {_mb_reason} — judgment will need ~{_batches} LLM batches "
-            f"(~20 BGCs each). Use the batch plan to sequence them."
-            + (f" RG-GMCI HIGH pairs: {_rggmci_high} (include split-cluster review in each batch)."
-               if _rggmci_high else "")
-        )
+        issues.append(_multibatch_issue(_mb_reason, _batches, _rggmci_high))
     if assembly_tier(interior_pct) == "VERY_POOR":
         issues.append(f"VERY_POOR assembly ({interior_pct}% interior BGCs). Most leads are edge/FC fragments; RG-GMCI must be used before lead ranking.")
     # PC-A2 (v9.7.101): non-blocking assembly-sanity / contamination check. Two VERY_POOR drafts
@@ -2292,9 +2492,10 @@ def run_one_strain(
             _npred = write_nrps_prediction_csvs(input_zip, package_dir, strain_id)
             if _npred.get("over_merged_regions"):
                 run.issues.append(
-                    f"OVER_MERGE_CANDIDATES: {_npred['over_merged_regions']} region(s) carry >=2 "
-                    f"protoclusters or neighbouring/interleaved/chemical_hybrid kind — antiSMASH's own "
-                    f"'region = >=2 BGCs' signal. See {strain_id}_predicted_polymers.csv.")
+                    f"OVER_MERGE_CANDIDATES: {_npred['over_merged_regions']} region(s) hold 2 or more "
+                    f"protoclusters, or a protocluster of antiSMASH kind \"neighbouring\", \"interleaved\" "
+                    f"or \"chemical_hybrid\". antiSMASH uses these to mark a region that may hold more than "
+                    f"one BGC. See {strain_id}_predicted_polymers.csv.")
         except Exception as _npe:  # fail-open: never break the package over an add-on
             _phase_receipt(package_dir, "nrps_predictions", "ERROR", reason=str(_npe))
         _cb_dir = None
@@ -2743,8 +2944,8 @@ def run_one_strain(
         if _triage_csv.exists():
             with open(_triage_csv, newline="", encoding="utf-8") as _tf:
                 _triage_rows = list(_csv_ms.DictReader(_tf))
-        _eligible = [r for r in _triage_rows
-                     if not r.get("Primary_metab_flag") and not r.get("Standing_rule")]
+        from .scoring import is_lead_excluded as _is_lead_excluded
+        _eligible = [r for r in _triage_rows if not _is_lead_excluded(r)]
         def _fscore(r, col):
             try: return float(r.get(col) or 0)
             except (ValueError, TypeError): return 0.0
@@ -2892,7 +3093,8 @@ def run_one_strain(
     # mandatory-deliverable or package-map warning.
     _preseal_validator_status = validate_result["status"]
     _preseal_terminal_status = _stamp_terminal_status(
-        package_dir, validator_status=_preseal_validator_status, issues=issues)
+        package_dir, validator_status=_preseal_validator_status, issues=issues,
+        refresh_entry_page=True)
     _phase_receipt(package_dir, "terminal_status_preseal", "END",
                    terminal_status=_preseal_terminal_status, issue_count=len(issues),
                    validator_status=_preseal_validator_status)
@@ -3011,7 +3213,7 @@ def run_one_strain(
     _phase_receipt(package_dir, "terminal", machine_status,
                    validator_status=status, issue_count=len(issues),
                    core_zip_unchanged=True)
-    _stamp_terminal_status(package_dir, validator_status=status, issues=issues)
+    _stamp_terminal_status(package_dir, validator_status=status, issues=issues, after_zip=True)
 
     return {
         "strain_id": strain_id,
@@ -3087,6 +3289,50 @@ def _auto_emit_cohort_figures_extended(results, outdir, logger=None):
         return {"status": f"SKIPPED_{type(_cx_exc).__name__}", "figure_count": 0}
 
 
+_FIGURE_FACTORY_PREFIX = "figure_factory_next"
+
+
+def _figure_factory_target_refusal(out_dir: Path) -> str:
+    """Why `out_dir` may not be replaced by the auto-emitted figure set, or "" when it may."""
+    if out_dir.is_symlink():
+        return "FIGURE_FACTORY_TARGET_IS_SYMLINK"
+    if not out_dir.exists():
+        return ""
+    if not out_dir.is_dir():
+        return "FIGURE_FACTORY_TARGET_NOT_A_DIRECTORY"
+    for entry in out_dir.iterdir():
+        if entry.is_symlink() or not entry.is_file() or not entry.name.startswith(_FIGURE_FACTORY_PREFIX):
+            return "FIGURE_FACTORY_TARGET_HOLDS_OTHER_FILES"
+    return ""
+
+
+def _remove_owned_figure_factory_dir(path: Path) -> None:
+    """Unlink this renderer's own files in `path`, then the folder if it is empty."""
+    if not path.exists() or path.is_symlink() or not path.is_dir():
+        return
+    for entry in path.iterdir():
+        if entry.is_file() and not entry.is_symlink() and entry.name.startswith(_FIGURE_FACTORY_PREFIX):
+            entry.unlink()
+    with _suppress(OSError):
+        path.rmdir()
+
+
+def _promote_figure_factory_dir(stage_dir: Path, out_dir: Path) -> None:
+    """Move the freshly built set into place; the previous set is set aside, then removed."""
+    previous = None
+    if out_dir.exists():
+        previous = out_dir.with_name(f".figure_factory.previous.{stage_dir.name.rsplit('.', 1)[-1]}")
+        out_dir.rename(previous)
+    try:
+        stage_dir.rename(out_dir)
+    except OSError:
+        if previous is not None:
+            previous.rename(out_dir)  # put the previous set back
+        raise
+    if previous is not None:
+        _remove_owned_figure_factory_dir(previous)
+
+
 def _auto_emit_figure_factory(target_dir, logger=None, source_dir=None):
     """Auto-run the Figure Factory as an expected post-seal deliverable (v9.7.409).
 
@@ -3126,19 +3372,26 @@ def _auto_emit_figure_factory(target_dir, logger=None, source_dir=None):
             return {"status": "SKIPPED_NO_CONFIG", "figure_count": 0}
 
         config = json.loads(config_path.read_text(encoding="utf-8"))
-        # Emit into a deterministic, conventional subdir of the run/cohort output.
-        out_dir = (target_dir / "figure_factory").resolve()
-        if out_dir.exists():
-            # Deterministic re-emit: replace only our own conventional subdir.
-            shutil.rmtree(out_dir, ignore_errors=True)
-        config["output_dir"] = str(out_dir)
+        # Emit into the conventional <target>/figure_factory subdir. The previous folder is
+        # replaced only when it is a real directory (not a symlink) that holds nothing but
+        # this renderer's own `figure_factory_next*` files, and only after the new set has
+        # been built into a fresh sibling folder. A failed build leaves the previous folder
+        # untouched. Nothing is removed with rmtree: the old files are unlinked one by one.
+        target_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = target_dir / "figure_factory"
+        refusal = _figure_factory_target_refusal(out_dir)
+        if refusal:
+            log(f"[figure-factory] SKIPPED ({refusal}: {out_dir})")
+            return {"status": f"SKIPPED_{refusal}", "figure_count": 0}
+        stage_dir = Path(_tempfile.mkdtemp(prefix=".figure_factory.next.", dir=str(target_dir)))
+        stage_dir.rmdir()  # the builder refuses an existing output dir; it creates this path itself
+        config["output_dir"] = str(stage_dir)
         # Resolve a relative external_data_root against the config's own directory so
         # the config is portable regardless of where target_dir sits.
         root = config.get("external_data_root")
         if root and not Path(root).expanduser().is_absolute():
             config["external_data_root"] = str((config_path.parent / root).resolve())
 
-        target_dir.mkdir(parents=True, exist_ok=True)
         fd, tmp_cfg = _tempfile.mkstemp(
             prefix=".figure_factory_cfg.", suffix=".json", dir=str(target_dir))
         _os.close(fd)
@@ -3146,7 +3399,14 @@ def _auto_emit_figure_factory(target_dir, logger=None, source_dir=None):
             Path(tmp_cfg).write_text(
                 json.dumps(config, sort_keys=True) + "\n", encoding="utf-8")
             from .figure_factory_next import build as _ff_build
-            receipt = _ff_build(Path(tmp_cfg))
+            try:
+                receipt = _ff_build(Path(tmp_cfg))
+            except Exception:
+                _remove_owned_figure_factory_dir(stage_dir)  # created by this run; previous set kept
+                raise
+            _promote_figure_factory_dir(stage_dir, out_dir)
+            if isinstance(receipt, dict):
+                receipt["output_dir"] = str(out_dir)
         finally:
             with _suppress(OSError):  # v9.7.409: best-effort cleanup, intent explicit (was except: pass)
                 _os.unlink(tmp_cfg)
@@ -3368,12 +3628,17 @@ def _write_package(run: MameyRun, package_dir: Path,
         # AMBER-03-2: intake is what the redaction/figure tooling reads; the host's evidence
         # strength must travel with the host, not be reconstructable only from the run command.
         "source_provenance": run.context.source_provenance,
+        # Where the strain ID came from: supplied (--strain), archive (organism name) or zip_stem.
+        # It says nothing about the isolation source above.
+        "strain_id_source": run.context.strain_id_source,
         "release":         _strain_release,
         "release_decision": _decision.to_dict() if _decision else None,
         "privacy_tier": _decision.privacy_tier if _decision else "LEGACY_OR_NOT_RECORDED",
         "privacy_assignment_state": _decision.assignment_state if _decision else "LEGACY_OR_NOT_RECORDED",
         "antismash_version": extract_antismash_version(run.context.input_zip),
         "antismash_profile": antismash_profile,
+        "antismash_profile_record": (antismash_evidence or {}).get("antismash_profile_record")
+                                    or {"used": antismash_profile, "state": "NOT_RECORDED"},
         "assembly":        {
             "genome_bp":  run.assembly.genome_bp,
             "contigs":    run.assembly.contigs,
@@ -3755,6 +4020,8 @@ def _write_package(run: MameyRun, package_dir: Path,
         # via Assembly_Locator/Contig/Node_ID/antiSMASH_Region). Appended for the same
         # positional-reader safety reason as Mobile_element_flag above.
         "Strain",
+        # antiSMASH rank-1 KnownClusterBlast percent (blank when not observed); appended last.
+        "KCB_similarity_pct",
     ]
     # v9.7.127: gene-only two-pathway detection — flag windows where a single-class product label
     # may hide a second pathway. KCB-independent; reads the gene-by-gene table written above.
@@ -3847,6 +4114,7 @@ def _write_package(run: MameyRun, package_dir: Path,
                 getattr(t, "recall_family", "") or "",                               # v9.7.120 family that drove the boost
                 getattr(t, "mobile_element_flag", "") or "",  # AUDIT_378 wave 17: corrected_rank-gating flag, was manifest-only
                 strain,  # v9.7.409: Strain anchor column
+                "" if getattr(bgc, "kcb_similarity_pct", None) is None else bgc.kcb_similarity_pct,
             ])
 
     # 4c — dedicated AB / AF lead boards (B-8/F-9): pre-sorted single-axis views so the antibacterial and
@@ -3916,6 +4184,9 @@ def _write_package(run: MameyRun, package_dir: Path,
     # manifest.json (full JSON snapshot — the handoff object)
     manifest_data = run.to_dict()
     manifest_data["antismash_profile"] = antismash_profile
+    # requested / used / archive-recorded strictness and their agreement state
+    manifest_data["antismash_profile_record"] = (antismash_evidence or {}).get(
+        "antismash_profile_record") or {"used": antismash_profile, "state": "NOT_RECORDED"}
     manifest_data["reporting_features"] = {
         "schema_version": "sapote_reporting_features_v2",
         "report_only_contract": "REPORT_ONLY_NO_SCORING",
@@ -4153,8 +4424,14 @@ def run_batch(
         from .strain_identity import resolve_strain_id as _resolve_sid
         _sid_res     = _resolve_sid("auto", input_zip, allow_accession=allow_accession_strain_id)
         strain_id    = _sid_res.strain_id or _chatgpt_safe_strain_guess(input_zip)
-        if _refuse_unsafe_strain_id(strain_id) or _refuse_outdir_inside_bundle(outdir):
-            return 2
+        _sid_source  = (_sid_res.source or "not recorded") if _sid_res.strain_id else "zip_stem"
+        if (_refuse_unsafe_strain_id(strain_id) or _refuse_outdir_inside_bundle(outdir)
+                or _refuse_occupied_package(outdir, strain_id)):
+            # run_batch returns a list; a refused input is a result row, not an int exit code.
+            results.append({"strain_id": strain_id, "status": "REFUSED_UNSAFE_ID_OR_OUTDIR",
+                            "written": False, "raw_bgcs": 0, "assembly_tier": "NONE",
+                            "package_zip": None, "issues": [f"[BLOCKING] refused input {input_zip}"]})
+            continue
         if strain_id in _seen_sids:
             _n = 2
             while f"{strain_id}_{_n}" in _seen_sids:
@@ -4182,6 +4459,7 @@ def run_batch(
             taxonomy=taxonomy,
             source=source,
             source_provenance=source_prov,
+            strain_id_source=_sid_source,
             bioactivity=bioactivity,
             master_path=master_path,
             json_mode=json_mode,
@@ -4211,7 +4489,8 @@ def run_batch(
 
     emit(f"\n{'='*60}", f"Batch complete — {len(results)} strain(s)", sep="\n")
     for r in results:
-        emit(f"  {r['strain_id']}: {r['status']} | {r['raw_bgcs']} BGCs | {r['assembly_tier']}")
+        emit(f"  {r.get('strain_id', '?')}: {r.get('status', '?')} | {r.get('raw_bgcs', 0)} BGCs | "
+             f"{r.get('assembly_tier', 'NONE')}")
     _emit_shared_1()
 
     # Auto-emit cross-strain figures — ONLY when more than one strain was analysed.
@@ -4486,7 +4765,9 @@ def _run_command_legacy(args) -> int:
         if _sid_res.message:
             _emit_shared_2(_sid_res)
         strain_id    = _sid_res.strain_id or _chatgpt_safe_strain_guess(args.input_zip)
-        if _refuse_unsafe_strain_id(strain_id) or _refuse_outdir_inside_bundle(args.outdir):
+        _sid_source  = (_sid_res.source or "not recorded") if _sid_res.strain_id else "zip_stem"
+        if (_refuse_unsafe_strain_id(strain_id) or _refuse_outdir_inside_bundle(args.outdir)
+                or _refuse_occupied_package(args.outdir, strain_id)):
             return 2
         display_name = (args.display_name or strain_id.replace("_", " "))
         result = run_one_strain(
@@ -4498,6 +4779,7 @@ def _run_command_legacy(args) -> int:
             taxonomy=args.taxonomy or "not verified",
             source=args.source or "not supplied",
             source_provenance=getattr(args, "source_provenance", "asserted"),
+            strain_id_source=_sid_source,
             bioactivity=bioactivity_input,
             master_path=args.master,
             json_mode=args.json_evidence,
@@ -4545,6 +4827,14 @@ def _run_command_legacy(args) -> int:
         or str(r.get("validator_status", "")) in success_statuses
         for r in results
     )
+    # A [BLOCKING] issue (a regressed post-seal validation, a sealed-receipt mismatch, a refused
+    # input) is a failure whatever the status string says; it must not exit 0.
+    from .issue_registry import issue_severity as _issue_severity
+    _blocking = [f"{r.get('strain_id', '?')}: {i}" for r in results
+                 for i in (r.get("issues") or []) if _issue_severity(i) == "BLOCKING"]
+    # The issues are already in the results JSON printed below; no extra emission (print ratchet).
+    if _blocking:
+        all_pass = False
 
     # v9.7.279 (deliverable-surfacing gate): the sealed per-strain Complete_Package.zip IS the run
     # deliverable and the portable unit of exchange — but operators (human or LLM) kept missing it,
@@ -4604,26 +4894,54 @@ def ingest_blastp_trove_command(args) -> int:
     res = ingest_blastp_trove(
         args.package, args.trove, args.channel, getattr(args, "strain", None),
         rekey_by_locus=bool(getattr(args, "rekey_by_locus", False)),
+        query_roots=getattr(args, "query_roots", None),
     )
     if res.get("status") == "NO_SOURCES_DISCOVERED":
         emit("[ingest-blastp-trove] NO_SOURCES_DISCOVERED: no ingest artifacts written.\n"
              + json.dumps(res["discovery"], indent=2), flush=True)
         return 0
-    emit(f"[ingest-blastp-trove] channel={res['channel']} "
-          f"{len(res['bgcs_written'])} BGCs, {res['genes']} genes, "
-          f"rekey_by_locus={res['rekey_by_locus']} -> {res['package']}/blastp_online/",
-          flush=True)
+    # Count BGCs that received rows. bgcs_written keeps zero-row BGCs for the stale-overlay cleanup, so the
+    # old line read "32 BGCs, 15 genes" when one BGC got rows and the rest were quarantined.
+    filled = sum(1 for n in res['bgcs_written'].values() if n)
+    reasons: dict[str, int] = {}
+    if res.get("quarantined") and res.get("quarantine"):
+        try:
+            with open(res["quarantine"], newline="", encoding="utf-8") as handle:
+                for row in csv.DictReader(handle):
+                    reasons[row.get("reason", "")] = reasons.get(row.get("reason", ""), 0) + 1
+        except OSError:
+            reasons["quarantine file unreadable"] = int(res["quarantined"])
+    lines = [f"[ingest-blastp-trove] channel={res['channel']} {filled} BGCs, {res['genes']} genes, "
+             f"rekey_by_locus={res['rekey_by_locus']} -> {res['package']}/blastp_online/"]
+    if res.get("quarantined"):
+        lines.append(f"[ingest-blastp-trove] quarantined {res['quarantined']} row(s): "
+                     + ", ".join(f"{k} {v}" for k, v in sorted(reasons.items(), key=lambda kv: -kv[1]))
+                     + f" -> {res['quarantine']}")
+    if not res['rekey_by_locus'] and (reasons.get("FOREIGN_BGC") or reasons.get("NONCURRENT_LOCUS")):
+        lines.append("[ingest-blastp-trove] rows whose gene sits in another BGC of this package were held; if the "
+                     "trove was made from an older package, re-run with --rekey-by-locus.")
+    emit("\n".join(lines), flush=True)   # one emit: the release manifest counts terminal-emission calls
     return 0
 
 
 def blastp_status_command(args) -> int:
-    """v9.7.340: per-BGC BLASTp overlay coverage audit (channels/genes); flags ClusterBlast fallback."""
+    """Per-BGC BLASTp overlay coverage audit (channels/genes).
+
+    A BGC without an overlay is reported as "no BLASTp overlay found (not assessed)". The absence
+    of an overlay says nothing about whether ClusterBlast evidence was used instead. A path that
+    is not a package is refused with exit 2 and one line.
+    """
     from .blastp_ingest import blastp_status
-    rows = blastp_status(args.package)
+    try:
+        rows = blastp_status(args.package)
+    except (FileNotFoundError, NotADirectoryError) as exc:
+        # sys.stderr.write keeps repo_health's print_calls ratchet at its signed ceiling.
+        _sys.stderr.write(f"REFUSED: blastp-status: {exc}\n")
+        return 2
     if not rows:
-        emit("  (no blastp_online overlays present — all BGCs on ClusterBlast fallback)", flush=True)
+        emit("  (no BLASTp overlay found in blastp_online/ — BLASTp not assessed for any BGC)", flush=True)
     for r in rows:
-        flag = "" if r["armed"] else "  DISARMED -> ClusterBlast fallback"
+        flag = "" if r["armed"] else "  no BLASTp overlay found (not assessed)"
         emit(f"  {r['bgc']:<8} channels={r['channels']:<24} genes={r['genes']:<4}{flag}", flush=True)
     return 0
 
@@ -4770,6 +5088,12 @@ def validate_command(args) -> int:
         wb_result = validate_workbook_content(xlsx_candidates[0])
         emit("WORKBOOK_CONTENT:", json.dumps(wb_result, indent=2))
         wb_blocks = getattr(args, "workbook_strict", False) and wb_result["status"] != "PASS"
+        if getattr(args, "workbook_strict", False) and wb_result.get("bgc_id_authority") == "FORMAT_ONLY":
+            # No single *_2_inventory.csv beside the workbook: IDs were checked for form only, so a
+            # well-formed ID from another package would pass. Say so; the exit code is unchanged.
+            _sys.stdout.write("WORKBOOK_ID_AUTHORITY_WARNING: no package inventory beside the workbook; "
+                              "BGC IDs were checked for their BGC### form only, not against this "
+                              "package's inventory.\n")
 
     return 1 if (base_exit == 1 or wb_blocks) else 0
 
@@ -6318,6 +6642,24 @@ def _refuse_unsafe_strain_id(strain_id: str) -> bool:
         return _refuse(f"[strain] {_exc}")
 
 
+def _refuse_occupied_package(outdir, strain_id: str) -> bool:
+    """True (refused) when `<outdir>/<strain>` already holds a package or a sealed package ZIP.
+
+    `run` used to create `<outdir>/<strain>/package` with `exist_ok=True` and write into it, so a
+    second run into the same outdir changed an earlier run's package. Checked before any write;
+    there is no override, so a rerun needs a new --outdir (or the earlier run moved away).
+    """
+    run_dir = Path(outdir) / strain_id
+    package_dir = run_dir / "package"
+    occupied = (package_dir.is_symlink() or (package_dir.exists() and (not package_dir.is_dir()
+                or any(package_dir.iterdir())))
+                or (run_dir.is_dir() and any(run_dir.glob("*_Complete_Package.zip"))))
+    if occupied:
+        return _refuse(f"[outdir] {package_dir} already holds a package from an earlier run; "
+                       "choose a new --outdir (or move the earlier run away) so it is not changed")
+    return False
+
+
 _ENGINE_OWNED_TOP_DIRS = frozenset({
     "mamey", "tools", "tests", "docs", "wiki", "deliverable_tools", "examples", "prompts", "schemas",
     "Wheelhouse", "wheels", "hooks", "sapote_hooks", "debugging_modules", "bundle_support", "skills", "templates", "resources",
@@ -6544,7 +6886,7 @@ def build_parser():
     # Single-strain arguments
     r.add_argument("--allow-accession-strain-id", action="store_true",
                    dest="allow_accession_strain_id",
-                   help=("v9.7.372: permit a database accession (CP025018.1, GCA_000009765.1) as the strain "
+                   help=("Permit a database accession (CP025018.1, GCA_000009765.1) as the strain "
                          "identity. With this flag the accession is kept as given. Without it, an "
                          "accession --strain is refused when the archive names an organism, and kept "
                          "with a warning when it does not. The id is never rebuilt from --taxonomy or "
@@ -6571,9 +6913,7 @@ def build_parser():
                    choices=["standard", "gold"],
                    help=(
                        "gold = evidence extraction and ranked outputs (default analysis mode); authored Mode B cards require subsequent interpretation; "
-                       "standard = DEPRECATED (retired v9.7.92) — aliased to gold. "
-                       "(smoke removed v9.7.161: it produced a non-analyzable triage-only "
-                       "package with no ranked board, DAPR, or comparison — a dead end.)"
+                       "standard = deprecated; it runs gold. (The old smoke mode was removed.)"
                    ))
     r.add_argument("--taxonomy", default=None,
                    help="Taxonomy string. Batch: pipe-separated, e.g. 'Genus sp.|Streptomyces sp.'")
@@ -6600,9 +6940,8 @@ def build_parser():
     r.add_argument("--project-registry", default=None, dest="project_registry",
                    help="Path to a sapote_project_registry_v1 JSON file declaring user-defined "
                         "privacy tiers, per-strain publication/genome states, and optional bioassay "
-                        "records. BR6-406-REBASE: does not yet drive release/privacy_tier derivation "
-                        "-- see BR6_REBASE_MAP.md; currently only recorded on RunContext "
-                        "(project_registry_sha256, assay_summary) and the manifest.")
+                        "records. It does not yet set the release or privacy tier; it is recorded "
+                        "in the manifest only (project_registry_sha256, assay_summary).")
     r.add_argument("--bioactivity", default=None,
                    help="Deprecated legacy scalar context. Omit it for NOT_SUPPLIED; it never creates a named assay default.")
     r.add_argument("--bioactivity-json", default=None, dest="bioactivity_json",
@@ -6626,32 +6965,30 @@ def build_parser():
     # behavior, emits a one-line deprecation notice). Any wall-clock-capped LLM tool session
     # (ChatGPT, Claude, or otherwise) should use --capped-session.
     r.add_argument("--capped-session", "--chatgpt-safe", action="store_true", dest="chatgpt_safe", default=False,
-                   help="P0: capped-session timeout profile: --brief none + --json-evidence off + "
+                   help="Capped-session timeout profile: --brief none + --json-evidence off + "
                         "--require-workbook. Use inside any wall-clock-capped LLM tool session. "
                         "(--chatgpt-safe is a deprecated alias for this flag.)")
     r.add_argument("--capped-followup", "--chatgpt-followup", action="store_true", dest="chatgpt_followup", default=False,
-                   help="Legacy no-op (v9.7.161): --capped-session now runs gold directly. "
-                        "Previously required after a smoke+validate run to allow gold; smoke has "
-                        "been removed, so this flag is retained only for back-compat and does nothing. "
-                        "(--chatgpt-followup is a deprecated alias.)")
+                   help="Does nothing; kept so older commands still run. --capped-session runs gold "
+                        "directly. (--chatgpt-followup is a deprecated alias.)")
     r.add_argument("--heartbeat-seconds", type=int, default=20, dest="heartbeat_seconds",
                    help="Under --capped-session, emit heartbeat lines during quiet finalization stages at this interval (default: 20).")
     r.add_argument("--reference-completion", dest="reference_completion", default="auto",
                    choices=["auto", "on", "off"],
-                   help="v9.7.445: RG-GMCI reference-guided completion (report-only). Each edge region's best "
+                   help="RG-GMCI reference-guided completion (report-only). Each edge region's best "
                         "KnownClusterBlast MIBiG reference is searched across the whole genome for missing and split "
                         "genes and tested partner contigs (_4E_* tables). Runs when a MIBiG protein database "
                         "(--mibig-db, $RGGMCI_MIBIG_DB, or an explicit --rggmci-registry-from anchor) and DIAMOND or BLAST+ are "
                         "found; otherwise the tier says what was missing. Runs under --capped-session too; off skips it.")
     r.add_argument("--mibig-db", dest="mibig_db", default=None,
-                   help="v9.7.445: MIBiG protein database folder built by `rggmci build-mibig-db` (or "
+                   help="MIBiG protein database folder built by `rggmci build-mibig-db` (or "
                         "`python -m mamey.ref_completion build-mibig-db`).")
     r.add_argument("--completion-sensitivity", dest="completion_sensitivity", default="sensitive",
                    choices=["sensitive", "more-sensitive", "ultra-sensitive", "default"],
-                   help="v9.7.445: DIAMOND mode for reference-guided completion (default sensitive; DIAMOND's own "
-                        "fast default misses 25-40%% identity homologues).")
+                   help="DIAMOND mode for reference-guided completion (default sensitive; DIAMOND's own "
+                        "fast default misses 25-40%% identity homologs).")
     r.add_argument("--completion-pfam", dest="completion_pfam", default=None,
-                   help="v9.7.445: pressed Pfam-A.hmm for the housekeeping-neighbour check (default: $RGGMCI_PFAM_HMM, "
+                   help="Pressed Pfam-A.hmm for the housekeeping-neighbor check (default: $RGGMCI_PFAM_HMM, "
                         "then an explicit --rggmci-registry-from anchor). With pyhmmer installed, a partner find beside >= 2 "
                         "primary-metabolism genes is set aside as HOUSEKEEPING_CONTEXT, and such finds do not count "
                         "as support for an adjacent find.")
@@ -6666,7 +7003,7 @@ def build_parser():
     r.add_argument("--rggmci-label", default=None, help="Logical label override; single input only (default resolved strain).")
     r.add_argument("--locus-maps", dest="locus_maps", default="auto",
                    choices=["auto", "off", "on"],
-                   help="P0 (v9.7.101): locus-map render policy. auto = render unless a capped run "
+                   help="Locus-map render policy. auto = render unless a capped run "
                         "(brief=none) has >20 BGCs; off = never (default under --capped-session); "
                         "on = always. The phase is expensive on large strains.")
     r.add_argument("--antismash-profile", dest="antismash_profile", default="auto",
@@ -6675,7 +7012,7 @@ def build_parser():
                          "commit_receipt for cross-strain comparability. Pooling strains run under "
                          "different profiles is unsafe (see tools/check_antismash_profile.py). "
                          "DEFAULT 'auto' reads the strictness recorded inside the ZIP; an explicit "
-                         "value is honoured but a disagreement is reported as PROFILE_MISMATCH."))
+                         "value is honored but a disagreement is reported as PROFILE_MISMATCH."))
     # NB: run defaults to "bounded" (stream+cap) by design; the blastp subcommand defaults
     # to "off" because it needs no antiSMASH-JSON evidence. capped-session overrides run to
     # "off". (Resolves the stale patch-14 audit note that expected run="off".)
@@ -7054,7 +7391,7 @@ def build_parser():
     rgw = sub.add_parser("rggmci-widget",
                          help="Emit the within-strain RG-GMCI split-pathway linkage widget "
                               "from each package's *_4A_RGGMCI_ranked_pairs.csv")
-    rgw.add_argument("--strain", default=None, help="One strain id (e.g. AS-XXX)")
+    rgw.add_argument("--strain", default=None, help="One strain id (e.g. ABC-12)")
     rgw.add_argument("--all", action="store_true", help="Every strain with a ranked-pairs CSV")
     rgw.add_argument("--runs-root", default=None, dest="runs_root",
                      help="Directory of sealed per-strain packages (default: documented location)")
@@ -7065,7 +7402,7 @@ def build_parser():
     alw = sub.add_parser("assembly-line-widget",
                          help="Emit the NRPS/PKS assembly-line / domain-architecture reader "
                               "from a sealed package's antismash_modules.csv + gene_context.jsonl")
-    alw.add_argument("--strain", default=None, help="One strain id (e.g. AS-XXX)")
+    alw.add_argument("--strain", default=None, help="One strain id (e.g. ABC-12)")
     alw.add_argument("--demo", action="store_true", help="Render the flagship demo strains")
     alw.add_argument("--all", action="store_true", dest="all_strains",
                      help="Every strain with an antismash_modules.csv (mirrors rggmci-widget --all)")
@@ -7082,7 +7419,7 @@ def build_parser():
             ("bgc-gene-map", bgc_gene_map_command,
              "print-ready PDF gene map of EVERY region in a strain (all classes, not only NRPS/PKS)")):
         _p = sub.add_parser(_name, help=_help)
-        _p.add_argument("--strain", default=None, help="One strain id (e.g. AS-XXX)")
+        _p.add_argument("--strain", default=None, help="One strain id (e.g. ABC-12)")
         _p.add_argument("--strains", nargs="+", default=None, help="Several strain ids")
         _p.add_argument("--all", action="store_true", dest="all_strains",
                         help="Every strain with an antismash_modules.csv")
@@ -7268,7 +7605,7 @@ def build_parser():
     p_domref.set_defaults(func=_d3_tool_command, _d3_tool="domain-reference", top=None)
 
     p_rcount = sub.add_parser("realistic-count",
-                              help="corrected-denominator BGC count (marginal-drop + HIGH RG-GMCI merge); advisory")
+                              help="heuristic merged-region count: regions left after an annotation-role drop, with regions joined by HIGH RG-GMCI candidate links counted once; the links are not physical joins, so this is not a validated count of loci; advisory")
     p_rcount.add_argument("--package", action="append", required=True)
     p_rcount.add_argument("--out", default=None)
     p_rcount.set_defaults(func=_d3_tool_command, _d3_tool="realistic-count", top=None)
@@ -7413,7 +7750,7 @@ def build_parser():
     ib = sub.add_parser("ingest-blastp",
                         help="Ingest an NCBI BLASTp HitTable CSV (+ optional Alignment XML) into a master workbook's B5_BLASTp_Hits sheet")
     ib.add_argument("--master", required=True, help="Path to the master workbook (.xlsx) to append to")
-    ib.add_argument("--strain", required=True, help="Strain ID these BLASTp hits belong to (e.g. AS-XXX)")
+    ib.add_argument("--strain", required=True, help="Strain ID these BLASTp hits belong to (e.g. ABC-12)")
     ib.add_argument("--hit-table", required=True, dest="hit_table", help="NCBI -outfmt 10 HitTable CSV")
     ib.add_argument("--xml", default=None, help="Optional NCBI Alignment XML for enrichment (subject desc/sciname/node·contig)")
     ib.add_argument("--top-n", type=int, default=10, dest="top_n", help="Max hits per query gene (default 10)")
@@ -7442,10 +7779,16 @@ def build_parser():
         help=("Resolve each query locus to its current BGC through the selected package's sole "
               "*cds_table.csv; preserve absent, ambiguous, and length-conflict rows as typed holds."),
     )
+    p_trove.add_argument(
+        "--query-root", action="append", default=None, dest="query_roots", metavar="DIR",
+        help=("With --rekey-by-locus: a lane queue folder (repeatable). A gene-keyed lane row with no query "
+              "length takes it from the query FASTA its lane ledger names, after the file matches the ledger's "
+              "query_sha256 and the sequence equals the package protein."),
+    )
     p_trove.set_defaults(func=ingest_blastp_trove_command)
 
     p_status = sub.add_parser("blastp-status",
-        help="Report per-BGC BLASTp overlay coverage (channels/genes) or flag ClusterBlast fallback.")
+        help="Report per-BGC BLASTp overlay coverage (channels/genes); a BGC without an overlay is reported as not assessed.")
     p_status.add_argument("--package", required=True)
     p_status.set_defaults(func=blastp_status_command)
 
@@ -7518,6 +7861,9 @@ def build_parser():
     ggp.add_argument("--depth", type=int, default=3, help="max recursion depth (default 3)")
     ggp.add_argument("--pdf", action="store_true", help="also render GOOD_GUESSES.pdf")
     ggp.add_argument("--docx", action="store_true", help="also render GOOD_GUESSES.docx")
+    ggp.add_argument("--replace", action="store_true",
+                     help="with --pdf: replace an earlier GOOD_GUESSES.pdf and its sidecars (set aside, "
+                          "restored if the new render fails). Without it an existing PDF is refused.")
     ggp.set_defaults(func=_good_guesses.good_guesses_command)
 
     # --- reference-dark (v9.7.343: wire the orphaned reference-dark novelty prior into a
@@ -7602,6 +7948,10 @@ def build_parser():
                     help="Also render a printable Compiled Master PDF (the menu's Boss-Ready PDF / "
                          "\u00a715.8) via tools/md_to_pdf.sh (colorful reportlab renderer, pandoc+xelatex fallback). Refuses if narrative "
                          "slots are unfilled unless --allow-unfilled-pdf is given.")
+    cr.add_argument("--replace-pdf", action="store_true", default=False, dest="replace_pdf",
+                    help="With --pdf: replace an earlier PDF and its sidecars at the same path. They are "
+                         "set aside first, restored if the new render fails, and deleted only after it "
+                         "succeeds. Without this flag an existing PDF output is refused.")
     cr.add_argument("--allow-unfilled-pdf", action="store_true", default=False, dest="allow_unfilled_pdf",
                     help="Render the --pdf even if narrative slots are still unfilled (skeleton PDF).")
     cr.add_argument("--allow-claim-safety-warnings", action="store_true", default=False,
@@ -7629,9 +7979,9 @@ def build_parser():
     wn.add_argument("--file", required=True,
                     help="Path to the markdown file with the section content")
     wn.add_argument("--force", action="store_true", default=False,
-                    help="v9.7.409: RESERVED for non-claim-safety warnings. A claim-safety linter "
-                         "finding is ALWAYS refused (write nothing, exit 3) and can no longer be "
-                         "forced past — revise to capacity-based language instead.")
+                    help="replace an existing judgment/<strain>_<section>.md. Without it an existing "
+                         "section is refused and left unchanged (exit 4). A claim-safety linter "
+                         "finding is always refused (nothing written, exit 3), with or without --force.")
     from .compile_report import write_narrative_command
     wn.set_defaults(func=write_narrative_command)
 
@@ -7679,7 +8029,7 @@ def build_parser():
     mb = sub.add_parser("mode-b",
                         help="Emit a Mode B top-lead triage table and card scaffolds from a sealed package. "
                              "NOT a finished 48-section Mode B card: finished cards are authored per "
-                             "wiki/Mode-B-Gene-First-and-48-Section-Manual.md and verified with `verify-modeb` (v9.7.405 wording).")
+                             "wiki/Mode-B-Gene-First-and-48-Section-Manual.md and verified with `verify-modeb`.")
     mb.add_argument("--package", required=True,
                     help="Path to sealed package directory (containing manifest.json)")
     mb.add_argument("--top-n", type=int, default=10, dest="top_n",
@@ -7761,7 +8111,8 @@ def build_parser():
     vm.add_argument("--rescue-tsv", action="append", default=None, dest="rescue_tsv", metavar="PATH",
                     help="current50_v2 only: a gap_rescue.tsv for this BGC. Its found genes outside any region "
                          "(best_locus, same strain) may be cited in §26/§50 without PHANTOM_LOCUS. Existence only; "
-                         "BGC membership is not granted. Repeatable.")
+                         "BGC membership is not granted. Repeatable. When omitted, the gap_rescue.tsv the card "
+                         "names with its SHA-256 in §26 is used while its bytes still match.")
     vm.add_argument("--no-strict-depth", action="store_true", default=False,
                     help="Depth findings WARN instead of ERROR (default: strict, thin card is refused)")
     vm.add_argument("--force", action="store_true", default=False,
@@ -7922,7 +8273,7 @@ def build_parser():
                     help="Record cards even when the structure gate finds "
                          "ERROR-severity §1–§48 contract violations. Use with "
                          "care — bypasses the firebreak that catches "
-                         "wrong-scaffold cards. (W9, v9.7.150+)")
+                         "wrong-scaffold cards.")
     ir.add_argument("--contract", default=None, choices=["full48", "current50_v2"],
                     help="Lint cards against this contract, with the same meaning as on verify-modeb. "
                          "Omit it to use the contract each card header declares (emit-modeb-template "
@@ -8117,7 +8468,7 @@ def build_parser():
     # cutoff are required (a cutoff changes the whole picture — no silent default).
     fgg = fg_sub.add_parser("gcf-network", help="BiG-SCAPE GCF network for a strain (from a BiG-SCAPE 2 DB)")
     fgg.add_argument("--db", required=True, help="BiG-SCAPE 2 SQLite DB")
-    fgg.add_argument("--strain", required=True, help="strain id as it appears in the gbk path (e.g. AS-XXX)")
+    fgg.add_argument("--strain", required=True, help="strain id as it appears in the gbk path (e.g. ABC-12)")
     fgg.add_argument("--run", type=int, required=True, help="exact completed BiG-SCAPE run id; do not assume the largest id is the right run")
     fgg.add_argument("--cutoff", type=float, required=True, help="distance cutoff (0.3 strict / 0.5 default / 0.7 loose)")
     fgg.add_argument("--evidence", default=None, help="all_evidence.json to map BGC ids + highlight leads (optional)")
@@ -8279,7 +8630,7 @@ def build_parser():
     ab = sub.add_parser("auto-blastp",
                         help="Resumable priority BLASTp scheduler (1 query / 8 min, hourly ingest)")
     ab.add_argument("--package", required=True, help="strain package directory")
-    ab.add_argument("--strain", required=True, help="strain id (e.g. AS-XXX)")
+    ab.add_argument("--strain", required=True, help="strain id (e.g. ABC-12)")
     ab.add_argument("--priority", default="af_first",
                     choices=["af_first", "ab_first", "rank"],
                     help="worklist ordering (default af_first: antifungal-forward)")
@@ -8321,7 +8672,7 @@ def build_parser():
     from .deliverable_queue import deliverable_queue_command
     dq = sub.add_parser("deliverable-queue",
                         help="Resumable autonomous deliverable driver over a strain list (gate-gated)")
-    dq.add_argument("strains", nargs="*", help="strain ids to process (e.g. AS-XXX AS-XXX)")
+    dq.add_argument("strains", nargs="*", help="strain ids to process (e.g. ABC-12 ABC-13)")
     dq.add_argument("--runs-dir", dest="runs_dir", required=True, help="runs directory")
     dq.add_argument("--out-root", dest="out_root", required=True, help="deliverable output root")
     dq.add_argument("--activity-table", dest="activity_table", default=None,
@@ -8396,8 +8747,7 @@ def build_parser():
     from .mode_b_receipt import emit_modeb_template_command
     et = sub.add_parser(
         "emit-modeb-template",
-        help="Emit a canonical §1–§48 Mode B card template for one BGC or a batch "
-             "(W9, v9.7.150+)",
+        help="Emit a canonical §1–§48 Mode B card template for one BGC or a batch",
     )
     et.add_argument("--package", required=True,
                     help="Path to the strain package directory")
@@ -8466,7 +8816,10 @@ def build_parser():
                          "claims against (the robust path). Explicit override; takes "
                          "precedence over --package auto-derivation if both are given. "
                          "Useful for a bare-file invocation with no package directory.")
-    cs.add_argument("--report", help="append findings to this CSV file (claim_safety_report.csv)")
+    cs.add_argument("--report", help="write findings to this new CSV file (claim_safety_report.csv); "
+                                     "an existing file or the input card is refused")
+    cs.add_argument("--append-report", action="store_true", default=False, dest="append_report",
+                    help="with --report: add findings to an existing report instead of refusing it")
     cs.add_argument("--mode", default="warn", choices=["warn", "fail"],
                     help="warn=record and exit 0; fail=exit 1 on any finding (default: warn)")
     cs.add_argument("--json", action="store_true", help="emit JSON instead of plain text")
@@ -8605,7 +8958,36 @@ def build_parser():
         return _mb_cmd(args)
     mb_b.set_defaults(func=_modeb_blastp_cmd)
 
+    _keep_help_words_whole(p)
     return p
+
+
+def _keep_help_words_whole(parser) -> None:
+    """Make every parser's help wrap at spaces only, never inside a word or path.
+
+    argparse breaks long words when the terminal is narrow, so `domain_level/figures/` printed
+    as `doma` / `in_level/figures/` and a reader (or a test) could not find the folder name.
+    """
+    import argparse
+    import textwrap
+
+    class _WholeWordsFormatter(argparse.HelpFormatter):
+        def _split_lines(self, text, width):
+            text = self._whitespace_matcher.sub(" ", text).strip()
+            return textwrap.wrap(text, max(width, 20), break_long_words=False, break_on_hyphens=False)
+
+    seen = set()
+    stack = [parser]
+    while stack:
+        current = stack.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if current.formatter_class is argparse.HelpFormatter:
+            current.formatter_class = _WholeWordsFormatter
+        for action in current._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                stack.extend(action.choices.values())
 
 
 
@@ -8776,7 +9158,26 @@ def claim_safety_command(args) -> int:
     )
 
     if getattr(args, "report", None):
-        write_claim_safety_csv(rows, args.report)
+        # The report never lands on the input card. A new report path is required unless
+        # --append-report is given; appending mixes findings from earlier runs, so it is opt-in.
+        _report = _Path(args.report).expanduser()
+        try:
+            _input = _Path(args.path).resolve()
+            if _report.resolve() == _input or (_report.exists() and _report.samefile(_input)):
+                raise ValueError("report path is the input card")
+            if _report.exists() and not getattr(args, "append_report", False):
+                raise ValueError("report already exists (pass --append-report to add to it, "
+                                 "or choose a new path)")
+            if _report.exists() and (_report.is_symlink() or not _report.is_file()):
+                raise ValueError("report path is not a regular file")
+            if not _report.exists():
+                from .output_transaction import preflight_output_roster
+                preflight_output_roster([_report], protected_paths=(_Path(args.path),))
+        except ValueError as _report_exc:
+            # sys.stderr.write keeps repo_health's print_calls ratchet at its signed ceiling.
+            _sys.stderr.write(f"REFUSED: claim-safety --report {args.report}: {_report_exc}\n")
+            return 2
+        write_claim_safety_csv(rows, _report)
 
     if getattr(args, "json", False):
         emit(_json.dumps({"path": args.path, "clean": not rows, "findings": rows}, indent=2))
@@ -8795,9 +9196,27 @@ def claim_safety_command(args) -> int:
     return 0
 
 
+# A SKIPPED domain-level receipt exits 0 only for these documented skips: the package has no
+# domain context to read, or no eligible top BGC. Every other skip (a source archive whose digest
+# does not match the package, missing rule files, no manifest) exits 2, as a REFUSED receipt does.
+_DOMAIN_LEVEL_DOCUMENTED_SKIPS = ("no domain context available", "no eligible top BGCs")
+
+
+def _domain_level_exit_code(receipt: dict) -> int:
+    status = receipt.get("status")
+    if status == "OK":
+        return 0
+    if status == "SKIPPED" and str(receipt.get("reason", "")).startswith(_DOMAIN_LEVEL_DOCUMENTED_SKIPS):
+        return 0
+    return 2
+
+
 def _domain_level_command(args) -> int:
-    """CLI entrypoint for `domain-level`. Post-seal, non-blocking: always returns 0 unless the
-    package itself is unreadable, so it can never fail a pipeline. Prints the receipt summary."""
+    """CLI entrypoint for `domain-level`. Prints the receipt summary.
+
+    Exit 0 for OK and for the documented skips in `_DOMAIN_LEVEL_DOCUMENTED_SKIPS`; exit 2 for a
+    REFUSED receipt (occupied output folder) and every other skip; exit 1 when the package path is
+    not a folder. A failed figure render is a warning and does not change the exit code."""
     # v9.7.409 (AUDIT_cli_edgecases): validate the package exists BEFORE run_domain_level, which
     # otherwise mkdir()s its output dir first — crashing with a raw OSError when the (nonexistent)
     # package's parent is read-only, and silently creating a spurious empty dir when it is writable.
@@ -8812,7 +9231,7 @@ def _domain_level_command(args) -> int:
     emit(f"  domain-level: {status} (mode={receipt.get('mode','?')})",
          f"    {receipt.get('n_domain_rows', 0)} domain rows across {receipt.get('n_bgcs', 0)} BGCs → {receipt.get('files', [])}" if status == 'OK' else f"    {receipt.get('reason', '')} — core package remains valid",
          sep="\n")
-    if getattr(args, "emit_figures", False):
+    if getattr(args, "emit_figures", False) and status != "REFUSED":
         try:
             from .domain_figures import render_domain_figures
             dl_dir = Path(getattr(args, "outdir", None) or (Path(args.package) / "domain_level"))
@@ -8822,7 +9241,7 @@ def _domain_level_command(args) -> int:
                 emit(f"    figure warnings: {fig_res['warnings']}")
         except Exception as e:
             emit(f"    [WARN] figure rendering failed: {e} — tables remain valid")
-    return 0
+    return _domain_level_exit_code(receipt)
 
 
 def _interactive_figures_command(args) -> int:
@@ -8939,14 +9358,19 @@ def main(argv=None) -> int:
             _rc = args.func(args)
             try:
                 from .packaging import refresh_post_seal_checksums
-                # An external guide is a reader output: no package bytes were
-                # authored, so its original integrity files must remain intact.
-                # Resolve symlinks before deciding whether output is internal.
+                # Output written outside the package (an explicit --out/--outdir that resolves
+                # outside it) is a reader output: no package bytes were authored, so the
+                # package's integrity files must stay byte-identical. This applies to every
+                # authoring command with an output option (guide, domain-level, render-figures,
+                # ...), not only guide. Resolve symlinks before deciding whether output is internal.
                 _refresh_package = True
-                if args.command == "guide" and getattr(args, "outdir", None):
-                    _guide_root = Path(args.outdir).expanduser().resolve()
+                _out_arg = next((getattr(args, name) for name in ("outdir", "out", "out_dir")
+                                 if isinstance(getattr(args, name, None), (str, Path))
+                                 and getattr(args, name)), None)
+                if _out_arg:
+                    _out_root = Path(_out_arg).expanduser().resolve()
                     _package_root = Path(args.package).expanduser().resolve()
-                    _refresh_package = _guide_root == _package_root or _package_root in _guide_root.parents
+                    _refresh_package = _out_root == _package_root or _package_root in _out_root.parents
                 if _refresh_package:
                     refresh_post_seal_checksums(args.package)
             except Exception as _swallowed_exc:

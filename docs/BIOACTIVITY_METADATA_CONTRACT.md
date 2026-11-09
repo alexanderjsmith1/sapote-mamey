@@ -1,25 +1,77 @@
-# Bioactivity Metadata Contract
+# Bioactivity metadata
 
-## Current portable contract
+Bioactivity metadata is optional context about one strain, such as "this extract was
+tested against a target". `run` records it in the package. It does not score
+anything, and it does not link an assay to a cluster or a compound. Its
+`compound_linkage` field is always `NOT_ESTABLISHED`. Leaving the metadata out is
+fine. The run then records `NOT_SUPPLIED`.
 
-Bioactivity metadata is optional, typed strain-level context. It is not a named assay default, a BGC-level result, a production claim, or a scoring input.
+## Supply it
 
-The canonical object has `schema_version` `bioactivity_metadata_v1`, separate `metadata_state`, `observation_state`, and `usage_scope` fields, an `assays` list, and `compound_linkage` fixed to `NOT_ESTABLISHED`. A separately governed linkage workflow requires its own contract; it cannot supply an alternative linkage value to this schema. Omitting metadata produces `NOT_SUPPLIED`, `NOT_OBSERVED`, and an empty assay list.
+Pass the JSON text itself (not a file path) to `run`, with the other flags from the
+[first run](reader/01_FIRST_RUN.md):
 
-Only three exact legacy input shapes are normalized: a scalar string, a dictionary with exactly `status`, `targets`, and `compound_linkage`, or a dictionary with exactly `status` and `targets`. Any other object or key combination is held as `BIOACTIVITY_LEGACY_SHAPE_HOLD`; the software must not guess a schema or recover arbitrary objects.
+```bash
+python mamey_run.py run --strain EXAMPLE --input-zip ~/Downloads/EXAMPLE.zip \
+  --bioactivity-json '{"schema_version": "bioactivity_metadata_v1", "metadata_state": "SUPPLIED_UNKNOWN", "observation_state": "UNKNOWN", "usage_scope": "PRODUCTION", "assays": [], "compound_linkage": "NOT_ESTABLISHED"}'
+```
 
-Receipt locators are checked structurally for portable grammar only. A release/privacy profile may independently allow or deny a structurally valid locator. `EXAMPLE_ONLY` metadata is not admitted to a production run. Metadata contributes zero wet-lab priority points under this contract.
+If the object is valid, `run` goes on and records it. If a field is wrong, `run`
+writes nothing, prints `ERROR:` with a code such as `BIOACTIVITY_LEGACY_SHAPE_HOLD`,
+and exits `1`. If the text is not valid JSON, it exits `2` with the same code. Do not
+combine `--bioactivity-json` with the old `--bioactivity` flag.
 
-## Migration boundary
+## Fields
 
-The legacy `--bioactivity` scalar remains a compatibility input only. A nonempty scalar becomes `LEGACY_UNTYPED_CONTEXT`; an empty string becomes warned `NOT_SUPPLIED`. New callers should provide a typed object using `--bioactivity-json` or the direct API. No input form supplies a target name, positive result, or BGC linkage by omission.
+All six keys below are required. Only `receipt_locator` and `warnings` may be added.
 
-## What the validator checks
+| Key | Allowed values |
+|---|---|
+| `schema_version` | `bioactivity_metadata_v1` |
+| `metadata_state` | `NOT_SUPPLIED`, `SUPPLIED_UNKNOWN`, `MEASURED_NEGATIVE`, `MEASURED_POSITIVE`, `LEGACY_UNTYPED_CONTEXT` |
+| `observation_state` | `NOT_OBSERVED`, `UNKNOWN`, `NEGATIVE`, `POSITIVE` |
+| `usage_scope` | `PRODUCTION`. `EXAMPLE_ONLY` is refused in a real run. |
+| `assays` | A list. It must be empty when `metadata_state` is `NOT_SUPPLIED`. |
+| `compound_linkage` | `NOT_ESTABLISHED` only |
 
-The validator in `mamey/bioactivity_metadata.py` requires the six canonical keys, permits only `receipt_locator` and `warnings` as additional keys, checks schema and the three enums, requires `assays` to be a list, refuses nonempty assays for `NOT_SUPPLIED`, and rejects `EXAMPLE_ONLY` in production. It deep-copies admitted input. Receipt-locator validation checks portable syntax, not locator existence, referenced bytes, privacy or evidence authority.
+The states must agree:
 
-The canonical validator requires `NOT_SUPPLIED` to use `NOT_OBSERVED`, `MEASURED_NEGATIVE` to use `NEGATIVE`, and `MEASURED_POSITIVE` to use `POSITIVE`. It rejects conflicting pairs and every `compound_linkage` value other than `NOT_ESTABLISHED`. The current strain-context schema has no alternative linkage-admission route.
+- `NOT_SUPPLIED` goes with `NOT_OBSERVED`.
+- `MEASURED_NEGATIVE` goes with `NEGATIVE`.
+- `MEASURED_POSITIVE` goes with `POSITIVE`.
 
-It does **not** inspect individual assay entries, verify evidence hashes, validate warning-list element types, or constrain every remaining metadata/observation combination. So an object can pass with bad assay entries; review them yourself. Tests: `tests/test_lane04_bioactivity_state_claims.py`.
+`BIOACTIVITY_LEGACY_SHAPE_HOLD` is a refusal code, not a metadata state. An object whose
+`metadata_state` is that code is refused like any other unknown state.
 
-Keep strain/sample/material identity, target, time point, dose, missingness, source locator and evidence hash in the governed assay record. No absent field establishes a measurement, a negative result or linkage to a BGC. If an individual locus is mentioned, preserve strain / full node-or-contig / region / BGC alias; this strain-context validator does not perform that join.
+`receipt_locator` is optional. It is a short relative name or URL-style string, such
+as `receipts/EXAMPLE_assay_1`. The grammar is: an optional `scheme://` prefix, then a
+letter or digit, then only letters, digits, `.`, `_`, `/` and `-`. It cannot start with
+`/`, `~` or a drive letter, cannot carry spaces at either end or control characters, and
+no `/`-separated segment may be exactly `..`. A segment that merely contains two dots,
+such as `version..old`, is accepted. The check looks at the spelling only. A valid
+locator does not show that the receipt exists, can be read, or is bound to the data.
+
+## Older input shapes
+
+Three older shapes are still accepted and converted:
+
+| You give | The run records |
+|---|---|
+| A text string with `--bioactivity` | `LEGACY_UNTYPED_CONTEXT`. An empty string becomes `NOT_SUPPLIED` with a warning. |
+| An object with exactly `status`, `targets` and `compound_linkage` | `LEGACY_UNTYPED_CONTEXT` if `targets` has text, else `NOT_SUPPLIED`. Warning `LEGACY_SHAPE_NORMALIZED`. |
+| An object with exactly `status` and `targets` | The same. |
+
+Any other object is refused with `BIOACTIVITY_LEGACY_SHAPE_HOLD`. The software does
+not guess what you meant.
+
+## What the check does not do
+
+It checks the shape of the object. It does not read the entries in `assays`, check
+evidence hashes, or open the receipt. An object with bad assay entries can pass, so
+read them yourself.
+
+Record the strain, sample, material, target, time point, dose, source and evidence
+hash in the assay record you keep. An absent field is not a measurement, a negative
+result or a link to a cluster. If you name one cluster, write it as
+`strain / full node-or-contig / region / BGC alias`. This check does not join an
+assay to a cluster.

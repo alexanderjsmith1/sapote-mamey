@@ -43,12 +43,15 @@ def records_payload(strain: str, bgcs: list) -> dict[str, Any]:
             "kcb_top": getattr(b, "kcb_top", None),
             "kcb_cumulative": getattr(b, "kcb_cumulative", None),
             "kcb_evidence_state": getattr(b, "kcb_evidence_state", "UNKNOWN_KCB"),
+            "kcb_similarity_pct": getattr(b, "kcb_similarity_pct", None),
+            "kcb_similarity_state": getattr(b, "kcb_similarity_state", "PCT_NOT_READ"),
         })
     return {"schema": RECORDS_SCHEMA, "strain": strain, "records": recs}
 
 
 def verdicts_payload(strain: str, triage: list,
-                     kcb_cumulative_by_id: dict[str, Any] | None = None) -> dict[str, Any]:
+                     kcb_cumulative_by_id: dict[str, Any] | None = None,
+                     kcb_similarity_pct_by_id: dict[str, Any] | None = None) -> dict[str, Any]:
     """Judgment side. Per-BGC call; similarity is binned (W26), never a bare number."""
     verds = []
     for t in triage:
@@ -56,6 +59,10 @@ def verdicts_payload(strain: str, triage: list,
             kcb_cumulative = kcb_cumulative_by_id[t.bgc_id]
         else:
             kcb_cumulative = getattr(t, "_kcb_cumulative", None)
+        if kcb_similarity_pct_by_id is not None and t.bgc_id in kcb_similarity_pct_by_id:
+            kcb_pct = kcb_similarity_pct_by_id[t.bgc_id]
+        else:
+            kcb_pct = getattr(t, "kcb_similarity_pct", None)
         verds.append({
             "bgc_id": t.bgc_id,
             "contig": getattr(t, "contig", ""),
@@ -77,7 +84,7 @@ def verdicts_payload(strain: str, triage: list,
             "novelty_score": t.novelty_score,
             # W26: a coarse similarity band travels instead of a false-precise number. The band
             # needs antiSMASH's percent similarity; the cumulative BLAST score is not a percent.
-            "kcb_similarity_band": similarity_band(getattr(t, "kcb_similarity_pct", None)),
+            "kcb_similarity_band": similarity_band(kcb_pct),
             # C1 v9.7.58: concordance verdict wired from SourceScanBundle.concordance_per_bgc
             "concordance_verdict": getattr(t, "concordance_verdict", "") or "",
             # v9.7.62: MATURATION_GAP when RiPP/nucleoside BGC has no nearby maturation genes
@@ -94,13 +101,17 @@ def write_boundary_payloads(package_dir, strain: str, bgcs: list, triage: list) 
     kcb_cumulative_by_id = {
         b.bgc_id: getattr(b, "kcb_cumulative", None) for b in bgcs
     }
+    kcb_similarity_pct_by_id = {
+        b.bgc_id: getattr(b, "kcb_similarity_pct", None) for b in bgcs
+    }
     rec_path = pd / f"{strain}_records.json"
     ver_path = pd / f"{strain}_verdicts.json"
     rec_tmp = rec_path.with_suffix(".json.tmp")
     ver_tmp = ver_path.with_suffix(".json.tmp")
     rec_tmp.write_text(json.dumps(records_payload(strain, bgcs), indent=2), encoding="utf-8")
     ver_tmp.write_text(
-        json.dumps(verdicts_payload(strain, triage, kcb_cumulative_by_id), indent=2),
+        json.dumps(verdicts_payload(strain, triage, kcb_cumulative_by_id, kcb_similarity_pct_by_id),
+                   indent=2),
         encoding="utf-8",
     )
     import os

@@ -9,6 +9,7 @@ the source images, plotted data, and traveling caption/method files.
 from __future__ import annotations
 
 import csv
+import io
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter, csv_safe_cell as _csv_safe_cell, csv_unsafe_cell as _csv_unsafe_cell  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
@@ -119,7 +120,13 @@ def _load_decisions(path: Path | None) -> dict[str, tuple[str, str]]:
         raise FigureReviewQueueError(
             "FIGURE_REVIEW_DECISIONS_UNAVAILABLE", "decision register is unavailable"
         )
-    with path.open(newline="", encoding="utf-8-sig") as handle:
+    try:
+        text = path.read_text(encoding="utf-8-sig", errors="strict")
+    except (OSError, UnicodeError) as exc:
+        raise FigureReviewQueueError(
+            "FIGURE_REVIEW_DECISIONS_UNREADABLE", "decision register is unreadable or not UTF-8"
+        ) from exc
+    with io.StringIO(text, newline="") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         if reader.fieldnames is None or not {"figure_id", "decision", "decision_note"}.issubset(
             reader.fieldnames
@@ -152,7 +159,7 @@ def _manifest_rows(
 ) -> tuple[list[dict[str, str]], str]:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise FigureReviewQueueError(
             "FIGURE_REVIEW_MANIFEST_INVALID", "figure manifest is unreadable or invalid JSON"
         ) from exc
@@ -185,7 +192,12 @@ def _manifest_rows(
         caption, caption_path = _resolve_member(
             figure_root, raw.get("caption_methods"), field="caption_methods"
         )
-        caption_text = caption_path.read_text(encoding="utf-8").strip()
+        try:
+            caption_text = caption_path.read_text(encoding="utf-8", errors="strict").strip()
+        except (OSError, UnicodeError) as exc:
+            raise FigureReviewQueueError(
+                "FIGURE_REVIEW_CAPTION_UNREADABLE", f"caption/method file is unreadable or not UTF-8 for {figure_id}"
+            ) from exc
         if not caption_text:
             raise FigureReviewQueueError(
                 "FIGURE_REVIEW_CAPTION_EMPTY", f"caption/method file is empty for {figure_id}"

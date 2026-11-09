@@ -1,8 +1,6 @@
 # Turn Mode B evidence into an argument
 
-Use this checklist when a draft names genes and domains but does not explain what they contribute to the interpretation. First choose the [current profile](../MODEB_PROFILE_MATRIX.md) and use its emitted titles through the [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md). The §5/§9/§11/§12/§19 references in the older rubric belong to its twenty-section layout.
-
-The previous text is in [the historical rubric](../history/batch16_modeb_interpretive_floor.md).
+Use this checklist when a draft names genes and domains but does not explain what they contribute to the interpretation. First choose the [current profile](../MODEB_PROFILE_MATRIX.md) and use its emitted titles through the [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md).
 
 ## Before writing the final judgment
 
@@ -24,4 +22,4 @@ For each individual locus, keep **strain / full node-or-contig / region / BGC al
 
 Revise the relevant prose slots, preserve the selected template's titles, and verify the saved authored file with the matching contract. A structural or lexical pass does not verify scientific truth or close an evidence hold. See [contract and gate scope](../MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md).
 
-The [historical interpretive-floor source](../MODEB_INTERPRETIVE_FLOOR_v97146.md) retains the original rubric and examples. Its useful lesson is to connect observations, alternatives and conclusions. This companion replaces its duplicated examples: their scores, architecture claims, prevalence fractions and citations need original evidence before reuse, and their old “no hit implies novelty” rule is not a current authoring instruction.
+Two earlier versions are kept as records only: the [original rubric with its examples](../MODEB_INTERPRETIVE_FLOOR_v97146.md) and the [previous text of this page](../history/batch16_modeb_interpretive_floor.md). The rubric's useful lesson is to connect observations, alternatives and conclusions. This companion replaces its duplicated examples: their scores, architecture claims, prevalence fractions and citations need original evidence before reuse, and their old “no hit implies novelty” rule is not a current authoring instruction.

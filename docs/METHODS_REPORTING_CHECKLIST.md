@@ -1,16 +1,16 @@
 # Methods reporting checklist
 
-Use this checklist only for modules actually used. Inclusion in the bundle does not assert that a study was performed.
+Use this checklist only for modules actually used. Inclusion in the bundle does not assert that a study was performed. Module names such as RG-GMCI, FLBR, EFLS, CCTT and RiQ are defined in the [glossary](GLOSSARY.md).
 
 ## Universal requirements
 
 - [ ] Report exact bundle, engine, build or commit and relevant database/tool versions.
-- [ ] Use portable logical input identifiers and archive SHA-256 values.
+- [ ] Identify each input by a portable name (not a path on your machine) and its archive SHA-256.
 - [ ] Report version-sensitive thresholds, registries, references, and non-default limits.
 - [ ] Define the observation unit, numerator, denominator, exclusions, and missingness.
 - [ ] Preserve failure, degraded, capped, held, and not-applicable states; do not turn them into zero or absence.
 - [ ] Display every individual BGC as `strain / full node-or-contig / region / BGC alias`.
-- [ ] State the claim ceiling and give authored conclusions a human disposition.
+- [ ] State the strongest claim the evidence supports (the claim ceiling), and have a person review each authored conclusion.
 
 ## Module-specific requirements
 

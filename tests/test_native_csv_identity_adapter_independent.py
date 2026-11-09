@@ -3,7 +3,7 @@ import copy
 from dataclasses import FrozenInstanceError
 import pytest
 import mamey.exact_identity as identity
-from mamey.crosswalk import infer_node_id
+from mamey.crosswalk import infer_node_id, legacy_short_node_id
 
 STRAIN="SYNTHETIC-001"
 CONTIG="NODE_1_length_1000_cov_1.5"
@@ -54,7 +54,8 @@ def test_source_filename_does_not_supply_or_override_identity():
     with pytest.raises(identity.ExactLocusIdentityError):adapt(data)
 
 def test_generic_synonym_owner_stays_strict_for_native_csv():
-    with pytest.raises(identity.ExactLocusIdentityError):identity.exact_locus_from_mapping(STRAIN,row())
+    legacy=row();legacy["Node_ID"]=legacy_short_node_id(CONTIG)  # ruling 479: stored legacy short form
+    with pytest.raises(identity.ExactLocusIdentityError):identity.exact_locus_from_mapping(STRAIN,legacy)
 
 
 @pytest.mark.parametrize("number,label",[(1,"region001"),(6,"region006"),(1234,"region1234"),("002","region002")])

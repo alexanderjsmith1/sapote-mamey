@@ -107,6 +107,9 @@ def validate_evidence_registry(path: str | Path, *, profile=None) -> dict:
     return {
         "status": "PASS", "record_count": len(rows), "strain_count": len(by_strain),
         "material_count": len(materials), "assay_record_count": len(assay_rows),
+        "results_bound_record_count": sum(1 for row in rows if row["assay_state"].strip() == "RESULTS_BOUND"),
+        # RESULTS_BOUND is the registry author's assertion. This check never opens a locator.
+        "source_locator_check": "NOT_OPENED: source_locator values are recorded text; their existence and the row-to-result binding are not verified",
         "by_strain": {strain: dict(sorted(counts.items())) for strain, counts in sorted(by_strain.items())},
         "claim_ceiling": "Availability and lineage metadata only; registry rows do not establish activity, potency, identity, production, replication, or genomic causality.",
     }

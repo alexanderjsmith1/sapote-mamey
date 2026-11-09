@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from mamey import good_guesses as gg
-from mamey.crosswalk import infer_node_id
+from mamey.crosswalk import infer_node_id, legacy_short_node_id
 from mamey.exact_identity import ExactLocusIdentityError
 
 
@@ -110,11 +110,17 @@ def test_native_legacy_anchor_refusals_create_no_outputs(tmp_path: Path, edit, m
 def test_native_normalization_collision_stays_separate_by_alias(tmp_path: Path) -> None:
     first = "NODE_7_length_9000_cov_12.345"
     second = "NODE_7_length_9000_cov_12.987"
-    assert infer_node_id(first, "") == infer_node_id(second, "")
+    # Ruling 479: new packages keep the full contig; a stored legacy package still collides.
+    assert legacy_short_node_id(first, "") == legacy_short_node_id(second, "")
     first_anchor, second_anchor = _anchor("BGC001", first), _anchor("BGC002", second)
+    first_row, second_row = _row("BGC001", first), _row("BGC002", second)
+    for item in (first_anchor, second_anchor):
+        item["contig"] = legacy_short_node_id(item["contig"], "")
+    for item in (first_row, second_row):
+        item["Node_ID"] = legacy_short_node_id(item["Contig"], "")
     package = _package(
         tmp_path,
-        [_row("BGC001", first), _row("BGC002", second)],
+        [first_row, second_row],
         [_profile(first_anchor), _profile(second_anchor)],
         [_convergence(first_anchor), _convergence(second_anchor)],
     )

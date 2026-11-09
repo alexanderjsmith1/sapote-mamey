@@ -49,7 +49,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 |--------------|-----------|------|----------|
 | Run Mamey on one strain | `batch03_new_user_5min_runbook.md` → Steps 1–4 | 5 min | First-time |
 | Understand run modes (smoke/standard/gold) | `docs/GUIDE/02_Quick_Guide.md` or `README.md` (Quick Start section) | 5 min | Everyone |
-| See a schematic walkthrough (SID8370 example) | `batch05_worked_example_sid8370.md` | 10 min | Everyone |
+| See a schematic walkthrough (`<strain>` example) | `batch05_worked_example_<strain>.md` | 10 min | Everyone |
 | Run multiple strains (batch) | `docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md` | 10 min | Operators |
 | Prepare antiSMASH input correctly | `docs/ANTISMASH_PROFILE.md` | 5 min | Input prep |
 | Validate a package after Mamey | `docs/BUNDLE_CAPABILITIES.md` § 0.6 (Post-MAMEY handback) | 3 min | Operators |
@@ -62,7 +62,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 
 | I want to... | Read this | Time | Audience |
 |--------------|-----------|------|----------|
-| Understand the triage board (ranked list) | `batch05_worked_example_sid8370.md` § 3–4 | 5 min | Everyone |
+| Understand the triage board (ranked list) | `batch05_worked_example_<strain>.md` § 3–4 | 5 min | Everyone |
 | Know which BGCs to pick for Mode B | `docs/BUNDLE_CAPABILITIES.md` § 1 (Analysis modes) | 5 min | Operators |
 | Learn about CCTT triggers and special features | `docs/GUIDE/04_Glossary.md` (search "CCTT") | 3 min | Technical |
 | Understand scoring: AB (antibacterial) vs AF (antifungal) | `docs/DAPR_CLASS_FRAMEWORK.md` | 10 min | Technical |
@@ -79,7 +79,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 | See the full Mode B output contract (§1–§20) | `docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md` | 15 min | Mode B writers |
 | Get guidance on section titles & reconciliation | `docs/MODE_B_20_SECTION_CANONICAL_TITLES.md` | 5 min | Technical |
 | Understand compact (§1–§8) vs full (§1–§20) Mode B | `docs/MODE_B_FULL20_CONTRACT_RECONCILIATION.md` | 5 min | Technical |
-| See a complete Mode B example | `batch05_worked_example_sid8370.md` § 8 | 10 min | Everyone |
+| See a complete Mode B example | `batch05_worked_example_<strain>.md` § 8 | 10 min | Everyone |
 | Avoid claim-safety mistakes (hallucination traps) | `docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md` § Evidence & Traps | 5 min | Mode B writers |
 | Learn the interpretive floor (minimum depth per class) | `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md` | 10 min | Technical |
 | Fix an error in Mode B (hallucination detected) | `docs/MODEB_CORRECTIVE_PROTOCOL.md` | 5 min | Troubleshooting |
@@ -105,7 +105,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 | I want to... | Read this | Time | Audience |
 |--------------|-----------|------|----------|
 | Understand the figure system | `docs/FIGURE_STYLE.md` and `docs/FIGURE_REPRODUCIBILITY.md` | 10 min | Figure makers |
-| See locus maps (gene topology) | `batch05_worked_example_sid8370.md` § 5 | 3 min | Everyone |
+| See locus maps (gene topology) | `batch05_worked_example_<strain>.md` § 5 | 3 min | Everyone |
 | Find available figures (catalog) | `docs/FIGURES_START_HERE.md` (in bundle root) | 5 min | Everyone |
 | Build a figure from data | `docs/BUNDLE_CAPABILITIES.md` § 2 (Tool: build_figures.py) | 5 min | Technical |
 | Make a multi-panel figure | `docs/BUNDLE_CAPABILITIES.md` § 2 (Tool: build_panel_figure.py) | 5 min | Technical |
@@ -169,7 +169,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 |--------------|-----------|------|----------|
 | Quick gotcha lookup (by error message) | `batch04_gotcha_guide.md` § 11 (Error Message → Gotcha lookup table) | 1 min | Troubleshooting |
 | Know common mistakes | `docs/COMMON_MISTAKES.md` | 10 min | Everyone |
-| Understand known issues from development | `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` | 15 min | Technical |
+| Understand known issues from development | `docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` (moved from `docs/`) | 15 min | Technical |
 | Debug a failing Mamey run | `batch04_gotcha_guide.md` § 1–2 | 10 min | Troubleshooting |
 | Debug a timeout in ChatGPT/Claude | `batch04_gotcha_guide.md` § 4 | 5 min | Troubleshooting |
 | Fix a Mode B error (hallucination, wrong ID, etc.) | `batch04_gotcha_guide.md` § 6 | 10 min | Troubleshooting |
@@ -216,7 +216,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 | `batch02_bundle_file_structure_guide.md` | File guide + four-tier explanation | You want to understand the bundle structure |
 | `batch03_new_user_5min_runbook.md` | Fastest path to first result | You have 5 minutes |
 | `batch04_gotcha_guide.md` | Known issues + fixes | Something broke; search here first |
-| `batch05_worked_example_sid8370.md` | Schematic walkthrough (SID8370); workflow steps and Mode B structure are accurate; specific scores are illustrative | You want to see how the workflow looks end-to-end |
+| `batch05_worked_example_<strain>.md` | Schematic walkthrough (`<strain>`); workflow steps and Mode B structure are accurate; specific scores are illustrative | You want to see how the workflow looks end-to-end |
 | `batch06_doc_navigation_guide.md` | This file; "which doc?" lookup | You're here now |
 | `docs/GUIDE/01_User_Manual.md` | Complete reference | You want exhaustive documentation |
 | `docs/GUIDE/02_Quick_Guide.md` | Fast reference (not step-by-step) | You want key facts only |
@@ -257,7 +257,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 
 ### **Researcher / science user**
 1. `batch03_new_user_5min_runbook.md` (quick start)
-2. `batch05_worked_example_sid8370.md` (schematic walkthrough — accurate workflow, illustrative scores)
+2. `batch05_worked_example_<strain>.md` (schematic walkthrough — accurate workflow, illustrative scores)
 3. `docs/GUIDE/02_Quick_Guide.md` or `docs/GUIDE/01_User_Manual.md` (reference)
 4. `docs/GUIDE/04_Glossary.md` (terminology)
 5. `docs/DAPR_CLASS_FRAMEWORK.md` (if interested in ecology)
@@ -274,7 +274,7 @@ The historical batch set contains 18 actual files, not all 28 advertised. Use [t
 
 4. **Need big-picture context?** Read `batch02_bundle_file_structure_guide.md` to understand the bundle layout and four-tier architecture.
 
-5. **Writing Mode B?** Bookmark `docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md` and keep `batch05_worked_example_sid8370.md` as a side-by-side reference.
+5. **Writing Mode B?** Bookmark `docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md` and keep `batch05_worked_example_<strain>.md` as a side-by-side reference.
 
 6. **Building tools?** Start with `batch01_tools_discoverability_map.md` to see what exists, then check `docs/MASTER_SCHEMA_FROZEN_v1_1.md` for data format.
 

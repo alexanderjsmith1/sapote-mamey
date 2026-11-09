@@ -1,5 +1,7 @@
 # Tier Patch Receipt — v9.7.148c
 
+> **Historical page.** It is a record of one old tier patch, not an instruction. It names a source archive and a build stamp but does not identify or hash the patched output, so it cannot show which bytes carried the patch or what the final version was. The file list below repeats names (for example `AGENTS.md` and `README.md`) without saying whether each repeat is a separate stage. Two paths in it, `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` and `validation_logs_v97148c/`, are not in the current tree; the issues log is now at `docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`. Current release status is in [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
+
 Tier: `CODE`  
 Source: `sapote-mamey-v9.7.148c-CODE-20260629.zip`  
 Build stamp target: `20260629v97148d`  

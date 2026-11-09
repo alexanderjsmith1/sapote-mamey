@@ -2,7 +2,7 @@
 
 > Historical. The current page is [BGC size-by-type](../BGC_size_by_type.md). The bracketing claim in this note was withdrawn.
 
-The following original text contains redacted strain labels, point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained verbatim as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current user guidance is the source-scoped contract above.
+The following is a redacted transcription of an original note: strain labels were replaced with placeholders and the prose is otherwise as it was. The transformation is not documented in more detail, no hash of the original is bundled, and byte identity with the original is not established. It contains point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current guidance is on [BGC size-by-type](../BGC_size_by_type.md).
 
 ````text
 # BGC size-by-type — a fragmentation-robust alternative to BGC count
@@ -13,6 +13,8 @@ across three contigs still contributes roughly its true length, so size is far l
 count-inflation artefact.
 
 ## Result: count and size bias in opposite directions and bracket the truth
+
+Historical: the "bracket the truth" claim is withdrawn (see the note at the top). Count and kb are different quantities, so one does not bound the other.
 
 Whole-genome correlation with fragmentation (log10 contig count):
 
@@ -34,19 +36,21 @@ Switching count → size moves class leadership off fragmented artefacts and ont
 
 | class | leader by COUNT (contigs) | leader by SIZE (contigs) | change |
 |---|---|---|---|
-| NRPS | SID-XXX (1305) | **SID-XXX, 947 kb (453)** | artefact → a real Class-A lead strain |
-| Terpene | SID-XXX (1108) | **SID-XXX, 315 kb (4 contigs)** | fragmented → near-complete genome |
-| RiPP | SID-XXX (1646) | **SID-XXX, 262 kb (1 contig)** | fragmented → complete genome |
-| Siderophore | SID-XXX (1902) | **SID-XXX, 122 kb (1 contig)** | fragmented → complete genome |
-| T1PKS | SID-XXX (1108) | SID-XXX, 1186 kb (1108) | same — genuinely T1PKS-rich, not just split |
-| T2PKS | SID-XXX (34) | SID-XXX, 208 kb (34) | same — already fragmentation-robust |
+| NRPS | <strain> (1305) | **<strain>, 947 kb (453)** | artefact → a real Class-A lead strain |
+| Terpene | <strain> (1108) | **<strain>, 315 kb (4 contigs)** | fragmented → near-complete genome |
+| RiPP | <strain> (1646) | **<strain>, 262 kb (1 contig)** | fragmented → complete genome |
+| Siderophore | <strain> (1902) | **<strain>, 122 kb (1 contig)** | fragmented → complete genome |
+| T1PKS | <strain> (1108) | <strain>, 1186 kb (1108) | same — genuinely T1PKS-rich, not just split |
+| T2PKS | <strain> (34) | <strain>, 208 kb (34) | same — already fragmentation-robust |
 
 The size leaders for terpene, RiPP and siderophore are 1–4-contig assemblies — so their leadership is real
-biology, not an assembly artefact. T1PKS staying on SID-XXX even by size shows that strain truly carries
+biology, not an assembly artefact. T1PKS staying on <strain> even by size shows that strain truly carries
 exceptional T1PKS content (the 89-cluster count was not *only* fragmentation). T2PKS is unchanged because, as
 shown earlier, its count was already fragmentation-independent.
 
 ## Recommendation
+
+Historical: do not follow the recommendations below as current guidance. The class-leader conclusions and the "upper/lower frame" are held.
 - **Report per-strain class profiles by SIZE (kb), not count** — `fig_bgc_size_by_type.png` is the
   fragmentation-aware version of the earlier per-strain class heatmap.
 - Treat size as a **conservative (slightly downward-biased) lower frame** and count as the **upper frame**; for

@@ -81,6 +81,8 @@ OUTPUT_FIELDS = (
     "engine_version",
     "bundle_version",
     "authority",
+    # The parsed archive carries no strain field; the strain is the curator's declaration.
+    "strain_binding_state",
 )
 FAILURE_FIELDS = (
     "exact_locus",
@@ -167,8 +169,15 @@ def load_reference_manifest(path: Path) -> list[ReferenceSpec]:
     specs: list[ReferenceSpec] = []
     seen_loci: set[str] = set()
     for row_number, row in enumerate(rows, start=2):
+        if None in row:
+            raise ManifestError(f"row {row_number}: more cells than header columns")
+        absent = [field for field in (*REQUIRED_MANIFEST_FIELDS, *OPTIONAL_EXPECTED_FIELDS)
+                  if field in fields and row.get(field) is None]
+        if absent:
+            # csv.DictReader fills a short row with None; never let that become the text "None".
+            raise ManifestError(f"row {row_number}: truncated row; missing cells for {', '.join(absent)}")
         values = {
-            field: _clean_identity(str(row.get(field, "")), field, row_number)
+            field: _clean_identity(str(row[field]), field, row_number)
             for field in REQUIRED_MANIFEST_FIELDS
         }
         values["source_zip_sha256"] = values["source_zip_sha256"].lower()
@@ -183,7 +192,7 @@ def load_reference_manifest(path: Path) -> list[ReferenceSpec]:
             raise ManifestError(f"row {row_number}: bgc_alias must be formatted like BGC001")
         spec = ReferenceSpec(
             **values,
-            **{field: str(row.get(field, "")).strip() for field in OPTIONAL_EXPECTED_FIELDS},
+            **{field: str(row.get(field) or "").strip() for field in OPTIONAL_EXPECTED_FIELDS},
         )
         if spec.exact_locus in seen_loci:
             raise ManifestError(f"row {row_number}: duplicate exact locus {spec.exact_locus}")
@@ -192,7 +201,20 @@ def load_reference_manifest(path: Path) -> list[ReferenceSpec]:
     return specs
 
 
+def _parsed_strain(bgc: Any) -> str:
+    """The strain carried by the parsed record itself, or '' when the parser supplies none."""
+    return str(getattr(bgc, "strain", "") or getattr(bgc, "strain_id", "") or "").strip()
+
+
+def strain_binding_state(bgc: Any) -> str:
+    return ("PARSED_STRAIN_MATCHES_DECLARATION" if _parsed_strain(bgc)
+            else "CURATOR_DECLARED_NOT_SOURCE_BOUND")
+
+
 def _bgc_identity(bgc: Any, strain: str) -> tuple[str, str, str, str]:
+    # Use the parsed strain when the record has one; otherwise the curator's declared strain is
+    # shown, and the match below rests on the parsed contig, region and alias alone.
+    strain = _parsed_strain(bgc) or strain
     contig = str(getattr(bgc, "node_id", "") or getattr(bgc, "contig", "")).strip()
     region = str(getattr(bgc, "antismash_region", "") or "").strip()
     if not region:
@@ -333,6 +355,7 @@ def _measure_reference(
         "engine_version": engine_version,
         "bundle_version": bundle_version,
         "authority": AUTHORITY,
+        "strain_binding_state": strain_binding_state(bgc),
     }
 
 

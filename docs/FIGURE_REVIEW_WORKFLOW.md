@@ -1,34 +1,49 @@
 # Figure Factory owner-review queue
 
-The review queue turns an existing `FIGURE_MANIFEST.json` into small, paginated owner-review
-pages. It does **not** render figures, copy images, select scientific conclusions, or mark a
-figure as publication-ready.
+The review queue turns a `FIGURE_MANIFEST.json` into small review pages and a decision table.
+It does not draw figures, copy images, choose conclusions or mark a figure ready for publication.
 
-## Why this exists
+Use it when a figure set is too large to review in one HTML file. The images, plotted data and
+captions stay where the figure tools wrote them. The queue adds:
 
-Large atlases become difficult to review when hundreds of images are placed in one HTML file or
-copied into successive dossiers. The queue keeps each rendered image, plotted-data file, and
-traveling caption/method file in its original Figure Factory output. It adds only:
+- paginated HTML review pages;
+- a TSV decision table;
+- a short Markdown index; and
+- a receipt (`FIGURE_REVIEW_RECEIPT.json`).
 
-- a paginated HTML review surface;
-- a TSV decision queue;
-- a compact Markdown index; and
-- a deterministic machine receipt.
+There are two review tools. Use this one to record `KEEP`, `REDESIGN`, `DROP`, `PARK` or
+`UNREVIEWED` for each figure in a manifest. To compile owner comments into an action plan, use
+the [owner action-plan compiler](FIGURE_OWNER_REVIEW_WORKFLOW.md). It uses different columns
+(`figure_set_id`, `owner_comment`, `requested_changes`, `target_use`) and `HOLD` instead of `PARK`.
+Nothing converts one table into the other.
 
-## Required source structure
+## What you need
+- A figure root: a folder that holds `FIGURE_MANIFEST.json` and every file it names. The Figure
+  Factory atlas builders write this manifest. See [Figure Factory index](figure_factory/README.md).
+- In the manifest, a top-level `figures` list. Each entry gives a figure ID, a title, an image, a
+  caption and methods file, and an optional data file. Every file path is relative and stays inside
+  the figure root. Every file carries its SHA-256.
+- A new output folder inside the figure root. Its parent folder must already exist.
 
-`--figure-root` is the portable root containing both `FIGURE_MANIFEST.json` and every referenced
-image, caption/method file, and optional data file. Manifest locators must be relative, remain
-inside that root, and resolve to regular files. Every referenced image and caption/method file,
-and every referenced optional data file, must carry its expected SHA-256 in the manifest. Missing,
-malformed, and mismatched digests are refused before any review output is created.
+Which keys the reader accepts, in order:
 
-The output directory must be a new descendant of the same figure root. Existing directories are
-never replaced. Images are linked with relative locators and are never copied. Keep the complete figure-root layout when transferring the queue; copying only `owner_review` breaks the source links.
+| Item | Keys (first one found wins) |
+|---|---|
+| Figure ID | `figure_set_id`, `figure_id` |
+| Title | `title` (required, not empty) |
+| Image | `svg`, `png`, `image` (SVG, PNG, JPG or JPEG) |
+| Image hash | `svg_sha256`, `png_sha256`, `image_sha256` |
+| Caption file | `caption_methods` |
+| Caption hash | `text_sha256`, `caption_sha256` |
+| Data file | `data_csv`, `data` |
+| Data hash | `data_sha256` (required when a data file is named) |
 
-The reader takes the ID from `figure_set_id`, then `figure_id`. It takes the image from `svg`, then `png`, then `image` (SVG, PNG, JPG or JPEG), and the digest from `svg_sha256`, then `png_sha256`, then `image_sha256`, chosen separately. Give one image and its matching digest. Only that image is checked and shown. Data comes from `data_csv`, then `data`; the caption digest from `text_sha256`, then `caption_sha256`. The manifest has no schema-version check.
+Give one image and its matching hash. Only that image is checked and shown. The reader does not
+check a schema version.
 
-Use figure IDs that do not start with `=`, `+`, `-` or `@`, and plain file names. The TSV escapes a leading formula character with an apostrophe, and decision import matches each `figure_id` to the manifest as written or in that guarded form, so such an ID still rejoins on the next import. An ID that really starts with an apostrophe keeps it. The guard apostrophe is removed from `decision_note`. Plain IDs read more easily in a spreadsheet. HTML links do not URL-encode `#`, `?` or `%` in file names, so those links can break in the browser. Do not rename IDs by hand to work around this.
+Avoid figure IDs that start with `=`, `+`, `-` or `@`, and avoid `#`, `?` and `%` in file names.
+The tool protects a leading formula character in the TSV and matches it again on import, but plain
+IDs are easier in a spreadsheet, and `#`, `?` and `%` break the HTML links. Do not rename IDs by hand.
 
 ## Build a queue
 
@@ -40,48 +55,59 @@ python tools/build_figure_review_queue.py \
   --page-size 25
 ```
 
-Open `owner_review/OPEN_FIGURE_REVIEW.html`. Record one of `KEEP`, `REDESIGN`, `DROP`, `PARK`,
-or `UNREVIEWED` in `FIGURE_REVIEW_QUEUE.tsv`. The note column is free text. To rebuild a new
-queue while retaining decisions, supply the prior queue with `--decisions` and choose a new
-output directory. HTML pages contain a build-time snapshot of the decisions and notes; editing the TSV does not refresh the displayed cards or saved receipt counts. Retain the edited TSV as a new decision revision and rebuild into a fresh directory before relying on the HTML/counts as a current review surface. The page has no browser save control.
+`--page-size` is 1 to 100. Success exits 0. Open `owner_review/OPEN_FIGURE_REVIEW.html`. Each
+figure shows its full caption and methods text below the image. A refusal listed under **When it
+refuses** exits 2 and prints a typed code on stderr. Any other failure, such as an unexpected
+error, prints a Python traceback and exits 1. In both cases check whether the output folder exists
+before you retry. 
 
-Decision import requires `figure_id`, `decision`, `decision_note` columns and supports a UTF-8 BOM. It ignores blank-ID rows, trims fields and uppercases decision codes, matches `figure_id` as written or in its formula-guarded form, removes the guard apostrophe from `decision_note`, rejects duplicate nonblank IDs (including both forms of one ID) and refuses unknown IDs. Whitespace-only decision cells become an empty invalid code, whereas genuinely empty cells default to `UNREVIEWED`. Retain the manifest-bound IDs unchanged and inspect row counts after import.
+Keep the whole figure root together when you move the queue. The pages link to the images by
+relative path. Copying only `owner_review` breaks those links.
 
-## Caption and comparison requirements
+## Record decisions and rebuild
+The page has no save button. The HTML, the receipt counts and the hashes are a snapshot from build
+time. They do not change when you edit the TSV.
 
-The review pages display the complete traveling caption/method file below each figure. The
-source renderer remains responsible for the Figure Factory caption contract: source and release,
-unit of analysis, inclusion/exclusion roles, denominators and typed missingness, transformation,
-visual grammar, statistics, comparison design, genus control, contradictions, and interpretation
-boundary. External benchmarks remain optional and default-off; they do not enter study-cohort
-denominators or percentages.
+1. Build the queue.
+2. Edit `FIGURE_REVIEW_QUEUE.tsv`. Set `decision` to `KEEP`, `REDESIGN`, `DROP`, `PARK` or
+   `UNREVIEWED`. The `decision_note` column is free text. Add a reason for every `REDESIGN`, `DROP`
+   and `PARK`. The tool does not require one.
+3. Rebuild into a new output folder with `--decisions <your edited TSV>`. The TSV must also sit
+   inside the figure root. Save each edited TSV as a new revision.
+4. Open the new HTML. Check the row counts.
 
-The queue does not repair a weak caption. A figure whose source caption is incomplete must be
-redesigned at the renderer or figure-recipe owner, then rendered into a new source root and
-reviewed again.
+The decision file needs the columns `figure_id`, `decision` and `decision_note`. A UTF-8 BOM is
+fine. On import the tool:
+- skips rows with a blank ID and trims every field;
+- turns decision codes to uppercase;
+- treats an empty cell as `UNREVIEWED`, but treats a cell that holds only spaces as an invalid code;
+- matches `figure_id` as written or in its guarded form, and strips the guard apostrophe from
+  `decision_note`; and
+- refuses duplicate IDs and IDs that are not in the manifest.
 
-## Refusal behavior
+## When it refuses
+The command stops before it creates the output folder when:
+- a path is absolute, leaves the figure root or is missing;
+- a file hash is missing, malformed or does not match;
+- a figure ID or title is missing, or an ID is repeated;
+- the manifest, a caption file or the decision file cannot be read as UTF-8 (`FIGURE_REVIEW_MANIFEST_INVALID`,
+  `FIGURE_REVIEW_CAPTION_UNREADABLE`, `FIGURE_REVIEW_DECISIONS_UNREADABLE`);
+- a decision is unsupported, repeated or names an unknown figure;
+- the page size is outside 1 to 100; or
+- the output folder already exists.
 
-The command refuses before creating the output directory when:
+If the system cannot create the folder safely, the tool stops with
+`FIGURE_REVIEW_OUTPUT_COMMIT_UNAVAILABLE`. Choose a new output folder. A run that is cut short can
+leave a hidden `.<destination>.stage-*` folder. It is not a finished queue.
 
-- a locator is absolute, escapes the figure root, or is missing;
-- a referenced artifact hash is missing, malformed, or does not match;
-- figure identity is missing or duplicated;
-- a decision is unsupported, duplicated, or refers to an unknown figure;
-- the page size is outside 1–100; or
-- the destination already exists.
+## What the receipt and the checks prove
+`FIGURE_REVIEW_RECEIPT.json` records the manifest and decision-file hashes, the counts and the
+output names. It does not hash the HTML, the index or the TSV. Keep the inputs unchanged while the
+build runs, and record the output hashes yourself for a handoff. If you edit a caption or image
+after you build the queue, rebuild it.
 
-These checks establish review-surface integrity only. They do not establish biological
-validation, owner acceptance, thesis acceptance, integration, release, or publication readiness.
-
-## Decision-file scope and handoff
-
-The optional `--decisions` file must also be inside `--figure-root`. The chosen output's parent directory must already exist inside that root. An empty decision cell becomes `UNREVIEWED`; `decision_note` may be blank even for `REDESIGN`, `DROP`, or `PARK`, so mechanical queue validation does not establish that an actionable owner explanation was supplied. Preserve the note and add the required rationale before passing a decision downstream.
-
-[The owner action-plan compiler](FIGURE_OWNER_REVIEW_WORKFLOW.md) has a different manifest/TSV contract: `figure_set_id`, `owner_comment`, `requested_changes`, `target_use`, and `HOLD` instead of `PARK`. There is no automatic schema conversion here. Keep each review revision in a new output directory, with the matching manifest and source hashes; editing a caption/image after queue creation invalidates its recorded binding.
-
-The builder needs only Python and bundled helpers. It writes a hidden staging folder and publishes the whole queue with a no-replace rename (Windows rename, Darwin `renameatx_np` or Linux `renameat2`). Without one it refuses with `FIGURE_REVIEW_OUTPUT_COMMIT_UNAVAILABLE`. An interrupted run can leave a `.<destination>.stage-*` folder; it is not a finished queue, so pick a fresh output.
-
-`FIGURE_REVIEW_RECEIPT.json` records the manifest and decision-file hashes, counts and output names. It does not hash the generated HTML, index or TSV, and inputs are not rechecked at the end, so keep them unchanged during a build and record output hashes for a handoff. Success exits 0; typed refusals exit 2 with a code on stderr; other I/O errors can raise.
+The checks prove the review pages match the manifest. They do not show the science is right, or
+that the owner accepted a figure. The queue also does not fix a weak caption. Send a figure with an
+incomplete caption back to its renderer, render into a new root, and review it again.
 
 Source: `mamey/figure_review_queue.py`, `tools/build_figure_review_queue.py`.

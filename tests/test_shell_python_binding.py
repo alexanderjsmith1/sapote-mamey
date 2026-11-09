@@ -111,7 +111,7 @@ def test_real_primary_pdf_uses_bound_spaced_venv(tmp_path, shell_runtime, select
     assert out.read_bytes().startswith(b"%PDF") and out.stat().st_size > 1000
     calls = _calls(shell_runtime, selection)
     assert [Path(call["argv"][0]).name for call in calls] == [
-        "-c", "-c", "-c", "render_deliverable_pdf.py"]
+        "-c", "-c", "-c", "-", "render_deliverable_pdf.py", "-"]
 
 
 def _command(route, source, sealed_zip, receipt, out, md):

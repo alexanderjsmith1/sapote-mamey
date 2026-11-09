@@ -2,7 +2,7 @@
 
 # Sapote–Mamey Playbook
 
-## Current task, profile and command entry
+## Pointers to the current pages
 
 Start with [assistant governance](../ASSISTANT_GOVERNANCE.md), the [human guide](../GUIDE/00_README.md),
 [profile matrix](../MODEB_PROFILE_MATRIX.md), [contract/gate scope](../MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
@@ -28,7 +28,7 @@ Use explicit current artifact paths when requesting sign-off review:
 python mamey_run.py signoff '<tree.treefile>'
 ```
 
-The bundle CLI exposes files and `--minutes` only. Use the direct helper when
+The bundle CLI exposes files and `--minutes` only. A non-numeric `--minutes` value is refused with exit code 2 (observed with `python tools/signoff_check.py --minutes x`). Use the direct helper when
 selection requires its additional options:
 
 ```bash
@@ -73,6 +73,8 @@ scientific acceptance. Report actual files, skipped outputs, findings and unreso
 FABRICATION_CHECK or completeness assertion. Source paths/hashes stay in place with one candidate.
 
 <!-- Historical source text follows. -->
+**Historical, do not follow:** everything below is the old v9.7.457 playbook, written for ChatGPT. Its tiers, "Go deeper" commands, "Excel output is required" rule and verification handshake are not current instructions. Use [the current Playbook](../PLAYBOOK.md).
+
 **Version:** v9.7.457 | **Bundle:** sapote-mamey-v9.7.457 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
@@ -222,7 +224,7 @@ Claim-safety rules (non-negotiable):
 Run Tier 3 Sapote deep analysis on [STRAIN_ID].
 
 Inputs: Mamey package for this strain + antiSMASH GBK region files.
-[For AS-XXX, especially watch for: assembly fragmentation, RG-GMCI rescue hubs,
+[For <strain>, especially watch for: assembly fragmentation, RG-GMCI rescue hubs,
 BGC002-like polyene/macrolide antifungal, BGC004-like streptophenazine silent lane,
 BGC038-like interior validation lead, RiPP/lanthipeptide/lasso lanes,
 siderophore/ecology lanes, conservative product-family claims only.]

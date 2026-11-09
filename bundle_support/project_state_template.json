@@ -1,9 +1,12 @@
 {
-  "_comment": "Sapote-Mamey project state file. One per project. Update after every session. See SAPOTE_MAMEY_BUNDLE_MONOLITH_v9.2.md \u00a7-2.6.",
+  "_comment": "Sapote-Mamey project state file. One per project. Copy it, then fill in or check every field before use. Nothing here describes your project yet. bundle_version names the bundle that shipped this template; change it to the bundle you run. Keys that start with an underscore are notes, not state.",
+  "_allowed_status_values": ["not_started", "in_progress", "complete"],
+  "_deferred_strain_row": {"strain_id": "", "reason": "", "recovery_inputs_needed": "", "responsible_tier": "Mamey or Sapote"},
+  "_failed_strain_row": {"strain_id": "", "failure_code": "", "reason": "", "recovery_inputs_needed": ""},
   "project_id": "",
   "project_name": "",
-  "active_monolith": "SAPOTE_MAMEY_BUNDLE_MONOLITH_v9.2",
-  "bundle_version": "sapote-mamey-v9.7.463",
+  "active_monolith": "",
+  "bundle_version": "sapote-mamey-v9.7.464",
   "schema_version": "workbook_schema_v1.0",
   "master_workbook": "",
   "last_handoff_zip": "",
@@ -11,7 +14,7 @@
   "affiliation": "",
   "pi": "",
   "analyst": "",
-  "orcid": "0000-0002-7987-1460",
+  "orcid": "",
   "strain_summary": {
     "total_strains": 0,
     "completed": 0,
@@ -20,32 +23,18 @@
     "not_started": 0
   },
   "completed_strains": [],
-  "deferred_strains": [
-    {
-      "strain_id": "",
-      "reason": "",
-      "recovery_inputs_needed": "",
-      "responsible_tier": "Mamey | Sapote"
-    }
-  ],
-  "failed_strains": [
-    {
-      "strain_id": "",
-      "failure_code": "",
-      "reason": "",
-      "recovery_inputs_needed": ""
-    }
-  ],
+  "deferred_strains": [],
+  "failed_strains": [],
   "project_bundle_status": {
-    "cross_strain_ab_rankings": "not_started | in_progress | complete",
-    "cross_strain_af_rankings": "not_started | in_progress | complete",
-    "rg_gmci_statistics": "not_started | in_progress | complete",
-    "cassette_statistics": "not_started | in_progress | complete",
-    "ecology_comparisons": "not_started | in_progress | complete",
-    "master_literature_index": "not_started | in_progress | complete",
-    "qualified_null_report": "not_started | in_progress | complete",
-    "completion_audit": "not_started | in_progress | complete",
-    "project_manifest": "not_started | in_progress | complete"
+    "cross_strain_ab_rankings": "not_started",
+    "cross_strain_af_rankings": "not_started",
+    "rg_gmci_statistics": "not_started",
+    "cassette_statistics": "not_started",
+    "ecology_comparisons": "not_started",
+    "master_literature_index": "not_started",
+    "qualified_null_report": "not_started",
+    "completion_audit": "not_started",
+    "project_manifest": "not_started"
   },
   "next_action": "",
   "session_notes": ""

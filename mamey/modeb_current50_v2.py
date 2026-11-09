@@ -143,6 +143,30 @@ def rescue_context_loci(md: str, tsv_paths) -> tuple[set, list[str]]:
     return loci, notes
 
 
+# The emitter lists each gap-rescue source under §26 "Source receipts" as  - `<path>` — SHA-256 `<hex>`.
+RECORDED_RESCUE_TABLE = re.compile(r"^- `([^`\n]*gap_rescue\.tsv)` \u2014 SHA-256 `([0-9a-f]{64})`", re.M)
+
+
+def recorded_rescue_tables(md: str) -> tuple[list[str], list[str]]:
+    """The gap_rescue.tsv files a v2 card names, with their SHA-256, in its §26 source receipts.
+
+    `emit-modeb-template --gap-rescue-dir` writes these lines, so a card built from a rescue run already
+    carries the binding `verify-modeb --rescue-tsv` asks for. A recorded table is used only while its bytes
+    still match the recorded hash; a missing or changed table is reported and not used.
+    """
+    paths, notes = [], []
+    for path, digest in RECORDED_RESCUE_TABLE.findall(dict(_bodies(md)).get(26, "")):
+        table = Path(path)
+        if not table.is_file():
+            notes.append(f"{path} is named in §26 but is not on disk; not used")
+        elif hashlib.sha256(table.read_bytes()).hexdigest() != digest:
+            notes.append(f"{path} no longer matches the SHA-256 recorded in §26; not used")
+        else:
+            paths.append(str(table))
+            notes.append(f"{path} used as recorded in §26 (SHA-256 matches)")
+    return paths, notes
+
+
 def is_v2(contract: Optional[dict]) -> bool:
     return bool(contract) and contract.get("schema_version") == "modeb_current50_v2"
 

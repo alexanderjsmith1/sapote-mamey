@@ -28,6 +28,7 @@ PUBLICATION_RASTER_DPI = 300
 from .manifest_schema import read_manifest_field
 from .cross_strain_figures import build_cross_strain_figures
 from . import figure_policy as _figure_policy
+from .missing_values import is_missing as _is_missing
 # Plotting imports can initialize logging, caches and optional dependency trees.
 # Resolve them only for an explicit plot call or dependency-attribute lookup.
 _PLOT_DEPS_INITIALIZED = False
@@ -612,8 +613,14 @@ def _f13_package_context(sid, source):
 
 
 def _f13_count(value, *, field, identity):
+    # An absent key in the sparse domain_counts dict is a counted zero. A key that is present
+    # but blank or null is a missing measurement and holds the figure; it never becomes 0.
+    if _is_missing(value):
+        raise _figure_policy.FigurePolicyError(
+            "F13_DOMAIN_COUNT_MISSING", f"{identity}: {field}"
+        )
     try:
-        number = float(value or 0)
+        number = float(value)
     except (TypeError, ValueError) as exc:
         raise _figure_policy.FigurePolicyError(
             "F13_DOMAIN_COUNT_NON_NUMERIC", f"{identity}: {field}"
@@ -664,7 +671,7 @@ def _f13_rows(S, eligible):
                     "F13_DOMAIN_COUNTS_MISSING", f"{context['bgcs'][alias]['complete_identity']}"
                 )
             identity = context["bgcs"][alias]
-            raw = [_f13_count(counts.get(feature, 0), field=feature,
+            raw = [_f13_count(counts[feature] if feature in counts else 0, field=feature,
                               identity=identity["complete_identity"]) for feature in F13_VOCAB]
             rows.append({
                 **identity,
@@ -673,6 +680,14 @@ def _f13_rows(S, eligible):
                 "assembly_state": policy["assembly_state"],
                 "raw_counts": raw,
             })
+        unplotted = sorted(set(context["bgcs"]) - seen)
+        if unplotted:
+            # Every manifest BGC counts in the denominator, so every one needs an architecture row.
+            raise _figure_policy.FigurePolicyError(
+                "F13_DOMAIN_ARCH_BGC_MISSING",
+                f"{sid}: no domain_arch row for "
+                + ", ".join(context["bgcs"][alias]["complete_identity"] for alias in unplotted),
+            )
     if len(rows) < 2:
         raise _figure_policy.FigurePolicyError(
             "F13_PCA_ROWS_INSUFFICIENT", f"requires at least 2 eligible BGC rows; observed {len(rows)}"
@@ -2441,6 +2456,12 @@ def write_captions(out, png_names, *, class_view=None):
             continue
         s, num, stem = m.group(1), m.group(2), m.group(3)
         cap = CAPTIONS.get(stem) or CAPTIONS.get(re.sub(r"^[A-Za-z0-9\-]+_", "", stem), "")
+        if not cap:
+            # Strain names can contain dots and multiple underscores. Match an
+            # entire known figure suffix, preferring the most specific key.
+            matches = [key for key in CAPTIONS if stem.endswith("_" + key)]
+            if matches:
+                cap = CAPTIONS[max(matches, key=len)]
         series[s].append((f"{s}{num}", stem, cap))
     titles = {"F": "F-series — cross-strain heatmaps", "G": "G-series — complementary (rarity, novelty, architecture, similarity)",
               "D": "D-series — dot / bubble plots"}

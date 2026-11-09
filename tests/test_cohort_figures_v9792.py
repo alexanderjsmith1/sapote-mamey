@@ -107,8 +107,10 @@ def test_cohort_figures_single_native_bound_synthetic(tmp_path):
     runs = tmp_path / "runs"
     strain = "SYNTHETIC_REFERENCE_NATIVE"
     package = Path(_make_pkg(str(runs), strain, "GOOD", "PRIVATE", "Syntheticus sp.", 6))
+    from mamey.crosswalk import infer_node_id
+    # Node_ID is the full contig from engine 1.9.180; take it from the engine rule, not a hand-shortened name.
     bgcs = [{"bgc_id": f"BGC{index:03d}", "contig": f"ctg{index}_fixture_segment",
-             "node_id": f"ctg{index}", "antismash_region": f"region{index:03d}",
+             "node_id": infer_node_id(f"ctg{index}_fixture_segment", ""), "antismash_region": f"region{index:03d}",
              "region_number": index, "start": 0, "end": 100,
              "products": [], "release": "PRIVATE"} for index in range(1, 7)]
     with (package / f"{strain}_2_inventory.csv").open("w", newline="") as stream:

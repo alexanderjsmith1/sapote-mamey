@@ -249,7 +249,11 @@ def test_rescue_command_refuses_before_overwriting_prior_output(tmp_path, monkey
     argv = ['build_figures.py','--banked-dir',banked,'--out-dir',str(out)]
     if replot: argv.append('--replot')
     monkeypatch.setattr(sys, 'argv', argv)
-    with pytest.raises(ValueError, match='RESCUE_LINKAGE_UNAVAILABLE'):
-        bf.main()
+    if replot:
+        with pytest.raises(ValueError, match='RESCUE_LINKAGE_UNAVAILABLE'):
+            bf.main()
+    else:
+        # v9.7.464 r3: the compute route refuses existing outputs before it reads any source.
+        assert bf.main() == 2
     assert csv_path.read_bytes() == old_csv
     assert image.read_bytes() == b'prior figure'

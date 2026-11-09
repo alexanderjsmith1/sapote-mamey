@@ -25,14 +25,35 @@ or its `sapote_mamey_figure_theme_overview.svg` for the overview. After the seco
 open `figure_component_gallery/sapote_mamey_figure_component_gallery.svg` and inspect
 `sapote_mamey_figure_component_manifest.json` in the same folder.
 
-Each successful command prints a machine-readable receipt using portable
-logical locators rooted at the new output directory. All outputs are local
-deterministic SVG, JSON, or HTML artifacts. No browser, network service, PDF,
-or DOCX renderer is required. The galleries remain static prototypes and are
-not wired into the Mamey run pipeline.
+Each command prints a JSON receipt and exits 0. A successful theme run looks like this:
 
-## Receipt and collision scope
+```json
+{
+  "status": "PASS",
+  "schema_version": "sapote_mamey.figure_theme_gallery.v1",
+  "theme_count": 6,
+  "output_root": "figure_theme_gallery",
+  "html": "figure_theme_gallery/sapote_mamey_figure_theme_gallery.html",
+  "svg": "figure_theme_gallery/sapote_mamey_figure_theme_overview.svg"
+}
+```
 
-`PASS` confirms the static gallery bundle was written; the printed receipt contains counts and portable output locators, not input/source/artifact hashes or scientific/visual acceptance. These previews use fixed example data and do not consume a real package, establish a scientific theme choice, or issue the Figure Factory's analysis receipt. Theme IDs belong to these galleries; do not assume a gallery theme ID is accepted by a different renderer/export command.
+The outputs are local, deterministic SVG, JSON and HTML files. No browser, network service, PDF
+or DOCX renderer is needed.
 
-The output writer refuses an already-existing destination and a deterministic hidden `.<name>.staging` sibling. If interrupted, preserve/inspect any leftover staging folder before choosing a new output name; do not merge its contents into a completed gallery. Ordinary `os.replace` publication is atomic but is not the hardened concurrent no-replace transaction used by the review queue. Avoid concurrent writers to the same destination. If a destination appears after preflight, an empty directory can be replaced on POSIX. Bind source and artifact hashes separately if distributing a preview.
+## What a PASS means
+
+`PASS` means the gallery files were written. It does not mean a theme or figure is approved. The
+galleries use fixed example data, so they do not read a package and do not choose a theme for your
+analysis. A theme ID here is not accepted by other renderers.
+
+## If a run fails
+
+If the output folder already exists, even empty, the tool prints `"status": "REFUSED"` with
+`OUTPUT_REFUSED` and exits 2. Pick a new output name.
+
+If a run is interrupted, a hidden `.<name>.staging` folder may remain next to the output. While it
+exists, the tool refuses that output name. The folder name alone does not show which run made it or
+whether a run still uses it, so leave it in place and run again with a new output name. Remove it only
+after you have checked that no command is running on that name and you no longer need its contents.
+Do not run two commands on the same output name at once.

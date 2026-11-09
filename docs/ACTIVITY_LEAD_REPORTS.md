@@ -9,7 +9,8 @@ per strain with a per-lead table carrying a Novelty figure, a Layperson headline
 Next-experiment suggestion. It computes no new score. Generated headlines and generic next-experiment text still require owner review; the renderer does not validate the upstream claims or approve experimental choices.
 
 This is an authoring/reporting tool, standalone from the CLI (`tools/`, not wired into
-`mamey/cli.py`). It is not a gate, and it never re-seals or edits a package.
+`mamey/cli.py`). It is not a gate. It does not re-seal a package, and it refuses an output
+stem inside `--runs-dir` or `--leads-dir`, so it cannot write into a package through `--out`.
 
 ## Inputs
 
@@ -31,7 +32,10 @@ omitting the strain or guessing.
 
 ## Output
 
-Always writes `<out>.md`. Writes `<out>.pdf` too when `reportlab` is importable, via the
+Always writes `<out>.md`. `<out>.md`, and `<out>.pdf` when a PDF is wanted, must be new
+files outside `--runs-dir` and `--leads-dir`. An existing file or an output inside either input
+tree is refused before anything is written; on the command line that is exit 2 with
+`output refused`. Writes `<out>.pdf` too when `reportlab` is importable, via the
 bundle's own canonical Markdown-to-PDF renderer, `mamey.markdown_pdf` (the same renderer
 `mamey.modeb_export` already uses for Mode B cards) — this tool does not implement its own PDF
 layout. `--format markdown` forces Markdown-only even when `reportlab` is available;
@@ -53,7 +57,7 @@ before being written. Output uses explicit sorting, but duplicate strain package
 | Assembly tier | `mamey.assembly.assembly_tier` | Boundary-derived GOOD/MODERATE/POOR/VERY_POOR: interior % ≥70 / ≥45 and <70 / ≥20 and <45 / <20; missing interior % gives UNKNOWN |
 | Corrected BGC count | `mamey.assembly.corrected_bgc_count` | Interior + 0.5×Edge + 0.25×Full-contig |
 
-The boundary-derived tier and weighted count do not measure whole-assembly contiguity or the number of complete pathways. Read contig count and N50 separately, and keep the raw boundary counts with the weighted statistic.
+The boundary-derived tier and weighted count do not measure whole-assembly contiguity or the number of complete pathways. Read contig count and N50 separately, and keep the raw boundary counts with the weighted statistic. The rendered tier table, the best-targets "Why it ranks here" text and the per-strain "Boundary tier:" line describe only the share of BGCs interior to a contig (for example "boundary tier VERY_POOR (under 20% of BGCs interior to a contig)"). They do not call an assembly reliable or recommend sequencing; that needs separate assembly-quality evidence.
 
 ## Comparison against the Day-5 bar (`Layperson_BGC_Guide_All27Strains_BertMode_May2026.pdf`)
 
@@ -86,8 +90,8 @@ forbids.
 Every BGC printed is a class-level routing hypothesis. `AF_auto`/`AB_auto` are routing priors,
 never a measured activity. Gene anchors show class-explanatory biosynthetic logic, never
 compound identity, production, or expression. Missing evidence is a workflow gap, not a
-biological absence. This tool computes no new score, applies no new gate, and does not seal or
-mutate any package. Judgment on every hypothesis is deferred to the Sapote (Tier 2/3) judgment
+biological absence. This tool computes no new score, applies no new gate, and does not seal a
+package; it refuses output paths inside the input trees. Judgment on every hypothesis is deferred to the Sapote (Tier 2/3) judgment
 layer.
 
 ## Current admission and recovery limits
@@ -98,9 +102,9 @@ Cross-strain and per-lead tables print the BGC alias. Full `exact_locus` heading
 
 Generated next-experiment lines come from a static class dictionary. Treat them as unapproved authoring placeholders, not assay results or authorized experimental plans. Neither an upstream claim-safe format nor a successful render establishes scientific acceptance. The Day-5 comparison is historical context, not a current audit of the external PDF.
 
-Markdown is written through a sibling temporary file and replacement; existing Markdown can be overwritten. PDF is attempted afterward and can fail after Markdown is published. Outputs are not a pair transaction, and the tool emits no source/output hash receipt. Use an unused output stem, inspect the returned `pdf_path`/`pdf_skipped_reason`, and inventory/hash the actual outputs separately. The low-level PDF call is not the Mode B profile verifier. A present PDF does not imply visual QA or current-profile approval.
+Markdown is created as a new file; an existing `<out>.md` or `<out>.pdf` is refused, not overwritten. PDF is attempted afterward and can fail after Markdown is published. Outputs are not a pair transaction, and the tool emits no source/output hash receipt. Inspect the returned `pdf_path`/`pdf_skipped_reason`, and inventory/hash the actual outputs separately. The low-level PDF call is not the Mode B profile verifier. A present PDF does not imply visual QA or current-profile approval.
 
-Source: `tools/render_activity_lead_reports.py:149–245,288–289,366–429,455–505`.
+Source: `tools/render_activity_lead_reports.py` (`load_assembly_rows`, `_why_it_ranks`, `build_markdown`, `check_output_location`, `render`).
 
 ## Example
 

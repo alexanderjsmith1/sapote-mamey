@@ -1,6 +1,6 @@
 # Optional external AB/AF activity-prediction channel
 
-This is optional model evidence, separate from Mamey's deterministic routing priors and from measured strain-level assay context. The shipped `mamey/activity_predictions.py` validates supplied prediction documents and writes JSON. This guide does not establish a working inference adapter for every named third-party model.
+AB is antibacterial and AF is antifungal. This is optional model evidence, separate from Mamey's deterministic routing priors and from measured strain-level assay context. The shipped `mamey/activity_predictions.py` validates supplied prediction documents and writes JSON. This guide does not establish a working inference adapter for every named third-party model.
 
 ## Implemented contract
 
@@ -8,7 +8,7 @@ The schema is `sapote.optional_activity_predictions/1`. The authoritative record
 
 `applicability_status` is `IN_DOMAIN`, `LIMITED`, `OUT_OF_DOMAIN` or `FAILED`. Probabilities, when present, must be finite values in [0,1]. `OUT_OF_DOMAIN` and `FAILED` require null probabilities and a HOLD. `IN_DOMAIN` requires model, environment, feature-schema and input hash fields and is restricted by fragment adequacy **when that optional field is present**. Legacy rows without it do not pass through this fragment check; absence is not evidence of completeness. Hash-field syntax validation does not read and verify the corresponding files. Keep the actual referenced bytes and verify hashes separately. The NPBDetect model identifier is restricted to `OUT_OF_DOMAIN`/`FAILED`; its output is never accepted as an in-domain prediction.
 
-`write_predictions(doc, package_dir, out_dir=None)` validates the document, refuses a resolved output path inside the package, and writes **`optional_activity_predictions.json`**. The default directory is a sibling of the package; an explicit output may be elsewhere outside it. It creates or reuses that directory and atomically replaces the JSON through a fixed sibling `.tmp` file. This is not an exclusive new-output or concurrency guard. The writer does not verify package sealing, check that declared source hashes match the package, or emit a multi-file receipt. Use a unique output directory and retain a separately verified source/package, code and output hash record before adoption.
+`write_predictions(doc, package_dir, out_dir=None)` is a Python function in that module; no `mamey_run.py` subcommand calls it. It validates the document, refuses a resolved output path inside the package, and writes **`optional_activity_predictions.json`**. The default directory is a sibling of the package; an explicit output may be elsewhere outside it. It creates or reuses that directory and atomically replaces the JSON through a fixed sibling `.tmp` file. This is not an exclusive new-output or concurrency guard. The writer does not verify package sealing, check that declared source hashes match the package, or emit a multi-file receipt. Use a unique output directory and retain a separately verified source/package, code and output hash record before adoption.
 
 ## Adapter artifact policy versus current writer
 

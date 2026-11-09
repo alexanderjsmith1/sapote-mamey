@@ -2,6 +2,36 @@
 
 What changed in the Mamey engine at each version bump, and whether outputs stay comparable. Newest first. Each bump also has a CHANGELOG entry.
 
+## Engine 1.9.180 — first bundle: v9.7.464
+
+KnownClusterBlast cut-offs now read antiSMASH's rank-1 percent similarity, `kcb_similarity_pct`, never the cumulative BLAST score. The percent is read from the antiSMASH JSON ranking and kept only when its accession equals the TXT rank-1 MIBiG accession for the same region (`kcb_similarity_state = PCT_OBSERVED`). The band edges are 70 and 40 (owner ruling, 5 Nov 2026). Not poolable with 1.9.179 on these fields:
+- `kcb_similarity_band` in `verdicts.json` now reads high, moderate or low where 1.9.179 read `unresolved`.
+- `run`, and tools that call the parser on their own, read the percent in every evidence mode, including `--json-evidence off`. It rides the record pass that TIGRFAM requests, which runs in every mode. The percent is blank when the ZIP has no antiSMASH JSON, or when the JSON and TXT rank-1 accessions differ.
+- The novelty −15 for a strong known match needs a percent of 70 or more. A large cumulative score with no percent no longer moves novelty, so novelty scores and lead tiers can change.
+- Architecture grade B for an interior region on KCB support alone needs a percent of 70 or more.
+- Mode B claim ceilings: product level needs 70 or more, family level 40 or more. Below that, any hit is "source-derived similarity".
+- The master-workbook depth floor follows the triage board (full Mode B under gold).
+
+A KnownClusterBlast file with empty "Significant hits" and "Details" sections now gives `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`, with no ClusterBlast fallback. In 1.9.179 such a region showed a ClusterBlast hit as its reference, or read unknown. In 46 AS cohort archives (2,679 regions) this moved 842 fallback and 150 unknown regions, 992 in all, to the no-hit state; 1,687 observed regions did not change. A no-hit report is not a validated negative search.
+
+Node_ID is the full contig in new packages. 1.9.179 shortened decimal contig names, and stored packages keep the short form. Mode B ingest accepts a legacy short header only when it matches that BGC's own contig, and notes it as `LEGACY_SHORT_NODE`; acceptance ends at a cut the owner names. Databases that join on `node_id` across 1.9.179 and 1.9.180 packages need the legacy key.
+
+The master-workbook `habitat` column holds the deposited isolation-source text verbatim (owner ruling 476). 1.9.179 inferred a habitat category. Peers now match on identical deposited text, so habitat peer groups can change.
+
+Also in 1.9.180:
+- Every top-lead surface uses the three-flag lead exclusion (standing rule, primary metabolism, mobile element). A mobile-element-only exclusion no longer reaches `manifest_short.json` top 3, `list-bgcs`, Mode B selection, lead figures or top-lead gene tables. A flag cell reading `NO` is unflagged. Lead lists and S6 counts can change.
+- The enediyne novelty guard subtracts only the credit the enediyne keyword added. 1.9.179 could subtract more, so some novelty scores rise.
+- An archive with no region GBKs no longer turns whole records into BGCs. A record without a region feature is skipped and one with several regions is held. None of the 46 cohort archives was affected. The same fallback now also holds a region whose number is missing, zero, negative or conflicting, or whose boundary is joined, fuzzy or outside the record.
+- Domain-level workbook sheets key rows by strain, locator and alias, not the bare alias. Rows that merged across strains now stay separate.
+- New fields: `kcb_similarity_pct` and `kcb_similarity_state` in `records.json` and the manifest `bgcs`, and a last triage-board column, `KCB_similarity_pct`.
+- `verify-modeb` binds the recorded gap-rescue table and reads the full core-gene matrix for `current50_v2`, and the emitted matrix scaffold names the metrics the gate checks. Verdicts on existing cards can change.
+- Gene-first exploration lists a partly bound channel as a gap and routes to it; the receipt adds `channel_state_counts`.
+- The BiG-SCAPE reference rebuild excludes whole strain names, not substrings, so the reference set can change.
+- `run` exits 1 when any result carries a `[BLOCKING]` issue. Package contents do not change.
+- `workflow --strict`: W8 checks the deliverable suite manifest it finds, and W9 reads PENDING for a missing or unreadable package manifest. Ledger statuses can change; package contents do not.
+- The two-proof join is logic version 4. A blank, malformed or absent overlap count holds the pair as LOGIC_EVIDENCE_HOLD. An older `_4A` without the `overlapping_subject_refs` column now shows the proof unmeasured in `claim_note` until the package is re-run. Under logic version 3 such a pair kept its verdict.
+- Widget domain-count cells keep a blank as blank, with no bar, and export it blank. A recorded 0 stays 0. The row total shows only when all eight domain columns were recorded. Earlier engines turned a blank count into 0.
+
 ## Engine 1.9.179 — first bundle: v9.7.463
 
 `kcb_similarity_band` in `verdicts.json` is no longer computed from the KnownClusterBlast cumulative BLAST score. It is taken from a per-BGC percent, `kcb_similarity_pct`, and no intake path sets that percent yet, so every band now reads `unresolved`. A band that read high, moderate or low under 1.9.178 came from a score, not a percent.
@@ -47,7 +77,7 @@ Also in 1.9.177:
 `mamey/ref_completion.py` reads compound names as lists whether a names file gives a string or a list. `same_family()` matches family stems only when they are equal or differ by one known prefix (neo, iso, nor, epi, homo, dehydro, deoxy, dihydro, demethyl, desmethyl, seco, pre, pro). The gap-rescue tools now pass compound names into their partner checks. A partner gene whose best reciprocal match is a sibling MIBiG entry of the reference compound can now count toward the family score instead of being set aside as a paralog. A name contained inside another name no longer counts. Gap-rescue tables from 1.9.175 can differ from 1.9.176 for those genes, so they are not directly poolable for partner verdicts. Thresholds are unchanged. Existing outputs are not rewritten.
 
 Also in 1.9.176:
-- The two-proof join holds a pair as LOGIC_EVIDENCE_HOLD when its overlap count is blank or malformed (logic version 3). A legacy `_4A` without the column keeps its verdict and says so in `claim_note`.
+- The two-proof join holds a pair as LOGIC_EVIDENCE_HOLD when its overlap count is blank or malformed (logic version 3). A legacy `_4A` without the column keeps its verdict and says so in `claim_note`. Logic version 4, in 1.9.180, holds that case too.
 - The hybrid gate counts each antiSMASH category once (NRPS + NRP-metallophore is one class), so `architecture_rationale` and the reproducibility fingerprint change for affected regions.
 - RG-GMCI reports AMBIGUOUS_TERMINUS for contig ends containing N.
 - KS-domain parsing stops at the next feature.
@@ -200,7 +230,7 @@ extraction, source scans, scoring, triage thresholds, and sealed-package schemas
 
 ## Engine 1.9.160 — first bundle: v9.7.425
 
-Post-seal widgets, Mode B scaffolds, Lab Quest inventories, reports, guides and lead figures now preserve complete locus identity and typed missingness for fixed package inputs. Ambiguous, malformed and unsafe roster/evidence inputs return explicit refusals, and external guide output no longer rewrites the source package. Core extraction and scoring thresholds are unchanged. Generated scaffolds, references and test success do not establish scientific interpretation, production, activity or owner acceptance.
+Post-seal widgets, Mode B scaffolds, Lab Quest inventories, reports, guides and lead figures now preserve complete locus identity and typed missingness for fixed package inputs. Widget domain-count cells were the exception: they turned a blank into 0 until 1.9.180. Ambiguous, malformed and unsafe roster/evidence inputs return explicit refusals, and external guide output no longer rewrites the source package. Core extraction and scoring thresholds are unchanged. Generated scaffolds, references and test success do not establish scientific interpretation, production, activity or owner acceptance.
 
 ## Engine 1.9.159 — first bundle: v9.7.424
 

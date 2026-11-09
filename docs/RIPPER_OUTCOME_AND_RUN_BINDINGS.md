@@ -26,8 +26,12 @@ from import admission alone.
 
 ## Optional exact run boundary
 
-`bind-run --manifest manifest.json --file role=/explicit/path ... --out /fresh/run`
-reads a ripper-run-binding-manifest/1 with run_id, evidence_kind, profile_id,
+```bash
+python tools/ripper_adapter.py bind-run --manifest manifest.json \
+  --file role=/explicit/path ... --out /fresh/run
+```
+
+The command reads a ripper-run-binding-manifest/1 with run_id, evidence_kind, profile_id,
 source_revision and files{role:sha256}. Each role must be provided explicitly on
 CLI; paths embedded in an artifact are never silently discovered/read. Original
 archived source bytes must match the profile for operator-supplied bindings;

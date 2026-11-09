@@ -392,10 +392,10 @@ def build_gene_by_gene_table(
         except (TypeError, ValueError):
             return 0.0
 
-    # Rank by AB+AF, excluding standing-rule and primary-metab drops
-    active = [r for r in triage_rows
-              if not r.get("Standing_rule")
-              and r.get("Primary_metab_flag") != "YES"]
+    # Rank by AB+AF, excluding the engine's three lead exclusions
+    # (standing rule, primary metabolism, mobile element)
+    from .scoring import is_lead_excluded
+    active = [r for r in triage_rows if not is_lead_excluded(r)]
     if scope == "all_bgcs":
         # v9.7.93: uniform all-BGC coverage — every BGC (standing-rule / primary-metab
         # drops included), ranked by AB+AF but NOT truncated. The point is complete

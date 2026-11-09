@@ -40,8 +40,11 @@ def _baseline_path(base: str, sid: str, create: bool = False) -> str:
     d = os.path.join(base, _DRIFT_DIR)
     if create:
         os.makedirs(d, exist_ok=True)  # only the snapshot writer may create state in the project
-    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in sid)[:64]
-    return os.path.join(d, f"baseline_{safe}.json")
+    # The readable part is lossy ('same/a' and 'same?a' both become 'same_a'), so a digest of
+    # the exact identifier keeps two sessions from sharing, and overwriting, one baseline.
+    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in sid)[:48]
+    digest = hashlib.sha256(sid.encode("utf-8", "surrogatepass")).hexdigest()[:16]
+    return os.path.join(d, f"baseline_{safe}_{digest}.json")
 
 
 def main() -> int:
@@ -69,12 +72,13 @@ def main() -> int:
                           if f.startswith("baseline_") and f.endswith(".json")] if os.path.isdir(d) else []
             except OSError:
                 others = []
+            # No baseline anywhere means the SessionStart half was never installed; stay quiet
+            # there (documented). Otherwise an unarmed detector must say so.
             if others:
                 print(f"\nC10 TOOL-DRIFT: unarmed for this session — no {os.path.basename(bpath)} "
-                      f"({len(others)} baseline(s) from other session id(s) present).", file=sys.stderr)
-                print("Pass the same session_id to the SessionStart --mode baseline and the Stop "
-                      "--mode check, or this check reports nothing.", file=sys.stderr)
-                print("", file=sys.stderr)
+                      f"({len(others)} baseline(s) from other session id(s) present). Nothing was compared.\n"
+                      "Pass the same session_id to the SessionStart --mode baseline and the Stop "
+                      "--mode check, or this check reports nothing.\n", file=sys.stderr)
             return 0  # no baseline (e.g. session predates the hook) — nothing to compare, fail open
         with open(bpath, encoding="utf-8") as fh:
             before = json.load(fh)
@@ -99,8 +103,11 @@ def main() -> int:
                 print(f"  ({len(added)} new file(s) created — allowed, not flagged.)", file=sys.stderr)
             print("", file=sys.stderr)
         return 0
-    except Exception:
-        return 0  # fail open — a detector must never wedge a hook
+    except Exception as exc:
+        # Fail open (a detector must never wedge a hook), but say that no check happened.
+        print(f"\nC10 TOOL-DRIFT: check not completed ({type(exc).__name__}); tool drift was not checked.",
+              file=sys.stderr)
+        return 0
 
 
 

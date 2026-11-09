@@ -2,7 +2,8 @@
 
 This module is intentionally offline-first. It does not call NCBI. Users run
 NCBI web BLASTP manually, download Hit Table CSV first, and only provide XML2
-when proof-grade coverage/identity details or hit titles are needed.
+when supplemental coverage/identity details or hit titles are needed. XML2 is supplemental
+evidence: it does not by itself bind the source, the query sequence or the exact locus.
 """
 from __future__ import annotations
 
@@ -722,7 +723,7 @@ def ingest_followup(hit_table: str | Path, outdir: str | Path, xml2: str | Path 
         "",
         "- `DOWNGRADE_CONFIRMED_REDUNDANT`: strong annotation; do not spend the next BLASTP batch here unless this BGC is central.",
         "- `RETAIN_CONTEXT_RELEVANT` / `RETAIN_PROOF_RELEVANT`: useful for evidence tables and class-safe reporting.",
-        "- `UPGRADE_*`: prioritize for next batch or XML2/proof-grade follow-up.",
+        "- `UPGRADE_*`: prioritize for next batch or an XML2 follow-up (supplemental alignment detail, not proof).",
         "- `ISOLATE_GIANT_OR_DOMAIN_FOLLOWUP`: split into domain-focused FASTAs if NCBI web BLASTP struggles.",
         "",
         "Claim-safety: " + CLAIM_SAFETY,

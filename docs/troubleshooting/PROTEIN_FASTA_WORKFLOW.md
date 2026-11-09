@@ -6,7 +6,7 @@ Protein searches (BLASTp, HMMER, DIAMOND) need protein sequences. A genome FASTA
 
 The main extraction reads an antiSMASH result ZIP, not a bare FASTA. Annotating the genome and running antiSMASH happen before this program. A protein FASTA adds outside evidence; it does not replace the antiSMASH region records.
 
-`mamey/cell_provenance.py` writes empty "pending" rows for protein, HMMER and DIAMOND evidence in every package. It writes them even when another tool has already produced results. So a `NEEDS_PROTEIN_FASTA` row does not mean the package or archive has no proteins.
+`mamey/cell_provenance.py` writes empty "pending" rows for protein, HMMER and DIAMOND evidence when a run reaches its cell-provenance step, before the final manifest is built. A run that stopped earlier has no cell-provenance file; a missing file means the package is incomplete, not that a check passed or found nothing. The rows are written even when another tool has already produced results. So a `NEEDS_PROTEIN_FASTA` row does not mean the package or archive has no proteins.
 
 ## What to do
 

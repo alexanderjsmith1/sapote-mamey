@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """split_cards.py — QC-fixer/generator for deterministic per-protocluster Mode B SPLIT
-``*_FULL.md`` cards (graduated into the engine as a first-class deliverable tool,
-v9.7.349x candidate; formerly ``_OVERMERGE_MODULE/fix_split_full_cards.py``).
+``*_FULL.md`` cards.
 
 When an over-merged region is split into its component protoclusters, one deterministic
 per-protocluster Mode B ``*_FULL.md`` card is emitted for each. This tool patches the

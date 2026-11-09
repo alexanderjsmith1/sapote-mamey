@@ -31,16 +31,16 @@ exceed this facade's actual checks (`mamey/validators/modeb_full20.py`).
 
 ### Test 1 — Full Mode B requires all 20 exact corrective-protocol sections
 
-Given a Mode B markdown card labelled `Full Mode B`, validation fails unless all 20 exact section names from `mamey/data/mode_b/modeb_full20_corrective_contract.json` are present in order.
+Given a Mode B markdown card labelled `Full Mode B`, validation fails unless all 20 exact section names are present in order. The standalone §1–§20 JSON named here originally is retired. Its last copy is `mamey/data/mode_b/legacy/modeb_full20_corrective_contract_legacy_v97144.json`. The current validator (`mamey/validators/modeb_full20.py`) takes the same titles from §1–§20 of `mamey/data/mode_b/modeb_full30_corrective_contract.json`.
 
 Expected result: FAIL for `§1–§8` only.  
 Expected result: FAIL for `§1–§10` only.  
 Expected result: FAIL for the obsolete title `Manual BLASTP evidence, if present` at §7.  
 Expected result: PASS for all 20 exact current sections.
 
-### Test 2 — LLMs cannot make up sections
+### Test 2 — The section list is fixed
 
-The section list is locked. A renderer or assistant may not rename `§7. Transport, resistance, and regulation` to a BLASTP section, may not move BLASTP/HMMER out of §16, and may not substitute older section titles.
+A card keeps the exact section titles and order. No renderer or author may rename `§7. Transport, resistance, and regulation` to a BLASTP section, may not move BLASTP/HMMER out of §16, and may not substitute older section titles.
 
 ### Test 3 — Candidate card cannot masquerade as Full Mode B
 
@@ -54,7 +54,7 @@ A report consisting only of an integrated evidence table, target-region summary,
 
 A fragment-level card may contain short sections, but the 20 section headings must remain present, with unavailable evidence stated. Missing headings fail. Empty unavailable sections fail if they omit the reason.
 
-## Current exact titles
+## Retained §1–§20 titles
 
 1. **Identity and node/region**
 2. **Why this BGC was selected**

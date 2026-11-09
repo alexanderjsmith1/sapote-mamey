@@ -27,7 +27,7 @@ except ImportError:
 import io
 import json
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Any
@@ -215,9 +215,24 @@ def wrap_fasta(header: str, seq: str, width: int = 60) -> str:
     return "\n".join(lines) + "\n"
 
 
+def selection_binding_state(cds: CDSFeature, tag_counts: Counter, coord_counts: Counter) -> str:
+    """How uniquely the contig-and-coordinate join binds this protein among the parsed CDS records.
+
+    The join itself is by contig name and interval overlap. A locus tag or a contig/coordinate pair that
+    occurs more than once in the parsed records makes the assignment ambiguous; it is held, not trusted."""
+    if cds.locus_tag and tag_counts[cds.locus_tag] > 1:
+        return "HOLD_AMBIGUOUS_LOCUS_TAG"
+    if coord_counts[(cds.contig, cds.start, cds.end)] > 1:
+        return "HOLD_AMBIGUOUS_CONTIG_COORDINATES"
+    return "UNIQUE_IN_PARSED_RECORDS_NOT_SEQUENCE_VERIFIED"
+
+
 def panel_rows(bgcs: Iterable[BGCRecord], cds_list: Iterable[CDSFeature],
                strain: str, genes_per_bgc: int = 2) -> list[dict]:
-    picks = select_panel(list(bgcs), list(cds_list), genes_per_bgc=genes_per_bgc)
+    cds_list = list(cds_list)
+    tag_counts = Counter(c.locus_tag for c in cds_list if c.locus_tag)
+    coord_counts = Counter((c.contig, c.start, c.end) for c in cds_list)
+    picks = select_panel(list(bgcs), cds_list, genes_per_bgc=genes_per_bgc)
     per_bgc_slot: dict[str, int] = {}
     rows: list[dict] = []
     for p in picks:
@@ -251,6 +266,7 @@ def panel_rows(bgcs: Iterable[BGCRecord], cds_list: Iterable[CDSFeature],
             "product_annotation": p.cds.product or _qual_text(p.cds, "sec_met_domain")[:120],
             "blastp_claim_safety": CLAIM_SAFETY,
             "warning": warning,
+            "selection_binding_state": selection_binding_state(p.cds, tag_counts, coord_counts),
             "sequence": seq,
         }
         rows.append(row)
@@ -528,6 +544,7 @@ def write_panel(outdir: str | Path, strain: str, bgcs: Iterable[BGCRecord],
         "node_id", "antismash_region", "source_gbk", "start", "end", "strand", "aa_len",
         "selection_role", "selection_reason", "selection_score", "bgc_products",
         "assembly_locator", "product_annotation", "warning", "blastp_claim_safety",
+        "selection_binding_state",
     ]
     manifest_path = out / f"{_safe_token(strain)}_BGC_BLASTP_PANEL_selection_manifest.csv"
     _manifest_buf = io.StringIO(newline="")
@@ -558,6 +575,9 @@ def write_panel(outdir: str | Path, strain: str, bgcs: Iterable[BGCRecord],
         "giant_aa_threshold": giant_aa_threshold,
         "isolate_giants": isolate_giants,
         "bgc_count": len(bgcs),
+        "bgcs_without_selection": sorted({b.bgc_id for b in bgcs} - {r["bgc_id"] for r in curated_rows}),
+        "selection_binding_holds": sum(1 for r in curated_rows
+                                       if r.get("selection_binding_state", "").startswith("HOLD_")),
         "curated_unique_proteins": len(curated_rows),
         "one_best_unique_proteins": len(one_best_rows),
         "first_pass_unique_proteins": len(top_rows),
@@ -584,7 +604,8 @@ def write_panel(outdir: str | Path, strain: str, bgcs: Iterable[BGCRecord],
         "   - **Hit Table (CSV)** — Download menu -> `Hit Table(CSV)`. This is the hit list `ingest-blastp` reads.",
         "   - **Single-file XML2** — Download menu -> `XML2` (single file). `ingest-blastp` uses this for",
         "     enrichment (query coverage, alignment detail, subject titles). Pass it via `--xml`.",
-        "   The CSV alone works; adding the XML2 makes the evidence proof-grade, so download both when you can.",
+        "   The CSV alone works. The XML2 adds query coverage and alignment detail; it is supplemental evidence,",
+        "   not proof of source, query sequence or locus binding. Download both when you can.",
         "4. Ingest both offline (zero network): `mamey ingest-blastp --hit-table <HitTable.csv> --xml <Alignment.xml>"
         " --strain <ID> --master <workbook.xlsx> --package <package>`.",
         "5. Upload/paste RID/results back into Sapote/Mamey for reprioritization of remaining proteins.",

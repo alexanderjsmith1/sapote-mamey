@@ -1,10 +1,19 @@
-# Master workbook validation — deployed contract and limits
+# Master workbook validation
 
-This guide distinguishes deployed checks from design requirements. It describes `mamey/workbook_schema_check.py`. The [schema design reference](WORKBOOK_SCHEMA.md) and [retained frozen requirements](MASTER_SCHEMA_FROZEN_v1_1.md) include historical/prospective names and guarantees that differ from deployed code. Preserve those requirements; do not treat checker PASS as proof that they are all implemented.
+Two workbook checks exist. Pick the one that fits.
 
-## Check an existing master
+| You have | Run | Where it is described |
+|---|---|---|
+| One run's package and its workbook | `python mamey_run.py validate runs/EXAMPLE/package --workbook-strict` | [First run](reader/01_FIRST_RUN.md) |
+| A **master workbook** | `python -m mamey.workbook_schema_check /absolute/path/to/master.xlsx` | This page |
 
-From the bundle root in the intended environment:
+A master workbook is one `.xlsx` that holds many strains. Its sheets carry codes `A1` to `H3` (for example `A2_Strain_Registry` and `B1_BGC_Master`). `python mamey_run.py run ... --master <path>` creates it if absent and updates it on every run. A single run's own workbook has none of these coded sheets.
+
+This page describes `mamey/workbook_schema_check.py`. The [schema design reference](WORKBOOK_SCHEMA.md) and the [frozen requirements](MASTER_SCHEMA_FROZEN_v1_1.md) name some guarantees the checker does not enforce. A PASS here does not mean those are met.
+
+## Run the check
+
+From the bundle root, in the environment you run Mamey in:
 
 ```bash
 python -m mamey.workbook_schema_check /absolute/path/to/master.xlsx
@@ -12,50 +21,83 @@ python -m mamey.workbook_schema_check --full /absolute/path/to/master.xlsx
 python -m mamey.workbook_schema_check --full --v12 /absolute/path/to/master.xlsx
 ```
 
-The checker opens the workbook read-only with `data_only=True` and closes it. It reports JSON to stdout; it does not write or repair the workbook. Capture the JSON externally with the workbook SHA-256, source/checker hashes and selected flags. PASS exits zero; reported FAIL exits one. Do not combine `--fast` and `--full`: the simple argument-removal code selects full when both occur rather than rejecting a conflict. Unknown/extra positional tokens are not robustly validated; use one path and the declared switches.
+Use one path and the switches shown. Use one of `--fast` or `--full`, not both. If both are given, `--full` wins.
 
-This checker targets master workbooks with coded sheets, not per-strain extraction workbooks or arbitrary custom spreadsheets. “No canonical master sheets found” is a type mismatch, not a request to fabricate missing master sheets.
+The checker opens the workbook read-only and never repairs it. It prints JSON and exits `0` on `"status": "PASS"` and `1` on `"status": "FAIL"`. A sample:
+
+```json
+{
+  "file": "/absolute/path/to/master.xlsx",
+  "status": "FAIL",
+  "sheets_found": 26,
+  "sheets_missing": [],
+  "column_errors": [],
+  "consistency_errors": ["..."],
+  "warnings": [],
+  "validation_path": "full-deep"
+}
+```
+
+Read these keys:
+
+- `status`: `PASS` or `FAIL`.
+- `validation_path`: `fast-structural` or `full-deep`.
+- `sheets_missing`, `sheets_extra`: sheets the checker expected but did not find, and sheets it does not know.
+- `column_errors`, `consistency_errors`: what failed. Either one non-empty means `FAIL`.
+- `v1_2_errors`: present only with `--v12`. Its failures (missing `Fragment_Rescue_Tiers`, missing `Activity_Ref` headers, recomputed tier or tag mismatches) set `FAIL` without appearing in the two lists above.
+- `warnings`: for example, that the fast path skipped the value checks.
+- `error`: present when the file cannot be opened, or when it has no coded master sheets.
+
+The error "No canonical master sheets found" means the file is not a master workbook. Do not add sheets to satisfy it. Save the JSON next to the workbook's SHA-256 and the switches you used.
 
 ## What it checks
 
-- Required sheets derive from the builder's `CANONICAL_V1_HEADERS`, excluding additive `B5_BLASTp_Hits`, plus `A1_Dashboard`. That gives 26 required sheets. The `OPTIONAL_SHEETS` list does not make a sheet optional if it is already in the required derived set.
-- Declared columns and prefixes are compared positionally, ignoring case, using the physical header cells; an inserted blank inside that checked prefix is a mismatch. Blank removal is used only for minimum nonempty-column counts, not to compact positional comparisons (`mamey/workbook_schema_check.py`). Extra trailing headers are still allowed; independently inspect data/header meaning and row provenance. B3 checks only its leading `strain` header. A1 requires at least one nonempty header, not a specific workbook type value.
-- Nonempty per-strain sheet row counts are compared. Empty sheets are not included in that count consistency comparison. Extra sheets are reported but do not themselves fail the core check.
-- Auto mode uses fast structural checking at 26 or more **nonblank first-column A2 rows**, not 26 unique strains. Smaller auto cohorts and `--full` also compare the first-column strain sets of A2 and B1. Fast mode skips that orphan check.
-- `--v12` additionally requires `Fragment_Rescue_Tiers` with its locked column prefix and an `Activity_Ref` header in C1/C2. Full mode recomputes D5 tier labels and checks nonblank Activity_Ref membership in a hard-coded tag set. Fast mode skips those row values. Tag membership does not verify literature or strain-specific activity.
+- **Required sheets.** There are 26. They come from the builder's `CANONICAL_V1_HEADERS`, minus the additive `B5_BLASTp_Hits`, plus `A1_Dashboard`.
+- **Headers.** Each sheet's declared columns are compared by position, ignoring case. A blank header cell inside the checked columns is a mismatch. Extra trailing headers are allowed.
+- **Row counts.** Non-empty per-strain sheets must agree on row count. The count is the sheet's stored last row minus the header, not a count of non-blank records, so formatting or blank rows can change it. A mismatch does not say which strains are missing; compare the strain identifiers yourself.
+- **Cohort size picks the path.** In auto mode, 26 or more non-blank strain cells in the first column of `A2_Strain_Registry` selects the fast path. Smaller cohorts, and any run with `--full`, also check that the strains in `A2` and `B1_BGC_Master` match. The fast path skips that check.
+- **`--v12`** also requires the `Fragment_Rescue_Tiers` sheet (code D5) and an `Activity_Ref` header on the C1 and C2 sheets. `--full` then recomputes D5 tier labels and checks that each non-blank `Activity_Ref` is in a fixed tag set. The fast path skips these row checks. A tag in the set does not verify any literature or strain activity.
+- **Version stamp.** `H3_Schema_Version` carries the header `Schema version / v1.1`.
+
+The sheet codes are listed in the [sheet index](WORKBOOK_SCHEMA.md#sheet-index).
 
 ## What PASS does not prove
 
-The core check does not validate unique strain/locus rows, exact four-part locus identity, coordinate ranges, source/package hashes, formula freshness, data completeness, measured activity or source provenance field values. It uses cached Excel formula values, without recalculating formulas. H3's deployed header is `Schema version / v1.1`; the checker does not enforce the frozen document's promised `workbook_type=MASTER_STRAIN_WORKBOOK` metadata value or use that value to exempt arbitrary custom files.
+A PASS does not check:
 
-Header-only required sheets can pass. Duplicate A2 rows can inflate the auto threshold: an isolated in-memory source probe passed with 26 identical A2 rows and header-only B1/other sheets under fast mode. The same source's full path rejects a supplied A2 strain absent from B1. These probes establish checker scope, not validation of any scientific workbook. Keep empty-versus-missing and duplicate/orphan checks in the acceptance evidence.
+- unique strain or locus rows;
+- the full `strain / full node-or-contig / region / BGC alias` identity;
+- coordinates, or source and package hashes;
+- formula freshness (the checker reads cached values and does not recalculate);
+- completeness, measured activity, or provenance values.
 
-The frozen design names B5_Strict_Marker_Calls/B6_Protein_Marker_Hits and further class views; the deployed builder instead includes additive B5_BLASTp_Hits and B6_Compound_Reference. A2 also retains top-lead fields despite the freeze's separation requirement. These are implementation/reconciliation holds; do not rename or rewrite archived data merely to satisfy this documentation. A successful current checker run cannot prove append-only compatibility with every archived schema or the frozen provenance gate.
+A workbook with header-only sheets can pass. Duplicate `A2` rows can push a small cohort onto the fast path. Check duplicates, orphans and empty-versus-missing sheets yourself, and keep that evidence with the result.
 
-## Assembly and upstream coverage warnings
+## Assembly and coverage warnings
 
-The per-strain workbook's cover and `Strain_Summary` show the BGC-boundary `Assembly tier`, counts and selected assembly metrics; this writer does not export `run.issues`. Keep the full manifest and issue log with that workbook. The displayed tier is not the independent contigs/N50 contiguity tier, a record-limit probe result or a certificate that all eligible records were analyzed.
+A per-strain workbook shows the BGC-boundary `Assembly tier` and selected assembly metrics on its cover and `Strain_Summary`. Keep that run's full manifest and issue log with the workbook. The displayed tier is not the contig/N50 contiguity tier, and it does not show that every eligible record was analyzed.
 
-The master writer retains issue text in `A3_Run_Manifest.issues`, uses it in gap-action fields, and appends Issue rows to its per-strain master summary. These are textual projections, not typed, hash-bound assembly/record-limit coverage receipts. A3 accumulates run-history records, so bind the intended run and package before treating one issue cell as current. Reconcile the expected record universe independently; neither sheet presence nor structural PASS confirms that warning text is present, current or scientifically resolved.
+The master keeps issue text in `A3_Run_Manifest.issues`. These are text notes, not hash-bound coverage receipts, and `A3` accumulates run history. Bind the run and package you mean before you read one cell as current. When you export a comparison or caption, state the FASTA scope used and any probe that failed. For any individual locus, take the full `strain / full node-or-contig / region / BGC alias` from the same admitted inventory.
 
-Retain failed/unavailable probe states and the actual FASTA/whole-record/region-only scope when exporting a comparison or caption. Resolve full `strain / full node-or-contig / region / BGC alias` from the same admitted inventory for individual-locus claims. Sources: `mamey/workbook.py`, `mamey/master_workbook.py` and `mamey/cli.py`.
+## Exported tables are a separate check
 
-## Exported-table provenance headers are a separate check
+`python tools/check_provenance_columns.py /path/to/table.csv` checks the column names of CSV and TSV exports. It is not a workbook validator.
 
-For CSV/TSV exports, `python tools/check_provenance_columns.py /path/to/table.csv` checks recognized provenance **column names**. It is not the workbook validator and does not establish row-level identity. A recognized BGC-ID header or a cell matching `BGC` plus at least three digits selects a per-BGC table. It then requires a recognized strain header and contig/region headers, or an accepted locator header satisfying both. `locus`, `locus_label` and `exact_locus` are accepted locator names without validation of their contents. Blank or arbitrary locator/strain values can therefore pass; independently bind every row to `strain / full node-or-contig / region / BGC alias` and its source/hash.
+- It picks out per-BGC tables by a BGC-ID header, or by cells that read `BGC` plus three or more digits.
+- It then requires a strain header and contig and region headers, or one accepted locator header (`locus`, `locus_label` or `exact_locus`).
+- It does not read the cell values. Blank or arbitrary values can pass, so bind each row to its identity and source yourself.
+- Exit `0` means no finding for the tables it accepted. Exit `1` means an unreadable table or a missing anchor. The count in the failure heading counts problem lines, not tables. Exit `2` means a glob matched nothing or a path is missing or has an unsupported suffix.
 
-The reader skips consecutive leading `#` comment lines and normally chooses comma/tab from the suffix. It retries the other delimiter only when parsing yields one header containing that delimiter. This is a narrow header heuristic, not complete schema/dialect admission. Empty/headerless or unrecognized tables produce no anchor finding; a familiar alias column such as `bgc_alias` is selected only if its cells satisfy the BGC pattern. The CLI returns 2 if a requested glob has no matches, any selected path is missing/not a file or has an unsupported suffix, or no targets remain. It deduplicates accepted paths rather than silently filtering failed selections. An admitted empty file can still return 0; preserve the intended table roster and actual result (`tools/check_provenance_columns.py`).
+## Before you accept a master
 
-Normal exit 1 reports unreadability or anchor problems, and exit 0 means no such finding for admitted targets. The failure heading's count is the number of problem strings, not distinct failing tables; one table missing all three anchors can be reported as three “tables”. There is no hash-bound JSON receipt or row/duplicate/coordinate/source-value validation. Save the command, selected file hashes and full diagnostics, and review omitted, blank and unbound rows separately before merge or manuscript use.
+1. Record the expected schema, roster and source hashes.
+2. Run the check. Use `--full` when you need the orphan and value checks, and `--v12` only for the extra sheets.
+3. Read `validation_path`, `warnings`, `sheets_missing`, `column_errors` and `consistency_errors`, and `v1_2_errors` when you used `--v12`.
+4. Confirm the data and provenance by hand.
+5. Keep the original workbook. Repair or merge in one named working copy, with a new output destination.
 
-## Bounded acceptance and recovery
+## Updating a master
 
-Record the expected workbook type, schema/build, exact roster and source hashes before checking. Review unique keys and the complete `strain / full node-or-contig / region / BGC alias` wherever an individual locus is shown. Read `validation_path`, warnings, missing/extra sheets, column and consistency errors; select `--full` explicitly when orphan/value checking is required, and `--v12` only for the requested additions. Confirm filled data and provenance separately. Preserve original workbooks; any repair/merge uses one named working candidate with row/source bindings and a fresh output destination.
+The validator reads one master. It does not compare a before and after pair or an expected roster. The writer replaces rows for the incoming strain on the selected sheets. Extra sheets and extra headers survive, but notes on replaced rows are lost. Three sheets append history, so a re-ingest does not repeat the same output. Read the [master-writer scope](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-2-master-writer-and-retained-values) and keep a copy of the before state. The producer-stamped PASS on `H1_Handoff_Log` does not show that this check ran.
 
-`tools/schema_deployed_audit.py WORKBOOK SCHEMA_MD [OUT_MD]` is a historical sheet-name comparison utility, not this validator. Its regex reads only single-digit A–H codes in a particular Markdown table style; B10–B12 and other formatting may be missed. It compares sheet presence, not headers, rows, hashes or scientific facts; historical MAPPED/DEFER descriptions are hard-coded. It directly writes Markdown and `out.replace('.md', '.json')` without a transactional pair or parent creation; if OUT_MD has no `.md`, the JSON write can overwrite the same path. Use an explicit fresh `.md` name in an existing directory and inspect both outputs. Do not treat its historical PASS-like narrative as current deployment acceptance.
-
-See [handoff protocol](CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md), [reading results](READING_YOUR_RESULTS.md) and [claim-safe request template](../deliverables/DELIVERABLE_INSTRUCTION_TEMPLATE.md) for the wider evidence contract.
-
-## Updating a master is a separate contract
-
-The validator reads one resulting master; it does not compare a before/after pair or an independent expected roster. The current writer replaces rows for the incoming strain on selected sheets. Extra sheets and extra headers can survive while annotations on replaced rows are lost. Three append-history sheets accumulate records, so re-ingest is not identical-output replay. Review [master-writer scope](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-2-master-writer-and-retained-values) and preserve the independently identified before state before a deliberate update. H1's producer-stamped PASS does not prove this validator ran.
+See also [reading your results](READING_YOUR_RESULTS.md) and the [handoff protocol](CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md).

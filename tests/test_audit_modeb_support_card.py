@@ -96,7 +96,7 @@ class AuditSupportCardTests(unittest.TestCase):
 
     def test_forbidden_workspace_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
-            text = VALID_CARD + "\n`/Users/<user>/<workspace>/example.csv`\n"
+            text = VALID_CARD + "\n`/Us" "ers/<user>/<workspace>/example.csv`\n"
             card = self._write(Path(tmp), text)
             result = audit_card(card, check_sources=False)
             codes = {finding["code"] for finding in result.findings}

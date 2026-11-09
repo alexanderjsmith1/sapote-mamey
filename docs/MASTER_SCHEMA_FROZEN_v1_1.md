@@ -1,17 +1,17 @@
-> **Current implementation boundary (v9.7.447):** the frozen text below is preserved as a retained requirement/history artifact. Deployed builder sheet names, A2 fields and H3 metadata differ in places, and the current checker does not enforce all provenance or archival compatibility requirements. Read [the deployed validation guide](WORKBOOK_VALIDATION.md) and record unresolved reconciliation holds; PASS cannot certify this entire freeze or revalidate the historical numerical receipt. No frozen text below has been rewritten.
+> **Historical record, not the current schema.** The frozen text below is the original requirement record. The deployed builder differs in places. Its B5 and B6 sheets are `B5_BLASTp_Hits` and `B6_Compound_Reference`, it writes `C4_Strain_Decision_Table`, and `A3_Run_Manifest` has `antismash_profile` at column 5. The checker also allows `F3_Ecology_Theme_Board` and `G3_Hallucination_Trap_Audit`. The current sheet list is [WORKBOOK_SCHEMA.md](WORKBOOK_SCHEMA.md), and checker behavior is in [WORKBOOK_VALIDATION.md](WORKBOOK_VALIDATION.md). The checker takes its required sheets and headers from the builder, not from this page, and it does not enforce every provenance or archival requirement below. A PASS does not certify this freeze or revalidate the historical receipts. Three edits were made below: the status line no longer calls this page the live contract, and two assistant names became role names. The frozen rules are unchanged.
 
 # Master Strain Workbook — Canonical Schema (FROZEN, v1.1)
 **STATUS: FROZEN 2026-06-09.** This is the canonical master strain workbook schema. Frozen after the provisional round-trip validated the KCB/MIBiG provenance gate three ways (reject / exempt / satisfiable) and demonstrated it on regenerated output (127 source-verified MIBIG_REFERENCE_LINE rows, 348 honest UNRESOLVED). Future changes are append-only per the forward-compatibility contract; structural changes require a v2 (which must still read v1).
-*DEPLOYED (v1.1, frozen 2026-06-09). Defines the frozen, cross-strain master schema; per-strain (§57) and custom workbooks are intentionally NOT frozen. This contract is live — `mamey/workbook_schema_check.py` validates against it (SCHEMA_VERSION = "v1.1"). Its content is also reflected in docs/WORKBOOK_SCHEMA.md.*
+*DEPLOYED (v1.1, frozen 2026-06-09). Defines the frozen, cross-strain master schema; per-strain (§57) and custom workbooks are intentionally NOT frozen. `mamey/workbook_schema_check.py` stamps SCHEMA_VERSION = "v1.1", but it validates against the builder headers described in docs/WORKBOOK_SCHEMA.md, not against this text.*
 
 ## Scope of the freeze
-- **FROZEN:** the master strain workbook — the cross-strain artifact handed between Claude and Mamey, merged by host. This document.
+- **FROZEN:** the master strain workbook — the cross-strain artifact handed between Sapote (judgment) and Mamey (extraction), merged by host. This document.
 - **NOT frozen:** per-strain Sapote workbooks (AS-XXX style, monolith §57 namespace) and one-off custom user deliverables. They evolve independently.
 
 ## Forward-compatibility contract (the archival guarantee)
 1. **Sheet codes are append-only & permanent.** A2, B1, B4, etc. never change meaning or get renumbered. v2 adds B10+, never repurposes a frozen code.
 2. **Columns are append-only within a sheet.** v2 may ADD columns; it must never rename, reorder-by-meaning, or delete a frozen column. Readers locate columns by header name, not position.
-3. **v2 MUST read v1.** A v2 reader accepts a v1 workbook by sheet code, ignoring columns it does not recognize rather than rejecting. A v1 reader encountering v2 extra columns ignores them. This is what lets a student's v1 workbook be reanalyzed by a future Claude with no context.
+3. **v2 MUST read v1.** A v2 reader accepts a v1 workbook by sheet code, ignoring columns it does not recognize rather than rejecting. A v1 reader encountering v2 extra columns ignores them. This is what lets a student's v1 workbook be reanalyzed later by a person or tool with no context.
 4. **Self-identifying.** Every master carries `workbook_type = MASTER_STRAIN_WORKBOOK` and `schema_version` (H3) so any tool/gate distinguishes a frozen master from a per-strain/custom file without guessing.
 
 ## Structural fixes applied BEFORE freeze (cannot be fixed by append-only later)
@@ -132,3 +132,5 @@ antiSMASH hmmdetection strictness used for the run (`strict|relaxed|loose|unknow
 pooling stays comparable (see `docs/ANTISMASH_PROFILE.md` and `tools/check_antismash_profile.py`).
 Default `unknown`. The schema validator auto-derives required columns from the builder, so it now
 requires this column. Workbooks built before -q lack it and will fail validation — rebuild to migrate.
+
+Before any rebuild, keep a copy of the workbook. Re-ingesting a strain drops that strain's existing rows first (`drop_existing_strain`, `mamey/master_workbook.py:1143-1144`), so hand annotations on those rows are lost unless you reconcile them from the copy.

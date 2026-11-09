@@ -1,6 +1,6 @@
 # Sapote–Mamey v9.7.22 — build -m (2026-06-14)
 
-Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [v9.7.22 release notes](../../RELEASE_NOTES_v9.7.22.md).
+Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Changelog](../../../../CHANGELOG.md).
 
 The v9.2 review's top structural hazard, fixed: geometry now **gates** RG-GMCI + reconstruction
 acceptance (demote), instead of only feeding the score additively. No other engine logic changed.
@@ -33,11 +33,11 @@ acceptance (demote), instead of only feeding the score additively. No other engi
 - Run_Manifest sheet `antismash_profile` column (schema v1.1).
 
 ## Per-tier verification (in-zip)
-| Tier | pytest | AS-### |
+| Tier | pytest | private-ID hits |
 |---|---|---|
 | CODE | 501 passed / 80 skip | 0 |
 | CODE-analysis-free | 499 passed / 82 skip | 0 |
-| SID-public | 501 passed / 80 skip | 0 |
+| public-ID | 501 passed / 80 skip | 0 |
 | MERGED-PRIVATE-scaffold | 500 passed / 81 skip | retained (expected) |
 
 Supersedes -l. Checksums regenerated last; verified in-zip.

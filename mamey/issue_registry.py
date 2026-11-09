@@ -95,17 +95,24 @@ class IssueEvent:
         )
 
 
+def issue_severity(value: str) -> str:
+    """The one severity rule for a free-text issue line. The run exit gate and the typed registry
+    both use it, so an issue the registry calls BLOCKING can never let `run` exit 0."""
+    upper = str(value).strip().upper()
+    if "[BLOCKING]" in upper or upper.startswith("BLOCKING"):
+        return "BLOCKING"
+    if "[ERROR]" in upper or upper.startswith("ERROR"):
+        return "ERROR"
+    if "[INFO]" in upper or upper.startswith("INFO"):
+        return "INFO"
+    return "WARN"
+
+
 def _legacy_event(value: str) -> IssueEvent:
     """Map an existing free-text issue into the typed surface without guessing facts."""
     text = str(value).strip()
     upper = text.upper()
-    severity = "WARN"
-    if "[BLOCKING]" in upper or upper.startswith("BLOCKING"):
-        severity = "BLOCKING"
-    elif "[ERROR]" in upper or upper.startswith("ERROR"):
-        severity = "ERROR"
-    elif "[INFO]" in upper or upper.startswith("INFO"):
-        severity = "INFO"
+    severity = issue_severity(text)
 
     if any(token in upper for token in ("VALIDATION", "CHECKSUM", "GATE FAIL", "MISMATCH")):
         category = "VALIDATION_FAILURE"

@@ -9,6 +9,7 @@ import contextlib
 import csv
 import os
 import re
+import sqlite3
 import tempfile
 import unicodedata
 from dataclasses import dataclass
@@ -108,6 +109,18 @@ def normalize_run_id(value: object) -> int:
     if not isinstance(value, str) or not re.fullmatch(r"[1-9][0-9]*", value):
         raise NamespaceError("RUN_ID_INVALID", "run_id must be a canonical positive integer")
     return int(value)
+
+
+def open_database_read_only(path) -> sqlite3.Connection:
+    """Open an existing BiG-SCAPE SQLite database read-only.
+
+    A plain ``sqlite3.connect`` on a mistyped path creates an empty database file, and
+    a writable handle could change the source. A missing path is refused before any
+    connection is made.
+    """
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"not an existing BiG-SCAPE database: {path}")
+    return sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
 
 
 def select_family_run(connection, run_id: object = None) -> int | None:

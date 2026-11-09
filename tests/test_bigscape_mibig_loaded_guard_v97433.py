@@ -45,7 +45,8 @@ exit 0
 
     pfam = tmp_path / "Pfam-A.hmm"
     pfam.touch()
-    (tmp_path / "Pfam-A.hmm.h3i").touch()
+    for ext in ("h3f", "h3i", "h3m", "h3p"):
+        (tmp_path / f"Pfam-A.hmm.{ext}").touch()
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     (input_dir / "query.region001.gbk").touch()

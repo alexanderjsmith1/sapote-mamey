@@ -87,6 +87,39 @@ def physical_assertions(row: dict) -> list[dict[str, str]]:
             if role:
                 claims.append({"source": f"{field}:bare:{ordinal}",
                                "role": role, "value": value})
+    # Widened reader (round 3): also take every location claim the shared reader `row_claims`
+    # finds -- column names matched loosely (CONTIG, contig_id, record_id, region_number, ...),
+    # `key:value` and bracketed or `;`/`,`-glued tokens, and bare NODE / region / r<n> tokens
+    # inside a pipe part or in slot 0 -- and any location text it cannot read, as an
+    # "unparsed" claim. Readable region forms (1, r1, region1) are given as regionNNN.
+    seen = {(c["role"], c["value"]) for c in claims}
+    wide, unparsed = row_claims(row)
+
+    def _leading_strain_slot(source: str) -> bool:
+        # Ingest keeps its existing grammar for the first token: in `X|BGCnnn|…` or
+        # `X BGCnnn …`, X is the strain slot and makes no location claim, even when it looks
+        # like NODE_1. (The widget's reader holds that case; ingest does not change it here.)
+        field, _, slot = source.partition(":")
+        if slot not in ("slot0", "token0"):
+            return False
+        raw = str(row.get(field) or "").strip().lstrip(">")
+        parts = [t for t in re.split(r"[|\s]+", raw) if t]
+        return len(parts) >= 2 and bool(re.fullmatch(r"BGC\d+", parts[1]))
+
+    for claim in wide:
+        role = claim["role"]
+        if role not in ("full_contig", "node", "region") or _leading_strain_slot(claim["source"]):
+            continue
+        value = str(claim["value"]).strip()
+        if role == "region":
+            m = re.fullmatch(r"(?i)(?:region|r)?0*(\d+)", value)
+            if m and int(m.group(1)) > 0:
+                value = f"region{int(m.group(1)):03d}"
+        if (role, value) not in seen:
+            seen.add((role, value))
+            claims.append({"source": f"wide:{claim['source']}", "role": role, "value": value})
+    for name in unparsed:
+        claims.append({"source": f"wide:{name}", "role": "unparsed", "value": name})
     return claims
 
 
@@ -296,6 +329,8 @@ class PhysicalAuthority:
             return result, "PHYSICAL_GENE_MEMBERSHIP_UNAVAILABLE"
         for claim in claims:
             value, role = claim["value"], claim["role"]
+            if role == "unparsed":
+                return result, "QUERY_PHYSICAL_UNPARSED"
             if not value or value.lower() in {"unknown", "none", "null", "na", "n/a", "?", "-"}:
                 return result, "QUERY_PHYSICAL_UNVERIFIABLE"
             if role == "region":
@@ -600,3 +635,152 @@ def validate_managed_generations(package: Path, ledger: dict) -> None:
         if not managed or not matches:
             raise PhysicalBindingHold("PHYSICAL_GENERATION_HOLD: no current authority-bound output generation")
     manager.verify_unchanged()
+
+
+# ---------------------------------------------------------------------------------------------
+# One reader for every identity and location claim a BLASTp row can make.
+#
+# `physical_assertions` above reads a fixed set of column names and `key=value` tokens for the
+# ingest binding. `row_claims` is the wider, fail-closed reader the widget uses: column names
+# are matched after case-folding and dropping separators, query text fields are parsed for
+# `key=value` / `key:value` tokens (any case, optional spaces or quotes), the engine's pipe and
+# space headers, and bare NODE / region / r<n> / <n>aa tokens, and any location text it cannot
+# read is reported as unparsed so the caller can hold the row.
+# ---------------------------------------------------------------------------------------------
+def _norm_name(name) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(name or "").casefold())
+
+
+#: normalized column or token name -> claim role
+CLAIM_ALIASES = {
+    **dict.fromkeys(("strain", "querystrain", "strainid", "querystrainid"), "strain"),
+    **dict.fromkeys(("bgcid", "querybgc", "querybgcid", "bgc", "bgcalias"), "bgc"),
+    **dict.fromkeys(("gene", "locustag", "querylocus", "querygene", "querylocustag", "locus"), "gene"),
+    **dict.fromkeys(("aalength", "queryaalength", "qlen", "querylen", "querylength", "lengthaa",
+                     "proteinlength", "querylengthaa"), "aa"),
+    **dict.fromkeys(("contig", "querycontig", "fullcontig", "fullnode", "fullnodeorcontig",
+                     "fullnodeid", "contigid", "querycontigid", "recordid", "queryrecord",
+                     "queryrecordid", "record"), "full_contig"),
+    **dict.fromkeys(("node", "nodeid", "querynode", "querynodeid"), "node"),
+    **dict.fromkeys(("region", "queryregion", "antismashregion", "regionnumber",
+                     "antismashregionnumber", "queryregionnumber"), "region"),
+    **dict.fromkeys(("proteinsha256", "queryproteinsha256", "currentproteinsha256", "sha256",
+                     "proteinhash", "querysha256", "proteinsha", "queryhash", "hash"), "hash"),
+}
+#: names that are a query length only inside a query title (`aa=317`). As columns, `length`
+#: and `len` are BLAST's alignment length, not the query length, so they are not aliases.
+_TOKEN_ONLY_ALIASES = {"aa": "aa", "len": "aa", "length": "aa"}
+#: normalized names of free-text query fields that are parsed for tokens
+QUERY_TEXT_FIELDS = frozenset({"queryid", "querytitle", "querysourceid", "query", "qseqid",
+                               "querydef", "querydescription", "queryname"})
+#: columns about the hit, the source file or the ingest run, never about the query locus
+_NOT_QUERY_PREFIXES = ("subject", "source", "ingest", "hit", "target", "sbjct")
+_LOCATION_WORDS = ("contig", "node", "region", "sha", "hash")
+LOCATION_ROLES = frozenset({"full_contig", "node", "region", "hash"})
+_KV = re.compile(r"(?<![A-Za-z0-9])([A-Za-z][A-Za-z0-9_]*)\s*[=:]\s*(\"|')?([^\s|;,\[\]()\"']*)\2?")
+_SPLIT = re.compile(r"[\s;,\[\]()]+")
+
+
+def _bare_role(token: str) -> str:
+    if re.fullmatch(r"(?i)NODE_\d+(?:_.*)?", token):
+        return "node"
+    if re.fullmatch(r"(?i)(?:region|r)0*\d+", token):
+        return "region"
+    if re.fullmatch(r"(?i)\d+aa", token):
+        return "aa"
+    if re.fullmatch(r"BGC\d+", token):
+        return "bgc"
+    return ""
+
+
+def _text_claims(field: str, text: str, claims: list, unparsed: list) -> None:
+    raw = str(text or "").strip().lstrip(">")
+    if not raw:
+        return
+    rest = raw
+    for m in list(_KV.finditer(raw)):
+        key, value = m.group(1), m.group(3)
+        role = CLAIM_ALIASES.get(_norm_name(key), "") or _TOKEN_ONLY_ALIASES.get(_norm_name(key), "")
+        if role:
+            claims.append({"source": f"{field}:{key}", "role": role, "value": value})
+            rest = rest.replace(m.group(0), " ", 1)
+        elif any(w in _norm_name(key) for w in _LOCATION_WORDS):
+            unparsed.append(f"{field}:{key}")
+            rest = rest.replace(m.group(0), " ", 1)
+        else:
+            rest = rest.replace(m.group(0), " ", 1)  # slot=, start=, kind= ... carry no identity
+
+    def bare(token, src, allow_gene):
+        role = _bare_role(token)
+        if role:
+            value = re.sub(r"(?i)aa$", "", token) if role == "aa" else token
+            claims.append({"source": src, "role": role, "value": value})
+            return True
+        m = re.fullmatch(r"(BGC\d+)_(\S+)", token)
+        if m:
+            claims.append({"source": src, "role": "bgc", "value": m.group(1)})
+            claims.append({"source": src, "role": "gene", "value": m.group(2)})
+            return True
+        if allow_gene:
+            claims.append({"source": src, "role": "gene", "value": token})
+            return True
+        return False
+
+    leftovers = []
+    if "|" in rest:
+        parts = rest.split("|")
+        gene_seen = any(c["role"] == "gene" and c["source"].startswith(f"{field}:") for c in claims)
+        for i, part in enumerate(parts):
+            subs = [t for t in _SPLIT.split(part) if t]
+            for j, token in enumerate(subs):
+                src = f"{field}:slot{i}"
+                if i == 0 and j == 0 and not _bare_role(token):
+                    claims.append({"source": src, "role": "strain", "value": token})
+                    continue
+                if i == 1 and j == 0 and re.fullmatch(r"BGC\d+", token):
+                    claims.append({"source": src, "role": "bgc", "value": token})
+                    continue
+                allow_gene = i >= 2 and j == 0 and not gene_seen
+                if bare(token, src, allow_gene):
+                    gene_seen = gene_seen or (allow_gene and not _bare_role(token))
+                    continue
+                leftovers.append(token)
+    else:
+        for j, token in enumerate(t for t in _SPLIT.split(rest) if t):
+            if not bare(token, f"{field}:token{j}", False):
+                leftovers.append(token)
+    # Strain, gene or free words left over are not location claims; location words are.
+    for token in leftovers:
+        if any(w in token.casefold() for w in ("contig", "node", "region")):
+            unparsed.append(f"{field}:{token}")
+    # Plain words in a space title (a strain or gene name without a key) make no claim.
+
+
+def row_claims(row: dict) -> tuple[list[dict[str, str]], list[str]]:
+    """Every identity and location claim in a BLASTp row, and the location text left unread.
+
+    Returns ``(claims, unparsed)``. Each claim is ``{"source", "role", "value"}`` with role one
+    of strain, bgc, gene, aa, full_contig, node, region, hash. ``unparsed`` names columns or
+    tokens that look like location data (contig, node, region, sha, hash) but could not be
+    read; a caller should hold such a row.
+    """
+    claims: list[dict[str, str]] = []
+    unparsed: list[str] = []
+    for name, value in row.items():
+        if name is None:
+            continue
+        norm = _norm_name(name)
+        if not norm or norm.startswith(_NOT_QUERY_PREFIXES):
+            continue
+        text = "" if value is None else str(value).strip()
+        if norm in QUERY_TEXT_FIELDS:
+            _text_claims(str(name), text, claims, unparsed)
+            continue
+        role = CLAIM_ALIASES.get(norm, "")
+        if role:
+            if text:  # a blank column makes no claim
+                claims.append({"source": str(name), "role": role, "value": text})
+            continue
+        if text and any(w in norm for w in _LOCATION_WORDS):
+            unparsed.append(str(name))
+    return claims, unparsed

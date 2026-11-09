@@ -212,6 +212,64 @@ def _write_cover_sheet(wb, run: "MameyRun") -> None:
     ws.freeze_panes = "A3"
 
 
+# Inventory CSV columns the BGC_Inventory sheet already shows under its own header.
+_INVENTORY_CSV_SHOWN = frozenset({
+    "BGC_ID", "Release", "Assembly_Locator", "User_Label", "Contig", "Node_ID",
+    "antiSMASH_Region", "Source_GBK", "Region", "Start", "End", "Length_kb", "Boundary",
+    "Products", "Arch", "Arch_rationale", "KCB_top", "KCB_score", "KCB_evidence_state",
+    "KCB_proteins", "RiQ_score", "RiQ_label", "Strain",
+})
+
+
+def _csv_cell(value):
+    """A CSV value for a workbook cell: a whole number becomes an int, blank stays blank.
+
+    Anything else (decimals, text, ``1e5``, leading zeros such as ``007``) stays text, so no
+    value is silently reinterpreted.
+    """
+    import re as _re
+    if value is None:
+        return ""
+    text = str(value)
+    if _re.fullmatch(r"-?(?:0|[1-9][0-9]{0,14})", text):
+        return int(text)
+    return text
+
+
+def _append_inventory_csv_columns(ws, package_dir: Path, strain_id: str) -> list[str]:
+    """Append the inventory CSV's other columns to BGC_Inventory, joined on BGC ID.
+
+    The sheet was built from the run's BGC records and showed 31 columns, while
+    ``<strain>_2_inventory.csv`` has 53. The missing ones include the claim limits
+    (``product_claim_ceiling``, ``needs_manual_kcb_check``, ``claim_ceiling``, ``safe_claim``)
+    and KCB provenance, so a reader of the workbook saw "KCB top" without its ceiling. The CSV
+    is written just before the workbook; its extra columns are appended under their CSV names,
+    in CSV order, after the existing columns, so readers that go by header name are unaffected.
+    Without the CSV (a workbook built outside a run) nothing is appended.
+    """
+    import csv
+    source = package_dir / f"{strain_id}_2_inventory.csv"
+    if not source.is_file():
+        return []
+    with source.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        extra = [c for c in (reader.fieldnames or []) if c and c not in _INVENTORY_CSV_SHOWN]
+        rows = {str(r.get("BGC_ID") or "").strip(): r for r in reader}
+    header = [cell.value for cell in ws[1]]
+    if "BGC" not in header or not extra:
+        return []
+    bgc_col = header.index("BGC") + 1
+    present = set(header)
+    extra = [c for c in extra if c not in present]
+    for name in extra:
+        col = ws.max_column + 1
+        ws.cell(1, col, name)
+        for index in range(2, ws.max_row + 1):
+            row = rows.get(str(ws.cell(index, bgc_col).value or "").strip())
+            ws.cell(index, col, _csv_cell(None if row is None else row.get(name)))
+    return extra
+
+
 def write_per_strain_workbook(run: MameyRun, path: str | Path) -> None:
     from .report_release_policy import policy_for_run, row_policy
     policy_columns = row_policy(policy_for_run(run))
@@ -247,6 +305,7 @@ def write_per_strain_workbook(run: MameyRun, path: str | Path) -> None:
         wb["BGC_Inventory"].cell(1, col, key)
         for index in range(2, wb["BGC_Inventory"].max_row + 1):
             wb["BGC_Inventory"].cell(index, col, value)
+    _append_inventory_csv_columns(wb["BGC_Inventory"], Path(path).parent, run.context.strain_id)
 
     ws = wb.create_sheet("KCB_RiQ_Sweep")
     ws.append(["BGC", "KCB top", "KCB cumulative", "KCB evidence state", "Protein hits", "MIBiG hits", "RiQ score", "RiQ label"])

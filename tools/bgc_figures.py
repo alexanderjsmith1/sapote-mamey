@@ -212,7 +212,7 @@ def fig_novelty(db, strain, gbk_base, mibig_index, title, png, data_csv, topn=6)
         ax.hlines(y, 0, d, color=col, lw=2, alpha=.7); ax.plot(d, y, "o", color=col, ms=9)
         ax.text(d + 0.006, y, f"{d:.3f}", va="center", fontsize=9)
     ax.set_yticks(range(len(top))); ax.set_yticklabels([t[1] for t in top], fontsize=9)
-    ax.set_xlim(0, 1.0); ax.set_xlabel("BiG-SCAPE GCF distance  (0 identical .. 1 maximal)")
+    ax.set_xlim(0, 1.0); ax.set_xlabel("BiG-SCAPE distance in this run  (0 closest .. 1 most distant)")
     ax.set_title(title, fontsize=11, weight="bold")
     plt.tight_layout(); _save_rgb(fig, png); plt.close()
     with open(data_csv, "w", newline="", encoding="utf-8") as fh:
@@ -225,18 +225,22 @@ def fig_blastp(blastp, genes_order, title, png, data_csv):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    # Every region gene gets a CSV row with its state. Only a measured identity is drawn as a bar:
+    # a gene missing from the BLASTp table, or a row without a readable identity, is never drawn as 0 %.
     labels, ids, rows = [], [], []
     for lt in genes_order:
         bp = blastp.get(lt)
         if not bp:
+            rows.append([lt, "", "", "NOT_IN_BLASTP_TABLE", "", ""])
             continue
         lbl = short_label(bp.get("defn"), bp.get("domains"), lt)
-        pid = bp.get("pid") or 0
-        labels.append(lbl); ids.append(pid)
-        rows.append([lt, lbl, bp.get("pid") if bp.get("pid") is not None else "NO_HIT",
-                     bp.get("defn", ""), bp.get("evalue", "")])
+        if bp.get("pid") is None:
+            rows.append([lt, lbl, "", "NO_IDENTITY_RECORDED", bp.get("defn", ""), bp.get("evalue", "")])
+            continue
+        labels.append(lbl); ids.append(bp["pid"])
+        rows.append([lt, lbl, bp["pid"], "MEASURED", bp.get("defn", ""), bp.get("evalue", "")])
     if not labels:
-        emit("[bgc_figures] fig3 skipped: no blastp panel rows"); return False
+        emit("[bgc_figures] fig3 skipped: no blastp panel rows with a recorded identity"); return False
     fig, ax = plt.subplots(figsize=(max(8, len(labels) * 0.7), 3.8))
     ax.bar(range(len(labels)), ids, color=ROLE_COLORS["core"])
     ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels, rotation=40, ha="right", fontsize=8)
@@ -244,11 +248,12 @@ def fig_blastp(blastp, genes_order, title, png, data_csv):
     ax.set_title(title, fontsize=10.5, weight="bold")
     plt.tight_layout(); _save_rgb(fig, png); plt.close()
     with open(data_csv, "w", newline="", encoding="utf-8") as fh:
-        w = _SafeWriter(fh); w.writerow(["locus_tag", "function_label", "pct_identity", "blastp_top_def", "evalue"])
+        w = _SafeWriter(fh); w.writerow(["locus_tag", "function_label", "pct_identity", "identity_state",
+                                         "blastp_top_def", "evalue"])
         w.writerows(rows)
     return True
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(description="Per-BGC figure set (locus map / GCF novelty / BLASTp) + data CSVs.")
     ap.add_argument("--gbk", required=True, help="region GBK for the BGC (gene coords)")
     ap.add_argument("--bgc", default="BGC", help="BGC label for titles/filenames")
@@ -257,9 +262,18 @@ def main():
     ap.add_argument("--db", help="anchored BiG-SCAPE DB (enables fig2)")
     ap.add_argument("--mibig-index", help="mibig_reference_index.bacterial.json (compound names in fig2)")
     ap.add_argument("--outdir", default=".")
-    a = ap.parse_args()
-    os.makedirs(a.outdir, exist_ok=True)
+    a = ap.parse_args(argv)
     tag = f"{a.strain + '_' if a.strain else ''}{a.bgc}"
+    stems = ["fig1_locus"] + (["fig2_gcf_novelty"] if a.db else []) + (["fig3_blastp"] if a.blastp else [])
+    outputs = [os.path.join(a.outdir, f"{tag}_{stem}{ext}") for stem in stems for ext in (".png", "_data.csv")]
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from mamey.output_transaction import preflight_output_roster
+        preflight_output_roster(outputs, protected_paths=[p for p in (a.gbk, a.blastp, a.db, a.mibig_index) if p])
+    except ValueError as exc:
+        sys.stderr.write(f"[bgc_figures] refused: {exc}; choose a new --outdir\n")
+        return 2
+    os.makedirs(a.outdir, exist_ok=True)
     genes, length = parse_gbk(a.gbk)
     if not genes:
         sys.exit("ERROR: no CDS parsed from GBK")
@@ -281,6 +295,7 @@ def main():
     emit(f"[bgc_figures] {tag}: wrote {len(made)} figure(s) + data CSVs -> {a.outdir}")
     for m in made:
         emit(f"   {os.path.basename(m)}  |  {os.path.basename(m).replace('.png','_data.csv')}")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

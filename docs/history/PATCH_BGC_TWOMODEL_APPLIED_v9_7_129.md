@@ -1,5 +1,7 @@
 # Patch applied — BGC two-model decomposition (v9.7.129)
 
+> **Historical page.** It is a record of one old patch, not an instruction. The patch instructions it cites are not bundled, so the change list is unverified here. For what `Two_Model_Flag` is today, read the docstring in `mamey/bgc_decomp.py`; no other current page explains it. Current release status is in [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
+
 Applied from PATCH_BGC_TWOMODEL_instructions(1).md.
 
 Changes:

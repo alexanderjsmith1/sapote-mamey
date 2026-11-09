@@ -120,7 +120,7 @@ def prepare(api,spec,spec_sha,bound,sources,adaptation,inner,review_path=None):
     if interface=='n3':
         argv=prefix+['--run-root',str(inner),'--temp-root',str(inner/'temp'),'--conffile',bound['config']['path'],'--queryfn',bound['query_fasta']['path'],'--outdir',str(inner/'output'),'--',bound['genbank']['path']]
     runner_hashes={}
-    for name in ('ripper_adapter.py','ripper_run_binding.py','ripper_source_admission.py','ripper_lifecycle.py','ripper_native_contract.py','ripper_raw_discovery.py'):
+    for name in ('ripper_adapter.py','ripper_run_binding.py','ripper_source_admission.py','ripper_lifecycle.py','ripper_native_contract.py','ripper_raw_discovery.py','ripper_batch.py'):
         p=Path(__file__).with_name(name);b=api['binding'](p,api['load_bytes'](p));sources.append(b);runner_hashes[name]=b['sha256']
     request={'source_interface':interface or 'UNREVIEWED','requires_discovery_declaration':interface=='n3','adapter_sqlite_version':sqlite3.sqlite_version,'runner_sha256':runner_hashes,'schema_version':'ripper-native-admission/1','decision':'PENDING_PARENT_REVIEW','reviewer':'parent','evidence_kind':'operator_supplied','contract':CONTRACT,'spec_sha256':spec_sha,'adapted_profile_sha256':adaptation['artifact_sha256'],'file_sha256':{k:v['sha256'] for k,v in bound.items()},'argv_sha256':digest(argv),'environment_sha256':digest(env),'semantic_sha256':digest(semantic),'local_use_decision':'PENDING_LOCAL_EXECUTION_REVIEW_NO_DISTRIBUTION_CLEARANCE'}
     result.update(argv=argv,environment=env,review_request=request,expected_subject=query[0]['enzyme_accession'],input_basename=input_basename,table=conf['table'])

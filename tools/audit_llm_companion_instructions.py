@@ -43,6 +43,10 @@ def audit(bundle_root: Path, policy: dict[str, Any]) -> dict[str, Any]:
                 continue
             text = _read(path)
             tokens = expected if isinstance(expected, list) else [expected]
+            if not tokens or any(not isinstance(t, str) or not t for t in tokens):
+                # An empty list or blank string checks nothing; never report it as present.
+                add(kind, rel, False, "no required strings configured")
+                continue
             missing = [token for token in tokens if token not in text]
             add(kind, rel, not missing, "present" if not missing else "missing: " + " | ".join(missing))
 
@@ -52,6 +56,9 @@ def audit(bundle_root: Path, policy: dict[str, Any]) -> dict[str, Any]:
             add("active-forbidden", rel, False, "missing file")
             continue
         text = _read(path)
+        if not isinstance(fragments, list) or not fragments or any(not isinstance(f, str) or not f for f in fragments):
+            add("active-forbidden", rel, False, "no forbidden fragments configured")
+            continue
         found = [fragment for fragment in fragments if fragment in text]
         add(
             "active-forbidden",

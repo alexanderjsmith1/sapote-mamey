@@ -43,5 +43,5 @@ def test_public_record_refuses_before_first_write(tmp_path, monkeypatch):
         raise AssertionError("unsafe identifier reached the writer")
     monkeypatch.setattr(store, "_atomic_write_text", forbidden_writer)
     with pytest.raises(ValueError, match="filename component"):
-        store.record_mode_b(tmp_path, "/../../../outside", "software path fixture only")
+        store.record_mode_b(tmp_path, "/../../../outside", "software path fixture only", identity_checked_by_caller=True)
     assert not calls

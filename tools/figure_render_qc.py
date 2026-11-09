@@ -477,6 +477,31 @@ class QaResults(list):
                 raise RenderPacketAdmissionRefusal(f"review image changed after admission: {exc}") from exc
 
 
+PACKET_MEMBER_SUFFIXES = (".png", ".svg", ".pdf")
+
+
+def _unlisted_packet_members(root: Path, files: dict, qa_out: Path | None) -> list[str]:
+    """Figure, vector and caption files under the packet root that the receipt does not list.
+
+    Members are PNG, SVG and PDF files and caption Markdown (a name holding CAPTION). The QA output
+    folder, the OCR cache and macOS `._` sidecars are not packet members.
+    """
+    destination = qa_out.resolve() if qa_out is not None else None
+    found = []
+    for path in sorted(root.rglob("*")):
+        if path.is_dir() or path.name.startswith("._") or ".figure_qc_cache" in path.parts:
+            continue
+        if destination is not None and path.resolve().is_relative_to(destination):
+            continue
+        name = path.name
+        member = path.suffix.lower() in PACKET_MEMBER_SUFFIXES or (
+            path.suffix.lower() == ".md" and "CAPTION" in name.upper())
+        rel = path.relative_to(root).as_posix()
+        if member and rel not in files:
+            found.append(rel)
+    return found
+
+
 def completed_packet_flags(png: Path, expected_receipt_sha256: str | None = None,
                            qa_out: Path | None = None,
                            *, admission: dict | None = None) -> list[tuple[str, str]]:
@@ -550,6 +575,10 @@ def completed_packet_flags(png: Path, expected_receipt_sha256: str | None = None
             required.add(svg.name)
         if not required <= files.keys():
             raise ValueError("selected image, SVG or caption is outside the completed roster")
+        unlisted = _unlisted_packet_members(root, files, qa_out)
+        if unlisted:
+            raise ValueError("added file(s) not in the completed roster: " + ", ".join(unlisted[:10])
+                             + (f" and {len(unlisted) - 10} more" if len(unlisted) > 10 else ""))
         if qa_out is not None:
             destination = qa_out.resolve()
             if any(current.is_relative_to(destination) for current, _ in files.values()):

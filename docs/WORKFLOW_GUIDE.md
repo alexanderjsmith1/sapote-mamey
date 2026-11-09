@@ -2,7 +2,7 @@
 
 Choose your starting point:
 
-- **I have a result package:** [read an existing result](user_guides/READ_EXISTING_RESULT.md), then choose the question you want it to answer.
+- **I have a result package:** [read one saved package](reader/03_READ_RESULTS.md), then choose the question you want it to answer.
 - **I have an antiSMASH ZIP to process:** follow [the Master Walkthrough](MASTER_WALKTHROUGH.md).
 - **I have a partial or confusing run:** use [Troubleshooting](COMMON_MISTAKES.md) before you choose a recovery action.
 
@@ -22,7 +22,7 @@ You can run extraction and review fully offline with local inputs. A chat assist
 
 ## Validation and recovery scope
 
-`validate` can report a structurally complete package while gold interpretation is still `JUDGMENT_PENDING`. Workbook content checks only warn unless you pass `--workbook-strict`. `validate` also rewrites the package-status receipt, which is meant to change. To keep the original package bytes, validate a working copy. Read [the recovery states](COMMON_MISTAKES.md#a-validation-or-seal-command-returns-zero) before you treat a zero exit as complete evidence.
+`validate` can report a structurally complete package while gold interpretation is still `JUDGMENT_PENDING`. Workbook content checks only warn unless you pass `--workbook-strict`. `validate` also rewrites the package-status receipt, which is meant to change. To keep the original package bytes, validate a working copy. Read [the recovery states](COMMON_MISTAKES.md#validate-exits-0-but-the-workbook-looks-wrong) before you treat a zero exit as complete evidence.
 
 The intake harness's `--resume` skips an input only when its completion receipt matches the same input, settings and output tree. It does not resume an extraction partway through a phase. A verified skip reuses earlier evidence; it is not a new measurement. Keep failed and partial outputs. Diagnose them before you replace them in a new destination.
 

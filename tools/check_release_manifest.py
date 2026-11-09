@@ -358,8 +358,18 @@ def check(root: pathlib.Path, quiet: bool = False) -> int:
     problems.extend(membership_problems(root))
 
     if not quiet:
+        # The policy leaves release artifacts out on purpose. Say so, so a PASS is not read as
+        # covering every byte under the root: these files need their own outer hash check.
+        from tracked_file_policy import unchecked_release_artifacts
+        try:
+            unchecked = unchecked_release_artifacts(root)
+        except OSError:
+            unchecked = []
+        scope_note = (f"\nnot checked here: {len(unchecked)} root release artifact(s) outside the tracked-file "
+                      f"policy; check them against their own SHA-256 receipt: {', '.join(unchecked[:10])}"
+                      + (" ..." if len(unchecked) > 10 else "")) if unchecked else ""
         emit(f"release manifest: {n_ok} verified | {n_bad} mismatched | {n_missing} missing | "
-              f"stamp {tier_stamp or '?'} vs build {build_stamp or '?'}")
+              f"stamp {tier_stamp or '?'} vs build {build_stamp or '?'}{scope_note}")
     if problems:
         emit("check_release_manifest: FAIL")
         for p in problems:

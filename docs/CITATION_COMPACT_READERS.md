@@ -1,25 +1,46 @@
-# Citation-compact report readers
+# Read a citation-compact report
 
-These are optional output-layer supplements selected by `--token-budget citation-compact`. Read the package triage and source evidence before interpreting a report. The owner is `mamey/citation_compact.py`; CLI phase admission is in `mamey/cli.py`. This guide describes the current source contract; it does not request emission into an existing package.
+This page explains what the citation-compact outputs contain and how far to trust each part. To make them, see [Make a compact citation report](CITATION_COMPACT_MODE.md). A package is the folder a run writes; a lead is one ranked region in its triage board. Terms are in the [glossary](GLOSSARY.md).
 
-## Inputs and identity
+## What you get
 
-The owner picks the first lexically sorted `*_4_triage_board.csv` in the package root, reads all rows into memory and retains input order. No matching file yields no leads. The report's single summary row uses the first lead, which is not necessarily the highest priority. Resolve ambiguous boards before an independently authorized rebuild. Keep strain, full node/contig, region and BGC alias together in reader-facing interpretations: `stable_locus` selects the first available Assembly_Locator/Node_ID/Contig field and does not independently enforce the region. Row-derived BGC and lead IDs can be invented fallback labels; they do not prove an evidence binding.
+A run with `--token-budget citation-compact` writes these files in the package folder:
 
-## What is actually rendered
+| File | Holds |
+|---|---|
+| `Citation_Ledger.csv` and `.json` (package root) | One row per citation: ID, label, status, what it supports. |
+| `citation_compact/<strain>_lead_table_citation_compact.md` | The lead table. |
+| `citation_compact/<strain>_technical_report_citation_compact.md`, `..._bench_guide_...`, `..._layperson_guide_...` | Three short reports. Each ends with the same lead table. |
+| `citation_compact/Literature_Search_WorkOrder.md` and `.json` | Searches still to do. The tool does not run them. |
+| `citation_compact/CITATION_COMPACT_QA.json` | The structural check result. |
 
-The technical, bench and layperson templates have a first-row substitution map plus the full appended lead table. Bench detection, assay, threshold and layperson value phrases are fixed generic substitutions; they are not specimen-specific recommendations, validated decision rules or recorded experimental results. Review them against supplied evidence before sharing a report. The lead-table template is copied without substitution and then followed by the populated table: remaining double-brace cells in that scaffold are expected current behavior, not filled results.
+## Where the leads come from
 
-Method/database citation labels are seeded from an internal registry. The current ledger conversion retains citation ID, label, status and supports but drops DOI/PMID/URL/MIBiG/accession values supplied in a basis dictionary. Its scope uses whether the citation ID contains `KCB`, so method entries otherwise receive `compound_family`. Consult original evidence and the registry for citation details; a populated label or `verified` token alone is not verification of a lead's literature claim. Missing evidence is represented by a work order, which does not execute a search.
+The leads come from the first file, in sorted order, that matches `*_4_triage_board.csv` in the package root. If none matches, there are no leads. If several match, only the first is read, so remove the extra boards from a working copy before you run again.
 
-## Writes and recovery
+The three reports fill their opening fields from the first lead only. That lead is the first row in the board, not necessarily the highest priority. Read the full lead table at the end of each report.
 
-Emission sequentially writes root Citation_Ledger CSV/JSON, work-order Markdown/JSON, four compact Markdown reports and QA JSON. Individual text writes use a fixed sibling `.tmp` plus replacement. The operation has no group rollback or immutable-package guard: later failure can leave earlier outputs replaced, and concurrent writers can collide on the temporary name. The CLI phase catches exceptions and records WARN/ERROR rather than guaranteeing a complete set. Use a separately authorized disposable working candidate for regeneration; preserve sealed evidence in place and reconcile every output against manifest/checksums before adopting it.
+## Read each lead with its full identity
 
-The QA file is serialized before its own path is appended to the returned outputs list; disk and return lists differ by that entry. Neither list proves a transaction, self-hash or complete package integrity.
+The table shows a locus as `stable_locus`, which is the first non-empty value among the board's assembly locator, node ID and contig columns. It does not check the region. A lead ID or BGC label may be a generated fallback. Neither proves that the lead matches a specific region.
 
-## Acceptance limits
+Before you quote a lead, copy the full **strain / full node-or-contig / region / BGC alias** from the package inventory.
 
-`PASS_STRUCTURE` means the producer found no priority-citation shape/status errors and no more than one exact global caveat. `citation_needed` is an accepted status; zero caveats also pass. The package validator accepts WARN, requires at least one compact Markdown report and checks ledger/work-order shape, selected QA entries, optional manifest tracking and checksum behavior. It does not prove all four reports are present, DOI correctness, source-to-lead mapping, complete locus identity, assay suitability or scientific acceptance. Keep structural status separate from reference review and user sign-off.
+## What the text means
 
-Sources: `mamey/citation_compact.py`; `mamey/validate.py`; `mamey/cli.py`. Check retained citation fields and required caveats independently before accepting a compact package.
+- The detection method, assay, decision threshold and plain-language phrases in the bench and layperson reports are fixed generic wording. They are not recommendations for your strain, and no experiment has been done. Check them against your evidence before you share a report.
+- The lead-table file opens with a placeholder table whose cells read `{{ ... }}`. That is a template. The filled rows follow under the "Rendered Lead Table" heading. Read those rows.
+- The ledger keeps each citation's ID, label, status and supports. It drops DOI, PMID, URL, MIBiG and accession values. Take those from your original evidence.
+- Every lead gets the antiSMASH 8.0 and MIBiG 4.0 method and database labels. The emitter adds them to each lead automatically, including a lead with no reference match. They are method provenance for the bundle, not a record that this method or database was used for that lead. Check the run's own records, such as `manifest.json` and the KnownClusterBlast columns, for what was actually run. The labels do not support a lead's literature claim. See the status words in [the provenance block](CITATION_COMPACT_MODE.md#citation-compact-provenance-and-citation-status).
+
+## The QA status
+
+`CITATION_COMPACT_QA.json` has `status` set to `PASS_STRUCTURE` or `WARN`. `PASS_STRUCTURE` means two structural checks found no error: every priority lead has well-formed citation fields, and the global caveat text appears at most once across the reports. It does not check that a DOI is correct, that a citation supports a lead, that the locus identity is complete, or that an assay suits the strain. A literature review and your own sign-off are separate steps.
+
+`status` is `WARN` when either check found a problem. The package validator accepts `WARN`. Read `coverage_errors` and `caveat_errors` in the QA file.
+
+## If an output is missing or wrong
+
+The files are written one after another. If a later write fails, earlier files stay written and the run records a WARN or ERROR in `run_phase_receipts.jsonl` while the rest of the run finishes. See [Recovery and limits](reader/04_RECOVERY_AND_LIMITS.md).
+
+To regenerate, run `run` again with a new `--outdir`, as in [Make a compact citation report](CITATION_COMPACT_MODE.md). Compare the new files with the old package. Do not rewrite a package you have already sealed or shared.

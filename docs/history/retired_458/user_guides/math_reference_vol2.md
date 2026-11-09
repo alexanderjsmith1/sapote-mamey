@@ -981,7 +981,7 @@ MIN_SECTIONS       = 4
 
 Length alone is trivially gamed. `MIN_DOMAIN_DENSITY` requires that specific gene and domain mentions **scale with the card's length**: a long card with few gene-level tokens is prose padding, not domain-heavy analysis.
 
-**The calibration is stated in the source and is worth repeating**: the real AS-XXX BGC007 card runs at **1.7 mentions per 1,000 chars**, so a floor of **1.0** passes genuine work and rejects padding. The constant is marked *provisional; recalibrate vs exemplars* — and the exemplars are the two files that, until this cut, each carried a foreign locus (Part G.5).
+**The calibration is stated in the source and is worth repeating**: the real STRAIN_ID BGC007 card runs at **1.7 mentions per 1,000 chars**, so a floor of **1.0** passes genuine work and rejects padding. The constant is marked *provisional; recalibrate vs exemplars* — and the exemplars are the two files that, until this cut, each carried a foreign locus (Part G.5).
 
 #### G.4.4 Required sections by number
 

@@ -28,7 +28,7 @@ complete offline environment, scanner HMM databases or normalized NP Atlas data.
 From the program folder, replace the example ZIP path and choose a new output folder:
 
 ```bash
-python tools/antismash_input_genome.py   --zip ~/Downloads/EXAMPLE.zip --out ../EXAMPLE-genome
+python tools/antismash_input_genome.py --zip ~/Downloads/EXAMPLE.zip --out ../EXAMPLE-genome
 ```
 
 The helper needs exactly one supported FASTA or GenBank file directly inside

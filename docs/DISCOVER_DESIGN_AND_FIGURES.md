@@ -1,6 +1,6 @@
 # `discover` design + the Sapote-Mamey figure suite (catalogue)
 
-Two things the user asked for, documented together because `discover` *routes to* the figure verbs.
+This page covers the `discover` command and the figure suite it points to. They share a page because `discover` suggests the figure commands.
 
 ---
 
@@ -14,7 +14,7 @@ Mamey already has three situational-awareness verbs, each scoped to a different 
 | `doctor` | the **environment** | "are my deps/paths ready to run?" |
 | `inspect` | one **input ZIP** | "what's in this antiSMASH bundle before I run it?" |
 | `explain` | one **sealed package** | "what did this run find?" |
-| **`discover`** *(new)* | a **workspace / cohort** | "what's here, how complete, and what do I run next?" |
+| **`discover`** | a **workspace / cohort** | "what's here, how complete, and what do I run next?" |
 
 Nothing previously answered the *workspace* question. In a real deliverables tree (dozens of
 sealed packages across `mamey_packages/`, `runs_*/`, per-cohort folders, plus patch/cut staging)
@@ -27,7 +27,7 @@ to the output contract it reads.
   `status`, `assembly_tier`, `raw_bgcs`, `corrected_bgcs`); falls back to `manifest.json`.
 - **gate** — `gate_validation.json.status`; **mode** — `gold_mode_receipt.json.mode`.
 - **coverage flags (file-presence)** — `gold_figures/` or `*_8a_fig_landscape.png` (figures),
-  `modeb_verdicts.csv` (Mode-B), `bgc_blastp_panel/` (BLASTp ingested),
+  `modeb_verdicts.csv` (Mode-B), `bgc_blastp_panel/` (BLASTp panel folder present; a prepared panel, which may be empty, not a submitted search or an ingested result),
   `*_5b_manual_blastp_worklist.csv` (BLASTp pending → ⧗), `*_compiled_report.md` (report).
 
 The scanner keys on specific filenames. Contract changes require corresponding source updates; discovery does not automatically track new filenames or verify their contents.
@@ -37,6 +37,10 @@ The scanner keys on specific filenames. Contract changes require corresponding s
 - `--json`: the same as a dict (for tooling and dashboards).
 - `--emit-md PATH`: also write the report to a file (a `DISCOVERY.md` you can commit).
 - `--depth N`: bound recursion (default 6); a package dir stops descent (its subdirs aren't packages).
+
+This list is not complete. `discover` also takes `--current`, `--stale`, `--source-depth`,
+`--source-max-files`, `--source-max-apparent-bytes` and `--source-max-seconds`, and the governed
+source options below. Run `python mamey_run.py discover --help` for each option and its default.
 
 Optional governed discovery requires `--source-collection-registry`, its exact
 `--expected-source-collection-registry-sha256`, and a logical `--source-root-id`.
@@ -92,19 +96,24 @@ the right verb. This is the catalogue so the process is legible in-code.
 ### Figure verbs (CLI)
 | command | scope | emits |
 |---|---|---|
-| *(gold run, automatic)* | per strain | the numbered `_8*` figure pack into `gold_figures/` at seal |
-| `render-figures` | one package | (re)render the per-strain figure pack |
+| *(gold run, automatic)* | per strain | the `_8*` panels its inputs support, into `gold_figures/` |
+| `render-figures` | one package | by default, the post-seal lead subset only: the top antibacterial and antifungal lead charts, `figure_manifest.csv` and `FIGURE_QA.md`; other `--figure-set` values give other sets. It does not recreate the in-run pack |
 | `render-all-figures` | one package | the full per-strain set incl. extended panels |
 | `cohort-figures` | many packages | cross-strain cohort panels (class heatmap, landscape, DAPR) |
 | `cohort` | many packages | the cohort deliverable (figures + synthesis) |
-| `figures` | package/cohort | candidate figures: `diagram \| atlas \| ani \| gcf-network \| clinker` |
+| `figures` | package/cohort | candidate figures: `diagram \| atlas \| ani \| gcf-network \| clinker \| kcb-locusmap` |
 
-### Per-strain pack (emitted at gold seal → `gold_figures/`, mirrored as `_8a…_8n`)
+### Per-strain pack (panels the gold renderer can emit into `gold_figures/`, named `_8a…_8n`)
+A given run writes the panels its inputs support. Check `gold_figures/` and the run's figure QA for what was written and what was skipped, and look at each image.
+
 `8a` landscape · `8b` composition · `8c` DAPR scatter · `8d` AB-ranked · `8e` AF-ranked ·
 `8f` funnel · `8g` AB/AF panels + class distribution · `8h` CCTT map · `8i` length histogram ·
 `8j` edge composition · `8k` novelty-ranked · `8l` KCB anchors · `8m` genome atlas ·
-`8n` RG-GMCI rescue. Each ships with its `*_data.csv` (the figure's source table — figures are
-reproducible from data, never hand-drawn).
+`8n` RG-GMCI rescue. The short names are defined in the [glossary](GLOSSARY.md): DAPR (the
+antibacterial and antifungal lead ranking), CCTT (the class-trigger framework), KCB
+(KnownClusterBlast) and RG-GMCI (the rescue layer). AB and AF are antibacterial and antifungal.
+Each panel is drawn from a saved data table. Not every panel writes its own raw `*_data.csv`; see
+the limits at the end of this page.
 
 ### Module map (`mamey/*figure*`)
 | module | role |

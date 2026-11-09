@@ -2,11 +2,26 @@
 
 `tool-database-inspect` inspects one explicitly selected frozen tool-database manifest. It does not register a project, select evidence, ingest records, render a card, or grant scientific admission. Existing package catalog, BLASTP ingestion and exact-identity owners keep their roles.
 
+No shipped command writes a `tool_database_release_manifest/1` file. It comes with a frozen evidence database from whoever produced that database. The paths below are placeholders: `--root` is the folder that holds the manifest, and `--manifest` is the manifest's path inside it.
+
 Run from the portable bundle:
 
 ```sh
 python mamey_run.py tool-database-inspect --root /work/evidence --manifest RELEASE_MANIFEST.json
 python mamey_run.py tool-database-inspect --root /work/evidence --manifest RELEASE_MANIFEST.json --adapter gene-census-v1 --locus TEST-1 contig_complete_001 region001 cluster001 --limit 100 --offset 0
+```
+
+A manifest-only inspection prints one JSON object and exits 0. On a minimal valid manifest it starts like this, with your own hashes:
+
+```text
+{
+  "schema": "mamey_tool_database_inspection/1",
+  "integrity_state": "MANIFEST_DATABASE_HASH_SIZE_AND_QUICK_CHECK_VERIFIED",
+  "manifest_trust": "USER_SELECTED_NOT_EXTERNALLY_AUTHENTICATED",
+  ...
+  "scientific_admission": "NOT_PERFORMED",
+  "results": {"state": "RESULT_ADAPTER_NOT_SELECTED", "locus_query_state": "NOT_REQUESTED"}
+}
 ```
 
 Use a native path for your operating system. The four-part example identity is `TEST-1 / contig_complete_001 / region001 / cluster001`. The root must already exist. Manifest locators are relative beneath it; database locators are relative to the manifest directory and must remain inside the root. Symlink inputs, absolute database locators and traversal are refused. No directories, evidence copies or output files are created by the inspection API.
@@ -23,7 +38,7 @@ The supported envelope is `tool_database_release_manifest/1`, with required `dat
 - `gene-census-v1`: the source-verified census v0.1.1 layout with no manifest channel field, explicit locus/gene tables and section_profile metadata. Returns bounded gene rows, including existing hold and membership fields.
 - `keyword-gene-v1`: v0.1.0 regulator, chitinase, resistance-keyword and transporter-keyword channels. Returns gene state and groups_json, not decompressed annotation text or functional acceptance. Required table/column shapes are checked; recorded profile metadata is not a contract-completeness decision.
 
-Domains, profile bridge, cassette coupling, resistance tiers, fragment context, saved-reference linkage, TFBS, codon counts, CCTT and UMED require their own result adapters. Their shared manifests can be inspected without implying result integration. No adapter is selected from a filename, alias, directory scan or heuristic.
+Domains, profile bridge, cassette coupling, resistance tiers, fragment context, saved-reference linkage, TFBS, codon counts, CCTT and UMED (see the [glossary](GLOSSARY.md) for these scan names) require their own result adapters. Their shared manifests can be inspected without implying result integration. No adapter is selected from a filename, alias, directory scan or heuristic.
 
 ### Explicit BLASTp result adapters
 
@@ -54,7 +69,7 @@ The Python entry point is `inspect_tool_database(root, manifest, *, adapter="man
 
 Responses separate `integrity_state`, `source_status`, `declared_coverage_not_recomputed`, `results.observed_counts`, and `scientific_admission=NOT_PERFORMED`. Concrete adapters return the full identity on every gene row. Missing loci, duplicate/conflicting identity, duplicate gene order, and loci without gene rows have typed missing/held states. Source row holds remain unchanged. An ordinary returned row is recorded evidence, not admitted evidence.
 
-Use `limit` from 1 through 1000 and a nonnegative `offset`; follow `next_offset` until null. Total and returned record counts are explicit. Queries use bound parameters and fixed adapter SQL, with a ten-second SQLite progress-handler budget and a two-MiB serialized response ceiling. The SQL budget does not impose a ten-second wall-clock cap on hashing, input reads, decompression or response serialization. There is no arbitrary SQL or write mode. Errors raise `ToolDatabaseInspectionError` with a stable code; the CLI emits HELD JSON and exits 2. Result-adapter-not-selected and missing-locus states are inspectable responses, not scientific successes.
+Use `limit` from 1 through 1000 and a nonnegative `offset`; follow `next_offset` until null. Total and returned record counts are explicit. Queries use bound parameters and fixed adapter SQL, with a ten-second SQLite progress-handler budget and a two-MiB serialized response ceiling. The SQL budget does not impose a ten-second wall-clock cap on hashing, input reads, decompression or response serialization. There is no arbitrary SQL or write mode. Handled inspection errors raise `ToolDatabaseInspectionError` with a stable code; the CLI then prints one line of HELD JSON, such as `{"status": "HELD", "code": "INPUT_UNREADABLE_OR_MALFORMED", ...}` for a missing manifest, and exits 2 (`mamey/tool_database_reader.py:594-606`). A missing or wrong argument is caught earlier by the argument parser, which prints its usage text instead of JSON and also exits 2. Result-adapter-not-selected and missing-locus states are inspectable responses, not scientific successes.
 
 ## Platform and concurrency limits
 

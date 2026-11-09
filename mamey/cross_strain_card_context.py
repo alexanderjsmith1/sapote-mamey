@@ -3,7 +3,7 @@
 THE GAP THIS FILLS
 ------------------
 Mode B cards are generated one strain at a time and are cross-strain-blind. The engine's
-`master_workbook.cross_strain_context()` returns habitat-peer counts but never reaches the card,
+`master_workbook.cross_strain_context()` returns same-deposited-source peer counts but never reaches the card,
 and it does not answer the reviewer's first question about any BGC: "is this cluster special to
 this strain, or does every strain in the cohort carry this class?"
 

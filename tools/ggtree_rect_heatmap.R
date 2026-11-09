@@ -52,7 +52,9 @@ if (gate_rc != 0) { cat(paste(gate_out, collapse="\n"), "\n", file=stderr()); qu
 
 display_note <- grep("^DISPLAY_NOTE: ", gate_out, value=TRUE)
 display_note <- sub("^DISPLAY_NOTE: ", "", display_note)
-if (nzchar(display_receipt) && any(file.exists(paste0(out, c(".pdf", ".png", ".session.txt", ".render_receipt.json", ".methods.txt")))))
+# Every file a bound render can write: the fixed set, the page sidecar, optional SVG and per-page files.
+if (nzchar(display_receipt) && (any(file.exists(paste0(out, c(".pdf", ".png", ".svg", ".session.txt", ".render_receipt.json", ".methods.txt", ".pages.json", ".activity_audit.tsv", ".annotation_audit.tsv")))) ||
+    length(Sys.glob(paste0(out, "_page*")))))
   stop("Bound display render outputs already exist; use a new output prefix")
 
 source(file.path(script_dir, "tree_annotation_geometry.R"))
@@ -493,7 +495,9 @@ for (i in seq_along(page_groups)) {
   page_rows[[i]] <- list(page=i,tips=shown,width_in=w,height_in=h_total,minimum_font_pt=min_pt,pdf=basename(paste0(page_prefix,".pdf")),png=basename(paste0(page_prefix,".png")))
 }
 if (page_count > 1) {
-  grDevices::pdf(paste0(out,".pdf"),width=w,height=page_h_max,onefile=TRUE)
+  # not the plain pdf() device: it draws ASCII hyphens as U+2212 in the text layer
+  if (identical(Sys.info()[["sysname"]], "Darwin") && capabilities("aqua")) grDevices::quartz(type="pdf",file=paste0(out,".pdf"),width=w,height=page_h_max) else
+    grDevices::cairo_pdf(paste0(out,".pdf"),width=w,height=page_h_max,onefile=TRUE)
   for (figure in page_plots) print(figure)
   invisible(grDevices::dev.off())
   if (!file.copy(paste0(out,"_page1.png"),paste0(out,".png"),overwrite=FALSE)) stop("PAGE_PREVIEW_EXISTS")

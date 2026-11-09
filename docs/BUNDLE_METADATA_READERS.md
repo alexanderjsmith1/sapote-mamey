@@ -1,56 +1,88 @@
-# Reading bundle identity, manifests and checksums
+# Check that a bundle matches its checksum and identity files
 
-Start with the exact bundle tree/archive and a trusted expected release hash or receipt supplied independently of that tree. Record the path, SHA-256 and selected build. Metadata inside a bundle describes its contents. It does not prove who made it, that tests ran, or that the science was accepted. Keep the original bundle in place and prepare any documentation/code changes as a separate candidate.
+This page is for a maintainer or reviewer who has a bundle folder and wants to know
+whether its identity files describe the files actually in it. It is not needed to run an analysis.
 
-| Record | What it describes | Limit |
-|---|---|---|
-| `pyproject.toml`, `BUILD_STAMP.txt`, `TAG` | Engine/bundle versions and build identity | Agreement identifies metadata scope, not runtime or source correctness |
-| `SOURCE_CHECKSUMS_SHA256.txt` | Expected digests for listed source files | Needs recomputation and an independently trusted release pin; the list does not validate itself |
-| `TIER_MANIFEST.txt` | Selected tier/build header and tracked file roster | Requires membership/stamp checks under the current tracked-file policy; a tier label is not disclosure acceptance |
-| `MODULE_MANIFEST.txt` | Generated mamey-module names and one-line docstring descriptions | Not a command catalog, call graph, execution record or the current accretion gate's membership baseline |
-| `RELEASE_MANIFEST.md` and validation receipts | Recorded check commands/outcomes for a named source | Read exact source digest, command, partitions, failures and skips; historical PASS is not a test of a new composition |
-| `REVIEW_CANDIDATE_TEST_RESULT.txt` | Pointer to source-bound external cut validation receipts | Does not provide those receipts or certify their current availability/acceptance |
+The task: confirm that the governed files match the bundle's own checksum and identity
+files. One command does it. It does not check every byte under the bundle folder; see
+"What the check does not cover" below.
 
-## Read-only integrity checks
+## The files it checks
 
-From the selected bundle, the documented integrity checker is:
+| File | What it holds |
+|---|---|
+| `BUILD_STAMP.txt` | The build name (`build=...`) |
+| `TAG` and `pyproject.toml` | The bundle and engine versions |
+| `SOURCE_CHECKSUMS_SHA256.txt` | The expected SHA-256 of every tracked source file |
+| `TIER_MANIFEST.txt` | The build stamp (`stamp=...`) and the list of files the bundle should contain |
+| `MODULE_MANIFEST.txt` | One line per `mamey` module, taken from its docstring. It is a reading aid, not a command list |
+| `RELEASE_MANIFEST.md` | The checks recorded for the release |
 
-```bash
-python tools/check_release_manifest.py --root "/absolute/path/to/selected/bundle"
-```
+These files describe the bundle. They do not show who built it, that tests ran, or that
+the science was accepted. If you need proof of origin, compare the bundle's own SHA-256
+against a hash you got from a separate source.
 
-The command recomputes admitted checksum targets and enforces tracked-file coverage: it refuses empty/no-verified-content manifests, omitted or unexpected governed paths and duplicate normalized records, as well as missing, mismatched, unsafe or malformed targets. It also requires readable, safely admitted `TIER_MANIFEST.txt` and `BUILD_STAMP.txt`, checks their build stamps and compares tier membership with the tracked-file policy. Missing required identity files no longer pass this command. Cache/build/run-output exclusions still follow `tools/tracked_file_policy.py`.
+## Run the check
 
-This scope describes `check_release_manifest.py`'s CLI, which enables strict coverage. The lower-level `checksum_problems` helper defaults to non-strict coverage, and `verify_release_identity.py` requests strict content coverage only with `--strict-membership`; do not transfer this CLI contract to every helper call. A successful check establishes the implemented content/metadata comparisons, not release authority, complete test execution, Linux validation or scientific acceptance. Candidate changes still require owner review and final metadata regeneration.
-
-## Module inventory and accretion
-
-`tools/check_module_accretion.py` reads module membership from the sealed checksum list, validating its row syntax/duplicate paths. It does not use the human `MODULE_MANIFEST.txt` inventory for that comparison or rehash source files as part of membership admission. Current module names are scanned separately; additions require a recognized justification basename in the newest changelog block. Removed modules are reported without independently failing this gate. These are code-composition checks, not evidence that each module executes correctly.
-
-`--write` regenerates the human module-purpose inventory and mutates that file; it does not repair the sealed checksum baseline. The header it writes still calls this file the gate baseline; that is a code defect. For readable command/capability discovery, use [the catalog guide](CATALOG_MAINTENANCE.md) and [current task routes](USER_TASK_ROUTER.md).
-
-## Recovery and acceptance
-
-Retain exact failure output and file hashes. Separate unexpected corruption, intentional candidate changes, missing dependencies and unrun checks. Regenerate final metadata only through the authorized [cut protocol](../CUT_PROTOCOL.md), after the candidate and required gates are ready. Reader checks do not update version stamps, seal or publish a bundle. For retired tier history and the parity/derivation limits, read [tier differences](TIER_DIFFERENCES.md). Scientific evidence admission, selected-profile completeness and rendered-page review remain separate from file integrity.
-
-## Exact-identity seal-plan generation
-
-When `tools/make_seal_script.py` is present in the selected candidate, it is a standalone generation tool; it is not a `mamey_run.py` subcommand and does not execute pytest, collection, a subprocess, a seal or a release. Its generation mode reads an existing cut directory, pinned source/archive logs, explicit native execution manifests, the archive and expected SHA-256, exact named outcome dispositions, and a selected owner-consumer script. Every generation argument below is required. The output parent must already exist, and the output directory must be fresh and outside the cut and bound source/extracted trees.
+From the bundle root:
 
 ```bash
-python tools/make_seal_script.py \
-  --cut-folder /path/to/existing-cut \
-  --source-log /path/to/source.log --archive-log /path/to/archive.log \
-  --source-evidence /path/to/source-suite-input.json \
-  --archive-evidence /path/to/archive-suite-input.json \
-  --differences /path/to/exact-named-differences.json \
-  --archive /path/to/existing-cut/candidate.zip --archive-sha256 EXPECTED_ARCHIVE_SHA256 \
-  --owner-script /path/to/reviewed-owner-consumer.sh \
-  --output /path/to/fresh-review/seal-plan
+python tools/check_release_manifest.py --root "/absolute/path/to/bundle"
 ```
 
-The suite manifests use `sapote-mamey.seal-suite-input.v1` and pin the actual log and native `sapote-mamey.pytest-execution.v1` capture by path/hash, plus the selected tree digest. The generator requires complete admitted phase evidence, compatible selection/configuration/pytest version and the same exact collected identities. Order alone may differ; counts, progress dots and reconstructed JUnit names cannot establish identity. Collection-level skips and ambiguous subtest contexts refuse. Every observed main-outcome/reason/xfail difference needs exactly one matching named disposition with a nonblank explanation. That explanation is an operator judgment, not proof of its cause. The extracted archive must already exist and match ZIP file bytes/modes with no extra files; the tool does not extract it. This comparison does not certify source/package parity beyond the supplied archive/extracted tree.
+`--quiet` hides the summary line and the PASS line. Problems still print.
 
-Generation writes `PLAN.json` and a mode-0600 `SEAL_CANDIDATE.sh` sequentially, reporting `PREPARED_OWNER_REVIEW`; a later failure can leave partial artifacts. Preserve any failed attempt and use a fresh destination. `--verify-plan PLAN --plan-sha256 EXPECTED_PLAN_SHA256` is a separate evidence-recheck mode and refuses generation arguments. It recomputes bound evidence, machinery, trees and named differences; it does not execute the consumer.
+The check recomputes every checksum, confirms every listed file exists, confirms no tracked
+file is missing from the list, and confirms `TIER_MANIFEST.txt` and `BUILD_STAMP.txt` name
+the same build.
 
-The generated wrapper is a separate owner-execution artifact. It checks a plan-hash acknowledgment, rechecks the plan, then would hand off to the pinned consumer through `/bin/bash`. Its nonexecutable file mode does not prevent an explicit shell invocation. Setting an acknowledgment variable is not human authorization. Review the actual consumer, plan and remaining release gates before any separately authorized execution; this guide does not authorize it. It has not been tested on Linux and does not check the consumer script's safety. Historical logs lacking the native manifests cannot be retrospectively certified by this route. Generated inventories and final checksums stay with their canonical owners.
+Success prints two lines and exits 0:
+
+```
+release manifest: <N> verified | 0 mismatched | 0 missing | stamp <build> vs build <build>
+check_release_manifest: PASS (artifacts describe the tree)
+```
+
+If the bundle root holds release artifacts, a third line comes between them:
+
+```
+not checked here: <K> root release artifact(s) outside the tracked-file policy; check them against their own SHA-256 receipt: <names>
+```
+
+## What the check does not cover
+
+The check covers governed files only. `tools/tracked_file_policy.py` decides which files
+are governed. It leaves out build cruft (`__pycache__/`, `*.pyc` and similar), the two
+manifest files themselves, and root-level release artifacts: the tier ZIP, `SHA256SUMS*.txt`
+and `cut_*_log.txt`. A changed root ZIP still gives PASS. The `not checked here` line
+names those root files. Check each one against a hash from its own receipt.
+
+The checksum file sits inside the bundle it describes. Anyone who can change a file can also
+change its checksum line. A PASS shows that the files and the manifest agree. It does not
+show that either came from the release. For that, compare the archive's SHA-256 with a hash
+you got from a separate source.
+
+Failure exits 1. The same summary line comes first, then `check_release_manifest: FAIL`,
+then one `  - ` line per problem. Read the problem lines, not just the last line.
+
+A work tree that has been edited since its last cut will fail. That is expected there.
+Only a bundle you were handed as finished should pass.
+
+## Module inventory
+
+`python tools/check_module_accretion.py` checks that every module in the sealed checksum
+list is accounted for and that new modules are justified in the newest changelog block.
+It reports removed modules without failing on them. `--json` prints the report as JSON.
+`--write` rewrites `MODULE_MANIFEST.txt`. Use `--write` only as a cut step.
+To find commands and capabilities, use [the catalog guide](CATALOG_MAINTENANCE.md)
+and [task routes](USER_TASK_ROUTER.md).
+
+## Cut-time tools
+
+Regenerating the checksum list, the stamps and the seal plan belongs to the cut process.
+Follow the [cut protocol](../CUT_PROTOCOL.md). `python tools/make_seal_script.py --help`
+lists the seal-plan generator's inputs. It is a standalone tool, not a `mamey_run.py`
+command. It writes a plan and a wrapper script for the owner to review, and it does not
+run the seal. `--verify-plan PLAN --plan-sha256 EXPECTED` rechecks a plan without running it.
+
+For the older tier layouts, see [tier differences](TIER_DIFFERENCES.md).

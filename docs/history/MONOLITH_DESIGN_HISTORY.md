@@ -4,7 +4,11 @@ Historical release, session and layout designs. Use [the current rules reference
 
 # SECTION -2 — v9.2 Bundle Hardening Patch / Release Bridge
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ## -2.0 Purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 v9.2 is not a science-module expansion. It is a **bundle-hardening patch**. Its purpose is to make the monolith usable as the parent controller for the repository bundle without letting prose silently outrun the executable kernel. v9.1 established the Mamey-first / Sapote-second architecture; v9.2 adds release gates, derived-prompt generation rules, test expectations, and code/document synchronization rules.
 
@@ -28,6 +32,8 @@ Do not keep v8.1.1, v8.4 candidate, v9.0, v9.1, and v9.2 as parallel active inst
 
 ## -2.2 Requirement status labels
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Every bundle requirement should be classed into one of four implementation states:
 
 | Status | Meaning | Allowed in release? | Required action |
@@ -40,6 +46,8 @@ Every bundle requirement should be classed into one of four implementation state
 A release-facing guide must not describe `ASPIRATIONAL` behavior as available functionality. If a module is `PROMPT_BACKED`, its outputs must carry interpretation/provenance labels rather than deterministic scan labels.
 
 ## -2.3 Repo synchronization gate
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Before the bundle is released, run this document/code synchronization checklist:
 
@@ -60,6 +68,8 @@ REPO SYNC GATE
 
 ## -2.4 Execution profiles
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Different assistants/environments have different capabilities. The parent monolith must route work by profile instead of pretending all environments can do everything.
 
 | Profile | Typical environment | Can do | Cannot assume | Required wording |
@@ -70,6 +80,8 @@ Different assistants/environments have different capabilities. The parent monoli
 | `PUBLIC_ACCESSION_MODE` | environment with internet + assembly/antiSMASH pipeline | fetch genome, run antiSMASH, then Mamey | not available in basic sandbox | “Only valid when accession fetch and antiSMASH execution are actually available.” |
 
 ## -2.5 Accession support boundary
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 The task brief may request `--accession`, but the executable runner must be checked before promising accession runs.
 
@@ -83,6 +95,8 @@ Required decision path:
 Never create workbook rows that imply completed Mamey extraction from accession metadata alone.
 
 ## -2.6 Stable project-state file
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Every multi-strain or multi-batch project should include a lightweight state file:
 
@@ -106,6 +120,8 @@ This does not replace the per-strain checkpoint CSV. It gives the next session a
 
 ## -2.7 Idempotent rerun and rebuild policy
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 When rebuilding a handoff ZIP:
 
 - Preserve completed per-strain packages unless the input, code version, or schema changed.
@@ -115,6 +131,8 @@ When rebuilding a handoff ZIP:
 - If two versions exist, keep the newer one only when its manifest is complete and checksums validate.
 
 ## -2.8 Derived prompt set required for the bundle
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 The bundle should ship one parent monolith plus these derived prompts:
 
@@ -127,6 +145,8 @@ The bundle should ship one parent monolith plus these derived prompts:
 | `docs/RELEASE_CHECKLIST_v9.md` | release manager checklist | sync gate, tests, archive old monoliths | scientific interpretation narrative |
 
 ## -2.9 Minimal test matrix before release
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A candidate bundle should not be called final until the following have been exercised:
 
@@ -141,6 +161,8 @@ A candidate bundle should not be called final until the following have been exer
 
 ## -2.10 Release profile labels
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Every bundle ZIP should declare one of these release profiles in `RELEASE_MANIFEST.md`:
 
 | Profile | Meaning |
@@ -153,6 +175,8 @@ Every bundle ZIP should declare one of these release profiles in `RELEASE_MANIFE
 v9.7.6 monolith status: `PUBLIC_RELEASE` — bundle patched, reviewed, and checksums verified during v9.7.6 read-through (2026-06-09).
 
 ## -2.11 Immediate bundle update order
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Completed in v9.3 (2026-06-09). Steps for reference:
 
@@ -171,11 +195,15 @@ Completed in v9.3 (2026-06-09). Steps for reference:
 
 ## -1.0 Purpose
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 This v9.2 candidate is the **bundle-first monolith**. It keeps the v8.4 Sapote scientific logic, but adds the missing execution architecture that the software bundle now needs: deterministic extraction first, interpretive judgment second, workbook write-back third, and explicit batching/resume state throughout.
 
-This monolith is intended to replace scattered prompt fragments in the Sapote-Mamey bundle. It does **not** replace executable code. It is the controlling specification that tells ChatGPT, Claude, or another analyst how to use the bundle correctly, what must be produced, what may be deferred, and how claims are bounded.
+This monolith is intended to replace scattered prompt fragments in the Sapote-Mamey bundle. It does **not** replace executable code. It was designed as the controlling specification that would tell ChatGPT, Claude, or another analyst how to use the bundle correctly, what must be produced, what may be deferred, and how claims are bounded.
 
 ## -1.4 Bundle session-start handshake
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 At the start of every bundle run, state the following before doing analysis:
 
@@ -194,6 +222,8 @@ Output checkpoint: SID_session_checkpoint.csv or project_session_checkpoint.csv 
 
 ## -1.5 Depth-first batching rule
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 For strain runs, process **one strain at a time**. Do not start interpretation for strain B until strain A has:
 
 - sealed per-strain package,
@@ -207,6 +237,8 @@ For strain runs, process **one strain at a time**. Do not start interpretation f
 For uploaded batches larger than the session can safely finish, commit to the number that can be finished, mark the rest `MAMEY_DEFERRED`, and include their filenames in the checkpoint.
 
 ## -1.6 Per-strain checkpoint schema
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 After each completed or failed strain, emit or update:
 
@@ -223,6 +255,8 @@ Allowed `mamey_status` values only:
 
 ## -1.9 Batch continuation protocol
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 When the user says “continue,” do not restart from scratch. Do this:
 
 1. Locate the latest checkpoint and final ZIP/package in the current session.
@@ -233,9 +267,11 @@ When the user says “continue,” do not restart from scratch. Do this:
 
 ## -1.12 Bundle file-map and replacement protocol
 
-This monolith is the controlling specification for the bundle. It should be treated as the parent source for prompt/document updates, but it should not overwrite Python modules without a code patch and tests.
+Historical design: this monolith was then the controlling specification for the bundle, to be treated as the parent source for prompt/document updates, but not to overwrite Python modules without a code patch and tests. Current authority is `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`.
 
 ### Parent/derived document model
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Bundle file | Role after v9.2 | Update action |
 |---|---|---|
@@ -254,9 +290,13 @@ This monolith is the controlling specification for the bundle. It should be trea
 
 ### Replacement rule
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 The active bundle should contain **one parent controller** and several derived short prompts. Avoid multiple active monoliths with conflicting instructions. If an older Sapote monolith remains in the repository, mark it explicitly as `legacy_reference`, not `current_controller`.
 
 ## -1.13 Bundle update workflow after monolith finalization
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 When this monolith is finalized, update the bundle in this order:
 
@@ -271,9 +311,13 @@ When this monolith is finalized, update the bundle in this order:
 
 ## -1.14 Batch Controller v2 — committed work units
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 The bundle should avoid overcommitting. At session start, classify uploaded work into committed and deferred work units.
 
 ### Work-unit types
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Work unit | Commit size guideline | Completion artifact |
 |---|---:|---|
@@ -285,6 +329,8 @@ The bundle should avoid overcommitting. At session start, classify uploaded work
 
 ### Session-start commitment text
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```text
 I detect [N] uploaded work units. I can safely complete [K] in this session at the requested depth.
 Committed now: [list strain IDs/files]
@@ -295,9 +341,13 @@ Checkpoint policy: after every strain, I will update [checkpoint filename].
 
 ### Continue command behavior
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 When the user says `continue`, process the next deferred or failed work unit from the latest checkpoint. Do not re-run completed work unless the user asks for reanalysis, a new bundle version, or a schema change.
 
 ## -1.15 Failure taxonomy and recovery actions
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Failures must be informative enough that another assistant can recover them.
 
@@ -316,6 +366,8 @@ Design vocabulary: only `UNSUPPORTED_ACCESSION_MODE` above is emitted by the cur
 
 ## -1.19 Derived prompt targets
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 After finalization, derive these shorter files from this monolith:
 
 1. `prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md` — maximum 2–4 pages; no long Sapote interpretation sections.
@@ -328,6 +380,8 @@ After finalization, derive these shorter files from this monolith:
 The parent monolith should be comprehensive. Derived prompts should be short enough to actually use.
 
 ## -1.20 Release-readiness checklist
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A bundle release is ready only when all of the following are true:
 
@@ -346,6 +400,8 @@ A bundle release is ready only when all of the following are true:
 
 
 ## -1.11 Minimum all-in-one completeness check
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A bundle monolith is complete only if it contains:
 
@@ -373,6 +429,8 @@ If any item is missing, the monolith is a Sapote prompt, not a Sapote-Mamey bund
 ---
 
 ## Prompt Table of Contents
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 -1. [Bundle Kernel / All-in-One Replacement Layer](../SAPOTE_MAMEY_BUNDLE_MONOLITH.md#section--1--bundle-kernel--all-in-one-replacement-layer)
   - -1.12 Bundle file-map and replacement protocol
@@ -469,6 +527,8 @@ If any item is missing, the monolith is a Sapote prompt, not a Sapote-Mamey bund
 
 ## Purpose
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 This prompt enables an AI assistant to reproduce and extend the Sapote actinomycete natural product discovery workflow across sessions. It combines project-scale management, strain-level antiSMASH/BGC analysis, cross-habitat comparison, bioactivity correlation, taxonomy integration, manuscript updating, figure generation, glossary building, citation-verified bibliography workflows, and cross-strain comparative synthesis.
 
 The workflow is designed to prevent context loss across long projects and to be reusable across any actinomycete or bacterial collection with antiSMASH output. At the beginning of a new session, upload the master files or strain-specific ZIPs, then use one of the trigger phrases below.
@@ -477,7 +537,11 @@ The workflow is designed to prevent context loss across long projects and to be 
 
 ## How to Use This Prompt
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### Option 1 — Full project restart
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```text
 We are continuing the Sapote actinomycete natural product discovery project.
@@ -488,11 +552,15 @@ Today's goal is: [describe goal].
 
 ### Option 2 — Run strain-level full analysis
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```text
 Run standard full analysis on [Strain ID]. [Taxonomy]. [Host/source]. [Bioactivity]. Apply architecture confidence, evidence traceability, wet-lab decision scoring, hallucination-trap audit, metabolomics readiness, reviewer attack simulation, resistance gene confirmation, UMED maturation-enzyme detection, PDF Style Standard, typed bioactivity metadata and missingness, and project memory snapshot. Use single-pass execution if feasible; otherwise run in batches but preserve the final compiled deliverable plan.
 ```
 
 ### Option 3 — Run only a specific module
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```text
 Run taxonomy preflight on [Strain ID] from assembled FASTA.
@@ -548,6 +616,8 @@ Predict polyketide stereochemistry for [Strain ID] BGC [N].
 
 ### Option 4 — Use as a technical appendix
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Paste only the relevant section for short tasks:
 - Figures: Section 16 | Ecological synthesis: Section 17 | Excel: Section 18
 - Manuscript: Section 19 | Strain antiSMASH analysis: Sections 3–15
@@ -558,11 +628,15 @@ Paste only the relevant section for short tasks:
 
 ### Option 5 — One-command full workflow with adaptive execution
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```text
 Run full Sapote analysis on [Strain ID]. [Taxonomy]. [Host/source]. [Bioactivity]. Use single-pass execution if feasible; otherwise use stepwise batches, but preserve the final compiled deliverable plan.
 ```
 
 **Workflow Ledger** — minimum stages:
+
+Historical ledger. Its "genome-wide" stages are genome-wide only when whole-record GenBank for the whole assembly was read. The native FLBR and UMED scans record their record set in `flbr.count_scope.state` and `umed.count_scope.state`: `WHOLE_RECORD_GENBANK`, `REGION_RECORDS_ONLY`, `NO_GENBANK`, `ARCHIVE_UNREADABLE`, or `NOT_BOUND` when the caller gave none (`mamey/source_scans.py:1930-1987`, `mamey/parsers.py:1302-1307`). Report a region-scoped count or an unavailable state as such.
 
 - [ ] **Batch Plan announced** (required if BGC count > 15; announce before any Mode B work begins)
 - [ ] **Typed bioactivity metadata recorded**: metadata_state, observation_state, supplied assay/source receipt and NOT_ESTABLISHED linkage; absent data remain NOT_SUPPLIED without inventing a target.
@@ -578,7 +652,7 @@ Run full Sapote analysis on [Strain ID]. [Taxonomy]. [Host/source]. [Bioactivity
 - [ ] **antiSMASH Hallucination-Trap Audit** ← run before Mode B, not after
 - [ ] **LMPKS Rescue (§42)** ← run in parallel with KCB sweep; check auto-triggers §42.2
 - [ ] **FLBR megasynthase fragment census (§51)** ← run in parallel with KCB sweep/LMPKS; reconcile all T1PKS, modular NRPS, PKS-NRPS hybrid, and trans-AT fragments before final priority assignment
-- [ ] **UMED maturation-enzyme scan (§52)** ← run in parallel with FLBR/CGAD for lanthipeptide regions; assign IN-CLUSTER / GAP / GAP-no-candidate status and record genome-wide candidate proteases with specificity-unverified ceiling
+- [ ] **UMED maturation-enzyme scan (§52)** ← run in parallel with FLBR/CGAD for lanthipeptide regions; assign IN-CLUSTER / GAP / GAP-no-candidate status and record candidate proteases, with their record scope, under the specificity-unverified ceiling
 - [ ] **CCTT trigger scan (§43)** ← run in parallel with KCB sweep / LMPKS; check halogenase, nucleoside, phosphonate, enediyne, aminocyclitol markers
 - [ ] **DKP / CDPS scan (§8/§43/§37/§34/§45)** ← run automatically within CCTT; assign DKP-A/B/C/D when CDPS or PF16715 is present
 - [ ] **Linear polyether ionophore scan (§8/§42/§37)** ← run automatically within LMPKS for ≥5-module cis-AT T1PKS regions; assign LMPKS-PE when cassette/KCB evidence supports it
@@ -610,6 +684,8 @@ Run full Sapote analysis on [Strain ID]. [Taxonomy]. [Host/source]. [Bioactivity
 
 ### Option 6 — Smoke-test / development run
 
+Historical: do not run. Smoke mode was removed from the CLI; `mamey run --mode` accepts `gold` and the deprecated `standard` alias (`mamey/cli.py:6903`).
+
 Use this when testing the workflow on a new AI system, validating a prompt change, or checking an antiSMASH ZIP before committing to a full report. Smoke-test mode is intentionally incomplete and must not be represented as the full workflow.
 
 ```text
@@ -629,6 +705,8 @@ Smoke-test mode does **not** require a final compiled PDF, full Mode B reports f
 
 ### Module priority for limited runs
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 If the AI system has output, context, or tool limits, preserve the workflow by prioritizing modules in this order rather than skipping arbitrarily.
 
 **Required core for strain analysis:** Sections 3–15, 27, 30, 31, 32, and 34.
@@ -644,6 +722,8 @@ When modules are deferred, record them in the Workflow Ledger as `deferred`, not
 
 ## Full Analysis Mode — Active Override
 
+Historical: these trigger phrases and modes are v7.9/v8.0 session vocabulary, not CLI modes. See [Editorial depth versus current CLI profiles](../development/LARGE_REFERENCE_SOURCE_SCOPE.md#editorial-depth-versus-current-cli-profiles).
+
 Sapote v8.0 uses **Standard Full Analysis** as the default full-run behavior. Standard Full Analysis accounts for every BGC but gives full Mode B treatment only to triage-selected top candidates, while routing lower-priority or fragmentary entries to abbreviated ledger entries and the Archive Appendix.
 
 **Archive-Quality Full Analysis**, when explicitly selected, requires the requested BGC roster’s current-profile authored cards, batching as needed. Historical §1–§8 is a legacy scaffold, not current full48/current50_v2 completion.
@@ -658,7 +738,7 @@ Full Analysis Mode remains an active override against accidental omission: every
 
 **Standard deliverables (v8.0 order):** Context acknowledgement → BGC Inventory → KCB / Hallucination / LMPKS / CCTT / Resistance summaries → **Triage First Board with LC-MS Chemical Handles** → Executive Report → Scientific Deep Dive Report → top-candidate Mode B reports → Wet-Lab Decision Matrix → Metabolomics Readiness Summary → Reviewer Attack Simulation → Recommended Figures → Missingness Register → Fermentation Card → Project Memory Snapshot → Package Manifest → Archive Appendix or Deferred Ledger.
 
-**Archive-quality deliverables:** All Standard deliverables plus full Mode B PDFs for every BGC, full gene-by-gene tables, complete raw traceability, full KCB/domain appendices, and complete archive package. If this cannot be completed in one session, use the §2B Batch Plan Protocol and continue in batches.
+**Archive-quality deliverables:** All Standard deliverables plus full Mode B PDFs for every BGC in the requested roster (the BGCs the user selected, which can be fewer than the strain's full inventory), full gene-by-gene tables, complete raw traceability, full KCB/domain appendices, and complete archive package. If this cannot be completed in one session, use the §2B Batch Plan Protocol and continue in batches.
 
 **Trigger phrases:**
 ```text
@@ -676,11 +756,17 @@ Run v7.9 full analysis on [Strain ID]. [Taxonomy]. [Host]. [Bioactivity].
 
 ## §2B — Batch Plan Protocol
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### When to announce
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A Batch Plan is required whenever a full analysis trigger fires on a strain with **more than 15 BGCs**. The Batch Plan is announced before any Mode B report is started and before any per-BGC gene-by-gene work begins. Strains with 15 or fewer BGCs proceed to Mode B work immediately without a Batch Plan.
 
 ### Announcement format
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```text
 BATCH PLAN — [Strain ID] — [N] total BGCs — Full Depth Mode
@@ -703,6 +789,8 @@ Proceeding to Batch 1 now.
 ```
 
 ### Priority ordering for batch assignment
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Within each tier, BGCs are sorted by Wet-Lab (WL) score descending.
 
@@ -729,9 +817,13 @@ Within each tier, BGCs are sorted by Wet-Lab (WL) score descending.
 
 ### Note on fragmented strains
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Poor and Very Poor assembly strains often have many Edge and FC BGCs that individually appear low-priority. However, any set of BGCs that form a cross-contig split-pathway candidate (identified in §30.3 and §42) should be scheduled in the same batch, because the gene-by-gene pass on each fragment is needed to reconstruct the pathway architecture. Do not separate split-pathway units across batches.
 
 ### Session continuation format
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 At the start of any session continuing a prior batch, the CDSW startup check (§1) must explicitly state the following before any other work:
 
@@ -746,6 +838,8 @@ Proceeding to BGC[first BGC of this batch].
 Load the Project Memory Snapshot before resuming. Do not re-run assembly statistics, KCB sweep, TFBS extraction, or hallucination-trap audit unless new data has been uploaded since the prior session. Those outputs carry forward.
 
 ### Batch session end format
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 At the end of every batch session, produce a Batch Session Summary before presenting files:
 
@@ -771,6 +865,8 @@ For batch sessions, the primary CDSW next-step path is always "Continue with Bat
 ---
 
 ## SECTION 1 — Session Startup Checklist
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 1. **Recover context.** Search conversation, uploaded files, prior prompt-library documents, and memory.
 
@@ -798,7 +894,11 @@ Copy each individual locus as `strain / full node-or-contig / region / BGC alias
 
 ## SECTION 18 — Excel Deliverables
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### BGC Analysis Workbook sheets (v7.9 — 20 sheets)
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 1. BGC_Inventory (includes Arch Confidence column)
 2. KCB_Sweep
@@ -825,6 +925,8 @@ Copy each individual locus as `strain / full node-or-contig / region / BGC alias
 
 ## SECTION 20 — Glossary and Layperson Explanation Workflow
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 **Trigger:** `Build glossary entries from these documents.`
 
 Entry structure: Term, Category, Plain-English definition, Scientific definition, Why it matters, Related strains/BGCs, Evidence type, Claim-safety note, VLD citations, URLs/DOIs/PMIDs.
@@ -834,15 +936,23 @@ Entry structure: Term, Category, Plain-English definition, Scientific definition
 
 ## SECTION 21 — Verified Literature Deep Dive v2.0
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### Core purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Verified Literature Deep Dive is the accuracy-first scientific bibliography and synthesis workflow. It is designed for publication-ready work where citation accuracy, quantitative extraction, strain anchoring, and conflict detection matter more than speed or breadth.
 
 ### Best for
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 30–75 papers. High-stakes literature synthesis. Publication-ready manuscript support. Compound classes where the evidence base includes mechanism revisions, stereochemical uncertainty, contradictory MIC values, or conflicting biosynthetic interpretations.
 
 ### Triggers
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```text
 Use Verified Literature Deep Dive.
@@ -853,15 +963,21 @@ Build a Verified Literature Deep Dive bibliography for [strain/BGC/compound fami
 
 ### Context anchor — required before paper summaries
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Before summarizing any paper, confirm: Strain ID, BGC number(s)/node/edge status, Compound class prediction, Key locus tags and diagnostic domain hits, Strain-level bioactivity context, Why this paper is relevant to the project question. Every summary must explicitly connect to a specific BGC, locus tag, domain hit, compound class, strain, or project question.
 
 ### Source and metadata verification standard
 
-Verify each citation against: PubMed, PubMed Central, Crossref, DOI.org, Journal or publisher page, Government/university/primary database pages. For every verified record, include: Full author list, Year, Full title, Journal/source, Volume/issue/pages/article number, DOI URL, PMID, PMCID, Publisher/source URL, Relevant accession/strain/compound/host/database identifiers.
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
+Verify each citation against: PubMed, PubMed Central, Crossref, DOI.org, Journal or publisher page, Government/university/primary database pages. For every verified record, include the fields that exist: Full author list, Year, Full title, Journal/source, Volume/issue/pages/article number, DOI URL, PMID, PMCID, Publisher/source URL, Relevant accession/strain/compound/host/database identifiers. PubMed Central holds only a subset of PubMed records, so a verified paper can have no PMCID; record `not assigned` when the lookup finds none, rather than rejecting the record or guessing an ID.
 
 Do not guess, autocomplete, or "clean up" citation metadata from memory. Unverifiable citations go to a Partial or Unverified Leads section.
 
 ### Evidence type hierarchy
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Evidence type | Definition | How to use in project claims |
 |---|---|---|
@@ -877,6 +993,8 @@ Do not guess, autocomplete, or "clean up" citation metadata from memory. Unverif
 
 ### Relevance tiers
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Relevance tier | Definition |
 |---|---|
 | Direct | Characterizes the same compound class, BGC, enzyme family, or diagnostic domain |
@@ -888,9 +1006,13 @@ Do not guess, autocomplete, or "clean up" citation metadata from memory. Unverif
 
 ### Quantitative extraction requirements
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Extract: MIC values, IC50/EC50 values, Yield (mg/L, mg/kg), MW/exact mass (HRMS preferred), UV/Vis λmax, NMR details, logP/polarity descriptors, in vivo data, and **negative results** (organisms with no activity, failed expression, absent products).
 
 ### 9-step workflow
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 1. **Metadata verification** — Search PubMed, DOI.org, Crossref, PMC, and publisher pages.
 2. **Full-text retrieval** — Use PMC full text when available.
@@ -899,10 +1021,12 @@ Extract: MIC values, IC50/EC50 values, Yield (mg/L, mg/kg), MW/exact mass (HRMS 
 5. **Relevance tier assignment** — Assign one primary relevance tier.
 6. **Write summary** — 150–300 words: (a) what the paper does; (b) key quantitative/mechanistic findings; (c) explicit connection to the project question; (d) caveats.
 7. **Conflict flag** — State whether any finding conflicts with another paper.
-8. **Zotero cleanup flag** — Flag duplicates, incomplete metadata, missing DOI/PMID/PMCID.
+8. **Zotero cleanup flag** — Flag duplicates, incomplete metadata, and a missing DOI/PMID/PMCID only where one is assigned but not recorded.
 9. **Final citation formatting** — PNAS/PLOS ONE-compatible style with full author lists, DOI URLs, PMID/PMCID.
 
 ### Required summary structure
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 1. One sentence describing what the paper experimentally or analytically establishes.
 2. One to three quantitative or mechanistic facts, with exact values when available.
@@ -911,6 +1035,8 @@ Extract: MIC values, IC50/EC50 values, Yield (mg/L, mg/kg), MW/exact mass (HRMS 
 5. One conflict note or "No conflict detected."
 
 ### Output workbook
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Sheet | Contents |
 |---|---|
@@ -923,21 +1049,31 @@ Extract: MIC values, IC50/EC50 values, Yield (mg/L, mg/kg), MW/exact mass (HRMS 
 
 ### Quality standard
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Fewer well-anchored, verified citations are better than many generic or uncertain citations. When evidence is weak, say so clearly.
 
 ---
 
 ## SECTION 22 — Rapid Literature Deep Dive v2.0
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### Core purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Rapid Literature Deep Dive is a rapid scoping bibliography workflow. It establishes what the field knows, what it does not know, and whether a deeper Verified Literature Deep Dive run is warranted. Its primary deliverable is the **Gaps Analysis**.
 
 ### Best for
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 10–30 papers. New compound classes or unfamiliar BGC families. Rapid orientation before committing to a full Verified Literature Deep Dive run.
 
 ### Triggers
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```text
 Use Rapid Literature Deep Dive.
@@ -947,9 +1083,13 @@ Run Rapid Literature Deep Dive on [compound class/BGC family/project question].
 
 ### Context anchor — required
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Before summarizing, confirm: Strain ID (if relevant), BGC number or compound class (if relevant), Key locus tags or domain hits (if available), The project question Rapid Literature Deep Dive is answering.
 
 ### 6-step workflow
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 1. **Abstract/source verification** — Confirm author list, title, journal, year, volume/issue/pages, DOI, PMID, and source URL where available.
 2. **Evidence type and relevance tier** — Assign both using the Verified Literature Deep Dive definitions.
@@ -960,6 +1100,8 @@ Before summarizing, confirm: Strain ID (if relevant), BGC number or compound cla
 
 ### Gaps Analysis — primary deliverable
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 1. **What the literature has established** — 2–4 bullets with citations.
 2. **What remains unresolved** — 2–4 bullets naming contested mechanisms, missing steps, absent compound isolation, inconsistent results.
 3. **What a Verified Literature Deep Dive run should target** — specific search terms, compound classes, enzyme names, domain IDs.
@@ -967,6 +1109,8 @@ Before summarizing, confirm: Strain ID (if relevant), BGC number or compound cla
 5. **Immediate project implications** — 2–4 bullets.
 
 ### Output workbook
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Sheet | Contents |
 |---|---|
@@ -976,6 +1120,8 @@ Before summarizing, confirm: Strain ID (if relevant), BGC number or compound cla
 
 ### Escalate to Verified Literature Deep Dive if
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 - The gaps section identifies more than two unresolved conflicts.
 - The compound class has contested stereochemistry, revised mechanisms, or taxonomic confusion.
 - More than five papers have direct biochemical, heterologous expression, or direct isolation evidence.
@@ -984,6 +1130,8 @@ Before summarizing, confirm: Strain ID (if relevant), BGC number or compound cla
 ---
 
 ## SECTION 23 — Mode Selection Decision Tree
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```
 10–30 papers, new compound class, rapid orientation?
@@ -1004,6 +1152,8 @@ Need cross-strain or cross-habitat comparison?
 
 ### Rapid Literature Deep Dive vs Verified Literature Deep Dive comparison
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Aspect | Rapid Literature Deep Dive v2.0 | Verified Literature Deep Dive v2.0 |
 |---|---|---|
 | Primary purpose | Rapid scoping and gap finding | Publication-ready verified synthesis |
@@ -1018,17 +1168,23 @@ Need cross-strain or cross-habitat comparison?
 
 ### Extended Verified Literature Deep Dive note
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Use when the task exceeds a single compound class or one 30–75-paper batch, especially for cross-habitat literature integration, large compound-family glossaries, multi-strain BGC-to-literature workbooks, or manuscript supplement tables with hundreds of references.
 
 ---
 
 ## SECTION 26 — Reference Implementations
 
-> *Completed analyses from the reference project (actinomycete collection) are published in the companion data paper and Zenodo deposit. This section is intentionally left as a placeholder in the public software release to avoid disclosing unpublished strain-level findings ahead of the associated manuscript. New users: populate this section with your own completed analyses as they accumulate.*
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
+> *Completed analyses from the reference project (actinomycete collection) are not bundled here. This section is intentionally left as a placeholder in the public software release to avoid disclosing unpublished strain-level findings ahead of the associated manuscript. No companion data paper or deposit is identified in this tree, so its publication status is unverified. New users: populate this section with your own completed analyses as they accumulate.*
 
 ---
 
 ## SECTION 27 — Output Audit Log Template
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```markdown
 ## Audit Log
@@ -1062,11 +1218,15 @@ Use when the task exceeds a single compound class or one 30–75-paper batch, es
 
 ### v8.0.3 Canonical BGC ID audit field
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 - Producing inventory identity map: [source archive/member paths and SHA-256; actual admitted-source ordering; strain / full node-or-contig / region / BGC alias from the bound record]. Do not infer alias identity from JSON order or reuse it across changed source sets without reconciliation.
 
 ## SECTION 28 — File Naming Conventions
 
-**Canonical BGC ID filename note (v8.0.3):** BGC number in filenames always follows canonical scheme.
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
+**Canonical BGC ID filename note (v8.0.3, historical):** the BGC number in these filename templates followed the canonical scheme of the time. A filename is not a locus locator: the Mode B template below drops the region and shortens the node, so two inputs can share a name. Bind each delivered card to `strain / full node-or-contig / region / BGC alias` from one source record, and keep a crosswalk from filename to that identity.
 
 
 | File type | Format |
@@ -1103,6 +1263,8 @@ Use when the task exceeds a single compound class or one 30–75-paper batch, es
 
 ## SECTION 29 — CDSW Protocol Summary
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 For the current session/handoff policy use [AGENTS.md](../../AGENTS.md#next-paths-automatic-save-state-and-transcripts). Recover source-bound context and report the requested result, supporting evidence and unresolved holds. Routine handoffs need at most one useful next action; major deliveries or explicit plans may include distinct options when helpful, following the user’s requested format. The paths below are historical examples to select from when relevant.
 
 **Suggested next paths (after strain analysis):**
@@ -1121,11 +1283,17 @@ CDSW modification command: `CDSW modification: [instruction]`
 
 ## SECTION 40 — Project Memory Snapshot
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### 40.1 Purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Every major strain run should generate a compact summary that can be reused in later conversations, master JSON updates, manuscript drafting, and prompt-library regeneration.
 
 ### 40.2 Required Files
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 For every full strain analysis, generate:
 
@@ -1133,6 +1301,8 @@ For every full strain analysis, generate:
 2. `[Strain ID]_Project_Memory_Snapshot_YYYY-MM-DD.md`
 
 ### 40.3 JSON Schema
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 ```json
 {
@@ -1188,6 +1358,8 @@ For every full strain analysis, generate:
 
 ### 40.4 Markdown Snapshot Template
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```markdown
 # [Strain ID] Project Memory Snapshot
 
@@ -1221,6 +1393,8 @@ For every full strain analysis, generate:
 
 ## 41.11 TRIGGER PHRASES
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```text
 Run CCSM for [Habitat class]. Strains: [list].
 Run within-habitat comparison for [Habitat class].
@@ -1235,16 +1409,20 @@ Build Gap Register for [strain set].
 
 ## 41.12 APPLICATION TO CURRENT PROJECT DATASET
 
-> *Worked examples of Phase 2 within-habitat and cross-habitat CCSM results from the reference project (actinomycete collection) are published in the companion data paper and Zenodo deposit. Refer to those resources for annotated within-habitat comparison tables, cross-strain signal summaries, and validated ecological findings. This section is intentionally left as a placeholder in the public software release to avoid disclosing unpublished strain data ahead of the associated manuscript.*
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
+> *Worked examples of Phase 2 within-habitat and cross-habitat CCSM results from the reference project (actinomycete collection) are not bundled here. No companion data paper or deposit is identified in this tree, so their publication status is unverified. This section is intentionally left as a placeholder in the public software release to avoid disclosing unpublished strain data ahead of the associated manuscript.*
 
 ---
 
 ## 41.14 VERSION HISTORY FOR THIS SECTION
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Version | Date | Notes |
 |---------|------|-------|
 | v1.0 | 2026-05-27 | Initial — four-phase workflow; UCS; ONP; evidence grades A–X; within-habitat and cross-habitat modules; HGT candidate protocol; QA gates 30.6–30.7 |
-| v1.1 | 2026-05-27 | Corrected fourth bryophyte strain identifier. Added AS-XXX complete v7.4 data. Updated with Phase 2 within-habitat findings. |
+| v1.1 | 2026-05-27 | Corrected fourth bryophyte strain identifier. Added <strain> complete v7.4 data. Updated with Phase 2 within-habitat findings. |
 | v1.1.1 | 2026-05-29 | BRYO-HGT-001 retired; hglE-KS-PREV-001 designated (prevalent, habitat-non-specific). §41.8 HGT register updated. §41.12 Finding 1 revised. §35.4 cross-reference updated. |
 | v8.1 | 2026-05-30 | **Reader-Facing Front Page and Briefing Package.** Added default post-analysis package with three reader-facing formats: Editorial Broadsheet, Color Tabloid, and Executive Briefing / Memorandum. User-uploaded imagery is optional and preferred over generated placeholders; prompts can occur after delivery or during a natural mid-analysis exchange. Front-page node labels are simplified (e.g., `BGC05 | Node_3` or `BGC03 | Node_1 · r003`) while full NODE identifiers remain mandatory in BGC Inventory, Scientific Report, Archive Appendix, and Project Memory Snapshot. Front pages must distinguish raw antiSMASH region count from corrected BGC count, may round genome statistics for readability, and must include evidence-boundary language. Priority leads must include compound/scaffold class and/or key genes/domains/architecture support. Executive Briefing signature defaults to active Sapote version, e.g., `Sapote v8.1`, or user name when requested. |
 | v8.1.1 | 2026-05-31 | **Diagnostic Signature Weighting + antiSMASH Hallucination-Trap / Claim-Calibration Audit.** Expanded §34 into a fragment-tolerant claim-calibration system. Added evidence-weight tiers, Diagnostic Signal Score, Lead Priority vs Claim Confidence separation, high-information signature rescue, transporter/self-resistance exception handling, marker-library placeholders, and front-page/PDB claim-safety routing. |
@@ -1257,6 +1435,8 @@ Build Gap Register for [strain set].
 ---
 
 ## v7.9 Final Completion Statement Template
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 At the end of every full v7.9 analysis, respond with:
 
@@ -1292,6 +1472,8 @@ Files generated:
 ---
 
 ## Standalone Prompt Completeness Check
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Before releasing or sharing this prompt, verify that it is self-contained and does not require access to a prior prompt version. Search for and remove or replace phrases such as:
 
@@ -1344,7 +1526,7 @@ Also verify:
 - **§34 includes traps for "indole masking indolocarbazole", "ectoine masking showdomycin", and "saccharide BGC as split-pathway glycosylation arm".**
 - **§37 includes rows for indolocarbazole, HSAF/PTM, prodiginine, ansamycin, and showdomycin.**
 - **§43 includes T43-IDC (indolocarbazole), T43-PTM (HSAF/PTM), and the T43-AMC streptomycin-class carve-out.**
-- **Abbreviated ledger entry minimum fields are defined in §0.9** (8 required fields; satisfies Run Controller treatment-status non-negotiable).
+- **Abbreviated ledger entry minimum fields are defined in §0.9** (8 required fields; satisfies Run Controller treatment-status non-negotiable). The v8.0.1 version-history entry below describes a 9-field table; the record does not say which field changed. The retained [§0.9 table](../SAPOTE_MAMEY_BUNDLE_MONOLITH.md#abbreviated-ledger-entry---minimum-required-fields) lists 8 rows. Neither count sets a current profile requirement.
 - **Triage First Board parallel-scan dependency is explicit in §0.6 Required Timing** (all ten first-pass checks must complete before the board is generated).
 - **Layer C content is explicitly defined for both Standard and Archive-Quality modes in §0.5.**
 - **Chemical handle status line is present in the §0.6 Candidate Card format** (connects §0.7 identity-safety rule to the first output layer where handles appear).
@@ -1383,9 +1565,11 @@ Also verify:
 
 ## Version History
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Version | Date | Changes |
 |---|---|---|
-| v8.3 candidate | 2026-05-31 | **Fragmented Large-BGC Rescue (FLBR) patch.** Added §51 as parent rescue logic for fragmented assembly-line megasynthases across T1PKS, modular NRPS, PKS-NRPS hybrid, and trans-AT systems. Added STRONG/WEAK evidence tiers; assembly-quality gate with Very-Poor auto-demotion; double-docking-bracketed internal-module carve-out; Run Controller sequencing guard requiring genome-wide megasynthase census before final priority assignment; NRPS/hybrid sibling logic; QA gate 30.9; trigger phrases; report language; and validation appendix using AS-XXX (STRONG retained) versus AS-XXX/AS-XXX (Very-Poor demoted to WEAK). |
+| v8.3 candidate | 2026-05-31 | **Fragmented Large-BGC Rescue (FLBR) patch.** Added §51 as parent rescue logic for fragmented assembly-line megasynthases across T1PKS, modular NRPS, PKS-NRPS hybrid, and trans-AT systems. Added STRONG/WEAK evidence tiers; assembly-quality gate with Very-Poor auto-demotion; double-docking-bracketed internal-module carve-out; Run Controller sequencing guard requiring genome-wide megasynthase census before final priority assignment; NRPS/hybrid sibling logic; QA gate 30.9; trigger phrases; report language; and validation appendix using <strain> (STRONG retained) versus <strain>/<strain> (Very-Poor demoted to WEAK). |
 | v8.2 | 2026-05-31 | **Compound-class coverage + claim-safety patch.** §33.3: promoted "absence of assay ≠ inactivity" to a standing principle with class-context routing (marinolide correction generalized). **DKP-CDPS** added across §8/§43/§37/§33.3/§34/§45: CDPS rule-based / PF16715 diagnostic entry, T43-DKP trigger (gene-beats-cluster), DKP detection rank A–D, strengthened PF00881/CDO specificity guard, dehydro-DKP vs saturated metabolomics rows, no-self-resistance-marker note, cytotoxicity routing (no MRSA/*Candida* bonus). **Linear polyether ionophore** added across §8/§42/§37: LMPKS-PE grade, SMCOG-based cassette detection rule (epoxidase detectable, epoxide hydrolase HMMER-pending), cation-adduct metabolomics row. **PKS KR/ER stereochemistry reasoning** added as optional/gated §6/§7 capability with mandatory hypothesis-not-structure claim-safety (§30.1). Validated against AJS-XXX (photopiperazine confirmed DKP-A by AlbA/AlbC homology; bare CDPS DKP-B/C; ionostatin polyether 7-PKS + KCB anchor; tetrachlorizine and marinolide as bundled examples). No v8.1.1 detection module removed or weakened. |
 | v1.0 | 2026-05-25 | Initial workflow prompt. |
 | v1.1 | 2026-05-25 | Data governance, source hierarchy, missing-data rules, claim-safety language, audit logs, glossary workflow. |
@@ -1408,7 +1592,7 @@ Also verify:
 | v7.7 | 2026-05-29 | **Section 45 — Resistance Gene-Guided Compound Class Confirmation (new).** Five Tier 1 markers (VanHAX → glycopeptide; CalC-type radical SAM → enediyne chromoprotein; NikT/NikD-type → nikkomycin class; FomA/FomB → phosphonate; DOIS+APH/AAC → aminoglycoside); three Tier 2 markers (ErmC/ErmE/ErmSF → macrolide/lincosamide with HGT guard; chitin synthase paralogue → nikkomycin class; ArrA → ansamycin with HGT guard); two Tier 3 polarity-routing markers (MFS, ABC transporter). Proximity rule: within BGC coordinates (highest) or within 15 kb on same contig (strong). CalC absence flag mandatory for enediyne BGCs. §34 new trap: resistance gene HGT acquisition misread as producer self-protection. §36.4 new required reviewer attack category: self-protection absent from claimed cytotoxic BGC. §32.4: concordant resistance gene added as 8th independent evidence type. §33.3: +1 WL for concordant Tier 1 or Tier 2 marker. §31.5: B→A upgrade support with hallucination-trap cap preservation. §30.9: new QA gate — Resistance Gene Confirmation Gate. §27 audit log: resistance gene confirmation summary added. §28 file naming: ResistanceGene_Confirmation filename added. §37.2/§37.3: resistance gene concordance note column added to Metabolomics_Readiness; class-level default table expanded with resistance marker column. §38.2: Resistance gene missingness category added. §40.3/§40.4: resistance_gene_summary field added to JSON and MD snapshot templates. Excel 19→20 sheets (Sheet 20: ResistanceGene_Confirmation). §15.6.2 and §15.8 position 5.7: Resistance Gene Confirmation Report added to deliverables. Option 3 and Workflow Ledger updated. **hglE-KS-PREV-001 designated; BRYO-HGT-001 retired** across §25, §26, §35.4, §41.8, §41.12, and §41.14. §43.7 trigger phrases populated. §44.7 trigger phrases populated. Standalone Prompt Completeness Check updated for v7.8. v7.5.4 remains runnable as fallback; v7.6 remains runnable as immediate fallback. |
 | v7.8 | 2026-05-29 | **Full Depth Mode is now the unconditional default** for all full analysis triggers. Full Coverage Mode demoted to explicit-request-only status; it is no longer a fallback for large strains or context pressure. Added **§2B: Batch Plan Protocol** — mandatory Batch Plan announcement for strains with >15 BGCs before any Mode B work begins; seven-tier priority ordering for batch assignment; formal session continuation and batch-end summary formats. **Mode B §2** redefined: gene-by-gene domain analysis (all PFAM/TIGRFAM hits per CDS, functional assignment from domain evidence, functional flag) is the required, non-abbreviatable primary analytical layer from which all §3–§8 content is derived. Workflow Ledger: 'Batch Plan announced' added as first required stage. Section 1 startup: item 1d — Batch Plan recovery before any Mode B work. Section 29 CDSW: batch continuation is the primary next path for batch sessions. White Paper: 'Batch Execution and Gene-by-Gene Domain Analysis in the Sapote Workflow' (Sapote_Workflow_WhitePaper_BatchExecution_v7.8_2026-05-29.pdf) documents design rationale and implementation. |
 | v7.9 | 2026-05-30 | **PDF Style Standard and bioactivity-default enforcement.** Added mandatory Sapote PDF style module (`sapote_pdf_styles.py`) for all PDF outputs; narrative sections use Sapote text-flow helpers and structured data uses `sapote_table()` so individual scripts do not redefine styles from scratch. Expanded §30.5 PDF generation rules and added §30.10 PDF Style and Bioactivity-Default Gate requiring bookmarks/outlines, visible default/status boxes, rendered-page QA, no overlapping text, and no clipped tables. Added §15.11 deliverable-level layout/default requirements. Strengthened Global Analytical Defaults: when strain-specific assay data are absent, MRSA + Candida inhibition must be recorded as `default-assumed` rather than `missing`, propagated to context acknowledgement, Deep Dive Synopsis, Mode B §6, Wet-Lab Decision Matrix, Metabolomics Readiness, Ecological Synthesis, Missingness Register, Project Memory Snapshot, and audit log, while preserving claim-safety language that extract-level defaults do not assign activity to any BGC. |
-| v7.9.1 | 2026-05-30 | **Compound class coverage patch — 10 items across 6 sections.** Triggered by post-hoc identification of a split indolocarbazole BGC in AS-XXX (NODE_182 indsynth E=0 BS=1349.6 + NODE_105 Trp_halogenase BS=567.6) that was undetected by all prior workflow runs despite being present in the antiSMASH GBK files. Systematic gap review identified 9 further items. **§8:** MODIFIED existing glycosylated T2PKS entry to cross-reference new disambiguation; ADDED 7 new entries: indolocarbazole (indsynth marker), HSAF/PTM (ornithine A-domain + iterative PKS-NRPS), mannopeptimycin (TIGR01720 ×2; as distinct from enduracididine), carbapenem (CarB/CarC), ansamycin (AHBA synthase PF06353 + aminoDAHP/aminodehydroquinase context), angular T2PKS (+ angular-fold oxygenase), linear T2PKS (+ linear cyclase). **§26:** UPDATED AS-XXX reference entry with NODE_182/105 indolocarbazole split-pathway candidate. **§33.3:** ADDED HSAF/PTM as Candida-specific mechanistic link (+2 WL); ADDED explicit exclusion of indolocarbazoles from the Candida mechanistic link category. **§34:** ADDED 3 new traps: "indole masking indolocarbazole"; "ectoine masking showdomycin"; "saccharide BGC as split-pathway glycosylation arm." **§37:** ADDED 5 new class rows: indolocarbazole (cytotoxicity caution mandatory), HSAF/PTM (acid-labile tetramate ring noted), prodiginine (visual plate screen as primary detection), ansamycin (color handle noted), showdomycin (C18 reversed-phase explicitly flagged as insufficient). **§43:** ADDED T43-IDC (indolocarbazole, indsynth ≥500 single-marker trigger); ADDED T43-PTM (HSAF/PTM, ornithine A-domain + iterative PKS trigger; Candida mechanistic link activates +2 WL bonus); MODIFIED T43-AMC to add mandatory streptomycin-class carve-out preventing false DOIS rule-out. |
+| v7.9.1 | 2026-05-30 | **Compound class coverage patch — 10 items across 6 sections.** Triggered by post-hoc identification of a split indolocarbazole BGC in <strain> (NODE_182 indsynth E=0 BS=1349.6 + NODE_105 Trp_halogenase BS=567.6) that was undetected by all prior workflow runs despite being present in the antiSMASH GBK files. Systematic gap review identified 9 further items. **§8:** MODIFIED existing glycosylated T2PKS entry to cross-reference new disambiguation; ADDED 7 new entries: indolocarbazole (indsynth marker), HSAF/PTM (ornithine A-domain + iterative PKS-NRPS), mannopeptimycin (TIGR01720 ×2; as distinct from enduracididine), carbapenem (CarB/CarC), ansamycin (AHBA synthase PF06353 + aminoDAHP/aminodehydroquinase context), angular T2PKS (+ angular-fold oxygenase), linear T2PKS (+ linear cyclase). **§26:** UPDATED <strain> reference entry with NODE_182/105 indolocarbazole split-pathway candidate. **§33.3:** ADDED HSAF/PTM as Candida-specific mechanistic link (+2 WL); ADDED explicit exclusion of indolocarbazoles from the Candida mechanistic link category. **§34:** ADDED 3 new traps: "indole masking indolocarbazole"; "ectoine masking showdomycin"; "saccharide BGC as split-pathway glycosylation arm." **§37:** ADDED 5 new class rows: indolocarbazole (cytotoxicity caution mandatory), HSAF/PTM (acid-labile tetramate ring noted), prodiginine (visual plate screen as primary detection), ansamycin (color handle noted), showdomycin (C18 reversed-phase explicitly flagged as insufficient). **§43:** ADDED T43-IDC (indolocarbazole, indsynth ≥500 single-marker trigger); ADDED T43-PTM (HSAF/PTM, ornithine A-domain + iterative PKS trigger; Candida mechanistic link activates +2 WL bonus); MODIFIED T43-AMC to add mandatory streptomycin-class carve-out preventing false DOIS rule-out. |
 | v8.0 | 2026-05-30 | **Execution and readability integration.** Added Run Controller / Execution Spine (§0); Reader-Layered Output System (§0.5); Triage First Board (§0.6); LC-MS Chemical Handle Module (§0.7); Visual Load Reduction Standard (§0.8); Standard vs Archive-Quality Full Analysis distinction (§0.9) - **Standard Full Analysis is now the default, overriding the v7.8 Full Depth unconditional default**; Evidence / Claim Separation Card (§0.10); Package Manifest and Deferred Ledger (§0.11); §46 v8.0 Execution and Readability Integration Supplement (chemical handle WL modifiers, PDF/QA integration, §37 and §43 CCTT integration, v8.0 completeness check). No v7.9.1 detection modules modified or removed. |
 | v8.0.1 | 2026-05-30 | **Specification refinement patch - 7 items.** R1 (§0.9): Abbreviated ledger entry minimum fields defined - 9-field table prevents variable abbreviated-entry content across runs. R2 (§33.3): §46 chemical handle WL modifier table added inline - eliminates need to cross-reference §46 during WL scoring. R3 (§0.6): Triage First Board parallel-scan dependency made explicit in Required Timing - board requires all six parallel first-pass scans. R4 (Option 6): Top-3 Triage First Board entries with class-level chemical handles added to smoke-test minimum outputs. R5 (§0.5): Layer C content for Standard and Archive-Quality modes explicitly defined - removes ambiguity about abbreviated ledger vs full Mode B in Layer C. R6 (Version History): v8.0 and v8.0.1 rows added to main version history table. R7 (§0.6): Chemical handle status line added to Candidate Card format - connects §0.7 identity-safety rule to the first output layer where chemical handles appear. Header version number updated to 8.0.1. Patch note block updated. Standalone Prompt Completeness Check updated. |
 | v8.0.2 | 2026-05-30 | **CGAD genome-wide proteome scope patch.** Added required §44.1A Proteome Scope Check before CGAD verdicts; defined `full proteome scanned`, `BGC-region only`, and `full proteome unavailable` states; required full-record CDS/proteome scanning from antiSMASH GBK `/translation=` fields when available, with Prodigal/Prokka protein FASTA fallback; added motif-vs-HMMER claim-language tiers for GH18/GH19/AA10 calls; updated §44.4 CGAD output table with scope/method/confidence fields and state-aware verdict language; added §44.5 DasR/NagR coupling guard; added §34 trap for BGC-local null misread as genome-wide null; added §38.2 Proteome scope limitation missingness category; updated §17.2A to distinguish BGC-local evidence from genome-wide functional scan evidence; updated Run Controller and §0.6 timing to require CGAD proteome scope state before Triage First Board; updated Standalone Prompt Completeness Check. Prior BGC-region-only CGAD nulls must be reclassified as `Not Assessable pending proteome rescan`. |
@@ -1422,9 +1606,13 @@ Also verify:
 
 ## SECTION 46 — v8.0 Execution and Readability Integration Supplement
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 > **[ARCHIVED — v8.0 parent policy, superseded.]** Content integrated into §0–§0.11 (execution spine) and §0.8 (visual load standard) in v9.x. Retained for version history only; not an active instruction set.
 
 ### §15 deliverable integration
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 v8.0 required deliverables:
 
@@ -1440,6 +1628,8 @@ The Triage First Board must appear before long Mode B reports in both Markdown a
 
 ### §30 PDF and QA integration
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 v8.0 PDF readability gates:
 
 - Reader-layered output verified: Executive, Scientific, Archive.
@@ -1453,6 +1643,8 @@ v8.0 PDF readability gates:
 
 ### §33 wet-lab scoring integration
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Chemical-handle readiness contributes to wet-lab actionability. A BGC with a strong class call, diagnostic formula/MW handles, expected adducts, UV/Vis targets, and feasible extraction conditions should receive higher wet-lab readiness than an equally interesting but chemically vague BGC. Do not let chemical-handle readiness override claim-safety or architecture confidence.
 
 | Condition | WL modifier |
@@ -1463,6 +1655,8 @@ Chemical-handle readiness contributes to wet-lab actionability. A BGC with a str
 | No reliable chemical handle despite high genomic interest | 0; note as untargeted LC-MS/MS priority |
 
 ### §37 metabolomics integration
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Every metabolomics-readiness row must include a Chemical Handle subsection:
 
@@ -1480,13 +1674,19 @@ Chemical handles are search targets, not identifications. Matching m/z should tr
 
 ### §43 CCTT integration
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Every affirmative CCTT trigger must feed the Triage First Board and receive an LC-MS Chemical Handle entry. If the trigger identifies a class but not a specific compound, provide representative class examples and a class-level MW range. If the trigger suggests halogenation, include isotope-pattern guidance. If the trigger suggests a polar nucleoside or β-lactam, flag extraction-method mismatch risk.
 
 ### Version history
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 v8.0 — 2026-05-30 — Major execution/readability release. Added Run Controller, Reader-Layered Output System, Triage First Board, LC-MS Chemical Handle Module, Visual Load Reduction Standard, Standard vs Archive-Quality Full Analysis distinction, Evidence/Claim Separation Cards, Package Manifest, and Deferred Ledger. This release changes how the workflow runs and packages outputs without weakening the v7.9.1 scientific detection modules.
 
 ### v8.0 standalone completeness check
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A v8.0 prompt is complete only if it contains:
 
@@ -1505,17 +1705,25 @@ A v8.0 prompt is complete only if it contains:
 
 ## SECTION 47 — v8.0.2 CGAD Genome-Wide Proteome Scope Supplement
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 > **[ARCHIVED — v8.0.2 parent policy, superseded.]** CGAD proteome-scope rule now lives in §44 (active CGAD module). Retained for version history only.
 
 ### 47.1 Purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 This parent policy documents the v8.0.2 boundary correction for CGAD. CGAD declares itself a genome-wide ecological-capacity module, so it must not be scored from BGC-local cluster_hmmer evidence alone. The ICBG1735 test case showed the failure mode clearly: a BGC-region-only scan produced `Not Assessable` / apparent null chitinase evidence, while full-proteome extraction from antiSMASH GBK `/translation=` fields revealed multiple secreted GH18 candidates. This is a module-definition issue, not a rare edge case.
 
 ### 47.2 Rule
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Never score a genome-wide ecological module from BGC-local evidence alone. Before CGAD reports absence, low capacity, or a high-confidence capacity state, it must declare whether it scanned the full predicted proteome, only BGC-region features, or no full proteome was available.
 
 ### 47.3 Required routing
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 - §3 parsing extracts all CDS `/translation=` fields from antiSMASH GBK files when present.
 - §44.1A uses those translations as the default full-proteome input for CGAD.
@@ -1526,6 +1734,8 @@ Never score a genome-wide ecological module from BGC-local evidence alone. Befor
 
 ### 47.4 Claim-safety language
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Use: "full-proteome scan identified secreted GH18 chitinase candidates."
 
 Use after HMMER confirmation: "full-proteome HMMER scan identified high-confidence secreted GH18 chitinase candidates."
@@ -1534,15 +1744,21 @@ Do not use after BGC-only scans: "no chitinases detected," "lacks chitinolytic c
 
 ### 47.5 Triggered completeness check
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Every CGAD output must include a `Proteome scope` line and a `Detection method` line. Missing either line fails the Standalone Prompt Completeness Check.
 
 ---
 
 ## SECTION 48 — v8.0.3 ICBG1735 Workflow-Flexibility Supplement
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 > **[ARCHIVED — v8.0.3 parent policy, superseded.]** Workflow-flexibility guidance folded into §23 (mode selection) in v9.x. Retained for version history only.
 
 ### 48.1 Purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 This parent policy documents the v8.0.3 patch set derived from the ICBG1735 *Burkholderia* sp. (*Atta* sp.) workflow-flexibility assessment. The patch strengthens cross-session BGC identifiers, non-actinomycete/Gram-negative safety rails, ecological-citation discipline, CGAD fallback behavior, and wet-lab scoring specificity without weakening the existing actinomycete discovery workflow.
 
@@ -1550,13 +1766,19 @@ A test-ready taxonomy preflight note has also been added to §14 so assembled-FA
 
 ### 48.2 Design status
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Items 1, 2, 4, 5, 6, 7, 8, 9, and 10 are integrated into their operational sections. Item 3, the non-actinomycete startup declaration, remains deferred for further design; until then, non-actinomycete applicability is handled by existing source-category parsing, TTA/bldA applicability notes, and the new Gram-negative KCB false-positive guards.
 
 ---
 
 ## SECTION 49 — Reader-Facing Front Page and Briefing Package
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### 49.1 Purpose
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 The **Reader-Facing Front Page and Briefing Package** is a historical v8.1 layout design that can be selected for authored summaries. It translates technical analysis into reader-facing pages without replacing the source inventory or verification; current extraction does not automatically author these reports.
 
@@ -1569,6 +1791,8 @@ The package is intended for collaborators, PIs, lab meetings, internal presentat
 
 ### 49.2 Default package
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 When the user selects a front-page package, choose the requested formats and record their actual generation/omission states. The historical v8.1 design offered these three layouts; they are not automatically authored by a current engine extraction:
 
 1. **Editorial Broadsheet** — serious newspaper-inspired front page.
@@ -1577,13 +1801,15 @@ When the user selects a front-page package, choose the requested formats and rec
 
 Users may later request that any of the three pages be omitted from the compiled report or regenerated separately.
 
-Required wording when generated:
+Required wording when generated. List only the formats that were actually produced, and name any requested format that was omitted or failed:
 
 ```text
-Reader-Facing Front Page and Briefing Package generated: Editorial Broadsheet, Color Tabloid, and Executive Briefing. These are reader-facing summary pages and may be omitted from the compiled report on request.
+Reader-Facing Front Page and Briefing Package generated: [formats produced]. Not produced: [format — omitted on request / render failed / not requested]. These are reader-facing summary pages and may be omitted from the compiled report on request.
 ```
 
 ### 49.3 Format A — Editorial Broadsheet
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 **Internal nickname:** WSJ-style  
 **Public-facing name:** Editorial Broadsheet  
@@ -1619,6 +1845,8 @@ Required core blocks:
 
 ### 49.4 Format B — Color Tabloid
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 **Internal nickname:** Daily-Mail-style  
 **Public-facing name:** Color Tabloid  
 **Do not use:** real newspaper names, logos, mastheads, or branding.
@@ -1642,16 +1870,18 @@ Required safeguards:
 Acceptable headline:
 
 ```text
-High-Value Biosynthetic Potential in AS-XXX
+High-Value Biosynthetic Potential in <strain>
 ```
 
 Avoid unless production and activity are experimentally verified:
 
 ```text
-AS-XXX Produces New Antibiotics
+<strain> Produces New Antibiotics
 ```
 
 ### 49.5 Format C — Executive Briefing / Memorandum
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 **Internal nickname:** Presidential Briefing  
 **Public-facing name:** Executive Briefing or Executive Memorandum  
@@ -1689,6 +1919,8 @@ Recommended memo sections:
 
 ### 49.6 Image upload and visual-content workflow
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 Sapote should **not force image generation** of host systems, agar plates, colonies, or habitats.
 
 After the main analysis is delivered, optionally prompt the user:
@@ -1721,7 +1953,7 @@ Examples:
 
 ```text
 Host system: user-uploaded Bombus sp. field image.
-Inset: user-uploaded AS-XXX agar plate image.
+Inset: user-uploaded <strain> agar plate image.
 ```
 
 ```text
@@ -1790,10 +2022,8 @@ If both are shown:
 
 ### 49.10 Priority-lead content policy
 
-Priority leads should include one or more of the following rather than only BGC numbers and generic labels:
+Every priority lead opens with the complete locus identity from §49.7: `strain / full node-or-contig / region / BGC alias`, with any missing component held. It should then include one or more of the following rather than only BGC numbers and generic labels:
 
-- simplified node label;
-- full node identifier in the technical table;
 - compound class or scaffold class;
 - strongest key genes/domains;
 - architecture clue;
@@ -1829,10 +2059,10 @@ If bioactivity metadata are not supplied:
 Bioactivity metadata NOT_SUPPLIED; observation NOT_OBSERVED. No assay target/outcome is inferred; locus/compound linkage NOT_ESTABLISHED.
 ```
 
-If bioactivity is user-confirmed:
+If bioactivity is supplied by the user or a file, fill the template from the supplied record only. Name each target, material, assay and outcome as supplied, including negative results; leave anything not supplied as not supplied.
 
 ```text
-MRSA and Candida inhibition are user-confirmed at the extract level. BGC-level attribution remains unproven without fractionation, metabolomics, genetics, or purified-compound evidence.
+Bioactivity supplied ([source]): [target] — [outcome] — [material, e.g. crude extract] — [assay]. Strain-level context only; locus/compound linkage NOT_ESTABLISHED without fractionation, metabolomics, genetics, or purified-compound evidence.
 ```
 
 ### 49.12 Omission and compilation rules
@@ -1869,6 +2099,8 @@ Sapote should comply without altering scientific report content.
 
 ### 49.13 End-of-analysis user prompt
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 If the package is automatic by default:
 
 ```text
@@ -1882,6 +2114,8 @@ The core analysis package is complete. I can also generate the Reader-Facing Fro
 ```
 
 ### 49.14 v8.1 completeness check
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A v8.1 prompt is complete only if it contains:
 
@@ -1911,13 +2145,21 @@ A v8.1 prompt is complete only if it contains:
 
 ## SECTION 50 — v8.2 Compound-Class Coverage + Claim-Safety Patch
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ### 50.0 Integration status
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 This section integrates **Sapote Workflow Patch v8.1.1 → v8.2**. It is additive and does not remove or weaken any v8.1.1 detection module. When a rule in this section conflicts with an older v8.1.1 rule, the v8.2 rule takes precedence.
 
 ### 50.1 Patch source and insertion map
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 #### Sapote Workflow Patch v8.1.1 → v8.2
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 **Apply onto:** Sapote Actinomycete Natural Product Discovery Workflow v8.1.1
 **Patch version:** v8.2
@@ -1941,6 +2183,8 @@ This single patch consolidates three module additions and one general claim-safe
 
 ## BLOCK E — trigger phrases (add to Option 3 / module trigger list)
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 ```text
 Run DKP / CDPS scan on [Strain ID].
 Run cyclodipeptide synthase scan on [Strain ID].
@@ -1957,6 +2201,8 @@ Predict polyketide stereochemistry for [Strain ID] BGC [N].
 
 ## BLOCK F — version history entry
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Version | Date | Changes |
 |---|---|---|
 | v8.2 | 2026-05-31 | **Compound-class coverage + claim-safety patch.** §33.3: promoted "absence of assay ≠ inactivity" to a standing principle with class-context routing (marinolide correction generalized). **DKP-CDPS** added across §8/§43/§37/§33.3/§34/§45: CDPS rule-based / PF16715 diagnostic entry, T43-DKP trigger (gene-beats-cluster), DKP detection rank A–D, strengthened PF00881/CDO specificity guard, dehydro-DKP vs saturated metabolomics rows, no-self-resistance-marker note, cytotoxicity routing (no MRSA/*Candida* bonus). **Linear polyether ionophore** added across §8/§42/§37: LMPKS-PE grade, SMCOG-based cassette detection rule (epoxidase detectable, epoxide hydrolase HMMER-pending), cation-adduct metabolomics row. **PKS KR/ER stereochemistry reasoning** added as optional/gated §6/§7 capability with mandatory hypothesis-not-structure claim-safety (§30.1). Validated against AJS-XXX (photopiperazine confirmed DKP-A by AlbA/AlbC homology; bare CDPS DKP-B/C; ionostatin polyether 7-PKS + KCB anchor; tetrachlorizine and marinolide as bundled examples). No v8.1.1 detection module removed or weakened. |
@@ -1964,6 +2210,8 @@ Predict polyketide stereochemistry for [Strain ID] BGC [N].
 ---
 
 ## Validation summary (AJS-XXX, five published families)
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Family | Class | Detection path after patch |
 |---|---|---|
@@ -1978,6 +2226,8 @@ Predict polyketide stereochemistry for [Strain ID] BGC [N].
 *Sapote Actinomycete Natural Product Discovery Workflow · Patch v8.1.1 → v8.2 · 2026-05-31*
 
 ### 50.2 v8.2 completeness check
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 A v8.2 prompt is complete only if it contains all v8.1.1/v8.1 completeness requirements plus:
 
@@ -2006,6 +2256,8 @@ A v8.2 prompt is complete only if it contains all v8.1.1/v8.1 completeness requi
 
 ## §52.10 Version history
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 | Version | Date | Notes |
 |---|---|---|
 | UMED v1.0 | 2026-05-31 | Initial parent concept + lanthipeptide-protease instance. Family library (LanP/S8, LanT/C39, FlaP-AplP/S9, M16B). Two-axis output; single-genome scope boundary; heteromeric M16B guard; Very-Poor→missingness gate; hard specificity-unverified ceiling. Method basis Xue et al. 2022 (DOI 10.1038/s41467-022-29325-1; PMID 35347143). Validated on 25 lanthipeptide regions / 9 project genomes (88% maturation-gap). RiPP-extensible parent; no other instance validated. |
@@ -2014,14 +2266,21 @@ A v8.2 prompt is complete only if it contains all v8.1.1/v8.1 completeness requi
 
 ## §52.11 Validation Appendix — UMED across 16 project genomes
 
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
 All antiSMASH v8.0.4. 16 genomes scanned; 9 carry lanthipeptide regions (25 total).
 
 **Headline:** 22 of 25 lanthipeptide regions (88%) lack an in-cluster maturation protease — even
 higher than the ~⅓ genome-wide figure of Xue et al., consistent with this project's heavy
-class III/IV/V actinomycete content (the paper's hardest cases). A "complete" antiSMASH
-lanthipeptide call in this dataset is usually a maturation-incomplete pathway.
+class III/IV/V actinomycete content (the paper's hardest cases). In this dataset, an antiSMASH
+lanthipeptide call usually had no maturation-protease annotation inside its coordinates. That is an
+annotation gap, not a demonstrated missing function.
+
+The receipts for this appendix are not bundled, so its counts are not verifiable from this tree.
 
 ### Per-region result
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 The following historical rows are redacted illustrations, not fully bound current loci. Strain/region/source identity remains held; the four-column table does not support individual-locus reuse.
 
@@ -2053,9 +2312,11 @@ The following historical rows are redacted illustrations, not fully bound curren
 | Very-Poor | NODE_X | I | **GAP — no candidate in assembly** |
 | Very-Poor | NODE_Y | II | **GAP — no candidate in assembly** |
 
-*Strain identifiers are omitted from the public release. Full identifiers are in the companion data paper.*
+*Strain identifiers are omitted from the public release. The full identifiers are not bundled, and no companion paper holding them is identified in this tree.*
 
 ### Gap rate by class
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 | Class | Gap / total |
 |---|---|
@@ -2067,11 +2328,15 @@ The following historical rows are redacted illustrations, not fully bound curren
 
 ### Three diagnostic outcomes
 
-1. **In-cluster positives (controls).** Three regions across two strains (one Moderate, one Poor assembly) carry their maturation protease in-cluster — UMED correctly reports them as maturation-autonomous. In-cluster types observed: FlaP/AplP (S9-family serine protease, classes II and IV) and an M16 metallopeptidase (class V). The M16 case is notable: it is the family newly characterized by Xue et al. 2022, and it is paired with a class V lanthipeptide — a class not included in that paper's analysis.
-2. **Genome-wide-candidate gaps (the common case).** 18 GAP regions have 1–4 candidate proteases elsewhere in the genome — the exact unclustered-maturase scenario UMED is built for, each a coherent co-expression / heterologous-expression follow-up target. None is asserted as the maturase; all carry the specificity-unverified ceiling.
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
+
+1. **In-cluster positives (controls).** Three regions across two strains (one Moderate, one Poor assembly) carry a candidate maturation-protease annotation in-cluster, and UMED reports them as `IN-CLUSTER`. That is a candidate annotation; it does not show the pathway matures its product on its own, or that the enzyme is active on this precursor. In-cluster types observed: FlaP/AplP (S9-family serine protease, classes II and IV) and an M16 metallopeptidase (class V). The M16 case is notable: it is the family newly characterized by Xue et al. 2022, and it is paired with a class V lanthipeptide — a class not included in that paper's analysis.
+2. **Genome-wide-candidate gaps (the common case).** 18 GAP regions have 1–4 candidate proteases elsewhere in the scanned records — the exact unclustered-maturase scenario UMED is built for, each a coherent co-expression / heterologous-expression follow-up target. None is asserted as the maturase; all carry the specificity-unverified ceiling.
 3. **No-candidate gaps (missingness, not absence).** Four regions from one Very-Poor assembly return no candidate genome-wide. UMED reports these as `GAP — no candidate in assembly` missingness items, not as proof the producer lacks a protease. This is the §52.4.2 assembly-quality gate doing its job, and the direct analogue of the FLBR Very-Poor demotion.
 
 ### Claim-safety note
+
+*Historical record. Do not follow as a current instruction; start current work from [AGENTS.md](../../AGENTS.md).*
 
 Every GAP candidate above is a lead, not a maturase assignment. Per §52.2, single-genome
 presence cannot establish the precursor–protease specificity the source method requires;

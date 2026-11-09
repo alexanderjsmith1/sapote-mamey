@@ -10,7 +10,7 @@ The old ACTIVE/always/path-menu wording, line-number citation and unchecked impl
 **Patch ID:** NEXTPATHS_STANDING_20260624  
 **Applies to:** Sapote (Claude / LLM tier) — CDSW protocol, `prompts/CLAUDE_SYSTEM_PROMPT.md §12`  
 **Bundle version:** v9.7.121+  
-**Status:** ACTIVE  
+**Status:** RETIRED (historical record; was ACTIVE when written)  
 **Authority:** aligns the Claude-tier CDSW rule with the ChatGPT-tier rule already in
 `prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md:229`.
 

@@ -20,9 +20,14 @@ TSV registers and `PROJECT_HOME.json`. Add each file's location and available
 checksum to the matching register. The initializer leaves those rows empty;
 it does not inspect your files or calculate their hashes.
 
-Use a fresh folder: an existing target is refused, even when empty. If an
-interrupted attempt leaves a partial home, keep it for inspection and choose
-a new location for the retry.
+Use a fresh folder: an existing target is refused, even when empty. Each
+register and file is created new; an existing file is never truncated.
+
+If the initializer hits an error it can catch, it removes only the folders and
+files it created in that run. A file someone else added under the new folder
+stays, and so does the folder holding it; the error message lists what stayed.
+A killed process cleans nothing up and can leave a partial home. Keep a partial
+home for inspection and choose a new location for the retry.
 
 This file index is separate from [Project catalog](PROJECT_CATALOG.md), which
 registers existing packages, and [Strain Master](DATA_HOME.md), which imports

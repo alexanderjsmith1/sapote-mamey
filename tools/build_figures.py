@@ -100,6 +100,15 @@ def data_chemistry(banked):
         rows.append({'panel':'class_prevalence','label':k,'value':len(v)})
     return rows, ['panel','label','value']
 
+def _kcb_credited(d):
+    """The KCB axis as build_priority_leads scored it: its `evidence` column when present,
+    else the same anchor rule. A placeholder anchor (UNRESOLVED, NA, -) is not credited."""
+    evidence = d.get('evidence')
+    if isinstance(evidence, str) and evidence.strip():
+        return 'KCB' in [axis.strip() for axis in evidence.split('+')]
+    from build_priority_leads import kcb_anchor_named
+    return kcb_anchor_named(d.get('KCB_anchor'))
+
 def data_priority(workbook):
     import openpyxl
     wb=openpyxl.load_workbook(workbook, read_only=True)
@@ -112,7 +121,7 @@ def data_priority(workbook):
         regs=d.get('regulators') or ''
         rows.append({'confidence':'A','strain':d['strain'],'BGC':d['BGC'],'products':(d.get('products') or '')[:30],
                      'ModeB_class':d.get('ModeB_class') or '','SARP':1 if 'SARP' in regs else 0,
-                     'DasR':1 if 'DasR' in regs else 0,'KCB':1 if (d.get('KCB_anchor') or '').strip() else 0,
+                     'DasR':1 if 'DasR' in regs else 0,'KCB':1 if _kcb_credited(d) else 0,
                      'tier':1 if str(d.get('tier'))=='1' else 0})
     return rows, ['confidence','strain','BGC','products','ModeB_class','SARP','DasR','KCB','tier']
 
@@ -317,17 +326,34 @@ def data_saccharide_adjusted(banked):
     rows=[{'strain':s,'raw_BGC':raw[s],'specialist_BGC':adj[s],'pure_saccharide':raw[s]-adj[s]} for s in sorted(strains)]
     return rows, ['strain','raw_BGC','specialist_BGC','pure_saccharide']
 
+SACCHARIDE_TEXT_PT = 9          # this renderer's base font size (rcParams below); every label uses it
+SACCHARIDE_LABEL_SLOT_IN = SACCHARIDE_TEXT_PT * 1.2 / 72   # one rotated 9 pt strain label plus spacing
+
+
+def saccharide_figure_width(n_strains):
+    """Figure width in inches: the double-column print width (figure_policy), widened only when the
+    strain labels would not fit there at the base font size. A widened figure is no longer print-legible
+    at double-column width; the renderer says so on stderr."""
+    from mamey.figure_policy import PUBLICATION_PROFILES
+    print_w = PUBLICATION_PROFILES['DOUBLE_COLUMN']['width_in']
+    return max(print_w, 0.8 + n_strains * SACCHARIDE_LABEL_SLOT_IN), print_w
+
+
 def plot_saccharide_adjusted(rows, path):
     import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt, numpy as np
-    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.spines.top':False,'axes.spines.right':False})
+    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':SACCHARIDE_TEXT_PT,'axes.spines.top':False,'axes.spines.right':False})
     rows=sorted(rows,key=lambda r:-int(r['raw_BGC']))
     sids=[r['strain'] for r in rows]; spec=[int(r['specialist_BGC']) for r in rows]; sac=[int(r['pure_saccharide']) for r in rows]
-    x=np.arange(len(sids)); fig,ax=plt.subplots(figsize=(11,4.4))
+    fig_w,print_w=saccharide_figure_width(len(sids))
+    if fig_w>print_w:
+        _sys.stderr.write(f"fig_saccharide_adjusted: {len(sids)} strain labels need a {fig_w:.1f} in figure; printed at "
+                          f"{print_w:g} in, its text falls below 8 pt. Print it wider or split the strains.\n")
+    x=np.arange(len(sids)); fig,ax=plt.subplots(figsize=(fig_w,4.4))
     ax.bar(x,spec,color='#2E86AB',width=0.82,label='specialist BGCs (reported)')
-    ax.bar(x,sac,bottom=spec,color='#D5C0A1',width=0.82,label='pure-saccharide (machinery, omitted)')
-    ax.set_xticks(x); ax.set_xticklabels(sids,rotation=90,fontsize=4.5); ax.set_xlim(-0.6,len(sids)-0.4)
-    ax.set_ylabel('BGC count'); ax.set_title('Per-strain BGCs: specialist vs omitted pure-saccharide',fontsize=11,weight='bold')
-    ax.legend(loc='upper right',fontsize=8,frameon=False)
+    ax.bar(x,sac,bottom=spec,color='#D5C0A1',width=0.82,label='pure-saccharide BGCs (drawn here)')
+    ax.set_xticks(x); ax.set_xticklabels(sids,rotation=90,fontsize=SACCHARIDE_TEXT_PT); ax.set_xlim(-0.6,len(sids)-0.4)
+    ax.set_ylabel('BGC count'); ax.set_title('Per-strain BGCs: specialist and pure-saccharide BGCs',fontsize=11,weight='bold')
+    ax.legend(loc='upper right',fontsize=SACCHARIDE_TEXT_PT,frameon=False)
     plt.tight_layout(); plt.savefig(path,dpi=PUBLICATION_RASTER_DPI); plt.close()
 
 FIGS={
@@ -340,15 +366,28 @@ FIGS={
 }
 
 @_bank_reader_scope
-def main():
+def main(argv=None):
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--workbook', default='')
     ap.add_argument('--out-dir', default='figures'); ap.add_argument('--replot', action='store_true')
-    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir,exist_ok=True)
+    a=ap.parse_args(argv)
+    if not a.replot:
+        # The compute route writes every CSV, PNG and the recipe fresh: it never replaces an earlier,
+        # possibly hand-edited, CSV or figure. (--replot redraws PNGs and the recipe from the CSVs in place.)
+        outputs=[os.path.join(a.out_dir,n+ext) for n in FIGS for ext in ('_data.csv','.png')]
+        outputs.append(os.path.join(a.out_dir,'figures_recipe.md'))
+        try:
+            from mamey.output_transaction import preflight_output_roster
+            preflight_output_roster(outputs, protected_paths=[p for p in (a.workbook, a.banked_dir) if p])
+        except ValueError as exc:
+            _sys.stderr.write(f"refused: {exc}; use a new --out-dir, or --replot to redraw from edited CSVs\n")
+            return 2
+    _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir,exist_ok=True)
+    skipped=[]
     for name,(extract,plot) in FIGS.items():
         csvp=os.path.join(a.out_dir,name+'_data.csv')
         if a.replot:
-            if not os.path.exists(csvp): emit(f"  [skip] {name}: no {csvp}"); continue
+            if not os.path.exists(csvp): emit(f"  [skip] {name}: no {csvp}"); skipped.append(name); continue
             rows=list(csv.DictReader(open(csvp)))
         else:
             rows,fields=extract(a)
@@ -359,6 +398,11 @@ def main():
         emit(f"  {name}: {len(rows)} rows -> {name}.png + {name}_data.csv")
     atomic_write_text(os.path.join(a.out_dir,'figures_recipe.md'), RECIPE)
     emit(f"  recipe -> {a.out_dir}/figures_recipe.md")
+    if skipped:
+        _sys.stderr.write(f"incomplete: {len(FIGS)-len(skipped)} of {len(FIGS)} figures drawn; "
+                          f"skipped (no CSV): {', '.join(skipped)}\n")
+        return 1
+    return 0
 
 RECIPE='''# Sapote-Mamey figures — data & replot recipe
 
@@ -382,4 +426,4 @@ The BGC-class fragmentation ranking and normalization matrix live in `build_norm
 (same conventions). Interpretation/callouts go in `Sapote_Figure_Captions.md`, not on the figures.
 '''
 
-if __name__=='__main__': main()
+if __name__=='__main__': _sys.exit(main())

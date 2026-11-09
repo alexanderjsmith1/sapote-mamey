@@ -383,10 +383,24 @@ def _domain_rows(rows: list[dict]) -> list[dict]:
     out = []
     for row in rows:
         item = {"bgc_id": _text(row.get("bgc_id") or row.get("BGC_ID"))}
-        item.update({key: _int(row.get(key)) for key in keys})
-        item["total"] = sum(item[key] for key in keys)
+        # A blank cell is "not recorded", never a measured 0 (four-state rule). It stays None,
+        # which the page draws as a blank cell with no bar and the CSV export writes as blank.
+        # A column the sidecar does not carry at all is also None and is listed apart.
+        item.update({key: _int(row.get(key), None) for key in keys})
+        columns = [key for key in keys if key in row]
+        blank = [key for key in columns if item[key] is None]
+        missing = [key for key in keys if key not in row]
+        recorded = sum(item[key] for key in columns if item[key] is not None)
+        # The total is a count of all eight domain columns, so it exists only when every one
+        # was recorded. With a blank cell or a column the sidecar lacks, it is None (shown
+        # blank), and the recorded-only sum is kept apart so it cannot be read as the total.
+        item["total"] = None if (blank or missing) else recorded
+        item["total_recorded_cells_only"] = recorded
+        item["total_columns"] = columns
+        item["blank_cells"] = blank
+        item["columns_not_in_sidecar"] = missing
         out.append(item)
-    return sorted(out, key=lambda r: (-r["total"], r["bgc_id"]))
+    return sorted(out, key=lambda r: (r["total"] is None, -(r["total"] or 0), r["bgc_id"]))
 
 
 def _rggmci_rows(rows: list[dict]) -> list[dict]:
@@ -463,6 +477,175 @@ def _top_blastp_hit(row: dict[str, str]) -> dict[str, Any]:
     }
 
 
+# Every identity and location claim a BLASTp row makes is read by one shared reader,
+# `blastp_physical_binding.row_claims`: columns matched by normalized name against one alias
+# table, and `key=value` / `key:value` tokens, the engine's pipe and space headers and bare
+# NODE / region / r<n> / <n>aa tokens in the query text fields. Location text it cannot read is
+# returned as unparsed, and the row is held.
+_PLACEHOLDER_VALUES = {"", "unknown", "none", "null", "na", "n/a", "nan", "?", "-", ".", "--"}
+
+
+def _claim_region(value: str) -> str:
+    """``regionNNN`` for ``1``, ``r1``, ``region1``, ``Region001``; ValueError otherwise."""
+    match = re.fullmatch(r"(?i)(?:region|r)?0*(\d+)", str(value).strip())
+    if not match or int(match[1]) <= 0:
+        raise ValueError("unreadable region")
+    return f"region{int(match[1]):03d}"
+
+
+def _same_sequence_name(value: str, contig: str, node: str) -> str:
+    """"" when `value` names the current contig, else a hold reason.
+
+    Accepted: the full contig, the inventory Node_ID, the same name in another case, the
+    accession without its ``.N`` version when the current contig has one, and a short SPAdes
+    ``NODE_<n>`` when the current contig is ``NODE_<n>_length_…``. A different version
+    (``.2`` for ``.1``) or a different node is a mismatch.
+    """
+    names = [v for v in (contig, node) if v]
+    if value in names or value.casefold() in {v.casefold() for v in names}:
+        return ""
+    for name in names:
+        stem = re.sub(r"\.\d+$", "", name)
+        if stem != name and value.casefold() == stem.casefold():
+            return ""
+        if re.fullmatch(r"(?i)NODE_\d+", value) and name.casefold().startswith(value.casefold() + "_length_"):
+            return ""
+    return "BLASTP_CONTIG_MISMATCH"
+
+
+def _blastp_claims_hold(claims: list[dict[str, str]], unparsed: list[str], cur: dict[str, str],
+                        inv_row: dict[str, str], strain_key: str, bgc: str, locus: str, aa: int,
+                        cur_hash: str = "") -> str:
+    """Why a BLASTp row cannot be bound to the current locus, or "" when it can.
+
+    Every claim must agree with the current locus: strain, BGC alias, gene, length, contig,
+    node, region and protein hash. A claim whose value is a placeholder or cannot be read, and
+    any location text the reader could not parse, hold the row. The gene table and inventory
+    must also agree on the locus before any claim is checked.
+    """
+    cur_contig = _text(cur.get("contig"))
+    inv_contig = _text(inv_row.get("Contig"))
+    if cur_contig and inv_contig and cur_contig != inv_contig:
+        return "BLASTP_LOCUS_TABLES_DISAGREE"
+    cur_contig = cur_contig or inv_contig
+    cur_node = _text(inv_row.get("Node_ID"))
+    regions = []
+    for raw in (_text(cur.get("region")), _text(inv_row.get("Region") or inv_row.get("antiSMASH_Region"))):
+        if raw:
+            try:
+                regions.append(_claim_region(raw))
+            except ValueError:
+                return "BLASTP_LOCUS_TABLES_DISAGREE"
+    if len(set(regions)) > 1:
+        return "BLASTP_LOCUS_TABLES_DISAGREE"
+    cur_region = regions[0] if regions else ""
+    if unparsed:
+        return "BLASTP_UNPARSED_LOCATION_TEXT"
+    cur_hash = (cur_hash or _text(cur.get("protein_sha256"))).lower()
+    for claim in claims:
+        role, value = claim["role"], str(claim["value"]).strip().strip("'\"")
+        if value.casefold() in _PLACEHOLDER_VALUES:
+            return "BLASTP_PHYSICAL_CLAIM_UNVERIFIABLE"
+        if role == "strain":
+            if value.upper() != strain_key:
+                return "BLASTP_IDENTITY_MISMATCH"
+        elif role == "bgc":
+            if value != bgc:
+                return "BLASTP_IDENTITY_MISMATCH"
+        elif role == "gene":
+            if value != locus:
+                return "BLASTP_IDENTITY_MISMATCH"
+        elif role == "aa":
+            try:
+                claimed = _int(value, -1)
+            except ValueError:
+                return "BLASTP_QUERY_ECHO_UNREADABLE"
+            if claimed != aa:
+                return "BLASTP_IDENTITY_MISMATCH"
+        elif role == "region":
+            try:
+                asserted = _claim_region(value)
+            except ValueError:
+                return "BLASTP_REGION_UNREADABLE"
+            if not cur_region or asserted != cur_region:
+                return "BLASTP_REGION_MISMATCH"
+        elif role in ("full_contig", "node"):
+            reason = _same_sequence_name(value, cur_contig, cur_node)
+            if reason:
+                return "BLASTP_NODE_MISMATCH" if role == "node" else reason
+        elif role == "hash":
+            if not cur_hash:
+                return "BLASTP_PROTEIN_HASH_NOT_CHECKABLE"
+            if value.lower() != cur_hash:
+                return "BLASTP_PROTEIN_HASH_MISMATCH"
+    return ""
+
+
+def _blastp_base_key(row: dict[str, str]) -> tuple[str, str, str, int]:
+    """(strain, bgc, gene, aa) from the row's own columns, falling back to the echo columns.
+
+    Engine-written ``blastp_online`` rows carry ``query_strain`` / ``query_bgc`` / ``locus_tag``
+    rather than ``strain`` / ``bgc_id`` / ``gene``. Any disagreement between the two forms is
+    caught afterwards, because every form is also checked as a claim.
+    """
+    def first(*names):
+        for name in names:
+            value = _text(row.get(name))
+            if value:
+                return value
+        return ""
+    strain = first("strain", "query_strain", "strain_id").strip().upper()
+    bgc = first("bgc_id", "query_bgc", "BGC_ID", "query_bgc_id")
+    locus = first("gene", "locus_tag", "query_locus")
+    try:
+        aa = _int(first("aa_length", "query_aa_length"), -1)
+    except ValueError:
+        aa = -1
+    return strain, bgc, locus, aa
+
+
+def _protein_hashes(faa_text: str) -> dict[tuple[str, str], str]:
+    """``{(bgc, locus): sha256}`` from ``<strain>_proteins.faa`` (``>locus bgc=BGCnnn`` headers).
+
+    The sequence is normalized as the engine's protein tables do: whitespace removed, upper
+    case, a trailing ``*`` dropped. A locus seen twice for one BGC is left out.
+    """
+    import hashlib
+    import re as _re
+    out: dict[tuple[str, str], str] = {}
+    seen: set[tuple[str, str]] = set()
+    dup: set[tuple[str, str]] = set()
+    key, chunks = None, []
+
+    def _flush():
+        if key is None:
+            return
+        seq = _re.sub(r"\s+", "", "".join(chunks)).upper().rstrip("*")
+        if not seq:
+            return
+        if key in seen:
+            dup.add(key)
+        seen.add(key)
+        out[key] = hashlib.sha256(seq.encode("ascii", "ignore")).hexdigest()
+
+    for line in faa_text.splitlines():
+        if line.startswith(">"):
+            _flush()
+            head = line[1:].split()
+            locus = head[0] if head else ""
+            bgc = next((t[4:] for t in head[1:] if t.startswith("bgc=")), "")
+            key, chunks = ((bgc, locus) if bgc and locus else None), []
+        else:
+            chunks.append(line)
+    _flush()
+    for k in dup:
+        out.pop(k, None)
+    return out
+
+
+from .blastp_physical_binding import LOCATION_ROLES, row_claims  # noqa: E402
+
+
 def _gene_evidence_rows(
     *,
     strain: str,
@@ -471,6 +654,7 @@ def _gene_evidence_rows(
     mibig: list[dict[str, str]],
     clusterblast: list[dict[str, str]],
     blastp_batches: dict[str, list[tuple[list[dict[str, str]], str]]],
+    protein_hashes: dict[tuple[str, str], str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Build exact-current gene rows and a channel-admission receipt.
 
@@ -544,21 +728,35 @@ def _gene_evidence_rows(
     for channel in _BLASTP_CHANNEL_DIRS:
         batches = blastp_batches.get(channel, [])
         by_gene: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        total = accepted = rejected = 0
-        for rows, _source_name in batches:
-            for row in rows:
+        total = accepted = rejected = bound = unparsed_rows = 0
+        hold_reasons: dict[str, int] = {}
+        quarantined: list[dict[str, Any]] = []
+        for rows, source_name in batches:
+            for row_number, row in enumerate(rows, 1):
                 total += 1
-                row_strain = _text(row.get("strain")).strip().upper()
-                bgc = _text(row.get("bgc_id"))
-                locus = _text(row.get("gene") or row.get("locus_tag"))
-                aa = _int(row.get("aa_length"), -1)
+                row_strain, bgc, locus, aa = _blastp_base_key(row)
                 key = (bgc, locus)
                 cur = current.get(key)
                 cur_aa = _int((cur or {}).get("aa_length"), -1)
                 if row_strain != strain_key or not bgc or not locus or aa <= 0 or cur is None or aa != cur_aa:
                     rejected += 1
                     continue
+                claims, unparsed = row_claims(row)
+                reason = _blastp_claims_hold(claims, unparsed, cur, inv.get(bgc, {}), strain_key,
+                                             bgc, locus, aa, (protein_hashes or {}).get(key, ""))
+                if reason:
+                    rejected += 1
+                    if reason == "BLASTP_UNPARSED_LOCATION_TEXT":
+                        unparsed_rows += 1
+                    hold_reasons[reason] = hold_reasons.get(reason, 0) + 1
+                    if len(quarantined) < 200:
+                        quarantined.append({"reason": reason, "source_file": source_name,
+                                            "source_row_number": row_number,
+                                            "bgc_id": bgc, "gene": locus})
+                    continue
                 accepted += 1
+                if any(c["role"] in LOCATION_ROLES for c in claims):
+                    bound += 1
                 by_gene.setdefault(key, []).append(_top_blastp_hit(row))
         for hits in by_gene.values():
             hits.sort(key=lambda row: (row["hit_rank"], -row["bitscore"], row["subject_acc"]))
@@ -568,6 +766,18 @@ def _gene_evidence_rows(
             "rows_total": total,
             "rows_admitted": accepted,
             "rows_quarantined_or_held": rejected,
+            # Admitted rows split by what the widget could check: rows that made at least one
+            # contig, node, region or protein-hash claim (all matched, as did every identity
+            # claim), and rows that made none.
+            # Rows installed by `install_channel_top10` passed the ingest checks, which include a
+            # physical-claim check only when the raw row carried one (each row's binding depth is
+            # in the package's BLASTp admission receipt). The TOP10 store keeps no physical
+            # column, so the widget cannot re-check them.
+            "rows_admitted_physically_bound": bound,
+            "rows_admitted_without_physical_columns": accepted - bound,
+            "rows_with_unparsed_location_text": unparsed_rows,
+            "physical_binding_holds": dict(sorted(hold_reasons.items())),
+            "physical_binding_held_rows": quarantined,
             "status": "UNAVAILABLE" if not batches else ("PRESENT" if accepted else "HOLD_NO_EXACT_CURRENT_ROWS"),
         }
 
@@ -731,6 +941,13 @@ def _load_model(source: PackageSource) -> dict:
         ]
         for channel, directories in _BLASTP_CHANNEL_DIRS.items()
     }
+    protein_hashes: dict[tuple[str, str], str] = {}
+    try:
+        faa_name = source.locate("_proteins.faa")
+        if faa_name:
+            protein_hashes = _protein_hashes(source.read_bytes(faa_name).decode("utf-8", "replace"))
+    except (OSError, ValueError):
+        protein_hashes = {}  # ambiguous or unreadable: a hash claim is then held as not checkable
     gate, gate_name = source.json("gate_validation.json")
     claim, claim_name = source.json("claim_safety_status.json")
     package_status, package_status_name = source.json("package_status.json")
@@ -757,6 +974,7 @@ def _load_model(source: PackageSource) -> dict:
         mibig=mibig_genes,
         clusterblast=clusterblast_genes,
         blastp_batches=blastp_batches,
+        protein_hashes=protein_hashes,
     )
     status = {
         "package_status": _text(package_status.get("package_status") or manifest.get("package_status")),
@@ -928,7 +1146,7 @@ def _domains_page(data: dict) -> str:
             'Unrepresented rows are not zero-domain measurements.</p>'
         )
     body = '<section class="panel"><h2>Package-native domain architecture</h2><p>Domain counts come from the sealed F01 heatmap sidecar. An absent sidecar stays absent; this widget does not turn missing rows into biological zeros.</p><div class="controls"><label>Metric<br><select id="metric"><option value="total">All shown domains</option><option>PKS_KS</option><option>PKS_AT</option><option>PKS_KR</option><option>PKS_DH</option><option>NRPS_C</option><option>NRPS_A</option><option>NRPS_T_PCP</option><option>TE_release</option></select></label><label>Top rows<br><select id="limit"><option>15</option><option>30</option><option>60</option><option value="9999">All</option></select></label><button onclick="exportSvg(\'chart\',D.meta.strain_id+\'_domains.svg\')">Export SVG</button><button class="secondary" onclick="exportCsv(D.domains,D.meta.strain_id+\'_domains.csv\')">Export CSV</button></div><div style="overflow:auto"><svg id="chart" class="chart" viewBox="0 0 900 560"></svg></div><div class="table-wrap"><table><thead><tr><th>BGC</th><th>Total</th><th>KS</th><th>AT</th><th>KR</th><th>DH</th><th>NRPS C</th><th>NRPS A</th><th>T/PCP</th><th>TE release</th><th>Guard</th></tr></thead><tbody id="rows"></tbody></table></div>'+_publication_details("domains",data)+'</section><div class="guard"><strong>Interpretation guard.</strong> Domain presence supports biosynthetic capacity and architecture. It does not demonstrate a complete product, expression, or production.</div><script>'+r"""
-(()=>{const guardOf=Object.fromEntries((D.priority||[]).map(r=>[r.bgc_id,r.standing_rule||r.misanchor||'']));function draw(){const k=metric.value,n=+limit.value,arr=[...D.domains].sort((a,b)=>(+b[k]||0)-(+a[k]||0)||a.bgc_id.localeCompare(b.bgc_id)).slice(0,n),max=Math.max(1,...arr.map(r=>+r[k]||0)),L=Math.max(150,...arr.map(r=>r.full_identity.length*7+32)),R=40,T=20,B=30,W=L+600,H=560,rowH=(H-T-B)/Math.max(1,arr.length);chart.setAttribute('viewBox',`0 0 ${W} ${H}`);chart.style.minWidth=W+'px';let s='';arr.forEach((r,i)=>{const y=T+i*rowH+2,w=(W-L-R)*(+r[k]||0)/max,g=guardOf[r.bgc_id]||'',fill=g?'#a43f4d':'#176b87',op=g?'.4':'1';s+=`<text x="${L-8}" y="${y+Math.min(16,rowH*.75)}" text-anchor="end">${esc(r.full_identity)}${g?' ⚑':''}</text><rect x="${L}" y="${y}" width="${w}" height="${Math.max(2,rowH-4)}" rx="2" fill="${fill}" fill-opacity="${op}" ${g?'stroke="#a43f4d" stroke-dasharray="3,2"':''}><title>${esc(r.full_identity+' · '+k+' '+r[k]+(g?' · GUARD (excluded from lead ranking): '+g:''))}</title></rect><text x="${Math.min(W-R-5,L+w+5)}" y="${y+Math.min(16,rowH*.75)}">${r[k]}</text>`});chart.innerHTML=s;rows.innerHTML=arr.map(r=>{const g=guardOf[r.bgc_id]||'',badge=g?`<span class="badge bad" title="${esc(g)}">EXCLUDED</span>`:'';return `<tr${g?' style="background:#fdf1f1"':''}><td><strong>${esc(r.full_identity)}</strong></td><td>${r.total}</td><td>${r.PKS_KS}</td><td>${r.PKS_AT}</td><td>${r.PKS_KR}</td><td>${r.PKS_DH}</td><td>${r.NRPS_C}</td><td>${r.NRPS_A}</td><td>${r.NRPS_T_PCP}</td><td>${r.TE_release}</td><td>${badge}</td></tr>`}).join('')}metric.onchange=limit.onchange=draw;draw()})();
+(()=>{const guardOf=Object.fromEntries((D.priority||[]).map(r=>[r.bgc_id,r.standing_rule||r.misanchor||'']));const has=v=>v!==null&&v!==undefined&&v!=='',cell=v=>has(v)?v:'';function draw(){const k=metric.value,n=+limit.value,arr=[...D.domains].sort((a,b)=>(has(a[k])?0:1)-(has(b[k])?0:1)||(+b[k]||0)-(+a[k]||0)||a.bgc_id.localeCompare(b.bgc_id)).slice(0,n),max=Math.max(1,...arr.map(r=>has(r[k])?+r[k]:0)),L=Math.max(150,...arr.map(r=>r.full_identity.length*7+32)),R=40,T=20,B=30,W=L+600,H=560,rowH=(H-T-B)/Math.max(1,arr.length);chart.setAttribute('viewBox',`0 0 ${W} ${H}`);chart.style.minWidth=W+'px';let s='';arr.forEach((r,i)=>{const y=T+i*rowH+2,w=(W-L-R)*(+r[k]||0)/max,g=guardOf[r.bgc_id]||'',fill=g?'#a43f4d':'#176b87',op=g?'.4':'1';s+=`<text x="${L-8}" y="${y+Math.min(16,rowH*.75)}" text-anchor="end">${esc(r.full_identity)}${g?' ⚑':''}</text>`+(has(r[k])?`<rect x="${L}" y="${y}" width="${w}" height="${Math.max(2,rowH-4)}" rx="2" fill="${fill}" fill-opacity="${op}" ${g?'stroke="#a43f4d" stroke-dasharray="3,2"':''}><title>${esc(r.full_identity+' · '+k+' '+r[k]+(g?' · GUARD (excluded from lead ranking): '+g:''))}</title></rect><text x="${Math.min(W-R-5,L+w+5)}" y="${y+Math.min(16,rowH*.75)}">${r[k]}</text>`:`<text x="${L+5}" y="${y+Math.min(16,rowH*.75)}" fill="#6b7280">blank (not recorded)</text>`)});chart.innerHTML=s;rows.innerHTML=arr.map(r=>{const g=guardOf[r.bgc_id]||'',badge=g?`<span class="badge bad" title="${esc(g)}">EXCLUDED</span>`:'';return `<tr${g?' style="background:#fdf1f1"':''}><td><strong>${esc(r.full_identity)}</strong></td><td>${cell(r.total)}</td><td>${cell(r.PKS_KS)}</td><td>${cell(r.PKS_AT)}</td><td>${cell(r.PKS_KR)}</td><td>${cell(r.PKS_DH)}</td><td>${cell(r.NRPS_C)}</td><td>${cell(r.NRPS_A)}</td><td>${cell(r.NRPS_T_PCP)}</td><td>${cell(r.TE_release)}</td><td>${badge}</td></tr>`}).join('')}metric.onchange=limit.onchange=draw;draw()})();
 """+'</script>'
     body = body.replace('<div class="controls">', coverage_note + '<div class="controls">', 1)
     return _shell(_PAGE_TITLES["domains"], body, data, active="domains")
@@ -1145,7 +1363,7 @@ Interactive views were generated by the Sapote-Mamey post-seal widget renderer f
 ## Caption templates
 
 - **Priority:** Routing-prior landscape for {m['strain_id']}. Points are sealed-package BGC rows; axes show automated routing priors or package-native length. Colours encode boundary state. These values prioritize follow-up and are not measured activity or final biological scores.
-- **Domains:** Biosynthetic-domain architecture for {m['strain_id']}, re-projected from the sealed F01 domain sidecar. Bars report recorded domain counts; missing source layers were not zero-filled.
+- **Domains:** Biosynthetic-domain architecture for {m['strain_id']}, re-projected from the sealed F01 domain sidecar. Bars report recorded domain counts; missing source layers were not zero-filled, and a blank cell stays blank with no bar.
 - **Evidence:** Diagnostic-trigger and KnownClusterBlast similarity-anchor evidence for {m['strain_id']}, shown with standing-rule and mis-anchor guards. Comparator names do not establish product identity.
 - **Genes:** Exact-current gene evidence for {m['strain_id']}. The selected locus is shown with BGC class, protein length, domain-supported reaction capacity, MIBiG/KnownCluster compound anchors, ClusterBlast neighborhood similarity, and separately reported BLASTP channels. These are capacity and similarity evidence, not product identity, production, or activity.
 - **RG-GMCI:** Ranked RG-GMCI candidate relationships for {m['strain_id']}. Scores prioritize cross-contig follow-up and do not establish physical linkage or a single pathway.

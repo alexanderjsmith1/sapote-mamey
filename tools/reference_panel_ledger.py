@@ -117,29 +117,41 @@ def main(argv=None):
         return 2
     zips = sorted(f for f in os.listdir(src) if f.endswith(".zip"))
     all_rows = []
+    per_zip = {}          # zip -> number of BGC rows; "skipped" when the archive failed
     for zf in zips:
         try:
             rows = ledger_for_zip(os.path.join(src, zf))
             for r in rows:
                 r["source_file"] = zf
-                # the four-part identity, from the engine's own contig, region and alias (one bound source)
+                # contig, region and alias come from the engine's parse of this ZIP. The strain part is
+                # the ZIP file name stem, not a bound strain record; identity_strain_basis says so.
                 r["identity"] = f"{Path(zf).stem} / {r['contig']} / {r['region']} / {r['bgc_id']}"
+                r["identity_strain_basis"] = "zip_filename_stem_unbound"
             all_rows.extend(rows)
+            per_zip[zf] = len(rows)
         except Exception as exc:  # noqa: BLE001
             emit(f"  skip {zf}: {exc}")
+            per_zip[zf] = "skipped"
+    # Rows are one per parsed BGC, not one per ZIP: report the archive roster separately.
+    zero = [z for z, n in per_zip.items() if n == 0]
+    skipped = [z for z, n in per_zip.items() if n == "skipped"]
+    roster = (f"zip roster: {len(zips)} zip(s); {len(zips) - len(zero) - len(skipped)} with BGC rows; "
+              f"{len(zero)} with no parsed region; {len(skipped)} skipped"
+              + "".join(f"\n  no regions: {z}" for z in zero))
     if not all_rows:
-        sys.stderr.write(f"NO_ROWS: no BGC rows from {len(zips)} zip(s) in {src}; nothing written\n")
+        sys.stderr.write(f"NO_ROWS: no BGC rows from {len(zips)} zip(s) in {src}; nothing written\n{roster}\n")
         return 1
     cols = ["source_file", "identity", "bgc_id", "contig", "region", "obs_region_type", "obs_kcb_anchor",
             "obs_kcb_mibig_accession", "obs_kcb_protein_hits", "obs_edge_status",
             "obs_size_kb", "obs_cds_count", "obs_annotation_class", "obs_pks_ks", "obs_nrps_c", "obs_nrps_a",
-            "cmp_t43_markers", "cmp_t43_vetoed", "cmp_architecture_capacity", "cmp_architecture_confidence"]
+            "cmp_t43_markers", "cmp_t43_vetoed", "cmp_architecture_capacity", "cmp_architecture_confidence",
+            "identity_strain_basis"]
     with open(out, "w", newline="") as fh:
         w = _SafeDictWriter(fh, fieldnames=cols)
         w.writeheader()
         for r in all_rows:
             w.writerow({k: r.get(k, "") for k in cols})
-    emit(f"wrote {len(all_rows)} BGC rows from {len(zips)} zips -> {out}")
+    emit(f"wrote {len(all_rows)} BGC rows from {len(zips)} zips -> {out}\n{roster}")
     return 0
 
 

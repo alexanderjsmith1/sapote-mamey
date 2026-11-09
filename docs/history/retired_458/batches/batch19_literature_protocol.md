@@ -146,7 +146,7 @@ Always run this before §8:
 - `[Genus species] biosynthesis antibiotic`
 
 If hits exist → first reference in §8.1 (discovery/prior context).
-If no hits → note "no prior secondary metabolite characterization reported" — that is a positive novelty statement.
+If no hits → note "no prior secondary metabolite characterization reported". Historical wording called this a positive novelty statement; a bounded no-hit search does not prove novelty (see the note near the top of this page).
 
 ---
 
@@ -178,6 +178,8 @@ All 13 entries below were Bert-Mode-verified on 2026-06-29. Use as `OPERATOR_SUP
 
 `build_punchcard.py` generates a deterministic literature punch-card immediately after a Mamey run — before any Mode B work. It extracts KCB anchors and gene markers from the package and produces a structured list of "cite-required questions":
 
+Historical: these flags are wrong. `tools/build_punchcard.py` takes `--packages` and `--out`, not `--package` and `--outdir` (see the note near the top of this page).
+
 ```bash
 python tools/build_punchcard.py \
   --package runs/[strain]/package \
@@ -193,6 +195,8 @@ BGC locator | compound family | search query | purpose
 Every row is a search to run, not a verified fact. Nothing from the punch-card may enter a deliverable until citation-verified with a confirmed PMID/DOI.
 
 ---
+
+Historical: do not follow this section. `chatgpt_lit_work_order_INSTRUCTIONS.md`, `chatgpt_lit_work_order_BLANK_TEMPLATE.md` and `verified_reference_bank_2026-06-29.md` are not in the bundle. The current route is the [literature search protocol](../../../LITERATURE_SEARCH_PROTOCOL.md).
 
 ## Dispatching to ChatGPT (for verification)
 

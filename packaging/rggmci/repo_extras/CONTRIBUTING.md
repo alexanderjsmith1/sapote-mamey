@@ -1,35 +1,27 @@
-# Source and generated-repository contribution boundary
+# Contributing
 
-This repository is generated from Sapote-Mamey. `build_rggmci_package.py` builds the package from copied engine source and templates and writes `src/rggmci/PROVENANCE.json`. `make_repo_candidate.py` then adds these repository files, sets the version in the citation and changelog, copies a small fixture, and runs the engine once to write the expected output for the engine-parity test.
+This repository is built from the Sapote-Mamey pipeline. Don't edit its files here: the next build replaces them,
+and a change made here would make this package disagree with the pipeline. Open an issue instead. Fixes go into
+Sapote-Mamey and reach this repository on the next build.
 
-Source fixes should be made in their owning bundle/template paths and reviewed with exact provenance. `PROVENANCE.json` hashes selected copied/lifted engine source; it does not hash every template, repository extra, dependency or model/database. A consistent source label/test fixture is not a full release or scientific-validation receipt. The parity test compares one fixture's records and output against engine-produced expectations; scientific independence and broader compatibility remain unverified.
+## Where each file comes from
 
-The repository candidate builder refuses a nonempty nongit destination. For a nonempty Git checkout it stages a new candidate, then deletes every target child except `.git` and moves replacement files in. This can remove untracked/local evidence and interrupt midway; it is not a read-only sync or automatic contribution step. Preserve accepted evidence in place and use a reviewed fresh candidate when regeneration is authorized. Candidate generation is a separate action; preserve the source checkout and local evidence before a maintainer runs it.
+- The scorer (`core.py`) and most modules are copies of Sapote-Mamey source. `groups.py` is
+  `mamey/rescue_groups.py` under another name.
+- The underscore modules (`_parsers.py`, `_ids.py`, `_blastp_io.py`, `_gene_context.py` and the others) hold
+  functions lifted out of larger Sapote-Mamey modules.
+- The reader, the command line and the BLASTp round trip are package templates in Sapote-Mamey's
+  `packaging/rggmci/templates/`. The CI, citation, changelog and this file are in `packaging/rggmci/repo_extras/`.
+- `build_rggmci_package.py` builds the package and writes `src/rggmci/PROVENANCE.json`, with the SHA-256 of
+  every engine source file it copied. `make_repo_candidate.py` adds the repository files and the example.
 
-## Contribution ownership
+## The pipeline and this package agree
 
-This repository is built from Sapote-Mamey by `build_rggmci_package.py`. The scorer (`core.py`) and the
-lifted helpers (`_parsers.py`, `_ids.py`, `_blastp_io.py`) are copies of Sapote-Mamey source. The builder also copies `mamey/rescue_groups.py` unchanged as `groups.py`; grouping fixes belong in that engine source. Don't edit them
-here: a change made here would be lost on the next build and would make this package disagree with the
-engine. Report problems in them as issues; fixes go into Sapote-Mamey and reach this repository on the next
-build.
+The Sapote-Mamey pipeline runs the same scorer, from the same source. With the same ZIP, strain label and databases,
+both should give the same pairs, scores and confidences. The JSON's `wrapper_context` holds only what
+differs between the two: file paths, the distribution name, provenance and where the contig sequences were read from.
 
-The reader, BLASTp round trip and command line are maintained in the package templates under
-`packaging/rggmci/templates/`. Package tests and docs are maintained in those templates or
-`packaging/rggmci/repo_extras/`, as applicable. Keep standalone changes synchronized with their
-owning template or repository-extra source so regeneration preserves them.
-
-`tests/test_example_matches_engine.py` pins the package to the engine's own output on the public example, so
-any drift fails the tests.
-
-## Shared invocation ownership
-
-The actual shared invocation, input preparation, identity enrichment and canonical export belong in
-`mamey/rggmci.py`, with common parsing in `mamey/parsers.py` and completion/resource formatting in
-`mamey/ref_completion.py`. `reader.py`, `__init__.py` and `cli.py` are thin template adapters, not alternate
-scientific implementations. Match inputs, logical labels, defaults, sequence context and active resource
-content when testing both distributions. Static copied/lifted equality and one engine-produced golden
-fixture do not establish actual pipeline equality or independent biological correctness. Retain complete
-canonical JSON/table comparisons, explicit missing/refusal states and isolated optional-resource profiles.
-The repository-candidate golden producer must be reviewed against the current shared invocation before
-publication synchronization; do not infer that an old generated test already covers the new default.
+`tests/test_example_matches_engine.py` checks the scorer itself, below the command line. When the repository is
+built, the pipeline reads the bundled example's regions and scores them, and saves both. The test makes the
+package's region reader and scorer reproduce them exactly. It doesn't run the `rggmci` command, the optional
+databases or any other genome, so a disagreement elsewhere is worth an issue.

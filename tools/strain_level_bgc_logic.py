@@ -34,6 +34,7 @@ RELATION_MODIFIERS = {
     "ARCHITECTURE_REFERENCE_DISCORDANT": -12.0,
     "BOTH_CHANNELS_UNRESOLVED": -15.0,
 }
+UNMATCHED_DISPLAY_CAP = 20
 BOUNDARY_PENALTIES = {"Interior": 0.0, "Edge": 4.0, "Full-contig": 8.0}
 # The workup already reports these when no dominant reference was selected. A BGC with no
 # reference cannot have sparse support for one, so the reference-derived penalties below
@@ -229,10 +230,38 @@ def write_locus_map(path, identity, genes):
     Path(path).parent.mkdir(parents=True,exist_ok=True);Path(path).write_text(svg,encoding="utf-8")
 
 
+def _present(value):
+    text=str(value if value is not None else "").strip()
+    return "" if text.casefold() in {"","na","n/a","nan","none","null","-","--"} else text
+
+
+def homology_state(g):
+    """Return (subject_or_state, identity, coverage) for the homology column.
+
+    A blank subject is not a completed no-hit search. The ledger's explicit NO says only that the
+    workup recorded no dominant-reference subject for this gene; a blank state is not recorded."""
+    subject=_present(g.get("matched_subject_gene"))
+    ident=_present(g.get("matched_pct_identity")) or "not recorded"
+    cov=_present(g.get("matched_pct_coverage")) or "not recorded"
+    if subject:
+        return subject,ident,cov
+    if _present(g.get("dominant_reference_gene_match")).upper()=="NO":
+        return "no dominant-reference subject recorded in the workup ledger (not a completed no-hit search)","",""
+    return "homology state not recorded","",""
+
+
 def protein_table_html(genes):
     ordered=sorted(genes,key=lambda g:integer(g.get("gene_order")))
     if not ordered:return '<p class="small">No gene ledger rows were supplied.</p>'
-    return '<table><tr><th>Order</th><th>Protein</th><th>Coordinates</th><th>aa</th><th>Role</th><th>Function and domains</th><th>Dominant-reference homology</th></tr>'+''.join(f'<tr><td>{html.escape(g.get("gene_order",""))}</td><td>{html.escape(g.get("query_gene",""))}</td><td>{html.escape(g.get("start",""))}-{html.escape(g.get("end",""))} ({html.escape(g.get("strand",""))})</td><td>{html.escape(g.get("aa_length",""))}</td><td>{html.escape(g.get("primary_functional_role",""))}</td><td>{html.escape(g.get("product_annotation","") or g.get("gene_functions",""))}<br><span class="small">{html.escape(g.get("sec_met_domains",""))}</span></td><td>{html.escape(g.get("matched_subject_gene","") or "no dominant-reference match")}<br><span class="small">ID {html.escape(g.get("matched_pct_identity","") or "-")}%; coverage {html.escape(g.get("matched_pct_coverage","") or "-")}%</span></td></tr>' for g in ordered)+'</table>'
+    return '<table><tr><th>Order</th><th>Protein</th><th>Coordinates</th><th>aa</th><th>Role</th><th>Function and domains</th><th>Dominant-reference homology</th></tr>'+''.join(f'<tr><td>{html.escape(g.get("gene_order",""))}</td><td>{html.escape(g.get("query_gene",""))}</td><td>{html.escape(g.get("start",""))}-{html.escape(g.get("end",""))} ({html.escape(g.get("strand",""))})</td><td>{html.escape(g.get("aa_length",""))}</td><td>{html.escape(g.get("primary_functional_role",""))}</td><td>{html.escape(g.get("product_annotation","") or g.get("gene_functions",""))}<br><span class="small">{html.escape(g.get("sec_met_domains",""))}</span></td><td>{_homology_html(g)}</td></tr>' for g in ordered)+'</table>'
+
+
+def _homology_html(g):
+    subject,ident,cov=homology_state(g)
+    if not ident:
+        return html.escape(subject)
+    unit=lambda v:v if v=="not recorded" else v+"%"
+    return f'{html.escape(subject)}<br><span class="small">ID {html.escape(unit(ident))}; coverage {html.escape(unit(cov))}</span>'
 
 
 def md_escape(value): return str(value or "").replace("|","\\|").replace("\n"," ")
@@ -241,8 +270,11 @@ def md_escape(value): return str(value or "").replace("|","\\|").replace("\n"," 
 def protein_table_md(genes):
     out=["| Order | Protein | Coordinates | aa | Role | Function and domains | Dominant-reference homology |","|---:|---|---|---:|---|---|---|"]
     for g in sorted(genes,key=lambda x:integer(x.get("gene_order"))):
-        hom=(g.get("matched_subject_gene") or "no dominant-reference match")
-        if g.get("matched_pct_identity"):hom+=f"; ID {g['matched_pct_identity']}%; coverage {g.get('matched_pct_coverage','-')}%"
+        subject,ident,cov=homology_state(g)
+        hom=subject
+        if ident:
+            unit=lambda v:v if v=="not recorded" else v+"%"
+            hom+=f"; ID {unit(ident)}; coverage {unit(cov)}"
         func="; ".join(x for x in [g.get("product_annotation",""),g.get("sec_met_domains","")] if x)
         out.append("| "+" | ".join(md_escape(x) for x in [g.get("gene_order",""),g.get("query_gene",""),f"{g.get('start','')}-{g.get('end','')} ({g.get('strand','')})",g.get("aa_length",""),g.get("primary_functional_role",""),func,hom])+" |")
     return "\n".join(out)
@@ -259,7 +291,10 @@ def bgc_panel(row, genes):
     unmatched=[g for g in genes if g.get("functional_logic_without_dominant_match")=="YES"]
     gene_html="<p class=\"small\">No annotation-supported unmatched functional genes recorded.</p>"
     if unmatched:
-        gene_html='<details><summary><b>Annotation-supported genes outside the dominant reference</b> ('+str(len(unmatched))+')</summary><table><tr><th>Gene</th><th>Role</th><th>Logic</th><th>Annotation</th><th>Any MIBiG match</th></tr>'+''.join(f'<tr><td>{html.escape(g.get("query_gene",""))}</td><td>{html.escape(g.get("primary_functional_role",""))}</td><td>{html.escape(g.get("functional_logic_tags",""))}</td><td>{html.escape(g.get("product_annotation",""))}</td><td>{html.escape(g.get("any_mibig_gene_match",""))}</td></tr>' for g in unmatched[:20])+'</table></details>'
+        shown=min(len(unmatched),UNMATCHED_DISPLAY_CAP)
+        cap_note=("" if shown==len(unmatched) else
+                  f'<p class="small">Showing the first {shown} of {len(unmatched)} genes, in ledger row order. Every gene is in the all-proteins table below and in the input gene ledger.</p>')
+        gene_html='<details><summary><b>Annotation-supported genes outside the dominant reference</b> ('+(str(len(unmatched)) if shown==len(unmatched) else f"showing {shown} of {len(unmatched)}")+')</summary>'+cap_note+'<table><tr><th>Gene</th><th>Role</th><th>Logic</th><th>Annotation</th><th>Any MIBiG match</th></tr>'+''.join(f'<tr><td>{html.escape(g.get("query_gene",""))}</td><td>{html.escape(g.get("primary_functional_role",""))}</td><td>{html.escape(g.get("functional_logic_tags",""))}</td><td>{html.escape(g.get("product_annotation",""))}</td><td>{html.escape(g.get("any_mibig_gene_match",""))}</td></tr>' for g in unmatched[:UNMATCHED_DISPLAY_CAP])+'</table></details>'
     map_rel=row.get("locus_map_relpath","")
     map_html=f'<img src="{html.escape(map_rel)}" alt="{html.escape(row["complete_identity"])} locus map" style="width:100%;background:white">' if map_rel else ""
     return f'''<section class="panel {css}"><span class="score">{html.escape(row['strain_product_logic_score_0_100'])}</span><div class="identity">{html.escape(row['complete_identity'])}</div><h3>{html.escape(row['potential_product_family_hypothesis'])}</h3><div class="tags"><span class="tag">{html.escape(band)}</span><span class="tag">boundary {html.escape(row['boundary'])}</span><span class="tag">{html.escape(row['functional_reference_relation'])}</span><span class="tag">{html.escape(row['evidence_tier'])}</span></div>{warning}<p>{html.escape(row['functional_logic_summary'])}</p><p><b>Direct support:</b> {html.escape(row['genes_matching_dominant_reference'])}/{html.escape(row['total_cds'])} genes match the dominant reference; {html.escape(row['functional_genes_without_any_mibig_match'])} functional genes have no admitted MIBiG match.</p><p><b>Architecture:</b> {html.escape(row['architecture_first_pathway_type'])} ({html.escape(row['architecture_first_confidence'])}). <b>RG-GMCI:</b> {html.escape(row['rggmci_confidence'] or 'none')} {html.escape(row['rggmci_partner_identity'])}</p>{map_html}{gene_html}<details><summary><b>All proteins, sizes, functions, domains, and homology</b> ({len(genes)})</summary>{protein_table_html(genes)}</details><p class="small">Highest-information question: {html.escape(row['decisive_review_question'])}</p></section>'''
@@ -294,7 +329,23 @@ def top_unit_rows(srows, limit=10):
 
 
 def build(bgc_path, out, gene_path=None, package_list=None):
-    rows=read_tsv(bgc_path); out=Path(out).resolve(); out.mkdir(parents=True,exist_ok=True)
+    out=Path(out).resolve()
+    if out.exists() or out.is_symlink():
+        raise FileExistsError(f"output folder already exists; choose a new --out: {out}")
+    out.mkdir(parents=True)
+    try:
+        return _build(bgc_path, out, gene_path, package_list)
+    except Exception as exc:
+        # Keep the partial folder for diagnosis and label it, so it is never read as a finished run.
+        (out/"RUN_FAILED.json").write_text(json.dumps({
+            "status":"FAILED_PARTIAL_OUTPUT_NOT_VALID","error_type":type(exc).__name__,
+            "error":str(exc),"note":"Partial files kept for diagnosis. Rerun into a new --out folder."},
+            indent=2,sort_keys=True)+"\n")
+        raise
+
+
+def _build(bgc_path, out, gene_path=None, package_list=None):
+    rows=read_tsv(bgc_path)
     genes=read_tsv(gene_path) if gene_path else [];coordinates=load_coordinates(package_list)
     for g in genes:g.update(coordinates.get((g.get("strain",""),g.get("bgc_alias",""),g.get("query_gene","")),{}))
     genes_by_bgc=defaultdict(list)

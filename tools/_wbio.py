@@ -4,6 +4,17 @@
 interrupted mid-write. atomic_save writes to a sibling .tmp and os.replace()s it into place — os.replace is
 atomic on the same filesystem, so the original file is never left half-written. An optional .bak keeps the
 prior version.
+
+Every writer keeps its default: an existing regular file at the destination is replaced. New
+callers can opt in to two refusals, both checked before any staging file is created:
+
+* ``protected=(input, ...)`` refuses a destination that is, or resolves to, one of the given
+  input paths (same path after symlink resolution and case folding, or the same file by inode).
+* ``refuse_existing=True`` refuses a destination that already exists, including a symlink.
+  Publication then uses a hard link, so a file that appears between the check and the publish
+  is still not replaced.
+
+Both raise ``AtomicWriteRefused``.
 """
 import contextlib
 import os
@@ -14,7 +25,11 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 
-class AtomicJsonWriteRefused(RuntimeError):
+class AtomicWriteRefused(RuntimeError):
+    """An opt-in destination check failed before any staging file was created."""
+
+
+class AtomicJsonWriteRefused(AtomicWriteRefused):
     """The destination contract failed before any staging file was created."""
 
 
@@ -37,6 +52,63 @@ def _temp_path(path):
     )
     os.close(fd)
     return tmp
+
+
+def _same_destination(path, source):
+    """True when ``path`` names ``source``: equal after resolution and case folding, or same inode."""
+    try:
+        a = os.path.realpath(os.fspath(path))
+        b = os.path.realpath(os.fspath(source))
+    except (TypeError, ValueError):
+        return False
+    if os.path.normcase(a).casefold() == os.path.normcase(b).casefold():
+        return True
+    try:
+        return os.path.exists(a) and os.path.exists(b) and os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
+def _check_destination(path, protected=(), refuse_existing=False):
+    """Apply the opt-in refusals. Raises AtomicWriteRefused; creates nothing."""
+    if isinstance(protected, (str, bytes, os.PathLike)):
+        protected = (protected,)
+    for source in protected or ():
+        if source is None:
+            continue
+        if _same_destination(path, source):
+            raise AtomicWriteRefused(
+                f"output aliases a protected input: {os.fspath(path)!r} is {os.fspath(source)!r}")
+    if refuse_existing and os.path.lexists(path):
+        raise AtomicWriteRefused(f"output already exists and will not be replaced: {os.fspath(path)!r}")
+
+
+def _publish_new(path, tmp):
+    """Publish ``tmp`` at ``path`` only if ``path`` does not exist (no-clobber)."""
+    try:
+        try:
+            os.link(tmp, path)
+        except FileExistsError:
+            raise AtomicWriteRefused(
+                f"output already exists and will not be replaced: {os.fspath(path)!r}") from None
+        except OSError:
+            # Hard links unsupported here: fall back to a checked replace.
+            if os.path.lexists(path):
+                raise AtomicWriteRefused(
+                    f"output already exists and will not be replaced: {os.fspath(path)!r}") from None
+            os.replace(tmp, path)
+            return
+        os.remove(tmp)
+    except BaseException:
+        _discard(tmp)
+        raise
+
+
+def _finish(path, tmp, refuse_existing):
+    if refuse_existing:
+        _publish_new(path, tmp)
+    else:
+        _commit(path, tmp)
 
 
 def _inherit_mode(path, tmp):
@@ -81,8 +153,9 @@ def _backup(path):
         raise
 
 
-def atomic_save(wb, path, keep_bak=False):
+def atomic_save(wb, path, keep_bak=False, *, protected=(), refuse_existing=False):
     path = os.fspath(path)
+    _check_destination(path, protected, refuse_existing)
     tmp = _temp_path(path)
     try:
         wb.save(tmp)
@@ -98,11 +171,11 @@ def atomic_save(wb, path, keep_bak=False):
         except OSError as e:
             import warnings
             warnings.warn(f"atomic_save: could not create .bak for {path}: {e}")
-    _commit(path, tmp)
+    _finish(path, tmp, refuse_existing)
     return path
 
 
-def atomic_write_text(path, text, encoding="utf-8"):
+def atomic_write_text(path, text, encoding="utf-8", *, protected=(), refuse_existing=False):
     """Write text crash-safely: write to a sibling .tmp, then os.replace into place.
 
     os.replace is atomic on the same filesystem, so a killed process never leaves a
@@ -112,8 +185,11 @@ def atomic_write_text(path, text, encoding="utf-8"):
     calls this replaced — identical bytes on POSIX, and the same os.linesep translation
     on Windows the originals would have done. CSV writers keep their own newline=""
     open() blocks (the csv module's documented requirement); this helper is text-only.
+
+    ``protected`` and ``refuse_existing`` are the opt-in refusals described in the module doc.
     """
     path = os.fspath(path)
+    _check_destination(path, protected, refuse_existing)
     tmp = _temp_path(path)
     try:
         with open(tmp, "w", encoding=encoding) as f:
@@ -121,19 +197,22 @@ def atomic_write_text(path, text, encoding="utf-8"):
     except BaseException:
         _discard(tmp)
         raise
-    _commit(path, tmp)
+    _finish(path, tmp, refuse_existing)
     return path
 
 
-def atomic_dump_json(obj, path, indent=2):
+def atomic_dump_json(obj, path, indent=2, *, protected=(), refuse_existing=False):
     """json.dump crash-safely via a sibling .tmp + os.replace.
 
     NOTE the argument order: atomic_dump_json(obj, path) is OBJECT-FIRST, matching the
     stdlib json.dump(obj, fp) it wraps — whereas atomic_write_text(path, text) is PATH-FIRST.
     They differ on purpose (each mirrors its stdlib model); don't swap them.
+
+    ``protected`` and ``refuse_existing`` are the opt-in refusals described in the module doc.
     """
     import json
     path = os.fspath(path)
+    _check_destination(path, protected, refuse_existing)
     tmp = _temp_path(path)
     try:
         with open(tmp, "w", encoding="utf-8") as f:
@@ -141,11 +220,12 @@ def atomic_dump_json(obj, path, indent=2):
     except BaseException:
         _discard(tmp)   # a non-serializable object used to leave a stray .tmp on disk
         raise
-    _commit(path, tmp)
+    _finish(path, tmp, refuse_existing)
     return path
 
 
-def atomic_dump_json_owned(obj, path, *, owner_dir, indent=2, **json_kwargs):
+def atomic_dump_json_owned(obj, path, *, owner_dir, indent=2, protected=(), refuse_existing=False,
+                           **json_kwargs):
     """Publish JSON through one explicitly owned destination directory.
 
     This JSON-only contract is intentionally narrower than the package-wide text
@@ -165,8 +245,19 @@ def atomic_dump_json_owned(obj, path, *, owner_dir, indent=2, **json_kwargs):
     Atomic publication does not merge concurrent read-modify-write transactions.
     Callers that update the same logical JSON object must still be externally
     serialized; unique staging prevents temp collisions, not lost updates.
+
+    ``protected`` refuses a destination that aliases one of the given inputs, and
+    ``refuse_existing`` refuses any existing destination leaf.  Both raise
+    ``AtomicJsonWriteRefused`` (a subclass of ``AtomicWriteRefused``) before staging.
     """
     import json
+
+    try:
+        _check_destination(os.fspath(path), protected, refuse_existing)
+    except AtomicJsonWriteRefused:
+        raise
+    except AtomicWriteRefused as exc:
+        raise AtomicJsonWriteRefused(str(exc)) from None
 
     raw_path = os.path.abspath(os.fspath(path))
     raw_owner = os.path.abspath(os.fspath(owner_dir))
@@ -229,7 +320,15 @@ def atomic_dump_json_owned(obj, path, *, owner_dir, indent=2, **json_kwargs):
             raise
 
         try:
-            os.replace(tmp, destination)
+            if refuse_existing:
+                try:
+                    os.link(tmp, destination)
+                except FileExistsError:
+                    raise AtomicJsonWriteRefused(
+                        f"output already exists and will not be replaced: {destination!r}") from None
+                os.remove(tmp)
+            else:
+                os.replace(tmp, destination)
             published = True
             tmp = None
         except BaseException:
@@ -251,7 +350,7 @@ def atomic_dump_json_owned(obj, path, *, owner_dir, indent=2, **json_kwargs):
 
 
 @contextlib.contextmanager
-def atomic_open(path, mode="w", encoding="utf-8", newline=None):
+def atomic_open(path, mode="w", encoding="utf-8", newline=None, *, protected=(), refuse_existing=False):
     """Context manager for crash-safe streamed writes: yields a file handle on a sibling .tmp,
     and os.replace()s it into place only on clean exit. If the block raises, the .tmp is removed
     and the original file is left untouched.
@@ -259,15 +358,19 @@ def atomic_open(path, mode="w", encoding="utf-8", newline=None):
     Use for multi-write blocks (FASTA loops, line-by-line reports) where accumulating the whole
     payload in memory would be awkward — the loop body keeps its f.write() calls unchanged; only
     the `with open(path, "w")` becomes `with atomic_open(path)`.
+
+    ``protected`` and ``refuse_existing`` are the opt-in refusals described in the module doc;
+    both are checked before the temp file is created.
     """
     path = os.fspath(path)
+    _check_destination(path, protected, refuse_existing)
     tmp = _temp_path(path)
     f = None
     try:
         f = open(tmp, mode, encoding=encoding, newline=newline)
         yield f
         f.close()
-        _commit(path, tmp)
+        _finish(path, tmp, refuse_existing)
     except BaseException:
         try:
             if f is not None:

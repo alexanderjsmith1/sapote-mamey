@@ -32,9 +32,13 @@ The folder also has `widget_data.json`, `README.md`, `SHA256SUMS.txt`,
 
 ## Check a number before reusing it
 
-Blank AB/AF, novelty, length and domain-count cells display as **0**. Check the
-raw table and `domain_coverage` in `widget_data.json` before treating that as a
-measurement. An absent table instead produces an empty view. Only the manifest
+Blank AB/AF, novelty and length cells display as **0** (`_num`, `mamey/widget_deliverable.py:128-130,357-360`).
+Check the raw table before treating that 0 as a measurement. A blank domain-count
+cell is different: it stays blank, with no bar, and the CSV export writes it blank.
+A domain row total is shown only when all eight domain columns were recorded;
+otherwise the total is blank and the recorded-only sum is kept apart
+(`mamey/widget_deliverable.py:381-401`). Check `domain_coverage` in `widget_data.json`
+for columns the sidecar lacks. An absent table instead produces an empty view. Only the manifest
 is required; malformed or duplicate source artifacts stop rendering.
 
 The priority view uses a nonempty triage table, otherwise the inventory. It
@@ -49,7 +53,11 @@ renderer manifest and checksums; save their hashes separately.
 ## Why the gene pages can differ
 
 `genes.html` requires positive protein lengths and sets aside duplicate
-`(bgc_id, locus_tag)` keys. BLASTp rows must match strain, BGC, gene and length.
+`(bgc_id, locus_tag)` keys. A BLASTp row is shown only when every claim it makes
+agrees with the current locus: strain, BGC, gene, length, contig, node, region and
+protein hash. Location text the reader cannot parse holds the row. Rows that carry
+no location columns are admitted but counted apart, as
+`rows_admitted_without_physical_columns` (`mamey/widget_deliverable.py:515-545,735-781`).
 Read `gene_evidence_receipt`; `counts.gene_rows` counts this page only.
 
 `gene.html` combines the inventory, locus-map data and channel stores. It can

@@ -117,12 +117,12 @@ def build_pdf(strain: str, runs_root: str, outdir: str, per_page: int = 6) -> st
 
     pkg = find_pkg(runs_root, strain)
     if not pkg:
-        emit(f"  [SKIP] {strain}: no antismash_modules.csv found under {runs_root}")
+        emit(f"  [SKIP] {strain}: no antismash_modules.csv found under {runs_root}; nothing written. The package may still exist; check the path and the module table.")
         return None
     payload = build_payload(strain, pkg)
     bgcs = payload["bgcs"]
     if not bgcs:
-        emit(f"  [SKIP] {strain}: no NRPS/PKS assembly-line domains present")
+        emit(f"  [SKIP] {strain}: the module table has no NRPS/PKS assembly-line domain rows; nothing written. This reports the module table only; inspect it before concluding why.")
         return None
 
     rows, cols = (3, 2) if per_page == 6 else (2, 2)

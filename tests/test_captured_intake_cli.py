@@ -118,14 +118,15 @@ def test_fallback_preserves_status_pass_count_and_source(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "_with_timeout", timeout)
     assert cli.main(args(path, out, "--json-evidence", "bounded")) == 0
     data, _ = load(out); evidence = data["evidence"]
-    assert passes == [(data["input_sha256"], 2)]
+    # TIGRFAM + competitors + the KCB percent handler, still one record pass.
+    assert passes == [(data["input_sha256"], 3)]
     assert evidence["json_mode_requested"] == "bounded" and evidence["json_mode"] == "off"
     assert evidence["json_parse_budget"]["state"] == "EXCEEDED_FALLBACK_OFF"
     assert data["bgcs"][0]["kcb_cumulative"] == 42 and "kcb_assignment_audit" in evidence
 
 
-@pytest.mark.parametrize("mode, tigrfam, structured, count", [("off", True, False, 2),
-    ("off", False, False, 0), ("off", False, True, 5), ("bounded", True, False, 7)])
+@pytest.mark.parametrize("mode, tigrfam, structured, count", [("off", True, False, 3),
+    ("off", False, False, 0), ("off", False, True, 6), ("bounded", True, False, 8)])
 def test_bound_evidence_reuse_preserves_options_and_one_record_pass(tmp_path, monkeypatch, mode, tigrfam, structured, count):
     path = archive(tmp_path / "input.zip"); session = CapturedIntakeSession.capture(path, policy=POLICY)
     passes = []; original = ev._run_record_extractors

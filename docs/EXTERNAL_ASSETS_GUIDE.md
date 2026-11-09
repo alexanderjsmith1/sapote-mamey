@@ -1,13 +1,23 @@
 # Find reference data for your task
 
 Use this page when an optional workflow needs a database, HMM file or reference
-collection. You need the selected task and its input requirements. Core extraction
-reads an antiSMASH result ZIP; it does not require every asset listed here.
+collection. Core extraction reads an antiSMASH result ZIP; it does not require every
+asset listed here. Find your task in the table first.
 
-Start with [companion files](COMPANION_FILES.md#inputs-for-the-selected-task),
+Then see [companion files](COMPANION_FILES.md#inputs-for-the-selected-task),
 [installation](INSTALL.md) and [prerequisites](PREREQUISITES.md). Reuse existing
 assets in place and record their path, version and SHA-256. Before downloading,
 check the source, size, terms and destination.
+
+## Which asset for which task
+
+| Task | Asset | Section |
+|---|---|---|
+| Scanner domain checks | Pfam HMM subset (`SM_HMM_DB`) | [Scanner HMMs](#scanner-hmms) |
+| BiG-SCAPE | Full Pfam-A and MIBiG GBKs | [BiG-SCAPE and sequence comparisons](#big-scape-and-sequence-comparisons) |
+| Local BLAST or 16S work | BLAST+ and a database | [BiG-SCAPE and sequence comparisons](#big-scape-and-sequence-comparisons) |
+| Named-hit enrichment | NP Atlas reference files | [NP Atlas and literature](#np-atlas-and-literature) |
+| Literature enrichment | Literature corpus | [NP Atlas and literature](#np-atlas-and-literature) |
 
 ## Check the selected paths
 
@@ -17,35 +27,47 @@ Run doctor from an editable program folder:
 python mamey_run.py doctor
 ```
 
-Read its selected paths and missing capabilities. [Install](INSTALL.md#doctor-scope-and-write-probe)
-explains its temporary write probe. Keep the existing project layout:
+When at least one dataset is found, the line `External datasets provisioned` gives a count such
+as `2/6` and names them. With none found, that line is absent. Each missing dataset gets its own
+warning with the variable to set and where to download it. `doctor` does not print the folder
+for each dataset; it does print the exclusions-file path on its governed-denominator line when
+that source is bound. To see the resolved path for each dataset, run this from the bundle root:
+
+```bash
+python -c "import json; from mamey import external_data as x; print(json.dumps(x.status(), indent=2))"
+```
+
+[Install](INSTALL.md#doctor-scope-and-write-probe) explains `doctor`'s temporary write probe. Keep the existing project layout:
 `Wheelhouse/` holds scanner/registry material; `wheels/` holds Python wheels.
 
 For generic datasets, lookup tries the dataset variable, then
 `MAMEY_DATA_ROOT` plus the subdirectory below, then the legacy bundle location.
-A candidate needs its named probe file; an invalid override can fall through.
+A candidate needs its named probe file; an invalid override can fall through. For example, `export MAMEY_MIBIG_DIR=/data/mibig` makes the lookup use that folder if it holds the probe file. Then run the command above to see the path it resolves.
 
 | Dataset | Variable | Subdirectory | Probe |
 |---|---|---|---|
 | MIBiG index | `MAMEY_MIBIG_DIR` | `mibig/` | `mibig_reference_index.bacterial.json` |
 | MIBiG neighborhoods | `MAMEY_MIBIG_NEIGHBORHOODS_DIR` | `mibig/neighborhoods/` | `PROVENANCE.md` |
 | Literature | `MAMEY_LITERATURE_CORPUS` | `literature/` | `literature_corpus.jsonl` |
-| NP Atlas raw source | `MAMEY_NPATLAS_DIR` | `npatlas/` | `np_atlas.json` |
+| NP Atlas raw source (presence check only; see below) | `MAMEY_NPATLAS_DIR` | `npatlas/` | `np_atlas.json` |
 | Exclusions/governance | `MAMEY_OFFICIAL_DATA` | `OFFICIAL_DATA/` | `exclusions.json` |
 
-For example, point `MAMEY_MIBIG_DIR` to the folder containing its index file.
-Check both that variable and `MAMEY_DATA_ROOT` if the reported path is unexpected.
-The consumers below have additional lookup rules.
+If the resolved path is unexpected, check both the dataset variable and `MAMEY_DATA_ROOT`. The consumers below have additional lookup rules.
 
 ## Scanner HMMs
 
-Lookup tries an existing `SM_HMM_DB` path, `MAMEY_HMM_DIR`,
-`MAMEY_DATA_ROOT/hmm/`, bundle `Wheelhouse/hmm/scanner_pfam_150.hmm`, a discovered
-add-on copy, then bundle `scanner_pfam.hmm`. Within configured directories,
-the `_150` filename takes precedence. Its model-count hint is 148; the smaller
-filename's hint is 35. Check the content and hash, not just the filename.
+The scanner uses a small Pfam HMM subset. The CODE ZIP does not ship it: its `Wheelhouse/` has no `hmm/` folder. Lookup tries, in order:
 
-Set `SM_HMM_DB` to a file: its existence check also accepts directories.
+1. an existing `SM_HMM_DB` path;
+2. `MAMEY_HMM_DIR`;
+3. `MAMEY_DATA_ROOT/hmm/`;
+4. `Wheelhouse/hmm/scanner_pfam_150.hmm`, only if your bundle carries one;
+5. a `scanner_pfam_150.hmm` in a discovered add-on folder;
+6. `Wheelhouse/hmm/scanner_pfam.hmm`, the 35-model set, which the public bundle also omits.
+
+In steps 2 and 3, `scanner_pfam_150.hmm` is tried before `scanner_pfam.hmm`. Its model-count hint is 148; the other file's hint is 35. Check the content and hash, not just the filename.
+
+Set `SM_HMM_DB` to the `.hmm` file itself. A directory is refused, and lookup does not fall through to another source.
 The [subset builder](447_COMPANION_RETRIEVAL_CONTROLS.md#scanner-subset-provisioning)
 uses a compatible local Pfam-A file and performs no download. Without HMM evidence,
 regex work can continue while the HMMER fields say `NEEDS_HMMER_DOMTBLOUT`.
@@ -70,12 +92,13 @@ Raw `np_atlas.json` satisfies the generic NP Atlas probe. Named-hit enrichment
 uses `all_actinobacteria_npatlas_ref.json` and `bacteria_nonactino_npatlas_ref.json`;
 follow [NP Atlas provisioning](NPATLAS_PROVISIONING.md).
 
-`MAMEY_NPATLAS_DIR` prioritizes the normalized files; `SM_NPATLAS_DIR` is a
-warned legacy alias. This reader does not directly use `MAMEY_DATA_ROOT/npatlas`.
-It combines readable fallback files and keeps the first record per lowercased
-name. Start a fresh process after changing references because the index is cached.
-Check raw presence, consumer counts and unreadable files separately. Review the
-release terms and the bundle's nonredistribution policy before sharing these data.
+The named-hit reader (`mamey/npatlas_resolver.py`) does not use `MAMEY_DATA_ROOT`. It reads
+only `MAMEY_NPATLAS_DIR` (or the legacy `SM_NPATLAS_DIR`, which warns) and its fallback folders.
+So `doctor` can count NP Atlas as provisioned from `$MAMEY_DATA_ROOT/npatlas/np_atlas.json`
+while the reader finds no references. Set `MAMEY_NPATLAS_DIR` to the folder that holds the two
+reference files. The reader caches its index per process, so start a fresh process after you
+change those files. `status()` reports `consumer_ready` for the reader's view. Other rules are in
+[NP Atlas provisioning](NPATLAS_PROVISIONING.md).
 
 The literature builder `mamey/data/literature/_corpus/pubmed_ingest.py` reads
 local PubMed search-result PDF exports with `pypdf`; it does not fetch records.
@@ -85,13 +108,7 @@ Unavailable enrichment stays NOT MEASURED.
 
 ## Exclusions and other references
 
-An active source context can supply exclusions before environment lookup;
-see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). Otherwise,
-`MAMEY_OFFICIAL_DATA` is exclusive. With no such variable, a set
-`MAMEY_DATA_ROOT` supplies an exclusive `OFFICIAL_DATA/` candidate; with neither,
-lookup walks package parents. A missing/unusable source can fail strict checks
-or use an empty default in non-strict operation. Inspect the selected source
-before using a cohort denominator.
+The exclusions list is read from `MAMEY_OFFICIAL_DATA` if set, else from `OFFICIAL_DATA/` under `MAMEY_DATA_ROOT`. In a non-strict run a missing list can fall back to an empty one, so check that the file was found. A cohort run can supply its own; see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). A single-strain run does not need this.
 
 For phylogenomics, use the selected reference genomes and metadata from the
 [workflow](PHYLO_AUTOPILOT_WORKFLOW.md). Binary lookup can use `MAMEY_PHYLO_BIN`,
@@ -104,9 +121,3 @@ slides; it excludes addons and tests. The code ZIP's three packaging wheels
 are not a complete offline runtime; see [companion installation](COMPANION_FILES.md#installation-and-companion-tool-boundaries).
 
 For input formats and genome recovery, use [companion files](COMPANION_FILES.md).
-The [previous guide](history/EXTERNAL_ASSETS_GUIDE.md) remains in history.
-
-<a id="acquire-only-the-assets-needed-for-the-selected-task"></a>
-<a id="where-assets-belong"></a>
-<a id="how-the-engine-finds-an-asset-once-it-is-present"></a>
-<a id="assets"></a>

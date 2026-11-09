@@ -1,5 +1,5 @@
-"""Two-proof logic version 3 (.452): a legacy _4A without the overlap column keeps its verdict, and the receipt says
-the overlap count was absent and read as zero (owner ruling, 14 Oct 2026)."""
+"""Two-proof logic: a legacy _4A without the overlap column was read as zero in version 3 (owner ruling 14 Oct 2026).
+Version 4 (.464, owner ruling 6 Nov 2026) holds it as unmeasured, like a blank cell."""
 import csv
 
 from mamey.rescue_two_proof import TWO_PROOF_LOGIC_VERSION, two_proof_join, write_4d_csv
@@ -22,15 +22,16 @@ def _rows(tmp_path, row):
     return rows, list(csv.DictReader(open(out)))
 
 
-def test_version_is_three():
-    assert TWO_PROOF_LOGIC_VERSION == "3"
+def test_version_is_four():
+    assert TWO_PROOF_LOGIC_VERSION == "4"
 
 
-def test_legacy_row_keeps_its_verdict_and_says_the_count_was_absent(tmp_path):
+def test_legacy_row_is_held_and_says_the_count_was_absent(tmp_path):
     rows, written = _rows(tmp_path, dict(BASE))
-    assert written[0]["verdict"] == "RGGMCI_ONLY"
-    assert "overlap count absent" in written[0]["claim_note"] and "read as zero" in written[0]["claim_note"]
-    assert written[0]["two_proof_logic_version"] == "3"
+    assert written[0]["verdict"] == "LOGIC_EVIDENCE_HOLD"
+    assert "overlap count absent" in written[0]["claim_note"] and "held as unmeasured" in written[0]["claim_note"]
+    assert "read as zero" not in written[0]["claim_note"].replace("not read as zero", "")
+    assert written[0]["two_proof_logic_version"] == "4"
     assert "_overlap_column_absent" not in written[0]
 
 

@@ -49,7 +49,7 @@ When raising a cap, preserve the earlier held/truncated attempt and test the siz
 
 ## Assistant-session accounting
 
-`tools/session_cost_audit.py` sums the token fields in Claude Code transcript logs. Point it at a folder with `--proj`; filter with `--since`, `--session` (filename substring) or `--color` (a heuristic based on `STATE.md` folder names); export with `--tsv` to a new file. It reads only the newest 25 top-level `*.jsonl` files, or 200 with a filter. It skips unreadable lines without counting them and reports tokens, not cost, CPU or time. The TSV session field is the first eight filename characters, so two sessions can share one. Keep the console output, command and log hashes with any TSV.
+`tools/session_cost_audit.py` sums the token fields in Claude Code transcript logs. Point it at a folder with `--proj`; filter with `--since`, `--session` (filename substring) or `--color` (a heuristic based on `STATE.md` folder names); export with `--tsv` to a new file. With no filter it reads the newest 25 top-level `*.jsonl` files. With any filter, `--since` included, it reads up to the newest 200. The console's `files:` line says how many were read and how many older files were not, in which case the totals are partial. It skips unreadable lines without counting them and reports tokens, not cost, CPU or time. The TSV session field is the first eight filename characters, so two sessions can share one. Keep the console output, command and log hashes with any TSV.
 
 ## Migration priorities
 

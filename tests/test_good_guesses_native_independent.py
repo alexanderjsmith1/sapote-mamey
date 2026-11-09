@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from mamey import good_guesses as gg
 import mamey.exact_identity as owner
-from mamey.crosswalk import infer_node_id
+from mamey.crosswalk import infer_node_id, legacy_short_node_id
 
 STRAIN="SYNTHETIC-001"
 CONTIG="NODE_1_length_1000_cov_1.5"
@@ -79,7 +79,8 @@ def test_anchor_validator_requires_every_role(field):
 
 def test_anchor_binding_retains_board_reference_without_rewriting_source_locator():
     identity=owner.exact_locus_from_native_inventory_row(STRAIN,board())
-    a=anchor();before=copy.deepcopy(a)
+    a=anchor();a["contig"]=legacy_short_node_id(CONTIG)  # ruling 479: v9.7.409 anchors carry the legacy short form
+    before=copy.deepcopy(a)
     validator=getattr(owner,"validate_native_legacy_evidence_anchor",None);assert callable(validator)
     binding=validator(STRAIN,a,identity)
     assert binding.board_identity is identity and a==before

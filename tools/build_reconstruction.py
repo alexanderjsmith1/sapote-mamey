@@ -73,7 +73,8 @@ def subj_sortkey(subject):
 
 
 def gene_inventory(gbk_path):
-    """All CDS on the contig (for the flank census), with locus tag + best annotation."""
+    """All CDS in the selected region GenBank file, with locus tag + best annotation. A region file
+    covers the antiSMASH region (plus its flanks), not necessarily the whole parent contig."""
     txt = open(gbk_path, encoding="utf-8", errors="replace").read()
     genes = []
     for block in txt.split("\n     CDS ")[1:]:
@@ -87,6 +88,31 @@ def gene_inventory(gbk_path):
         label = gene or (",".join(s.strip() for s in sm) if sm else (prod or "hypothetical"))
         genes.append({"locus_tag": lt, "label": label[:60]})
     return genes
+
+
+def select_region_gbk(gbk_dir, src_base, prefix, region_number=None):
+    """Pick the region GenBank for one BGC. Returns (path_or_None, status).
+
+    Order: the exact `source_gbk` basename recorded for the BGC; else the one file named
+    `<prefix>.regionNNN.gbk` for the BGC's region number; else the only `<prefix>.region*.gbk`.
+    Several candidates with no exact match is AMBIGUOUS and nothing is chosen."""
+    if src_base and os.path.isfile(os.path.join(gbk_dir, src_base)):
+        return os.path.join(gbk_dir, src_base), "EXACT_SOURCE_GBK"
+    if not prefix:
+        return None, "NOT_FOUND"
+    cands = sorted(p for p in glob.glob(os.path.join(gbk_dir, "%s.region*.gbk" % glob.escape(prefix)))
+                   if re.fullmatch(re.escape(prefix) + r"\.region\d+\.gbk", os.path.basename(p)))
+    if region_number not in (None, ""):
+        try:
+            want = "%s.region%03d.gbk" % (prefix, int(region_number))
+        except (TypeError, ValueError):
+            want = None
+        exact = [p for p in cands if os.path.basename(p) == want]
+        if exact:
+            return exact[0], "REGION_NUMBER_MATCH"
+    if len(cands) == 1:
+        return cands[0], "ONLY_REGION_FILE"
+    return None, ("AMBIGUOUS" if cands else "NOT_FOUND")
 
 
 def reconstruct(package, cb_dir, gbk_dir, frag_ids):
@@ -112,11 +138,12 @@ def reconstruct(package, cb_dir, gbk_dir, frag_ids):
         m = re.search(r"NODE_(\d+)", contig)
         ctg = "ctg" + m.group(1) if m else (prefix.split(".")[0] if prefix else None)
         cbp = glob.glob(os.path.join(cb_dir, "%s_*.txt" % prefix)) if prefix else []
-        gbp = glob.glob(os.path.join(gbk_dir, "%s*.region*.gbk" % prefix)) if prefix else []
+        gbp, gbk_status = select_region_gbk(gbk_dir, src_base, prefix, b.get("region_number"))
         frags.append({"bgc": fid, "node": prefix, "ctg": ctg,
                       "products": ";".join(b.get("products") or []),
                       "cb": parse_cb(cbp[0]) if cbp else {},
-                      "genes": gene_inventory(gbp[0]) if gbp else []})
+                      "genes": gene_inventory(gbp) if gbp else [],
+                      "gbk_file": os.path.basename(gbp) if gbp else "", "gbk_status": gbk_status})
     # shared CB references across all fragments
     refsets = [set(f["cb"].keys()) for f in frags if f["cb"]]
     shared = set.intersection(*refsets) if len(refsets) == len(frags) and refsets else set()
@@ -220,17 +247,24 @@ def render(strain, frags, ranked, best):
     L.append("")
 
     # 4. flank census — "look downstream"
-    L.append("## 4 · Contig-flank census (look downstream — what else is on the contig?)")
+    L.append("## 4 · Region-file CDS census (look downstream — what else is in the region file?)")
     L.append("")
-    L.append("Every CDS on each contig, flagged by whether it hits the shared scaffold family. "
-             "Genes that do **not** hit are stated honestly as unexplained, not assumed absent.")
+    L.append("Every CDS parsed from each fragment's selected region GenBank file, flagged by whether it "
+             "hits the shared scaffold family. A region file covers the antiSMASH region and its flanks, "
+             "not necessarily the whole contig, so this is not a whole-contig census. Genes that do "
+             "**not** hit are stated honestly as unexplained, not assumed absent.")
     for f in frags:
         hitq = set(h["query"] for h in f["cb"].get(best, {}).get("hits", []))
         # also count hits to ANY shared/indolocarbazole-family ref, not just best
         anyq = set()
         for acc, r in f["cb"].items():
             anyq |= set(h["query"] for h in r["hits"])
-        L.append(f"\n**{f['bgc']} / {f['ctg']} — {len(f['genes'])} CDS:**")
+        if not f.get("gbk_file"):
+            L.append(f"\n**{f['bgc']} / {f['ctg']} — region file {f.get('gbk_status', 'NOT_FOUND')}: "
+                     f"no CDS listed (held, not an empty region).**")
+            continue
+        L.append(f"\n**{f['bgc']} / {f['ctg']} — {len(f['genes'])} CDS in `{f['gbk_file']}` "
+                 f"({f.get('gbk_status', '')}):**")
         for g in f["genes"]:
             mark = ("★ scaffold" if g["locus_tag"] in hitq else
                     ("· CB-family" if g["locus_tag"] in anyq else "  unexplained"))

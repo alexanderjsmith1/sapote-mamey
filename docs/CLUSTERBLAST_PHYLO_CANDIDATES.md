@@ -1,66 +1,59 @@
 # ClusterBlast-derived phylogeny candidate ledger
 
-This optional, post-seal companion converts raw cross-genome ClusterBlast
-evidence into a transparent **candidate-reference ledger** for later GToTree
-panel curation. It does not download a genome, declare a nearest relative, or
-run GToTree/IQ-TREE.
+`tools/rank_clusterblast_phylo_candidates.py` turns the raw ClusterBlast results in an antiSMASH ZIP into a ranked list of candidate comparator genomes. You use the list later, when you choose a genome panel for a tree (see [GToTree panel selection](GTOTREE_PANEL_SELECTION.md) and [Phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md)). The tool downloads nothing, names no "nearest relative", and runs no GToTree or IQ-TREE.
 
-## Why raw antiSMASH evidence is required
+ClusterBlast compares a cluster's genes with clusters in other genomes. Its hits are local to the cluster. They are not a whole-genome comparison.
 
-Current Mamey `_4A2_ClusterBlast_per_gene.csv` files preserve useful per-gene
-identity and coverage but do not retain a database-channel field on every row.
-The generating layer can read `clusterblast/`, `knownclusterblast/`, and
-`subclusterblast/`; after flattening, those rows cannot always be separated
-without returning to the raw ZIP.
+## Before you start
 
-Accordingly, this tool:
+You need, for each strain:
 
-1. parses only exact raw ZIP members whose directory component is
-   `clusterblast`;
-2. inventories but does not use `knownclusterblast` or `subclusterblast`;
-3. does not ingest MIBiG, nr, Swiss-Prot, or EBI evidence;
-4. hashes and row-counts the current Mamey CSV only as an audit source and marks
-   a channel-collapsed export `AUDIT_ONLY_CHANNEL_COLLAPSED_NOT_RANKED`.
+1. the raw antiSMASH result ZIP;
+2. the whole-assembly FASTA or GenBank file inside that ZIP (not a region GenBank);
+3. the package's `_2_inventory.csv`, which maps raw region files to BGC IDs.
 
-KnownClusterBlast/MIBiG compound anchors are therefore never converted into
-organism phylogeny candidates. ClusterBlast remains distinct from nr protein
-homology and from whole-genome relatedness.
+You may also supply a resolver table (see below) and the package's `_4A2_ClusterBlast_per_gene.csv` (the per-gene ClusterBlast table in your package), used for audit only.
 
-## Inputs
+## Why the raw ZIP is needed
 
-Copy `examples/clusterblast_phylo_sources.template.tsv`. Each strain row must
-provide:
+The package's per-gene ClusterBlast table does not record which ClusterBlast database each row came from. The raw ZIP keeps them in separate folders. So the tool:
 
-- `strain_id` and `cohort`;
-- the exact antiSMASH ZIP path;
-- the exact whole-assembly FASTA or GenBank `assembly_member` inside that ZIP;
-- the sealed Mamey `_2_inventory.csv` used to map raw region filenames to exact
-  `(strain_id, bgc_id)` keys;
-- optionally, the current `_4A2_ClusterBlast_per_gene.csv` for audit only.
+1. reads only raw ZIP members in the `clusterblast` folder;
+2. lists, but does not use, the `knownclusterblast` and `subclusterblast` folders;
+3. does not read MIBiG, nr, Swiss-Prot or EMBL-EBI results;
+4. hashes the package CSV for audit and marks it `AUDIT_ONLY_CHANNEL_COLLAPSED_NOT_RANKED`.
 
-The assembly member is parsed and receipted with ZIP SHA-256, member SHA-256,
-header/contig-order-independent nucleotide-content SHA-256, record count, and
-total bases. Region GenBanks are not assembly inputs.
+KnownClusterBlast and MIBiG anchors point to compounds. They are never turned into organism candidates.
 
-## Assembly-accession resolution gate
+## The source table
 
-Raw ClusterBlast references are commonly nucleotide/contig accessions such as
-`NZ_CP...` or `NZ_J...`; those are not silently promoted to whole assemblies.
-An optional resolver TSV must explicitly map each reference accession to a
-versioned `GCA_...` or `GCF_...` assembly accession and preserve a
-`resolution_evidence` note:
+Copy `examples/clusterblast_phylo_sources.template.tsv`. Its header is:
 
 ```text
-reference_accession  assembly_accession  organism_label  resolution_evidence
-NZ_CP012345          GCF_012345678.1     Genus species   curator crosswalk + source
+strain_id	cohort	antismash_zip	assembly_member	bgc_inventory_csv	mamey_clusterblast_csv
 ```
 
-Without that mapping, the row is `HOLD_REQUEST_ASSEMBLY_ACCESSION` and is not
-eligible for a 20/40/60 candidate pool. The tool performs no network resolution
-or download and does not authenticate a curator assertion beyond schema and
-accession-format checks.
+| Column | Put here |
+|---|---|
+| `strain_id` | the strain name |
+| `cohort` | a group label of your choice |
+| `antismash_zip` | path to the antiSMASH ZIP |
+| `assembly_member` | name of the whole-assembly file inside that ZIP |
+| `bgc_inventory_csv` | path to the package `_2_inventory.csv` |
+| `mamey_clusterblast_csv` | optional; the package per-gene ClusterBlast CSV, audit only |
 
-## Ranking and non-independence
+## Resolve accessions
+
+Raw ClusterBlast references are usually nucleotide or contig accessions such as `NZ_CP...`. The tool does not treat them as whole assemblies. A resolver TSV maps each one to a versioned `GCA_...` or `GCF_...` assembly accession and keeps your evidence note:
+
+```text
+reference_accession	assembly_accession	organism_label	resolution_evidence
+NZ_CP012345	GCF_012345678.1	Genus species	curator crosswalk + source
+```
+
+A reference with no mapping becomes `HOLD_REQUEST_ASSEMBLY_ACCESSION` and cannot enter a candidate pool. The tool does no network lookup. It checks the file's shape and the accession format, not whether your claim is true.
+
+## Run it
 
 ```bash
 python tools/rank_clusterblast_phylo_candidates.py \
@@ -69,66 +62,59 @@ python tools/rank_clusterblast_phylo_candidates.py \
   --max-reference-rank 5
 ```
 
-The default uses the top five raw ClusterBlast references for each exact BGC.
-The setting is recorded and may be changed from 1 to 50.
+The output folder must not exist. `--max-reference-rank` sets how many raw ClusterBlast references are kept per BGC. The default is 5; the range is 1 to 50.
 
-The support unit is one distinct exact `(strain_id, bgc_id)` child row per
-collapsed candidate assembly. Ranking is deterministic:
+Success prints one JSON line and exits 0:
 
-1. number of distinct supporting query BGCs, descending;
-2. number of distinct supporting query strains, descending;
-3. median child identity and coverage, descending;
-4. best raw reference rank, ascending;
+```text
+{"status": "CANDIDATE_LEDGER_ONLY_NOT_DOWNLOADED_NOT_RUN", "candidates": ..., "resolved": ..., "holds": ...}
+```
+
+An error prints `rank_clusterblast_phylo_candidates: ERROR: ...` and exits 2. Exit 0 does not mean the ledger is clean. It can hold unresolved accessions, unmapped regions, or no candidates at all. Open `assembly_accession_holds.tsv` and `unmapped_region_holds.tsv` first.
+
+## Read the ledger
+
+| File | Meaning |
+|---|---|
+| `clusterblast_phylo_candidates.tsv` | ranked candidates, plus unresolved holds, with pool flags `resolved_pool_top20`, `resolved_pool_top40`, `resolved_pool_top60` |
+| `clusterblast_bgc_children.tsv` | one row per BGC for each collapsed candidate |
+| `clusterblast_gene_hits.tsv` | the admitted gene-level hits behind the summaries |
+| `rejected_hit_rows.tsv` | hit rows left out: identity or coverage not a finite 0-100 percentage, or a BLAST score that is not a finite nonnegative number |
+| `inventory_skipped_rows.tsv` | inventory rows skipped for a missing BGC ID, contig or region, with the file and line |
+| `assembly_accession_holds.tsv` | references that still need an assembly accession and evidence |
+| `unmapped_region_holds.tsv` | raw ClusterBlast files with no matching inventory BGC |
+| `source_assembly_provenance.tsv` | ZIP and assembly-file hashes and assembly metrics |
+| `channel_inventory.tsv` | which databases were read and which were only listed |
+| `legacy_mamey_export_audit.tsv` | hash and row count of the package CSV |
+| `candidate_receipt.json` | scope, parameters, counts and claim ceiling |
+
+The top-20, top-40 and top-60 flags mark the first 20, 40 or 60 resolved candidates. They are not tree sizes. Queries and one outgroup are added when you build the panel with `tools/build_phylo_panel.py`.
+
+## How candidates are ranked
+
+The unit of support is one distinct `(strain_id, bgc_id)` pair for each candidate assembly. Raw accessions that resolve to the same `GCA` or `GCF` collapse into one candidate. Several accessions inside one BGC count once. The order is:
+
+1. number of supporting BGCs, highest first;
+2. number of supporting strains, highest first;
+3. median identity and coverage, highest first;
+4. best raw reference rank, lowest first;
 5. candidate key.
 
-Every child preserves reference accession(s), organism/source text, query and
-subject gene counts, gene-hit row count, median identity/coverage, cumulative
-score, and exact source region. The full gene table remains available beneath
-the child rows.
+Many matching BGCs raise priority. They are correlated signals from one genome's content, not independent experiments, and not proof of relatedness.
 
-If multiple raw accessions resolve to the same `GCA/GCF`, they collapse to one
-candidate. If they occur in the same query BGC, they remain one BGC support
-unit—not multiple independent votes. Multiple BGC matches raise selection
-priority, but they are correlated genome-content signals, not independent
-experiments and not proof of organism relatedness.
+## Check before you use the ledger
 
-## Outputs
+- Compare the count of rows in `unmapped_region_holds.tsv` with the number of regions you expect. The inventory reader skips a row with a blank BGC ID, contig or region, and lists it in `inventory_skipped_rows.tsv`. A region that is present but is not a whole number stops the run with exit 2, and no output folder is written.
+- Read `rejected_hit_rows.tsv`. Those rows are not in any median or ranking. The receipt gives both counts as `rejected_hit_rows` and `inventory_skipped_rows`.
+- Confirm each alias maps to one contig and region. If an alias spans two, its support can merge. Hold such aliases.
+- Treat the `assembly_member` as your claim. The tool cannot tell a whole assembly from a region GenBank.
+- The content hash ignores headers and order. It does not normalize reverse complements and does not prove completeness.
+- The reader expects LF line endings in the raw ClusterBlast text. A block it cannot parse is skipped without a count. If the ledger is empty, compare the members, blocks and rows by hand before you conclude there was no support.
+- The receipt does not hash the inventory, the raw ClusterBlast members, the code or the output tables. Record those yourself.
+- Files are written one after another with no rollback. A failed run can leave a partial folder that the tool then refuses to reuse. Keep it as evidence and write to a new folder.
 
-| Artifact | Meaning |
-|---|---|
-| `clusterblast_phylo_candidates.tsv` | Ranked resolved candidates and unresolved HOLDs; visible top-20/40/60 pool flags |
-| `clusterblast_bgc_children.tsv` | One exact strain+BGC child row per collapsed candidate |
-| `clusterblast_gene_hits.tsv` | Full raw ClusterBlast gene correspondence used in summaries |
-| `assembly_accession_holds.tsv` | References requiring an assembly accession/evidence crosswalk |
-| `source_assembly_provenance.tsv` | Exact antiSMASH ZIP/member provenance and assembly-content metrics |
-| `channel_inventory.tsv` | Separate ClusterBlast/KnownClusterBlast/SubClusterBlast/MIBiG/nr/Swiss-Prot/EBI accounting |
-| `legacy_mamey_export_audit.tsv` | Current Mamey CSV hash, row count, and channel-preservation status |
-| `unmapped_region_holds.tsv` | Raw ClusterBlast files lacking an exact inventory BGC join |
-| `candidate_receipt.json` | Scope, parameters, counts, channel policy, support unit, and claim ceiling |
+## How to use the result
 
-The top-20/40/60 flags refer to the **resolved reference-candidate pool**. They
-do not create a 20/40/60-tip tree. Final total-tip accounting still includes
-queries and one outgroup and is governed by `tools/build_phylo_panel.py`.
+ClusterBlast shows BGC-local homology. A top-ranked candidate may share a mobile or horizontally transferred cluster while being distant across the core genome. Use the ledger as one input next to MLSA or core-marker evidence, type-strain status, assembly quality and ANI. Do not call these candidates "nearest genomes" until genome-wide evidence supports it.
 
-## Required biological interpretation
-
-ClusterBlast is BGC-local homology, not a genome-wide taxonomic method. A highly
-ranked candidate may share mobile or horizontally transferred biosynthetic loci
-while being distant across the core genome. Use this ledger as one comparator-
-discovery input alongside MLSA/core-marker context, documented type/reference
-status, assembly quality, and ANI. Never describe these candidates as “nearest
-genomes” until independent genome-wide evidence supports that wording.
-
-Claim ceiling: ClusterBlast similarity can prioritize comparator candidates but
-does not prove organism relatedness, species identity, strain independence,
-product identity, biosynthetic production, or biological activity.
-
-## Implemented join, hash and status limits
-
-The inventory reader expects BGC ID, contig and a numerically parseable `Region`/`region_number`. Rows lacking those fields or a parseable region are silently skipped. It maps contig+region to alias and refuses conflicting aliases for the same region key, but does not validate unique alias-to-full-locus mapping or the manifest strain against a sealed package. Child support groups by strain+BGC alias+candidate assembly; if an alias spans different contigs/regions, support can collapse. Preserve the complete strain/full contig/region/alias roster and hold ambiguous alias mappings before interpreting “exact” support units.
-
-Assembly provenance hashes the ZIP, selected assembly member and sorted uppercase nucleotide sequences. The content hash is header/order-independent, not reverse-complement-normalized or proof of whole-assembly completeness. The code accepts a parsed GenBank member without independently proving that it is whole-genome rather than a region; the whole-assembly input rule is operator admission, not an enforced distinction.
-
-The receipt hashes manifest and resolver, plus ZIP/assembly provenance elsewhere; it does not hash the consumed BGC inventory, individual raw ClusterBlast members, source code or output TSVs. Pin those in a separate receipt. Resolver accession/evidence schema validation does not authenticate reference claims; repeated mapping to the same assembly can replace organism/evidence text. Empty gene-hit blocks do not become child support because aggregation starts from parsed gene rows. The TXT reader expects LF-delimited `\n>>\n` reference blocks, numeric-rank/reference headers and tab-separated hit rows beneath `Table of Blast hits`. Unsupported blocks and malformed rows can be skipped without rejected-block/row counts; CRLF block delimiters are not normalized. Reconcile member, parsed-block and retained-row coverage before treating an empty ledger as no retained reference support.
-
-The output directory must be new. Writes are sequential, with no complete-set rollback; a failure can leave a partial directory that refuses reuse. Zero exit can contain unresolved-accession and unmapped-region holds, or no candidate rows. `CANDIDATE_LEDGER_ONLY_NOT_DOWNLOADED_NOT_RUN` describes successful ledger production, not a hold-free accepted reference pool. Inspect counts, all hold tables and the actual artifact roster before panel curation. Preserve partial evidence in place and choose a separately reviewed recovery candidate; do not delete source assets to retry.
+Claim ceiling: ClusterBlast similarity can prioritize comparator candidates. It does not prove organism relatedness, species identity, strain independence, product identity, production or activity.

@@ -2,7 +2,7 @@
 
 # Release Notes — Sapote/Mamey v9.7.142 Candidate
 
-Status: candidate for Claude sign-off, not signed release until reviewed.
+Status: candidate awaiting sign-off, not a signed release. Historical: this status was never updated on this page. Current release status is in [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
 
 Main additions:
 
@@ -17,6 +17,7 @@ Main additions:
 Known caveats for sign-off:
 
 - This is a candidate packet, not a signed final release.
-- Full all-file pytest was not rerun during rapid cut preparation; use focused validation evidence plus Claude sign-off before promotion.
+- Full all-file pytest was not rerun during rapid cut preparation; use focused validation evidence plus sign-off before promotion.
+- Historical: this page names no receipt for the focused validation. A retained sign-off packet for this candidate (SHA-256 `d80957e253ce698b6671d0673b923baae4aab8abeff6fc23dd2fe231d9c228b7`) reports a focused test run that exited 1, then a rerun that exited 0 after a test assertion was corrected. A rerun does not show the full suite passed, and the unsigned and full-suite holds above stand.
 - C5/C7 remains staged as starter hardening and should be audited in candidate context.
 - Live NCBI RID retrieval is not included; workflow is offline-first using user-downloaded Hit Table CSV/XML2.

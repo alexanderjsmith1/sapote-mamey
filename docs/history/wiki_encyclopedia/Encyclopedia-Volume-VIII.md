@@ -32,7 +32,7 @@ parity, the standing-rules registry, version-history known-traps, the literature
 | **boundary status** | `Interior` \| `Edge` \| `Full-contig` — where a region sits on its contig (§II.2) |
 | **corrected count** | `Interior + ½·Edge + ¼·Full-contig` — fragmentation-discounted BGC count (§II.5) |
 | **assembly tier** | GOOD / MODERATE / POOR / VERY_POOR by interior fraction (≥70/45/20) (§II.5) |
-| **lead tier** | Exceptional / High / Medium / Inventory by `max(AB,AF,novelty)` (≥85/70/50) (§V.1) |
+| **lead tier** | Exceptional / High / Medium / Low or Inventory by `max(AB,AF,novelty)` (≥85/70/50) (§V.1; the bottom tier is class-gated, `mamey/scoring.py:396-398`) |
 | **architecture_confidence** | A–E structural-completeness grade; **decoupled from the tier** (§V.5) |
 | **architecture_class_confidence** | HIGH/MODERATE/LOW confidence in the *class-capacity call* (distinct field) (§V.5) |
 | **RiQ** | rarity/isolation quotient (0–1) per region; a low RiQ adds novelty (§II.2, §V.1) |
@@ -42,7 +42,7 @@ parity, the standing-rules registry, version-history known-traps, the literature
 | **mobile-element demotion (#28)** | floors AB/AF for an ICE-dominated, non-class-typed region (§IV.8, §V.4) |
 | **`[E-signal]`** | the neutral enediyne claim-safety note that replaced the BSL-2 flag in v9.7.28 (§I.6) |
 | **DAPR** | dual antibacterial/antifungal priority ranking — the bench-facing target table (§V.7) — <span class="tag t-spec">`[spec]`</span> |
-| **Mode B** | Per-locus authored interpretation under the selected `full48` or opt-in `current50_v2` contract; historical8/20/30-section layouts are not current completion definitions. |
+| **Mode B** | Per-locus authored interpretation under the selected `full48` or opt-in `current50_v2` contract; historical 8/20/30-section layouts are not current completion definitions. |
 | **parse_confidence** | LOW/MEDIUM/HIGH honesty field on the KCB parse (§II.4) |
 | **PEP-mutase (PpM/ppm)** | phosphoenolpyruvate mutase — the committed phosphonate-biosynthesis diagnostic (§IV.3, T43-PHO) |
 
@@ -90,7 +90,7 @@ lanthipeptide signatures; a corroborated T43-LAN raises confidence that a lanthi
 lanthipeptide capacity.
 
 **corroboration gate**: the rule that a trigger earns credit only if it fired on a class-compatible locus, otherwise
-it is marked **uncorroborated** (§V.3). *The canonical worked case:* on WAC 01438, BGC032's T43-LAN fired on a
+it is marked **uncorroborated** (§V.3). *The canonical worked case:* on a public-strain worked example, one cluster's T43-LAN fired on a
 mobile element with no LanC/LanM cyclase, so the trigger should be marked uncorroborated, the discipline that
 keeps a label from corroborating itself (→ §V.4, label-vs-domain).
 
@@ -109,7 +109,7 @@ maturation/tailoring enzymes (is the pathway *whole*); EFLS links contig fragmen
 rescues fragments against a reference; FLBR censuses megasynthase ketosynthases for a split PKS/NRPS.
 
 **mobile-element demotion (#28)**: the guard that floors AB/AF for a region dominated by ICE/transposon machinery
-and not independently class-typed (§IV.8, §V.4). *Example:* WAC 01438 BGC032 is mobile-dominant (five mobility
+and not independently class-typed (§IV.8, §V.4). *Example:* a public-strain cluster (alias omitted) is mobile-dominant (five mobility
 families) with a false lanthipeptide signal, and the demotion's job is to keep that integrative element from
 ranking as a discovery lead. The class-axis half shipped in v9.7.35; the resistance-axis half (PC-12) shipped in
 v9.7.37.
@@ -149,7 +149,7 @@ lanthipeptide class call (no cyclase), and \#28 reads exactly this field as its 
 
 ### Scoring, ranking, and deliverables
 
-**lead tier**: Exceptional / High / Medium / Inventory by `max(AB, AF, novelty)` (≥85 / 70 / 50) (§V.1). *Example:*
+**lead tier**: Exceptional / High / Medium / Low or Inventory by `max(AB, AF, novelty)` (≥85 / 70 / 50) (§V.1). *Example:*
 a region scoring AB 70 lands `High`; the tier is the single headline promise, summarising the three axes into one
 actionable band.
 
@@ -192,8 +192,7 @@ The full KCB resolution chain on each `BGCRecord` (each defaulting to `UNRESOLVE
 silent blank): `closest_mibig_accession`, `closest_candidate_kcb_product`, `closest_product_provenance`,
 `source_kcb_file`, `source_kcb_locator`, `kcb_hit_rank`, `kcb_cumulative`, `kcb_protein_hits`, `denominator_type`.
 A high `kcb_cumulative` resting on very few proteins (`kcb_protein_hits` ≤ 3) is a truncation artifact on
-fragmented assemblies and must not be read as a strong hit (→ §IV.1). The cumulative-over-10,000 case subtracts
-novelty (a well-known cluster is less novel), `> 10000 → novelty − 15` (§V.1). <span class="tag t-engine">\[engine\]</span>
+fragmented assemblies and must not be read as a strong hit (→ §IV.1). Historical: this volume's cumulative-over-10,000 rule is superseded. In current code the −15 novelty penalty reads antiSMASH's percent similarity, not the cumulative score: it applies when the KCB evidence is observed and the percent is at least `KCB_PCT_HIGH` = 70 (`mamey/scoring.py` near the `UNKNOWN_KCB` check; `mamey/precision.py:17`). The original text read: the cumulative-over-10,000 case subtracts novelty, `> 10000 → novelty − 15` (§V.1). <span class="tag t-engine">\[engine\]</span>
 
 **Reading a KCB call, field by field.** What the resolution chain records for a region with a genuine MIBiG hit:
 <span class="tag t-engine">\[engine\]</span>
@@ -201,7 +200,7 @@ novelty (a well-known cluster is less novel), `> 10000 → novelty − 15` (§V.
 1.  `denominator_type = knownclusterblast significant hits`: the region scored against the characterised MIBiG set, the headline case.
 2.  `closest_mibig_accession` + `closest_candidate_kcb_product`: the specific reference and its product, e.g. a glycopeptide reference. This is the *anchor*, and it is reported as a band with "(similarity)", never as an identification.
 3.  `kcb_hit_rank = 1` with `kcb_protein_hits` well above 3: a top-rank hit resting on many shared proteins, so the similarity is structural, not a truncation artifact.
-4.  `kcb_cumulative` moderate (not \>10000): a real but not over-familiar hit, so no novelty subtraction. A cumulative \>10000 would mark a very well-known cluster and subtract 15 from novelty.
+4.  `kcb_cumulative` moderate (not \>10000): historical reading, a real but not over-familiar hit with no novelty subtraction. Current code does not use the cumulative score for that penalty (see the historical note above).
 5.  `closest_product_provenance` + `source_kcb_file` + `source_kcb_locator`: the evidence trail, the exact file and locator the call came from, so a reader can trace the anchor to its source.
 
 The three denominator types are three epistemic states, not three formats: <span class="tag t-engine">\[engine\]</span>
@@ -277,7 +276,7 @@ modes a future editor or engineer must not re-introduce. <span class="tag t-engi
 | **Registry reassignment** | editing a marker literal only; the runtime reads the registry, so the edit has no effect | edit literal **+** registry value **+** regen catalog (§VIII.3) |
 | **New pattern dict parity** | adding a non-registry pattern dict; parity test fails | add it to `_NON_REGISTRY` |
 | **CCTT pipe-join** | an internal `\|` in a CCTT token; the registry pipe-join/split truncates it | use consecutive negative lookaheads, never an internal `\|` |
-| **Public-tier scrub fixtures** | a test fixture with a literal `AS-NNN`; the scrub mangles it / the audit flags it | build fixtures by concatenation (`"AS-"+"123"`) or add to the scan exemption |
+| **Public-tier scrub fixtures** | a test fixture with a literal private-series ID; the scrub mangles it / the audit flags it | build fixtures by concatenation (split the prefix and number across two strings) or add to the scan exemption |
 | **Per-tier assumption** | assuming a fix propagated to all tiers | run pytest **in each cut tier**; never assume (§VII.4) |
 | **Line-number drift** | `str_replace` shifts line numbers; a later `sed -n` edits the wrong line | re-view before editing by line number |
 | **Label-as-domain-evidence** | corroborating a class/resistance signal against a *label-derived* field (`cassette_families`, a product-class token) instead of parsed domain evidence — a label "confirming" itself | trace corroboration to a parsed-domain signal: `architecture_class_confidence` (class) / `class_concordant_groups` (resistance); never gate a label against another label |

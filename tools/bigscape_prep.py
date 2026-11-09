@@ -107,7 +107,7 @@ def detect_strictness_dir(d):
     return _one_strictness(found)
 
 
-def _stage_region(data, destination, strain, source_locator, minimum, excluded_regions, written=None):
+def _stage_region(data, destination, strain, source_locator, minimum, excluded_regions, written=None, roster=None):
     n_cds = len(re.findall(rb"(?m)^     CDS +", data))
     if minimum and n_cds < minimum:
         excluded_regions.append(dict(strain=strain, source_locator=source_locator,
@@ -120,7 +120,21 @@ def _stage_region(data, destination, strain, source_locator, minimum, excluded_r
         handle.write(data)
     if written is not None:
         written.append(destination)
+    if roster is not None:
+        region = re.search(r"(region\d+)\.gbk$", source_locator, re.I)
+        roster.append({"strain": strain, "member_path": source_locator, "member_bytes": len(data),
+                       "member_sha256": hashlib.sha256(data).hexdigest(),
+                       "record_id": _record_id(source_locator), "region": region.group(1) if region else "",
+                       "staged_file": os.path.basename(destination)})
     return 1
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _record_id(name):
@@ -129,7 +143,7 @@ def _record_id(name):
 
 
 def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None,
-              written=None):
+              written=None, roster=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     with zipfile.ZipFile(zip_path) as z:
@@ -141,12 +155,12 @@ def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, d
                     continue
                 destination = os.path.join(out, f"{strain}_{os.path.basename(member)}")
                 n += _stage_region(z.read(member), destination, strain, member,
-                                   min_query_genes, excluded_regions, written)
+                                   min_query_genes, excluded_regions, written, roster)
     return n
 
 
 def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None,
-              written=None):
+              written=None, roster=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     for source in sorted(glob.glob(os.path.join(d, "**", "*.gbk"), recursive=True)):
@@ -158,7 +172,7 @@ def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_con
             with open(source, "rb") as handle:
                 data = handle.read()
             n += _stage_region(data, os.path.join(out, f"{strain}_{os.path.basename(source)}"),
-                               strain, os.path.relpath(source, d), min_query_genes, excluded_regions, written)
+                               strain, os.path.relpath(source, d), min_query_genes, excluded_regions, written, roster)
     return n
 
 
@@ -233,6 +247,8 @@ def main():
 
     total = 0
     input_errors = []  # DREL-034: requested inputs that could not be read
+    empty_inputs = []  # inputs read and admitted that contributed no region GBK
+    members_roster = []  # one row per staged region file: source and member hashes, record id, region
     manifest = []  # (strain, detected, state, n, source)
     flavors_staged = set()
     for it in items:
@@ -301,10 +317,12 @@ def main():
                 continue
 
         written = []
+        input_roster = []
+        filtered_before = len(dropped) + len(small_regions)
         try:
             minimum = a.min_query_genes if strain in set(a.query_strain) else 0
             n = (stage_dir if is_dir else stage_zip)(it, a.out, strain, minimum, small_regions,
-                                                     drop.get(strain), dropped, written)
+                                                     drop.get(strain), dropped, written, input_roster)
         except Exception as e:
             # DREL-032: a failed input must not leave part of itself staged. The output started
             # empty, so every file it wrote in this run is its own; remove them, and fail the run.
@@ -322,7 +340,19 @@ def main():
                  file=sys.stderr)
             continue
 
+        # Only an input that staged completely contributes roster rows (a failed input was rolled back above).
+        source_sha = "" if is_dir else _file_sha256(it)
+        for row in input_roster:
+            members_roster.append({"source": it, "source_sha256": source_sha, **row})
         state = "STAGED" + ("(assumed_flavor)" if assumed else "")
+        if not n:
+            # An input that contributed no region GBK is not STAGED. Say whether operator filters
+            # removed its regions or none were found. Neither is evidence of biological absence.
+            filtered = len(dropped) + len(small_regions) - filtered_before
+            state = "EMPTY_ALL_REGIONS_FILTERED" if filtered else "EMPTY_NO_REGION_GBKS"
+            empty_inputs.append((strain, state))
+            sys.stderr.write(f"  {strain}: EMPTY — contributed 0 region GBKs ({state}); "
+                             "a staging result, not a biological absence\n")
         manifest.append((strain, detected or "UNKNOWN", state, n, it))
         if n:
             flavors_staged.add(detected or "UNKNOWN")
@@ -336,12 +366,22 @@ def main():
         for row in sorted(manifest):
             fh.write("\t".join(str(x) for x in row) + "\n")
 
+    # Source-to-member roster. It binds each staged file to its source and bytes; it carries no BGC alias
+    # and no antiSMASH version, so a full strain / node / region / alias identity still needs a crosswalk.
+    roster_fields = ["strain", "source", "source_sha256", "member_path", "member_bytes", "member_sha256",
+                     "record_id", "region", "staged_file"]
+    with open(os.path.join(a.out, "STAGED_MEMBERS.tsv"), "w", newline="", encoding="utf-8") as fh:
+        from mamey.csv_safety import SafeDictWriter as _RosterWriter
+        writer = _RosterWriter(fh, roster_fields, delimiter="\t", lineterminator="\n")
+        writer.writeheader(); writer.writerows(members_roster)
+
     if drop:
         with open(os.path.join(a.out, "DROPPED_CONTIG_REGIONS.tsv"), "w", encoding="utf-8") as fh:
             fh.write("strain\trecord\tsource_member\n")
             for row in dropped:
                 fh.write("\t".join(row) + "\n")
-        staged = {row[0] for row in manifest if str(row[2]).startswith("STAGED")}
+        staged = {row[0] for row in manifest
+                  if str(row[2]).startswith("STAGED") or row[2] == "EMPTY_ALL_REGIONS_FILTERED"}
         for d_strain in sorted(drop):
             hits = sum(1 for row in dropped if row[0] == d_strain)
             emit(f"  {d_strain}: dropped {hits} region(s) on {len(drop[d_strain])} listed contig(s)", file=sys.stderr)
@@ -368,6 +408,10 @@ def main():
                        "excluded_source_records": len(small_regions),
                        "ceiling": "Operator-selected input scope; source archives unchanged; no biological absence claim"}, handle, indent=2)
     emit(f"\nstaged {total} region GBKs -> {a.out}", f"strictness manifest -> {mpath}", sep="\n")
+    if empty_inputs:
+        sys.stderr.write(f"** EMPTY_INPUTS: {len(empty_inputs)} admitted input(s) contributed 0 region GBKs: "
+                         + ", ".join(f"{s_} ({st})" for s_, st in empty_inputs)
+                         + f". They are not STAGED; see {mpath}. **\n")
     if len(flavors_staged) > 1:
         emit(f"** WARNING: staged a MIXED-strictness set: {sorted(flavors_staged)}. "
               f"A BiG-SCAPE clustering over this dir is NOT flavor-consistent. **", file=sys.stderr)

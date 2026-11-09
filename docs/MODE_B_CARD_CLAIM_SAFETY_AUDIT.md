@@ -1,6 +1,6 @@
 # Check claim language in an authored Mode B card
 
-For a current full48/current50 card, screen the actual saved prose, then review its claims against the
+For a current card in either profile, `full48` (the 48-section default) or `current50_v2` (the opt-in 50-section profile; see the [profile matrix](MODEB_PROFILE_MATRIX.md)), screen the actual saved prose, then review its claims against the
 sources and selected [profile](MODEB_PROFILE_MATRIX.md). From the selected bundle root:
 
 ```bash
@@ -8,8 +8,10 @@ python mamey_run.py claim-safety <card.md> --package <pkg> --mode warn --json
 ```
 
 Retain the findings, compound-context messages and exit status. `--json` prints findings; it does not
-save a receipt. Add `--report <existing-review-folder>/claim-safety.csv` if a persistent CSV is needed;
-that report appends findings, so preserve which invocation produced each set of rows. Warn mode exits
+save a receipt. Add `--report <review-folder>/claim-safety.csv` if a persistent CSV is needed.
+The report file must not exist yet and cannot be the input card; a refused path prints `REFUSED:` and
+exits 2. `--append-report` adds rows to an existing report instead, so record which invocation produced
+each set of rows. Warn mode exits
 zero even when findings exist. Review any compound-context fallback or unavailable-evidence message.
 
 This front door uses `tools/claim_safety_linter.py`, rather than the historical four-check recipe linked at the end.

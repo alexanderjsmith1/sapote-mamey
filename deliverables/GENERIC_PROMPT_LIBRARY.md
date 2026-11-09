@@ -1,14 +1,16 @@
-# Generic deliverable prompts — source-bound requests
+# Generic deliverable prompts
 
-These are request patterns, not readiness certificates. Supply actual inputs, verify the chosen parser and record a run receipt. G7 and G8 are bounded authoring steps; they are not deterministic tools.
+Give one of these requests to your assistant. Each names the tool it should run and what to check afterward. They are request patterns, not readiness certificates. Supply real inputs, check the output, and keep the run's command and output hashes. G7 and G8 are writing tasks, not tools.
 
-Use the [request template](DELIVERABLE_INSTRUCTION_TEMPLATE.md) for input hashes, schema/version, privacy, mutation scope and acceptance. Every individual locus must retain `strain / full node-or-contig / region / BGC alias`. Distinguish predictions, similarity, missing data and measured evidence. An absent anchor cannot support a novelty ranking; no activity ranking without supplied typed assay data. Do not assume populated banks, fixed historical cohort counts or a tracking board.
+A **bank** is a folder of per-strain results that a tool reads with `--banked-dir`. It holds `bgc_data.json`, which every sealed package also writes, and sometimes `strains.json` and `modeb_verdicts.csv`. A **working copy** is a copy of a file you can lose. Several tools below change a workbook or write into the bank, so point them at a copy. Terms such as Mode B, RG-GMCI and DAPR are in the [glossary](../docs/GLOSSARY.md).
 
-Commands below name source-declared interfaces only. Run from the bundle root in a working copy with the intended environment, after verifying inputs/dependencies and choosing fresh destinations.
+Use the [request template](DELIVERABLE_INSTRUCTION_TEMPLATE.md) for input hashes, version, privacy, what may be changed and how you will accept the result. Every locus keeps `strain / full node-or-contig / region / BGC alias`. Keep predictions, similarity, missing data and measured evidence apart. A missing anchor cannot support a novelty ranking. Do not rank activity without typed assay data.
+
+Run commands from the bundle root, in a working copy, with fresh output paths.
 
 ## G1 — BGC atlas
 
-Request a browsable inventory for the named strain and explicit bank roster. Interface:
+Request a browsable inventory for one strain from a bank. Interface:
 
 ```bash
 python tools/generate_bgc_atlas.py --strain STRAIN_ID --banked-dir /absolute/path/to/bank --out /absolute/path/to/new-atlas.html
@@ -28,7 +30,7 @@ The bank must contain `bgc_data.json` and `strains.json`; verdict and coupling f
 
 ## G3 — Strain lead summary
 
-Request a source-grounded summary of the specified rows, with the ranking rule and limitations visible. The helper consumes a workbook with `Lead_Board`, **not** a bank-only input:
+**Work on a copy of the workbook.** Request a source-grounded summary of the specified rows, with the ranking rule and limitations visible. The helper consumes a workbook with `Lead_Board`, **not** a bank-only input:
 
 ```bash
 python tools/build_priority_leads.py --workbook /absolute/path/to/working-copy.xlsx --out-dir /absolute/path/to/new-leads-directory
@@ -38,11 +40,11 @@ It rewrites the workbook's `Priority_Leads` sheet and saves that workbook before
 
 ## G4 — Individual-locus Mode B
 
-For current native authoring, use the [Mode B walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md), stating the exact profile and full locus identity. The historical `tools/build_modeb_deepdive.py --targets STRAIN:ALIAS` emits a legacy eight-section banked report. It defaults a missing verdict to `CONFIRM` and can emit expressed-pathway wording from the template. Check the actual verdict source and underlying evidence before reusing its prose; the printed label does not establish current review or expression. Verify alias-to-full-identity mapping and author the selected full48 or current50_v2 profile separately.
+For current native authoring, use the [Mode B walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md), stating the exact profile and full locus identity. The historical `tools/build_modeb_deepdive.py --targets STRAIN:ALIAS` emits a legacy eight-section banked report. A missing verdict reads `NO_VERDICT`, never `CONFIRM`. The report can still emit expressed-pathway wording from the template. Check the actual verdict source and underlying evidence before reusing its prose; the printed label does not establish current review or expression. Verify the alias-to-full-identity mapping. Pick the profile (`full48` or `current50_v2`) as the walkthrough's first step, and author it separately.
 
 ## G5 — Cross-strain comparison table
 
-Request a fixed strain roster, axis definition, schema/version and inclusion/missingness rules. Check whether `tools/add_xstrain_sheets.py` covers that axis before proposing a command. Its `--out` names an existing workbook to update: it replaces generated cross-strain sheets, writes `cohort_context.json` into the selected bank, and can invoke the DAPR rescue refresh when the required workbook sheets exist. Use a working workbook and explicitly include the bank write in the mutation scope. Unsupported axes remain held; any alternate tally needs a reproducible transformation. State strictness and denominator differences before comparisons.
+**Work on a copy of the workbook, and expect a write into the bank.** Request a fixed strain roster, axis definition, schema/version and inclusion/missingness rules. Check whether `tools/add_xstrain_sheets.py` covers that axis before proposing a command. Its `--out` names an existing workbook to update: it replaces generated cross-strain sheets, writes `cohort_context.json` into the selected bank, and can refresh the DAPR rescue sheets (the antibacterial and antifungal top-lead tracks) when the required workbook sheets exist. Use a working workbook and explicitly include the bank write in the mutation scope. Unsupported axes remain held; any alternate tally needs a reproducible transformation. State strictness and denominator differences before comparisons.
 
 ## G6 — Priority-lead subset figure
 
@@ -66,7 +68,7 @@ python tools/build_pangenome.py --banked-dir /absolute/path/to/bank --out-dir /a
 
 Families are approximate nearest-reference anchor groupings. Blank/UNRESOLVED anchors are reference-unresolved, not proven novel; “private” means within this cohort. Default core threshold is `max(2, n_strains // 2)`; record any explicit `--core-min`. Empty bank content can exit successfully without a report. Output figure is `fig_pangenome_rarefaction.png`, with data CSV and summary outputs on a normal non-replot run. Optional `--workbook` rewrites `Pangenome_Novelty`; use a copy. `--replot` can reuse an existing CSV without checking its cohort/source binding and returns before summary/workbook refresh. Validate cached CSV identity and the expected artifact set, rather than relying on exit zero or a plot's existence.
 
-Before sharing `Pangenome_Summary.md`, compare its prose with the bound CSV. The helper always writes that the curve has not plateaued and predicts new chemistry; it does not condition those sentences on the measured increment or establish chemical novelty. Describe the observed anchor-family accumulation and unresolved-reference fraction from the data instead, keeping unsupported interpretation pending.
+Before you share `Pangenome_Summary.md`, compare its prose with the CSV. The summary gives counts at 1, half and all strains, and calls novelty a distance from characterized clusters, a candidate signal. Check those counts against the CSV. Keep "novelty pool" and the novelty wording as a signal, not a finding. Add the unresolved-reference fraction if the reader needs it.
 
 ## Add a request pattern
 

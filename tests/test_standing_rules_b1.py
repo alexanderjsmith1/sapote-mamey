@@ -2,7 +2,7 @@
 
 Covers the 12-genome WomBee report:
 - P1-1: saccharide/NAPAA/hglE-KS downgrades enforced in the board (`standing_rule_flag` + `corrected_rank`).
-- P1-2: habitat must not be silently inferred from provenance/taxonomy → `ENGINE_DEFAULT_PLACEHOLDER`.
+- P1-2: the habitat column carries the deposited source text; no category is inferred (ruling 476).
 
 Claim-safety invariants checked:
 - saccharide reads the BGC's OWN product class, not the KCB anchor (KCB = similarity, not identity).
@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mamey.models import BGCRecord
 from mamey.scoring import triage_bgcs, standing_rule_for
-from mamey.master_workbook import _infer_habitat
+from mamey.master_workbook import _deposited_source, _same_deposited_source
 
 
 def _bgc(bgc_id, products, kcb_top=None, kcb=None):
@@ -99,14 +99,21 @@ def test_standing_rule_for_uses_own_products_for_saccharide():
     assert standing_rule_for("nrps", "nrps saccharide anchor") == ""   # anchor-only does not fire
 
 
-def test_habitat_user_source_kept_inference_placeholdered():
-    assert _infer_habitat("honeybee gut isolate") == "4_Hymenoptera"
-    assert _infer_habitat("Sphagnum moss") == "3_Bryophyte_lichen"
-    assert _infer_habitat("rhizosphere soil") == "1_Terrestrial_soil"
-    # provenance / type-strain / empty must NOT be guessed
-    assert _infer_habitat("ATCC type strain") == "ENGINE_DEFAULT_PLACEHOLDER"
-    assert _infer_habitat("SID1328") == "ENGINE_DEFAULT_PLACEHOLDER"
-    assert _infer_habitat("") == "ENGINE_DEFAULT_PLACEHOLDER"
+def test_habitat_column_carries_deposited_text_not_a_bin():
+    # Ruling 476: the deposited text is kept as written, and no category is inferred from it.
+    assert _deposited_source("honeybee gut isolate") == "honeybee gut isolate"
+    assert _deposited_source("  Sphagnum moss ") == "Sphagnum moss"
+    assert _deposited_source("plant root") == "plant root"
+    assert _deposited_source("ATCC type strain") == "ATCC type strain"
+    assert _deposited_source("") == ""
+    assert _deposited_source(None) == ""
+
+
+def test_peers_share_the_same_deposited_text():
+    assert _same_deposited_source("Rhizosphere  soil", "rhizosphere soil")
+    assert not _same_deposited_source("rhizosphere soil", "plant root")
+    # two missing sources are not evidence of a shared origin
+    assert not _same_deposited_source("", "  ")
 
 
 if __name__ == "__main__":

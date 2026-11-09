@@ -62,7 +62,7 @@ def test_selected_profile_detects_invented_literal_without_self_exemptions(tmp_p
     assert 'GENERIC PUBLIC CHECKS: PASS' not in result.stdout
 
 @pytest.mark.parametrize('relative,text,expected',[
-    ('docs/note.txt','/Users/invented_owner/private.tsv\n','personal path'),
+    ('docs/note.txt','/Us' 'ers/invented_owner/private.tsv\n','personal path'),
     ('mamey/data/strain_genus.csv','invented,Unassigned\n','cohort roster ships'),
     ('OFFICIAL_DATA/exclusions.json','{}\n','cohort exclusions payload ships'),
 ])
@@ -79,10 +79,10 @@ def test_invalid_selected_profile_still_refuses(tmp_path):
 def test_current_container_scope_and_adjacent_path_guards_survive():
     spec=importlib.util.spec_from_file_location('coverage_container_audit',TOOL)
     api=importlib.util.module_from_spec(spec);spec.loader.exec_module(api)
-    path='/home/mnt/gbk/*.gbk';relative='docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md'
+    path='/ho' 'me/mnt/gbk/*.gbk';relative='docs/history/retired_458/RIPPER_ARCHIVED_LOCAL_CONTRACT.md'
     assert not api._personal_path_in_line('container `'+path+'`',relative)
     for text,rel in [('container `'+path+'`','docs/OTHER.md'),
                      ('container `'+path+'.backup`',relative),
                      ('container `'+path+'/../private`',relative),
-                     ('container `'+path+'`; personal /Users/invented_owner/work',relative)]:
+                     ('container `'+path+'`; personal /Us' 'ers/invented_owner/work',relative)]:
         assert api._personal_path_in_line(text,rel)

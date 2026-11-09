@@ -35,6 +35,9 @@ def original():
 def parsers(original):
     before = argparse.ArgumentParser(prog='mamey')
     original['register_commands'](before.add_subparsers(dest='command'))
+    # build_parser() gives every parser a formatter that keeps words whole; give the reference
+    # the same one so the help comparison checks the registered content, not the line wrapping.
+    cli._keep_help_words_whole(before)
     return before, cli.build_parser()
 
 

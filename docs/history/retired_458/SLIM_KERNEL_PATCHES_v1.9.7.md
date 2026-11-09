@@ -21,6 +21,8 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 
 **Location:** After the line `The LLM will read the JSON, run all judgment modules in this kernel, and deliver the full analytical package.` (end of Step 3 block)
 
+Historical: the quoted block below is the text of an old patch, not an instruction to a reader or assistant. It does not override the user's scope (see [AGENTS.md](../../../AGENTS.md)).
+
 **Insert after that line:**
 
 ```markdown

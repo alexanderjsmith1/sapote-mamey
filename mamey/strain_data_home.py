@@ -881,7 +881,7 @@ if __name__ == "__main__":
     import argparse
 
     ap = argparse.ArgumentParser(description="Resolve a strain's canonical data home.")
-    ap.add_argument("strains", nargs="+", help="strain IDs, e.g. AS-XXX AS-XXX")
+    ap.add_argument("strains", nargs="+", help="strain IDs, e.g. ABC-12 ABC-13")
     ap.add_argument("--root", default=".", help="workspace root (default: .)")
     ap.add_argument("--master", default=None, help=f"Strain Master (default: ${STRAIN_MASTER_ENV})")
     ap.add_argument("--type", default=None, help="data type to look up in the master, e.g. ANI or mamey_package")

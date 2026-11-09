@@ -2,18 +2,18 @@
 
 Current release work cuts CODE only under [CUT_PROTOCOL](../CUT_PROTOCOL.md). `tools/make_public_tier.sh` refuses the other retained tier branches unless the explicit disabled-tier override is set. Their presence in source does not authorize rebuilding or publishing them. Read the exact selected privacy assignment in [portable privacy/evidence guidance](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md); a tier label, identifier prefix or historical public-availability statement does not settle disclosure of new genome findings.
 
-The original tier note below is retained as history. Its blanket “byte-identical” and “safe for external sharing” statements are not current validation results. The builder still unconditionally invokes the maintained documentation/configuration redactor for non-merged tiers. Retiring the old AS_SCRUB switch and SID rewrite did not remove that later transform. Do not re-arm disabled branches or bypass current release gates merely to satisfy an old four-tier description.
+The original tier note below is retained as history. Its blanket “byte-identical” and “safe for external sharing” statements are not current validation results. The builder no longer runs the identifier redactor; `tools/redact_public_tier.py` is an explicit utility, not a cut transform. For non-merged tiers it scrubs denylisted terms only when `tools/release_denylist.txt` exists. Do not re-arm disabled branches or bypass current release gates merely to satisfy an old four-tier description.
 
 ## What the checkers establish
 
 | Owner | Checked scope | Limit |
 |---|---|---|
 | `tools/check_tier_parity.py` | Archive labels/set completeness, version, selected cassette/marker counts, registry and four manifest-file presence checks | Requires the historical ordinary four-tier set; does not compare every payload byte, all scientific data or current CODE-only release completeness |
-| `tools/verify_tier_derivation.py` | Expected text transforms for selected extensions on files walked from the supplied private source, with stated metadata/strip exclusions | Reads text with decoding errors ignored; does not hash all binaries or detect arbitrary extra destination files; not a complete archive checksum or disclosure audit |
+| `tools/verify_tier_derivation.py` | Expected text transforms for selected extensions on files walked from the supplied private source, with stated metadata/strip exclusions | Decodes compared text as strict UTF-8 and exits 2 on a decoding error; normalizes CRLF and CR newlines to LF before comparing; `.py` files, files under `tests/` and `test_synthetic_ids.txt` are compared byte for byte instead. Does not hash all binaries or detect arbitrary extra destination files; not a complete archive checksum or disclosure audit |
 | `tools/make_public_tier.sh` | Staging, profile/content transforms, metadata and checksum regeneration under the selected cut route | Mutates a candidate tree and can run gates; this guide authorizes no cut or release |
 | `tools/sync_version.py` | Regenerates version/build restatements, including `TIER_NOTE_CODE.md` | Restated versions identify metadata; they do not certify execution or source correctness |
 
-The derivation checker treats test/synthetic-allowlist text as identity comparisons and skips a larger explicit metadata set than the old “three differentials” summary. A PASS applies only to the provided inputs, options and checker scope. Compare final source/archive checksums and required cut receipts separately; record the actual command and source hash. Keep the tier-builder and release-checker execution receipts separately.
+The derivation checker treats Python files and test/synthetic-allowlist text as byte-identity comparisons and skips a larger explicit metadata set than the old “three differentials” summary. A PASS applies only to the provided inputs, options and checker scope. Compare final source/archive checksums and required cut receipts separately; record the actual command and source hash. Keep the tier-builder and release-checker execution receipts separately.
 
 ## Tier-parity selection, writes and evidence
 
@@ -60,7 +60,7 @@ SID rewrite was removed in v9.7.364, and the current four-tier payload state is 
 The four-tier structure is retained for **release discipline** (separating code, analysis-free
 code, SID data banks, and the private merged scaffold), not for AS-strain-ID protection.
 
-> **v9.7.156 (PI decision, 2026-06-30):** the AS-series privacy guard is **retired**. All AS
+> **Historical owner decision (v9.7.156):** the in-house strain-series privacy guard is **retired**. All AS
 > strains have 16S rRNA on GenBank publicly associating strain number, genus, and host, and
 > Sapote–Mamey ships concurrent with the associated publications — so BGC-level content is not
 > meaningful additional disclosure. Real AS IDs in public tiers are no longer a leak; the AS-ID
@@ -70,9 +70,9 @@ code, SID data banks, and the private merged scaffold), not for AS-strain-ID pro
 Historically (pre-v9.7.156): the tiers protected unpublished strain identifiers; real strain IDs
 in public-facing cuts would have constituted a data leak. The redaction system
 (`tools/redact_public_tier.py`) replaces
-real AS-### identifiers with `AS-XXX` in the CHANGELOG and any analysis-specific outputs.
+real cohort strain identifiers with a placeholder in the CHANGELOG and any analysis-specific outputs.
 
-- **CODE** — the full bundle. For development and Patch Chat sessions.
+- **CODE** — the full bundle.
 - **CODE-analysis-free** — the analysis-free label in the current four-tier set; the retired SID
   uniformity rewrite is not applied.
 - **COHORT-public** — leak-audited. Safe for external sharing. Since the AS guard was retired the audit is
@@ -98,6 +98,9 @@ promotion state guarded by `GOV-001`; its tooling may describe or prepare an arc
 becomes a public release without the active governance decision and release gates.
 
 ## Verification
+
+> Historical: this section describes the old claim. It is not what the checkers establish today.
+> For their current scope and limits, see [What the checkers establish](#what-the-checkers-establish).
 
 `tools/check_tier_parity.py` verifies that the four tiers are structurally identical
 except for the three expected differentials above. `tools/verify_tier_derivation.py`

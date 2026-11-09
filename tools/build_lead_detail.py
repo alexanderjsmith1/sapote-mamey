@@ -246,8 +246,11 @@ def main():
         refuse_output_aliases(out, sources)
     except ValueError as exc:
         ap.error(str(exc))
+    if os.path.lexists(out):
+        # A prior lead_detail.json (in the package by default) is kept; choose a fresh --out.
+        ap.error(f"output already exists and will not be replaced: {out}; choose a fresh --out")
     result = lead_detail(manifest, rggmci, a.gbk_dir, leads)
-    atomic_dump_json(result, out, indent=2)
+    atomic_dump_json(result, out, indent=2, protected=sources, refuse_existing=True)
     emit(f"wrote {out}",
          f"rescue groups: {len(result['rescue_groups'])} | leads detailed: {len(result['leads'])}",
          sep="\n")

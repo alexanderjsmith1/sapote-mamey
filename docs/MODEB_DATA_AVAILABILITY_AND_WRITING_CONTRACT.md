@@ -1,128 +1,12 @@
-# Mode B data-availability and writing contract
+# Mode B data-availability inventory
 
-Run the examples from the bundle root with `python mamey_run.py`.
+`modeb-availability` lists which evidence you have for each biosynthetic gene cluster (BGC) before you write a Mode B card. It writes tables. It does not write prose or judge the biology.
 
+This step is optional. Use it when you gather evidence from several folders and want to know which cards are ready to write. For the step-by-step card recipe, see the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). Terms such as KnownClusterBlast (KCB), RG-GMCI and GCF are in the [glossary](GLOSSARY.md).
 
-**Status:** normative pre-authoring contract.  
-**Command:** `python mamey_run.py modeb-availability`  
-**Principle:** inventory evidence before writing prose.
+Run every command from the bundle root.
 
-## 1. Purpose
-
-Mode B consumes heterogeneous evidence: the sealed BGC inventory, antiSMASH region records, per-gene context, KnownClusterBlast/MIBiG comparisons, ClusterBlast, per-gene BLASTp, domains/HMMs, selected-gene reviews, GCF context, resistance evidence, literature, cohort context, phenotype observations, prior cards, locus maps, and QA receipts. These streams are not interchangeable and do not share one natural denominator.
-
-The availability module builds a typed inventory before any card is authored. It reports which streams are present, how each stream binds to a locus, which Mode B sections it may support, and which gaps must remain explicit. It does not generate biological prose or upgrade a card.
-
-## 2. Identity hierarchy
-
-The primary key is:
-
-`strain | full assembly node/contig | antiSMASH region`
-
-The display alias `BGC###` is secondary. Evidence states are ordered:
-
-1. `EXACT_LOCUS` — strain, full node/contig, and region match the inventory.
-2. `ALIAS_BOUND` — strain and BGC alias match, but the artifact does not independently establish the full locator.
-3. `STRAIN_ONLY` — relevant only to the strain or cohort; it must not be localized to a BGC.
-4. `UNBOUND` — the artifact cannot be attached to the inventory without a new crosswalk.
-5. `ABSENT` — no matching artifact was found in the configured discovery scope.
-
-`ABSENT` and `UNBOUND` are workflow observations, not biological absence.
-
-## 3. Inputs
-
-The inventory is a header-keyed CSV or TSV with strain/BGC identity and a complete node-or-contig plus region for exact binding. Missing physical-locus fields remain unresolved and hold authoring. Optional fields include `exact_locus`, `folder_path`, and `products`.
-
-The legacy output name `full_node` now also carries accession and generic complete contig labels. Atomic fields are `full_node`, `contig`, `Contig`, `node`, `node_id` and `Node_ID`; display fields are `assembly_locator` and `Assembly_Locator`; member fields are `region_member`, `source_gbk` and `Source_GBK`. Strain/BGC/region header variants are reconciled as well. All nonempty recognized identity fields are reconciled by their field roles, rather than choosing the first and ignoring contradictions.
-
-Atomic identifiers use the portable grammar `[A-Za-z0-9][A-Za-z0-9_.:+-]*`, excluding paths, URI/drive forms, unresolved sentinels and region-member filenames. Accessions retain version/namespace (`CP103060.1` differs from `CP103060`, `CP103060.2` and `NZ_CP103060.1`). Generic labels preserve case (`ctgA` differs from `CTGA`). Fully matched SPAdes NODE labels retain the existing uppercase normalization and complete length/coverage suffix. For the complete current-native role set (`Contig`, `Node_ID`, `antiSMASH_Region`, `BGC_ID` plus strain), the existing `exact_identity.exact_locus_from_native_inventory_row` adapter validates Node_ID as the producer-normalized join key and keeps complete Contig as the physical identity. The complete lowercase manifest/crosswalk role set uses `exact_locus_from_native_manifest_bgc`. Only these fully validated typed roles admit a normalized join key or matching producer display locator; the current producer can truncate a decimal coverage suffix or a generic ctg/scaffold prefix in Node_ID. Field states report `producer_normalized` and `producer_display`. Wrong normalization, conflicting physical synonyms, incomplete native role sets or conflicting region/alias values cannot use this exception. Source filenames are never consulted by the native adapter.
-
-A bare `NODE_7` is partial, never a complete exact identity; matching alias evidence may remain ALIAS_BOUND, but differing NODE tokens or a NODE token against an accession contig require a crosswalk and remain unbound. Incomplete/malformed NODE suffixes cannot become generic identifiers.
-
-Display locators must match `contig regionNNN`, optionally followed by ` (BGCNNN)`; in a validated native row, the exact producer-normalized display token is accepted only with the same region/alias, while the complete physical contig remains the binding key; a bare atomic assembly_locator remains supported for legacy tables. Member identity comes only from an anchored basename `contig.regionNNN.gbk`; POSIX/Windows parent paths locate the member without becoming contig identity. Internal accession dots are preserved. An opaque whole-record Source_GBK is provenance-only when other consistent identity fields establish the locus. Numeric/region fields must be positive whole values, and all supplied region/alias components must agree. An explicit exact_locus must agree with the normalized columns and cannot substitute for missing columns.
-
-Inventory contradictions/invalid explicit identities raise before output generation. Evidence contradictions/invalid identities remain UNBOUND with fixed field/reason diagnostics; they cannot disappear into alias fallback. Observations include `identity_diagnostics` and `identity_field_states`; these fields report names/reason codes rather than echoing invalid raw payloads into messages. Original source rows remain the raw record.
-
-Evidence may enter through either or both interfaces:
-
-- `--source-root LABEL=PATH` recursively discovers files under user-configured roots. Roots are runtime configuration. The output observations retain resolved absolute source paths, inventory folder_path is propagated, and the manifest retains absolute output paths. Treat these as local provenance artifacts; the scanner does not sanitize them for distribution.
-- `--evidence-index PATH` reads a normalized TSV containing `channel`, `source_path`, identity fields, optional `freshness_state`, and notes.
-
-Path discovery recognizes complete region-member basenames and bounded known strain/BGC wrappers. It does not guess a generic contig from a directory, opaque filename or arbitrary substring, and ambiguous inventory-strain matches remain unbound. Structured table rows take precedence; only genuinely missing components may be filled from path metadata. Supplied partial/invalid/conflicting values stay distinct and conflicts remain unbound. A normalized index keeps source_path as an artifact location; only a recognized region-member basename supplies candidate member identity for reconciliation. A suggestive parent directory is not authority over explicit row fields.
-
-Tabular discovery is header-aware when enabled, within --table-max-bytes (default 20,000,000 bytes) and the 250,000-row inspection cap. Missing row identity fields may be filled from the path. Oversized/disabled tables, empty groups or caught CSV/read errors fall back to a filename/path discovery candidate. Directory listing errors fail closed, but successful discovery does not establish complete table ingestion; use a curated index and separate source review when completeness matters.
-
-## 4. Outputs
-
-The command writes fixed filenames under `--out`. Existing destinations are accepted and each file is replaced separately; there is no whole-set rollback or destination ownership check. Manifest PASS and exit zero mean the inventory outputs were written, even when individual writing/promotion gates are HOLD. Source files are read in place:
-
-- `modeb_evidence_observations.tsv` — one typed observation per artifact or tabular identity group.
-- `modeb_bgc_availability.tsv` — one row per canonical BGC locus, with per-stream state and record counts.
-- `modeb_strain_availability.tsv` — per-strain coverage counts without mixing BGC and strain denominators.
-- `modeb_section_plan.tsv` — §1–§30 support plan with exact/alias evidence separated from context-only evidence.
-- `MODEB_AVAILABILITY_SUMMARY.md` — mechanical audit summary.
-- `modeb_availability_manifest.json` — hashes, byte counts, contract id, and counts.
-
-## 5. Writing and promotion gates
-
-`PASS_FOR_GAP_AWARE_AUTHORING` requires:
-
-- an inventory row with normalized node and region fields; and
-- a gene-level source (`gene_inventory` or `antismash_region`) bound at exact-locus or alias level.
-
-The draft-eligibility check applies to the supplied inventory. It does not independently compare assembly/sequence hashes, verify source-manifest authority or establish biological correctness/completeness. Those source bindings remain separate required checks.
-
-The scanner's `promotion_gate` checks less than this contract requires. It checks only that `blastp_per_gene` is bound at alias level or better and marked CURRENT. Apply the selected profile's checks before promotion.
-
-Promotion remains held while required evidence is `AVAILABLE_UNINGESTED`, `NEAR_READY_ACTIVE_RUN`, `PRACTICALLY_ATTAINABLE`, stale, or freshness-unverified. An absent or `OBSERVED_UNBOUND` row may remain as a reasoned terminal limitation only after readiness is adjudicated as `STRUCTURALLY_UNAVAILABLE` or `NOT_APPLICABLE`, the selected profile's matrix and roster checks pass, and independent content review accepts the claim ceiling. Such a row supplies no bound protein/function evidence. This preserves the ratified separation between document state and evidence state; it does not waive evidence requirements. A filename or modification time does not establish freshness; admitted search evidence must explicitly state `CURRENT` in a normalized evidence index after provenance review.
-
-### Finished-current-evidence BLASTp matrix (default §4; current50 v2 §50)
-
-The default full48 and its legacy `FINISHED_CURRENT_EVIDENCE` alias use §4. A selected `FINISHED_FULL50_CURRENT50_V2` card uses §50; keep the same complete roster and channel separation there. The selected evidence section must contain the subsection `#### Complete named-match, channel-separated table`. The older heading below is still accepted:
-
-`#### Complete channel-separated BLASTp matrix`
-
-The matrix is a human-review deliverable, not merely a companion-file pointer. It must:
-
-- contain exactly one row for every canonical gene, including boundary/context genes;
-- retain the canonical gene order and amino-acid length;
-- keep NCBI nr, NCBI ClusteredNR, and local Swiss-Prot separate, with two columns per channel: a named-match column and an alignment-metrics column;
-- show the rank-1 accession, complete matched-protein description, and subject organism in every bound-hit named-match cell;
-- show rank-1 percent identity, percent positives/similarity, and query coverage in the paired metric cell;
-- use the same explicit typed state such as `no bound hit`, `not run`, or `unbound` in both paired cells only after evidence readiness has been adjudicated;
-- report per-channel coverage denominators without adding them together; and
-- state that ClusteredNR is not nr, percent positives is not percent identity, similarity is not functional proof, and missing evidence is not biological absence.
-
-Before content-QA, every material evidence stream must be classified as one of:
-
-- `READY_BOUND`: integrate now;
-- `AVAILABLE_UNINGESTED`: ingest before writing;
-- `NEAR_READY_ACTIVE_RUN`: wait, ingest, and keep content-QA blocked;
-- `PRACTICALLY_ATTAINABLE`: obtain before content-QA;
-- `STRUCTURALLY_UNAVAILABLE`: permit a typed limitation with its reason; or
-- `NOT_APPLICABLE`: explain and close.
-
-Only `READY_BOUND`, justified `STRUCTURALLY_UNAVAILABLE`, and justified `NOT_APPLICABLE`
-may coexist with content-QA. `Pending` may appear in a work ledger, but it is not an acceptable
-terminal cell or prose substitute in a card declaring `FINISHED_CURRENT_EVIDENCE` or
-`PUBLICATION_REVIEW_CANDIDATE`. Remeasure exact-gene BLASTP coverage after canonical ingestion;
-write `READY_NOW` cards first and preserve other cards as explicitly blocked drafts.
-
-An EBI/UniProt pair is added when that channel is bound, but its absence does not permit the three required channel pairs to be merged or omitted. A percentage plus a bare accession in one cell is not a named match: without the protein description and organism, the human reviewer cannot tell what the percentage describes. A channel-level summary, a selected-core table, or a companion CSV alone does not satisfy the finished-card contract. Draft and gap-aware cards may retain explicit holds, but they must not declare finished-current-evidence or publication-review-candidate status until the matrix and authoritative canonical roster pass validation.
-
-Strain phenotype, ecology, thesis, or literature context may support context sections. None may be back-attributed to a BGC without a separate exact-locus and experimental linkage.
-
-## 6. Section routing
-
-The shipped evidence-stream JSON maps support to the planner’s fixed §1–§30 output. This is legacy planning numbering, not a full48/current50 table of contents or selected-profile verifier. Rebind support to the selected emitted template before writing. A section is emitted in one of three planning states:
-
-- `EVIDENCE_AVAILABLE_REQUIRES_INTERPRETATION`
-- `CONTEXT_ONLY_DO_NOT_LOCALIZE`
-- `WRITE_EXPLICIT_GAP_OR_HOLD`
-
-The planner never writes the interpretation. Conditional §21–§27 and §29 applicability remains class-dependent and must be resolved by the existing Mode B contract and validators.
-
-## 7. Example
+## 1. Run it
 
 ```bash
 python mamey_run.py modeb-availability \
@@ -133,8 +17,118 @@ python mamey_run.py modeb-availability \
   --out project/modeb_availability
 ```
 
-Run this command before `emit-modeb-template`, `modeb-round`, or new report prose. The resulting files are a work-order input, not a judgment receipt.
+- `--inventory` is required. See section 2.
+- `--source-root LABEL=PATH` scans a folder recursively for evidence files. Repeat it for more folders.
+- `--evidence-index PATH` reads a table you wrote that names each evidence file. Repeat it for more tables.
+- `--out` is the output folder.
 
-## 8. Claim ceiling
+You can use either evidence option, or both. With neither, the command still runs. Every stream shows as absent except the inventory's own identity row.
 
-Availability and provenance do not establish biological identity, production, activity, novelty, causality, phenotype, acceptance, release, or publication readiness. Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence.
+You should see a JSON manifest on screen with `"status": "PASS"`, your strain and BGC counts, and the output files. Exit code 0 means the files were written. It does not mean the cards are ready. A bad inventory raises an error that names the row, and nothing is written.
+
+## 2. The inventory file
+
+The inventory is a CSV or TSV with a header row and one row per BGC. The package already has one: `<strain>_2_inventory.csv`. Use it as is, or any table with these columns:
+
+```text
+Strain    BGC_ID    Contig                          antiSMASH_Region
+EXAMPLE   BGC001    NODE_7_length_120000_cov_42.5   region001
+EXAMPLE   BGC002    NODE_9_length_90000_cov_30.1    region002
+```
+
+The tool also accepts common header spellings such as `strain_id`, `bgc`, `contig`, `node_id` and `region`. An optional `products` column carries through to the output.
+
+A BGC is identified by strain, full contig and region. The `BGC###` alias is secondary. A row without a contig or region cannot be matched exactly, and its card stays on hold. Each strain and alias pair, and each exact locus, must appear once.
+
+Identity rules, in short:
+
+- A bare `NODE_7` is partial. It is not a complete identity.
+- Accessions keep their version. `CP103060.1` and `CP103060.2` are different contigs.
+- If two fields in one row disagree, the row is an error or stays unbound. The tool never picks one.
+- The tool upper-cases SPAdes `NODE_` contig names in its outputs. Compare against the inventory by eye if you search them.
+
+## 3. How evidence is matched
+
+Each evidence file gets one of five states:
+
+| State | Meaning |
+|---|---|
+| `EXACT_LOCUS` | Strain, full contig and region all match the inventory. |
+| `ALIAS_BOUND` | Strain and BGC alias match. The file does not establish the contig. |
+| `STRAIN_ONLY` | It describes the strain or cohort. Do not attach it to one BGC. |
+| `UNBOUND` | It cannot be attached to the inventory without a crosswalk. |
+| `ABSENT` | No matching file was found in the folders you gave. |
+
+`UNBOUND` and `ABSENT` describe your files. They say nothing about the biology.
+
+An evidence index is a TSV or CSV with a header. Required columns are `channel` and `source_path`. `channel` is a stream name such as `blastp_per_gene`, `domains_hmm` or `kcb_mibig`; the full list is in `mamey/data/mode_b/modeb_evidence_stream_contract.json`. Add the identity columns (`strain`, `bgc`, `contig`, `region`) so the row can bind exactly. Optional columns are `freshness_state`, `record_count` and `notes`. A relative `source_path` is read from the index's folder, and a missing file is an error. Mark a BLASTp file `CURRENT` in `freshness_state` only after you checked it belongs to this package.
+
+A folder scan reads file and folder names, and the header of large tables, to guess identity. It does not guess a contig from an arbitrary folder name. Where the guess is weak, use an index.
+
+## 4. Outputs
+
+The command writes six fixed filenames under `--out`:
+
+- `MODEB_AVAILABILITY_SUMMARY.md`: counts of ready and not-ready BGCs, and how many BGCs each stream reaches. Open this first.
+- `modeb_bgc_availability.tsv`: one row per BGC, with `work_state`, `writing_gate`, `promotion_gate` and three columns for each stream. Open this second.
+  - `<stream>_state` is the strongest binding state found for that stream.
+  - `<stream>_records` counts only the records at that state. Records at weaker states are not added to it.
+  - `<stream>_records_by_state` lists the records at every state, strongest first, for example `EXACT_LOCUS=1;UNBOUND=9`. It is blank when no file was found.
+  Before you read coverage from these counts, open `modeb_evidence_observations.tsv` for the records behind them.
+- `modeb_strain_availability.tsv`: the same counts per strain.
+- `modeb_evidence_observations.tsv`: one row per evidence file or table group.
+- `modeb_section_plan.tsv`: a planning table over the 30 legacy sections. It is not the card outline. Use the sections your profile emits.
+
+`modeb_section_plan.tsv` has one row per BGC per planning section (sections 1 to 30). Its `section_state` column takes one of three values:
+
+- `EVIDENCE_AVAILABLE_REQUIRES_INTERPRETATION`: at least one stream that supports the section is bound at `EXACT_LOCUS` or `ALIAS_BOUND`. The evidence exists. You still write the interpretation.
+- `CONTEXT_ONLY_DO_NOT_LOCALIZE`: the only support is `STRAIN_ONLY`. Use it as strain context. Do not attach it to this BGC.
+- `WRITE_EXPLICIT_GAP_OR_HOLD`: no supporting stream is bound. State the gap in the card or hold the card.
+
+The columns `available_streams` and `context_only_streams` name the streams behind each state. The tool never writes the interpretation. The planning numbers are not your profile's section numbers, so match them to the emitted template yourself.
+- `modeb_availability_manifest.json`: hashes, byte counts and counts.
+
+Existing files with these names are overwritten one by one. Use a new `--out` folder for each run.
+
+The outputs hold absolute paths to your local files. Remove them before you share the folder.
+
+## 5. Writing and promotion gates
+
+Each BGC row carries two gates.
+
+`writing_gate` decides whether you can start a draft:
+
+- `PASS_FOR_GAP_AWARE_AUTHORING`: the row has a full contig and region, and a gene-level source bound at `EXACT_LOCUS` or `ALIAS_BOUND`. You can draft, with every gap stated.
+- `HOLD_IDENTITY_UNRESOLVED`: the contig or region is missing. Fix the inventory.
+- `HOLD_MISSING_GENE_LEVEL_SOURCE`: no gene-level source is bound. Add one.
+
+`promotion_gate` decides whether the card can move toward review:
+
+- `ELIGIBLE_FOR_SEPARATE_INTERPRETIVE_REVIEW`: per-gene BLASTp is bound and marked `CURRENT`.
+- `HOLD_BLASTP_UNAVAILABLE_OR_UNBOUND`: no per-gene BLASTp is bound.
+- `HOLD_BLASTP_FRESHNESS_UNVERIFIED`: BLASTp is bound but not marked `CURRENT`.
+
+A passing gate checks the inventory and the file bindings only. It does not compare assembly hashes, confirm the source package, or show the biology is right. Run `verify-modeb` with your chosen profile before you call a card finished.
+
+A `HOLD` row means do not write that card as finished yet. A draft with the gap stated is allowed when `writing_gate` passes.
+
+`work_state` summarizes the row: `EVIDENCE_RICH_REVIEW_CANDIDATE` (BLASTp, domains and locus map all bound), `GAP_AWARE_REVIEW_CANDIDATE`, or `NEEDS_EVIDENCE_ASSEMBLY`.
+
+## 6. Readiness classes
+
+The tool does not output these. You assign them by hand to each evidence stream before the content check of a card:
+
+- `READY_BOUND`: use it now.
+- `AVAILABLE_UNINGESTED`: the file exists. Ingest it before you write.
+- `NEAR_READY_ACTIVE_RUN`: a run is still going. Wait, ingest, and hold the card.
+- `PRACTICALLY_ATTAINABLE`: you can get it. Get it before the content check.
+- `STRUCTURALLY_UNAVAILABLE`: it cannot exist for this locus. State the reason in the card.
+- `NOT_APPLICABLE`: it does not apply. Say why and close it.
+
+Only the first, fifth and sixth may stand in a finished card. `Pending` is not an acceptable final cell. A missing result in a finished card is a typed statement of the state, such as `not run` or `unbound`, with the reason. It is never a zero.
+
+The finished-card BLASTp table, with one named-match row per gene and nr, ClusteredNR and Swiss-Prot kept apart, is defined once, in the [current50 contract](MODEB_CURRENT50_V2_CONTRACT.md). The default full48 profile puts that table in section 4; current50_v2 puts it in section 50.
+
+## 7. What this does not show
+
+Strain phenotype, ecology, thesis or literature context may support the context sections of a card. None of it may be attributed to a BGC without a separate exact-locus link and experimental evidence. Availability and provenance do not establish identity, production, activity, novelty or cause. Similarity is not identity. Capacity is not production. Missing or unbound evidence is not biological absence.

@@ -24,7 +24,6 @@ ENV_OK = ("SAPOTE_WORKSPACE_ROOT", "MAMEY_DATA_ROOT", "SAPOTE_ROOT", "CLAUDE_PRO
 # cards, so its patterns must stay literal. Parametrising them would disable the guard.
 DETECTION_PATTERN_FILES = {
     "tools/audit_modeb_support_card.py",
-    "tests/test_audit_modeb_support_card.py",
     # The portability guard itself must contain the literal in order to search for it.
     "tests/test_workspace_path_portability.py",
     # v9.7.370: the hook-body portabilizer REWRITES the literal behind the env nesting, so its

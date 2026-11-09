@@ -47,8 +47,28 @@ def _asid(n):
     return f"AS-{m.group(1)}" if m else (n or "")
 
 
+_QUERY_TIPS = None   # set from --query-tips: the exact query tip names; None keeps the name-prefix rule
+
+
 def _is_query(n):
+    if _QUERY_TIPS is not None:
+        return (n or "") in _QUERY_TIPS
     return bool(re.match(r"^(AS|SID)[-_]?\d", n or ""))  # anchored: query tip STARTS with the id; not an embedded "AS 4.xxxx" culture code (F4)
+
+
+def _load_query_tips(path, tree_tips):
+    """--query-tips: one exact tip name per line. A blank file, a repeated name, or a name that is not
+    a tip of the graft tree is refused; the tree is never renamed."""
+    names = [line.rstrip("\r\n") for line in open(path, encoding="utf-8")]
+    names = [n for n in names if n.strip()]
+    if not names:
+        _refuse("QUERY_TIPS_EMPTY", f"{path} lists no tip names")
+    if len(names) != len(set(names)):
+        _refuse("QUERY_TIPS_DUPLICATE", f"{path} lists a tip name twice")
+    missing = sorted(set(names) - set(tree_tips))
+    if missing:
+        _refuse("QUERY_TIPS_NOT_IN_TREE", f"{len(missing)} listed tip(s) are not in the graft tree, e.g. {missing[0]!r}")
+    return frozenset(names)
 
 
 def _find_host_table(path):
@@ -790,12 +810,15 @@ def main():
         default="",
         help="optional renderer-ready TSV with tip, label, category and source columns",
     )
+    ap.add_argument("--query-tips", default="",
+                    help="file of exact query tip names, one per line; replaces the AS/SID name-prefix rule. "
+                         "Every name must be a tip of the graft tree.")
     ap.add_argument("--out-prefix", required=True)
     a = ap.parse_args()
     globals()["_ALLOW_RAW_HOST"] = bool(getattr(a, "allow_raw_host", False))
     _require_readable(a.graft, "--graft")
     metadata_sources = [p for p in [a.host_table, a.origin_table, a.ref_source_db, a.bioassay_table,
-                                     a.required_reference_table,
+                                     a.required_reference_table, a.query_tips,
                                      *(a.aux_table if not a.no_aux else [])] if p]
     source_hashes = {}
     for path in [a.graft, *metadata_sources]:
@@ -807,6 +830,8 @@ def main():
         _require_writable_parent(a.rect_meta_out, "--rect-meta-out")
 
     t, tips = _read_tree_or_refuse(a.graft)
+    if a.query_tips:
+        globals()["_QUERY_TIPS"] = _load_query_tips(a.query_tips, [x.name for x in tips])
     from Bio import Phylo  # reader helper has already verified this dependency; writer also needs it
 
     def genus(x):

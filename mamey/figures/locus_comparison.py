@@ -15,6 +15,12 @@ try:
     from ..render_safe import safe_savefig_dpi as _safe_dpi
 except ImportError:  # loaded by file path (tests/test_locus_comparison.py), outside the package
     from mamey.render_safe import safe_savefig_dpi as _safe_dpi
+# The five outputs are staged together and published only when all of them exist, so a failed
+# render or write never leaves a partial set that a retry would then refuse.
+try:
+    from ..output_transaction import fresh_output_set as _fresh_output_set
+except ImportError:  # loaded by file path, outside the package
+    from mamey.output_transaction import fresh_output_set as _fresh_output_set
 
 PALETTE = ('#4477AA', '#228833', '#AA3377', '#EE7733', '#009988', '#995500',
            '#EE99AA', '#66AADD', '#CCBB44', '#CC3311', '#7744AA', '#117733')
@@ -282,11 +288,19 @@ def render(input_path, outdir):
                 raise ValueError('text outside figure boundary; shorten labels or title')
     orientation_receipt={'orientation':{t['id']:t['orientation'] for t in tracks}}
     verify_drawn_orientation(spec,drawn,orientation_receipt)
-    out.mkdir(parents=True,exist_ok=True)
-    for ext in ('svg','png','pdf'):fig.savefig(out/f'comparison.{ext}',dpi=_safe_dpi(fig,180))
-    plt.close(fig)
-    (out/'display_coordinates.json').write_text(json.dumps({'genes':rows,'links':links,'drawn_arrows':drawn},indent=2)+'\n')
-    receipt=dict(schema='locus-comparison-receipt-v1',input_sha256=hashlib.sha256(raw).hexdigest(),
+    with _fresh_output_set(out, outputs) as stage:
+        try:
+            for ext in ('svg','png','pdf'):fig.savefig(stage/f'comparison.{ext}',dpi=_safe_dpi(fig,180))
+        finally:
+            plt.close(fig)
+        (stage/'display_coordinates.json').write_text(json.dumps({'genes':rows,'links':links,'drawn_arrows':drawn},indent=2)+'\n')
+        receipt=_report_receipt(raw, spec, tracks, links, colors, stage, outputs)
+        (stage/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+    return receipt
+
+
+def _report_receipt(raw, spec, tracks, links, colors, stage, outputs):
+    return dict(schema='locus-comparison-receipt-v1',input_sha256=hashlib.sha256(raw).hexdigest(),
                  sources=spec['sources'],coordinate_system='0-based half-open; display bp relative to anchors',
                  orientation={t['id']:t['orientation'] for t in tracks},
                  track_count=len(tracks),link_count=len(links),
@@ -294,9 +308,7 @@ def render(input_path, outdir):
                  drawn_orientation_check='PASS',
                  assembly_markers={t['id']:{'sequence_length':t.get('sequence_length'),'missing_stop_genes':[g['id'] for g in t['genes'] if g.get('missing_stop_codon')]} for t in tracks},
                  group_colors=colors,visual_qa='REQUIRES_HUMAN_REVIEW',
-                 files={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in outputs[:-1]})
-    (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
-    return receipt
+                 files={name:hashlib.sha256((stage/name).read_bytes()).hexdigest() for name in outputs[:-1]})
 
 
 def _slide_view(spec):
@@ -478,10 +490,11 @@ def _render_slide(spec, raw, rows, links, out, outputs):
                 if box.x0<0 or box.y0<0 or box.x1>fig.bbox.width or box.y1>fig.bbox.height:raise ValueError(f'text outside figure boundary ({art.get_text()!r})')
         orientation={'orientation':{t['id']:t['orientation'] for t in tracks}}
         verify_drawn_orientation(spec,drawn,orientation)
-        out.mkdir(parents=True,exist_ok=True)
-        for ext in ('svg','png','pdf'):fig.savefig(out/f'comparison.{ext}',dpi=_safe_dpi(fig,180))
-        (out/'display_coordinates.json').write_text(json.dumps({'genes':rows,'links':links,'drawn_arrows':drawn},indent=2)+'\n')
-        receipt=dict(schema='locus-comparison-receipt-v1',input_sha256=hashlib.sha256(raw).hexdigest(),sources=spec['sources'],coordinate_system='0-based half-open; orientation*(native-anchor midpoint)+offset_bp',orientation=orientation['orientation'],track_count=len(tracks),link_count=len(links),displayed_strand_agreements=sum(l['displayed_strands_agree'] for l in links),drawn_orientation_check='PASS',assembly_markers={t['id']:{'sequence_length':t.get('sequence_length'),'missing_stop_genes':[g['id'] for g in t['genes'] if g.get('missing_stop_codon')]} for t in tracks},group_colors=colors,visual_qa='REQUIRES_HUMAN_REVIEW',display_view='slide',heading_placements=heading_records,row_y=y,offset_bp={t['id']:t.get('offset_bp',0) for t in tracks},axis_zero_track=zero_track,axis_zero_bp=zero*1000,axis_ticks_kb=[i*step for i in range(len(ticks))],omitted_gene_labels=omitted,visible_gene_labels=[{'track':tid,'gene':gid,'text':lab.get_text()} for tid,gid,lab,_ in kept],files={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in outputs[:-1]})
-        (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');return receipt
+        with _fresh_output_set(out, outputs) as stage:
+          for ext in ('svg','png','pdf'):fig.savefig(stage/f'comparison.{ext}',dpi=_safe_dpi(fig,180))
+          (stage/'display_coordinates.json').write_text(json.dumps({'genes':rows,'links':links,'drawn_arrows':drawn},indent=2)+'\n')
+          receipt=dict(schema='locus-comparison-receipt-v1',input_sha256=hashlib.sha256(raw).hexdigest(),sources=spec['sources'],coordinate_system='0-based half-open; orientation*(native-anchor midpoint)+offset_bp',orientation=orientation['orientation'],track_count=len(tracks),link_count=len(links),displayed_strand_agreements=sum(l['displayed_strands_agree'] for l in links),drawn_orientation_check='PASS',assembly_markers={t['id']:{'sequence_length':t.get('sequence_length'),'missing_stop_genes':[g['id'] for g in t['genes'] if g.get('missing_stop_codon')]} for t in tracks},group_colors=colors,visual_qa='REQUIRES_HUMAN_REVIEW',display_view='slide',heading_placements=heading_records,row_y=y,offset_bp={t['id']:t.get('offset_bp',0) for t in tracks},axis_zero_track=zero_track,axis_zero_bp=zero*1000,axis_ticks_kb=[i*step for i in range(len(ticks))],omitted_gene_labels=omitted,visible_gene_labels=[{'track':tid,'gene':gid,'text':lab.get_text()} for tid,gid,lab,_ in kept],files={name:hashlib.sha256((stage/name).read_bytes()).hexdigest() for name in outputs[:-1]})
+          (stage/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+        return receipt
     finally:
         plt.close(fig)

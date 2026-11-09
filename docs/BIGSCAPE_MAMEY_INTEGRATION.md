@@ -1,37 +1,85 @@
-# BiG-SCAPE integration adapters: current limits and historical scope
+# BiG-SCAPE ingest: known limits
 
-Read the [companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) and [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md). Default reconciliation is a reviewed additive overlay. The shipped ingest tool directly rewrites cards, so using it on canonical/sealed cards requires the separately authorized, source-preserving reconciliation described there. Use this guide to check input identity, selected database scope and card-write behavior before choosing a workflow.
+This page lists what the BiG-SCAPE helper tools do and do not check. Read it before you write BiG-SCAPE family (GCF, gene cluster family) context into Mode B cards. Mode B cards are the per-locus evidence write-ups. For the run steps, start with the [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md) and the [companion tool protocol](LLM_COMPANION_TOOL_PROTOCOL.md).
 
-> **Implementation scope:** use the linked current workflow for a new task. The current adapters have explicit run/policy and status handling, while the remaining identity, distance-scope and card-write limits below still require separate review. Historical labels do not establish scientific acceptance.
+> **Implementation scope:** this page describes the tools as they are. The workflow page is the guide for a new task. The limits below still need your own review. A tool label does not establish scientific acceptance.
 
-## Exact run and portable identity
+## What to run
 
-`tools/bigscape_ingest_to_mamey.py` requires `--run-id` with `--db`, selects region-level memberships in that run and normalized cutoff, and rejects conflicting family assignments. Family namespace combines run, cutoff and family ID; family ID alone is not a portable cross-run join key. Membership selection does not verify completed-run status or reference provenance.
+```bash
+python tools/bigscape_ingest_to_mamey.py --db <bigscape.db> --run-id <N> \
+  --package <package_dir> --cutoff 0.5 --dry-run
+```
 
-The triage bridge maps strain+BGC alias to a normalized locator. Duplicate bridge entries overwrite earlier ones; a strain-less fallback is permitted. Package discovery chooses the first matching triage CSV and card directory, rather than enforcing unique candidates. Explicitly bind the reviewed bridge and input directory, and retain strain, full contig/node, region and alias with hashes. Coverage-stripped locator normalization is not proof that differently named biological records are identical.
+- `--db` is a finished BiG-SCAPE 2 database. `--run-id` is required with it and picks one run. Use `--from-tsv <AS_per_BGC_annotation.tsv>` plus `--strain` instead if you only have the portable table.
+- `--package` finds the triage CSV and the `*_ModeB.md` cards. `--triage` and `--cards-dir` override it.
+- `--dry-run` writes no card. With `--db` the database is opened read-only, and a path that does not exist is refused with `ERROR: not an existing BiG-SCAPE database` before any connection, so no empty database file is created. The "updated" count then means proposed changes. Check it, then run again without `--dry-run`.
+- A real run edits the cards in place. It does not add GCF columns to the triage CSV.
+- Never point it at sealed or canonical cards. Copy them first and review the copy.
 
-## Membership distance and status limits
+## Run and family identity
 
-DB family membership is selected by exact run/cutoff, but the nearest-MIBiG calculation scans the entire distance table without a run/parameter filter (`109–184`). It can therefore attach a nearest-reference result from a different comparison history. Hold that field until an independently scoped distance receipt establishes the selected run and parameters.
+The ingest tool takes region-level members of the run and cutoff you name, and it rejects conflicting family assignments. A family ID means something only together with its run and cutoff, so the tool joins all three. A family ID alone is not a key across runs. The tool does not check that the run finished or where its references came from.
 
-`KNOWN` means a parsed MIBiG accession shares the selected family. The current DB fallback is `NO_MIBIG_MEMBER`, not `NOVEL`. TSV mode preserves `KNOWN`, maps legacy `NOVEL` and `NO_MIBIG_MEMBER` to `NO_MIBIG_MEMBER`, and maps blank/unrecognized status to `UNKNOWN`. The rendered unknown block states that membership is unknown; the no-member block limits absence to the loaded reference panel and explicitly disclaims “no characterized analog.” These repaired labels still do not prove a reference panel was complete or loaded as intended. On cohort-only data report measured within-panel membership without a novelty inference. Missing/malformed MIBiG name indexes still yield `?` labels (`tools/bigscape_ingest_to_mamey.py`).
+The tool maps strain plus BGC alias to a normalized locator. Be aware of these behaviors:
 
-Portable TSV mode lacks cohort co-member detail even when family namespace fields are available. Empty co-member lists in DB mode describe selected-family membership only; they do not demonstrate organism rarity or absence of related loci elsewhere.
+- Duplicate entries in the triage file overwrite earlier ones.
+- A locator with no strain is accepted as a fallback.
+- Package discovery takes the first matching triage CSV and card folder.
 
-## Card writes, placement and recovery
+Name the triage file and input folder yourself. Keep strain, full contig or node, region and alias for every locus. A matching normalized locator does not prove two records are the same biological locus.
 
-The ingest CLI has `--dry-run`; its updated count then means proposed changes. Actual writes replace the existing fenced GCF block, otherwise insert near a literal section8 heading, otherwise append at the end. Current full-profile section numbering may have a different meaning, so automatic placement needs a content/layout review. Repeated replacement is text-idempotent, not proof of source/version binding.
+## Nearest reference and status labels
 
-Writes use atomic replacement per card, with no whole-batch transaction, original-hash gate, input/output hash receipt or current-profile verifier. A partial batch can survive failure. Cards lacking a locator/context match are skipped; zero exit can mean every card skipped. Inspect updated/skipped/context counts and every proposed locus binding. Despite historical help text, the current CLI does not add GCF columns to the triage CSV (`314–433`). Preserve sources; stage a separately reviewed additive overlay rather than testing mutation on them.
+Family membership comes from the run and cutoff you named. The nearest-MIBiG distance does not. The function that computes it reads the whole distance table without filtering by run or parameters. It can report a nearest reference from a different comparison. Hold that field until you have a distance record for the run you selected.
 
-## Pipeline scope and remaining holds
+Status labels:
 
-`tools/bigscape_pipeline.py` checks that an explicit run exists or that exactly one new run row appeared. Skip-cluster and pre-existing/shared databases require explicit IDs; MIBiG chunking remains held. The current prep path requires and forwards `--strictness`, or an explicitly justified `--allow-mixed` choice, and forwards `--assume-strictness` when supplied. Missing/conflicting policy refuses before staging; `PREP_STRICTNESS_POLICY.json` records the selection and forwarded arguments. The older missing-forwarding defect is repaired, not an active reason to block every prep attempt (`tools/bigscape_pipeline.py`). No-MIBiG execution still invokes the table exporters; their filenames/status fields do not establish chemical novelty. Optional `--ingest-package` still writes cards without an approval gate inside the script. The runbook is the approval/provenance authority, not the presence of those flags. See the [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md) for the detailed recovery hold.
+- `KNOWN` means a parsed MIBiG accession is in the same family.
+- `NO_MIBIG_MEMBER` means no MIBiG member is in the family. It is not `NOVEL`.
+- `UNKNOWN` means the TSV status was blank or not recognized.
+- In `--from-tsv` mode an old `NOVEL` value is read as `NO_MIBIG_MEMBER`.
 
-## antiSMASH join and BiG-SLiCE limitations
+`NO_MIBIG_MEMBER` is limited to the reference panel that was loaded. It does not mean "no characterized analog." It does not prove the panel was complete. On cohort-only data, report within-panel membership and make no novelty claim. A missing or malformed MIBiG name index gives `?` for compound names.
 
-`tools/antismash_bigscape_join.py` validates family namespaces but joins GBK names using the first underscore-delimited strain token and a filename locator. Its optional KCB parser keys hits by strain+region only, uses the first accession/percent regex matches and can overwrite duplicate region keys across contigs. Its agreement label tests KCB hit presence versus family KNOWN status; it does **not** test equality of anchor accessions or methods. Missing KCB context is unmeasured, not disagreement. Output TSV is overwritten directly and can be header-only with zero exit; it has no source/output hash receipt (`54–179`).
+`--from-tsv` mode has no list of co-members. In `--db` mode, an empty co-member list describes only the selected family. It does not show that the organism is rare or that related loci are absent elsewhere.
 
-`tools/bigslice_query.py` uses the [bound BiG-SLiCE workflow](BIGSLICE_WORKFLOW.md): a fresh receipt/export `--out`, an explicitly writable query working model, exact run/clustering selection, reviewed runtime/model profiles, source-bound four-component identities and read-only SQLite result extraction. Query writes occur in the working model as well as the export root. Historical invocations lacking those bindings now refuse; old outputs remain historical. Native completion requires exact report/database readback beyond a zero child exit. The implemented profile is BiG-SLiCE 2.0.0 / schema 1.0.1; unknown installed versions/models remain held. Adapter tests are synthetic and do not certify local model compatibility. Never transfer historical reference/model or cohort counts to a current run; results describe the selected model only.
+## Card writes
 
-Earlier v9.7.319 accounts and named cohort examples are historical implementation reports. Use their original test/run receipts for historical claims and separate scientific acceptance from implementation status. Source owners: `tools/bigscape_ingest_to_mamey.py`, `tools/bigscape_pipeline.py`, `tools/antismash_bigscape_join.py`, `tools/bigslice_query.py`.
+A real run replaces the existing fenced GCF block in a card. If there is none, it inserts the block after the first heading that begins `## 8` or `## §8`. If there is no such heading, it appends the block at the end. Section numbers in current Mode B profiles can mean something else, so check where the block landed.
+
+The block's nearest-reference line gives the BiG-SCAPE GCF distance as a similarity score from that run (0 most similar, 1 least similar). It says that distance 0 does not show identical sequences or the same product.
+
+- Each card is replaced atomically. The batch is not. A failure can leave some cards changed.
+- There is no check of the original file hash and no record of input or output hashes.
+- A card with no matching locator is skipped. Exit code 0 can mean every card was skipped. Read the updated, skipped and context counts.
+- Repeating the run gives the same text. That does not prove the source or version is the same.
+
+## Pipeline wrapper
+
+`tools/bigscape_pipeline.py` runs BiG-SCAPE and can then ingest.
+
+- It checks that the run you named exists, or that exactly one new run appeared.
+- `--skip-cluster` and a shared or existing database both need `--run-id`.
+- Prep needs `--strictness {loose,relaxed,strict}`, or `--allow-mixed` with `--mixed-justification`. `--assume-strictness` is passed through when given. A missing or conflicting choice stops the run before staging. `PREP_STRICTNESS_POLICY.json` records the choice.
+- Loading MIBiG in batches (`--chunk-mibig`) is held. Do not use it without a review.
+- `--ingest-package` writes cards with no approval step. Your run plan is the approval, not the flag.
+- Without MIBiG, the table exporters still run. Their file names and status fields do not show chemical novelty.
+
+## antiSMASH join
+
+`tools/antismash_bigscape_join.py --gbk-dir <dir> --bigscape-tsv <tsv> --out <tsv>` joins GBK files to families. It checks the family namespaces. It matches GBK names on the first underscore-separated part of the strain name plus a file name locator.
+
+- The optional `--kcb-dir` parser keys hits by strain and region only. It takes the first accession and percent it finds. Duplicate region keys across contigs can overwrite each other.
+- Its agreement label compares "has a KCB hit" against a family status of `KNOWN`. It does not compare accessions or methods. A missing KCB value is unmeasured, not a disagreement.
+- The output file is overwritten. It can hold only a header and still exit 0. It records no hashes.
+
+## BiG-SLiCE
+
+`tools/bigslice_query.py` follows the [BiG-SLiCE workflow](BIGSLICE_WORKFLOW.md). The adapter supports BiG-SLiCE 2.0.0 with database schema 1.0.1. Other versions and models are held.
+
+- Use a fresh `--out`, a writable query working model, an exact run and clustering choice, reviewed runtime and model profiles, and four-part locus identities from the source.
+- The query writes into the working model as well as the export folder.
+- Native completion needs the report and database read back. A zero exit from the child process is not enough.
+- The adapter tests are synthetic. They do not show your local model works.
+- Results describe the model you selected. Do not carry reference or cohort counts from one model to another.

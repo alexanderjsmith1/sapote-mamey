@@ -1271,8 +1271,75 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
     return str(qpath), str(rpath)
 
 
+def _plain_locus(value: str) -> str:
+    """Reduce a lane gene ID to its locus tag: 'SYN-1__ctg2_160' and 'SYN-2__BGC014__ctg15_17 aa=70 why=t1'
+    become 'ctg2_160' and 'ctg15_17'. A plain locus tag is returned unchanged."""
+    value = (value or "").strip()
+    if "__" in value:
+        value = value.split("__")[-1]
+    return value.split()[0] if value else value
+
+
+def _lane_locus(value: str, package_strain: str) -> str:
+    """A gap-lane gene ID that names the package's own strain ('SYN-1__ctg2_160', 'SYN-2__BGC014__ctg15_17 aa=70
+    why=t1') reduced to its locus tag. Any other value is returned unchanged, so a conflicting strain claim or a
+    legacy query format still reaches the existing checks."""
+    prefix = f"{package_strain}__"
+    if not value or not value.startswith(prefix):
+        return value
+    tokens = value[len(prefix):].split("__")[-1].split()
+    return tokens[0] if tokens and all("=" in t for t in tokens[1:]) else value
+
+
+def _lane_query_index(trove_root: Path) -> dict[str, dict]:
+    """{panel: {"file", "sha256"}} from the lane ledger beside a gene-keyed trove root (<lane>/_ledger.csv,
+    with results under <lane>/results). Only fetched rows that carry a query_sha256 are indexed."""
+    index: dict[str, dict] = {}
+    for ledger in (trove_root.parent / "_ledger.csv", trove_root / "_ledger.csv"):
+        if not ledger.is_file():
+            continue
+        with ledger.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                if row.get("status") == "fetched" and row.get("query_sha256") and row.get("bgc"):
+                    index[row["bgc"]] = {"file": row.get("file", ""), "sha256": row["query_sha256"]}
+    return index
+
+
+def _read_fasta(text: str) -> dict[str, str]:
+    seqs: dict[str, str] = {}
+    name = None
+    for line in text.splitlines():
+        if line.startswith(">"):
+            name = _plain_locus(line[1:].split()[0]) if line[1:].split() else None
+            if name:
+                seqs[name] = ""
+        elif name:
+            seqs[name] += line.strip()
+    return seqs
+
+
+def _bound_query_sequences(entry: dict, query_roots: list[Path]) -> tuple[dict[str, str], str]:
+    """Open the query FASTA a ledger row names, under one of the query roots, and check its bytes against the
+    ledger's query_sha256. Returns ({locus: sequence}, state)."""
+    for root in query_roots:
+        path = root / entry["file"]
+        if path.is_file():
+            data = path.read_bytes()
+            if hashlib.sha256(data).hexdigest() != entry["sha256"]:
+                return {}, "QUERY_FILE_HASH_MISMATCH"
+            return _read_fasta(data.decode("utf-8", "replace")), "QUERY_FILE_BOUND"
+    return {}, "QUERY_FILE_NOT_FOUND"
+
+
+def _package_proteins(package: Path) -> dict[str, str]:
+    """The package's own protein sequences by locus tag (sole *_proteins.faa), or {} when absent or ambiguous."""
+    files = _package_matches(package, "*_proteins.faa")
+    return _read_fasta(files[0].read_text(encoding="utf-8", errors="replace")) if len(files) == 1 else {}
+
+
 def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str,
-                        strain: str | None = None, *, rekey_by_locus: bool = False) -> dict:
+                        strain: str | None = None, *, rekey_by_locus: bool = False,
+                        query_roots: list | None = None) -> dict:
     """Ingest a pre-parsed per-BGC hit trove into <package>/blastp_online/<BGC>_online_blastp.csv.
 
     trove_dir layout: <STRAIN>/<BGC>/<BGC>_top_hit_per_gene.csv (the schema blastp_ingest/
@@ -1284,7 +1351,16 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     predate the selected package.  It resolves each query locus through the package's sole
     ``*cds_table.csv`` and writes to that current BGC.  Absent/ambiguous loci and length conflicts
     remain quarantined as distinct typed holds; the strict default path is unchanged.
+
+    In rekey mode a trove may be gene-keyed (one folder per query panel, as the single-protein ClusteredNR gap
+    lanes write, with the lane's _ledger.csv beside the results folder) rather than BGC-keyed: its panel folders
+    are read, and gene IDs that name the package strain ('SYN-1__ctg2_160') are reduced to the locus tag. Lane rows carry no query length. With ``query_roots`` (the lanes' queue folders),
+    a blank length is taken from the query FASTA that the lane ledger names, only after its bytes match the
+    ledger's query_sha256 and its sequence equals the package's own protein for that locus; anything else stays
+    held (ZERO_OR_BLANK_AA_LENGTH, or QUERY_SEQUENCE_DIFFERS_FROM_PACKAGE).
     """
+    if query_roots and not rekey_by_locus:
+        raise ValueError("query_roots applies only with rekey_by_locus")
     if channel not in _CHANNEL_RANK:
         raise ValueError(f"channel must be one of {sorted(_CHANNEL_RANK)}; got {channel!r}")
     pkg = Path(package)
@@ -1315,6 +1391,13 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     domains = _domains_by_locus(pkg)
     self_binomial = _self_binomial(pkg)
     troot = Path(trove_dir)
+    q_roots = [Path(r) for r in (query_roots or [])]
+    # a lane ledger beside the results folder marks a gene-keyed lane (one folder per query panel)
+    gene_keyed = rekey_by_locus and any(p.is_file() for p in (troot.parent / "_ledger.csv", troot / "_ledger.csv"))
+    lane_index = _lane_query_index(troot) if q_roots else {}
+    package_proteins = _package_proteins(pkg) if q_roots else {}
+    lane_cache: dict[str, tuple[dict[str, str], str]] = {}
+    query_binding_counts: dict[str, int] = {}
     # accept either <trove>/<BGC>/... (single strain) or <trove>/<STRAIN>/<BGC>/...
     direct_strain = troot / package_strain
     if direct_strain.is_dir():
@@ -1334,13 +1417,16 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     unmatched_bgc_directories = 0
     for sdir in strain_dirs:
         entries = _trove_entries(sdir)
+        def _readable_dir(p: Path) -> bool:
+            # gene-keyed lane panels are read in rekey mode, where each row is placed by its locus
+            return p.is_dir() and (p.name.upper().startswith("BGC")
+                                   or (gene_keyed and not p.name.startswith(("_", "."))))
         for entry in entries:
-            if entry.is_dir() and not entry.name.upper().startswith("BGC"):
+            if entry.is_dir() and not _readable_dir(entry):
                 skipped_directory_count += 1
                 if len(skipped_directory_sample) < 10:
                     skipped_directory_sample.append(str(entry.relative_to(troot)))
-        for bgc_dir in (p for p in entries
-                        if p.is_dir() and p.name.upper().startswith("BGC")):
+        for bgc_dir in (p for p in entries if _readable_dir(p)):
             bgc = bgc_dir.name
             bgc_entries = _trove_entries(bgc_dir)
             # (v9.7.344) try the channel's real per-gene filenames, in order, before giving up.
@@ -1371,6 +1457,33 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 planned_rows.setdefault(bgc, {})
             for row_number, r in enumerate(physical_csv_rows(src), 2):
                 if rekey_by_locus:
+                    r = dict(r)
+                    for k in _QUERY_ALIASES:
+                        if r.get(k):
+                            r[k] = _lane_locus(r[k], package_strain)
+                    q_locus, q_aa = _query_parts(r)[2], _query_parts(r)[3]
+                    if q_roots and not q_aa and bgc in lane_index:
+                        if bgc not in lane_cache:
+                            lane_cache[bgc] = _bound_query_sequences(lane_index[bgc], q_roots)
+                        seqs, qstate = lane_cache[bgc]
+                        seq = seqs.get(q_locus)
+                        if qstate != "QUERY_FILE_BOUND":
+                            state = qstate
+                        elif not seq:
+                            state = "QUERY_LOCUS_NOT_IN_FILE"
+                        elif package_proteins.get(q_locus) != seq:
+                            state = "QUERY_SEQUENCE_DIFFERS_FROM_PACKAGE"
+                        else:
+                            state = "LENGTH_FROM_LEDGER_BOUND_QUERY"
+                            r["aa_length"] = str(len(seq))
+                        query_binding_counts[state] = query_binding_counts.get(state, 0) + 1
+                        if state == "QUERY_SEQUENCE_DIFFERS_FROM_PACKAGE":
+                            keys, _ = _validate_rekey_ingest_row(r, package_strain, bgc, current_by_locus)
+                            rejected.append(_quarantine_row(
+                                state, channel, package_strain, keys.get("resolved_bgc") or bgc, keys,
+                                str(src.relative_to(troot)), source_sha, row_number, r,
+                            ))
+                            continue
                     keys, reason = _validate_rekey_ingest_row(
                         r, package_strain, bgc, current_by_locus,
                     )
@@ -1527,6 +1640,8 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
         "authority": "selected package *cds_table.csv",
         "resolution_counts": dict(sorted(rekey_counts.items())),
         "admitted_current_bgcs": dict(sorted(written.items())),
+        **({"query_length_binding": dict(sorted(query_binding_counts.items())),
+            "query_roots": [str(r) for r in q_roots]} if q_roots else {}),
     } if rekey_by_locus else None)
     affected_outputs = set(overlay_payloads) | overlay_deletions | {
         outdir / f"{row['bgc']}_online_blastp.csv" for row in physical.asserted_rows
@@ -1553,7 +1668,8 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
             "genes": sum(written.values()), "quarantined": len(rejected),
             "quarantine": quarantine_path, "receipt": receipt_path,
             "rekey_by_locus": rekey_by_locus,
-            "rekey_resolution_counts": dict(sorted(rekey_counts.items()))}
+            "rekey_resolution_counts": dict(sorted(rekey_counts.items())),
+            "query_length_binding": dict(sorted(query_binding_counts.items()))}
 
 
 def _load_ingest_ledger(ledger_path: Path) -> dict:
@@ -1800,8 +1916,15 @@ def install_channel_top10(package: str | Path, trove_dir: str | Path, channel: s
 
 def blastp_status(package: str | Path) -> list[dict]:
     """Per-BGC overlay coverage audit — the single retrieval entry point.
-    Returns [{bgc, channels, genes, path, armed}]; armed False => ClusterBlast fallback."""
+
+    Returns [{bgc, channels, genes, path, armed}] for the overlay files present. It reads only the
+    package's `blastp_online/` folder. An empty list or armed False says no overlay rows were found;
+    it does not show that ClusterBlast evidence exists or that a consumer used it. A path that is not
+    an existing package folder with a manifest.json is refused, never reported as an empty overlay."""
     pkg = Path(package); outdir = pkg / "blastp_online"
+    if not pkg.is_dir() or not (pkg / "manifest.json").is_file():
+        raise FileNotFoundError(
+            f"BLASTP_STATUS_PACKAGE_NOT_FOUND: {pkg} is not a package folder with manifest.json")
     rows = []
     try:
         entries = list(outdir.iterdir())
@@ -2317,6 +2440,16 @@ def _existing_b5_keys(ws) -> set:
     return keys
 
 
+_NON_NR_SOURCE_TOKENS = ("ebi", "uniprot", "clustered", "swiss", "refseq", "pdb", "env_nr")
+
+
+def _is_ncbi_nr_source(source: str) -> bool:
+    """True only for an NCBI transport with no other database named. The package overlay written by
+    ingest_blastp is the nr channel (blastp_online/, channel=nr); any other database must not land there."""
+    text = str(source or "").strip().casefold()
+    return text.startswith("ncbi") and not any(token in text for token in _NON_NR_SOURCE_TOKENS)
+
+
 def ingest_blastp(master_path: str | Path, strain: str, csv_path: str | Path,
                   xml_path: str | Path | None = None, top_n: int = 10,
                   package: str | Path | None = None, source: str = "NCBI web-BLASTp") -> dict:
@@ -2329,6 +2462,13 @@ def ingest_blastp(master_path: str | Path, strain: str, csv_path: str | Path,
     import openpyxl
     from .master_workbook import CANONICAL_V1_HEADERS as _SHEET_HEADERS, _append_row_by_header
 
+    if package and not _is_ncbi_nr_source(source):
+        # The overlay below labels every row channel=nr and source_channel=nr. Writing EBI, UniProt,
+        # ClusteredNR or Swiss-Prot hits there would present them as NCBI nr evidence and merge channels.
+        raise BlastpHitTableError(
+            f"BLASTP_CHANNEL_UNSUPPORTED_FOR_PACKAGE_OVERLAY: source {source!r} is not NCBI nr; the package "
+            "overlay is the nr channel only. Ingest it without --package (workbook rows keep the source), "
+            "or install it through that channel's own route.")
     _xml_status: dict = {}
     physical = PhysicalAdmission(Path(package), strain) if package else None
     physical_queries: list[dict] = []

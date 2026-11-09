@@ -1,81 +1,49 @@
-# KNOWLEDGE — Diagnostic Domain Combinations (DDC)
+# Diagnostic domain combinations
 
-Use this page when a product label leaves a class question unresolved. Start with the selected
-region's extracted domain rows, then compare the historical lookup below with their gene tags,
-scores and source coverage. Keep **strain / full node-or-contig / region / BGC alias** with the note.
+Use this page when an antiSMASH product label leaves the class of a cluster unclear. A single protein domain rarely names a class. A combination often points to one. The table below lists combinations to check against a cluster's domain rows. It is a lookup for a person to read. No code applies it. For terms such as BGC and package, see the [glossary](../GLOSSARY.md).
 
-The lookup is a prompt interpretation aid, not an executable classifier. `mamey/antismash_evidence.py`
-owns extraction; `mamey/source_scans.py` and `mamey/scoring.py` own their implemented triggers and
-ranking rules. Marker/cassette registry entries provide vocabulary; their presence does not
-establish that a scan ran or that a proposed class is correct.
+## Where the domain rows come from
 
----
+The engine reads domains from the antiSMASH region GBKs and from antiSMASH's TIGRFAM results. It saves them in `<strain>_AntiSMASH_Evidence_Parse.json`, under `gbk_pfam_hits`. That object is keyed by region. Each row has `domain_name`, `pfam_acc`, `bitscore`, `evalue`, `locus_tag` and `tier1_diagnostic`.
 
-## 1. Why this exists / who reads it
+Two things limit the table.
+- `TIGR02353` is recorded for combination checks only. It is not a tier-1 diagnostic.
+- TIGRFAM rows (`TIGR#####`) are recorded for the accessions in `DIAGNOSTIC_TIGRFAM` in `mamey/antismash_evidence.py`. Pfam rows appear only if antiSMASH wrote them as `sec_met_domain` text in the GBK.
+- No code scans for sequence motifs. A row that names a motif needs a manual check of the protein.
 
-A single domain rarely names a class; a combination often does. Mamey extracts the domains; this table is how a reader turns them into a class call. Apply it whenever a class call must go beyond the antiSMASH label (every Mode B §1/§4, every lead-board verdict).
+`run --hmm-scan` adds HMM evidence in `<strain>_HMM_Scan.json`. `HMM_SCAN_UNAVAILABLE` means no scan result exists for that scope, for different reasons: as the file's top-level status, the scan could not start (its `reason` says why); on a row, the scan of that region was attempted and failed or returned no usable result (read the row's `reason`). `SOURCE_GBK_UNBOUND` on a row means its region file was not found exactly once. When any row is not `PASS`, the top-level status is `PASS_WITH_DEGRADATION`. None of these is a no-hit result.
 
-**Skip-not-fake.** A combination is asserted only when *all* its required domains are present in Mamey's extraction at the stated tier. A partial match is reported as "partial — N of M diagnostic domains present," never rounded up to the class call.
+## The lookup
 
----
+Count a combination only when every listed domain is present in the selected region. If some are missing, write "partial: N of M domains present". Do not round a partial match up to the class.
 
-## 2. Inputs required
+Check how each TIGRFAM row was placed before you trust its region. Its `region_assignment` is `COORDINATE_RESOLVED` when the hit's location falls inside one region's span. A hit outside every recorded region is keyed `<record>_unassigned` (`OUTSIDE_ALL_REGIONS`). A hit with no readable location, or from a record without region spans, is keyed to region 1 by fallback (`UNRESOLVED_FALLBACK_REGION1`); hold that row until you have checked its source location.
 
-| Field (Mamey package) | Feeds |
-|---|---|
-| `[strain]_AntiSMASH_Evidence_Parse.json → gbk_pfam_hits[region_key][]` | Read each row's `domain_name`, `pfam_acc`, `bitscore`, `locus_tag` and `tier1_diagnostic`; the outer object is keyed by region, not a flat hit list |
-| `manifest.json → bgcs[].products` | the antiSMASH label this table refines or contradicts |
-| `_4_triage_board.csv → CCTT_triggers` | cross-check against the cryptic-class trigger flags |
+"Copies" in the table means separate source genes. The rows are per feature and can repeat a gene, so a row count is not a copy count. Count distinct locus tags with their source coordinates, and hold repeated or missing tags.
 
----
-
-## 2a. Historical combination lookup: candidate assignments to review
-
-| Domains present (all required) | Assignment | Claim ceiling |
+| Domains present (all required) | Candidate class | Claim ceiling |
 |---|---|---|
-| TIGR04462 + TIGR04460 | Enduracididine-type NRPS; **lipid II inhibitor** class | class-level; "consistent with" |
+| TIGR04462 + TIGR04460 | Enduracididine-type NRPS (lipid II inhibitor class) | class-level, "consistent with" |
 | TIGR03550 + TIGR03551 + TIGR03620 | F420-embedded polyketide | class-level |
-| PF12029 + TIGR02353 | NAPAA / poly-amino-acid candidate | neutral under the current rules registry; no blanket comparative exclusion |
+| PF12029 + TIGR02353 | NAPAA (non-alpha poly-amino acid), poly-amino-acid candidate | class-level. The rules registry (`mamey/data/rules_registry.json`) scores NAPAA as neutral: not downgraded, not excluded. The project leaves NAPAA out of cohort BiG-SCAPE comparisons and strain decks. |
 | TIGR04363 + TIGR04364 | FxLD class-I lanthipeptide | class-level |
-| PF19402 ×3 | Triple-precursor class-III lanthipeptide | class-level |
-| PF00109 + PF02514 + TIGR01181 + PF01041 | Glycosylated T2PKS | class-level |
-| TIGR03604 ×2 | TOMM heterocyclic RiPP | class-level |
-| PF00668 Cglyc-type + HHILLDG motif | Glycopeptide-type condensation | sub-class; flag for module review |
-| ene_KS (high bitscore) + TIGR03604 + YcaO | **Enediyne chromoprotein** | class-level; **[E-signal] note** (cytotoxic; standard-SOP handling) |
-| TfuA + YcaO | Thioamitide (thioviridamide-class) RiPP | class-level |
-| PEP_mutase (PepM) | Phosphonate biosynthesis (committed) | class-level; **31P-NMR gate** before compound claim |
-| CDPS (single gene) | Cyclodipeptide synthase / diketopiperazine | class-level |
-| Trp_halogenase / Flavin halogenase | Halogenated scaffold | tailoring flag, not a standalone class |
+| PF19402, three copies | Triple-precursor class-III lanthipeptide | class-level |
+| PF00109 + PF02514 + TIGR01181 + PF01041 | Glycosylated type II PKS | class-level |
+| TIGR03604, two copies | TOMM heterocyclic RiPP | class-level |
+| PF00668 (Cglyc-type) + HHILLDG motif | Glycopeptide-type condensation | sub-class; motif is a manual check; send for module review |
+| ene_KS (TIGR03828) alone | Enediyne | class-level. The engine treats `ene_KS` alone as the defining enediyne marker (`mamey/sapote_markers.py:37`, `SMK-ENE-001`). A genuine call also counts antiSMASH `PKS_KS` Enediyne-KS domains (`ene_ks_count`, `mamey/source_scans.py:1843`). Confirm a real `ene_KS` against an hglE-KS glycolipid cross-reaction (`mamey/source_scans.py:1688-1694`). Cytotoxic class: handle with care. |
+| TfuA + YcaO | Thioamitide-type RiPP | class-level |
+| PEP mutase (PepM) | Phosphonate biosynthesis | class-level; a compound claim needs 31P-NMR evidence |
+| CDPS, single gene | Cyclodipeptide synthase, diketopiperazine | class-level |
+| Tryptophan or flavin halogenase | Halogenated scaffold | tailoring flag, not a class |
 
-Use the rows to frame a class hypothesis, then cite the actual domain records and the scientific source supporting the mapping. The earlier cohort example is not a complete source-bound locus record and does not establish diagnostic accuracy for a new input.
+A class-level ceiling means the note says what the domains are consistent with. It never names a compound or an activity.
 
----
+## Turn a lookup into a review note
 
-## 3. Outputs & contract surface
+1. Copy the full identity from one record: **strain / full node-or-contig / region / BGC alias**.
+2. List the required domains, the rows you found, and their bitscores. For example: `ene_KS 830.8`.
+3. Say which required domains are missing or unavailable. For a partial match, keep the fraction.
+4. State the candidate class and the source that would support or challenge it.
 
-This module emits no file; it governs the **class-call cell** wherever a BGC is interpreted (Mode B §1/§4, lead board, Fermentation Card target). Each applied assignment must cite the domains and bitscores behind it (e.g. `enediyne — ene_KS 830.8 + TIGR03604 + YcaO`) so the call is auditable against `gbk_pfam_hits`.
-
----
-
-## 4. Tool / knowledge inventory
-
-| Piece | Owner |
-|---|---|
-| Saved upstream domain extraction | `mamey/antismash_evidence.py`: GBK `sec_met_domain` rows plus selected antiSMASH JSON TIGRFAM records merged into the region-keyed hit object |
-| Marker/cassette vocabulary (descriptive) | `mamey/sapote_cassettes.py`, `mamey/mamey_markers.py` |
-| Combination → class logic | **this module** (portable copy) |
-| Optional HMM evidence | `run --hmm-scan` already calls `mamey/registry_detector.py::run_hmm_scan` and writes `[strain]_HMM_Scan.json`. Inspect its per-region status and bound source; `HMM_SCAN_UNAVAILABLE` is not a no-hit result. This route does not make the lookup table an automatic classifier. |
-| Cross-check triggers | kernel MODULE 5 (§34), MODULE 6 (§43 CCTT) |
-
----
-
-## 5. Turn one lookup into a review note
-
-Copy the complete locus identity from one bound source record. Record the required domains,
-the observed rows and scores, and which required components remain unobserved or unavailable.
-For a partial match, retain the observed fraction rather than assigning the full class.
-Then state the candidate interpretation and the source that would support or challenge it.
-
-For an authored card, continue with [the Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md)
-and its selected profile. The older redacted cohort examples lack complete locators and cannot
-be reused as current locus evidence.
+To use the note in a card, follow the [Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md).

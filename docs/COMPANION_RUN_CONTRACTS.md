@@ -1,101 +1,81 @@
-# Companion run contracts for people and assistants
+# Companion run contracts
 
-This guide
-describes local code behavior. Use the current user request and existing matching authorization
-before executing tools. Preserve immutable inputs and select fresh outputs outside the
-code bundle. External tool/database installation is separate from core installation.
+This is a maintainer page. It lists what the phylogeny companion scripts read, write and return, so you can tell a finished run from an interrupted one. If you only want to pick a tool, start with the [companion tool guide](COMPANION_TOOL_GUIDE.md). For a first genome-tree run, use the [GToTree workflow](GTOTREE_WORKFLOW.md).
 
-## Select the operation
+**Quick task: classify a folder of FASTA files (read-only).** From the bundle root:
 
-| Operation | Inputs | Actual work and writes | Read to assess completion |
+```bash
+python tools/phylo_autopilot.py plan <fasta_dir>
+```
+
+Success is a JSON object on the screen, such as `{"rrna": ["<fasta_dir>/a.fasta"]}`, and exit code 0. Each file ending `.fa`, `.fasta`, `.fna`, `.faa` or `.fas` is listed under the kind it was sorted into; any other file is listed under `not_classified_suffix`. A record with a header and no sequence makes its file `empty_record`. A missing folder exits 2. Nothing is written and no tree is built. The kinds come from length and alphabet, so check them against your files.
+
+Run companion tools only when you are authorized to, with fresh output folders outside the code bundle. Keep inputs unchanged. External tools and databases are installed separately (see [companion files](COMPANION_FILES.md)).
+
+## What each command does
+
+A name such as `plan`, `dry-run` or `report` does not mean the command is read-only. Read the paths it prints. Companions do not share one folder layout.
+
+| Command | Reads | Writes | Success signal |
 |---|---|---|---|
-| `tools/phylo_autopilot.py plan <dir>` | local FASTA directory | Reads sequence records; prints classification JSON | Printed categories and sequence inspection; no tree is inferred |
-| `tools/phylo_autopilot.py route --query ... --db ... --out ...` | nucleotide queries and local BLAST database prefix | Executes `blastn`; writes routing TSV | Routing states, query coverage, excluded/conflicting assignments and subprocess diagnostics |
-| `tools/phylo_autopilot.py run-16s ... --dry-run` | same local database plus selected group/output root | Executes routing BLAST and reference `blastdbcmd`; writes QC, routing, accession list and FASTAs | Prepared roster and actual reference/type provenance; no placement is performed |
-| `tools/phylo_autopilot.py run-16s ... --approved-by ...` | prepared local source scope | Same preparation, then delegates `phylo_place all` | Reference provenance, jplace, placement tables, render warnings and actual requested files |
-| `tools/build_mlsa.py <genomes_dir> <new_out>` | immediate lowercase `*.fna` genomes and five protein seed files | Prodigal, seed BLAST, alignment, available-locus concatenation and IQ-TREE; external binaries required | `loci_report.tsv`, retained partitions/tips, `run_status.json`, log and actual tree; missing loci/taxa are not complete five-locus coverage, and no 16S partition is produced |
-| `tools/plan_gtotree_iqtree.py plan ...` | prepared panel or manual panel TSV, HMM, toolchain paths | Probes binary version/help; stages source bytes and writes immutable plan/run directory | `RUN_MANIFEST.json`, `RUN_STATE.json`, `COMMAND.sh`, HOLD states and preflight summary |
-| `python mamey_run.py phylo-run ... --approved` | explicit genome list, HMM, outgroup and workdir | Executes GToTree/IQ-TREE, mandatory QC and optional requested fastANI; writes in workdir | `run_status.json`, process status, QC, alignment/tree/ANI files and logs |
-| `tools/plan_gtotree_iqtree.py discover --run-dir ...` | exact planner run/output directory | Reads and hashes observed outputs; optional `--receipt` creates a new receipt | Unique alignment candidate and retained denominator; this is not tree inference |
-| `tools/phylo_place.py report ...` | compatible jplace, reference package and metadata | Processes a graft, tables and optional graphics/caption | Actual attempt state and warnings; length or requested-metadata holds return 2, while optional diagnostic-figure/caption failures can coexist with zero |
+| `tools/phylo_autopilot.py plan <dir>` | FASTA files | nothing | JSON of file kinds on screen |
+| `tools/phylo_autopilot.py route --query ... --db ... --out ...` | nucleotide queries, a local BLAST database prefix | a routing TSV | every query has a routing state; check coverage and excluded rows |
+| `tools/phylo_autopilot.py run-16s ... --dry-run` | the same database, a group, an output root | QC, routing, accession list, reference FASTAs | a reference roster with provenance; no placement yet |
+| `tools/phylo_autopilot.py run-16s ... --approved-by ...` | the prepared scope | the preparation above, then placement files | jplace, placement tables and the files you asked for |
+| `tools/build_mlsa.py <genomes_dir> <new_out>` | lowercase `*.fna` genomes, five protein seed files | `loci_report.tsv`, `run_status.json`, a log and a tree | exit 0 and the tree file; then check the loci report |
+| `tools/plan_gtotree_iqtree.py plan ...` | a panel, an HMM set, tool paths | `RUN_MANIFEST.json`, `RUN_STATE.json`, `COMMAND.sh` | `RUN_STATE.json` reads `PLANNED_AWAITING_APPROVAL` (any `HOLD` state means fix the input) |
+| `python mamey_run.py phylo-run ... --approved` | a genome list, an HMM set, an outgroup, a work folder | `run_status.json`, QC, alignment, tree, optional ANI | `run_status.json` plus tree and QC files |
+| `tools/plan_gtotree_iqtree.py discover --run-dir ...` | a planner run folder | optional new receipt (`--receipt`) | one alignment candidate and the retained genome count |
+| `tools/phylo_place.py report ...` | a jplace file, reference package, metadata | graft, tables, optional figures and caption | `<group>_REPORT_ATTEMPT.json`; exit 2 means a length or metadata hold |
 
-A name such as `plan`, `dry-run` or `report` does not establish a read-only operation.
-Keep paths printed by the selected command, rather than assuming every companion has
-one universal directory layout. The planner's state and the executor's status are
-separate files and must be reconciled explicitly.
+The planner's state file and the runner's status file are separate. Compare them by hand.
 
-## Bind resource settings and approval
+## Resource settings and approval
 
-`phylo-run` defaults to `--threads 4 --parallel 1`: 4 threads, one job at a time.
-For a single-core genome run, specify `--threads 1 --parallel 1
---iqtree-threads 1` on `phylo-run`. Use a different budget only when it
-matches the user's authorized plan. For a 16S preparation/placement run, bind the
-explicit `--threads` value and expected tree workload separately.
+`phylo-run` defaults to `--threads 4 --parallel 1`: four threads, one job at a time. For one core, add `--threads 1 --parallel 1 --iqtree-threads 1`. Use a larger budget only when your authorization allows it. For a 16S placement run, set `--threads` yourself.
 
-The planner supports `--threads-per-tree` 1–4 within `--max-concurrent-cores` 1–4.
-It records resource accounting; it does not launch a dispatcher or police unrelated
-processes. The legacy direct-command recipe carries an approval comment. The current
-governed 2.0.0 recipe instead delegates to `run_planned_tree.py --plan-dir`: that route
-requires explicit `--approved`, a matching `RUN_STATE.json` with `approved=true`, and
-bound runtime, input hashes/roster, labels, tools, HMM and resource settings. These
-checks verify supplied records, not the identity of a human approver. Placement's
-`--approved-by` remains a separate operator affirmation. Match actual authorization
-and the selected route's bindings before running.
+The planner takes `--threads-per-tree` 1 to 4 and `--max-concurrent-cores` 1 to 4. It records the numbers. It does not start a scheduler or limit other processes.
+
+`phylo-run` needs `--approved`. The planned route, `run_planned_tree.py --plan-dir`, also needs a `RUN_STATE.json` with `approved=true` and checks the saved input hashes, labels, tools and HMM against the plan. These checks confirm the records match. They do not identify a person. Placement uses `--approved-by` as your own statement of approval.
 
 ## MLSA inputs, completion and recovery
 
-`build_mlsa.py` scans only immediate lowercase `*.fna` files. It resolves executables from `--bin-dir`, then `MAMEY_PHYLO_BIN` (or `PHYLO_BIN` when the former is unset), then PATH. Five seed files must exist. The public CLI now delegates to `tools/_mlsa_resources.py`, whose argparse interface rejects unknown options; the lower-level computational worker still reads its internal arguments manually. Supported controls include `--threads`, `--bin-dir`, `--seeds-dir`, `--native-work-root`, `--rss-limit-bytes`, `--min-free-disk-bytes`, `--timeout-seconds` and `--native-copy-limit-bytes`. Budgets must be finite and positive; byte budgets and threads must be integers. Default threads remain 4. The coordinator sets six native-thread environment variables to 1, binds source/seed/tool/interpreter hashes, admits resource estimates and watches the whole worker for RSS, disk and elapsed time. These controls do not establish a universal CPU ceiling or a successful biological workflow; inspect the actual resource receipt.
+`build_mlsa.py` reads only immediate lowercase `*.fna` files, and five seed files must exist. It looks for programs in `--bin-dir`, then `MAMEY_PHYLO_BIN` (or `PHYLO_BIN` when the first is unset), then `PATH`. It rejects unknown options. Options: `--threads` (default 4), `--bin-dir`, `--seeds-dir`, `--native-work-root`, `--rss-limit-bytes`, `--min-free-disk-bytes`, `--timeout-seconds` and `--native-copy-limit-bytes`. Byte budgets and threads are positive integers; the other budgets are positive numbers.
 
-The seed-selected CDS is the highest-bitscore returned BLAST subject, not a reciprocal/coverage-thresholded orthology decision. Inspect `loci_report.tsv` and original selection evidence before calling it an ortholog. A locus with no hits across the panel is omitted; a taxon with at least one retained locus is kept with gaps in its missing partitions; a taxon missing all loci disappears from the supermatrix. Compare intended genomes, per-locus HIT/NO_HIT rows, actual partition count and retained tip roster before describing the result as a five-locus/full-pool screen. `_OUTGROUP` in a filename is just part of the escaped taxon label here: this command neither enforces one outgroup nor passes an outgroup/rooting option to IQ-TREE.
+The wrapper sets six native-thread variables to 1, records hashes of the inputs, seeds, tools and interpreter, and watches the worker's memory, free disk and elapsed time.
 
-The output must be new or empty, with an existing parent, and must not overlap the genome, seed or code tree. The native-work root must also avoid protected inputs/output. Public preflight refusals normally return 4; parser/usage errors return 2. A monitored worker, completion or publication failure normally returns 6 and can leave diagnostics under `RESOURCE_ATTEMPT/<attempt-id>/`. Retain `REQUEST.json`, `RESOURCE.json`, `WORKER_COMPLETION.json`, terminal `SUCCEEDED.json`/`FAILED.json` and `worker.log` where produced. Some preflight failures occur before those artifacts exist. The lower-level worker has its own statuses, which are not the public wrapper's full exit contract. Preserve failed/partial attempts and use a fresh destination after diagnosis; output promotion is not a resumable multi-file transaction.
+The output folder must be new or empty, its parent must exist, and it must not overlap the genome folder, seed folder or code tree. The same holds for the native work root.
 
-Public exit 0 requires a resource-admitted, monitored worker result, matching completion/output bindings, successful cleanup and promotion. The worker's final tree check remains existence/nonzero bytes; it does not parse leaf identity/support or enforce full-panel/five-locus coverage. No rendered figure or sign-off is produced. Keep the resource-attempt bindings alongside `taxon_map.tsv`, selection files and actual partitions/tips. Exact executable hashes are not tool-version validation, and mechanical completion is not orthology, taxonomy or scientific acceptance.
+Exit codes:
 
-## Separate accepted versions from verified interfaces
+| Exit | Meaning |
+|---|---|
+| 0 | the worker finished inside its limits, outputs match, cleanup and promotion worked |
+| 2 | bad usage |
+| 4 | a preflight check refused the run |
+| 6 | the worker, its completion check or promotion failed |
 
-The shared version policy accepts GToTree 1.8.19 and 2.0.x. Both planner and
-runner use `tools/_gtotree_versions.py`: v1 requires/emits `-n`, while v2 omits it
-and probes detailed help with `-s`. This repairs the earlier planner/runner option
-mismatch. Version-family admission is still separate from source-specific resource
-admission: unverified v2 runtime profiles remain held, and the governed 2.0.0 route
-requires its exact runtime and plan bindings. Preserve the selected version, help,
-resource contract, generated command and receipt rather than treating a recognized
-version or a retired caveat as evidence of a completed run.
+After a failure, look in `RESOURCE_ATTEMPT/<attempt-id>/` for `REQUEST.json`, `RESOURCE.json`, `WORKER_COMPLETION.json`, `SUCCEEDED.json` or `FAILED.json`, and `worker.log`. Some refusals happen before these exist. Keep the failed folder and use a new output folder for the next try.
 
-## Validate the requested outputs
+Read the result before you trust it:
 
-A prepared FASTA is not a completed tree. A tree file is not a reviewed figure,
-validated taxonomy or verified ANI result. `phylo_place.py report` returns 2 when
-branch-length admission or requested metadata-strip completion is held. A failed
-optional diagnostic render/caption or absent advisory sign-off helper need not
-block zero. Inspect `<group>_REPORT_ATTEMPT.json`, requested artifacts and warnings.
+- Each locus uses the best-scoring BLAST hit for its seed. This is not an orthology test. Open `loci_report.tsv` and check the HIT and NO_HIT rows.
+- A locus with no hit anywhere is left out. A genome with at least one locus stays in, with gaps. A genome with no locus drops out. Compare your intended genome list with the partitions and tips that remain before you call it a five-locus tree.
+- `_OUTGROUP` in a file name is only part of the label. The command does not root the tree.
+- The worker's final check needs a nonempty `tree.treefile` with at least one numeric internal support label, a nonempty `tree.contree`, and the IQ-TREE log line `Total wall-clock time`. The wrapper then checks that the worker exited 0 inside its limits, that `run_status.json` reads `COMPLETE`, that the completion record matches the frozen request, and that the output file list did not change during promotion. None of this checks tip names against your genome list or judges the support values. Exit 0 is mechanical completion, not a reviewed tree.
 
-For `phylo-run`, a requested fastANI stage must produce its current output and pass
-its execution checks; typed failures preserve core-tree artifacts and return nonzero.
-Retain comparison direction, raw matched/total fragments and aligned fraction. Missing
-ANI rows are a state to diagnose, not measured zero. Neither an ANI threshold nor
-placement within one reference panel automatically establishes a species name or novelty.
+## Accepted GToTree versions
 
-## Resolve scanner HMMs consistently
+GToTree 1.8.19 and 2.0.x are accepted. Version 1 uses `-n`; version 2 does not, and the help probe uses `-s`. Recognizing a version is not the same as a run being admitted: unverified 2.0 profiles stay on hold, and the 2.0.0 route needs its own runtime and plan records. Keep the version, help text, generated command and receipt with the run.
 
-The HMM doctor entry and scanner share `mamey.wheelhouse.resolve_hmm_database`.
-Resolution first accepts an existing `SM_HMM_DB` path (this branch checks existence, not regular-file type), then `MAMEY_HMM_DIR`, shared-root `hmm/`,
-bundle-local 148 set, discovered add-on 148 set, then bundle-local 35 set. Directory
-tiers prefer `scanner_pfam_150.hmm` over `scanner_pfam.hmm`. The filename's count is a
-hint: validate actual content and record the selected hash. Provisioning does not
-mean a scan ran or that the HMM file is valid.
+## Checking outputs
 
-The local PubMed corpus helper parses authorized PDF exports; it is not a network
-retrieval client. See [external assets](EXTERNAL_ASSETS_GUIDE.md) for acquisition and
-[external data](EXTERNAL_DATA.md) for its local input/output recipe.
+A FASTA list is not a tree, and a tree file is not a reviewed figure, a taxonomy or an ANI result. `phylo_place.py report` returns 2 when branch lengths or a requested metadata strip are on hold. A failed optional figure or caption does not force a nonzero exit, so open `<group>_REPORT_ATTEMPT.json` and the files you asked for.
 
-## Source owners
+For `phylo-run`, a fastANI step (requested with `--ani-refs`) must write its output and pass its checks. A failure keeps the core tree files and returns nonzero. Keep the direction of each comparison, the matched and total fragments and the aligned fraction. A missing ANI row means not measured, not zero. An ANI threshold, or placement inside one reference set, does not give a species name by itself.
 
-- [Autopilot](../tools/phylo_autopilot.py): classification, routing, reference preparation and dry-run boundary.
-- [MLSA builder](../tools/build_mlsa.py) and [resource coordinator](../tools/_mlsa_resources.py): five protein loci, public admission/monitoring, completion bindings and companion pipeline.
-- [Planner](../tools/plan_gtotree_iqtree.py): immutable planner artifacts, resource accounting and generated commands.
-- [Genome runner](../tools/run_planned_tree.py): version-specific commands, native status, QC and requested ANI.
-- [CLI](../mamey/cli.py): public forwarding interface and resource defaults.
-- [Placement](../tools/phylo_place.py): reference inference, output containment, reporting and advisory/render behavior.
-- [Scanner resolver](../mamey/wheelhouse.py) and [external dataset resolver](../mamey/external_data.py): HMM provisioning.
+## Scanner HMM lookup
+
+The HMM check in `doctor` and the scanner use the same lookup, in `mamey/wheelhouse.py`. The order is: an existing `SM_HMM_DB` path, then `MAMEY_HMM_DIR`, a shared-root `hmm/` folder, the bundle's own 148 set, an add-on 148 set, and last the bundle's 35 set. In a folder, `scanner_pfam_150.hmm` wins over `scanner_pfam.hmm`. The number in a file name is only a hint, so check the contents and record the file hash. Finding the file does not prove a scan ran.
+
+The local PubMed helper reads PDF exports you already have; it does not fetch anything. See [external assets](EXTERNAL_ASSETS_GUIDE.md) and [external data](EXTERNAL_DATA.md).

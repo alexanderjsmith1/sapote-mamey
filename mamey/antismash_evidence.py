@@ -503,9 +503,24 @@ def _tigrfam_from_rec(rec, name, out):
                 if a_start is not None and a_end is not None and a_start <= hit_start < a_end:
                     region_num = idx
                     break
-        region_key = (f"{rec_id}_c{region_num}" if rec_id and region_num
-                      else (f"{rec_id}_c1" if rec_id else "_unkeyed"))
+        # A hit whose coordinate lies outside every recorded area is in no region: it is keyed
+        # `<rec>_unassigned`, never attributed to region 1. Only a hit with no readable location,
+        # or a record without areas, keeps the historical `_c1` fallback, and it is marked so a
+        # reader can hold it.
+        if region_num:
+            assignment = "COORDINATE_RESOLVED"
+        elif loc_match and areas:
+            assignment = "OUTSIDE_ALL_REGIONS"
+        else:
+            assignment = "UNRESOLVED_FALLBACK_REGION1"
+        if rec_id and region_num:
+            region_key = f"{rec_id}_c{region_num}"
+        elif rec_id and assignment == "OUTSIDE_ALL_REGIONS":
+            region_key = f"{rec_id}_unassigned"
+        else:
+            region_key = f"{rec_id}_c1" if rec_id else "_unkeyed"
         out.setdefault(region_key, []).append({
+            "region_assignment": assignment,
             "domain_name":      acc,
             "pfam_acc":         acc,
             "description":      h.get("description") or desc,
@@ -726,6 +741,76 @@ def _rrefinder_from_rec(rec, name, out):
             })
 
 
+def _kcb_similarity_from_rec(rec, name, out):
+    """Collect antiSMASH's rank-1 KnownClusterBlast percent similarity per region.
+
+    antiSMASH 8 TXT files leave the subject-gene table empty, so the percent exists only in
+    the JSON ranking (``knowncluster.results[].ranking[0][1].similarity``). Rows are keyed like
+    the TXT records (``<record>_c<region>``) under both the record id and name, and keep the
+    rank-1 accession so apply_evidence_to_bgcs can refuse a percent from another comparator.
+    """
+    if not isinstance(rec, dict):
+        return
+    modules = rec.get("modules")
+    if not isinstance(modules, dict):
+        return
+    cb = modules.get("antismash.modules.clusterblast")
+    kc = cb.get("knowncluster") if isinstance(cb, dict) else None
+    if not isinstance(kc, dict):
+        return
+    ids = {str(rec.get(k) or "").strip() for k in ("id", "name")} - {""}
+    for res in kc.get("results") or []:
+        if not isinstance(res, dict) or res.get("region_number") is None:
+            continue
+        region = int(res["region_number"])
+        row = {"source": name, "region_number": region, "accession": None, "similarity": None}
+        ranking = res.get("ranking") or []
+        first = ranking[0] if ranking else None
+        if isinstance(first, (list, tuple)) and len(first) == 2:
+            ref, score = first
+            if isinstance(ref, dict):
+                row["accession"] = ref.get("accession")
+            if isinstance(score, dict):
+                row["similarity"] = score.get("similarity")
+        elif first is not None:
+            row["shape_error"] = "RANKING_ENTRY_NOT_PAIR"
+        for rid in ids:
+            out.setdefault(f"{rid}_c{region}", []).append(row)
+
+
+def _kcb_similarity_for_bgc(bgc, evidence) -> tuple[float | None, str]:
+    """Return (percent, state) for one BGC. Only PCT_OBSERVED carries a percent.
+
+    The percent is accepted only when the JSON rank-1 accession equals the TXT rank-1 MIBiG
+    accession for the same region, so the percent and the comparator name describe one hit.
+    """
+    from .precision import kcb_pct_value
+    handlers = (evidence.get("record_extraction") or {}).get("handlers") or []
+    if "_kcb_similarity_from_rec" not in handlers:
+        return None, "PCT_NOT_READ"
+    key = _region_key_for_bgc(bgc)
+    rows = (evidence.get("kcb_similarity") or {}).get(key, []) if key else []
+    if not rows:
+        return None, "PCT_NO_JSON_RESULT"
+    if any(r.get("shape_error") for r in rows):
+        return None, "PCT_SHAPE_UNREADABLE"
+    distinct = {(r.get("accession"), r.get("similarity")) for r in rows}
+    if len(distinct) > 1:
+        return None, "PCT_SOURCE_CONFLICT"
+    accession, similarity = distinct.pop()
+    if accession is None:
+        return None, "PCT_NO_RANKED_HIT"
+    txt_accession = getattr(bgc, "closest_mibig_accession", "UNRESOLVED")
+    if txt_accession in (None, "", "UNRESOLVED"):
+        return None, "PCT_NO_TXT_CROSSCHECK"
+    if str(accession) != str(txt_accession):
+        return None, "PCT_COMPARATOR_MISMATCH"
+    pct = kcb_pct_value(similarity)
+    if pct is None:
+        return None, "PCT_INVALID"
+    return pct, "PCT_OBSERVED"
+
+
 def _run_record_extractors(zip_path, handlers):
     """One shared record pass with file and per-handler completion receipts.
 
@@ -866,6 +951,7 @@ def _extract_record_evidence(zip_path: str | Path,
     pclass: list[dict[str, Any]] = []
     ripp: list[dict[str, Any]] = []
     rrefinder: list[dict[str, Any]] = []
+    kcb_similarity: dict[str, list[dict]] = {}
     handlers: list = []
     if want_tigrfam:
         handlers.append((_tigrfam_from_rec, tigrfam))
@@ -878,6 +964,9 @@ def _extract_record_evidence(zip_path: str | Path,
             (_ripp_from_rec, ripp),
             (_rrefinder_from_rec, rrefinder),
         ]
+    if handlers:
+        # Rides an existing pass only; never opens the JSON on its own.
+        handlers.append((_kcb_similarity_from_rec, kcb_similarity))
     receipt = (_run_record_extractors(zip_path, handlers) if handlers else
                {"schema": "record_extraction_receipt_v1", "handlers": [],
                 "files": [], "archive_errors": []})
@@ -892,6 +981,7 @@ def _extract_record_evidence(zip_path: str | Path,
         "product_class_predictions": pclass,
         "ripp_cores": ripp,
         "rrefinder_hits": rrefinder,
+        "kcb_similarity": kcb_similarity,
     }
 
 
@@ -1044,10 +1134,21 @@ def _parse_txt_evidence(zf, names: list[str], evidence: dict) -> None:
             compounds.insert(0, str(best["label"]))
 
         if not (block_records or significant_hits or mibigs):
+            # antiSMASH 8 writes a no-hit file as empty "Significant hits:" and "Details:"
+            # sections after the query gene table; older text says "no hits" outright.
+            _empty_sections = re.search(r"^Significant hits:[ \t]*\n\s*Details:[ \t]*\s*\Z",
+                                        text, flags=re.M)
             item["state"] = ("NO_HITS_TEXT_UNVALIDATED" if
-                             re.search(r"no (?:significant )?hits", text, flags=re.I)
+                             (re.search(r"no (?:significant )?hits", text, flags=re.I) or _empty_sections)
                              else "UNSUPPORTED_OR_EMPTY")
-            # A named TXT member alone is not an observed KCB comparator.
+            # A named TXT member alone is not an observed KCB comparator. A KnownClusterBlast
+            # "no hits" file is kept as a typed no-hit record, so the region does not fall back
+            # to a genome-wide ClusterBlast hit as if that were a KCB comparator.
+            if (item["state"] == "NO_HITS_TEXT_UNVALIDATED" and region_key is not None
+                    and "knownclusterblast" in name.lower()):
+                evidence["by_region"].setdefault(region_key, []).append({
+                    "source": name, "source_kind": "knownclusterblast_no_hits",
+                    "region_key": region_key, "region_number": region})
             continue
         item["state"] = "OBSERVATIONS_EXTRACTED"
         is_knownclusterblast = "knownclusterblast" in name.lower()
@@ -1597,6 +1698,7 @@ def parse_antismash_evidence(zip_path: str | Path,
                                        include_extras=(requested_mode != "off" or include_structured),
                                        want_tigrfam=want_tigrfam)
     evidence["record_extraction"] = _rec_ev["record_extraction"]
+    evidence["kcb_similarity"] = _rec_ev["kcb_similarity"]
     if want_tigrfam:
         evidence["tigrfam_hits"] = _rec_ev["tigrfam_hits"]
         # A separate report channel. Never insert non-diagnostic rivals into the scored Pfam/TIGRFAM channel.
@@ -1745,12 +1847,20 @@ def apply_evidence_to_bgcs(bgcs, evidence: dict[str, Any]) -> None:
             # are present for this region; fall back to clusterblast/subclusterblast only
             # if no knownclusterblast record exists (better than nothing, but flagged).
             kcb_recs = [r for r in recs if r.get("source_kind") == "knownclusterblast"]
-            source_recs = kcb_recs if kcb_recs else recs
-            bgc.kcb_evidence_state = (
-                "KNOWNCLUSTERBLAST_OBSERVED" if kcb_recs
-                else "CLUSTERBLAST_FALLBACK_OBSERVED"
-            )
-            if not kcb_recs and recs:
+            kcb_no_hits = any(r.get("source_kind") == "knownclusterblast_no_hits" for r in recs)
+            if kcb_recs:
+                source_recs = kcb_recs
+                bgc.kcb_evidence_state = "KNOWNCLUSTERBLAST_OBSERVED"
+            elif kcb_no_hits:
+                # KnownClusterBlast ran here and reported no hits. Its KCB fields stay empty;
+                # a ClusterBlast genome hit is not substituted. The text is not validated
+                # against the JSON, so this is a scoped report, not a verified absence.
+                source_recs = []
+                bgc.kcb_evidence_state = "KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED"
+            else:
+                source_recs = [r for r in recs if r.get("source_kind") != "knownclusterblast_no_hits"]
+                bgc.kcb_evidence_state = "CLUSTERBLAST_FALLBACK_OBSERVED"
+            if not kcb_recs and not kcb_no_hits and recs:
                 bgc.parse_confidence = "LOW"
                 bgc.needs_manual_kcb_check = "yes"
             for r in source_recs:
@@ -1840,6 +1950,7 @@ def apply_evidence_to_bgcs(bgcs, evidence: dict[str, Any]) -> None:
             elif riq_vals:
                 bgc.riq_score = float(riq_vals[0])
                 bgc.riq_label = riq_label(float(riq_vals[0]))
+        bgc.kcb_similarity_pct, bgc.kcb_similarity_state = _kcb_similarity_for_bgc(bgc, evidence)
 
     _kcb_recycling_audit(bgcs, evidence)
 

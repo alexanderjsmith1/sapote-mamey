@@ -162,7 +162,23 @@ def write_tsv(path, rows, cols):
         w.writeheader(); w.writerows(rows)
 
 
+def reference_gaps(pieces, ref_len):
+    """Sizes (aa) of reference stretches no piece covers, including the two ends."""
+    gaps, end = [], 0
+    for x in sorted(pieces, key=lambda y: (y["ref_start"], -y["ref_end"])):
+        if x["ref_start"] > end + 1:
+            gaps.append(x["ref_start"] - 1 - end)
+        end = max(end, x["ref_end"])
+    if pieces and end < ref_len:
+        gaps.append(ref_len - end)
+    return gaps
+
+
 def call_protein(pieces, max_overlap):
+    """TILED: pieces are in reference order and no two overlap by more than max_overlap.
+
+    It is an order/overlap condition only. It has no gap or piece-count requirement, so one piece,
+    or two pieces with a large uncovered gap, are TILED too. Coverage and gaps are reported beside it."""
     if not pieces:
         return "NO_PIECES", 0
     worst = 0
@@ -233,9 +249,12 @@ def run(a):
         col = lambda x: min(99, (x - 1) * 100 // L)
         call, worst = call_protein(P, a.max_overlap)
         cov = union([(x["ref_start"], x["ref_end"]) for x in P])
+        gaps = reference_gaps(P, L)
         crow.append(dict(ref_protein=name, ref_len_aa=L, modules=len(modules[name]), pieces=len(P), contigs=len({x["contig"] for x in P}),
-                         ref_covered_pct=f"{100 * cov / L:.0f}", largest_overlap_aa=worst, call=call,
-                         note=("order of pieces readable from the matches" if call == "TILED" else
+                         ref_covered_pct=f"{100 * cov / L:.0f}", largest_overlap_aa=worst,
+                         uncovered_gaps=len(gaps), largest_gap_aa=max(gaps, default=0), call=call,
+                         note=("pieces follow reference order with overlaps within the limit; this does not show "
+                               "continuous coverage (see gaps) or physical linkage" if call == "TILED" else
                                "order not readable from the matches; see tools/ks_module_placement.py" if call == "OVERLAPPING" else "")))
         ml = ["."] * 100
         for i, m in enumerate(modules[name]):

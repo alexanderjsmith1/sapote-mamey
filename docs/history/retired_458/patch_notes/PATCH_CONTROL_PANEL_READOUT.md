@@ -10,7 +10,7 @@ The mandatory/ACTIVE wording and 13-item panel below belong to the June .121 rep
 **Historical patch ID:** PROGRESS_REPORTING_20260624 / CONTROL_PANEL  
 **Applies to:** Sapote (Claude / LLM judgment tier)  
 **Bundle version:** v9.7.121+  
-**Status:** ACTIVE — front-facing, mandatory  
+**Status:** ACTIVE when written (historical; retired, see the note at the top of this page) — front-facing, mandatory when written  
 **Authority:** extends `PATCH_PROGRESS_REPORTING_20260624`; the deliverable contract is
 `FULL_RUN_PROFILE §A` (13 items) + Tier-2 packaging, as enforced by
 `tools/check_deliverable_suite.py` against `docs/DELIVERABLE_MANIFEST_TEMPLATE.md`.
@@ -25,7 +25,7 @@ deliverables a full run owes, each with live status. The gauges (run performance
 census) are *supporting readouts arranged around the contract*, not a replacement for
 it.
 
-**The failure this closes:** AS-XXX was reported "finished" while the contract sat at
+**The failure this closes:** STRAIN_ID was reported "finished" while the contract sat at
 ~15% — most of the 13 deliverables did not exist. The user only found out by asking.
 The problem was never missing telemetry; it was **the scientific deliverables the user
 actually wants not being produced, and that absence being hidden.** The Control Panel
@@ -114,7 +114,7 @@ It is the contract. Rules:
   count**, never the carded count. FULL ANALYSIS MODE means every BGC owes a card, so a
   strain with 3 HIGH cards and 45 uncarded BGCs reads `6 ⚠️ 3 of 48`, never `6 ✅`.
 - **The headline line reads `[N] of 13`.** That number is the one whose absence caused
-  the AS-XXX incident. It is non-negotiable and sits at the top, above the gauges.
+  the incident that prompted this patch. It is non-negotiable and sits at the top, above the gauges.
 
 ---
 
@@ -130,7 +130,7 @@ real engine field.
 | 5 | **Top AB / Top AF leaders** | `ab_score`, `af_score` | the named strongest antibacterial and antifungal leads |
 | 7 | **Flag census** | `misanchor_flag`, `mobile_element_flag`, `umed_gap_flag`, class-mismatch | all engine caution flags on one line |
 | 8 | **Parse-confidence + manual-check** | `parse_confidence`, `needs_manual_kcb_check` | how trustworthy the KCB assignments are |
-| 10 | **Extraction completeness** | which package artifacts emitted | names what failed (e.g. the AS-XXX workbook write that failed at source-locator) |
+| 10 | **Extraction completeness** | which package artifacts emitted | names what failed (e.g. the STRAIN_ID workbook write that failed at source-locator) |
 | 11 | **Concordance** | `concordance_verdict` | CONCORDANT / DISCORDANT / NO_REFERENCE — anchors corroborated vs. similarity-only |
 | 13 | **Session-delta** | diff vs. session-start state | +cards / +figures / +corrections produced today |
 
@@ -168,7 +168,7 @@ The deliverable contract line and critical path are never dropped, even condense
 ## Banned words still apply
 
 "done / complete / finished / full" are not status claims. "Complete" survives only as
-a filename component (`AS-XXX_COMPLETE_v1.md`) or a quoted contract deliverable name.
+a filename component (`<strain>_COMPLETE_v1.md`) or a quoted contract deliverable name.
 A panel showing `3 of 13` is the honest replacement for "the strain is finished."
 
 ---

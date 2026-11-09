@@ -29,7 +29,7 @@ EXPORT = ROOT / "tools" / "cohort_tailoring" / "export_evidence_index.py"
 WORKBOOK_AST = 'eaa8d5c53baf5cd26c00291c0907588fd39700aee4cd5818744e1fc63b6b0cf7'
 HELPERS_AST = 'df97659038375d67f475b0c0f5c55b8ebacd36de052367fc2f05d88b872eac02'
 CLI_AST = '10159d88ecc66244ddcdd1ae5198f9f98d032a7a57107922cf16854a3b0c36ff'
-PLOT_AST = '041762527e2d8e46fc876732ec5089a0c04e76436ad87db1854ab90289952afa'
+PLOT_AST = '8f897e318fa2124ad758284b56580301df75dc77a38c64c7ccd00f39bacf66b1'  # 464r3 engine_other card: fresh outputs + unrecorded-isolate mask
 EXPORT_AST = '5e0312ac13dc2bcc066cf040b28901e27ebe8f8b4fe233f9a73985485fc52d30'
 
 

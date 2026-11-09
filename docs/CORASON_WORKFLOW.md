@@ -1,283 +1,191 @@
-# CORASON — optional public-input locus comparison
+# CORASON: optional locus comparison against public genomes
 
-**In short.**
+`tools/corason_adapter.py` compares one locus against public genomes with CORASON, an external program that searches for related gene neighborhoods and builds a gene tree. The adapter has three subcommands: `plan`, `run` and `read`.
 
-- `tools/corason_adapter.py` is optional and off by default. It plans (`plan`), runs (`run`) and reads back (`read`) a CORASON comparison of a locus against public genomes.
-- Core Mamey extraction, scores, packages and the stored-antiSMASH figures never call it.
-- It installs and downloads nothing. CORASON, its dependencies and models stay outside the bundle, and the adapter refuses until you have reviewed and recorded them.
-- Everything it writes is PRIVATE, even when the inputs are public.
-- Most readers do not need this page. The rest is the exact admission, resource and output contract.
+This is an optional, maintainer-level route. Most readers do not need it. It needs a reviewed external install and hand-written review files, and no tool in the bundle writes them for you.
 
-This external companion is off by default. `tools/corason_adapter.py` provides
-`plan`, `run`, and `read`; core Mamey extraction, scores, sealed packages and the
-stored-antiSMASH-only figure lane do not invoke it. Public source provenance does
-not authorize publication: derived outputs are PRIVATE. A later public projection
-requires its own reviewed fields, identity, provenance and disclosure scope.
+**Quick check that the adapter works (about a second).** From the bundle root:
 
-The initial method profile is original nselem/corason commit
-`aa70dddebafb210445794fd24b1c6b2e4177c58c` (AGPL-3.0), not myCORASON/Corason3.
-Internal POD `0.01` is not a release. Source, dependencies and models remain
-external; the adapter installs, downloads and vendors none of them. On any given
-computer, availability and runtime compatibility are unverified until probed. The inert registry marker reports this optional runtime as not probed/present;
-it does not establish runtime readiness.
-
-## Separate admission records
-
-All JSON inputs are bounded objects. SHA256 values are exact lower-case hashes.
-Caller-supplied review records are explicit operator evidence, not cryptographic
-certificates or permission grants. The operator must review and affirm the bound
-plan with `--approved`; documentation and receipt contents cannot authorize it.
-
-`corason.public-intake.v1` contains a `records` list. Each source record names
-`package`, `package_manifest_sha256`, `source_zip`, `source_zip_sha256`,
-`source_bytes`, and file bindings for `public_receipt` and `validation_receipt`.
-A file binding is `{path, bytes, sha256}`. The current producer package supplies
-`strain_id`, exact full contig, typed `node_id`, `antismash_region`, `bgc_id`,
-`start`, `end` and `source_gbk`; original source SHA must match that package.
-Raw ZIP-only loci without a package alias binding are held. Full source identities
-are case/version sensitive; no shortened-node or bare-alias repair is made.
-
-The public receipt schema is `corason.public-source-review.v1`, state
-`REVIEWED_PUBLIC_SOURCE_BINDING`, exact `source_zip_sha256`, `accession_versions`,
-and `primary_sources` (HTTPS URL, accession_version, metadata_sha256). Native
-admission additionally requires scope `PRIMARY_PUBLIC_SOURCE_BINDING` and NCBI/ENA
-source hosts. The review must reconcile the exact original local archive/record
-roster with that public provenance; a folder name or taxon match is insufficient.
-Metadata accession provenance alone is not sequence-byte identity or redistribution
-clearance. The package-validation receipt schema is
-`corason.package-validation-review.v1`, state `VALIDATED`, scope
-`ACTUAL_PACKAGE_VALIDATION`, package_tree_sha256 and exact original validation
-`evidence_path`/`evidence_sha256`. This projection preserves the actual validator
-receipt/log without inventing a validator schema. Original source/package/review
-bindings are rechecked on run and read, including failure handoff.
-
-`corason.selection.v1` declares an ordered unique list `loci` of full display
-identities and `query={exact_locus,locus_tag,translation_sha256}`. The query digest
-binds one original saved CDS translation, including a terminal stop if present.
-Selection is fixed before outcomes. Every unselected source locus remains in the
-original denominator. No query optimization, automatic reference retrieval, gene
-prediction or new translation is performed.
-
-`corason.runtime.v1` supplies `profile=corason-original-aa70ddde-region-v1`,
-`kind=NATIVE`, an `identity` object and bound `review_receipt`. The runtime review
-schema is `corason.runtime-review.v1`, `intent=NATIVE`, state `REVIEWED`, exact
-canonical identity_sha256 and observer_sha256. Review records are operator evidence
-projections, not self-authenticating execution or publication clearance. Identity includes:
-
-- commit; source_root; helpers mapping each exact CORASON filename to a file
-  binding; `entry` equal to the corason.pl helper binding. The native helper set
-  and Git blob IDs must match all 28 pinned primary directory entries.
-- interpreter and observer_python file bindings; actual host architecture;
-  perl_modules_reviewed, transitive_io_reviewed; environment_receipt binding and
-  explicit environment/PATH. The review covers dynamic libraries, Perl/BioPerl,
-  scientific executables and transitive I/O, not merely a displayed banner. All six
-  thread controls OMP_NUM_THREADS, OPENBLAS_NUM_THREADS, MKL_NUM_THREADS,
-  NUMEXPR_NUM_THREADS, VECLIB_MAXIMUM_THREADS and OMP_THREAD_LIMIT must equal
-  the string `1`; PYTHONDONTWRITEBYTECODE must also equal `1`. These controls do
-  not override the original BLAST explicit twelve/four-thread arguments.
-- tools mapping names to exact file binding, probe argv, reported_version and
-  probe_stdout_sha256/probe_stderr_sha256. Required scientific children are BLASTp,
-  makeblastdb, MUSCLE, Gblocks, FastTree and nw_topology/nw_display/nw_labels.
-  Other source-required children must be added to this reviewed closure.
-- entry_help_stdout_sha256. Entry --help and each admitted tool probe must return
-  zero and match the bound profile; unknown versions/resources do not fall through
-  to an unreviewed PATH tool.
-- prefilter_observer=`ReadingInputs-before-deletion-v1` and resources:
-  source_reviewed, prefilter_stage_reviewed, parallel_runs=1, cpu_total,
-  effective_tool_threads for all scientific tools, max_concurrent_children.
-
-Native direct execution requires a safe external source-root layout
-`source_root/CORASON/<helper>`; an unrelated entry script is not accepted even if
-it prints the same version. Native profile evidence is not available merely from
-writing this manifest. A separate future compatibility trial must establish it.
-Synthetic tests use kind/intent `SYNTHETIC_PROTOCOL_TEST`, explicit fixture hashes
-and synthetic review scopes; every result remains SYNTHETIC_PROTOCOL_ONLY and
-cannot become native/public biological admission by changing a label.
-
-## Resource and filesystem boundary
-
-The original source uses BLASTp `-num_threads 12` for tabular query search and
-`-num_threads 4` for its parser search. It has no admitted universal one-thread CLI.
-Native cpu_total must cover at least twelve CPUs and the reviewed maximum child
-threads/concurrency. It must also be no greater than the actual positive
-`os.cpu_count()` observation at plan/run/read. Missing observations or a host
-reporting ten CPUs refuse this twelve-thread profile. This is a conservative
-policy ceiling, not a measurement of affinity/cgroup allocation; no oversubscription
-flag or caller-rehashed JSON budget bypass is supplied. The observation is recorded.
-The observer also refuses an explicit BLAST thread request
-above that total. Review other tool defaults; do not invent `--threads`, force a
-small resource claim, or assume a watcher enforces CPU affinity.
-
-Execution is serial, foreground, `nice -n 15` where available, observed RSS limit
-3.8 GB, total timeout 1800 s per whole run/read worker, and minimum free disk 2 GB
-on both receipt and native-work roots. One outer watched Python worker includes
-staging, Biopython allocation, conversion, tool probes, native analysis and Python
-readback. Native children and probes inherit its process group; there are no nested
-watcher sessions. Direct child receipts bind argv/cwd/exit/logs and identify the
-outer monitoring scope. Probes additionally have a ten-second direct-child timeout;
-a timeout aborts the worker and its owned descendants. Periodic process-tree
-observation is not a kernel sandbox. Exact runtime/transitive
-write review or a separately implemented reviewed container profile is required.
-Containers are not supported implicitly by this initial direct-entry driver.
-
-The plan takes explicit `--write-root` (human-facing receipts/exports) and
-`--native-work-root` (existing, permitted shell-safe directory). Upstream shell
-strings cannot safely execute inside a space-containing path. The latter is
-separately admitted, may be a permitted `/private/tmp` child, and is bound in the
-plan. No directory is silently created outside that selected boundary. Source
-helper/interpreter paths must also be shell safe; full display identities live
-in crosswalks rather than filenames. Optional `--read-only-root` protects named
-research roots; it supplements filesystem permissions and immutable input binding.
-
-Plan/out/work/read destinations cannot overlap protected inputs, runtime source,
-package or bundle. Occupied empty/nonempty directories, dangling symlinks and
-racing reservations refuse. There is no resume/force path. Failed owned attempts
-retain diagnostics/products; existing outputs and external inputs are not deleted.
-The read handler writes a new export directory, never a package mutation.
-
-## Commands and actual phase semantics
-
-Prospective shapes, requiring separately admitted records and approval:
-
-```
-python tools/corason_adapter.py plan --intake <intake.json> \
-  --selection <selection.json> --runtime-manifest <runtime.json> \
-  --native-work-root <permitted-safe-root> --write-root <output-root> --out <fresh-plan>
-python tools/corason_adapter.py run --plan <fresh-plan/PLAN.json> \
-  --write-root <output-root> --out <fresh-attempt> --approved
-python tools/corason_adapter.py read --run-receipt <fresh-attempt/RUN_STATE.json> \
-  --write-root <output-root> --out <fresh-export>
+```bash
+d=$(mktemp -d)
+echo '{}' > "$d/empty.json"
+python tools/corason_adapter.py plan --intake "$d/empty.json" --selection "$d/empty.json" \
+  --runtime-manifest "$d/empty.json" --native-work-root "$d/cwork" \
+  --write-root "$d/cout" --out "$d/cout/plan1"
 ```
 
-`plan` reads metadata/hashes only; it does not probe executables, extract sequence
-payloads or run searches. Missing/unreviewed public/runtime metadata refuses before
-output creation. A valid plan records its outstanding modern-format/conversion
-check, and COMMAND.sh is a refusal stub, never a runnable native shortcut.
+The first two lines create a new scratch folder and an empty JSON file in it. Nothing else is
+written. Success looks like `CORASON refused: INTAKE_SCHEMA`, exit code 2, and no `cout` folder
+inside `$d`. The adapter is present and refuses incomplete input. A real plan needs the five files below.
 
-`run` checks the bound runtime before launching an executable, reserves a fresh
-controller receipt directory, then rederives selection and original source inside
-the whole watched worker before any sequence staging. It reserves a fresh native
-work directory. Early worker refusal preserves a failed controller receipt without
-a native work directory; it does not create an admitted success proof. It stages only exact selected public region
-members and their saved query translation, preserving unknown metadata. Imports
-of Biopython occur only in this explicit conversion stage. Unsupported fuzzy/
-compound CDS geometry, missing/duplicate tags, multiple translations and internal
-stops refuse. One terminal stop may be removed with both original and converted
-digests recorded; no other amino-acid transformation is performed.
+- It is off by default. Core extraction, scores, packages and the antiSMASH-only figures never call it.
+- It installs and downloads nothing. CORASON, its Perl and BLAST dependencies and their versions stay outside the bundle. The adapter refuses to run until you have reviewed and recorded them.
+- Everything it writes is marked PRIVATE, even when the inputs are public. Publishing a result needs its own review.
+- It supports no claim about compound identity, production, activity, species, novelty or physical adjacency of contigs.
 
-The converter phase is the exact admitted interpreter plus
-`CORASON/gbkIndex.pl CORASON_GENOMES CORASON`. A run-local read-only helper view
-points to the external original source; it is not a vendored source copy. The
-converter deletes its existing GENOMES/ID files, hence it sees only a fresh work
-area. Before analysis, verify every converted gene, actual numeric org mapping,
-source CDS ordinal/locus tag, strand/oriented 1-based coordinates and translation
-against the independently parsed source. Check the exact fourteen-column native
-schema: its locus_tag heading contains accession while sequence_accession contains
-the original locus tag. Numeric IDs are read from the converter, never inferred
-from ls/input order. Zero exit with a dropped/swapped gene is failure.
+## Prerequisites
 
-Analysis calls original corason.pl in --conda/explicit RAST mode with checked
-reference org and full selected numeric list. It supplies source defaults
-explicitly: e_value 1E-15, bitscore 0, cluster_radio 10, e_cluster 1E-3, e_core 1E-3,
-rescale 85000. These are compatibility defaults, not optimized biological choices.
-Automatic --gbk mode's grep-based reference binding is bypassed in favor of the
-verified conversion checkpoint. --conda selects relative helper/output semantics;
-it is not an installation claim.
+Check these before you write any file. A run is refused if one fails.
 
-Generated process-local witnesses bind actual scientific children, original
-1_Context_text.pl and ReadingInputs.pl. The latter snapshots bounded actual
-.input/.input2 and tabular BLAST evidence **before** the original filtering helper
-deletes neighborhoods, then delegates to the exact original source. Generated
-observer bytes, config, actual argv, child status, stdout-compatible execution and
-source/tool hashes are recorded. No synthetic success flag replaces that capture.
-Any failed/nonterminal witnessed child refuses completion even if the upstream
-parent masks its exit. A future reviewed policy for intentional failed-stage
-fallbacks would be a separate compatibility change; this initial profile is
-conservative. Resource stops invalidate zero exit.
+- **Host.** At least 12 CPUs, as reported by the operating system. The pinned CORASON source asks BLAST for 12 threads. A 10-CPU laptop is refused, and there is no override.
+- **Limits the run enforces.** 3.8 GB resident memory, 1800 seconds for the whole run, and 2 GB free disk on both the output folder and the work folder. Runs are one at a time, in the foreground, at low priority.
+- **External source.** The original CORASON checkout at commit `aa70dddebafb210445794fd24b1c6b2e4177c58c` (AGPL-3.0), laid out as `<source_root>/CORASON/<helper>.pl`. All 28 helper scripts must match their pinned Git hashes. This is the original `nselem/corason` code, not a fork.
+- **External tools.** `blastp`, `makeblastdb`, `muscle`, `Gblocks`, `FastTree`, `nw_topology`, `nw_display` and `nw_labels`, each with a recorded version probe.
+- **Paths.** The work folder must exist and its path must contain no spaces or shell-special characters. Outputs need fresh folders. Existing ones are refused. There is no resume.
+- **Input.** Finished Mamey packages built from public genome archives, with a reviewed public-source record and a package-validation record for each.
 
-WORKER_REQUEST, WORKER_STATE, WHOLE_WORKER.log, WHOLE_WORKER_RECEIPT,
-PRELAUNCH_MANIFEST, RUN_STATE, EVENTS and phase logs retain partial/failure
-provenance; successful runs add RUN_MANIFEST and SELECTED_RESULT, followed only
-after successful outer monitor closure by WHOLE_WORKER_ADMISSION. The acyclic
-admission descriptor binds the terminal run state, request/method and outer
-receipt; it is not inserted into its own hashed producer. A killed worker cannot
-leave a consumable success receipt merely by writing a result before the stop.
-Read requires this descriptor and verifies argv/cwd, two disk floors, resource
-limits and log hashes, then performs its own independently watched Python readback.
-A failed read may preserve its own failed diagnostic directory; it has no admitted
-export descriptor. File hashes are
-content bindings under a stable-input/no-concurrent-writer assumption, not signed
-execution attestation or protection against an adversarial operator editing all
-receipts. Source/profile/output changes invalidate readback.
+## The five input files
 
-## Readback and truthful completion
+Every file is a JSON object. A hash is a lowercase SHA-256 string. A file binding is `{"path": ..., "bytes": ..., "sha256": ...}`. The review records are your own evidence. They are not certificates, and nothing in them grants permission to run.
 
-Read checks the selected producer, actual phase argv/cwd/logs, original source,
-conversion products, generated observers and native/QA artifact closure. It
-recomputes readback without launching external binaries. Exact full identities
-must survive native safe tokens and numeric IDs. Multiple hit neighborhoods from
-one locus stay separate through source anchor CDS and neighborhood ID.
+**1. Intake** (`corason.public-intake.v1`): one record per package.
 
-Core rows bind original fig gene IDs plus neighborhood suffixes. Per-core source
-FASTA identities/translations, trimmed partition widths, concatenated matrix and
-tree/order neighborhood closure are checked. Native concatenation enumerates a
-directory rather than a guaranteed numeric order: the reader verifies a **unique**
-observed partition order against every tip's matrix bytes. Ambiguous or expensive
-matching holds instead of inventing order. This is structural conformance, not a
-benchmark of orthology, alignment or evolutionary accuracy.
+```json
+{
+  "schema": "corason.public-intake.v1",
+  "records": [{
+    "package": "/work/runs/EXAMPLE/package",
+    "package_manifest_sha256": "<sha256 of manifest.json>",
+    "source_zip": "<antiSMASH archive name>",
+    "source_zip_sha256": "<sha256>",
+    "source_bytes": 123456789,
+    "public_receipt": {"path": "/work/review/public.json", "bytes": 800, "sha256": "<sha256>"},
+    "validation_receipt": {"path": "/work/review/validation.json", "bytes": 700, "sha256": "<sha256>"}
+  }]
+}
+```
 
-| Actual route | Readback result |
-|---|---|
-| MULTILOCUS_CORE | More than one verified core gene, at least two neighborhoods, complete core/source/partition/matrix/tree/order/SVG closure; goal MET_STRUCTURAL_ONLY. |
-| QUERY_ONLY_SHAVED | Bound query alignment/tree/order and at least two neighborhoods; goal NOT_MET. |
-| QUERY_ONLY_UNSHAVED | Bound unshaved query alignment/tree/order; goal NOT_MET, retaining prior-stage evidence. |
-| BLAST_ORDER | Bound neighborhoods and report's BLAST-order branch; tree NOT_ASSESSED and goal NOT_MET. |
-| Incomplete/conflicting | FAILED/HOLD. SVG-only, missing/empty/malformed trees, wrong core/input membership or unresolved capture never becomes multilocus success. |
+The package manifest must list each locus with strain, full contig, node ID, region, BGC alias, start, end and source GBK. The archive hash must match the package. A locus in a raw ZIP with no package is held. Identities are case and version sensitive. The adapter does not shorten them.
 
-Process status COMPLETE_SCOPED_EVIDENCE means verified scoped export, not that a
-multilocus goal was achieved. Route/goal/scope stay explicit. Raw native SVG remains
-RAW_NATIVE_SVG_NOT_VISUALLY_ADMITTED; no polished/full-identity figure is promised
-without separate visual admission. The portable handoff includes complete locus
-identities and route captions; raw native files remain unchanged.
+**2. Public receipt** (`corason.public-source-review.v1`): ties the archive to its public records.
 
-Denominators include original sources/loci, selected/unselected loci, converted
-CDS, bound query-hit loci, prefilter/admitted/filtered neighborhoods and actual tree
-tips. Absent output is not a no-hit. A no-query-hit state requires preserved
-successful tabular-search evidence with exact converted source-gene membership.
-Failed format conversion stops the attempt with original selection retained; it
-does not silently exclude problematic sources and call a reduced run complete.
+```json
+{
+  "schema": "corason.public-source-review.v1",
+  "state": "REVIEWED_PUBLIC_SOURCE_BINDING",
+  "scope": "PRIMARY_PUBLIC_SOURCE_BINDING",
+  "source_zip_sha256": "<sha256>",
+  "accession_versions": ["EXAMPLE01000001.1"],
+  "primary_sources": [{
+    "url": "https://eutils.ncbi.nlm.nih.gov/...",
+    "accession_version": "EXAMPLE01000001.1",
+    "metadata_sha256": "<sha256>"
+  }]
+}
+```
 
-## Validation ceiling
+The URLs must be HTTPS on an NCBI or ENA host. Every locus's full contig must appear in `accession_versions`. A folder name or taxon match is not enough. Accession metadata alone does not show that the sequence bytes match.
 
-The focused synthetic tests use tiny N/X placeholders, fixed independent expected
-coordinate/identity/count/route values, reversed native org allocation and reversed
-partition order. They exercise actual fake child processes, the before-deletion
-observer, conversion/refusal, whole-worker stops/admission, host CPU refusal,
-thread environment, producer-bound read and preserved old outputs.
-Synthetic package-validation/public-review records are explicitly fake protocol
-evidence. They are not a biological reference, actual Mamey validation, public
-sequence provenance or native CORASON compatibility trial.
+**3. Validation receipt** (`corason.package-validation-review.v1`): keeps the real validator output.
 
-Only root-scheduled tests after source review may establish protocol conformance.
-A later approved native trial must first admit the actual environment/resources,
-converter and observer route, then keep fixed original public type-strain source
-order and all failures. Existing avermitilis60/sulphureus46 region denominators do
-not promise compatible core or tree outcomes. Do not select favorable queries or
-tune thresholds after viewing results. CORASON is new optional homology/alignment/
-tree computation, separate from the established antiSMASH-only figures.
+```json
+{
+  "schema": "corason.package-validation-review.v1",
+  "state": "VALIDATED",
+  "scope": "ACTUAL_PACKAGE_VALIDATION",
+  "package_tree_sha256": "<package tree hash, see below>",
+  "evidence_path": "/work/review/validate.log",
+  "evidence_sha256": "<sha256 of that log>"
+}
+```
 
-Primary source/method: [original source](https://github.com/nselem/corason/tree/aa70dddebafb210445794fd24b1c6b2e4177c58c),
-[Navarro-Muñoz et al. (2020)](https://doi.org/10.1038/s41589-019-0400-9).
-No compound identity, production, activity, species assignment, novelty or physical
-contig adjacency claim is supported by this adapter.
+Validate first, on a working copy you are allowed to change. `python mamey_run.py validate <package>` rewrites `package_status.json` inside the package, and the tree hash covers that file. Save the validate output to the log named in `evidence_path`. Then compute the hash.
 
-The optional registry's inert NOT_PROBED marker exits nonzero without stdout/stderr,
-because the existing general detector treats any printed text as presence. It
-never probes the external CORASON entry and cannot report an installed/admitted
-runtime from an explanatory marker. Manual runtime admission remains separate.
+The package tree hash is the SHA-256 of one line per package file, in sorted path order: `relative/path`, a tab, that file's SHA-256, a newline. No command prints it. From the bundle root, this does (the path is your package folder):
 
-Human TSV exports use the existing SafeDictWriter formula guard. Canonical JSON
-retains original full identity spelling. A formula-leading TSV cell gains the
-existing leading apostrophe; machine joins should use EVIDENCE.json or validate
-that the cell equals csv_safe_cell of its bound JSON value. Do not blindly strip
-apostrophes from native identities. No native source table is modified.
+```bash
+python -c "from mamey.postseal_output import package_binding as b; print(b('runs/EXAMPLE/package')['package_tree_sha256'])"
+```
+
+It prints one 64-character hash. If the hash differs from the one in the receipt, `plan` stops with `PACKAGE_VALIDATION_UNBOUND`.
+
+**4. Selection** (`corason.selection.v1`): which loci to compare, fixed before you see results.
+
+```json
+{
+  "schema": "corason.selection.v1",
+  "loci": ["EXAMPLE / <full contig> / region001 / BGC001"],
+  "query": {
+    "exact_locus": "EXAMPLE / <full contig> / region001 / BGC001",
+    "locus_tag": "EXAMPLE_00010",
+    "translation_sha256": "<sha256 of the saved CDS translation>"
+  }
+}
+```
+
+`loci` is an ordered list with no repeats, and every entry must come from the intake. The query must be one of them. Loci you leave out stay in the denominator. The adapter does not optimize the query, fetch references, predict genes or retranslate.
+
+**5. Runtime** (`corason.runtime.v1`): records the external install you reviewed. It has `profile` set to `corason-original-aa70ddde-region-v1`, `kind` set to `NATIVE`, a `review_receipt` file binding, and an `identity` object. The review receipt (`corason.runtime-review.v1`, state `REVIEWED`) must carry `intent` equal to the runtime `kind` (`NATIVE`) and the exact hash of that identity object; otherwise the plan refuses with `RUNTIME_NOT_REVIEWED` (`tools/corason_adapter.py:251-254`). The identity holds:
+
+- `commit`, `source_root`, `helpers` (each helper filename mapped to a file binding) and `entry` (the `corason.pl` binding);
+- `interpreter` and `observer_python` file bindings, `architecture`, `perl_modules_reviewed` and `transitive_io_reviewed` set to true, an `environment_receipt` binding, and an explicit `environment` with `PATH`;
+- `tools`: for each tool above, a `file` binding, a `probe` argv (a list of strings), `reported_version`, `probe_stdout_sha256` and `probe_stderr_sha256`;
+- `entry_help_stdout_sha256`, and `prefilter_observer` set to `ReadingInputs-before-deletion-v1`;
+- `resources`: `source_reviewed`, `prefilter_stage_reviewed`, `parallel_runs` of 1, `cpu_total` (12 or more, and no more than the host has), `effective_tool_threads` for every tool (BLAST at 12 or more), and `max_concurrent_children`. The largest tool thread count times `max_concurrent_children` must not exceed `cpu_total`.
+
+The review receipt's `identity_sha256` is the SHA-256 of the identity object written as JSON with keys sorted and no spaces after separators. Its `observer_sha256` must equal the SHA-256 of the adapter's built-in observer script. Both print from the bundle root:
+
+```bash
+python -c "import sys,hashlib,json; sys.path.insert(0,'tools'); import corason_adapter as c; print(hashlib.sha256(c.observer_source().encode()).hexdigest()); print(c.content_digest(json.load(open('runtime.json'))['identity']))"
+```
+
+The first line is `observer_sha256`. The second is `identity_sha256`. Write them into the review receipt, then add the receipt's file binding to `runtime.json`. If you edit the identity again, recompute the second hash.
+
+In `environment`, set `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, `OMP_THREAD_LIMIT` and `PYTHONDONTWRITEBYTECODE` to the string `1`. These do not lower BLAST's own thread arguments. Names starting with `CORASON_` are reserved.
+
+## Run it
+
+```bash
+python tools/corason_adapter.py plan --intake intake.json --selection selection.json \
+  --runtime-manifest runtime.json --native-work-root /private/tmp/corason_work \
+  --write-root /work/corason_out --out /work/corason_out/plan1
+python tools/corason_adapter.py run --plan /work/corason_out/plan1/PLAN.json \
+  --write-root /work/corason_out --out /work/corason_out/attempt1 --approved
+python tools/corason_adapter.py read --run-receipt /work/corason_out/attempt1/RUN_STATE.json \
+  --write-root /work/corason_out --out /work/corason_out/export1
+```
+
+`--read-only-root` is optional on `plan`. It names folders that must stay untouched.
+
+**plan** reads metadata and hashes only. It runs no program and extracts no sequence. On success it writes `PLAN.json` and `COMMAND.sh`. `COMMAND.sh` just exits with an error. It is a stub, not a shortcut. A missing or unreviewed record stops `plan` before any output folder exists.
+
+**run** needs `--approved`. Passing the flag is your statement that you reviewed the plan. Nothing in the files can approve it for you. It:
+
+1. checks the runtime before launching anything;
+2. re-derives the selection from the original archives;
+3. stages only the selected loci and the query translation, and converts them with CORASON's `gbkIndex.pl`;
+4. runs `corason.pl` with the source defaults (e-value 1E-15, bitscore 0, cluster radius 10, cluster e-value 1E-3, core e-value 1E-3, rescale 85000).
+
+These defaults are the source's own values, not tuned choices. Biopython is loaded only for the conversion step. Fuzzy or compound CDS geometry, a missing or duplicate tag, several translations, or an internal stop all stop the run. One terminal stop codon may be removed, and both hashes are recorded. Any witnessed tool that fails stops the run, even when CORASON's own exit code hides it.
+
+A good run ends with `RUN_STATE.json` showing status `COMPLETE_SCOPED_EVIDENCE`, plus `RUN_MANIFEST.json`, `SELECTED_RESULT.json` and `WHOLE_WORKER_ADMISSION.json`. A failed run keeps `WORKER_STATE`, `WHOLE_WORKER.log`, `EVENTS` and the phase logs, with no admission file. Do not read a failed folder as a result. Keep it, and retry into a new folder.
+
+**read** checks the run against the original sources, rebuilds the result without launching any external program, and writes `EVIDENCE.json`, `loci.tsv`, `neighborhoods.tsv`, `leaf_crosswalk.tsv`, `HANDOFF.md` and `EXPORT_BINDINGS.json` into a new folder. A package is never changed. Use `EVIDENCE.json` for machine joins. Spreadsheet cells that start with a formula character get a leading apostrophe in the TSV files. Do not strip it from identities.
+
+## Read the result
+
+The route is in the `route` field of `EVIDENCE.json` and on the `Route:` line of `HANDOFF.md`.
+
+| Route | What it means | Goal |
+|---|---|---|
+| `MULTILOCUS_CORE` | More than one verified core gene, at least two neighborhoods, and a complete matrix, tree and order. | `MET_STRUCTURAL_ONLY` |
+| `QUERY_ONLY_SHAVED` | A bound query alignment and tree, with at least two neighborhoods. | `NOT_MET` |
+| `QUERY_ONLY_UNSHAVED` | A bound query alignment and tree before shaving. | `NOT_MET` |
+| `BLAST_ORDER` | Neighborhoods and the BLAST-order branch only. The tree is `NOT_ASSESSED`. | `NOT_MET` |
+| anything incomplete or conflicting | `FAILED` or `HOLD`. | none |
+
+`COMPLETE_SCOPED_EVIDENCE` means the export was verified. It does not mean the multilocus goal was reached. `MET_STRUCTURAL_ONLY` means the files fit together. It is not a test of orthology, alignment or tree accuracy.
+
+The raw native SVG is `RAW_NATIVE_SVG_NOT_VISUALLY_ADMITTED`. No polished figure is promised. Absent output is not a no-hit. A no-hit needs a saved, successful search with the exact source gene membership. A failed conversion stops the attempt. It never drops a problem source and calls a smaller run complete.
+
+Report the denominators with any result: source loci, selected and unselected loci, converted CDS, loci with a query hit, neighborhoods before and after filtering, and tree tips.
+
+## Limits
+
+- File hashes show that content is unchanged. They are not signed attestation. They do not protect against someone who edits every receipt.
+- A process monitor watches memory and time. It is not a sandbox.
+- Test runs use synthetic placeholder data and the kinds `SYNTHETIC_PROTOCOL_TEST` and result tag `SYNTHETIC_PROTOCOL_ONLY`. They check the protocol only. A native run has not been shown to work on any particular computer until the whole chain has been run there.
+- Do not choose favorable queries or tune thresholds after you see results.
+- The optional registry entry for CORASON reports "not probed". It never checks for an installed copy, so it cannot tell you the runtime is ready.
+
+Sources: the [original code](https://github.com/nselem/corason/tree/aa70dddebafb210445794fd24b1c6b2e4177c58c) and [Navarro-Muñoz et al. (2020)](https://doi.org/10.1038/s41589-019-0400-9). For where CORASON sits among the companion tools, see [companion tools](companion_tools.md).

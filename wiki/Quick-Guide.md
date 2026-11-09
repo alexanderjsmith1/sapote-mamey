@@ -1,7 +1,7 @@
 <!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.463 / engine Mamey 1.9.179
+**Version:** v9.7.464 / engine Mamey 1.9.180
 
 Use this page to find the next step for an antiSMASH ZIP or a saved Mamey package.
 For a first extraction, use [Your first run](../docs/reader/01_FIRST_RUN.md).
@@ -15,12 +15,14 @@ reader are enough to open saved results.
 
 ## 1. Inspect and run one strain
 
-The [first-run page](../docs/reader/01_FIRST_RUN.md) gives the commands.
-Use one antiSMASH result ZIP for the genome and one strain name throughout.
-The example uses `EXAMPLE` and writes to `runs/EXAMPLE/`.
+[Your first run](../docs/reader/01_FIRST_RUN.md) gives the commands and how to tell
+success from failure. Use one antiSMASH result ZIP for the genome and one strain name
+throughout. The example uses `EXAMPLE` and writes to `runs/EXAMPLE/`.
 
-Ordinary runs use gold mode, bounded JSON evidence, a standard brief and automatic
-locus maps. You do not need flags to request those defaults.
+The command that `inspect` prints is a capped run. It finishes faster, and it skips
+the written brief, the JSON evidence and the automatic gene maps. For a full run,
+delete `--capped-session`, `--json-evidence off` and `--brief none` from that command.
+A full run then uses bounded JSON evidence, a standard brief and automatic gene maps.
 
 ## 2. Review the package
 
@@ -48,13 +50,12 @@ no hits separate in your notes.
 
 ## Optional evidence settings
 
-`--capped-session` changes the outputs: it switches the main JSON walker off,
-suppresses the brief and automatic locus maps, and requires a workbook.
-It does not set a wall-clock timeout. Use it only when those omissions fit your task.
+`--capped-session` turns off the JSON evidence, the brief and the automatic gene maps,
+and it requires the workbook. It does not set a time limit.
 
-`--json-evidence full` selects the full walker instead of bounded streaming.
-It refuses an individual uncompressed JSON file larger than 80 MB; the ZIP's
-compressed size is not that limit. See [input evidence](../docs/ANTISMASH_INPUTS_CONSUMED.md)
+`--json-evidence full` reads the whole antiSMASH JSON instead of a bounded stream.
+It refuses any single JSON file larger than 80 MB uncompressed. The ZIP's compressed
+size is not that limit. See [input evidence](../docs/ANTISMASH_INPUTS_CONSUMED.md)
 if a channel is held or truncated.
 
 ## Protein search and result import
@@ -63,7 +64,14 @@ Use [BLASTp evidence](../docs/ONLINE_BLASTP_PROTOCOL.md) to read saved results o
 
 ## Fragmented pathway review
 
-Use [expanded-locus evidence](../docs/MODEB_EXPANDED_LOCUS.md) to inspect sequence context around a selected region.
+A poor assembly can split one pathway across several contigs. `run` includes an RG-GMCI pass
+for this. It compares fragments against the ClusterBlast and KnownClusterBlast references they
+share, checks where their hits fall, and tests whether they cover complementary parts of the
+reference pathway. A supported link is a candidate relationship between fragments. It is
+homology-guided linkage, not a joined sequence. Read the ranked pairs in the package's
+`_4A_RGGMCI_ranked_pairs.csv`; the [glossary](Glossary.md#7-rg-gmci-and-the-rescue-layer)
+explains the confidence labels. To look at the sequence around one region, use
+[expanded-locus evidence](../docs/MODEB_EXPANDED_LOCUS.md).
 
 ## Trees and heatmap overlays
 

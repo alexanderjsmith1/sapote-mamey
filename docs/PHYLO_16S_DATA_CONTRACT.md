@@ -1,156 +1,124 @@
 # Portable 16S data workflow
 
-These tools prepare candidate sequence data and screening evidence. They do not establish strain identity, taxonomic membership, gene boundaries, biological orientation, novelty, tree validity, or accepted strain merges.
+These tools prepare candidate 16S sequences and screening evidence for tree work. They do not establish strain identity, taxonomy, gene boundaries, orientation, novelty, tree validity or a strain merge. Terms are in the [glossary](GLOSSARY.md).
 
-## Additive databases and input selection
+The order is: admit sequences (step 1), build the 16S store (step 2), then extract from a genome and make a panel (step 3). The tree route that uses these outputs is in [PHYLOGENETICS_WORKFLOW](PHYLOGENETICS_WORKFLOW.md).
 
-Select every ingest source explicitly. The builder requires `--db` for a new output and at least one source option. Transformations use an existing `--db` and a new `--out-db`. Existing output files and symlinks are refused. Output parent directories must already exist. No command updates an external asset registry.
+## 1. Admit sequences before alignment
+
+Run the admission gate before MAFFT (alignment) or EPA-ng (placement). It checks a roster file against a FASTA. It does no alignment and no retrieval.
+
+Prepare two files with the same unique tip IDs: a tab-separated roster and a FASTA. FASTA descriptions are labels only. The roster is the authority.
+
+Required roster columns:
+
+`tip`, `role`, `organism`, `expected_genus`, `accession`, `sequence_sha256`, `type_status`, `isolation_source`, `geography`, `sequence_evidence`, `metadata_evidence`, `biological_sample_id`, `admission`.
+
+- `role` is `query`, `reference` or `outgroup`.
+- `type_status` is `type`, `non_type` or `not_applicable` (queries only).
+- `admission` must be `admitted`.
+- `biological_sample_id` must be filled for query rows. It can be blank for references.
+- Use the exact accession with its version. The gate checks that the field is filled, not that it is a valid versioned accession.
+
+```bash
+python tools/phylo_sequence_admission.py --roster admitted_roster.tsv \
+  --fasta candidate_sequences.fasta --molecule 16S --json NEW_RECEIPT.json
+```
+
+Success: exit 0 and the receipt printed to stdout. Every other outcome exits 2, with one of these lines on stderr:
+
+- `ADMISSION_FAIL:` the inputs were read and failed a check. The receipt carries `status` `ADMISSION_FAIL` and the reason;
+- `ADMISSION_ERROR: input could not be read:` the roster or FASTA was missing, unreadable or not UTF-8. The receipt carries `status` `ADMISSION_ERROR`, and `rows` is `null` when the roster was never read. Nothing was checked;
+- `ADMISSION_REFUSED:` the `--json` file already exists. No receipt is written, so give a new path each time;
+- `ADMISSION_ERROR: receipt could not be written:` the receipt folder is missing or not writable. Nothing is printed to stdout.
+
+Read the status, not the exit code alone.
+
+The default 16S length window is 900 to 2,000 after normalization. `--min-length` and `--max-length` change it. `--molecule genome` skips the length check only. The gate rejects short fragments, cross-genus records, missing accession or evidence fields, duplicate type-species representatives, and identical query sequences from the same biological sample.
+
+The sequence hash uses uppercase, U changed to T, and `-` and `.` removed. It differs from a raw-file SHA-256. Keep both.
+
+One duplicate case is not caught. If a sample has an identical pair plus a third, different sequence, the pair is not refused. Check `exact_sequence_groups` in the receipt against the sample IDs by hand. A pass does not prove the samples are independent.
+
+### Geography and isolation source
+
+Both columns are admitted as deposited and never reworded.
+
+- A blank value, a placeholder such as `unknown`, or an INSDC missing term such as `missing: lab stock` is not refused. The tip is admitted unchanged and listed under `figure_omissions` by full name, accession and reason `NO_DEPOSITED_GEOGRAPHY` or `NO_DEPOSITED_SOURCE`. Figures leave these tips out. A tip missing both is listed twice.
+- The receipt also holds `geography_region`, a display-only grouping. It is filled only when the deposited text (or its country part before `:`) is already one of ten list values, or the country is in the table in `tools/_phylo_metadata.py`. The ten values are `US`, `Canada`, `North America (other)`, `South America`, `Europe`, `Asia`, `Africa`, `Oceania`, `Antarctica` and `Indian Ocean`. Anything else leaves it blank. `geography_region_basis` says which case applied: `LIST_VALUE`, `COUNTRY_TABLE`, `NOT_DERIVED` or `NOT_RECORDED`. The deposited text stays the record.
+
+## 2. Build and refine the 16S store
+
+The store is a SQLite file. Each step reads one store and writes a new one, so you keep every stage. Existing output files and symlinks are refused. The output folder must already exist.
 
 ```bash
 python tools/phylo_16s_build_db.py --db output/initial.sqlite --authoritative-fasta inputs/queries.fasta
-python tools/phylo_16s_build_db.py --db output/references.sqlite --refseq-blastdb inputs/reference_db
 python tools/phylo_16s_fetch.py --db output/initial.sqlite --out-db output/fetched.sqlite --source pdf_candidate
-python tools/phylo_16s_esearch.py --db output/initial.sqlite --out-db output/search.sqlite --sets moss
-python tools/phylo_16s_rank.py --db output/fetched.sqlite --out-db output/ranked.sqlite
+python tools/phylo_16s_esearch.py --db output/fetched.sqlite --out-db output/search.sqlite --sets SET_NAME
+python tools/phylo_16s_rank.py --db output/search.sqlite --out-db output/ranked.sqlite
 python tools/phylo_16s_audit_merges.py --db output/ranked.sqlite --out-db output/audited.sqlite
 ```
 
-The first two commands illustrate separate source selections; include both source options in one build to combine them. The fetch command processes only pending records of the specified source. A query-only database may have no pending fetch records. Other builder inputs are `--nontype-dir`, `--reference-metadata-dir`, `--pdf-hits`, and `--provenance`. Source omission is intentional; a selected missing source is an error. Rebuilding sets requires `--sets-only --input-db INPUT --db NEW_OUTPUT`.
+Each step needs the previous output. Add a reference source to the first step with `--refseq-blastdb inputs/reference_db`; include both source options in one build to combine them. Other inputs are `--nontype-dir`, `--reference-metadata-dir`, `--pdf-hits` and `--provenance`. A source you name but that is missing is an error. To rebuild only the sets, use `--sets-only --input-db INPUT --db NEW_OUTPUT`. `fetch` handles only pending records of the source you name, so a query-only store may have none. `esearch --sets` takes a comma-separated list of set names defined in `tools/phylo_16s_esearch.py` (default `all`).
 
-Inputs must be closed, checkpointed SQLite snapshots without WAL or journal sidecars. Transformations use an in-memory copy and publish a completed database with an `operation_event` receipt. Input hashes are checked before publication. Memory use includes the database copy and serialized output; large stores require adequate memory and separate performance validation.
+Input stores must be closed, checkpointed snapshots with no WAL or journal files. Each tool works on an in-memory copy, checks the input hash and publishes a finished store with an `operation_event` record. Large stores need enough memory for the copy and the output.
 
-The additive database CLI dry runs validate selected inputs and display plans without publishing files or running network/BLAST/MAFFT operations. The standalone defect validator has no `--dry-run`; its optional report writer is a separate mutation contract. Database dry runs may read an in-memory copy. Dry-run counts that would require remote operations remain unmeasured.
+Add `--dry-run` to the build, fetch, esearch, rank and merge-audit tools to check inputs and print the plan. It does no network, BLAST or MAFFT work and writes no file. Counts that would need a remote call stay unmeasured. The defect validator below has no `--dry-run`.
 
-## Store defect validator and merge-screen recovery
+Progress and plans go to stderr. Silence on stdout is not a verdict. Check the exit code and the receipt status.
 
-Use `python3 tools/phylo_16s_validate_db.py --db CLOSED_SNAPSHOT --out-dir FRESH_REPORTS` for the two historical defect screens. REVIEW_NEEDED genus candidates can coexist with exit0, and this reader does not enforce the additive path's WAL/journal refusal or hash binding. It publishes four reports sequentially; a collision/failure can leave partial outputs. The merge screen retains MERGE_ACCEPTANCE_HELD, including zero-pair events, and its direct exclusive database write can remain partial after failure. Preserve attempts, pinned snapshots and diagnostics and recover to fresh paths. See [the exact validator/merge contracts](reference/06_CURRENT_SOURCE_SCOPE.md#16s-store-defect-validation-and-additive-merge-screening) for denominators, output roster, status and recovery.
+### Status words
 
-## Sequence and accession identity
+| Word | Where | Meaning |
+|---|---|---|
+| `PARTIAL_WITH_HOLDS` | fetch receipt | Some records were saved, some were held. The command exits nonzero. |
+| `NOT_RETURNED` | fetch receipt | A requested record did not come back. The cause is unknown. |
+| `NOT_MEASURED` | rank output | No saved-hit file (`--pdf-hits`) was given, so that rescue channel was not measured. |
+| `SIMILARITY_SCREEN_PASS` | merge audit | Two records passed an alignment threshold. It is not an accepted merge. |
+| `MERGE_ACCEPTANCE_HELD` | merge screen | No merge is accepted. This includes events with zero pairs. |
+| `REVIEW_NEEDED` | validator genus report | A genus candidate needs your review. The validator can still exit 0. |
 
-FASTA records require unique first-token identifiers, a sequence, and ungapped IUPAC DNA symbols. Sequence normalization is uppercase; SHA-256 binds sequence content. Distinct biological records with identical sequence content remain distinct when their source identities differ. Duplicate accession identities in one ingest source, conflicting accession versions, and conflicting sequences at a shared accession are held for explicit reconciliation.
+`acc_base` is the store column for an accession without its version. Local queries with no accession get an internal `LOCAL:` key there, and `acc_version` stays empty. `record_key` is the panel's separate key for such records. A `LOCAL:` key never appears as an accession in a label.
 
-Authoritative FASTA records without accession provenance receive internal `LOCAL:` keys. Their accession field remains missing. A provenance TSV must include `strain`; assigning an accession also requires its exact version and a matching `sequence_sha256`. Optional metadata columns are `organism_as_deposited`, `host`, `isolation_source`, `geo_loc_name`, `collection_date`, and `lat_lon`. These are operator-supplied observations.
+### Sequence and accession rules
 
-Reference directories use `*_nontype_16S.fasta`; reference metadata uses `*/*_nontype_meta.tsv`, keyed by exact `accession.version`. Metadata columns consumed are `accession`, `isolation_source`, and `geo`. Saved-hit TSV inputs use `accession`, `subject`, `subject_len`, `strain`, and `pct_identity`. Missing or invalid percent identities never become zero-valued measurements.
+- FASTA records need unique first-token IDs and ungapped IUPAC DNA. SHA-256 of the uppercase sequence binds content. Identical sequences from different sources stay separate records.
+- Duplicate accessions in one source, conflicting versions, and conflicting sequences at one accession are held for you to reconcile.
+- A provenance TSV needs a `strain` column. Assigning an accession also needs its exact version and a matching `sequence_sha256`. Optional columns: `organism_as_deposited`, `host`, `isolation_source`, `geo_loc_name`, `collection_date`, `lat_lon`. These are what you supply.
+- Reference FASTA files are named `*_nontype_16S.fasta`. Their metadata is `*/*_nontype_meta.tsv`, keyed by exact `accession.version`, using columns `accession`, `isolation_source` and `geo`. Saved-hit TSVs use `accession`, `subject`, `subject_len`, `strain` and `pct_identity`. A missing or invalid percent identity is never turned into zero.
+- `--refseq-type-material` marks a BLAST source as type material. Use it only when that is true. A culture-collection number does not establish type status.
 
-The legacy database column `acc_base` also stores local internal keys; `acc_version` is always missing for these. Panel metadata includes a separate `record_key` and an empty `accession` for local query records. Local keys never appear as deposited accessions in labels.
+### Remote retrieval
 
-## Remote retrieval and metadata
+Fetch matches every returned record to a requested accession. An unexpected, duplicate, mismatched or truncated record holds its batch. Whole-genome records are held before download. An ESearch counts as complete only when the unique IDs returned equal the reported count. Over-limit searches are held. Search tags show that a query matched; they are not membership.
 
-Fetch binds every returned record once to a requested accession and, where requested, its exact version. Unexpected, duplicate, mismatched, malformed, or truncated returned records hold that batch. Missing requested records remain `NOT_RETURNED` with cause unknown. Some successes may be published to a new database; any held request produces a nonzero CLI exit and `PARTIAL_WITH_HOLDS` in its receipt. Known whole-genome records are held before download for separately bound extraction. Unsupported returned records are not admitted as standalone 16S candidates.
+GenBank parsing needs Biopython. Without it, parsing fails with a clear message instead of silently losing the source fields. Raw GenBank files are cached by content hash in `gb_cache/` beside the input store. `--cache-dir` or `SAPOTE_16S_GB_CACHE` moves the cache; `--no-cache` writes none. Source formats: [NCBI sample record](https://www.ncbi.nlm.nih.gov/genbank/samplerecord/) and [sequence identifiers](https://www.ncbi.nlm.nih.gov/genbank/sequenceids/).
 
-GenBank parsing requires optional Biopython. It reads the source feature and wrapped qualifiers, verifies primary ACCESSION/VERSION and declared sequence length, and preserves lineage without assigning taxonomic ranks from name suffixes. Geographic comma order does not establish administrative levels. Missing qualifiers remain missing. A culture-collection identifier does not establish type status. BLAST ingest marks type scope only with the explicit `--refseq-type-material` operator declaration.
+### Ranking and merge screening
 
-Raw GenBank cache files are named by content hash under the selected input database's adjacent `gb_cache/INPUT_DATABASE_SHA256` directory. `--cache-dir` or `SAPOTE_16S_GB_CACHE` selects a different cache base; the database hash still namespaces it. `--no-cache` creates no cache directories or files. Existing content-addressed cache files must match their names.
+Ranks and habitat tags are screens, with the observation text beside them. A title keyword can be indirect, so review a tag before using it. A missing tag does not show a negative phenotype, absent habitat or nonmembership. The ranker rebuilds its generated tags and keeps search and genome tags. The `panel_candidates` view shows `sequence_status`, `tag_scope` and `candidate_tags`.
 
-ESearch is complete only when returned unique IDs equal its reported count. Over-limit or incomplete searches are held. ESummary must map each requested UID to exactly one accession/version; conflicting versions already in the selected database are held. Search tags indicate query matches only.
+Strain groups built from designations or collection IDs are proposals. Review them. In the merge audit, only A/C/G/T columns count toward identity, and zero comparable columns give a missing identity.
 
-Source format references: [NCBI sample GenBank record](https://www.ncbi.nlm.nih.gov/genbank/samplerecord/) and [NCBI sequence identifiers](https://www.ncbi.nlm.nih.gov/genbank/sequenceids/).
+### Check a store for defects
 
-## Ranking and merge screening
+```bash
+python3 tools/phylo_16s_validate_db.py --db CLOSED_SNAPSHOT --out-dir FRESH_REPORTS
+```
 
-Ranks and habitat tags are heuristic screens with their observation text. Keyword matches in titles can be indirect; tags require review before use as biological membership. An absent tag does not establish a negative phenotype, absent habitat, or nonmembership in a taxon. Missing lineage remains unknown. Missing sequence remains unavailable. Without `--pdf-hits`, the saved-hit rescue channel is `NOT_MEASURED`. Incomplete percent identities prevent rescue classification for the affected query.
+It runs two defect screens and writes four reports in sequence. If a report path is taken or a write fails, you can be left with some reports. Keep them, keep the snapshot, and rerun into a fresh folder. Details, output list and recovery are in [the validator and merge contracts](reference/06_CURRENT_SOURCE_SCOPE.md#16s-store-defect-validation-and-additive-merge-screening). The validator does not refuse a store with WAL or journal files, and it does not check hashes.
 
-The ranker rebuilds its generated tag namespaces in the new output while preserving search and genome tags. The `panel_candidates` view exposes `sequence_status`, `tag_scope`, and `candidate_tags`; previous Boolean membership columns are removed because absence was ambiguous. Consumers of the old view must migrate explicitly.
-
-Builder strain groups based on designation or collection IDs remain proposed groups. Panel selection can use those groups to choose representative records; operators must review grouping authority. The merge audit retains the original k-mer note and writes a separate alignment screen. Only A/C/G/T columns count toward identity; zero comparable columns yield missing identity. A threshold pass is named `SIMILARITY_SCREEN_PASS`, never accepted nesting or a resolved strain merge.
-
-## Genome extraction and panel output
+## 3. Extract from a genome and make a panel
 
 ```bash
 python tools/phylo_16s_from_genome.py inputs/genome.fna --blastdb inputs/reference_db --out output/candidate_spans.fasta
 python tools/phylo_16s_panel.py --db output/ranked.sqlite --strains QUERY_A --refs type:1x --name candidate_panel --outdir output
 ```
 
-Extraction clusters HSP intervals using the existing gap-at-most-100-nt heuristic. Each cluster derives relative orientation from both query and subject coordinate directions. Conflicting directions within one cluster cause an orientation hold. There is no contig-wide vote or motif-driven flip. Coordinates delimit a BLAST-supported candidate span, not a verified gene. The operator must establish reference biological orientation. `--best` retains the longest candidate span with deterministic coordinate ties.
+Extraction groups BLAST hits that lie within 100 nt of each other. Hits in one group must run in the same direction, or extraction holds. There is no contig-wide vote. The coordinates mark a BLAST-supported span, not a verified gene. You must establish orientation against a reference. `--best` keeps the longest span.
 
-Duplicate genome paths or content identities are refused. Output tip keys contain the genome content hash and exact contig coordinates. A separate receipt retains input/reference hashes, parameters, local HSP evidence, and output hash. Panel metadata includes explicit `role` (query/reference/outgroup) and `taxon` copied from the bound record binomial, with `taxon_source`. This supports the tree-display contract without inferring taxonomy from labels. Missing taxon stays empty and prevents reference collapse. Panel FASTA, metadata, and receipt are exclusive new files; the receipt is written last as the completion marker. Identical sequence content across separately bound strains is retained.
+Duplicate genome paths or contents are refused. Tip keys hold the genome hash and the contig coordinates. A receipt records input and reference hashes, parameters, hits and the output hash. The panel metadata has `role` (query, reference or outgroup) and `taxon`, copied from the record's binomial, with `taxon_source`. A missing taxon stays empty and stops reference collapse. The panel FASTA, metadata and receipt are new files, and the receipt is written last. Treat a panel with no receipt as unfinished.
 
-BLAST staging requires a space-free temporary path. Spaced source files are copied and direct database volume files are linked, with copy fallback. A spaced `TMPDIR` is refused, and owned temporary resources are released after failures. Alias databases (`.nal`) remain held because dependency closure and path rewriting are not established; provide a direct volume prefix. Tool failures and malformed results are never interpreted as no hits.
+BLAST needs a path without spaces. A `TMPDIR` with a space is refused. Alias databases (`.nal`) are held; give a direct volume prefix. A tool failure or malformed result is never read as no hits.
 
-## Console and receipt channels
-
-CLI progress and dry-run plans use configured logging on stderr. Importing these helpers does not configure application logging. Database operation events and the named output receipts remain the completion/provenance records; stdout silence is not a success or failure verdict. Check the exit code and receipt status.
-
-## Validation boundary
-
-The focused regression suite uses generic fixtures and simulated service/tool results. Live NCBI retrieval, real BLAST/MAFFT scientific results, production database migration, large-store memory behavior, and full release/integration validation require their own evidence. No focused pass authorizes scientific acceptance or release.
-
-The rich GenBank source-record parser requires optional Biopython. If it is unavailable, parsing returns an explicit dependency failure instead of using the minimal `_gbk_shim` and silently losing required accession or source-qualifier evidence. The ordinary extraction shim remains available for its existing uses.
-# Sequence admission gate
-
-Before MAFFT, reference inference, or EPA-ng placement, prepare a TSV roster and a
-FASTA with identical unique tip IDs, then run `tools/phylo_sequence_admission.py`.
-The roster requires columns for organism, expected genus, accession, sequence hash,
-type status, isolation source, deposited geography, sequence evidence, metadata evidence,
-biological sample ID and explicit admission state. A nonmissing biological sample ID
-is enforced for query rows; reference/outgroup sample cells can remain blank. Exact
-accession versions remain an operator requirement, as qualified below. The gate
-rejects short 16S fragments, cross-genus records, missing accession or evidence
-fields, duplicate type-species representatives, and identical query sequences from the same biological
-sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are
-convenience labels and are never the sole authority.
-
-Run the admission check explicitly after preparing the bound roster:
-
-```bash
-python tools/phylo_sequence_admission.py --roster admitted_roster.tsv \
-  --fasta candidate_sequences.fasta --molecule 16S --json new_admission.json
-```
-
-The full required columns are `tip`, `role`, `organism`, `expected_genus`,
-`accession`, `sequence_sha256`, `type_status`, `isolation_source`, `geography`,
-`sequence_evidence`, `metadata_evidence`, `biological_sample_id`, and `admission`.
-Roles are `query/reference/outgroup`; type status is `type/non_type/not_applicable`
-(the latter only for queries), and admission must be `admitted`. The default
-normalized 16S length interval is 900–2,000; `--min-length` and `--max-length`
-change it. `--molecule genome` skips that length interval, not the metadata/identity
-checks. This command validates prepared data; it performs no alignment or retrieval.
-
-The gate's sequence digest uses uppercase, U-to-T conversion, and removal of both
-`-` and `.` gap characters. It is distinct from a raw-file SHA-256. Preserve both
-when binding original files to the normalized sequence roster. The gate requires
-nonempty accession/evidence fields, but does not authenticate evidence locators or
-check accession-version syntax; source-bound versions remain an operator requirement.
-
-The current same-sample duplicate guard refuses a sample only when every sequence
-for that sample is identical. If a sample carries an identical pair plus a third,
-different sequence, that pair is not refused by this implementation. Inspect the
-returned `exact_sequence_groups` against biological-sample IDs and retain such a
-case as a manual admission hold. Repairing the per-sample pairwise duplicate guard
-remains owning-code work. No admission pass proves independent biological samples.
-
-`--json` writes the selected path after validation and overwrites an existing file;
-choose a new receipt path to retain prior evidence. Failure is nonzero and may print
-a traceback rather than a typed failure receipt. Do not treat a stale JSON file from
-an earlier pass as the current outcome.
-
-The `geography` column holds the geography text as deposited, for example
-`Panama: Barro Colorado Island`. The gate admits it unchanged and never refuses a
-value for its wording. A passing receipt lists every tip under `tips`, with
-`geography` copied unchanged and a separate display field, `geography_region`.
-
-`geography_region` uses a ten-value list: `US`, `Canada`, `North America (other)`,
-`South America`, `Europe`, `Asia`, `Africa`, `Oceania`, `Antarctica` and
-`Indian Ocean`. It is filled in only two ways. The deposited text, or its country
-part before `:`, is already a list value. Or the country part is in the bundle's
-country table in `tools/_phylo_metadata.py`. Anything else, such as `North America`,
-`USSR`, a province name or another ocean, leaves the field blank.
-`geography_region_basis` records which case applied: `LIST_VALUE`, `COUNTRY_TABLE`,
-`NOT_DERIVED` or `NOT_RECORDED`. The display field never replaces the deposited text.
-The receipt says so in one line, `geography_note`: the deposited text is the
-record, and the region is display-only and never written back.
-
-A blank geography cell, a placeholder such as `unknown`, or an INSDC missing term
-such as `missing: lab stock` is not refused. The tip is admitted with its cell
-unchanged and an empty `geography_region`. It is also listed under
-`figure_omissions` by full name (organism, plus a `strain` cell when the roster has
-one), accession, and reason `NO_DEPOSITED_GEOGRAPHY`. Figures omit these tips. The
-reason matches `tools/omitted_tips_receipt.py`.
-
-Isolation source follows the same rule. Each tip carries `isolation_source` exactly as
-deposited. A blank, placeholder or INSDC missing-term source is not refused: the tip is
-admitted and listed under `figure_omissions` with reason `NO_DEPOSITED_SOURCE`. A tip
-missing both source and geography is listed once for each reason.
-
-A mechanically valid admission does not establish species identity.
+A passing run here is not scientific acceptance. Live NCBI retrieval, real BLAST and MAFFT results and large stores need their own checks.

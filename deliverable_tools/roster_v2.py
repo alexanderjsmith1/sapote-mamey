@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""roster_v2.py — per-BGC, multi-channel gene roster (v2) for a Sapote-Mamey AS strain.
+"""roster_v2.py — per-BGC, multi-channel gene roster (v2) for one Sapote-Mamey strain.
 
 Joins, per gene: genomic map (coords/strand/role/domains from the sealed package
 locus_maps) + best NCBI-nr BLASTp hit + best MIBiG (KnownClusterBlast) hit with

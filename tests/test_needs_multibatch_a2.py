@@ -83,10 +83,10 @@ def test_multibatch_issue_text_format():
     ok, reason = needs_multibatch(bgcs, rescue_triggered=False)
     assert ok
     batches = math.ceil(30 / 20)
-    issue = (
-        f"MULTIBATCH: {reason} — judgment will need ~{batches} LLM batches "
-        f"(~20 BGCs each). Use the batch plan to sequence them."
-    )
+    from mamey.cli import _multibatch_issue
+    issue = _multibatch_issue(reason, batches)
+    assert issue.startswith(f"MULTIBATCH: {reason} — Mode B review is easier in about 2 batches")
+    assert "LLM" not in issue
     assert "MULTIBATCH" in issue
     assert "raw BGC count" in issue
     assert "2" in issue  # ceil(30/20) = 2
@@ -98,12 +98,8 @@ def test_multibatch_rescue_appends_rggmci_note():
     ok, reason = needs_multibatch(bgcs, rescue_triggered=True)
     assert ok
     rggmci_high = 3
-    issue = (
-        f"MULTIBATCH: {reason} — judgment will need ~1 LLM batches "
-        f"(~20 BGCs each). Use the batch plan to sequence them."
-        + (f" RG-GMCI HIGH pairs: {rggmci_high} (include split-cluster review in each batch)."
-           if rggmci_high else "")
-    )
+    from mamey.cli import _multibatch_issue
+    issue = _multibatch_issue(reason, 1, rggmci_high)
     assert "RG-GMCI HIGH pairs: 3" in issue
 
 

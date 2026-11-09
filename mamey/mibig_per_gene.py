@@ -20,6 +20,23 @@ from .ziputil import regular_file_names
 SCHEMA_VERSION = "mibig_per_gene_v3"
 REPORT_ONLY_CONTRACT = "REPORT_ONLY_NO_SCORING"
 RECOGNIZABLE_MIN_IDENTITY = 30.0
+COVERAGE_HOLD_TIER = "HOLD_COVERAGE_UNMEASURED"
+CONVERGENCE_CLAIM_SAFETY = (
+    "Gene-level similarity reported in saved antiSMASH KnownClusterBlast summaries. It is bounded "
+    "support for a pathway-family hypothesis that needs locus-specific review; matches can come from "
+    "generic or shared genes. It does not prove the submitted query bytes, a complete gene roster, a "
+    "shared pathway, product identity, expression, production, activity, novelty, or cross-contig linkage."
+)
+
+
+def _aggregate_coverage_flag(coverages: list[Any], missing: int) -> str:
+    flags = []
+    if any((_coverage_fields(value)["pct_coverage_interpretation"] is not None
+            and float(value) > 100.0) for value in coverages):
+        flags.append("SOURCE_GT100_CAPPED_FOR_INTERPRETATION")
+    if missing:
+        flags.append("MISSING_OR_NONNUMERIC_COVERAGE")
+    return ";".join(flags) or "WITHIN_EXPECTED_RANGE"
 
 
 def _coverage_fields(value: Any) -> dict[str, Any]:
@@ -254,7 +271,7 @@ def build_mibig_convergence(
 ) -> list[dict[str, Any]]:
     """Aggregate per-gene rows by BGC and MIBiG reference.
 
-    The result is deterministic sequence evidence, not a product call. Broad
+    The result is reported gene-level similarity, not a product call. Broad
     class concordance is reported so class-mismatched numerical hits remain
     visible without being promoted.
     """
@@ -291,12 +308,15 @@ def build_mibig_convergence(
             )[0]
             identities = [h.get("pct_identity") for h in ref_hits]
             coverages = [h.get("pct_coverage") for h in ref_hits]
+            # A missing or non-numeric source coverage stays missing. It is never read as 0%
+            # and never counted as an in-range measurement.
             interpretive_coverages = [
                 h.get("pct_coverage_interpretation")
                 if h.get("pct_coverage_interpretation") is not None
-                else min(100.0, max(0.0, float(h.get("pct_coverage") or 0)))
+                else _coverage_fields(h.get("pct_coverage"))["pct_coverage_interpretation"]
                 for h in ref_hits
             ]
+            missing_coverage = sum(1 for value in interpretive_coverages if value is None)
             ranks = [int(h.get("reference_rank") or 999999) for h in ref_hits]
             query_share = len(query_genes) / total_query_genes if total_query_genes else 0.0
             recognizable_share = (
@@ -331,30 +351,24 @@ def build_mibig_convergence(
                 "median_pct_identity": median_identity,
                 "median_pct_coverage": median_coverage,
                 "median_pct_coverage_interpretation": median_coverage_interpretation,
-                "coverage_qc_flag": (
-                    "SOURCE_GT100_CAPPED_FOR_INTERPRETATION"
-                    if any(float(value or 0) > 100.0 for value in coverages)
-                    else "WITHIN_EXPECTED_RANGE"
-                ),
+                "coverage_qc_flag": _aggregate_coverage_flag(coverages, missing_coverage),
+                "coverage_missing_row_count": missing_coverage,
                 "minimum_pct_identity": _minimum(identities),
                 "best_reference_rank": min(ranks) if ranks else None,
                 "source_row_count": len(ref_hits),
                 "class_concordance": class_status,
                 "convergence_tier": tier,
                 "convergence_tier_basis": "recognizable_gene_share",
-                "claim_safety": (
-                    "Multi-gene convergence is direct sequence evidence for pathway-family "
-                    "relatedness, not proof of exact product identity, expression, production, "
-                    "activity, novelty, or cross-contig linkage."
-                ),
+                "claim_safety": CONVERGENCE_CLAIM_SAFETY,
             })
     tier_order = {
         "H1_HIGH_DENSITY": 0,
         "H2_STRONG_FAMILY": 1,
         "H3_MULTI_GENE": 2,
         "H4_REPEATED_SUPPORT": 3,
-        "H5_SINGLE_OR_WEAK": 4,
-        "CAUTION_CLASS_MISMATCH": 5,
+        COVERAGE_HOLD_TIER: 4,
+        "H5_SINGLE_OR_WEAK": 5,
+        "CAUTION_CLASS_MISMATCH": 6,
     }
     ordered = sorted(
         rows,
@@ -448,9 +462,17 @@ def _convergence_tier(
     class_status: str,
 ) -> str:
     identity = float(median_identity or 0)
-    coverage = min(100.0, float(median_coverage or 0))
     if class_status == "DISCORDANT":
         return "CAUTION_CLASS_MISMATCH"
+    if median_coverage is None:
+        # H1-H3 need a coverage measurement. Without one, a row that meets their gene and
+        # identity floors is held rather than scored as if its coverage were 0%.
+        if query_genes >= 4 and identity >= 40:
+            return COVERAGE_HOLD_TIER
+        if query_genes >= 2 and identity >= 35:
+            return "H4_REPEATED_SUPPORT"
+        return "H5_SINGLE_OR_WEAK"
+    coverage = min(100.0, float(median_coverage))
     if query_genes >= 12 and identity >= 70 and coverage >= 80 and query_share >= 0.65 and best_rank <= 3:
         return "H1_HIGH_DENSITY"
     if query_genes >= 8 and identity >= 55 and coverage >= 75 and query_share >= 0.40:

@@ -31,7 +31,7 @@ A Complete_Package ZIP contains `package/manifest.json`, checksums and
 `package/OPEN_ME_FIRST.html`. Extract it into an unused working folder; extraction can replace files there:
 
 ```bash
-python -m zipfile -e ~/Downloads/AS-40_Complete_Package.zip reviews/EXAMPLE-saved
+python -m zipfile -e ~/Downloads/EXAMPLE_Complete_Package.zip reviews/EXAMPLE-saved
 python mamey_run.py validate reviews/EXAMPLE-saved/package
 ```
 
@@ -41,6 +41,4 @@ the original ZIP unchanged.
 
 The workbook result is advisory by default. For a required workbook, use the
 strict check in [Read one saved package](../reader/03_READ_RESULTS.md).
-Saved packages use this route: `inspect` can reject them as an unrecognized input.
-
-<a id="inspector-and-validator-scope"></a>
+You can also run `inspect` on a saved package ZIP. It names the strain and tells you to extract the ZIP. It refuses a ZIP with an unsafe or duplicate manifest.

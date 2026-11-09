@@ -54,6 +54,8 @@ Lower priority than #1–3 but cheap to check: does `g3_page_count_floor` (not s
 
 ---
 
+Historical: these paths do not exist in the current tree (checked with `find`): `mamey/cohort_figures_g.py`, `mamey/cohort_figures_bridge.py`, `make_figures_complement.py`. `sapote_cassettes.py` exists as `mamey/sapote_cassettes.py`.
+
 ## Medium-priority — doc/docstring staleness (cheap, mostly cosmetic, worth a batch cleanup pass)
 
 - `tools/check_dangling_refs.py` — docstring claims "examples/ is empty"; 9 files now exist there. Cosmetic, but actively misleading to a reader.
@@ -79,7 +81,7 @@ These are speculative "worth checking" notes from the audit, not confirmed findi
 - **#38/#39** `mamey/sapote_markers.py` / `sapote_cassettes.py` — does `docs/SAPOTE_v8.10.2_MONOLITH.md` (cited as `source_locator` in every marker definition) actually exist in the bundle? If not, every marker's provenance citation is dangling.
 - **#43** `tools/build_genelevel_triage.py` vs `mamey/rggmci.py` — do these two split-detection systems ever produce conflicting verdicts (SPLIT_CANDIDATE vs HIGH-confidence pairing) on the same BGC pair? Needs a real test case, not just a code read.
 - **#45** `tools/lead_board.py` — is its `HIGH` product-class set kept in sync with `source_scans.py`'s CCTT trigger names, or could they silently diverge?
-- **#52** `mamey/cross_strain_card_context.py` — is the AS-XXX redaction this module depends on actually enforced by a test anywhere, or just described in a docstring?
+- **#52** `mamey/cross_strain_card_context.py` — is the STRAIN_ID redaction this module depends on actually enforced by a test anywhere, or just described in a docstring?
 - **#53** `tools/intake_harness.py` — `resource.ru_maxrss` units differ between Linux (KB) and macOS (bytes). Is there cross-platform normalization, or could this corrupt the calibration-data telemetry the docstring says this tool feeds?
 - **#59** `FIGURE_CONVENTIONS.md` vs `docs/FIGURE_STYLE.md` — same document under two names, or genuinely different files? Affects whether a prior session's doc citation needs a fix.
 - **#60** `mamey/nominal_length.py` — still labeled "DRAFT v9.7.104" 46 point-releases later. Either fine (low-priority feature) or stuck — worth a one-line status check.
@@ -88,7 +90,7 @@ These are speculative "worth checking" notes from the audit, not confirmed findi
 
 ## Items the audit itself walked back (do not action — for context only)
 
-The audit's author noted these as findings that turned out to be non-issues on closer reading, consistent with the same self-correction pattern Opus showed earlier this session with the figures diagnostic (Gaps 2/4/5 in `FIGURES_DIAGNOSTIC_v9.7.150.md`). No equivalent walk-back is recorded for this 60-file sweep yet — that's expected, since this document hasn't been cross-checked against source the way the figures diagnostic was. Treat every PENDING item above as genuinely unverified, not as "probably fine."
+The audit's author noted these as findings that turned out to be non-issues on closer reading, consistent with the same self-correction pattern seen in the figures diagnostic (Gaps 2/4/5 in `FIGURES_DIAGNOSTIC_v9.7.150.md`). No equivalent walk-back is recorded for this 60-file sweep yet — that's expected, since this document hasn't been cross-checked against source the way the figures diagnostic was. Treat every PENDING item above as genuinely unverified, not as "probably fine."
 
 ---
 

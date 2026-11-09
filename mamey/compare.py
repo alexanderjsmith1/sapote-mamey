@@ -262,28 +262,57 @@ def _align_biopython(query_genes, reference_proteome) -> dict[str, dict[str, Any
                                 f"MAX_ALIGN_AA={cap}"}
             continue
         best = None
+        over_cap = failed = 0
         for rid, rseq in reference_proteome:
             if not rseq:
                 continue
             if len(rseq) > cap:
                 # Same O(L^2) hazard on the subject side; skip this pair, keep scanning the rest.
+                over_cap += 1
                 continue
             try:
                 aln = aligner.align(qseq, rseq)[0]
             except Exception:
+                failed += 1
                 continue
             ident, positives, alen = _aln_stats(aln)
             pident = 100.0 * ident / alen if alen else 0.0
-            qcov = 100.0 * alen / len(qseq) if qseq else 0.0
+            # Query coverage counts aligned QUERY residues only. The alignment length used for
+            # identity also counts gap columns (gaps in the query included), so dividing it by the
+            # query length could overstate coverage or exceed 100%.
+            qcov = 100.0 * _query_residues_aligned(aln) / len(qseq) if qseq else 0.0
             score = aln.score
             if best is None or score > best["_score"]:
                 best = {"sseqid": rid, "pident": round(pident, 1),
                         "qcovhsp": round(qcov, 1), "scovhsp": None,
                         "bitscore": float(score), "backend": "biopython", "_score": score}
+        skipped = []
+        if over_cap:
+            skipped.append(f"{over_cap} reference protein(s) over MAX_ALIGN_AA={cap} not aligned")
+        if failed:
+            skipped.append(f"{failed} reference alignment(s) raised an error")
         if best is not None:
             best.pop("_score", None)
+            if skipped:
+                best["note"] = "best of the pairs aligned; " + "; ".join(skipped)
             out[qid] = best
+        elif failed:
+            # No pair produced an alignment because they errored: that is an error, not a no-hit.
+            out[qid] = {"sseqid": None, "pident": None, "qcovhsp": None, "scovhsp": None,
+                        "bitscore": None, "backend": "biopython",
+                        "note": "alignment error: " + "; ".join(skipped)}
+        else:
+            # Nothing was aligned (every reference skipped or empty): not computed, not a no-hit.
+            out[qid] = {"sseqid": None, "pident": None, "qcovhsp": None, "scovhsp": None,
+                        "bitscore": None, "backend": "biopython",
+                        "note": "alignment not computed: "
+                                + ("; ".join(skipped) or "no reference protein to align")}
     return out
+
+
+def _query_residues_aligned(aln) -> int:
+    """Number of query residues inside the local alignment (gap columns in the query excluded)."""
+    return sum(1 for ca in aln[0] if ca != "-")
 
 
 def _aln_stats(aln) -> tuple[int, int, int]:
@@ -299,6 +328,34 @@ def _aln_stats(aln) -> tuple[int, int, int]:
             ident += 1
             pos += 1
     return ident, pos, alen
+
+
+_NOT_COMPUTED_NOTES = ("alignment skipped:", "alignment not computed:")
+_ERROR_NOTE = "alignment error:"
+
+# Measurement source of each backend's pct_coverage column.
+COVERAGE_DEFINITIONS = {
+    "diamond": "DIAMOND qcovhsp (query coverage of the best HSP)",
+    "pyswrd": "pyswrd result coverage() of the best hit, as a percentage",
+    "biopython": "aligned query residues in the best local alignment / query length",
+}
+
+
+def result_call(hit: dict[str, Any] | None) -> str:
+    """S5 row state. Unlike classify_gene, keeps unmeasured states apart from a measured result:
+    'no_result' (no row came back for the query), 'not_computed' (the alignment was skipped),
+    'error' (every attempted alignment failed), 'unmeasured' (a row without an identity value),
+    else classify_gene's present / divergent_candidate."""
+    if not hit:
+        return "no_result"
+    if hit.get("pident") is None:
+        note = str(hit.get("note") or "")
+        if note.startswith(_NOT_COMPUTED_NOTES):
+            return "not_computed"
+        if note.startswith(_ERROR_NOTE):
+            return "error"
+        return "unmeasured"
+    return classify_gene(hit.get("pident"), hit.get("qcovhsp"))
 
 
 def classify_gene(pident: float | None, qcov: float | None) -> str:
@@ -500,7 +557,7 @@ def compare_command(args) -> int:
         if not hit:
             missing_results.append(qid)
         elif hit.get("pident") is None:
-            if str(hit.get("note") or "").startswith("alignment skipped:"):
+            if result_call(hit) == "not_computed":
                 not_computed.append(qid)
             else:
                 unmeasured_results.append(qid)
@@ -529,13 +586,17 @@ def compare_command(args) -> int:
     w = _SafeWriter(_s5_buf)
     w.writerow(["query_gene", "best_match_B", "pct_identity", "pct_coverage",
                 "call", "backend", "note"])
+    call_counts: dict[str, int] = {}
     for qid, _ in genes_a:
         h = hits.get(qid)
+        call = result_call(h)
+        call_counts[call] = call_counts.get(call, 0) + 1
         if not h:
-            w.writerow([qid, "", "", "", "no_hit", "unknown",
-                        "no per-query result returned; effective backend unrecorded"])
+            # A backend that reports nothing for a query and a query that never ran look the same
+            # here, so this is not recorded as an observed no-hit.
+            w.writerow([qid, "", "", "", call, "unknown",
+                        "no per-query result returned; not an observed no-hit; effective backend unrecorded"])
             continue
-        call = classify_gene(h.get("pident"), h.get("qcovhsp"))
         notes = [str(h["note"])] if h.get("note") else []
         if call == "divergent_candidate":
             notes.append("similarity not identity; sub-70% = candidate, not absent")
@@ -547,6 +608,7 @@ def compare_command(args) -> int:
 
     present = sum(1 for qid, _ in genes_a
                   if hits.get(qid) and classify_gene(hits[qid].get("pident"), hits[qid].get("qcovhsp")) == "present")
+    measured = sum(1 for qid, _ in genes_a if result_call(hits.get(qid)) in ("present", "divergent_candidate"))
     summary = {
         "backend": effective_backend,
         "backend_selected": backend,
@@ -564,9 +626,16 @@ def compare_command(args) -> int:
         "strain_b_genes": len(genes_b),
         "genes_present_in_B": present,
         "genes_present_pct": round(100.0 * present / len(genes_a), 1) if genes_a else None,
+        "genes_present_pct_denominator": "all requested strain-A genes, including rows that were not measured",
+        "genes_measured": measured,
+        "genes_present_pct_of_measured": round(100.0 * present / measured, 1) if measured else None,
+        "call_counts": {name: call_counts[name] for name in sorted(call_counts)},
+        "coverage_definitions": {name: COVERAGE_DEFINITIONS[name]
+                                 for name in effective_backends if name in COVERAGE_DEFINITIONS},
         "s5_table": os.path.basename(s5_path),
         "guardrails": [
             "all values are sequence similarity, NOT product identity",
+            "no_result, not_computed, error and unmeasured rows are not observed absences",
             "sub-70% calls are divergent_candidate, never asserted absent (BGC050 false-negative guard)",
             "Edge/Full-contig low conservation may be truncation, not divergence",
         ],
@@ -580,7 +649,7 @@ def compare_command(args) -> int:
                           "call": _ani_species_call(ani["ani"])}
     _atomic_write_text(os.path.join(out, "gemini_summary.json"), json.dumps(summary, indent=2))
 
-    emit(f'[gemini] S5 written: {s5_path}', f"[gemini] {present}/{len(genes_a)} strain-A genes present in strain B ({summary['genes_present_pct']}%)", f"[gemini] summary: {os.path.join(out, 'gemini_summary.json')}", sep="\n")
+    emit(f'[gemini] S5 written: {s5_path}', f"[gemini] {present}/{len(genes_a)} strain-A genes present in strain B ({summary['genes_present_pct']}%; {measured} genes measured)", f"[gemini] summary: {os.path.join(out, 'gemini_summary.json')}", sep="\n")
     return 0
 
 

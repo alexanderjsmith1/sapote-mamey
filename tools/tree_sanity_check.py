@@ -227,7 +227,7 @@ def _no_tree_report(treefile, detail):
 
 
 def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require_outgroup=True,
-          locked_root_accession=None):
+          locked_root_accession=None, require_outgroup_match=False):
     """Reusable HARD sanity gate. Returns (ok: bool, msg: str) — importable by the render tools so
     they can refuse a pathological tree BEFORE drawing. `msg` is the same multi-line report main()
     prints. ok=False (FAIL) when any NON-OUTGROUP terminal branch > max(abs, factor*p90-terminal) OR
@@ -259,7 +259,11 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     outgroup is split from the root the ingroup half of that edge is an internal branch that can
     dominate a shallow 16S ingroup. When the accession is given, that one branch (and only it) is
     exempted from DOMINATING_BRANCH, as the outgroup's own stem already is, and the report states
-    long_root=true with the full root-edge length. Every other branch, and LONG_TERMINAL, is unchanged."""
+    long_root=true with the full root-edge length. Every other branch, and LONG_TERMINAL, is unchanged.
+
+    Every explicit `outgroup` term is reported with the tips it matched. With
+    `require_outgroup_match=True` (the command line always sets it), a term that matches no tip is an
+    OUTGROUP_UNMATCHED FAIL, so a tagged tip elsewhere cannot hide a misspelled or absent outgroup."""
     if isinstance(treefile, N):
         r = treefile
     else:
@@ -313,6 +317,10 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     markers = sorted({m for t in tips
                       if (m := _outgroup_marker(t.name, outgroup)) is not None})
 
+    term_hits = [(term, [t.name for t in tips if _contains_token_or_identity(t.name, term)])
+                 for term in _outgroup_terms(outgroup)]
+    unmatched_terms = [term for term, hit in term_hits if not hit]
+
     fails = []
     no_outgroup = not markers and require_outgroup
     # v9.7.416: a tree with fewer than three tips cannot be assessed by ANY check this gate runs,
@@ -337,6 +345,8 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     # itself still names the real outgroup stem as a branch-length pathology, which is the
     # "misleading DOMINATING_BRANCH on the outgroup's own stem" the standing rule was written to
     # stop (EGGPLANT_413_gate_outgroup_awareness, case H).
+    if require_outgroup_match and unmatched_terms:
+        fails.append(("OUTGROUP_UNMATCHED", []))
     if degenerate:
         fails.append(("DEGENERATE_TREE", []))
     elif no_outgroup:
@@ -353,9 +363,13 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
              f"max depth={maxdepth:.4f} · longest non-outgroup branch={longest[0]:.4f} ({longest[1][:40]})"]
     lines.append("  [outgroup-marker] matched: " + (", ".join(markers) if markers else
                  "NONE" + ("" if require_outgroup else " (declared outgroup-less: --allow-no-outgroup)")))
+    for term, hit in term_hits:
+        lines.append(f"  [outgroup-term] {term!r} matched {len(hit)} tip(s)"
+                     + (": " + ", ".join(h[:60] for h in hit) if hit else " -- NOT FOUND in this tree"))
     if og_exempt is not None:
         lines.append(f"  [outgroup-exempt] {og_exempt[0]:.4f}  {og_exempt[1][:60]}  "
-                     f"(designated outgroup; exempt from LONG_TERMINAL/DOMINATING_BRANCH)")
+                     f"({og_exempt[0]/maxdepth*100:.0f}% of tree depth; designated outgroup; exempt from "
+                     f"LONG_TERMINAL/DOMINATING_BRANCH, so review this branch and the root yourself)")
     if locked:
         lines.append(f"  [locked-outgroup root edge] long_root=true · root edge {locked[0].l + locked[1].l:.4f} "
                      f"(ingroup half {locked[0].l:.4f} + outgroup half {locked[1].l:.4f}) · outgroup "
@@ -370,6 +384,11 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     lines.append("  ***** FAIL *****")
     for kind, items in fails:
         lines.append(f"  [{kind}]")
+        if kind == "OUTGROUP_UNMATCHED":
+            lines.append("     these --outgroup terms match no tip: " + ", ".join(repr(t) for t in unmatched_terms)
+                         + ". Another tip's marker does not stand in for them. Fix the term or the tip "
+                         "label and re-run.")
+            continue
         if kind == "DEGENERATE_TREE":
             lines.append(f"     this tree has {len(tips)} tip(s); at least {MIN_ASSESSABLE_TIPS} are "
                          "needed before any branch-length statistic means anything (a p90 over one "
@@ -400,7 +419,11 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
             continue
         for l, n in sorted(items, reverse=True):
             lines.append(f"     {l:.4f}  {n[:60]}")
-    if any(kind == "DEGENERATE_TREE" for kind, _ in fails):
+    if any(kind == "OUTGROUP_UNMATCHED" for kind, _ in fails):
+        lines.append("  ACTION: every --outgroup term must match a tip in this tree. Check its spelling "
+                     "against the tip labels (a TRUNCATED label is a common cause), then re-run. Do NOT "
+                     "present a FAILing tree.")
+    elif any(kind == "DEGENERATE_TREE" for kind, _ in fails):
         lines.append("  ACTION: this is a degenerate tree, not a pathological one — there is nothing "
                      "to prune. Confirm the upstream inference kept the taxa you expected (a "
                      "singleton/pair GCF or an over-pruned panel is the usual cause). Do NOT present "
@@ -451,7 +474,8 @@ def main(argv=None):
             ap.error(f"the registry LOCKS no outgroup for genus {a.locked_outgroup_group}")
 
     ok, msg = check(a.treefile, abs=a.abs, factor=a.factor, dominate=a.dominate, outgroup=a.outgroup,
-                    require_outgroup=not a.allow_no_outgroup, locked_root_accession=locked)
+                    require_outgroup=not a.allow_no_outgroup, locked_root_accession=locked,
+                    require_outgroup_match=True)
     emit(msg)
     return 0 if ok else 2
 

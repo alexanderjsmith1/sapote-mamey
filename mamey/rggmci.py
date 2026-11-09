@@ -1511,6 +1511,12 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
             "evidence_rows": len(evidence_rows),
             "evidence_rows_total": evidence_total,
             "evidence_rows_not_exported": evidence_total - len(evidence_rows),
+            # The JSON is not an untruncated record: ranked pairs are capped at
+            # RGGMCI_MAX_RANKED_PAIRS, with every HIGH pair past the cap kept. These two counts
+            # reconcile `pairs_total` with what `ranked_pairs` actually holds.
+            "ranked_pairs_exported": len(_head) + len(_extra_high),
+            "ranked_pairs_not_exported": len(ranked) - len(_head) - len(_extra_high),
+            "split_candidates_not_exported": max(0, len(split_candidates) - RGGMCI_MAX_RANKED_PAIRS),
             "complementary_split_pairs": complementary_split_pairs,
             "overlapping_paralog_pairs": overlapping_paralog_pairs,
             "promotion_ceiling": ceiling,
@@ -1633,7 +1639,9 @@ EMPTY_PAIR_COLUMNS = ["pair", "bgc_a", "contig_a", "region_a", "identity_a", "pr
                       "rggmci_score", "rggmci_confidence"]
 GROUP_COLUMNS = ["genome", "group", "n_regions", "n_contigs", "n_at_contig_ends", "high_pairs", "regions", "pairs",
                  "possible_moderate_links"]
-SUMMARY_COLUMNS = ["genome", "regions", "scored_pairs", "high", "moderate", "high_cross_contig", "high_both_at_contig_ends",
+# scored_pairs, high and moderate count every scored pair; pairs_exported counts the rows kept in ranked_pairs
+# and the pair table (the top RGGMCI_MAX_RANKED_PAIRS by rank, plus every HIGH pair past them).
+SUMMARY_COLUMNS = ["genome", "regions", "scored_pairs", "pairs_exported", "high", "moderate", "high_cross_contig", "high_both_at_contig_ends",
                    "candidate_groups", "largest_group_regions", "related_loci", "reference_map_status",
                    "completion_tier", "completion_partners_accepted", "completion_split_genes_clear", "error"]
 
@@ -1696,9 +1704,11 @@ def result_summary(name: str, result: dict) -> dict:
     groups = result.get("candidate_groups") or []
     block = result.get("reference_completion") or {}
     high = lambda p: str(p.get("rggmci_confidence", "")).startswith("HIGH")
-    return dict(genome=name, regions=len(result.get("regions") or []), scored_pairs=len(pairs),
-                high=sum(high(p) for p in pairs),
-                moderate=sum(str(p.get("rggmci_confidence", "")).startswith("MODERATE") for p in pairs),
+    return dict(genome=name, regions=len(result.get("regions") or []),
+                scored_pairs=result.get("pairs_total", len(pairs)), pairs_exported=len(pairs),
+                high=result.get("high_pairs", sum(high(p) for p in pairs)),
+                moderate=result.get("moderate_pairs",
+                                    sum(str(p.get("rggmci_confidence", "")).startswith("MODERATE") for p in pairs)),
                 high_cross_contig=sum(high(p) and p.get("contig_a") != p.get("contig_b") for p in pairs),
                 high_both_at_contig_ends=sum(high(p) and p.get("contig_a") != p.get("contig_b")
                                              and p.get("both_at_contig_ends", False) for p in pairs),

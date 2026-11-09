@@ -74,7 +74,8 @@ def main(argv=None) -> int:
         # v9.7.116: empty input fails closed, not a vacuous pass. A pooling guard that finds zero
         # manifests almost always means a wrong path, and returning 0 (safe-to-pool) is the wrong
         # default — mirrors the cohort_scoring_version_gate empty-fail fix. --warn-only still softens.
-        emit(f"  no manifest.json found under {a.root} — cannot certify a cohort that isn't there",
+        emit(f"  no manifest.json found under {a.root} — cannot certify a cohort that isn't there"
+             + (" [--warn-only: advisory exit 0, not acceptance]" if a.warn_only else ""),
               file=sys.stderr)
         return 0 if a.warn_only else 1
     for s in sorted(profiles): emit(f"  {s:<18} {profiles[s]}")

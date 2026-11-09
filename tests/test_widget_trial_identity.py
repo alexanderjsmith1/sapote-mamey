@@ -74,7 +74,7 @@ def test_native_exact_locus_domain_export_binds_without_shortening(tmp_path):
     row = model['domains'][0]
     assert row['full_identity'] == exact
     assert row['bgc_id'] == 'r1'
-    assert row['PKS_KS'] == 13 and row['NRPS_A'] == 8 and row['total'] == 21
+    assert row['PKS_KS'] == 13 and row['NRPS_A'] == 8 and row['total'] is None and row['total_recorded_cells_only'] == 21  # 2 of 8 columns
     assert model['domain_coverage']['status'] == 'COMPLETE'
 
 

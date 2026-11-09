@@ -26,7 +26,8 @@ def ro(p): return sqlite3.connect(f"file:{p}?mode=ro",uri=True)
 
 _WORD=re.compile(r"[a-z]+")
 def classify(src):
-    # whole words: "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee
+    # Heuristic label, not validated host taxonomy: word tokens plus prefix/suffix tests ("bumblebee" -> bee,
+    # "mosses" -> moss, "fungal" -> fungus_assoc). "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee.
     s=(src or "").lower(); w=_WORD.findall(s)
     if "bee or wasp" in s: return "bee_or_wasp"
     if any(x in ("wasp","wasps") or x.endswith("wasp") for x in w): return "wasp"
@@ -37,6 +38,11 @@ def classify(src):
     if any(x.startswith(("mushroom","fung")) for x in w): return "fungus_assoc"
     return "other" if s.strip() else "unknown"
 
+def locus_label(lid, lk):
+    """The locus's full exact identity, or an explicit hold that names the source-scoped key as a locator only."""
+    ident=lid.get(lk)
+    ident=ident.strip() if isinstance(ident,str) else ""
+    return ident if ident else f"IDENTITY_HOLD: exact_identity missing; source locus_key {lk} (locator, not a locus identity)"
 def build(a):
     t0=time.time(); os.makedirs(a.out,exist_ok=True)
     g=ro(a.gbk_domains); c=ro(a.census)
@@ -97,7 +103,7 @@ def build(a):
             "by_host":{h:{"strains":len(v["strains"]),"loci":len(v["loci"]),"genes":len(v["genes"])} for h,v in x["byh"].items()},
             "evidence":{ch:tally(x["genes"],mp) for ch,mp in (("nr",NR),("cnr",CNR),("sp",SP))},
             "strain_idx":sorted(SIDX[s] for s in x["strains"]),
-            "loci_list":([lid.get(lk,lk) for lk in sorted(x["loci"])] if len(x["loci"])<=a.rare_loci_max else [])})
+            "loci_list":([locus_label(lid,lk) for lk in sorted(x["loci"])] if len(x["loci"])<=a.rare_loci_max else [])})
     rows.sort(key=lambda r:(r["strains"],r["loci"],-r["feature_occurrences"]))
     # SQLite
     outdb=os.path.join(a.out,"domain_prevalence__v0.1.0.sqlite")

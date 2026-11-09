@@ -237,8 +237,9 @@ def pairwise_distances(labels, gbks, min_id=30.0, engine="biopython", metric="le
         for cj in range(ci + 1, n):
             if metric == "one_to_one_v1":
                 shared, mean_id, sim, dist = _one_to_one_result(clusters[ci], clusters[cj], al, min_id)
-                D[ci][cj] = D[cj][ci] = round(dist, 4)
-                S[ci][cj] = S[cj][ci] = round(sim, 4)
+                # Unrounded: the tree is built from these values. Rounding is display-only (CSV).
+                D[ci][cj] = D[cj][ci] = dist
+                S[ci][cj] = S[cj][ci] = sim
                 detail[(ci, cj)] = (shared, round(mean_id * 100, 1))
                 continue
             forward = _legacy_pair_result(clusters[ci], clusters[cj], al, min_id,
@@ -251,8 +252,8 @@ def pairwise_distances(labels, gbks, min_id=30.0, engine="biopython", metric="le
                                  "scientific metric require a declared contract")
             # Keep the admitted legacy result; do not clip, average or replace the metric.
             shared, mean_id, sim, dist = forward
-            D[ci][cj] = D[cj][ci] = round(dist, 4)
-            S[ci][cj] = S[cj][ci] = round(sim, 4)
+            D[ci][cj] = D[cj][ci] = dist
+            S[ci][cj] = S[cj][ci] = sim
             detail[(ci, cj)] = (shared, round(mean_id * 100, 1))
     return clusters, D, S, detail
 
@@ -345,17 +346,17 @@ def interpret(labels, D, S, detail):
     n = len(labels)
     pairs = [(S[i][j], i, j) for i in range(n) for j in range(i + 1, n)]
     closest = max(pairs); farthest = min(pairs)
-    # outgroup = the cluster with the lowest mean similarity to the rest
+    # least similar input = lowest mean similarity to the rest (descriptive; not a phylogenetic outgroup)
     mean_sim = [sum(S[i][j] for j in range(n) if j != i) / (n - 1) for i in range(n)]
-    outgroup = min(range(n), key=lambda i: mean_sim[i])
+    least_similar = min(range(n), key=lambda i: mean_sim[i])
     sh_c, id_c = detail[(min(closest[1], closest[2]), max(closest[1], closest[2]))]
     lines = [
         f"Closest pair: {labels[closest[1]]} and {labels[closest[2]]} "
         f"({sh_c} shared genes at {id_c}% mean identity; similarity {closest[0]:.2f}).",
         f"Most divergent pair: {labels[farthest[1]]} and {labels[farthest[2]]} "
         f"(similarity {farthest[0]:.2f}).",
-        f"Least similar input under this descriptive metric: {labels[outgroup]} "
-        f"(mean similarity {mean_sim[outgroup]:.2f}).",
+        f"Least similar input under this descriptive metric: {labels[least_similar]} "
+        f"(mean similarity {mean_sim[least_similar]:.2f}).",
         "Distance combines gene-content overlap and global sequence identity (clinker-consistent); "
         "it reflects homology, not identity of the final product.",
     ]
@@ -430,13 +431,16 @@ def main(argv=None):
             "min_identity_pct": a.min_id, **engine_provenance,
             "inventory_counts": dict(zip(labels, map(len, clusters))),
             "normalization": "maximum_inventory_count" if a.metric == "one_to_one_v1" else "minimum_inventory_count",
+            "distance_precision": "tree.nwk and dendrogram.png use unrounded distances; distance_matrix.csv "
+                                  "shows them rounded to 4 decimals",
+            "upgma_tie_policy": "equal closest distances merge the pair met first in input order",
             "inference_ceiling": "descriptive protein inventory homology; no orthology, compound or activity inference"
         }, indent=2) + "\n", encoding="utf-8")
         # distance matrix CSV
         with open(stage / "distance_matrix.csv", "w", newline="") as fh:
             w = _SafeWriter(fh); w.writerow([""] + labels)
             for i, lab in enumerate(labels):
-                w.writerow([lab] + D[i])
+                w.writerow([lab] + [round(value, 4) for value in D[i]])
         (stage / "tree.nwk").write_text(nwk + "\n")
         dendro = make_dendrogram(labels, D, stage, a.title)
         outs = ["distance_matrix.csv", "tree.nwk", "dendrogram.png", "comparison_contract.json"]

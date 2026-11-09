@@ -2,10 +2,19 @@
 
 **NPBDetect predictions are not admissible evidence in the optional activity channel.** In `mamey.activity_predictions`, any model ID whose lowercase form starts with `npbdetect` must use `OUT_OF_DOMAIN` or `FAILED`. `IN_DOMAIN` and `LIMITED` produce `NONADMISSIBLE_MODEL`. Both allowed hold states require null antibacterial/antifungal probabilities and `activity_call=HOLD`; a failed or out-of-domain model is not a biological negative or numeric zero.
 
-The audit notes below describe upstream behavior, not permission to import its raw probabilities into those held prediction fields. If retaining external raw output as audit evidence, keep it separately with provenance and label it non-admissible; do not translate it into Mamey scores or measured activity. The sibling writer validates the document and refuses output inside the source package. It does not execute NPBDetect or prove hashes correspond to actual model, environment or input bytes; its hash checks validate syntax. Independently verify provenance, exact identity and source bindings. The writer replaces
-`optional_activity_predictions.json` at the selected external destination using a
-fixed temporary sibling name. Choose a fresh destination when retaining earlier
-attempts; an external path is not a promise of append-only history or concurrent-write isolation.
+The audit notes below describe upstream behavior. They do not permit importing its raw probabilities into the held prediction fields. If you keep external raw output as audit evidence, store it separately with its provenance, label it non-admissible, and do not turn it into Mamey scores or measured activity.
+
+What the sibling writer (`write_predictions`, `mamey/activity_predictions.py:278-296`) does:
+- It validates the document and refuses an invalid one.
+- It refuses an output folder inside the source package.
+- It replaces `optional_activity_predictions.json` at the chosen destination through a fixed temporary sibling name (`<name>.tmp`).
+
+What it does not do:
+- It does not run NPBDetect.
+- Its hash checks validate syntax only. They do not show that a hash matches the actual model, environment or input bytes.
+- It does not keep earlier attempts or isolate concurrent writes. Choose a fresh destination to keep an earlier attempt.
+
+Verify provenance, exact identity and source bindings yourself.
 
 The supplied upstream commit, graph, threshold and HC/ORG observations below are preserved historical audit assertions. The local admission contract does not establish a fresh upstream download, model run or reproduction; bind those states to their own evidence.
 

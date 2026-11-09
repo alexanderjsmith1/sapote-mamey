@@ -1,6 +1,6 @@
 # Sapote Markdown authoring contract
 
-This prototype uses one constrained Markdown dialect for user guides, scientific
+This page defines one constrained Markdown dialect for user guides, scientific
 analysis reports, and Mode B cards. The same parsed document model drives DOCX
 and PDF output. Both formats consume the same parsed model; presentation still needs actual rendered-page review, and parser acceptance does not establish scientific meaning or visual correctness.
 
@@ -20,6 +20,12 @@ source_manifest: manifest.json   # optional but recommended
 ---
 ```
 
+Each field is text. A blank value or YAML `null` counts as missing, so a
+missing title, audience, authority or claim-safety footer is refused. Whole
+numbers are read as text. Other YAML values, such as `true`, a date, a list or a
+mapping, are refused with `META_FIELD_TYPE_INVALID`. The same rule applies to the
+four `exact_locus` fields.
+
 Mode B cards additionally require:
 
 ```yaml
@@ -31,8 +37,15 @@ exact_locus:
 ```
 
 The H1 must contain the complete identity in this order:
-`strain / full node-or-contig / region / BGC alias`. A Mode B card must contain
-exactly one ordered `## §1` through `## §48` sequence in this renderer’s fixed-48 prototype. This is not a universal Mode B profile validator: current50 cards require their selected profile’s own verification and are not admitted as mode_b_card by this fixed-48 structural rule. Do not delete required sections to force renderer acceptance.
+`strain / full node-or-contig / region / BGC alias`. A Mode B card must contain exactly one ordered `## §1` through `## §N` sequence.
+The section list comes from the contract the card declares in its header
+comment, for example `<!-- MODE B contract: current50_v2 -->`. With no
+declaration the card is checked against the 48-section contract (§1 to §48).
+A card that declares `current50_v2` is checked for §1 to §50 and renders the
+same way. A card that declares two different contracts is refused. See the
+[Mode B profile matrix](MODEB_PROFILE_MATRIX.md) for the profiles. This
+renderer checks structure only; it does not verify the card's content. Do not
+delete required sections to force it to accept a card.
 
 ## Stable Markdown subset
 
@@ -100,15 +113,49 @@ wide tables.
 - Avoid decorative slogans in page furniture. Footers must state the document's
   actual claim ceiling.
 
-## Strict export behavior
+## A complete small document
 
-```bash
-python -m mamey.document_export document.md --format both --outdir rendered
+Save this as `document.md`. It is a valid `human_guide`.
+
+```markdown
+---
+schema_version: sapote-markdown-1.0
+document_type: human_guide
+title: Five-Minute Quickstart
+audience: New users
+authority: User documentation; not a biological result
+render_profile: human_guide
+claim_safety_footer: Software guidance only; scientific conclusions require source review.
+---
+
+# Start here
+
+> [LEAD] The short version
+> Replace this sentence with the reader's most important takeaway.
+
+## First steps
+
+1. Add the source-derived facts.
+2. State the decision or next action.
+3. Preserve the relevant claim ceiling.
 ```
 
-`--format both` checks all dependencies first, renders to temporary files, and
-attempts final publication only after both temporary files exist. Publication then replaces final paths sequentially: existing same-stem files/receipt can be overwritten, and a later replacement or receipt failure can leave a partial final set. This is not crash-atomic two-format publication or an ownership collision guard. Use
-`--format docx` or `--format pdf` when a single output is intended.
+## Render it
 
+```bash
+sapote-render document.md --format both --outdir rendered
+```
 
-The default output directory is beside the input Markdown. Choose an owned output directory and preserve prior evidence by path/hash; the receipt binds input/model/output bytes, not external source truth, full profile acceptance or rendered-page visual QA.
+`sapote-render` is the installed script. `python -m mamey.document_export` takes the same arguments
+and runs from the bundle root without the install. Both need the `documents` extra
+(`python -m pip install -e '.[documents]'`). To write many documents from templates, use the
+[document factory](TOKEN_LIGHT_DOCUMENT_FACTORY.md).
+
+`--format both` checks the libraries first, renders both files to temporary names, then moves them
+into place. It writes the DOCX, the PDF and a render receipt to the output folder. If the output
+folder already holds files with the same names, they are overwritten. If rendering fails partway, run
+it again into a new folder. Use `--format docx` or `--format pdf` for one file. Without `--outdir`
+the output goes beside the Markdown file.
+
+The receipt records the hashes of the input, the parsed model and the outputs. It does not check the
+science or the page layout. Open the files and read the pages before you share them.

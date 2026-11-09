@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build unified per-strain BGC dossiers (md + landscape docx) for the AS cohort.
+"""Build unified per-strain BGC dossiers (md + landscape docx) for the project's own isolates.
 
 Merges: roster_v2.json (coverage denominators) + AS_cohort_novelty_board.csv
 (reference-dark cores) + COMPREHENSIVE_clusterblast_both.csv (MIBiG anchors

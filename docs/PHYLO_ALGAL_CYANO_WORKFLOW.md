@@ -1,164 +1,169 @@
 # Compare green-algal and cyanobacterial records
 
-**Scope and status.** This guide supports planning and review for the requested
-green-algal genera *Trebouxia*, *Chlorella* and *Coccomyxa*, and cyanobacteria.
-Cyanobacteria are bacteria; keep their source and reference decisions distinct
-from eukaryotic algae and fungi. The bundle does not provide a validated
-one-command workflow or an outgroup registry for these groups. A label, local
-package or record name is a starting lead, not a verified identification.
+Use this page to plan a tree comparison for the green algae *Trebouxia*, *Chlorella* and
+*Coccomyxa*, or for cyanobacteria. The bundle has no one-command workflow and no outgroup
+registry for these groups. It has one check that you can run on your plan, described below.
 
-## Start from existing evidence
+A passing check is a technical result. It does not establish organism identity, marker
+orthology, correct rooting or scientific acceptance. A label or record name is only a lead.
 
-Record the biological question and taxonomic scale. Inventory the selected input
-records, existing alignments, analysis trees, display trees and reports before
-considering a new analysis. Bind each to its original path and SHA-256. For a
-public record preserve the exact accession and version, record URL, retrieval
-source and date; local bytes need their own hash. Record the source sample,
-strain and any asserted relationship between different files. A matching name
-alone does not establish that two records represent the same individual.
+Terms used here are in the [glossary](GLOSSARY.md). A **hold** is a decision you still owe.
+An **evidence channel** is one kind of data, such as a nuclear marker or a plastid marker.
+A **compartment** is where the sequence lives in the cell: nuclear, plastid or mitochondrial.
+The **ingroup** is the set of taxa you are studying. The **outgroup** is the taxon used to root the tree.
 
-An antiSMASH results ZIP is not automatically a complete genome or marker
-sequence. Identify the relevant member and its provenance before proposing it
-for a phylogenetic input. A missing or inaccessible source is **unavailable**;
-it is not evidence that the source or organism is absent. Preserve quarantine
-and exclusion decisions. Do not silently substitute a different record.
+## Steps
 
-## Keep compartments and lineages distinct
+1. Write the question and the taxonomic scale you are asking about.
+2. List every input you plan to use: sequences, alignments, trees and reports. For each one, note its
+   path, SHA-256 and, for a public record, the exact accession and version.
+3. Copy `examples/phylo_crossgroup_intake.example.json` to a working folder. Replace every `REPLACE`
+   value with absolute paths, hashes and your own labels. Set the top-level `group` and `data_kind`
+   (see [the manifest](#fill-the-manifest)); the example ships `"group": "algae"`, which is not a
+   `REPLACE` value. [Declare each record](#fill-the-manifest).
+4. Run the intake check:
 
-For each eukaryotic record, document whether the evidence is nuclear, plastid,
-mitochondrial, mixed or unresolved. Treat organellar and nuclear trees as
-separate evidence channels: their histories or sampled taxa can differ. Mixed
-source material may also contain multiple symbionts or other organisms. The
-claim that a record belongs to the selected photobiont requires independent
-source review; sequence similarity or a file label alone does not establish it.
+   ```bash
+   python tools/phylo_crossgroup_intake.py /absolute/manifest.json --allow-root /absolute/authorized/root
+   ```
 
-*Trebouxia*, *Chlorella* and *Coccomyxa* require separate reference-roster and
-taxonomic-scope decisions. Published studies provide examples, not defaults:
-[Trebouxia photobiont study](https://pmc.ncbi.nlm.nih.gov/articles/PMC4204673/),
-[Chlorella genus study](https://pubmed.ncbi.nlm.nih.gov/20522192/) and
-[Coccomyxa species-concept study](https://pubmed.ncbi.nlm.nih.gov/27028195/).
-A broader [green-algal plastid study](https://pmc.ncbi.nlm.nih.gov/articles/PMC4189289/)
-illustrates a separate source of phylogenetic evidence. Choose and justify the
-actual records and evidence appropriate to the question; do not infer a species
-name, an outgroup or a universal marker panel from these examples.
+   Repeat `--allow-root` for each folder that holds the manifest, the input files or the registry.
+   Add `--estimate-only` to stat the declared files and estimate scan size without opening them.
+   An estimate is not the check. It reads only the schema, the record paths and file sizes, and the
+   registry path when `group` is `fungi`. It does not check `group`, `data_kind`, the other record
+   fields or any hash. It prints `"status": "ESTIMATE_ONLY"` and exits 0 even when the full check
+   would fail. Always run the command without `--estimate-only` before you trust the manifest.
+5. Read the JSON the full check prints. A good result has `"status": "HOLD"` and an empty `errors` list.
+   `HOLD` is the best status this tool gives. Every entry in `holds` is a decision you still owe.
+   For the full check, exit code 0 means `errors` is empty. Exit code 2 means `"status": "ERROR"`;
+   fix each line in `errors` and run again. With `--estimate-only`, exit 2 means a path, the schema
+   or a size could not be read, and exit 0 says nothing about the rest of the manifest.
+6. Settle the holds, then follow the [companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) before any external
+   tool runs. The [phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md) covers the tree itself.
 
-For cyanobacteria, review the actual lineage and reference coverage. The bundle's
-existing 16S workflows and actinomycete-specific taxon maps and presets cannot be
-presumed appropriate. A [cyanobacterial classification study](https://pubmed.ncbi.nlm.nih.gov/36443823/)
-used phylogenomic and 16S evidence and described limitations of 16S at some
-broader ranks. Do not apply bacterial species thresholds or outgroups from an
-unrelated preset without a source-specific decision. Similarity to a plastid
-record does not by itself establish that a query is a cyanobacterial isolate.
+The check reads files and compares hashes. It does not verify organism identity or sequence
+content, choose a reference, or authorize computation.
 
-### Source-specific example: indexed *Trebouxia* assembly
+## Fill the manifest
 
-A [public Zenodo record](https://zenodo.org/records/23749643) lists `GCA_000818905` in a *Trebouxia gelatinosa* archive. [NCBI BioProject PRJNA263654](https://www.ncbi.nlm.nih.gov/bioproject/263654) lists assembly `GCA_000818905.1`, BioSample `SAMN03104849`, and scope “Monoisolate”; the [BioSample](https://www.ncbi.nlm.nih.gov/biosample/SAMN03104849) identifies isolate LA000220 and says the sample was obtained from a mycobiont, with sample type missing. The [Trebouxia Research Portal](https://trebouxia.net/index.php/genomes) instead describes the source material for that assembly as lichen thallus. These descriptions require reconciliation and do not alone determine assembly purity or whether a particular contig belongs to the alga. The [WGS master](https://www.ncbi.nlm.nih.gov/nuccore/JUBA00000000) is a metadata record with no sequence data.
+Two top-level fields decide which checks run:
 
-The Zenodo archive and the historical local `TREBOUXIA-SP` package have not been bound to each other or to the versioned assembly bytes. Before using either, verify the exact archive member and assembly version, provenance and relevant record identity; review mixed-organism and compartment questions in the context of the selected analysis. This example is a source lead, not a reference-panel or outgroup choice, and does not authorize downloads or a run.
+| Field | Allowed values | Notes |
+|---|---|---|
+| `group` | `fungi`, `algae`, `cyanobacteria` | Anything else is an error. Set it to `cyanobacteria` for a cyanobacterial roster; the example's `algae` raises a hold for a `bacterial` compartment and skips the cyanobacteria review hold. |
+| `data_kind` | `marker`, `genome` | Every record's `kind` must equal it. A `marker` manifest also needs a `marker` name. |
 
+Each record needs these fields. Use the example file for the rest. An assembly accession (`GCA_` or
+`GCF_`) cannot be declared with `kind` `marker`; use `data_kind` `genome` for it.
 
-### Source-specific example: a cyanobacterial chromosome and assembly
+| Field | Allowed values | Notes |
+|---|---|---|
+| `role` | `query`, `ingroup`, `outgroup` | The check flags identical bytes used in opposing roles. |
+| `file_scope` | `single_record`, `multi_record`, `archive`, `unknown` | Use `multi_record` for a multi-record FASTA and `archive` for a ZIP. A `multi_record` or `archive` record needs a `record_locator`. |
+| `source_format` | `fasta`, `fasta_gzip`, `zip` | `fasta` with `multi_record` counts the header token. `fasta_gzip` needs `multi_record`. `zip` goes with `archive`. |
+| `record_locator` | exact header token or ZIP member path | The token must occur once. |
+| `member_sha256` | lowercase hex | Required for a ZIP member. |
+| `member_format`, `member_record_locator` | `fasta`, header token | Optional, for a multi-record FASTA inside a ZIP member. |
+| `sequence_extent` | `single_marker`, `chromosome`, `single_contig`, `whole_assembly`, `unknown` | Your own statement of what the record covers. A chromosome does not mean a complete multi-replicon assembly. A marker manifest with any extent other than `single_marker` raises a hold. |
+| `compartment` | `nuclear`, `plastid`, `mitochondrial`, `bacterial`, `mixed`, `unknown` | `unknown` and `mixed` each raise a hold. |
 
-[NCBI BioProject PRJNA588357](https://www.ncbi.nlm.nih.gov/bioproject/588357)
-lists *Nostoc* sp. ATCC 53789 assembly `GCA_009873495.1` with 13 replicons.
-The [genome publication](https://pmc.ncbi.nlm.nih.gov/articles/PMC7118181/)
-identifies `CP046703` as the chromosome and `CP046704`–`CP046715` as
-additional replicons. A chromosome-labelled record is therefore not, by its
-label alone, evidence that a supplied file contains the full assembly.
-[Another project](https://www.ncbi.nlm.nih.gov/bioproject/319598) lists a
-different assembly under the same strain name. Bind the actual source and
-accession versions, and decide the required replicon scope for the question;
-this example selects neither an input nor an outgroup.
+Limits to know:
 
-### Published examples inform a choice; they do not select it
+- Gzip FASTA and ZIP members are read up to 64 MiB. FASTA headers over 64 KiB are refused.
+- The tool hashes the whole file, so large files take time. It rechecks the hash after reading.
+- Other archive and multi-record formats are not opened.
+- It matches versioned GCA, GCF and NG accessions case-insensitively. It does not treat different versions as the same record.
+- Two archive members can repeat one accession in their headers and still differ in content. Bind the member path and its hash, not the basename or accession.
 
-[Xiong et al. 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12366059/) report both 18S and a single-copy-orthologue comparison across sampled Trebouxiophyceae, including *Trebouxia*, *Chlorella* and *Coccomyxa*. Their reference set and outgroups answer their own question. Review applicability, sampling, source identity and the relationship of the evidence channels before using any of their records.
+## What to settle before you build a tree
 
-[Darienko et al. 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127838) found that V9 alone did not distinguish *C. subellipsoidea* and *C. simplex* in their sampled strains. Marker coverage and resolution are therefore specific review questions; neither a single marker nor a generic identity threshold automatically establishes species. These examples do not select an extraction method, comparator panel or naming threshold.
+**Source.** An antiSMASH results ZIP is not automatically a complete genome or marker. Find the member
+you want and its provenance. A missing source is **unavailable**. It is not evidence that the organism
+is absent. Keep quarantine and exclusion decisions. Do not swap in a different record.
 
-## Check declared intake metadata
+**Compartment.** Treat nuclear, plastid and mitochondrial trees as separate evidence channels. Their
+histories and sampled taxa can differ. Mixed source material can hold more than one symbiont, so a claim
+that a record belongs to the photobiont needs independent source review.
 
-For a prepared cross-group intake JSON, the optional bundle tool
-`tools/phylo_crossgroup_intake.py` reads declared local files and checks their
-SHA-256 bindings, input roles, declared file scopes, sequence extents and compartments, and selected fungal-registry
-signals. It requires one or more explicitly authorized read roots; the manifest,
-input files and registry must resolve within them. For fungal records, an optional registry selection binds exact row fields and a declared outgroup; the row still requires biological and data-kind review. For recognizable versioned GCA, GCF and NG accessions it compares case-insensitively for exact matches; it does not equate accession versions or resolve aliases. Its `HOLD` result reports
-unresolved review decisions even when its narrow checks succeed. It does not
-verify organism identity or sequence content, choose a reference, certify a
-resource preflight or authorize computation. Root declarations do not replace
-the operator's authority to read the referenced files. For an explicitly declared
-uncompressed multi-record FASTA, it can count an exact header token in the same
-bytes it hashes; a matching header is not biological identity or member-content
-validation. For a gzip FASTA, declare `file_scope: multi_record`, `source_format: fasta_gzip`, the exact `record_locator` token and the compressed file SHA-256. The checker hashes the compressed file before and after scanning, limits decompression to 64 MiB, and checks that the token occurs once. It does not extract a file or validate sequence identity. FASTA headers longer than 64 KiB are refused; the file itself has no total-size limit, and hashing may require substantial I/O. For a ZIP member, declare `file_scope` as `archive`, `source_format` as `zip`, the exact `record_locator` path, and its lowercase `member_sha256`. The tool checks a unique unencrypted member up to 64 MiB without extraction and rechecks the archive hash after the read. For a multi-record FASTA member, optionally add `member_format: fasta` and an exact `member_record_locator` header token; the tool requires one occurrence in the verified member. A byte or header match does not establish sequence identity, biological identity or suitability. Other archive and multi-record formats remain uninspected.
-Declare `sequence_extent` as `single_marker`, `chromosome`, `single_contig`,
-`whole_assembly`, or `unknown`. This is an unverified statement about the
-biological extent of the record, separate from the file container. A declared
-chromosome or contig does not establish a complete multi-replicon assembly;
-missing or conflicting extent remains under review. The checker does not infer
-extent or completeness from names, headers or bytes.
-The optional `--estimate-only` flag stats declared paths and estimates full-file scan bytes per record, without opening data files. ZIP metadata, ZIP member reads and gzip decompression add I/O; sizes can change, and the estimate is not an authorization or a resource ceiling.
-Start with `examples/phylo_crossgroup_intake.example.json`, replace its placeholders
-in a separate working manifest, and supply absolute paths and hashes. From the
-bundle root, call `python tools/phylo_crossgroup_intake.py /absolute/manifest.json --allow-root /absolute/authorized/root`; repeat the root option when needed for
-the manifest, selected files and registry. A root must already be authorized.
-The tool prints a JSON result; exit 0 means only that its limited metadata checks
-found no errors, and the status remains `HOLD`. It does not create a run or
-replace the companion-tool protocol.
+**Lineage.** *Trebouxia*, *Chlorella* and *Coccomyxa* each need their own reference roster and scope.
+Published studies are examples, not defaults:
+[*Trebouxia* photobionts](https://pmc.ncbi.nlm.nih.gov/articles/PMC4204673/),
+[*Chlorella*](https://pubmed.ncbi.nlm.nih.gov/20522192/),
+[*Coccomyxa* species concepts](https://pubmed.ncbi.nlm.nih.gov/27028195/) and
+[green-algal plastids](https://pmc.ncbi.nlm.nih.gov/articles/PMC4189289/).
+[Xiong et al. 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12366059/) compare 18S and
+single-copy orthologues across Trebouxiophyceae. Their reference set answers their question, not yours.
+[Darienko et al. 2015](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127838) found that
+V9 alone did not separate *C. subellipsoidea* from *C. simplex* in their strains. A single marker or a
+generic identity threshold does not establish a species.
 
-## Plan and retain evidence by stage
+**Cyanobacteria are bacteria.** Keep their source and reference decisions apart from algae and fungi.
+The bundle's 16S workflows and actinomycete taxon maps and presets do not automatically fit them. Do not
+apply bacterial species thresholds or outgroups from an unrelated preset. A
+[classification study](https://pubmed.ncbi.nlm.nih.gov/36443823/) used phylogenomic and 16S evidence and noted
+that 16S is limited at some broader ranks. Similarity to a plastid record does not show that a query is
+a cyanobacterial isolate.
 
-These stages are a review framework for the actual data, not an automatic
-pipeline or a universal marker panel. Use the
-[companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) to prepare the input,
-tool-version, resource, output and authorization preflight before external
-computation or any separately governed retrieval.
+**Outgroup.** Record the outgroup and the reason for it. If no suitable reference or outgroup is
+supported, record a hold. Do not reuse the fungal registry or the bacterial registry adapter for algae.
+Differences between evidence channels are findings to investigate, not proof of a new lineage.
 
-| Stage | Green-algal review | Cyanobacterial review | Evidence to retain |
+## Examples of records that need reconciling
+
+These show what to check. They do not select an input or an outgroup.
+
+- *Trebouxia* assembly `GCA_000818905.1`: a [Zenodo record](https://zenodo.org/records/23749643) and
+  [BioProject PRJNA263654](https://www.ncbi.nlm.nih.gov/bioproject/263654) list it, but the
+  [BioSample](https://www.ncbi.nlm.nih.gov/biosample/SAMN03104849) says the sample came from a mycobiont,
+  while the [Trebouxia Research Portal](https://trebouxia.net/index.php/genomes) says lichen thallus.
+  These descriptions disagree, so purity and contig membership are open.
+- *Nostoc* sp. ATCC 53789, assembly `GCA_009873495.1` ([BioProject PRJNA588357](https://www.ncbi.nlm.nih.gov/bioproject/588357)):
+  the [genome paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC7118181/) names `CP046703` as the chromosome and
+  `CP046704` to `CP046715` as other replicons. A chromosome record alone is not the full assembly.
+  [Another project](https://www.ncbi.nlm.nih.gov/bioproject/319598) lists a different assembly under the same strain name.
+
+## Stage checklist
+
+Use this as a review aid for your own data. It is not an automatic pipeline or a marker panel.
+
+| Stage | Green-algal review | Cyanobacterial review | Keep |
 |---|---|---|---|
-| Question and roster | State which of *Trebouxia*, *Chlorella* or *Coccomyxa* is in scope; review sample origin and mixed symbiont sources. | State the actual bacterial lineage and source context; do not assume a generic actinomycete preset fits. | Source paths and hashes, accessions and versions, sample/strain labels, roles, exclusions and unresolved identity. |
-| Source and evidence | Review nuclear, plastid and mitochondrial identity separately; decide whether a marker or ortholog question is appropriate. | Distinguish a marker, chromosome and multi-replicon assembly; review whether the intended data type addresses the question. | Exact member/record bindings, declared extent and compartment, source evidence, tool and reference versions, ambiguous or unavailable material. |
-| Comparison design | Assess marker or ortholog suitability and reference coverage for the named lineage and compartment. | Assess the chosen bacterial marker or genome route and its reference coverage for the actual lineage. | Reference-selection rule, exact ingroup and outgroup rationale, marker/ortholog definitions, missing data and decision holds. |
-| Alignment and inference | Keep distinct markers and compartments separately traceable; review alignment and discordance. | Keep selected loci or genome evidence traceable; review alignment and sampled taxa. | Input and trimmed alignment hashes, parameters, exclusions, model/support settings, tool logs, analysis tree and outgroup. |
-| Display and interpretation | Compare a display roster to the analysis roster and disclose differences. | Apply the same provenance discipline without importing algal or fungal taxonomic decisions. | Native gate reports, display binding or explicit unavailable state, visual/provenance review when a figure is produced, and unresolved biological judgments. |
+| Question and roster | Which genus is in scope; sample origin; mixed symbionts. | The actual bacterial lineage and source context. | Paths, hashes, accessions, versions, roles, exclusions, unresolved identity. |
+| Source and evidence | Nuclear, plastid and mitochondrial identity apart; marker or orthologue question. | Marker, chromosome or multi-replicon assembly. | Member bindings, extent, compartment, tool and reference versions. |
+| Comparison design | Marker or orthologue suitability and reference coverage. | Marker or genome route and reference coverage. | Reference rule, ingroup and outgroup reasons, missing data, holds. |
+| Alignment and inference | Keep each marker and compartment traceable; review discordance. | Keep loci or genome evidence traceable. | Input and trimmed alignment hashes, parameters, model and support settings, logs, tree. |
+| Display | Compare the display roster with the analysis roster and state differences. | Same, without importing algal or fungal decisions. | Gate reports, display binding or an explicit unavailable state, figure review. |
 
-No stage establishes organism identity, marker orthology, correct rooting or
-scientific acceptance merely because a technical check returns zero. An absent
-source or unavailable display tree is a hold rather than a zero-difference result.
+An absent source or an unavailable display tree is a hold, not a zero difference.
 
-## Preserve the review and approval boundaries
+## Check an existing tree
 
-For each proposed comparison, record source roles, reference-selection rule,
-exclusions, chosen evidence and genetic compartment, and the explicit outgroup
-and rationale. Do not use the fungal registry or bacterial registry adapter as
-an algal registry. If a suitable reference or outgroup is not supported, record
-a hold and do not silently pick a substitute. Differences between evidence
-channels are findings to investigate, not automatic evidence of a novel lineage.
+Keep the analysis tree, the source alignment (or an explicit unavailable state), the exact tip roster,
+the display tree, the exclusions, the metadata and their hashes. Two tools check a tree:
 
-Read [LLM companion-tool protocol](LLM_COMPANION_TOOL_PROTOCOL.md) for the
-mandatory source, tool-version, resource, output and approval preflight before
-any external-tool run. Some plan or dry-run operations can still write or
-perform local searches; inspect their actual contracts. Preserve input and output
-receipts and resource estimates. Approval is tied to the selected operation,
-inputs, destination, disclosure and resource ceiling; the presence of this
-guide is not approval.
+- `python tools/tree_sanity_check.py <tree.treefile> --outgroup <TIP_TOKEN>` checks branch lengths.
+  Name the outgroup tip with `--outgroup` (repeat it, or comma-separate, for several tips). A tip
+  already labelled `OUTGROUP` is found without it. Each `--outgroup` value gets an `[outgroup-term]`
+  line naming the tips it matched; a value that matches no tip fails with `OUTGROUP_UNMATCHED`, even
+  when another tip is labelled `OUTGROUP`. For a tree with no outgroup by design, such as a
+  midpoint-rooted one, pass `--allow-no-outgroup` instead. With neither, the check fails with
+  `NO_OUTGROUP` and skips the branch-length checks. Outgroup branches are exempt from the
+  branch-length checks; the `[outgroup-exempt]` line gives the longest one and its share of tree
+  depth. A pass does not show that the root is where you intended, so review it. It exits 0 on pass
+  and 2 on fail.
+- `python tools/tree_trust_audit.py --manifest <manifest.json> --output <out> --gate tools/tree_sanity_check.py`
+  audits tree, metadata and render bindings. Run `--help` for the manifest layout.
 
-For an existing tree, retain the analysis tree, source alignment or explicit
-unavailable state, exact tip and reference roster, display tree, exclusions,
-metadata and their hashes. Use the applicable bundle tree sanity and advisory
-signoff tools; a passing technical check is not scientific acceptance. The
-[phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md) describes separate analysis
-and display evidence. Render only through the bundle's prescribed figure route
-and complete the relevant provenance and visual review when a figure is selected.
+Add `--snapshot-gate` for an experimental tree-only comparison against declared outgroup tips. Matching
+results stay `UNVERIFIED`; a mismatch or a gate failure fails that check. It reads the displayed-tree
+snapshot up to 8 MiB and is stricter than the native gate: one tree, parsers that agree, finite non-negative
+branch lengths. It can refuse inputs that other workflows accept. It does not protect against a file changing
+after the first read.
 
-Fungal inputs follow the [fungal guide](PHYLO_FUNGAL_WORKFLOW.md); neither guide
-changes the scientific-adoption, publication or release decision.
+Render only through the bundle's figure route; see [Figure house rules](FIGURE_HOUSE_RULES.md).
+Fungal inputs follow the [fungal guide](PHYLO_FUNGAL_WORKFLOW.md).
 
-The intake check flags identical verified source bytes used across outgroup and query or ingroup roles when their declarations could refer to the same record. Identical verified ZIP-member bytes are also flagged across opposing roles even in different archives. Distinct locators in a multi-record source are not equated. This warning does not establish identity or replace review of aliases and record membership.
+## rRNA extraction
 
-Barrnap model names and scope depend on the installed version. The upstream [0.9 source](https://github.com/tseemann/barrnap/blob/0.9/bin/barrnap) lists a general `euk` model; newer [upstream documentation](https://github.com/tseemann/barrnap#options) lists a fungal `fun` model. Neither naming convention establishes a validated algal marker extractor. Check the installed models and lineage-specific suitability before choosing an extraction method, and keep partial and ambiguous predictions under review.
-
-Archive members can repeat the same accession in their headers while differing in their full bytes. Bind the exact member path and hash as well as the archive hash; do not select a member solely by its basename or accession. Different member hashes alone do not show whether sequence, annotation or formatting differs. Record this as a source-selection hold until the member's role and contents have been reviewed.
-
-### Optional tree-audit snapshot comparison
-
-The candidate tree audit offers `--snapshot-gate` with an explicit `--gate` pointing to the supported v9.7.461 tree-sanity script. It runs an additional tree-only gate snapshot comparison against declared outgroup tips. Matching results remain UNVERIFIED; mismatch and gate failure fail that check. The option limits the initial displayed-tree snapshot to 8 MiB and uses stricter single-tree, parser-agreement and finite nonnegative branch-length rules than the native gate, and may refuse inputs accepted by other workflows. The limit is not a whole-process resource ceiling: analysis-tree and other reads have separate behavior, and a file may change after the initial snapshot. It does not establish source authorization, biological rooting, scientific acceptance or protection from all file races. Review its recorded observation and scope; the native audit gate check remains separate.
+For rRNA extraction, see [Barrnap](BARRNAP.md). Run `barrnap --help` to see the models your install
+lists. No Barrnap model is a validated algal marker extractor. Keep partial and ambiguous predictions under review.

@@ -42,8 +42,17 @@ CLAIM_CEILING = (
 )
 
 SCOPE_NOTE = (
-    "Whole-genome measurement, independent of Mode B / BGC completion (workroom CHD-001/CHD-002): "
-    "the strain is the unit of analysis; this evaluation is not routed through triage or scoring."
+    "Intended unit: the strain's whole genome, independent of Mode B / BGC completion (workroom "
+    "CHD-001/CHD-002); this evaluation is not routed through triage or scoring. Whole-genome scope is a "
+    "claim, not a measurement: see source_scope_state, and review the scan's source and coverage before "
+    "relying on it."
+)
+
+# How the counts were bound to a source. Only the package route reads a scan record; even then the
+# software does not verify that the scan covered the whole genome.
+SOURCE_SCOPE_STATES = (
+    "PACKAGE_MANIFEST_SCAN_RECORD_COVERAGE_UNREVIEWED",
+    "UNRESOLVED_SCOPE_COUNTS_NOT_SOURCE_BOUND",
 )
 
 # mamey/source_scans.py CHITINASE_PATTERNS -- the CGAD scan's own family vocabulary. Kept as the
@@ -144,6 +153,7 @@ class ChitinReferenceEvaluation:
     reference_panel: tuple[ReferenceComparisonRow, ...]
     reference_quality: str
     top_reference: ReferenceComparisonRow | None
+    source_scope_state: str = "UNRESOLVED_SCOPE_COUNTS_NOT_SOURCE_BOUND"
     scope_note: str = SCOPE_NOTE
     claim_ceiling: str = CLAIM_CEILING
 
@@ -154,6 +164,11 @@ class ChitinReferenceEvaluation:
             "reference_panel_n": len(self.reference_panel),
             "reference_quality": self.reference_quality,
             "top_reference": self.top_reference.to_dict() if self.top_reference else None,
+            "source_scope_state": self.source_scope_state,
+            "zero_count_interpretation": (
+                "Zero counts are zero matches in the package's recorded scan; coverage is unreviewed."
+                if self.source_scope_state == "PACKAGE_MANIFEST_SCAN_RECORD_COVERAGE_UNREVIEWED"
+                else "Zero counts come from a supplied object with no bound scan; they are not tested absence."),
             "scope_note": self.scope_note, "claim_ceiling": self.claim_ceiling,
         }
 
@@ -285,7 +300,8 @@ def reference_quality(reference_rows: list[ReferenceComparisonRow]) -> str:
 
 def evaluate_strain(strain_id: str, cgad_counts: dict[str, Any],
                      registry_rows: list[dict[str, str]], strain_taxon: str,
-                     genus_aliases: list[str] | None = None) -> ChitinReferenceEvaluation:
+                     genus_aliases: list[str] | None = None,
+                     source_scope_state: str = "UNRESOLVED_SCOPE_COUNTS_NOT_SOURCE_BOUND") -> ChitinReferenceEvaluation:
     """Top-level entry point.
 
     strain_id: the AS/strain identifier (for labelling only -- never routed through triage).
@@ -293,7 +309,11 @@ def evaluate_strain(strain_id: str, cgad_counts: dict[str, Any],
       source_scans.chitinase.counts dict) -- keyed by CHITIN_FAMILIES.
     registry_rows: parsed rows of the operator-supplied reference registry TSV.
     strain_taxon / genus_aliases: used only to filter the registry to a taxon-matched panel.
+    source_scope_state: one of SOURCE_SCOPE_STATES. The default is unresolved; only a caller that read
+      the counts from a package manifest's scan record may pass the package state.
     """
+    if source_scope_state not in SOURCE_SCOPE_STATES:
+        raise ChitinReferenceEvalError(f"unknown source_scope_state: {source_scope_state!r}")
     profile = architecture_profile(strain_id, cgad_counts)
     ref_rows = build_reference_rows(registry_rows, strain_taxon, genus_aliases)
     quality = reference_quality(ref_rows)
@@ -301,7 +321,7 @@ def evaluate_strain(strain_id: str, cgad_counts: dict[str, Any],
     top = max(scored, key=lambda r: r.ani_pct) if scored else None
     return ChitinReferenceEvaluation(
         strain_id=strain_id, profile=profile, reference_panel=tuple(ref_rows),
-        reference_quality=quality, top_reference=top,
+        reference_quality=quality, top_reference=top, source_scope_state=source_scope_state,
     )
 
 

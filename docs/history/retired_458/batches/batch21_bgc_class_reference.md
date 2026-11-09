@@ -2,7 +2,7 @@
 
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Gene-level analysis guide](../../../GENE_LEVEL_ANALYSIS_GUIDE.md).
 
-The .149a class explainer dated2026-06-29 is a historical teaching document, not an executable classifier, complete current marker registry or source of newly accepted chemistry/activity. Its named products, domain-to-function mappings and “ecology signals” require their own evidence/citation review. A known reference neighbor does not identify an unknown locus or establish activity. Preserve strain / full node-or-contig / region / BGC alias, source versions and missingness.
+The .149a class explainer dated 2026-06-29 is a historical teaching document, not an executable classifier, complete current marker registry or source of newly accepted chemistry/activity. Its named products, domain-to-function mappings and “ecology signals” require their own evidence/citation review. A known reference neighbor does not identify an unknown locus or establish activity. Preserve strain / full node-or-contig / region / BGC alias, source versions and missingness.
 
 ## Reading current outputs
 

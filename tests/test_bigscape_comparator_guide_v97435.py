@@ -30,7 +30,7 @@ def test_comparator_guide_has_required_undergraduate_workflows_and_live_tool_lin
 
 def test_comparator_guide_is_portable_and_version_neutral():
     text = GUIDE.read_text(encoding="utf-8")
-    assert not re.search(r"/Users/[^/\s]+/", text)
+    assert not re.search(r"/Us" r"ers/[^/\s]+/", text)
     assert not re.search(r"\bAS-\d+\b", text)
     assert not re.search(r"\bv\d+\.\d+\.\d+\b", text)
     assert "DEMO-A / NODE_7_length_47000_cov_20.0 / region001 / BGC004" in text

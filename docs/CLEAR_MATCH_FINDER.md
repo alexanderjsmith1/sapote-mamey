@@ -32,7 +32,7 @@ Outputs:
 - `ALL_BGC_HIT_FRACTION_RANK.tsv`: the same rows ordered by hit fraction, defined as hit-bearing CDS divided by total BGC CDS;
 - `ALL_BGC_TOP_2_GENE_MATCH_RANK.tsv`: BGC rank using only each locus's two strongest hit-bearing genes;
 - `ALL_BGC_TOP_3_GENE_MATCH_RANK.tsv`: BGC rank using only each locus's three strongest hit-bearing genes;
-- `PER_STRAIN/<strain>/`: the full BGC, matching-gene-count, hit-fraction, top-two, top-three, gene, and raw-hit tables split and re-ranked within each strain;
+- `PER_STRAIN/<strain>/`: each table filtered to one strain. The BGC tables (`BGC_CLEAR_MATCH_RANK.tsv`, `BGC_MATCHING_GENE_COUNT_RANK.tsv`, `BGC_HIT_FRACTION_RANK.tsv` and the top-two and top-three tables) get ranks within that strain. The gene table `GENE_TOP_VS_SECOND_MIBIG.tsv` is a filtered copy: its `gene_clear_match_rank_all_cds` is still the rank across all CDS in the run, not within the strain. The raw-hit table `MIBIG_HITS_EXACT_IDENTITY.tsv` has no rank;
 - `SOURCE_HASHES.tsv`: hashes of every consumed package file; and
 - `CLEAR_MATCH_RECEIPT.json`: thresholds, counts, hashes, and the claim ceiling.
 
@@ -43,6 +43,14 @@ The full-BGC score is therefore **not an average percent identity**. The top-two
 The matching-gene-count table provides four parallel ranks. Two rank raw counts and two rank the matching genes as fractions of total BGC CDS. The any-match views include every CDS with at least one recorded MIBiG hit. The dominant-cluster views include CDS whose best hit agrees with the most frequent top MIBiG accession in that BGC. Count and percentage ties use the companion evidence, full-BGC composite, and complete identity. Retaining both count and percentage prevents sparse support such as 4 of 20 genes from being treated as stronger than 18 of 20 merely because another scoring component is high, while preserving the distinct information that absolute gene counts provide.
 
 Clear Match Finder is a sequence-similarity prioritizer. A clear protein match does not establish the exact metabolite, pathway completeness, expression, production, biological activity, novelty, or scientific acceptance.
+
+## Before you trust a ranking
+
+- Use a fresh `--out` folder. Existing folders are reused and files are overwritten one by one.
+- Check that every BGC alias maps to one full node/region and that gene tags are not reused.
+- The receipt hashes top-level files only. Hash the alias mapping and the `PER_STRAIN` tables yourself.
+
+The details follow.
 
 ## Admission and identity-join holds
 

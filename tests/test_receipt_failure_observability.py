@@ -32,8 +32,8 @@ def _package(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (package / f"{STRAIN}_4_triage_board.csv").write_text(
-        "BGC_ID,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
-        f"{BGC},NRPS,1,Interior,Inventory\n",
+        "BGC_ID,Contig,antiSMASH_Region,Products,Corrected_rank,Boundary,Lead_tier_auto\n"
+        f"{BGC},{NODE},{REGION},NRPS,1,Interior,Inventory\n",
         encoding="utf-8",
     )
     judgment = package / "judgment"
@@ -157,7 +157,7 @@ def test_present_malformed_gene_context_is_error_but_absence_is_not(tmp_path):
     assert not any(row.get("code") == "VERIFICATION_CONTEXT_MALFORMED" for row in absent)
 
 
-def test_batch_receipt_refuses_malformed_present_context_but_accepts_absence(tmp_path):
+def test_batch_receipt_refuses_malformed_present_context_and_holds_absence(tmp_path):
     malformed_pkg = _package(tmp_path / "malformed")
     malformed_card = valid_modeb_card_stub(BGC, node=NODE, strain_id=STRAIN)
     (malformed_pkg / f"{STRAIN}_4_triage_board.csv").write_text(
@@ -171,7 +171,8 @@ def test_batch_receipt_refuses_malformed_present_context_but_accepts_absence(tmp
     }), encoding="utf-8")
     refused = receipt.ingest_receipt(malformed_pkg, malformed_receipt)
     assert refused["recorded"] == []
-    assert refused["skipped_structure_invalid"] == [(BGC, 1)]
+    # A triage board without this alias's row cannot bind the card identity.
+    assert [r["identity_hold"] for r in refused["skipped_identity_mismatch"]] == ["NO_TRIAGE_ROW"]
 
     absent_pkg = _package(tmp_path / "absent")
     (absent_pkg / f"{STRAIN}_4_triage_board.csv").unlink()
@@ -181,8 +182,9 @@ def test_batch_receipt_refuses_malformed_present_context_but_accepts_absence(tmp
         "strain_id": STRAIN,
         "cards": [{"bgc_id": BGC, "mode_b_md": malformed_card}],
     }), encoding="utf-8")
-    accepted = receipt.ingest_receipt(absent_pkg, absent_receipt)
-    assert accepted["recorded"] == [BGC]
+    held = receipt.ingest_receipt(absent_pkg, absent_receipt)
+    assert held["recorded"] == []
+    assert [r["identity_hold"] for r in held["skipped_identity_mismatch"]] == ["NO_TRIAGE_ROW"]
 
 
 def test_lint_wrapper_gate_import_failure_is_explicit(tmp_path, monkeypatch):

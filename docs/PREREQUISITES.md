@@ -46,8 +46,10 @@ before supplying a basemap.
 
 ## R figure stack
 
-Use R >= 4.3 for the [R figure workflows](R_FIGURE_WORKFLOWS.md).
-Check the installed packages first:
+The [R figure workflows](R_FIGURE_WORKFLOWS.md) need R >= 4.3 and the packages below.
+CI tests R 4.5.3.
+The R version pinned in `.github/workflows/ci.yml` must meet this minimum.
+Check what is installed first:
 
 ```bash
 Rscript bundle_support/install_r_figure_packages.R --check
@@ -69,7 +71,13 @@ The report names missing packages and the figures they affect.
 
 </details>
 
-The installer normally attempts missing packages across all groups.
+To install the missing packages, run the same script without `--check`:
+
+```bash
+Rscript bundle_support/install_r_figure_packages.R
+```
+
+The installer tries the missing packages in every group.
 `--require trees` changes which missing packages fail the check; it does not
 limit installation to tree packages. For offline setup, its `--from` option
 uses the supplied package archives, including their dependencies.
@@ -86,6 +94,8 @@ checks whether the selected requirements resolve together. Check the actual
 Word/PDF workflow after installation.
 
 ## Verify the capabilities you will use
+
+`doctor` writes a reserved probe under the bundle's `runs/` folder, so run it from a writable working copy.
 
 ```bash
 python -m pip check

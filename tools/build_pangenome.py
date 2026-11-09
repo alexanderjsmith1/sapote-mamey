@@ -89,8 +89,11 @@ def main():
     rows=[]
     for sid in strains:
         t,n,pv=st[sid]; rows.append({'strain':sid,'total_BGC':t,'novel_unresolved':n,
-            'novel_pct':round(100*n/t) if t else 0,'private_families':pv})
-    rows.sort(key=lambda r:-r['novel_pct'])
+            # A strain with no BGC rows has no denominator: its percentage is blank (not measured),
+            # never 0%, and it sorts after every measured strain.
+            'novel_pct':round(100*n/t) if t else '','private_families':pv})
+    rows.sort(key=lambda r:(r['novel_pct']=='', -(r['novel_pct'] or 0)))
+    no_rows=[r['strain'] for r in rows if r['novel_pct']=='']
     # rarefaction (mean over shuffles), editable CSV
     rarecsv=os.path.join(a.out_dir,'pangenome_rarefaction_data.csv')
     if a.replot and os.path.exists(rarecsv):
@@ -156,8 +159,8 @@ Families accumulate {mean[0]} -> {mean[len(strains)//2]} -> {mean[-1]} at 1 / {l
 strains (+{mean[-1]-mean[max(0,len(strains)-10)]} families over the last 10 strains).
 
 ## Most novel strains (by UNRESOLVED fraction; interpret small-genome strains with caution)
-{chr(10).join(f"- {r['strain']}: {r['novel_unresolved']}/{r['total_BGC']} = {r['novel_pct']}% novel, {r['private_families']} private families" for r in rows[:6])}
-
+{chr(10).join(f"- {r['strain']}: {r['novel_unresolved']}/{r['total_BGC']} = {r['novel_pct']}% novel, {r['private_families']} private families" for r in [x for x in rows if x['novel_pct']!=''][:6])}
+{(chr(10) + f"Strains with no BGC rows in the bank (no denominator; percentage left blank, not ranked): {', '.join(no_rows)}" + chr(10)) if no_rows else ''}
 _Novelty here = distance from characterized clusters, a candidate signal; confirmation requires Mode B / wet-lab._
 """
     atomic_write_text(os.path.join(a.out_dir,'Pangenome_Summary.md'), md)

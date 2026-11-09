@@ -234,10 +234,46 @@ def _complete_locus(value: str | None) -> bool:
     return bool(value and value.count(" / ") == 3 and _BGC_TOKEN.search(value))
 
 
+def _looks_like_antismash_zip(path: str | None) -> bool:
+    """True for a ZIP that starts as a ZIP and holds a readable antiSMASH region record.
+
+    A regular file is not enough (README.md as --input-zip reported READY), and neither is
+    ``zipfile.is_zipfile``, which accepts an empty archive, a bare end-of-central-directory
+    record, an .xlsx workbook and a PNG with a ZIP appended. Required here:
+      * the file begins with a ZIP local-file header (``PK\\x03\\x04``);
+      * the archive lists an antiSMASH region record (``*.region<n>.gbk``) or ``regions.js``;
+      * that member reads back with a correct CRC.
+    This is still a preflight, not ``inspect``: it reads one member, not the whole archive.
+    """
+    import re as _re
+    import zipfile
+    if not path:
+        return False
+    p = Path(path)
+    try:
+        if not p.is_file():
+            return False
+        with p.open("rb") as handle:
+            if handle.read(4) != b"PK\x03\x04":
+                return False
+        with zipfile.ZipFile(p) as archive:
+            names = [i.filename for i in archive.infolist() if not i.is_dir()]
+            markers = [n for n in names if _re.search(r"\.region0*\d+\.gbk$", n, _re.I)
+                       or n.rsplit("/", 1)[-1] == "regions.js"]
+            if not markers:
+                return False
+            with archive.open(markers[0]) as member:
+                while member.read(1 << 20):
+                    pass
+        return True
+    except (OSError, zipfile.BadZipFile, RuntimeError, EOFError, ValueError, NotImplementedError):
+        return False
+
+
 def _requirement_available(requirement: str, *, package: str | None, runs_dir: str | None,
                            input_zip: str | None, locus: str | None) -> bool | None:
     if requirement == "antismash_zip":
-        return bool(input_zip and Path(input_zip).is_file())
+        return _looks_like_antismash_zip(input_zip)
     if requirement == "sealed_package":
         return _has_package(package)
     if requirement == "multiple_sealed_packages":

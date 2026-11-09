@@ -2,6 +2,8 @@
 
 # RiPPER native adapter: development record
 
+The labels F3 to F6, N3, Q3 and lane05 R2 are internal development labels (review stages, two source-profile generations and a dispatcher revision). This page does not define them, and their source records are not bundled.
+
 ## Peer correction boundary
 
 F4 inherited four saved-F3 lifecycle defects. F5 retains EPERM cleanup uncertainty
@@ -52,29 +54,28 @@ The four peer lifecycle corrections and consumed SQLite/stage snapshots from F5
 remain mandatory for both source generations. Runtime, process behavior, native
 format, coordinate, license/distribution and release acceptance still need review.
 At the F6 profile-development checkpoint, no native source program had run. The
-subsequent header-adapted N3 run is recorded at the start of this document.
+subsequent header-adapted N3 run is not recorded in this document. The opening section above is a peer-correction summary, not a run record. This page links no run record or runtime receipt, so the run's details are unverified here. The native-format, process and release holds above still stand.
 
 ## Installed executable byte admission
 
-The earlier fixed16MiB tool guard rejected installed workspace BLAST+2.17.0
-binaries (makeblastdb18,283,888B; blastp23,341,552B; blastn23,357,952B). They
+The earlier fixed 16 MiB tool guard rejected installed workspace BLAST+ 2.17.0
+binaries (makeblastdb 18,283,888 B; blastp 23,341,552 B; blastn 23,357,952 B). They
 were available files, not missing tools. Executable roles now support explicit
 streaming byte/time policy through executable_byte_budget and
 executable_hash_timeout_seconds. Earlier byte-admission controls used
-32MiB/10seconds, sufficient for these exact leaves. The retained native run
-selected64MiB/30seconds per executable. The maximum512MiB/300seconds remains finite. Hashing uses1MiB chunks and
+32 MiB/10 seconds, sufficient for these exact leaves. The retained native run
+selected 64 MiB/30 seconds per executable. The maximum 512 MiB/300 seconds remains finite. Hashing uses 1 MiB chunks and
 checks descriptor/path identity. No installed executable is copied or run by
-byte admission. The old default16MiB shape/limit remains compatible, using chunks.
-Small textual inputs stay5MiB, and model policies remain independently bounded.
+byte admission. The old default 16 MiB shape/limit remains compatible, using chunks.
+Small textual inputs stay 5 MiB, and model policies remain independently bounded.
 Native review binds the spec/policy and exact hashes; rechecks repeat that policy.
 
-Saved05audit distinguishes system Perl5.34.1 (DBI/DBD::SQLite/XML::Simple/LWP::Simple
-loaded, BioPerl missing in its probed path) from workspace Perl5.32.1 (those
+Saved 05 audit distinguishes system Perl 5.34.1 (DBI/DBD::SQLite/XML::Simple/LWP::Simple
+loaded, BioPerl missing in its probed path) from workspace Perl 5.32.1 (those
 noncore modules unavailable in its own path). Module availability from one runtime
-is not transferred to another. Stock Prodigal2.6.3 is not Prodigal-short. Historical
-17-role HOLD means unprovided profile bindings, not17absent laptop tools. Later
-setup evidence was supplied for the completed fabricated run;
-use its exact runtime receipt rather than treating the earlier probe as current.
+is not transferred to another. Stock Prodigal 2.6.3 is not Prodigal-short. Historical
+17-role HOLD means unprovided profile bindings, not 17 absent laptop tools. Later
+setup evidence was reportedly supplied for a completed fabricated run. This page gives no locator or hash for that run or its runtime receipt, so the run is unverified here. Do not treat the earlier probe as current.
 
 ## Native dispatcher binding
 

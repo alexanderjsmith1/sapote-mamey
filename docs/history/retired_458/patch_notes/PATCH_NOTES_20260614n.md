@@ -1,6 +1,6 @@
 # Sapote–Mamey v9.7.22 — build -n (2026-06-14)
 
-Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [v9.7.22 release notes](../../RELEASE_NOTES_v9.7.22.md).
+Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Changelog](../../../../CHANGELOG.md).
 
 New consumer: the fragment-concordance scorer. **No existing engine logic changed.**
 
@@ -28,11 +28,11 @@ T43-negative; end-to-end best_match over the real panel (piericidin-like -> pier
 - Corrected-BGC-count reframe for NAR-GB.
 
 ## Per-tier verification (in-zip)
-| Tier | pytest | AS-### |
+| Tier | pytest | private-ID hits |
 |---|---|---|
 | CODE | 510 passed / 80 skip | 0 |
 | CODE-analysis-free | 508 passed / 82 skip | 0 |
-| SID-public | 510 passed / 80 skip | 0 |
+| public-ID | 510 passed / 80 skip | 0 |
 | MERGED-PRIVATE-scaffold | 509 passed / 81 skip | retained (expected) |
 
 Supersedes -m. Checksums regenerated last; verified in-zip.

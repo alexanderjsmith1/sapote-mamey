@@ -118,6 +118,21 @@ def read_aliases(path):
 def norm_accession(value): return re.sub(r"\.\d+$","",(value or "").strip())
 
 
+PLACEHOLDERS={"","na","n/a","nan","none","null","-","--",".","?","unknown"}
+
+
+def present(value):
+    """False for blank and placeholder values (NA, -, n/a, nan, none, ...)."""
+    return str(value if value is not None else "").strip().casefold() not in PLACEHOLDERS
+
+
+def mibig_accession(value):
+    """``BGCnnnnnnn`` (upper case, version dropped) for a real MIBiG accession, else ""."""
+    text=str(value if value is not None else "").strip().upper()
+    m=re.fullmatch(r"(BGC\d{7})(?:\.\d+)?",text)
+    return m.group(1) if m else ""
+
+
 def gene_kind(row):
     text=(row.get("gene_functions") or row.get("product") or "").lower()
     if "biosynthetic-additional" in text: return "biosynthetic-additional"
@@ -186,13 +201,17 @@ def analyze(packages, definitive_rank, out, aliases=None):
         for bgc,rows in by_bgc.items():
             ident=identity(strain,rows[0]); rank=ranks.get(ident)
             if not rank: raise ValueError(f"definitive rank missing {ident}")
-            dominant=norm_accession(rank.get("dominant_mibig_accession"))
+            dominant=mibig_accession(rank.get("dominant_mibig_accession"))
             role_counts=Counter(); unmatched_counts=Counter(); no_hit_counts=Counter(); tag_counts=Counter(); current=[]
             unmatched_ids=defaultdict(list); no_hit_ids=defaultdict(list)
             for r in sorted(rows,key=lambda x:number(x.get("order"))):
                 tags=logic_tags(r); role=primary_role(r,tags); role_counts[role]+=1; tag_counts.update(tags)
-                ghits=hits_by.get((bgc,r.get("locus_tag","")),[])
-                domhits=[h for h in ghits if norm_accession(h.get("mibig_accession"))==dominant]
+                # A hit counts only with a real MIBiG accession (BGC + 7 digits) and a subject
+                # gene that is not a placeholder; a missing accession never matches a missing
+                # dominant accession.
+                ghits=[h for h in hits_by.get((bgc,r.get("locus_tag","")),[])
+                       if mibig_accession(h.get("mibig_accession")) and present(h.get("subject_gene"))]
+                domhits=[h for h in ghits if dominant and mibig_accession(h.get("mibig_accession"))==dominant]
                 any_match=bool(ghits); dom_match=bool(domhits)
                 if not dom_match and role!="other":
                     unmatched_counts[role]+=1; unmatched_ids[role].append(r.get("locus_tag",""))

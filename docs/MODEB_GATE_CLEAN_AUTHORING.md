@@ -6,12 +6,17 @@ Choose the profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md). Cite e
 `strain / full node-or-contig / region / BGC alias`. A clean gate result is a structural check, not
 scientific acceptance.
 
-The recipe below is scoped to the default full48 contract. Its §4 matrix, §48 synthesis and
+The recipe below is scoped to the default full48 contract. If you came here from the frozen
+[50-section proposal](MODEB_50_SECTION_CONTRACT_CANDIDATE.md), read its
+[reading guide](MODEB_50_CONTRACT_READING_GUIDE.md) first: that proposal's section map differs from the
+implemented `current50_v2` profile, and this recipe does not apply to it. Its §4 matrix, §48 synthesis and
 `publication_quality_findings` API are not a current50-v2 recipe. Select `--contract full48` explicitly
 when relying on these mappings; select `--contract current50_v2` and its owner guide for the other route.
 The single-BGC example without `--out` emits to stdout; it does not itself save an authored candidate.
-Choose a destination inside the authorized task, inspect the emitter's actual write/overwrite policy,
-and retain the saved bytes plus actual report before making a gate-clean claim.
+With `--out PATH`, the scaffold is saved to PATH only if PATH does not exist yet. An existing file is
+refused with exit 1 and left unchanged. `--batch` is different: it writes into the package's
+`mode_b_templates/` folder and replaces a template already there with the same name. Keep the saved
+bytes and the actual verifier report before making a gate-clean claim.
 
 The direct API example omits all prospective opt-in flags, which default false
 (`publication_quality_findings` keyword defaults). It does not enable every later semantic, reconciliation,
@@ -20,8 +25,6 @@ it does not open or verify every supporting source. Receipt-shaped/hash cells an
 checker inputs, not evidence that a file, experiment or source conclusion has been independently verified.
 The writer/source-receipt separation below remains normative: this API alone cannot enforce who authored
 a receipt. Use the actual selected verifier flags and retain independent review separately.
-
-<!-- Historical source text follows. -->
 
 This recipe bridges the canonical §1–§48 template to a publication-gate-clean authored candidate.
 It governs tooling and evidence presentation; it does not establish scientific correctness,
@@ -65,6 +68,12 @@ and current channel-separated BLASTp. Each row uses exactly one of:
 
 The final cell must state how that stream changes—or does not change—the interpretation.
 
+RG-GMCI proposes candidate links between fragments on different contigs from reference similarity and gene context; see the
+[glossary](GLOSSARY.md#7-rg-gmci-and-the-rescue-layer). "V7 evidence" is an earlier evidence workup of the
+locus. The gate treats it as a historical source, with the historical card and the historical locus map
+(`HISTORICAL_SOURCES` in `mamey/modeb_publication_gate.py`). Use `ABSENT_IN_SCOPE` or `NOT_APPLICABLE`, as
+the table asks, when your locus has none.
+
 ### Historical sources
 
 Provide exactly one row for historical card, V7 evidence, and historical locus map. Each row uses
@@ -100,7 +109,8 @@ The publication gate checks them.
 
 ## 5. Derive cohort and synthesis sections from source receipts
 
-The writer may see this public field contract, but must not create or approve the source receipts.
+The person writing the card may read this field contract, but does not create or approve the source
+receipts. Those come from the tool or person that produced each source.
 If a required source-specific receipt is unavailable or fails validation, record the exact typed hold
 and the missing input. Do not replace an unmeasured comparison with plausible prose, and do not turn
 missing evidence into a biological negative.
@@ -145,4 +155,4 @@ zero-finding publication gate does not confer scientific correctness or publicat
 
 Use the receipt admission results separately from passive store warnings and legacy depth stamps. Preserve recorded, overridden, identity/structure/content skips and persistence warnings. The aggregate receipt quality count can include candidates that were not recorded and can use different rank/fragment context from per-card storage. It is not an accepted-card denominator.
 
-Re-ingest can overwrite a card, append prose again and update register timestamps; these writes are not one transaction or immutable history. A legacy FULL register stamp and `compile_ready` result do not verify card presence, hashes, current profile or complete physical-locus identity. Retain prior authored bytes, the independently expected roster and actual current card/profile receipts. See [store and receipt contracts](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-7-stored-depth-receipt-admission-and-legacy-readiness).
+Re-ingest overwrites the per-BGC card file, replaces that BGC's layperson and fermentation notes under the same `## <BGC>` heading, and updates register timestamps (`mamey/judgment_store.py:549-559,771-793`). It does not keep a second copy of the earlier note, so save the earlier text first if it matters. These writes are not one transaction or immutable history. A legacy FULL register stamp and `compile_ready` result do not verify card presence, hashes, current profile or complete physical-locus identity. Retain prior authored bytes, the independently expected roster and actual current card/profile receipts. See [store and receipt contracts](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-7-stored-depth-receipt-admission-and-legacy-readiness).

@@ -78,6 +78,13 @@ def counts_from_log(log_path: pathlib.Path):
         m = re.search(rf"(\d+)\s+{kind}\b", txt)
         if m and int(m.group(1)) > 0:
             red.append(f"{m.group(1)} {kind}")
+    # Every pytest summary line counts, not only the first match in the file: an earlier
+    # "0 failed" must not hide a later red summary (for example, partitions logged in sequence).
+    for line in txt.splitlines():
+        if re.search(r"\bin\s+\d+(?:\.\d+)?s\b", line):   # any summary, including failure-only
+            for m in re.finditer(r"(\d+)\s+(failed|errors?)\b", line):
+                if int(m.group(1)) > 0 and f"{m.group(1)} {m.group(2)}" not in red:
+                    red.append(f"{m.group(1)} {m.group(2)}")
     if red:
         raise SystemExit(
             f"gen_release_manifest: refusing to read counts from a failing pytest log "

@@ -1,12 +1,7 @@
-> **Historical page.** Replaced by [the current Quick Guide](../GUIDE/02_Quick_Guide.md). Kept as a record; its commands and counts are not current instructions.
+> **Historical page.** Replaced by [the current Quick Guide](../GUIDE/02_Quick_Guide.md). Kept as a record; its commands and counts are not current instructions. For current instructions use the [Current Docs Index](../../CURRENT_DOCS_INDEX.md).
 
 <!-- SAPOTE_DOC_STATE: HISTORICAL_SUPERSEDED -->
 <!-- SAPOTE_SUPERSEDED_BY: ../CURRENT_DOCS_INDEX.md | GUIDE/02_Quick_Guide.md -->
-
-> **Historical / superseded reference.** This shipped page preserves its dated content for
-> traceability; it is not the current operator guide. Use the
-> [Current Docs Index](../../CURRENT_DOCS_INDEX.md) and the
-> [canonical current Quick Guide](../GUIDE/02_Quick_Guide.md) for current instructions.
 
 # Sapote–Mamey Quick Guide
 
@@ -15,7 +10,7 @@
 ---
 ## What this is
 **Mamey** is the extraction engine: it parses antiSMASH output, builds the BGC inventory, runs the scans, computes scores, and produces the triage board and workbook. It never writes speculative claims.
-**Sapote** is the judgment layer — the LLM side of the pipeline (Claude, in this session). It reads Mamey's deterministic outputs and writes the Mode B deep-dive cards, ecological synthesis, and figure interpretation.
+**Sapote** is the judgment layer — the interpretation side of the pipeline, done by an assistant. It reads Mamey's deterministic outputs and writes the Mode B deep-dive cards, ecological synthesis, and figure interpretation.
 The contract between them is simple: Mamey supplies facts; Sapote interprets them; neither crosses into the other's lane.
 
 ---
@@ -33,7 +28,7 @@ The triage board (`*_4_triage_board.csv`) is the primary decision surface. These
 |--------|--------------|----------|
 | `Corrected_rank` | Priority rank (Interior + ½·Edge + ¼·Full-contig) | Primary sort for Mode B selection |
 | `Lead_tier_auto` | Exceptional / High / Medium / Low / Inventory | High/Exceptional → judge first; Medium → check context; Low → specialized-class capacity read; Inventory → allow-listed/unresolved context. Routing only, not activity. |
-| `CCTT_triggers` | Class-defining domain markers | Any T43-* trigger is class-definitive |
+| `CCTT_triggers` | Class-defining domain markers | Historical: a T43-* trigger is an annotation-based class candidate, not a class or product call. The old text called it class-definitive. |
 | `KCB_top` | Top KnownClusterBlast similarity anchor | Similarity, not identity; blank = no anchor |
 | `Novelty_auto` | 0–100; ≥30 = novel pool | High novelty + blank KCB = characterize from domains |
 | `Misanchor_Flag` | KCB anchor class conflicts with architecture | Do not cite this anchor as a class call |
@@ -59,7 +54,7 @@ Some BGCs must be reviewed even when not top-ranked:
 On all-novel strains (most BGCs novelty ≥30, `KCB_top` blank or score < 500), KCB is too noisy to lean on. These axes work without a reference database:
 - **`Two_Pathway_Flag`** — pure domain architecture. The most reliable first-pass signal for hidden pathway capacity on dark BGCs.
 - **RG-GMCI HIGH pairs** — shared ClusterBlast geometry (not KnownClusterBlast). A `CLUSTERBLAST_ONLY` pair can rescue a split pathway with no MIBiG anchor at all.
-- **CCTT triggers** — class-definitive domain markers that survive fragmentation. A T43-LASSO on a Full-contig BGC is still a lasso even with a 0% KCB score.
+- **CCTT triggers** — annotation-text markers that can survive fragmentation. Historical: the old text here said a T43-LASSO on a Full-contig BGC "is still a lasso". The code matches annotation text such as `lassopeptide` or `lasso peptide` (`mamey/mamey_markers.py:93`), and the scan labels its output "Annotation/keyword-derived first pass; confirm with HMMER/BLAST before manuscript use" (`mamey/source_scans.py:507`). A trigger is a class candidate to confirm. `cctt.context_uncorroborated` flags firings whose product class does not match (`mamey/source_scans.py:203,1980`).
 
 See the Detection Without KCB reference for the full treatment.
 
@@ -90,12 +85,14 @@ The auditor finds fabricated specificity, claim-safety failures, standing rule v
 - **Scoring constants and thresholds** — see the Quick Reference section of the Encyclopedia
 - **Detection Without KCB** — two-pathway detection and fragment rescue for novel strains
 - **Deliverable contract** — the 13-item full-run deliverable set
-- **Mode B writing guide** — the full §1–§30 authoring reference (`FULL_MODEB_30_SECTION_CONTRACT_v97150.md`; §1–§20 mandatory core + §28, §30 mandatory + §21–§27, §29 conditional)
+- **Mode B writing guide** — historical: the old §1–§30 authoring reference (current profiles are in [the profile matrix](../MODEB_PROFILE_MATRIX.md)) (`FULL_MODEB_30_SECTION_CONTRACT_v97150.md`; §1–§20 mandatory core + §28, §30 mandatory + §21–§27, §29 conditional)
 - **Fermentation and isolation** — detection handles, mechanism confirmation assays, extraction strategy
 - **Cross-strain cohort / GCF families** — BiG-SCAPE across a cohort, families read back to the `strain:node.region` locator space; see `BIGSCAPE_GCF_WORKFLOW.md`, `BIGSCAPE_MAMEY_INTEGRATION.md`, and `SOPs/SOP-17_CrossStrain_GCF_Cohort.md`
 
 ---
 ## For users with Python/terminal access
+
+Historical: do not copy the `python3 -m mamey` commands below. The current form is `python mamey_run.py <command>` from the bundle root, which pins the local package (see [AGENTS.md](../../AGENTS.md)); an installed `python -m mamey` may resolve to another version.
 The commands below are the direct Mamey invocations. If you are working through Claude, Claude runs these on your behalf — you do not need to run them yourself.
 
 **Run a strain:**

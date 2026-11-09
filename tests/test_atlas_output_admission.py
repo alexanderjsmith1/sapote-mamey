@@ -70,7 +70,13 @@ def test_additive_regular_output_preserves_inputs(tmp_path, monkeypatch, existin
     legacy, source, out, store = setup(tmp_path)
     source_before, store_before = source.read_bytes(), store.read_bytes()
     if existing_file:
+        # An earlier output is preserved: the refresh refuses rather than replacing it.
         (out / "REFRESH_SUMMARY.json").write_text("previous generated summary")
+        with pytest.raises(ValueError, match="already exists"):
+            invoke(monkeypatch, legacy, out, store)
+        assert (out / "REFRESH_SUMMARY.json").read_text() == "previous generated summary"
+        assert source.read_bytes() == source_before
+        return
     assert invoke(monkeypatch, legacy, out, store) == 0
     assert source.read_bytes() == source_before
     assert store.read_bytes() == store_before

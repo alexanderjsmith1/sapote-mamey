@@ -8,7 +8,7 @@ From the extracted bundle root:
 python tools/render_locus_comparison.py --input examples/locus_comparison_synthetic.json --outdir comparison_demo
 ```
 
-Matplotlib is required for rendering. SVG text remains editable. Outputs are `comparison.svg`, `.png`, `.pdf`, `display_coordinates.json` and `receipt.json`. Existing outputs are refused. Give every research comparison its own descriptive directory; retain its input JSON beside the indexed output. Sources are read in place and streamed through SHA-256 verification. No packages or databases are copied.
+Matplotlib is required for rendering. SVG text remains editable. Outputs are `comparison.svg`, `.png`, `.pdf`, `display_coordinates.json` and `receipt.json`. Existing outputs are refused. The five files are written to a staging folder beside the output directory and appear together only after all of them are written. A failed render or write leaves none of them, so you can retry into the same directory. A killed process can still leave a partial set; treat a directory without `receipt.json`, or whose files do not match the receipt hashes, as incomplete and render into a new directory. Give every research comparison its own descriptive directory; retain its input JSON beside the indexed output. Sources are read in place and streamed through SHA-256 verification. No packages or databases are copied.
 
 ## Input contract
 

@@ -35,8 +35,19 @@ for ARG in "$@"; do
     case "$ARG" in
         -f*|-o*|-a*|-g*|--fasta-files|--fasta-files=*|--output|--output=*|--outdir|--outdir=*)
             echo "TREE_INPUT_OVERRIDE_REFUSED: input/output paths are owned by build_tree.sh" >&2; exit 2 ;;
+        -j*|-n*|-M*|-T*)
+            echo "TREE_RESOURCE_REFUSED: set threads with BUILD_TREE_JOBS and BUILD_TREE_THREADS, not ${ARG}" >&2; exit 2 ;;
     esac
 done
+# Resource policy: at most four GToTree jobs and four IQ-TREE threads, run at low priority.
+for VAR in BUILD_TREE_JOBS BUILD_TREE_THREADS; do
+    VAL="${!VAR:-4}"
+    case "$VAL" in
+        1|2|3|4) ;;
+        *) echo "TREE_RESOURCE_REFUSED: ${VAR} must be 1, 2, 3 or 4 (got ${VAL})" >&2; exit 2 ;;
+    esac
+done
+renice 15 -p $$ >/dev/null 2>&1 || true
 
 HERE="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${PROJECT_ROOT:=$(cd -P "${HERE}/.." && pwd)}"
@@ -91,13 +102,23 @@ fi
 gtotree_preflight || exit 1
 
 cd "$TREE_DIR"
-# Stable absolute locators support the same exact query/source binding from any cwd.
+# GToTree reads this list with `for file in $(cat ...)`, which splits on whitespace, and the
+# documented tree home has spaces in its path. List entries are therefore relative to the tree
+# folder (GToTree runs from it, and build_tree_retention.py resolves relative entries against the
+# list's folder, so the binding still records absolute resolved paths). A genome file name or a
+# TMPDIR (GToTree's mktemp workspace) with whitespace cannot be passed through at all, so it is
+# refused here, before any CPU is spent, instead of failing late inside GToTree.
+case "${TMPDIR:-/tmp}" in
+    *[[:space:]]*) echo "TREE_TMPDIR_HAS_WHITESPACE: GToTree splits paths on spaces; set TMPDIR to a path without spaces (${TMPDIR})" >&2; exit 2 ;;
+esac
 "$PY" - "$TREE_DIR" <<'PYLIST'
 from pathlib import Path
 import sys
 root=Path(sys.argv[1]);files=sorted((root/'genomes').glob('*.fna'))
 if not files:raise SystemExit('TREE_INPUTS_EMPTY')
-(root/'genome_list.txt').write_text(''.join(str(p.resolve())+'\n' for p in files))
+spaced=[p.name for p in files if any(c.isspace() for c in p.name)]
+if spaced:raise SystemExit('TREE_GENOME_NAME_HAS_WHITESPACE: GToTree splits paths on spaces; rename '+', '.join(spaced))
+(root/'genome_list.txt').write_text(''.join('genomes/'+p.name+'\n' for p in files))
 PYLIST
 if ! "$PY" "${HERE}/build_tree_retention.py" --bind --genome-list genome_list.txt --tree-spec TREE_SPEC.json --binding tree_input_binding.json; then
     echo "TREE_RETENTION_INPUT_ADMISSION_REFUSED" >&2

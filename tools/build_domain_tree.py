@@ -7,9 +7,13 @@ outgroup-aware sanity gate → writes the Mode-B summary TSV. A FAILing tree is 
 is no argument to skip the gate.
 
 Usage:
-  build_domain_tree.py <DOMAIN_TREE_SPEC.json> [--threads N] [--skip-inference]
+  build_domain_tree.py <DOMAIN_TREE_SPEC.json> [--inventory INVENTORY.csv] [--threads N] [--skip-inference]
 
 --skip-inference stops after staging (spec/extraction/staging validation without CPU).
+--inventory joins every tip to the package inventory through its source region GBK (Source_GBK),
+fills the BGC alias and full contig, and holds any tip it cannot join (reason in the provenance TSV).
+Without it every tip is UNVERIFIED_NO_INVENTORY and the Mode-B summary is written only as
+`<class>_domain_tree_summary.UNVERIFIED.tsv`, which no display route reads.
 Claim-safety: class-level homology context; judgment deferred; no structure/activity/HGT claims.
 """
 from __future__ import annotations
@@ -32,6 +36,9 @@ def main(argv=None) -> int:
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--skip-inference", action="store_true",
                     help="validate spec + extraction + staging only (no CPU)")
+    ap.add_argument("--inventory", default=None,
+                    help="package BGC inventory CSV (BGC_ID, Contig, antiSMASH_Region, Source_GBK); "
+                         "required before any tip is displayed")
     a = ap.parse_args(argv)
 
     from mamey import domain_tree as DT
@@ -49,13 +56,21 @@ def main(argv=None) -> int:
         from mamey.tailoring_extract import extract_tailoring_enzymes   # card 2/3
         res = extract_tailoring_enzymes(spec["gbk_dir"], families=(cls,))
         doms = res["enzymes"]
+    if a.inventory:
+        try:
+            doms = DT.crosswalk_identity(doms, a.inventory, spec["gbk_dir"])
+        except DT.DomainTreeError as e:
+            sys.stderr.write(f"REFUSED: {e}\n"); return 2
     try:
         staged = DT.stage_domains(doms, cls, outdir, min_tips=int(spec.get("min_tips", DT.MIN_TIPS)))
     except DT.DomainTreeError as e:
         sys.stderr.write(f"REFUSED: {e}\n"); return 2
     emit(f"[stage] {staged['n_staged']} staged ({staged['n_dedup']} dedup, "
-          f"{staged['n_short_excluded']} short-excluded, {staged['n_long_flagged']} long-flagged) "
-          f"-> {os.path.basename(staged['fasta'])}")
+          f"{staged['n_short_excluded']} short-excluded, {staged['n_long_flagged']} long-flagged, "
+          f"{staged['n_identity_held']} identity-held) -> {os.path.basename(staged['fasta'])}")
+    if not a.inventory:
+        sys.stderr.write("[identity] no --inventory: every tip is UNVERIFIED_NO_INVENTORY; the summary "
+                         "will not be written for display.\n")
     if a.skip_inference:
         sys.stderr.write("[stop] --skip-inference: staging validated; no CPU run.\n"); return 0
     try:
@@ -69,9 +84,13 @@ def main(argv=None) -> int:
         sys.stderr.write("REFUSED: tree_sanity_check FAILED — not rendering; fix the offender and rebuild "
               "(no skip argument exists).\n")
         return 2
+    verified = bool(a.inventory)
     summary = DT.write_summary(
-        [{"domain_class": cls, "strain": d.get("strain", ""),
-          "node": d.get("node", ""), "tip": ""} for d in doms], outdir, cls)
+        [{"domain_class": cls, "strain": d.get("strain", ""), "node": d.get("node", ""), "tip": "",
+          "bgc_id": d.get("bgc_alias", ""), "full_contig": d.get("full_contig", ""),
+          "region": d.get("region", ""), "identity_state": d.get("identity_state", DT.IDENTITY_UNVERIFIED)}
+         for d in doms if not verified or d.get("identity_state") == DT.IDENTITY_VERIFIED],
+        outdir, cls, identity_verified=verified)
     emit(f"[ok] gated tree: {tre}\n[ok] summary: {summary}\n"
           f"Claim-safety: class-level homology context; judgment deferred.")
     return 0

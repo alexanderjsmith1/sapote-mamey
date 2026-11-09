@@ -21,13 +21,13 @@ python mamey_run.py figures clinker /path/to/lead.region001.gbk /path/to/compara
 
 The network is a **strain-centric membership subgraph**, not a pairwise-distance or full-cohort network. Non-strain members are summarized as family nodes; the node CSV and `_scope.json` report this scope and counts. Canonical locator normalization helps reconcile supported input spellings but discards coverage text and does not establish full assembly/version identity. Evidence mappings keyed by normalized node/region can overwrite duplicates and do not verify protein/region/source hashes. Independently bind the full strain / full node-or-contig / region / BGC alias crosswalk before accepting labels/highlights.
 
-Check that the run and cutoff exist and finished before you read the graph. The tool does not: a wrong run ID draws every record as dark. With `--evidence`, the dark set is counted from the evidence aliases, not the database records, so the two can differ. A dark record is absent from this membership view; it is not chemical novelty.
+`figures gcf-network` opens the database read-only. A `--db` path that is not an existing file returns `DB_NOT_FOUND` and exits 1 before anything is written. Check that the run and cutoff exist and finished before you read the graph. The tool does not: a wrong run ID draws every record as dark. With `--evidence`, the dark set is counted from the evidence aliases, not the database records, so the two can differ. A dark record is absent from this membership view; it is not chemical novelty.
 
 Components above 120 records are labeled “large component (N records)”, and the legend says the cause is not tested. Size alone does not show why a component is large, so no assembly or biological explanation is drawn; put any such reading in the caption, with its evidence. MIBiG anchoring is similarity, not product identity or production. Clinker links show similarity between supplied regions; they do not prove split-pathway reconstruction or physical joining.
 
 ## Outputs and completion
 
-The network writes the image (170 dpi, capped by the safe-DPI limit), a node table `<stem>_data.csv` and `<stem>_scope.json`. The node table is not enough to redraw the graph. If the CSV write fails you get a warning and still `WRITTEN`; if the scope JSON fails the image may already exist. Check all three files.
+The network writes the image (170 dpi, capped by the safe-DPI limit), a node table `<stem>_data.csv` and `<stem>_scope.json`. All three must be new paths, must differ from each other, and must not be the database or the `--evidence` file. Otherwise the result is `OUTPUT_REFUSED`, nothing is written and the CLI returns 1. That check runs before the database is read. The node table is not enough to redraw the graph. If the CSV write fails later you get a warning and still `WRITTEN`; if the scope JSON fails the image may already exist. Check all three files.
 
 Clinker requires at least two GBKs and its CLI on PATH. Choose fresh output paths: the command refuses an existing HTML or alignment output. A `WRITTEN` result requires a zero process exit and nonempty HTML and alignment files. `CLINKER_INCOMPLETE_OUTPUT` means HTML was created but the alignment file is missing or empty; the result includes the HTML path and a bounded diagnostic, and the CLI returns 1. This status does not establish why the file is incomplete or whether biological matches exist. Keep the input roster, hashes and diagnostics; a partial HTML can remain. Timeout uses `MAMEY_SUBPROCESS_TIMEOUT_SEC` (default 30 minutes); timeouts and failed or incomplete outputs require review. These checks do not validate artifact content, output freshness under concurrent writes, or scientific interpretation.
 
@@ -52,10 +52,6 @@ A clinker comparison is a similarity view between supplied regions. It does not 
 ## Dependencies (optional; degrade gracefully)
 `gcf-network` needs `networkx` + `matplotlib`; `clinker` needs the `clinker` CLI on PATH. Missing optional dependencies return `SKIPPED_NO_DEPS` / `SKIPPED_NO_CLINKER`. The CLI returns 1 unless the figure result is `WRITTEN`; database/schema/read/render errors may still raise exceptions.
 
-## Home
-`mamey/bigscape_figures.py` (figure layer, alongside `bgc_figures`/`cohort_figures`); wired at
-`mamey/cli.py` + `mamey/bgc_figures.py` (engine-surface — the `figures` subcommand table).
-
 ## See also: KCB comparative locus map
 `figures kcb-locusmap` (`mamey/kcb_locusmap.py`) is the offline, per-BGC comparative sibling of the
 `clinker` figure: it draws the query locus over its top-N MIBiG KnownClusterBlast references with
@@ -63,4 +59,6 @@ homology ribbons shaded by BLAST %identity, matplotlib-only (no `clinker` CLI, n
 the `knownclusterblast/*.txt` already inside the raw ZIP. Same posture — a SUPPORTING artifact,
 similarity not identity, never acceptance evidence for a card. Full spec in docs/BGC_FIGURES.md.
 
-Source owners: `mamey/bigscape_figures.py`; `mamey/bgc_figures.py`; `mamey/cli.py`.
+---
+For maintainers: the figure code is `mamey/bigscape_figures.py`. The `figures` subcommand that runs
+it is wired in `mamey/cli.py` and `mamey/bgc_figures.py`.

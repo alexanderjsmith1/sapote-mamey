@@ -37,6 +37,12 @@ def check(text, mode, artifact_root=None):
     for i in range(1, SUITE_ROWS + 1):
         if i not in seen:
             findings.append(f"item {i}: MISSING row (not found in manifest)")
+    counts = {}
+    for r in suite:
+        counts[r["n"]] = counts.get(r["n"], 0) + 1
+    for i in sorted(counts):
+        if counts[i] > 1 and i >= 1:
+            findings.append(f"item {i}: listed {counts[i]} times (each item must appear once)")
     for r in suite:
         st = r["status"].upper()
         art = r["artifact"].strip("_ ").strip()
@@ -46,10 +52,18 @@ def check(text, mode, artifact_root=None):
             findings.append(f"item {r['n']} ({r['name']}): COMPLETE but no artifact path given")
         elif st == "COMPLETE" and artifact_root is not None:
             # a filled path cell was accepted without looking for the file
-            missing = [t for t in re.split(r"\s*[;,]\s*", art)
-                       if t and not os.path.exists(os.path.join(artifact_root, t.strip("`")))]
+            # A COMPLETE artifact must be a regular file inside the artifact root. A directory, or a
+            # path that resolves outside the root, does not count as the artifact.
+            root_real = os.path.realpath(artifact_root)
+
+            def _admitted(token):
+                path = os.path.realpath(os.path.join(artifact_root, token.strip("`")))
+                inside = os.path.commonpath([path, root_real]) == root_real
+                return inside and os.path.isfile(path)
+
+            missing = [t for t in re.split(r"\s*[;,]\s*", art) if t and not _admitted(t)]
             if missing:
-                findings.append(f"item {r['n']} ({r['name']}): COMPLETE but artifact not found under "
+                findings.append(f"item {r['n']} ({r['name']}): COMPLETE but artifact not a regular file inside "
                                 f"{artifact_root}: {', '.join(missing)}")
         elif st in ("SKIPPED", "N/A", "NA") and not art:
             findings.append(f"item {r['n']} ({r['name']}): {st} but no reason given")
@@ -63,6 +77,8 @@ def check(text, mode, artifact_root=None):
             findings.append("Section H: gold_completeness line MISSING (gold manifest must report it)")
         elif "JUDGMENT_PENDING" in m.group(1):
             findings.append("Section H: gold_completeness is JUDGMENT_PENDING (gold run must be COMPLETE)")
+        elif m.group(1).strip() != "COMPLETE":
+            findings.append(f"Section H: gold_completeness is '{m.group(1).strip()}' (gold run must be exactly COMPLETE)")
         mb = re.search(r'Mode B cards written:\s*(\d+)\s*/\s*(\d+)', text)
         if not mb:
             findings.append("Section H: 'Mode B cards written: X/Y' line MISSING (gold manifest must report it)")

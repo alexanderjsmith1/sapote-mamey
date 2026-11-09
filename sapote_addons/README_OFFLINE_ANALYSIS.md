@@ -8,7 +8,7 @@ ZIPs](../docs/COMPANION_FILES.md#recover-a-genome-from-an-antismash-zip) if FAST
 
 ## Check and install
 
-From the program folder:
+From the program folder. `doctor` writes a reserved probe under the bundle's `runs/` folder, so use a writable working copy ([details](../docs/INSTALL.md#doctor-scope-and-write-probe)).
 
 ```bash
 python mamey_run.py doctor
@@ -61,13 +61,24 @@ are collapsed before selecting translations.
 
 Open `S5_gene_level_similarity.csv` for the query gene, best reference match,
 identity, coverage, call, backend and note. `gemini_summary.json` contains counts,
-backend, requested threads and successful ANI output; its name is kept for compatibility.
-Use `backend` for the selected path; `diamond_status` is static text.
+backend, requested threads and successful ANI output; the file name comes from the earlier two-strain comparison module that wrote it. It is the summary file.
+`backend` is the backend that produced the rows. `backend_selected` is the one chosen at the start. `diamond_status` lists the backends seen in the rows.
 
-The fixed calls are **present** at identity ≥70% and query coverage ≥60%,
-**divergent_candidate** for a hit below either threshold, and **no_hit** when no
-best hit is returned. Interpret no-hit rows with input completeness and backend
-warnings. The CLI's `--min-identity` and `--min-coverage` options are currently
+The fixed calls are **present** at identity ≥70% and query coverage ≥60%, and
+**divergent_candidate** for a hit below either threshold. Rows without a measured hit get
+their own call, and none of them is an observed absence:
+
+- **no_result**: no row came back for the query. A backend that reports no hit and a query
+  that never ran look the same here.
+- **not_computed**: the alignment was skipped, for example a sequence longer than `MAX_ALIGN_AA`.
+- **error**: every attempted pairwise alignment for the query raised an error.
+- **unmeasured**: a row came back without an identity value.
+
+`call_counts` in the summary counts each call. `genes_present_pct` divides by every requested
+strain-A gene; `genes_present_pct_of_measured` divides by `genes_measured`, the rows with a
+measured hit. `coverage_definitions` says how each backend in the rows measures coverage. In the
+Biopython fallback, coverage is the number of query residues in the best local alignment divided
+by the query length. The CLI's `--min-identity` and `--min-coverage` options are currently
 ignored by this command. Backend selection is automatic.
 
 ANI appears only when it succeeds. If both FASTAs were supplied but `ani` is
@@ -91,8 +102,8 @@ Keep an accepted earlier result and retry at a fresh destination after fixing th
 
 Invalid thread counts exit 2 before output creation. Missing input, no translated
 CDS or no backend exits 1; a completed comparison exits 0 even without ANI or with
-all no-hit rows.  A failed DIAMOND route can
-also yield zero-hit output, so inspect warnings and each row's backend.
+all no-hit rows. If DIAMOND fails, Biopython produces the rows; compare `backend`
+with `backend_selected`.
 See [resource control](../docs/COMPARE_RESOURCE_CONTROL.md) for CPU/memory details.
 
 <a id="inputs"></a>

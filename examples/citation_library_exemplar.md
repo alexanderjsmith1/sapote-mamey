@@ -4,14 +4,13 @@
 
 The example's VERIFIED labels are illustrative, not a current verification receipt. Before reuse, confirm each cited statement against its actual source. Replace every historical strain/alias shorthand with `strain / full node-or-contig / region / BGC alias` copied from a bound record. If the node/region binding is unavailable, retain an identity hold rather than reconstructing it.
 **[EXAMPLE: entries below are illustrative of the FORMAT. Check every real entry against PubMed or its DOI before use — see `docs/BERT_MODE_PROTOCOL.md`.]**
-Source reference: Extended BGC Guide Path A, Actinomycetes Project, May 2026.
 
 ---
 
 ## Purpose
 
-A citation library organizes reviewed reference literature beside the dataset's comparator or class hypotheses. One entry may cover a named reference family, but a similarity anchor does not establish that family's chemistry in the query strain. Bibliographic identity, claim support and applicability need separate recorded review before manuscript use. It complements the Layer B
-literature section (§4.8) and supplies the "Key references" blocks that bench
+A citation library organizes reviewed reference literature beside the dataset's comparator or class hypotheses. One entry may cover a named reference family, but a similarity anchor does not establish that family's chemistry in the query strain. Bibliographic identity, claim support and applicability need separate recorded review before manuscript use. It complements the literature
+sections of a Mode B card (§48 and §49 in `current50_v2`) and supplies the "Key references" blocks that bench
 guides cite.
 
 Produced under Bert Mode: every entry is bucketed Verified / Partially verified /
@@ -23,15 +22,14 @@ Unverified, and no identifier is ever emitted without primary-source confirmatio
 
 ```
 Extended Citation Library — [Project name]
-Bert Mode applied throughout. All citations directly verified against PubMed,
-DOI.org, or publisher pages. PMID, DOI, PMCID, and full author lists confirmed.
-Evidence type stated for each entry.
 [N] compound families · [N] verified · [N] partial · [N] unverified leads
+Method: [how each entry was checked, e.g. PubMed record, DOI.org, publisher page; date checked]
+Evidence type stated for each entry.
 ```
 
 ---
 
-## Per-entry format (15-field standard)
+## Per-entry format
 
 ### A[N]. [Compound family name] | VERIFIED
 
@@ -80,8 +78,8 @@ MIBiG accession: class definition — no single MIBiG accession
 Category: RiPP — radical SAM-installed non-α thioether peptides
 
 Strains in dataset:
-  AS-XXX BGC-06 (ranthipeptide domain, interior — Good assembly)
-  AS-XXX BGC-09 (ranthipeptide, interior — Good assembly)
+  <strain> / <full node-or-contig> / <region> / <BGC alias> (ranthipeptide domain, interior — Good assembly)
+  <strain> / <full node-or-contig> / <region> / <BGC alias> (ranthipeptide, interior — Good assembly)
   [+ additional carriers across the collection]
 
 Mechanism / biosynthetic logic:
@@ -107,10 +105,10 @@ PNAS-style formatted citation:
   https://doi.org/10.1021/jacs.9b01519
 
 Dataset context note:
-  Ranthipeptide BGCs appear in multiple strains; AS-XXX BGC-06 and AS-XXX BGC-09
-  are both large interior loci on Good assemblies — among the most unexplored
-  classes in the dataset. A low-% MIBiG hit here likely reflects domain-level
-  similarity only, not structural identity; treat as a novelty lead.
+  Ranthipeptide BGCs appear in multiple strains; the two loci above are both
+  large interior loci on Good assemblies. A low-% MIBiG hit here means the
+  locus is divergent from characterized references; similarity is not
+  structural identity, and novelty is not assessed by this entry.
 ```
 
 ---

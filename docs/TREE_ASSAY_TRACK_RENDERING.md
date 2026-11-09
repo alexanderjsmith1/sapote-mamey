@@ -1,42 +1,126 @@
 # Selected assay tracks beside an existing tree
 
-`tools/build_tree_tracks.py` adapts one or more **explicitly selected** Figure Factory BIOASSAY tracks. It does not pool assays, calculate a maximum, resolve taxonomy, or infer a tree-tip identifier. The two R renderers draw the resulting selected values against a supplied Newick tree.
+Draw bioassay values as bars beside the tips of a tree you already have. Two steps do it:
 
-First emit `bioassay_tree_track.tsv` using the [Figure Factory selection contract](BIOASSAY_FIGURE_FACTORY.md#tree-and-mode-b-boundary). Every series retains its own target, material, time point, dose, aggregation and named material selection. The factory receipt and track hashes must match. An unresolved growth-control or other upstream admission hold must be resolved in that channel before a track is emitted; drawing a figure cannot clear that hold.
+1. `tools/build_tree_tracks.py` reads your selected assay tracks and writes three files.
+2. An R script draws those files against your Newick tree.
 
-Create an exact metadata TSV with `tip`, `strain`, `label`, `role`. `tip` is the literal Newick tip ID. Query strains must map one-to-one; reference and outgroup roles are explicit and carry no query assay values. Labels are supplied as deposited/reviewed; the renderer does not manufacture species names or type status. All tree tips must appear exactly once in this table.
+You choose the assays and tips. The tools do not pool assays, take a maximum, resolve taxonomy or guess which tip belongs to which strain.
 
-The adapter config uses `schema: sapote.tree-tracks.v1`, a configurable `input_root`, a SHA-256-bound `metadata` object (`path`, `sha256`), and a `tracks` list. Each entry names a unique output `column`, display `label`, hex `colour` (the key's spelling), and a SHA-256-bound Figure Factory `receipt`. `input_root` resolves relative to the config file's parent (or names an absolute root); file locators are relative to that root and cannot escape it. Metadata roles must be exactly `query`, `reference` or `outgroup`. Tips/query strains are literal strings with no whitespace normalization; nonempty labels and unique tips are required, but display labels need not be unique. Formula-leading tip/strain/label text is refused, so do not silently edit an exact identifier to bypass that hold. Track columns must begin with a letter and use letters/digits/underscores, avoid reserved `tip`/`label`/`role`, and be unique; display series labels must also be unique and colors use six-digit hex syntax. See the runnable synthetic configs in `examples/tree_tracks/`.
+## What you need
 
-```bash
-python3 tools/build_tree_tracks.py --config examples/tree_tracks/grouped.json --out /path/to/new-track-output
-Rscript tools/render_tree_bar_groups.R examples/tree_tracks/tree.newick \
-  /path/to/new-track-output/tracks.tsv /path/to/new-track-output/series.tsv \
-  /path/to/new-figure "Selected assay tracks" none none
+- A Newick tree.
+- One bioassay track for each series you want to draw (`bioassay_tree_track.tsv`), with its Figure Factory receipt. Make them as described in [Select values for a tree](BIOASSAY_FIGURE_FACTORY.md#tree-and-mode-b-boundary). Each series keeps its own target, material, time point, dose and aggregation. Settle any open growth-control hold there first. Drawing a figure does not clear it.
+- A metadata TSV that maps tree tips to strains.
+- A config file that lists the tracks.
+- R with `ape`, `ggtree`, `ggplot2` and `patchwork`.
+
+### Metadata TSV
+
+One row per tree tip, with these columns:
+
+```
+tip	strain	label	role
+tip1	ABC-1	Query isolate 1	query
+tip5	REF-1	Reference name as deposited	reference
+tip6	OUT-1	Outgroup name as deposited	outgroup
 ```
 
-The last two optional arguments are a numeric display threshold (or `none`) and a numeric internal-node support threshold (or `none`). Neither has an assay-specific default. A node label is shown only when it is numeric and meets the supplied threshold; the renderer does not determine which support method produced that label.
+- `tip` is the exact tip name in the Newick file. Every tree tip appears once.
+- `role` is `query`, `reference` or `outgroup`. Only query tips carry assay values.
+- `label` is the text shown on the figure. You supply it. The tools do not make up species names or type status.
+- Text that starts like a spreadsheet formula is refused. Do not edit an identifier to get past that.
 
-`render_tree_one_bar_row.R` accepts the same arguments and requires exactly one series. PDF output uses the native Quartz device on macOS and the standard R PDF device elsewhere. Both renderers emit PDF, PNG and an exact tip-order TSV. They preserve the supplied topology and branch lengths; ladderizing only orders the display. They refuse existing figure outputs and mismatched or duplicate tip IDs. Dynamic axes preserve negative values; no value is clipped to a presumed 0–100 range. A recorded zero is marked with a dot; an admitted `NOT_MEASURED` is blank. Reference/outgroup bars are refused. Large trees still require visual review for label legibility.
+### Config file
 
-The adapter records original receipt hashes, the full selection metadata and output hashes in `track_adapter_receipt.json`. Keep this receipt with the figures. Multi-series juxtaposition does not assert that different material or assay scopes are interchangeable. These are strain-level readouts, with no attribution to a biosynthetic locus. A 16S tree remains placement context, not a species-identification claim.
+```json
+{
+  "schema": "sapote.tree-tracks.v1",
+  "input_root": ".",
+  "metadata": {"path": "metadata.tsv", "sha256": "<hash of the file>"},
+  "tracks": [
+    {"column": "value_48", "label": "Selected 48 h", "colour": "#287D8E",
+     "receipt": {"path": "factory_48/bioassay_figure_factory_receipt.json", "sha256": "<hash>"}}
+  ]
+}
+```
 
-The generated `FIGURE_R_MANIFEST.tsv` describes cohort figure schemas and is not a registry for these standalone renderers.
+- `input_root` is where the other paths start. A relative value is taken from the config file's folder. Paths cannot leave it.
+- Each `sha256` must match the file on disk.
+- `column` must be unique. It starts with a letter and uses letters, digits and underscores. It cannot be `tip`, `label` or `role`.
+- `label` must be unique. `colour` is six-digit hex.
 
-## Adapter publication and recovery
+Runnable synthetic examples are in `examples/tree_tracks/` (`grouped.json`, `single.json`, `metadata.tsv`, `tree.newick`). Its [README](../examples/tree_tracks/README.md) says how to reproduce them without changing the originals.
 
-Choose a new output directory outside source evidence and the code bundle; even an existing empty resolved directory is refused. The adapter creates its parent only after input admission, stages `tracks.tsv`, `series.tsv` and `track_adapter_receipt.json` in a unique sibling, then publishes by ordinary directory rename. Caught errors remove the stage, but interruption can leave it and a concurrent empty destination can be replaced on POSIX. Use one output writer, preserve any partial/staged attempt and diagnostics, and choose a fresh destination after resolving the cause. There is no resume option or source/code output-root guard. The CLI returns 0 without printing a success receipt; read the saved receipt and expected three-file roster. Handled refusals print `TREE_TRACK_REFUSED` and return 2; unexpected config shapes can still produce an uncaught traceback.
+## Step 1. Build the tracks
 
-Keep config, metadata, producer receipts, tracks and caption/selection sidecars stable throughout adaptation. Their hashes are checked before separate parsing reads and are not all rechecked at publication. The adapter receipt records the config hash and relative metadata/producer receipt specs but does not embed the config or record the resolved `input_root`. Retain the selected config path/hash, resolved input root and original pinned sources with the adapter receipt so its relative locators can be resolved after a handoff. Do not reconstruct a moved source root by filename guesses.
+```bash
+python3 tools/build_tree_tracks.py --config examples/tree_tracks/grouped.json \
+  --out /path/to/new-track-output
+```
 
-## Verification boundary and actual render artifacts
+Use a folder that does not exist yet. The tool refuses an existing one, even if empty. Keep the folder outside the bundle and outside your source evidence.
 
-`PASS_EXACT_ADMITTED_VALUES` is the **adapter** status. The adapter has no Newick input. It binds metadata and producer-receipt hashes, rechecks the track/caption artifact hashes, accepts producer states `PASS_DATA_READY_R_NOT_REQUESTED` or `PASS_FIGURE_FACTORY_RENDERED`, and requires exact query-strain rosters and finite observed values or blank `NOT_MEASURED`. It checks required selection keys, not all scientific selector semantics. It does not revalidate every producer artifact, raw assay asset, tree topology or branch-length policy. Final `tracks.tsv` omits the strain column; retain the pinned metadata that owns the strain-to-tip mapping.
+It prints nothing when it works and exits 0. Success is a new folder holding exactly three files:
 
-Actual Newick tip-set equality is checked later by the shared R renderer. The R code validates duplicate/exact tip membership, roles, series columns and finite track values, but does not certify branch lengths, rooting, taxonomic admission, support-method identity or prior source governance. Standalone blank numeric cells are displayed as unmeasured without consulting a missingness-state column; use the adapter's bound output rather than an unaudited hand-edited TSV.
+- `tracks.tsv`: one row per tip, with a column per series;
+- `series.tsv`: the column, label and colour of each series;
+- `track_adapter_receipt.json`: the hashes and selections it used.
 
-The R renderer emits a 10-inch-high PDF, a 160-dpi PNG and `<stem>.tip_order.tsv`; width varies with tip/series count (large trees cap at 40 inches). It refuses existing output files by `file.exists`, then writes PDF, checks its existence/nonzero size, writes PNG and finally tip order. These files are sequential, not a transaction. A later failure can leave earlier outputs; do not reuse the same stem after a partial failure. Quarantine that attempt and use an unused stem for recovery.
+The receipt holds the status `PASS_EXACT_ADMITTED_VALUES`. Open it to confirm. If the tool refuses, it prints `TREE_TRACK_REFUSED` with the reason and exits 2. A badly shaped config can still end in a Python traceback.
 
-The adapter receipt hashes adapter TSVs, not its own receipt, Newick, R code, final PDF/PNG or tip-order file. It is emitted before rendering and does not become a rendered-figure receipt afterward. Preserve an external inventory with hashes of the receipt itself, supplied Newick, renderer code, renderer arguments and final artifacts, along with the original metadata/producer receipt. A successful R exit is not visual QA. Check rendered labels and missingness before a figure is adopted.
+## Step 2. Draw the figure
+
+```bash
+Rscript tools/render_tree_bar_groups.R TREE.newick TRACKS.tsv SERIES.tsv \
+  OUT_PREFIX "Title" none none
+```
+
+Arguments, in order:
+
+1. the Newick tree;
+2. `tracks.tsv`;
+3. `series.tsv`;
+4. the output prefix, for example `/path/to/new-figure`;
+5. the figure title;
+6. optional: a numeric display threshold, or `none`;
+7. optional: a numeric support threshold for internal-node labels, or `none`.
+
+Leaving out argument 6 or 7 is the same as `none`: no threshold line, and no node labels. To give a support threshold, give argument 6 too (`none` is fine). A node label shows only if it is a number at or above the support threshold. The renderer does not know which method made the label.
+
+`tools/render_tree_one_bar_row.R` takes the same arguments but needs exactly one series.
+
+You get four files: `OUT_PREFIX.pdf`, `OUT_PREFIX.png`, `OUT_PREFIX.tip_order.tsv` and `OUT_PREFIX.cell_states.tsv`. The PDF is 10 inches high, the PNG is 160 dpi, and wide trees cap at 40 inches. The tree's tips must match the metadata tips exactly, or the renderer refuses with `TREE_TRACK_REFUSED`. It also refuses a prefix whose output files already exist.
+
+What the picture shows:
+
+- Topology and branch lengths are kept. Ladderizing only changes the display order.
+- Each cell has one of four states, listed per tip and series in `OUT_PREFIX.cell_states.tsv`:
+  - `OBSERVED`: a bar;
+  - `RECORDED_ZERO`: a dot on the zero line;
+  - `NOT_MEASURED`: a query tip with no value, marked with a small gray x on the zero line;
+  - `NOT_APPLICABLE`: a reference or outgroup tip, which carries no assay value. It has no mark.
+- The subtitle states this key. Negative values are kept, and nothing is clipped to 0 to 100.
+- Reference and outgroup bars are refused.
+
+## Check the result
+
+A clean R exit is not a visual check. Open the PNG. Look at label legibility and at blank cells. Large trees need this most.
+
+Keep these together: the config, the metadata, the producer receipts, the three track files, and the figure files. Also record the hash of the Newick, the R script and the arguments you used. The adapter receipt is written before the figure exists, so it does not cover the figure.
+
+These are strain-level readouts. They do not point to a biosynthetic locus. Several series side by side do not mean the materials or assays are interchangeable. A 16S tree is placement context, not a species identification.
+
+## If something goes wrong
+
+- **Step 1 left a partial folder.** Keep it for diagnosis. Fix the cause and use a new folder. There is no resume. Use one writer at a time.
+- **Step 2 failed after writing some files.** The PDF, PNG and tip-order file are written one after another. Move the partial set aside and use an unused prefix.
+- **Files moved.** The receipt records the config hash and relative paths, but not the resolved `input_root`. Keep the config path, its hash and the root with the receipt so a later reader can find the sources.
+
+What each tool checks:
+
+- The adapter checks hashes, the track roster and finite values. It never sees the Newick.
+- The R script checks tips, roles, columns and values. It does not check branch lengths, rooting or support method.
+- A hand-edited `tracks.tsv` skips the adapter's checks. Use the adapter's output.
 
 Both `tools/render_tree_*` wrappers call `tools/tree_track_render.R`.

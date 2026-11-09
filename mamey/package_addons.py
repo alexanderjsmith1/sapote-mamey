@@ -203,12 +203,14 @@ def write_analysis_forward(package_dir, top=12):
     with open(_md_tmp, "w", encoding="utf-8") as f:
         f.write(f"# \u25b6 Analysis-forward \u2014 {strain}\n\n")
         f.write(f"> **This package is DETERMINISTIC EXTRACTION (Mamey).** "
-                f"Full Sapote judgment (\u00a71\u2013\u00a78 Mode B) is **{status}**.\n\n")
+                f"Full Sapote judgment (authored Mode B cards) is **{status}**.\n\n")
         if not judged:
             f.write(f"**{n_raw} BGCs extracted \u00b7 0 / {n_raw} given full Mode B judgment.** "
                     "Manifest `top_bgc_targets`/`wet_lab_priorities` are empty because judgment has not run.\n\n")
-            f.write(f"## \u25b6 Start full judgment\n\nTrigger:  **`Run full Sapote analysis on {strain}`**\n\n")
-            f.write("Compilation order: " + " \u2192 ".join(COMPILATION_ORDER) + "\n\n")
+            f.write(f"## \u25b6 Start full judgment\n\nTo author it, ask your assistant to run the Sapote "
+                    f"judgment workflow on this package, for example: `Run full Sapote analysis on {strain}`. "
+                    "See `docs/MODE_B_USER_WALKTHROUGH.md` in the code bundle.\n\n")
+            f.write("Suggested order of authored deliverables: " + " \u2192 ".join(COMPILATION_ORDER) + "\n\n")
             if high:
                 f.write("## \u2605 Judge these first \u2014 Diagnostic Rescue HIGH\n\n")
                 for l in high:
@@ -268,21 +270,19 @@ def write_analysis_forward(package_dir, top=12):
                         "products": [p.strip() for p in (row.get("Products", "") or "").split(";") if p.strip()],
                         "kcb_top": row.get("KCB_top", ""),
                     })
-                    try:
-                        _ks = float(row.get("KCB_score", 0) or 0)
-                    except (ValueError, TypeError):
-                        _ks = 0
-                    _band = ("very high (>100k)" if _ks > 100000 else
-                             "high (>50k)" if _ks > 50000 else
-                             "moderate (>5k)" if _ks > 5000 else
-                             "low (<5k)" if _ks > 0 else "no KCB hit")
+                    # Same band as verdicts.json: antiSMASH's percent, not the cumulative score.
+                    from .precision import similarity_band as _similarity_band
+                    from .scoring import _lx_truthy
+                    _band = _similarity_band(row.get("KCB_similarity_pct"))
                     _verts.append({
                         "bgc_id": row.get("BGC_ID", ""),
                         "lead_tier": row.get("Lead_tier_auto", ""),
                         "claim_confidence": row.get("Arch", ""),
                         "kcb_similarity_band": _band,
                         "standing_rule_flag": row.get("Standing_rule", ""),
-                        "primary_metabolism_flag": bool(row.get("Primary_metab_flag", "")),
+                        # The same reading of a flag cell as the lead filter: "NO" is not a flag.
+                        "primary_metabolism_flag": _lx_truthy(row.get("Primary_metab_flag", "")),
+                        "mobile_element_flag": row.get("Mobile_element_flag", ""),
                         "misanchor_flag": row.get("Misanchor_Flag", ""),
                     })
                 f.write("\n## Terse board (Sapote session input)\n\n```\n")
@@ -560,6 +560,8 @@ def write_open_me_first(package_dir: str | Path) -> Path:
   <tr><td>Evidence details</td><td>{escape(evidence_detail)}</td></tr>
   <tr><td>Recorded pipeline issues</td><td>{len(issues)}</td></tr>
 </table>
+<p class="muted">The issue count and pipeline status are as sealed. An issue found after sealing is
+recorded in <code>issue_log.md</code> and in <code>terminal_status</code> in <code>manifest.json</code>.</p>
 
 <h2>Top antibacterial leads</h2>
 <table>

@@ -47,14 +47,22 @@ if (length(panels) != 1) {
                length(panels), paste(panels, collapse = " | ")))
 }
 identity <- panels[1]
-if (!grepl("^[^/]+ / [^/]+ / [^/]+ / ", identity)) {
+# Each of the four components must hold a non-space character; an empty BGC alias is a HOLD too.
+COMPONENT <- "[^/]*[^/[:space:]][^/]*"
+if (!grepl(paste0("^", COMPONENT, " / ", COMPONENT, " / ", COMPONENT, " / [^/[:space:]]"), identity)) {
   # A malformed identity is a HOLD, not something to paper over with a prettier label.
   stop(sprintf("panel is not a full strain / node / region / BGC identity: %s", identity))
 }
 
 df$start <- as.numeric(df$start); df$end <- as.numeric(df$end)
 df$order <- as.numeric(df$order)
-df$.strand <- ifelse(df$strand == "-", -1, 1)
+# Strand comes from the source: "+"/"1" forward, "-"/"-1" reverse. A blank or unreadable strand is
+# 0 and is drawn as a plain box with no arrowhead, never as a forward arrow.
+strand_direction <- function(x) {
+  x <- trimws(as.character(x))
+  ifelse(x %in% c("-", "-1"), -1, ifelse(x %in% c("+", "1", "+1"), 1, 0))
+}
+df$.strand <- strand_direction(df$strand)
 
 # antiSMASH gene roles. Colours follow the Okabe-Ito set the rest of the bundle uses, so the map is
 # readable in greyscale and to colour-blind readers.
@@ -78,7 +86,7 @@ head_h <- 0.46
 
 arrow_poly <- function(i) {
   s <- df$start[i]; e <- df$end[i]; dir <- df$.strand[i]
-  head_len <- min((e - s) / 3, span * 0.012)
+  head_len <- if (dir == 0) 0 else min((e - s) / 3, span * 0.012)
   if (dir > 0) {
     xs <- c(s, e - head_len, e, e - head_len, s)
   } else {

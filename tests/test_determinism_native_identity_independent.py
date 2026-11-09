@@ -2,7 +2,7 @@
 import csv
 import json
 import pytest
-from mamey.crosswalk import infer_node_id
+from mamey.crosswalk import infer_node_id, legacy_short_node_id
 from tools.determinism_fingerprint import fingerprint_pair, report_ok
 
 STRAIN="SYNTHETIC-001"
@@ -49,7 +49,9 @@ def test_real_identity_conflict_cannot_pass_even_with_identical_bytes(tmp_path):
     assert not report_ok(report(result))
 
 def test_normalized_collision_keeps_both_physical_rows(tmp_path):
+    # Ruling 479: new packages no longer collide; a stored legacy package still can.
     rows=[row(),row("NODE_1_length_1000_cov_1.9","BGC002")]
+    for r in rows: r["Node_ID"]=legacy_short_node_id(r["Contig"])
     assert rows[0]["Node_ID"]==rows[1]["Node_ID"]
     result=pair(tmp_path,rows,rows)
     assert not result["identity_holds"] and len(result["canonical_csv_cells"])==4

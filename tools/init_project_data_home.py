@@ -27,31 +27,67 @@ REGISTERS = {
 }
 
 def _write_tsv(path: Path, header: tuple[str, ...]) -> None:
-    with path.open("w", newline="", encoding="utf-8") as handle:
+    # Exclusive create: never truncate a file another writer put here.
+    with path.open("x", newline="", encoding="utf-8") as handle:
         SafeWriter(handle, delimiter="\t", lineterminator="\n").writerow(header)
+
+def _write_new_text(path: Path, text: str) -> None:
+    with path.open("x", encoding="utf-8") as handle:
+        handle.write(text)
+
+def _remove_owned(created: list[tuple[Path, os.stat_result]]) -> list[str]:
+    """Remove only entries this run created, newest first; return what stayed.
+
+    An entry whose inode changed belongs to another writer and stays. A folder
+    that still holds anything this run did not create stays (rmdir refuses it).
+    """
+    kept: list[str] = []
+    for path, owned in reversed(created):
+        try:
+            actual = path.lstat()
+            if (actual.st_dev, actual.st_ino) != (owned.st_dev, owned.st_ino):
+                kept.append(str(path))
+                continue
+            if path.is_dir() and not path.is_symlink():
+                path.rmdir()
+            else:
+                path.unlink()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            kept.append(str(path))
+    return kept
 
 def create_home(root: Path, project_id: str) -> None:
     root = root.expanduser().resolve()
-    if root.exists():
+    if root.exists() or root.is_symlink():
         raise FileExistsError(f"refusing existing target: {root}")
     root.mkdir(parents=True)
+    created: list[tuple[Path, os.stat_result]] = [(root, root.lstat())]
+    def made(path: Path) -> None:
+        created.append((path, path.lstat()))
     try:
-        for name in DIRS: (root/name).mkdir()
-        for rel, header in REGISTERS.items(): _write_tsv(root/rel, header)
-        (root/"PROJECT_HOME.json").write_text(json.dumps({
+        for name in DIRS:
+            (root/name).mkdir(); made(root/name)
+        for rel, header in REGISTERS.items():
+            _write_tsv(root/rel, header); made(root/rel)
+        _write_new_text(root/"PROJECT_HOME.json", json.dumps({
             "schema_version": 1, "project_id": project_id,
             "storage_model": "pointer-first", "status": "INITIALIZED",
             "portable_locator_policy": "Use relative, logical, or configurable locators; do not hardcode developer workspace paths.",
-        }, indent=2)+"\n", encoding="utf-8")
-        (root/"README.md").write_text(f"""# {project_id} project data home
+        }, indent=2)+"\n")
+        made(root/"PROJECT_HOME.json")
+        _write_new_text(root/"README.md", f"""# {project_id} project data home
 
 This pointer-first home indexes genomes, antiSMASH results, Mamey packages, phylogeny inputs and outputs, bioassays, citations, manuscripts, and deliverables without copying large evidence stores.
 
 Add an artifact only after recording its locator, checksum when available, authority, and status in the matching register. Keep superseded material under `09_SUPERSEDED` with a pointer to its replacement. Scientific admission and release authority remain separate from storage.
-""", encoding="utf-8")
-    except Exception:
-        import shutil
-        shutil.rmtree(root, ignore_errors=True)
+""")
+        made(root/"README.md")
+    except Exception as error:
+        kept = _remove_owned(created)
+        if kept:
+            error.add_note("init_project_data_home left these paths in place: " + ", ".join(kept))
         raise
 
 def main(argv=None) -> int:

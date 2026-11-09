@@ -1,7 +1,12 @@
 # Read saved gap-rescue evidence in a Mode B card
 
-Use existing gap-rescue results to fill the evidence scaffold in a `current50_v2`
-card. You need the matching package, focal BGC and saved rescue run. 
+Use saved gap-rescue results to fill the evidence scaffold in a `current50_v2`
+card. A **gap-rescue run** searches each antiSMASH region's missing reference genes elsewhere in the
+assembly. Make one with `python mamey_run.py gap-rescue --strain EXAMPLE --input-zip inputs/EXAMPLE.zip --out <folder outside the bundle>`.
+It is heavy, runs one genome at a time, and needs DIAMOND on your `PATH` plus MIBiG reference files.
+Run `gap-rescue --help` for the rest. It writes one folder per region and a `SUMMARY.tsv` into `--out`.
+
+You also need the matching package and the focal BGC. Terms are in the [glossary](GLOSSARY.md).
 
 Run from the bundle directory, selecting the package's local BGC alias:
 
@@ -10,6 +15,10 @@ python mamey_run.py emit-modeb-template --package runs/EXAMPLE/package --bgc BGC
   --contract current50_v2 --gap-rescue-dir inputs/EXAMPLE-rescue \
   --out reviews/EXAMPLE-mode-b.md
 ```
+
+`--out` must name a file that does not exist yet. If the path already exists, the command exits 1,
+prints `The file was not changed`, and leaves the existing file as it was. Choose a new name for each
+emission.
 
 `current50_v2` selects the profile that reads this evidence. Keep the card's full
 **strain / full node-or-contig / region / BGC alias** from the source record.
@@ -28,7 +37,11 @@ table uses `strain`, `core identity`, `partner contig`, `partner region`,
 of each ruling: the reader does not enforce all those fields or a verdict vocabulary.
 
 Gene support and pair rulings remain separate. A supported gene does not clear
-an unresolved pair. A supplied source that is missing gives `RESCUE_EVIDENCE_HOLD`.
+an unresolved pair.
+
+If a required source is missing or unreadable, the reader records a hold in the template instead of failing. Sections 19 and
+26 of the emitted file begin with `RESCUE_EVIDENCE_HOLD:` and the reason. Search the file for that
+word. It means no rescue count was established. It does not mean there is no rescue.
 
 ## Read the scaffold
 
@@ -37,8 +50,12 @@ Read the denominators for reference genes, annotated biosynthetic genes, search
 matches, effective gene support and pair rulings separately. Split candidates
 involving the focal locus are distinguished from candidates elsewhere.
 
-`BOUND` describes the reader's identity/count/location/length/metric checks and
-current file hashes. The reader hashes normalized saved protein strings; it does
+In sections 19 and 26, the reader reports one of two states. `BOUND` means the identity, count,
+location, length and metric checks passed and the current file hashes were recorded. A typical
+section 19 line reads: "N of M reference genes in the focal region; K supported external
+reference-gene assignment(s); ...". `RESCUE_EVIDENCE_HOLD` is the other state.
+
+The reader hashes normalized saved protein strings. It does
 not independently check the amino-acid alphabet or canonical assembly translations.
 Split-piece geometry and sequences need their own source review. Keep the original
 source receipts with these newly calculated hashes.
@@ -59,8 +76,10 @@ neighborhoods, use [expanded locus scope](MODEB_EXPANDED_LOCUS.md).
 A malformed examined receipt can hold discovery even for another locus; select
 the exact reviewed leaf folder when appropriate. Missing `reference` or
 `split_gene_check` fields can fail rendering after loading reported `BOUND`.
-Keep the diagnostic and earlier output, obtain a corrected source receipt and
-retry to a fresh destination. Do not fill scientific fields by inference.
+Keep the diagnostic, the earlier output and the rescue folder as they are. Do not edit a saved
+receipt or evidence file in place. To get a corrected receipt, run `gap-rescue` again into a new
+`--out` folder. If a file can only be repaired by hand, copy the rescue folder to a new folder first,
+record the original file's SHA-256, what you changed and why, and point `--gap-rescue-dir` at the copy.
+Then run `emit-modeb-template` again into a new `--out` file. Check that sections 19 and 26 no longer start with `RESCUE_EVIDENCE_HOLD:`. Do not
+fill scientific fields by inference.
 Review local paths in receipts before sharing them.
-
-<a id="reader-discovery-and-provenance-limits"></a>

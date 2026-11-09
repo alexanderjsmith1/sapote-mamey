@@ -135,6 +135,24 @@ def is_tracked(rel: str) -> bool:
     return True
 
 
+def unchecked_release_artifacts(root) -> list[str]:
+    """Root-level files the policy leaves out as release artifacts (tier ZIP, SHA256SUMS, cut logs).
+
+    The manifest checker cannot vouch for these bytes; their own outer receipt must. Build
+    cruft and the two manifest files are not listed. Reads names only, never file contents.
+    """
+    import pathlib
+    r = pathlib.Path(root)
+    out = []
+    for p in r.iterdir():
+        name = p.name
+        if not p.is_file() or name in _SKIP_NAMES or name.endswith(_SKIP_SUFFIX):
+            continue
+        if not is_tracked(name):
+            out.append(name)
+    return sorted(out, key=lambda s: s.encode())
+
+
 def tracked_paths(root) -> list[str]:
     """Sorted `./`-prefixed governed paths under `root` (matches TIER_MANIFEST's on-disk format)."""
     import pathlib

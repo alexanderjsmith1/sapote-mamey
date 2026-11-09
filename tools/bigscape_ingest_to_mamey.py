@@ -14,7 +14,8 @@ triage board (which has BOTH the BGC number and the node.region) is the bridge. 
 
 Everything written is capacity-level and provenance-tagged `[store-backed GCF | BiG-SCAPE]`.
 KNOWN means the family shares a bin with a MIBiG reference (architecture-consistent), NOT a
-compound-identity call. Distances are BiG-SCAPE GCF distances (0 identical .. 1 maximal).
+compound-identity call. Distances are BiG-SCAPE GCF distances from that run (0 most similar .. 1 least
+similar); a distance is a similarity score, and 0 does not show identical sequences or products.
 
 Usage:
   # DB path (full context incl. cohort co-members):
@@ -42,6 +43,7 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, sqlite3, re, os, csv, json, glob, sys, contextlib
+from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mamey.bigscape_namespace import (
     NamespaceError, build_family_identity, normalize_cutoff, normalize_run_id,
@@ -126,7 +128,11 @@ def gcf_context(db, cutoff, names, run_id=None):
     """Return contexts for one explicit run and exact cutoff, refusing collisions."""
     # COMP-P09: close the sqlite connection even if a query raises mid-way (malformed/partial db).
     # The prior code only reached c.close() on the happy path, leaking the handle on any error.
-    with contextlib.closing(sqlite3.connect(db)) as c:
+    # Read-only: a missing path is refused before connecting, so a dry run (or a typo) never
+    # creates an empty SQLite file, and an existing database is never written.
+    if not os.path.isfile(db):
+        raise FileNotFoundError(f"not an existing BiG-SCAPE database: {db}")
+    with contextlib.closing(sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True)) as c:
         selected_cutoff = normalize_cutoff(cutoff)
         # Probe the database contract before argument normalization so malformed SQLite inputs
         # retain their native query error while still closing the connection. A valid database
@@ -280,7 +286,9 @@ def render_block(ctx):
                          "run. This is not evidence that no characterized analog exists.")
     if ctx["nearest_mibig"]:
         a, n, d = ctx["nearest_mibig"]
-        lines.append(f"- Nearest characterized cluster: {a} ({n}), GCF distance {d} (0 identical .. 1 maximal).")
+        lines.append(f"- Nearest MIBiG cluster in this run: {a} ({n}), BiG-SCAPE GCF distance {d} (0 most similar .. "
+                     "1 least similar, in this run's metric and cutoff). A distance is a similarity score; "
+                     "distance 0 does not show identical sequences or the same product.")
     # co-members: None => unavailable (portable); [] => strain-unique; [..] => list
     members = ctx.get("cross_strain_members")
     if members is None:
@@ -380,7 +388,10 @@ def main():
     if a.db:
         if a.run_id is None:
             raise NamespaceError("RUN_ID_REQUIRED", "--db requires an explicit run_id")
-        ctx = gcf_context(a.db, a.cutoff, names, run_id=a.run_id)
+        try:
+            ctx = gcf_context(a.db, a.cutoff, names, run_id=a.run_id)
+        except FileNotFoundError as error:
+            sys.exit(f"ERROR: {error}")
     else:
         if not a.strain:
             sys.exit("ERROR: --from-tsv requires --strain.")

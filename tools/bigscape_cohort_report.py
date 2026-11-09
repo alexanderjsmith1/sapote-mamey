@@ -25,6 +25,7 @@ except ImportError:
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.missing_values import optional_text  # noqa: E402
 
 REGION_GBK_RE = re.compile(r"^(.+)\.region(\d{3})\.gbk$", re.I)
 CLAIM_CEILING = (
@@ -135,6 +136,18 @@ def _class_code_for_text(text, vocabulary=None):
     return "UNK"
 
 
+def member_class_codes(rows, vocabulary=None):
+    """Broad class code of each member row, from its own bin label, category and product."""
+    vocabulary = vocabulary or load_class_vocabulary()
+    return [
+        _class_code_for_text(
+            ";".join((row.get("bin_label", ""), row.get("category", ""), row.get("product", ""))),
+            vocabulary,
+        )
+        for row in rows
+    ]
+
+
 def classify_family(rows):
     vocabulary = load_class_vocabulary()
     by_code = {entry["code"]: entry for entry in vocabulary["entries"]}
@@ -165,10 +178,12 @@ def _reviewed_subtypes(path):
         raise ValueError("REVIEWED_SUBTYPE_GATE: table requires family_id and reviewed_subtype_code")
     mapping = {}
     for row in rows:
+        # csv.DictReader fills a short row with None; str(None) would pass as the text "None".
+        # A missing or placeholder value (blank, NA, None, -) is a hold, never admitted text.
+        if None in row or any(optional_text(row.get(field)) is None for field in required):
+            raise ValueError("REVIEWED_SUBTYPE_GATE: blank, missing or extra required field")
         family_id = str(row["family_id"]).strip()
         record = {field: str(row[field]).strip() for field in required if field != "family_id"}
-        if not family_id or any(not value for value in record.values()):
-            raise ValueError("REVIEWED_SUBTYPE_GATE: blank required field")
         if family_id in mapping and mapping[family_id] != record:
             raise ValueError(f"REVIEWED_SUBTYPE_GATE: conflicting subtype for family {family_id}")
         mapping[family_id] = record
@@ -455,6 +470,9 @@ def build(
             "n_other_records": groups["other"],
             "products": ";".join(sorted({row["product"] for row in rows if row["product"]})),
             "alias_hold_records": sum(row["identity_status"] != "COMPLETE" for row in rows),
+            # Members whose own labels resolve to no code. class_code ignores them, so a family
+            # with one resolved code and unresolved members is labeled with that code, not MIX.
+            "n_unresolved_class_records": member_class_codes(rows).count("UNK"),
         })
     write_tsv(out / "BIGSCAPE_GCF_SUMMARY.tsv", summaries, list(summaries[0]) if summaries else ["family_id"])
     cross_strain_family_ids = {

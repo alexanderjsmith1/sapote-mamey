@@ -21,9 +21,16 @@ def test_genuine_concordant_pks_not_oversuppressed():
     assert kcb_class_mismatch("T1PKS", "T1PKS") is False
     assert kcb_coverage_substantial(12) is True
     row = {"KCB_score": 60000, "Products": "T1PKS"}
+    bgc = {"kcb_cumulative": 60000, "kcb_similarity_pct": 85, "kcb_protein_hits": 12,
+           "clusterblast_top": "polyketide T1PKS", "products": ["T1PKS"], "architecture_confidence": "A"}
+    assert _claim_ceiling(row, bgc, n_genes=15) == "candidate product-level similarity"
+
+
+def test_cumulative_score_without_percent_keeps_lowest_ceiling():
+    row = {"KCB_score": 60000, "Products": "T1PKS"}
     bgc = {"kcb_cumulative": 60000, "kcb_protein_hits": 12, "clusterblast_top": "polyketide T1PKS",
            "products": ["T1PKS"], "architecture_confidence": "A"}
-    assert _claim_ceiling(row, bgc, n_genes=15) == "candidate product-level similarity"
+    assert _claim_ceiling(row, bgc, n_genes=15) == "source-derived similarity"
 
 # ---- CUT B ----
 def _rep(conf, boundary, tier):

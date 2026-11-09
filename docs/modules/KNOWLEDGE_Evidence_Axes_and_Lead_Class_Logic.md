@@ -40,7 +40,7 @@ strain-level `tfbs.SARP_BTAD_like` palindrome count. Tools must read the per-BGC
 
 ## 2. Composite score (what the ranked-field figures plot)
 ```
-score =  +3.0  Mode B CONFIRM        (DOWNGRADE +0.5 ; DROP → lead excluded entirely)
+score =  +3.0  Mode B CONFIRM        (DOWNGRADE +0.5 ; DROP → excluded from the shortlist, kept in the all-scores table with a DROP tag)
          +2.0  SARP coupling
          +1.0  KCB anchor
          +1.0  Tier-1 marker
@@ -54,9 +54,11 @@ the all-scores table sorts by score. A higher score alone therefore need not lea
 The A/B/C rules below do not use numeric cutoffs. Figure references and claims about the shape
 of an earlier score distribution are historical, not guaranteed properties of a new input.
 
-The KCB bonus accepts any nonempty anchor except `none` or `-`; a placeholder such as
-`UNRESOLVED` can still receive it. Check the underlying comparator evidence before describing
-that bonus as an observed match. Preserve the recorded input rather than silently recoding it.
+The KCB bonus needs a recorded anchor. A blank or placeholder `KCB_anchor` (`NA`, `n/a`, `none`,
+`null`, `-`, `UNRESOLVED`, read through `mamey.missing_values.is_missing` plus `UNRESOLVED`) earns no
+bonus. A real anchor still records similarity to a reference, not an observed match of the query's
+product, so check the comparator evidence before describing it. The input text is kept unchanged in
+the `KCB_anchor` output column.
 
 ---
 
@@ -65,7 +67,9 @@ that bonus as an observed match. Preserve the recorded input rather than silentl
 |---|---|---|
 | **A** | Mode B `CONFIRM` **∩** SARP | both the judgment axis and the strongest regulator axis agree |
 | **B** | Mode B `CONFIRM` **OR** (SARP **∩** Tier-1) | one strong leg, not both of A's |
-| **C** | Tier-1 **∩** KCB **∩** (SARP **or** DasR), and **not** A/B | structural + identity + a regulator, ecology-weighted |
+| **C** | Tier-1 **∩** KCB **∩** (SARP **or** DasR), and **not** A/B | three recorded input flags: a stored Tier-1 label, a nonempty `KCB_anchor` text and a stored SARP or DasR label |
+
+Class C combines recorded labels only. The KCB flag is set only by a recorded anchor; a placeholder such as `UNRESOLVED` or `NA` does not set it. Even a real anchor is similarity to a reference, not the query's product identity. A stored SARP or DasR label is an annotation, not a demonstrated regulatory effect. Keep identity, comparator binding and regulation unresolved until reviewed.
 
 Class A is the intersection of the stored CONFIRM and SARP inputs. This is a stricter selection
 rule, not a measured precision estimate or a ranking of biological importance. Compare the

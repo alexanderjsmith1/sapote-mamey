@@ -210,7 +210,7 @@ Do not create a separate lesser report type called “Partial Mode B” as the d
 
 ## 8 — Interpretive floor before §19
 
-Before writing §19, run the `INTERPRETIVE_FLOOR_CHECK` from `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md`:
+Before writing §19, you can use the optional "Pre-§19 check for the card author" in `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md`. No command runs it:
 
 - §5 must connect domain architecture to structural consequences.
 - §9 must weigh alternatives against evidence.
@@ -536,7 +536,13 @@ This rule was triggered by BGC044 (NODE_73) in AS-XXX, where the prior ranthipep
 
 ### The required citation format
 
-**First mention in any section:**
+> **Superseded examples.** The abbreviated forms below (`NODE_1 · r001`, a node without its length and
+> coverage suffix, and any form without the strain) are no longer allowed. Every BGC mention now uses
+> the complete four-part identity, **strain / full node-or-contig / region / BGC alias**, copied from one
+> bound source record, as in the "ALWAYS required" block further down and in `AGENTS.md`. The old
+> examples are kept only as a record.
+
+**First mention in any section (superseded):**
 ```
 BGC007 (NODE_1_length_406707_cov_83 · region001)
 ```

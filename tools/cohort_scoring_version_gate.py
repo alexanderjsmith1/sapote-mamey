@@ -79,37 +79,89 @@ def assert_uniform_scoring_engine(strain_versions: dict[str, str], current_engin
         )
 
 
-def _read_workbook_version(path: Path) -> str:
-    """Read A3_Run_Manifest 'version' from a strain master workbook (best-effort, read-only)."""
+def _read_workbook_versions(path: Path) -> list[str]:
+    """Every data row's A3_Run_Manifest 'version' from a strain master workbook (read-only).
+
+    Fully blank rows are skipped. A workbook with no manifest sheet, no 'version' column or no
+    data row gives an empty list, which the CLI treats as an unstamped workbook.
+    """
     import openpyxl  # local import: comparative builds already depend on openpyxl
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    for sheet in ("A3_Run_Manifest", "Run_Manifest"):
-        if sheet in wb.sheetnames:
-            ws = wb[sheet]
-            header = [c.value for c in next(ws.iter_rows(max_row=1))]
-            if "version" in header:
-                col = header.index("version")
-                row = next(ws.iter_rows(min_row=2, values_only=True), None)
-                return str(row[col]) if row and col < len(row) else ""
-    return ""
+    try:
+        for sheet in ("A3_Run_Manifest", "Run_Manifest"):
+            if sheet in wb.sheetnames:
+                ws = wb[sheet]
+                header = [c.value for c in next(ws.iter_rows(max_row=1))]
+                if "version" in header:
+                    col = header.index("version")
+                    return [str(row[col]) if col < len(row) and row[col] is not None else ""
+                            for row in ws.iter_rows(min_row=2, values_only=True)
+                            if any(cell is not None and str(cell).strip() for cell in row)]
+        return []
+    finally:
+        wb.close()
 
 
-def main() -> int:
+def _read_workbook_version(path: Path) -> str:
+    """First manifest row's version (kept for callers of the old helper)."""
+    rows = _read_workbook_versions(path)
+    return rows[0] if rows else ""
+
+
+def collect_versions(workbooks_dir: Path) -> dict[str, str]:
+    """{workbook stem or 'stem [manifest row N]': raw version} for every top-level *.xlsx.
+
+    Every manifest data row is read, so a later row recorded under another engine is seen.
+    """
+    strain_versions = {}
+    for wbp in sorted(Path(workbooks_dir).glob("*.xlsx")):
+        rows = _read_workbook_versions(wbp)
+        if len(rows) <= 1:
+            strain_versions[wbp.stem] = rows[0] if rows else ""
+        else:
+            for index, raw in enumerate(rows, start=2):
+                strain_versions[f"{wbp.stem} [manifest row {index}]"] = raw
+    return strain_versions
+
+
+def check_roster(workbooks_dir: Path, roster_path: Path) -> None:
+    """Raise CohortVersionError unless the top-level *.xlsx stems equal the intended roster."""
+    names = [line.strip() for line in roster_path.read_text(encoding="utf-8").splitlines()]
+    names = [n for n in names if n and not n.startswith("#")]
+    duplicates = sorted({n for n in names if names.count(n) > 1})
+    found = {p.stem for p in Path(workbooks_dir).glob("*.xlsx")}
+    missing, extra = sorted(set(names) - found), sorted(found - set(names))
+    if duplicates or missing or extra or not names:
+        raise CohortVersionError(
+            "workbooks do not match the intended roster: "
+            + "; ".join(part for part in (
+                "roster is empty" if not names else "",
+                ("duplicate roster entries: " + ", ".join(duplicates)) if duplicates else "",
+                ("missing workbooks: " + ", ".join(missing)) if missing else "",
+                ("workbooks not on the roster: " + ", ".join(extra)) if extra else "") if part))
+
+
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workbooks-dir", required=True, help="dir of per-strain master workbooks (*.xlsx)")
     ap.add_argument("--engine", required=True, help="current engine version, e.g. 1.9.96")
-    a = ap.parse_args()
-    strain_versions = {}
-    for wbp in sorted(Path(a.workbooks_dir).glob("*.xlsx")):
-        strain_versions[wbp.stem] = _read_workbook_version(wbp)
+    ap.add_argument("--roster", type=Path, default=None,
+                    help="text file naming the intended workbook stems, one per line; the gate "
+                         "fails unless the top-level *.xlsx files match it exactly")
+    a = ap.parse_args(argv)
     try:
+        if a.roster is not None:
+            check_roster(Path(a.workbooks_dir), a.roster)
+        strain_versions = collect_versions(Path(a.workbooks_dir))
         assert_uniform_scoring_engine(strain_versions, a.engine)
-    except CohortVersionError as e:
+    except (CohortVersionError, OSError) as e:
         emit(f"FAIL: {e}", file=sys.stderr)
         return 1
-    emit(f"OK: all {len(strain_versions)} strains scored at engine {a.engine}")
+    scope = ("the files match the intended roster" if a.roster is not None else
+             "no intended roster was checked, so a missing workbook would not be seen")
+    emit(f"OK: all {len(strain_versions)} manifest version record(s) read from top-level *.xlsx in "
+         f"{a.workbooks_dir} are at engine {a.engine}; {scope}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

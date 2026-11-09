@@ -16,7 +16,9 @@ out **annotated** — gene names flow straight into clinker and cluster_gene_com
         --outdir refs/
 
 Produces refs/<label>.gbk (annotated, ready to compare). Capacity/architecture-level: a
-reconstructed reference is the characterised cluster's genes; comparison to it is homology.
+reconstructed reference holds only the CDS this source retained (database CDS rows, or an NCBI
+record's translated CDS). It is not shown to be a complete or characterized cluster, and
+comparison to it is homology, not product identity.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -188,7 +190,10 @@ def ref_from_db(db_path, acc, label, provenance=None):
     if provenance is not None:
         provenance.update({"kind": "DB", "requested_selector": acc, "label": label,
                            "database": file_binding(db_path), "selected_id": gid,
-                           "selected_source_path": gpath, "cds_count": len(genes)})
+                           "selected_source_path": gpath, "cds_count": len(genes),
+                           "retained_cds_scope": "CDS_ROWS_PRESENT_IN_SELECTED_DATABASE_RECORD",
+                           "cluster_completeness_state": "NOT_ASSESSED",
+                           "characterization_state": "NOT_ASSESSED"})
         wal = Path(str(db_path) + "-wal")
         if wal.exists():
             provenance["database_wal"] = file_binding(wal)
@@ -237,10 +242,13 @@ def ref_from_ncbi(acc, label, timeout=60, provenance=None):
     if records[0].id != acc:
         raise ValueError(f"NCBI reference identity mismatch: requested {acc}, fetched {records[0].id}")
     record_ids = []
+    source_cds = 0
     for rec in records:
         record_ids.append(rec.id)
         i = 0
         for f in rec.features:
+            if f.type == "CDS":
+                source_cds += 1
             if f.type == "CDS" and "translation" in f.qualifiers:
                 i += 1
                 name = (f.qualifiers.get("gene", [None])[0]
@@ -254,7 +262,12 @@ def ref_from_ncbi(acc, label, timeout=60, provenance=None):
         provenance.update({"kind": "NCBI", "requested_selector": acc, "label": label,
                            "source_url": url, "selected_record_ids": record_ids,
                            "response_sha256": hashlib.sha256(txt.encode()).hexdigest(),
-                           "cds_count": len(genes)})
+                           "cds_count": len(genes),
+                           "source_cds_feature_count": source_cds,
+                           "untranslated_cds_dropped": source_cds - len(genes),
+                           "retained_cds_scope": "TRANSLATED_CDS_FEATURES_OF_FETCHED_RECORD",
+                           "cluster_completeness_state": "NOT_ASSESSED",
+                           "characterization_state": "NOT_ASSESSED"})
     return genes
 
 

@@ -142,7 +142,8 @@ def assess(query_genes, references, min_id=30.0):
     present = [cg for cg in cluster_genes if cg["present_in_query"]]
     missing = [cg for cg in cluster_genes if not cg["present_in_query"]]
     n = len(cluster_genes)
-    completeness = round(100 * len(present) / n, 1) if n else 0
+    # No eligible reference cluster gene means the measurement is undefined, not 0% and not complete.
+    completeness = round(100 * len(present) / n, 1) if n else None
     # 3) truncation-awareness via CONTIGUITY in a single reference frame.
     #    Order cluster genes by position in the reference that contains the most of them, then
     #    check whether missing genes fall OUTSIDE the span of present genes (ends -> truncation)
@@ -165,6 +166,7 @@ def assess(query_genes, references, min_id=30.0):
     edge_like = missing and interior_missing == 0   # all missing genes at the ends
     return {"n_cluster_genes": n, "n_present": len(present), "n_missing": len(missing),
             "completeness_pct": completeness,
+            "denominator_state": "MEASURED" if n else UNMEASURED,
             "present": [{"label": p["label"], "n_refs": p["n_refs"], "query_id": p["query_id"],
                          "found_on": p["found_on"]} for p in present],
             "missing": [{"label": m["label"], "n_refs": m["n_refs"], "query_id": m["query_id"]} for m in missing],
@@ -172,15 +174,31 @@ def assess(query_genes, references, min_id=30.0):
             "missing_end_loaded": bool(edge_like),
             "fragments": [{"record": i, "n_present": sum(1 for cg in cluster_genes if i in cg["found_on"]),
                            "completeness_pct": round(100 * sum(1 for cg in cluster_genes if i in cg["found_on"]) / n, 1)
-                           if n else 0} for i in range(n_records)]}
+                           if n else None} for i in range(n_records)]}
+
+
+UNMEASURED = "UNMEASURED_NO_ELIGIBLE_REFERENCE_GENES"
+METHOD_LIMIT = ("Completeness counts reference cluster genes whose best global-identity match in the query "
+                "reaches the identity threshold. That is reference-dependent similarity, not orthology, function, "
+                "locus identity or product identity; capacity-level throughout.")
+
+
+def _unmeasured_text(query_label, ref_labels):
+    return (f"HOLD {UNMEASURED}: no reference gene recurred in enough of the references ({', '.join(ref_labels)}) "
+            f"to form a cluster-gene set, so completeness for {query_label} was not measured. This is not a "
+            f"finding that no gene is missing.\n\n" + METHOD_LIMIT)
 
 
 def tier(pct):
+    if pct is None:
+        return "unmeasured"
     return ("near-complete" if pct >= 85 else "substantial" if pct >= 60
             else "partial" if pct >= 35 else "fragment")
 
 
 def interpret(report, query_label, query_boundary, ref_labels):
+    if not report["n_cluster_genes"]:
+        return _unmeasured_text(query_label, ref_labels)
     pct = report["completeness_pct"]
     lines = [f"{query_label} carries {report['n_present']}/{report['n_cluster_genes']} "
              f"of the reference cluster genes ({pct}% — {tier(pct)}), measured against "
@@ -203,8 +221,8 @@ def interpret(report, query_label, query_boundary, ref_labels):
         elif im > 0:
             lines.append(
                 f"{im} of the missing gene(s) fall in the INTERIOR of the reference cluster (between "
-                f"genes the query does have), which truncation cannot explain — so this points to a "
-                f"genuine biological difference, not just an assembly artifact"
+                f"genes the query does have), which contig-end truncation alone cannot explain; it may "
+                f"reflect divergence below the identity threshold, annotation differences or gene loss"
                 + (f"; the remaining {em} at the ends may be truncation." if em else "."))
         elif trunc:
             lines.append(
@@ -212,16 +230,18 @@ def interpret(report, query_label, query_boundary, ref_labels):
                 f"but the layout is ambiguous.")
         else:
             lines.append(
-                "The query is interior (not contig-limited), so the missing genes are more likely a "
-                "genuine biological difference than an assembly artifact.")
-    lines.append("Completeness is measured on global-identity orthology (homology), not product "
-                 "identity; capacity-level throughout.")
+                "The query is interior (not contig-limited), so contig-end truncation does not explain the "
+                "missing genes; they may reflect divergence below the identity threshold, annotation "
+                "differences or gene loss.")
+    lines.append(METHOD_LIMIT)
     return "\n\n".join(lines)
 
 
 def interpret_group(report, query_label, ref_labels, fragment_labels, rggmci_group):
     """Read a query of several records (one region each) as one unit, fragment by fragment."""
     n, pct = report["n_cluster_genes"], report["completeness_pct"]
+    if not n:
+        return _unmeasured_text(query_label, ref_labels)
     frags = report["fragments"]
     names = [fragment_labels[i] if i < len(fragment_labels) else f"record {i + 1}" for i in range(len(frags))]
     lines = []
@@ -248,8 +268,7 @@ def interpret_group(report, query_label, ref_labels, fragment_labels, rggmci_gro
                      f"absent. The assembly cannot tell which, so this is not read as a biological difference.")
     else:
         lines.append("No reference cluster gene is missing from the group.")
-    lines.append("Completeness is measured on global-identity orthology (homology), not product identity; "
-                 "capacity-level throughout. It does not show that the fragments are physically linked.")
+    lines.append(METHOD_LIMIT + " It does not show that the fragments are physically linked.")
     return "\n\n".join(lines)
 
 
@@ -297,7 +316,8 @@ def main(argv=None):
                 on = set(p.get("found_on", []))
                 w.writerow([p["label"], p["n_refs"], p["query_id"]] + [
                     "present" if i in on else "" for i in range(len(report["fragments"]))])
-    emit(f"[cluster_completeness] {qlab}: {report['completeness_pct']}% complete ({report['tier']}), {report['n_present']}/{report['n_cluster_genes']} cluster genes; {report['n_missing']} missing.", '[cluster_completeness] ' + report['interpretation'].split('\n\n')[-2 if report['missing'] else -1], sep="\n")
+    pct_text = "unmeasured" if report["completeness_pct"] is None else f"{report['completeness_pct']}%"
+    emit(f"[cluster_completeness] {qlab}: {pct_text} complete ({report['tier']}), {report['n_present']}/{report['n_cluster_genes']} cluster genes; {report['n_missing']} missing.", '[cluster_completeness] ' + report['interpretation'].split('\n\n')[0 if report['completeness_pct'] is None else -2 if report['missing'] else -1], sep="\n")
     return 0
 
 

@@ -42,7 +42,7 @@ Placeholders do not pass. Required/optional capability declarations need a pinne
 
 Each check kind appears at most once: `static_dependencies`, `data_syntax`, `program_behavior`, `browser_compatibility`, `visual_review`. The selected receipt itself must be SHA-256 pinned. Receipt bytes are read once for hashing/parsing. The card does not invoke receipt producers or synthesize missing producer results.
 
-## Proposed producer receipt contract
+## Producer receipt contract
 
 ```json
 {

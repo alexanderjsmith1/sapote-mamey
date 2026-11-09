@@ -1,20 +1,18 @@
-# Patch Chat Handoff — Wise Fragmented PKS Workflow
+# Wise fragmented PKS queue: current route and historical patch request
 
-## Current entry: patch history versus actual queue behavior
+## Current route
 
-This body records a historical patch request and example batch counts. It is not a present user instruction,
-external submission authorization or proof of current execution. Current queue route is
+This section is the current route. The sections after it record the historical patch request and its example batch counts; they are not present instructions, external submission authorization or proof of current execution. The current queue route is
 `python mamey_run.py wise-fragmented-pks --input-fasta <existing-ranked-fasta> --outdir <candidate-queue>`;
 `mamey/cli.py` supplies target 85000, hard cap 100000 and two active files by default.
 These are shipped software defaults; check current service limits separately before an authorized submission.
 The command consumes an already ranked FASTA; it does not itself discover/rank all proteins or run BLASTP.
 Use `--target-residues 50000` for the conservative target, not an invented CLI `--extra-safe` flag.
 
-Actual `mamey/wise_fragmented_pks.py:83–109` sorts ranks and packs by residue target, but retains a single
-oversized sequence with a warning. The writer (`:136–150`) can emit that active batch as ready_to_run while
-under_100k is false. Consequently the historical universal “no file exceeds 100000” criterion is not
-implemented for these singleton exceptions. Inspect residue_count, under_100k and per-record warnings;
-ready_to_run alone is not safe-submission proof. An oversized single sequence remains an explicit hold
+`mamey/wise_fragmented_pks.py` sorts ranks and packs by residue target, but keeps a single
+oversized sequence in its own batch with a warning. The writer marks that batch `hold_over_web_cap`, not
+`ready_to_run`, and its ledger rows read `hold_over_web_cap`. Inspect residue_count, under_100k, status and
+per-record warnings; ready_to_run alone is not safe-submission proof. An oversized single sequence remains an explicit hold
 requiring a separately chosen authorized route and its own execution receipt.
 
 Queue files, ledgers, summary and README use deterministic destinations and can replace earlier outputs.
@@ -22,6 +20,8 @@ Use one bound candidate and source path/SHA-256 receipts; do not copy the packag
 Pending/deferred queue states do not prove submission, completion or admitted biological evidence.
 
 <!-- Historical source text follows. -->
+
+> Historical: the rest of this page is the original patch request. Do not follow it as instructions. The current route is the command above.
 
 ## The issue
 

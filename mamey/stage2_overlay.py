@@ -349,6 +349,13 @@ def build(
     out_root = out_root.resolve()
     if out_root.exists():
         raise FileExistsError(f"Output already exists: {out_root}")
+    for protected_root in (base_report_root, review_root):
+        if out_root == protected_root or protected_root in out_root.parents:
+            raise ValueError(f"Output must be outside the protected input root: {protected_root}")
+    for protected_file in (target_ledger, source_manifest, source_discovery_catalog,
+                           source_discovery_decisions):
+        if protected_file.resolve() in out_root.parents:
+            raise ValueError(f"Output must not be nested under an input file path: {protected_file}")
     if sha256_file(target_ledger) != expected_target_sha256:
         raise ValueError("Target-ledger SHA-256 mismatch")
     if sha256_file(source_manifest) != expected_manifest_sha256:
@@ -468,9 +475,11 @@ def build(
             raise ValueError(f"Invalid primary locator: {row['primary_user_locator']}")
 
     staging = out_root.with_name(f".{out_root.name}.staging-{os.getpid()}")
-    if staging.exists():
-        shutil.rmtree(staging)
+    if staging.exists() or staging.is_symlink():
+        # Never remove a directory this run did not create; a leftover is kept for review.
+        raise FileExistsError(f"Staging path already exists; inspect or move it first: {staging}")
     staging.mkdir(parents=True)
+    staging_owned = staging.lstat()
     try:
         modules: list[dict[str, str]] = []
         front_rows: list[dict[str, str]] = []
@@ -685,7 +694,12 @@ def build(
             raise ValueError("Source-discovery preflight changed during Stage 2 build")
         staging.rename(out_root)
     except Exception:
-        if staging.exists():
+        try:
+            current = staging.lstat()
+        except FileNotFoundError:
+            current = None
+        if current is not None and (current.st_dev, current.st_ino) == (
+                staging_owned.st_dev, staging_owned.st_ino):
             shutil.rmtree(staging)
         raise
     return {

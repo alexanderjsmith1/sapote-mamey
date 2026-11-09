@@ -29,7 +29,7 @@ At the point any strain reaches analysis-complete (all A1 extraction outputs pre
 1. **Auto-produce** the full per-strain deep-dive set, or
 2. **Explicitly offer it** — a clear question asking whether to generate it, as the first item in the next-steps block
 
-An analysis that stops at the workbook without surfacing the deep-dive set is an **incomplete delivery**. This is non-negotiable.
+An analysis that stops at the workbook without surfacing the deep-dive set was called an **incomplete delivery** in this record. Historical wording: it stated this as non-negotiable; the current rule is in the [deliverable contract](../../../DELIVERABLE_CONTRACT.md).
 
 ---
 
@@ -49,11 +49,11 @@ These are produced deterministically by `mamey run`. Every item is required in t
 | `[strain]_5_workbook.xlsx` | Per-strain workbook (coded sheets) |
 | `[strain]_6_output_checklist.{csv,md}` | Per-run completeness checklist |
 | `[strain]_7_cell_provenance.csv` | Status code per workbook cell (no silent blanks) |
-| `[strain]_8_strain_brief.pdf` + `_8a…_8m_fig_*.png` + companion `_data.csv` | PDF brief binding all auto-emitted figures; each figure ships with its data CSV |
+| `[strain]_8_strain_brief.pdf` + `_8a…_8m_fig_*.png` (the current per-strain figure set also has `_8n` files) + companion `_data.csv` | PDF brief binding all auto-emitted figures; each figure ships with its data CSV |
 | `manifest.json` | Authoritative handoff object: all key findings, scan statuses, evidence pointers, version |
 | `commit_receipt.json` | Run provenance / commit record |
 | `issue_log.md` | Per-run issues and caveats |
-| `checksums_sha256.txt` | SHA-256 for every file in the package |
+| `checksums_sha256.txt` | SHA-256 for the files it covers (it does not cover every post-seal output; see the note above) |
 
 ---
 
@@ -90,7 +90,7 @@ These are the judgment-layer deliverables. They require a Sapote session with th
 - Cross-Strain Cohort Context block (see below)
 - Method Caveats block (verbatim)
 - Reviewer attack simulation
-- Literature-Search Handoff list (for parallel ChatGPT run)
+- Literature-Search Handoff list
 - PNAS reference list
 
 ### Compound Detection and Isolation Bench Guide
@@ -120,7 +120,7 @@ Exclude the four universal classes (saccharide, fatty_acid, other, terpene) from
 
 ## Method Caveats block (A2.2) — verbatim in every deliverable
 
-Include these verbatim. Never paraphrase.
+Historical instruction: include these verbatim and do not paraphrase (superseded by the current contract linked at the top).
 
 > 1. `kcb_cumulative` is a cumulative **score, not a % identity** — a KCB hit anchors a class hypothesis, it does not mean the compound is known.
 > 2. RG-GMCI HIGH-pair counts are **not a fragmentation-severity metric** — they track reference-anchored homologous-pair richness.
@@ -202,6 +202,6 @@ Default format is a **single consolidated PDF** — the colleague-facing hand-of
 - **Authoritative source:** `docs/DELIVERABLE_CONTRACT.md`
 - **Deliverable menu:** `docs/DELIVERABLE_MENU_v97146.md`
 - **Completeness check:** `tools/check_deliverable_suite.py`
-- **Judgment receipt/ingest:** `python -m mamey ingest-receipts`
+- **Judgment receipt/ingest:** `python mamey_run.py ingest-receipts`
 - **Figure-ready export:** `tools/export_figure_ready.py`
 - **Co-location spec:** `docs/PER_BGC_PAGE_LAYOUT_SPEC.md`

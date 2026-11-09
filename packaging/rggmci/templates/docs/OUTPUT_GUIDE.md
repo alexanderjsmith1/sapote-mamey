@@ -1,25 +1,3 @@
-# Current standalone output and source-location boundary
-
-This guide covers the standalone `rggmci` package, not the Sapote-Mamey CLI's per-strain package schema. It ships in the source tree's `docs/`; a pip installation does not include it. Keep it with the package version and `PROVENANCE.json` it came with.
-
-## Exact writes, missing states and batch recovery
-
-The normal CLI accepts antiSMASH ZIP files or folders recursively discovered for `*.zip`. Missing/no inputs or multiple inputs without `--out-dir` return 2. For a batch, each ZIP run failure is recorded in `SUMMARY.tsv` and processing continues; exit 1 means at least one input failed. Successful earlier per-genome outputs can therefore exist during batch failure. Ordinary output `OSError` failures in directory/file publication return 2, including aggregate-table writes. Other unexpected formatting/serialization exceptions can propagate. A partial output set remains possible; inspect the actual process result and every expected artifact rather than treating prior successful per-input rows as a completed batch. No input processing was run for this guide.
-
-With `--out-dir`, successful inputs write the eight-artifact canonical set: `<zip-stem>.json`,
-`_pairs.tsv`, `_related_loci.tsv`, `_candidate_groups.tsv`, `_summary.tsv` and three completion TSVs.
-The CLI also writes batch SUMMARY.tsv and CANDIDATE_GROUPS.tsv. Empty pair/related/group tables are
-header-only. Inputs/destinations are preflighted as one roster; duplicate/colliding inputs and occupied
-or aliased outputs are refused before analysis. Every final file is created exclusively. A late write
-failure can leave partial fresh artifacts, so this is not a transactional batch; it never authorizes
-reuse of prior output bytes as current evidence. Per-input failures remain in the attempted denominator.
-
-Completion tables are emitted with a tier row even when no gene/split/partner rows exist. Read `completion_tier` and aligner/evidence availability; non-FULL is an explicit not-completed state, not biological absence. HIGH, MODERATE, LOW and related-locus states are algorithmic candidate labels, not contig joins, compound identity, physical linkage or scientific acceptance.
-
-Use the owning command's `--help`, input/provenance/hash receipt and actual files together. Stored BLASTp layer reports may return 0 even when queries are unmapped or unmeasured; inspect NOT_IN_RESULTS/unmapped states rather than treating successful writing as completed searches. The detailed field descriptions below remain implementation guidance within this scope. External searches, model/database builds and biological acceptance are separate governed actions; output existence does not establish their execution or acceptance.
-
-## Retained field guide — unchanged below
-
 # Reading rggmci output
 
 ## The input it needs
@@ -32,7 +10,8 @@ When neither CB nor KCB supplies usable records, there are no reference-supporte
 
 ## Pairs (`<genome>_pairs.tsv`, or `--pairs`)
 
-One row per scored pair of regions.
+One row per kept pair of regions: the top 1,000 by rank, plus every HIGH pair below them. `pairs_total` in the JSON
+counts every scored pair.
 
 | column | meaning |
 |---|---|
@@ -41,14 +20,14 @@ One row per scored pair of regions.
 | `bgc_a`, `bgc_b` | source-scoped region aliases, numbered in reading order; not stable cross-run join keys |
 | `contig_a`, `contig_b` | the full contig names antiSMASH used; use them to find the regions |
 | `products_a`, `products_b` | antiSMASH's product annotations for each region |
-| `edge_a`, `edge_b` | `Edge`: the region is within 5 kb of a contig end. `Full-contig`: it covers the contig. `Interior`: neither. `Unknown`: contig length not available |
+| `edge_a`, `edge_b` | `Full-contig`: the region covers 95% or more of its contig. `Edge`: it starts or ends within 5 kb of a contig end. `Interior`: neither. `Unknown`: contig length not available. On a circular contig the origin is not an end, so only `Full-contig` or `Interior` apply |
 | `rggmci_score` | the pair score before the acceptance gates |
 | `rggmci_confidence` | `HIGH_RG_GMCI_RESCUE`, `MODERATE_RG_GMCI_CANDIDATE` or `LOW_SHARED_REFERENCE_SIGNAL`, after the gates |
 | `acceptance_gate` | which gate kept or demoted the pair, and why |
 | `supporting_references` | reference clusters hit by both regions |
 | `good_geometry_references` | references where the two regions' hits overlap or sit side by side |
-| `both_at_contig_ends` | whether both regions run to a contig end or cover their contig. A description of where the fragments sit, not a rating |
-| `subject_tiling_verdict` | the gene-level check on shared references: `COMPLEMENTARY_SPLIT` (the regions hit different genes), `TERMINUS_TRUNCATION_SPLIT` (a fragment cut at a contig end), `OVERLAPPING_PARALOG` (they hit the same genes), `MIXED_SUBJECT_SIGNAL` (some of each) |
+| `both_at_contig_ends` | whether both regions are `Edge` or `Full-contig`. It comes from those labels, so `Edge` means within 5 kb of an end; it does not show that a gene runs off the end. A description, not a rating |
+| `subject_tiling_verdict` | the gene-level check on shared references: `COMPLEMENTARY_SPLIT` (the regions hit different genes), `TERMINUS_TRUNCATION_SPLIT` (a fragment cut at a contig end), `OVERLAPPING_PARALOG` (they hit the same genes), `MIXED_SUBJECT_SIGNAL` (some of each), `INSUFFICIENT_SUBJECT_DATA` (too few reference genes hit, or too little geometry, to call either way; not a negative result) |
 | `max_endpoint_hub_degree` | the larger number of HIGH partners either region had before the hub guard |
 | `best_sources` | the five best supporting references, with where each region's hits sit on them and how many proteins each contributed |
 | `depth_a`, `depth_b` | each contig's read depth, from the `_cov_` part of a SPAdes contig name; blank for other names |
@@ -75,15 +54,15 @@ A pair can carry several, joined by `+`.
 | `DEMOTED_HIGH_TO_MODERATE_R1_both_drop_class` | both regions carry only saccharide, NAPAA, hglE-KS, PKS-like or other |
 | `DEMOTED_HIGH_TO_MODERATE_R2_no_strong_references` | no reference with strong support |
 | `DEMOTED_HIGH_TO_MODERATE_R3_noise_class_both_sides` | neither region carries a specialist class (only fatty_acid, saccharide, NAPAA, hglE-KS or other) |
-| `ST-PARALOG_no_complementarity_proof` | the gene-level check reads two copies, not two halves; the pair drops to LOW |
+| `ST-PARALOG_no_complementarity_proof` | the gene-level check finds both regions hit the same reference genes, which fits two copies better than two halves; the pair drops to LOW |
 | `DEMOTED_HUB_PROMISCUITY_degree_N_gt_4` | one region has more than four HIGH partners; all its HIGH pairs step down |
 | `DEMOTED_TO_LOW_shared_reference_only_no_geometry_no_split_signal` | the regions share references but nothing places them side by side |
 
-**Only contig-edge regions are paired.** rggmci pairs a region only when antiSMASH flags it as touching a contig
-edge (`/contig_edge="True"` on the region feature; the `Edge`/`Full-contig` status is used when a file has no flag).
-A region antiSMASH places inside a contig is whole on that contig. No assembly break separated it, so rggmci cannot
-override the assembly there. Two regions that both run to a contig end are fragments the assembly may have
-separated; rggmci still does not claim a join.
+**Only contig-edge regions are paired.** rggmci pairs a region when antiSMASH flags it as touching a contig edge
+(`/contig_edge="True"` on the region feature). When a file has no flag, or its region features disagree, the
+`Edge`/`Full-contig` status above is used instead. This is a rule of the method, not a finding: a region inside a
+contig can still lack pieces the assembly or antiSMASH did not show, and rggmci does not look for them. Two regions
+that both reach a contig end may be fragments the assembly separated; rggmci does not claim a join.
 
 ## Related loci (`related_locus_pairs` in the JSON)
 
@@ -105,7 +84,8 @@ that touch a group, as places to look next.
 
 ## Summary (`SUMMARY.tsv`)
 
-One row per genome: regions, pairs, HIGH, MODERATE, how many HIGH pairs cross contigs and how many of those
+One row per genome: regions, `scored_pairs` (every scored pair), `pairs_exported` (the rows kept in the pair
+table), HIGH, MODERATE, how many HIGH pairs cross contigs and how many of those
 have both regions at contig ends, how many groups, and the size of the largest group. Three columns describe
 reference-guided completion: `completion_tier`, the number of accepted partner contigs, and the number of `CLEAR`
 split genes. An `error` column records a ZIP that could not be read; the
@@ -132,7 +112,7 @@ One row per reference gene.
 | `best_identity_pct`, `best_coverage_pct`, `best_locus`, `best_contig`, `best_region_identity` | the best match and where it sits; a match outside every region is labeled `(no antiSMASH region)` |
 | `reciprocal_best` | whether this reference gene is that protein's own best match among the reference's genes |
 | `partner_verdict` | for a find outside the region: `SUPPORTED` (another find of this reference sits within 10 kb), `SINGLE_GENE`, `HOUSEKEEPING_CONTEXT` (a lone find beside primary-metabolism genes; needs the Pfam scan) or `PARALOG_FAMILY` (the reciprocal search fails, or five or more other genome proteins match the same reference gene) |
-| `reciprocal_best_mibig`, `reciprocal_best_identity`, `reciprocal_reference_identity`, `reciprocal_family_ratio` | the find's own best MIBiG cluster, and how its best score against the reference's compound family compares. Below 0.9 the find belongs to another family |
+| `reciprocal_best_mibig`, `reciprocal_best_identity`, `reciprocal_reference_identity`, `reciprocal_family_ratio` | the find's own best MIBiG cluster, and how its best score against the reference's compound family compares. Below 0.9 the find scores better against another family, and the verdict counts that as a paralog-family signal. It is a score comparison within the database, not a family assignment |
 | `paralogs_in_genome`, `adjacent_finds`, `housekeeping_neighbours`, `neighbour_pfams` | the counts behind the verdict; `neighbour_pfams` lists only the housekeeping-marker domains found |
 
 The reciprocal search uses the stretch of the genome protein that matched the reference and every MIBiG target, not
@@ -197,6 +177,28 @@ module cannot be told from another.
 - `blastp_layer.json`: all of the above, plus query headers in the results that matched nothing in the
   manifest (renamed headers are reported, never guessed).
 
+## Gene context on pairs
+
+When the ZIP's gene annotations allow it, each pair carries a description of the two fragments' genes. These fields
+never change a score or a confidence. They are thresholds on antiSMASH's predicted gene roles, so check the genes
+before reading anything into them. Without gene context for one side, `functional_rescue_class` and
+`modular_continuation` read `UNKNOWN_NO_PROFILE` and the other fields are blank.
+
+| Field | Meaning |
+|---|---|
+| `a_functional_roles`, `b_functional_roles` | the gene roles present in each fragment |
+| `a_core_fraction`, `b_core_fraction` | core genes over core, tailoring, transport and regulatory genes. Genes with other roles are left out. 0 when a fragment has none of these four roles |
+| `functional_rescue_class` | `COMPLEMENTARY` (the core fractions differ by 0.20 or more and the lower is 0.30 or less), `BOTH_CORE` (both are 0.35 or more and within 0.20 of each other, which fits two copies better than two halves), `ACCESSORY_ONLY` (both are 0.30 or less) or `AMBIGUOUS` (none of these) |
+| `modular_continuation` | `MODULAR_CONTINUATION` (both fragments carry assembly-line genes and there is at most one release gene between them), `MODULAR_TWO_RELEASES` (each side has its own release gene), `MODULAR_CONTINUATION_MULTI_RELEASE_ONE_SIDE`, or `NOT_MODULAR` (one side has no assembly-line gene) |
+| `a_assembly_line_cds`, `b_assembly_line_cds`, `a_release_cds`, `b_release_cds` | the gene counts behind `modular_continuation` |
+
+## Contig ends
+
+| Field | Meaning |
+|---|---|
+| `terminus_sequence_state_a`, `terminus_sequence_state_b` | the sequence at the contig end each region touches: `COMPLEX_TERMINUS`, `LOW_COMPLEXITY_TERMINUS`, `HOMOPOLYMER_TERMINUS`, `AMBIGUOUS_TERMINUS` (holds N or another non-ACGT base), `TERMINUS_SEQUENCE_UNAVAILABLE`, or `NOT_APPLICABLE` when the region touches no contig end |
+| `junction_evidence_state` | `SEQUENCE_COMPLEXITY_CLEAR` only when every truncated contig end was read and is complex; `SEQUENCE_COMPLEXITY_UNRESOLVED` when an end could not be read or is ambiguous; `NOT_APPLICABLE` when the pair has no truncated end |
+
 ## What a candidate is, and what it is not
 
 - RG-GMCI surfaces fragments by biosynthetic logic seen through homology. Two or more regions matched
@@ -208,61 +210,3 @@ module cannot be told from another.
   does not name a compound.
 - To check one, open each region's GenBank file and read the genes and domains. A long-read assembly
   settles physical adjacency.
-
-
-## Shared invocation contract (`rggmci-shared-invocation-v3`)
-
-The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
-binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
-process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
-public standalone `run` rejects snapshot overrides. The
-high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
-behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
-standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
-disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
-sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
-
-Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
-diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
-members refuse common intake before a subset is reported. General source-reader malformed/empty-member
-warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
-empty successful RGGMCI result.
-
-Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
-no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
-then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
-implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
-DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
-the actual selected content. Standalone
-`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
-Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
-`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
-Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
-retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
-is a distinct requested layer. No automatic database download is introduced.
-
-Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
-loci, candidate groups, summary, and three completion tables). Every row key is retained, including
-later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
-tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
-region metadata and four-component endpoint identities: logical strain / full physical contig / region /
-BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
-effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
-`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
-
-Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
-attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
-and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
-`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
-presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
-contract; runtime parity, optional active-resource profiles and published standalone synchronization
-require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
-physical joins, compound identity or biological accuracy.
-
-Shared invocation v3 adds the existing native functional-role and modular-continuation annotations to
-both distributions before canonical export. Ranked pairs and split-candidate views carry the same ten
-fields and source-derived functional/modular profiles, from the same archive CDS/domain/context parser.
-This does not change RG-GMCI scoring thresholds or establish physical linkage. Missing context retains
-explicit UNKNOWN_NO_PROFILE defaults. Raised extraction/computation failures propagate; existing general
-source-reader malformed/empty-member warnings remain visible. Package gene-context write/readback no
-longer determines the analytical annotation. Low-level explicit contigs=None remains unavailable.

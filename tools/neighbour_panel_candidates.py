@@ -60,9 +60,12 @@ def _norm_acc(acc: str) -> str:
     return acc.strip()
 
 
-def read_blast(path: str, min_align: int, identity_basis=None):
-    """Per subject sequence: best identity and bitscore over alignments of at least min_align bp."""
+def read_blast(path: str, min_align: int, identity_basis=None, short_only=None):
+    """Per subject sequence: best identity and bitscore over alignments of at least min_align bp.
+
+    `short_only`, when given, is filled with the subjects whose every alignment is shorter than min_align."""
     best = {}
+    short = set()
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             f = line.rstrip("\n").split("\t")
@@ -77,13 +80,16 @@ def read_blast(path: str, min_align: int, identity_basis=None):
                 unamb = _p16.unambiguous_identity(f[12], f[13])[0]
                 if unamb is not None:
                     pid, basis = unamb, "unambiguous_alignment_columns"
-            if alen < min_align:
-                continue
             s = _norm_acc(f[1])
+            if alen < min_align:
+                short.add(s)
+                continue
             if s not in best or bits > best[s][1]:
                 best[s] = (pid, bits)
                 if identity_basis is not None:
                     identity_basis[s] = basis
+    if short_only is not None:
+        short_only.update(short - set(best))
     return best
 
 
@@ -282,7 +288,11 @@ def build(args):
 
     # 1. 16S genome hits, ranked by best identity then bitscore
     identity_basis = {}
-    hits = read_blast(args.blast, args.min_align, identity_basis) if args.blast else {}
+    short_only = set()
+    hits = read_blast(args.blast, args.min_align, identity_basis, short_only) if args.blast else {}
+    if short_only:
+        issues.append(("16S_below_min_align", f"{len(short_only)} subject sequences",
+                       f"no alignment of at least {args.min_align} bp (--min-align); not ranked"))
     by_asm = {}
     for s, (pid, bits) in hits.items():
         asms = seqmap.get(s) or seqmap.get(s.split(".")[0])
@@ -290,7 +300,9 @@ def build(args):
             continue
         acc = prefer_refseq(asms, asm)
         if acc in exclude or acc.split(".")[0] in exclude or any(a in exclude for a in asms):
-            continue  # excluded before ranking, so it never takes a --top-16s slot
+            # excluded before ranking, so it never takes a --top-16s slot
+            issues.append(("16S_excluded", acc, f"subject {s}; identity {pid:.2f}; listed in --exclude; not added"))
+            continue
         cur = by_asm.get(acc)
         if cur is None or (pid, bits) > (cur[0], cur[1]):
             by_asm[acc] = (pid, bits, s)
@@ -303,7 +315,9 @@ def build(args):
     n_added = 0
     for acc, (pid, bits, s) in ranked:   # duplicates of a strain already kept do not use a --top-16s slot
         if n_added >= args.top_16s:
-            break
+            issues.append(("16S_cap", acc, f"subject {s}; identity {pid:.2f}; past the --top-16s cap of "
+                           f"{args.top_16s}; not added"))
+            continue
         if add(acc, "16S_genome_hit", best_16S_identity=f"{pid:.2f}", blast_hits=s,
                best_16S_identity_basis=identity_basis[s]):
             n_added += 1

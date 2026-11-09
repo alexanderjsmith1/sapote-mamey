@@ -1,33 +1,78 @@
 # Mode B contract current50 v2 (§1–§50)
 
-Machine copy: `mamey/data/mode_b/modeb_current50_v2_contract.json`. Emit with `python mamey_run.py emit-modeb-template --package <pkg> --bgc <BGC> --contract current50_v2`; verify the saved card with `python mamey_run.py verify-modeb <card.md> --package <pkg> --bgc <BGC> --contract current50_v2 --report-json <receipt.json>`.
+This page lists what each of the 50 sections of a current50_v2 card covers, and which of them every card must have. For the step-by-step recipe, see the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). For terms such as KCB and RG-GMCI, see the [glossary](GLOSSARY.md).
 
-A card declaring `FINISHED_FULL50_CURRENT50_V2` activates the independent per-gene roster and
-channel matrix check in §50. Supply the exact-locus package and BGC so the verifier can bind its
-canonical locus-tag roster; a card-only run cannot certify roster completeness. §4 remains a
-role overview and cannot substitute for §50. Use the subsection heading
-`#### Complete named-match, channel-separated table` in §50, with one row per canonical gene
-and separate named-match and identity/positives/query-coverage cells for nr, ClusteredNR and
-Swiss-Prot. Keep a channel's explicit missing or measured-no-hit state in both paired cells;
-never replace missing values with zero. Pending cells are not finished terminal states.
+The machine copy is `mamey/data/mode_b/modeb_current50_v2_contract.json`. The full authoring and audit requirements for each section, including identity, source-freeze and citation rules, are in [the 50-section authoring requirements](MODEB_50_SECTION_CONTRACT_CANDIDATE.md), a frozen page; read it with [its reading guide](MODEB_50_CONTRACT_READING_GUIDE.md). [MODEB_PUBLICATION_SECTION_REQUIREMENTS_v9_7_372.md](MODEB_PUBLICATION_SECTION_REQUIREMENTS_v9_7_372.md) holds the same requirements plus a note on which of them the verifier checks.
 
-A precise evidence limitation is permitted. For example:
+Emit a template with:
+
+```bash
+python mamey_run.py emit-modeb-template --package <pkg> --bgc <BGC> --contract current50_v2
+```
+
+Verify the saved card with:
+
+```bash
+python mamey_run.py verify-modeb <card.md> --package <pkg> --bgc <BGC> --contract current50_v2 --report-json <receipt.json>
+```
+
+## The §50 evidence table
+
+A card that declares `FINISHED_FULL50_CURRENT50_V2` gets a check of §50: one row per gene, with each BLASTp channel kept apart. Give the verifier the package and BGC, so it can bind the package's locus-tag roster. A card-only run cannot show the roster is complete.
+
+- §4 is a short role overview. It cannot stand in for §50.
+- Use the subsection heading `#### Complete named-match, channel-separated table` in §50.
+- Use one row per canonical gene, in canonical gene order, with the protein length in amino acids. Give each of nr, ClusteredNR and Swiss-Prot a named-match cell and an identity, positives and query-coverage cell.
+- When a channel has a hit, the named-match cell holds the rank-1 accession, the full matched-protein description and the subject organism, as `accession — description [organism]`. A bare accession, a bare percentage, or an accession with only an organism fails verification (`BLASTP_MATRIX_SUBJECTS`). This is a check of the cell's shape. It does not compare the wording with the saved BLASTp result, so a person still checks each description against its source.
+- When a channel has a hit, the paired metric cell holds percent identity, percent positives and query coverage. Percent positives is not percent identity.
+- Give each channel's coverage denominator on its own. Do not add the denominators together.
+- In both cells of a channel, write the explicit state: missing or measured no-hit. Never write zero for a missing value.
+- Pending cells are not finished states.
+
+## Required, conditional and optional sections
+
+Each section in the table below is one of three kinds. The kind is the `required` field in the JSON copy.
+
+- Required: §1–§20, §22, §23, §26, §28, §30 and §48–§50. Every card has these.
+- Conditional: §21, §24, §25, §27, §29, §32–§36, §38 and §43. Write the section when its condition holds. Otherwise write a reasoned `NOT_APPLICABLE`. Conditions in the JSON include: §21 for RiPP- or NRPS-relevant loci, §32–§34 for a region with a measured assembly line, §35 for a region with more than one protocluster, §36 for a region at a contig edge or flagged as truncated or overmerged, §38 for a bound co-located resistance or efflux signal, and §43 for a region in an above-bar RG-GMCI pair. The JSON states the condition for each section.
+- Optional: §31, §37, §39–§42 and §44–§47. A draft may leave these out. If you include one, it needs its exact number and title, the right order, and a body. A heading with an empty body fails with `EMPTY_OPTIONAL_SECTION`.
+
+A finished card needs all fifty. A card that declares `FINISHED_FULL50_CURRENT50_V2` must contain every section, conditional and optional ones included. The emitted template declares this profile in its first line and contains all fifty headings. The rule is the `finished_profile_section_rule` entry in the JSON, and the verifier enforces it:
+
+- an absent section fails with `MISSING_FINISHED_PROFILE_SECTION`;
+- a section that applies does not need special wording;
+- a section that does not apply carries `NOT_APPLICABLE` and a written reason, for example `NOT_APPLICABLE: no supervisor or university cohort was supplied for this strain.` A bare `NOT_APPLICABLE` with fewer than three words of reason fails with `NOT_APPLICABLE_WITHOUT_REASON`.
+
+The reason check counts words. It does not judge whether the reason is true; a person still checks that.
+
+## Stating a missing result
+
+A card may state a precise evidence limit. Example:
+
 `NOT_RUN: GECCO was not evaluated because its source file is unavailable; no prediction is inferred.`
-The same sentence must name the typed state, a causal reason and the inference ceiling. The
-verifier recognizes `NOT_RUN`, `UNAVAILABLE`, `NOT_APPLICABLE`, `OBSERVED_UNBOUND`, `UNRETURNED`
-and `INGEST_GAP` for this narrow exception to generic non-evaluation wording. A token alone does
-not exempt other sentences, TODOs, unfilled author prompts or promises of later work. Independent
-review must still establish whether that state and reason are true and whether the selected
-profile's readiness requirements are met.
 
-The JSON receipt records `contract: current50_v2`, `contract_schema_version: modeb_current50_v2`
-and the §1–§50 profile. Its `independent_roster_bound` reports the package roster binding; it is
-not an independent content-QA verdict. Passing the shared evidence checks and v2 structure checks
-does not validate every section's scientific content. The full48 semantic publication gates are
-not applied to this profile's different section numbers. Source/protein provenance, geometry,
-GECCO/rescue interpretation and final content acceptance still require independent review.
+The sentence must give the state, a cause and what you will not infer. The verifier accepts these six states:
 
-Rows below use the same `| n | requirement |` shape as v1, so the four consumers that parse a 50-row table accept this file. Pin it by its own sha256; never edit it in place.
+| State | Use it when |
+|---|---|
+| `NOT_RUN` | The analysis was not run. |
+| `UNAVAILABLE` | The input or source does not exist. |
+| `NOT_APPLICABLE` | The analysis does not apply to this locus. |
+| `OBSERVED_UNBOUND` | Output exists but cannot be tied to this exact locus. |
+| `UNRETURNED` | A requested result has not come back. |
+| `INGEST_GAP` | The result exists but has not been loaded into the package. |
+
+The state alone does not excuse other wording. A bare TODO, an unfilled prompt or a promise of later work still fails. A person must still check that the state and reason are true.
+
+## What a pass means
+
+The JSON receipt records `contract: current50_v2`, `contract_schema_version: modeb_current50_v2` and the §1–§50 profile. `independent_roster_bound` says whether the package roster was bound. It is not a content verdict.
+
+A pass means the structure and shared evidence checks hold. It does not validate any section's science. The full48 publication checks do not apply here, because the section numbers differ. A person must still review source and protein provenance, geometry, GECCO and rescue interpretation, and the final content.
+
+Pin this file by its sha256. Do not edit it in place.
+
+## Sections
 
 | § | Requirement |
 |---|---|

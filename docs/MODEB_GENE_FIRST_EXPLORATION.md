@@ -1,109 +1,86 @@
 # Mode B gene-first exploration
 
-`modeb-gene-first` is an optional, offline composition tool for one already-sealed exact locus. It does not author a Mode B card and does not make biological calls.
+`modeb-gene-first` gives you a quick look at the genes of one region before you write a card. It works offline on one sealed locus. It does not write a Mode B card and makes no biological calls. It is optional and is not part of the standard card recipe in the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). Terms such as RG-GMCI, KnownClusterBlast, MIBiG and BiG-SCAPE are in the [glossary](GLOSSARY.md).
 
-The required identity is always:
-
-`strain / full node-or-contig / region / BGC alias`
-
-The command refuses shortened `NODE_n` tokens, identity conflicts, placeholder gene rows, malformed evidence indexes, and existing output artifacts before it writes a result.
+The locus is always named by four parts: `strain / full node-or-contig / region / BGC alias`. The command refuses a shortened `NODE_n` token, conflicting identities, placeholder gene rows, a malformed evidence index and an existing output folder. It refuses before it writes anything.
 
 ## Usage
 
+Take the four values from one row of `<strain>_2_inventory.csv` in the package: `Strain`, `Contig`, `antiSMASH_Region` and `BGC_ID`.
+
 ```bash
 python mamey_run.py modeb-gene-first \
-  --package /portable/project/runs/STRAIN/package \
-  --strain STRAIN \
+  --package runs/EXAMPLE/package \
+  --strain EXAMPLE \
   --node NODE_7_length_120000_cov_42.5 \
   --region region002 \
   --bgc BGC007 \
-  --out /portable/project/explorations
+  --out explorations
 ```
 
-An optional `--evidence-index evidence.tsv` can bind external evidence without scanning a user-specific workspace. The TSV columns are:
+The package must already be sealed and validated. The `--out` folder must already exist. The command makes one child folder in it, named `STRAIN__NODE__region__BGC__SapoteMamey_v<bundle-version>`, with the four files below.
+
+On success the command prints a JSON receipt and exits 0. On a refusal it prints one line with the reason and exits 1. The line starts with one of four prefixes:
+
+- `MODEB_GENE_FIRST_IDENTITY_HOLD`: the strain, full node-or-contig, region or BGC alias is missing, shortened, malformed, or disagrees with the manifest or a source row;
+- `MODEB_GENE_FIRST_SOURCE_HOLD`: an input file is missing, unreadable or malformed;
+- `MODEB_GENE_FIRST_DATABASE_HOLD`: a `--database-selection` input is refused;
+- `MODEB_GENE_FIRST_OUTPUT_REFUSED`: the output root or child folder cannot be used.
+
+Save the whole line; the text after the prefix names the field or file. A refusal that happens before the write stage leaves no output. A failure after the child folder is made can leave a partial set, and the next try refuses that folder. Keep that folder and the refusal line as they are, since they show how far the run got. Retry with a new `--out` root.
+
+## Optional evidence index
+
+`--evidence-index evidence.tsv` binds outside evidence without scanning your workspace. It is a tab-separated file with this header:
 
 ```text
 channel  strain  full_node  region  bgc_alias  gene  evidence_state  source_locator  source_sha256  note
 ```
 
-Tabs are required. Every row must carry the same complete exact identity. `BOUND` rows require a portable relative, `evidence://` or `package://` locator and a 64-character SHA-256. Allowed evidence states are `BOUND`, `UNBOUND`, `MISSING`, and `NOT_RUN`. Historical cards use the separate `historical_card` channel and must be `LEAD_ONLY`; they never contribute evidence support or ranking.
+- Every row must carry the same complete identity.
+- `evidence_state` is `BOUND`, `UNBOUND`, `MISSING` or `NOT_RUN` for every channel except `historical_card`. `LEAD_ONLY` is the only state allowed for `historical_card`, and it is refused in any other channel.
+- A `BOUND` row needs a portable relative path, an `evidence://` or a `package://` locator, and a 64-character SHA-256.
+- Historical cards go in the `historical_card` channel and must be `LEAD_ONLY`. They never add support or rank.
 
-The ten evidence families remain separate: nr, ClusteredNR, local Swiss-Prot, MIBiG/KnownClusterBlast, ClusterBlast, BiG-SCAPE, RG-GMCI, cohort comparison, domain/HMM, and literature context. No channel substitutes for another.
-
-The `--out` root must already exist. The command creates one child directory and four files whose names all carry the complete filesystem-safe identity in permanent order, followed by the producing Sapote-Mamey bundle version:
-
-`STRAIN__NODE_7_length_120000_cov_42.5__region002__BGC007__SapoteMamey_v<bundle-version>`
+The ten evidence channels stay separate: nr, ClusteredNR, local Swiss-Prot, MIBiG/KnownClusterBlast, ClusterBlast, BiG-SCAPE, RG-GMCI, cohort comparison, domain/HMM and literature context. No channel stands in for another.
 
 ## Outputs
 
-- `<complete-identity>__SapoteMamey_v<version>__MODEB_GENE_FIRST_EXPLORATION.md` — concise, claim-capped synthesis and exactly one next analysis.
-- `<complete-identity>__SapoteMamey_v<version>__important_genes.tsv` — deterministic review order with the complete identity on every row.
-- `<complete-identity>__SapoteMamey_v<version>__evidence_channels.tsv` — channel-separated availability; missing is a workflow gap, not biological absence.
-- `<complete-identity>__SapoteMamey_v<version>__exploration_receipt.json` — identity/version-named receipt recording input/output hashes and both the producing and source-package bundle versions. Its own bytes require an external hash binding.
+Open the `.md` file first.
 
-The gene order is an inspection order based on an explicit role category, then bound gene-channel count, coordinates, and locus tag. It is not a biological-importance score. Outputs remain engineering exploration artifacts pending separate scientific review.
+- `<identity>__SapoteMamey_v<version>__MODEB_GENE_FIRST_EXPLORATION.md`: a short, claim-capped synthesis and one next analysis.
+- `..__important_genes.tsv`: the review order, with the full identity on every row.
+- `..__evidence_channels.tsv`: availability by channel. A missing channel is a workflow gap, not biological absence.
+- `..__exploration_receipt.json`: input and output hashes, and the bundle versions of the tool and the package. It does not list itself, so hash it yourself if you need to bind it.
 
+The gene order is an inspection order: role category first, then the number of bound channels, then coordinates and locus tag. It is not a score of biological importance. These outputs are working notes pending scientific review.
 
 ## Optional frozen database bridge
 
-`--database-selection selection.json` adds sequence-projected observations to the
-existing exploration receipt, important-gene TSV and synthesis. It does not create
-a second packet or admit evidence scientifically. The package roster remains the
-denominator, including boundary genes absent from the selected database census.
+`--database-selection selection.json` adds observations from frozen search databases to the receipt, the important-gene table and the synthesis. It builds on databases you already have. This page does not cover how they are made.
 
-The selection uses schema `mamey.gene-first-database-selection/1`, a required
-`package_manifest_sha256`, and exactly four entries under `databases`: `census`,
-`nr`, `clusterednr`, and `local_swissprot`. Each entry contains an explicit `root`,
-relative `manifest` locator and required `manifest_sha256`. Relative roots resolve
-from the selection JSON directory. Paths are configuration, never discovery by glob
-or filename recency. The manifest pins the database bytes through the existing
-read-only reader. No source database is copied or modified.
+The JSON uses the schema string `mamey.gene-first-database-selection/1` and a `package_manifest_sha256`. It names exactly four entries under `databases`: `census`, `nr`, `clusterednr` and `local_swissprot`. Each entry gives a `root`, a relative `manifest` path and a `manifest_sha256`. Paths are configuration. The tool never finds databases by glob or file date, and it never copies or changes them.
 
-The package must seal its all-gene CSV and `<strain>_proteins.faa` in manifest
-`files` entries. An external `--gene-table` cannot replace those sealed bytes for
-this bridge. Missing package protein evidence fails closed. A missing individual
-protein or disagreement with census sequence/geometry remains unbound, conserving
-the gene. Region starts convert from the package zero-based convention to the
-census one-based convention; CDS coordinates compare directly as one-based inclusive.
-The census must supply matching full region geometry. Gene order and query hashes
-must agree across census and channel databases before any channel observation binds.
+The package must seal its all-gene CSV and `<strain>_proteins.faa` in the manifest. An outside `--gene-table` cannot replace them here. The package roster is the gene denominator, including boundary genes that the databases lack. A gene whose sequence or geometry disagrees with the census stays unbound and is kept.
 
-`BOUND` includes sequence-projected verified no-hit outcomes; it never means that
-all genes have hits. Inspect the per-channel state counts and per-gene columns.
-`UNAVAILABLE_IN_SELECTED_DATABASE` makes no assertion about searches elsewhere.
-`NO_VERIFIED_SEARCH` is the selected source state, not proof a search never ran.
-The same three channels in an external evidence index conflict with a database
-selection and are refused rather than silently taking precedence.
+Read the states with care:
 
-The reader's API `history` view keeps complete source-retained search histories,
-including mixed hit/no-hit outcomes. Every search has its own lowest retained
-source-rank representative, explicit retained-hit count, provenance and HSPs.
-Representatives are not ranked across searches and are not chosen as biological
-comparators. Other retained hits remain accessible through the existing reader's
-`hits` and `hsps` views. The bridge does not imply that all database matches were
-retained by the original search. More than 1000 search records per protein,
-1000 selected locus genes, the existing reader result-size budget, or a held
-source roster stops composition rather than truncating evidence silently.
+- `BOUND` includes verified no-hit results. It does not mean every gene has a hit. Check the per-channel state counts.
+- `UNAVAILABLE_IN_SELECTED_DATABASE` says nothing about searches elsewhere.
+- `NO_VERIFIED_SEARCH` is the state of the selected source. It does not prove a search never ran.
+- The same channels in an evidence index conflict with a database selection, and the command refuses them.
+- `query_union_coverage_pct` is a source-reported query coverage. It is not reference coverage or percent identity.
 
-Raw `query_union_coverage_pct` remains a source-reported query-coverage field,
-not reference coverage or alignment percent identity. The bridge neither clamps
-values nor scientifically validates the metric. Per-HSP identity and query interval
-fields remain inspectable in the receipt; source metric holds remain in force.
-
-This optional interface is an engineering candidate. Source provenance recorded
-in a frozen database is retained, but external XML/job artifacts are not reopened.
-No search, extraction, literature retrieval or phylogenetic work is performed.
+More than 1000 search records for one protein, more than 1000 genes in the locus, or a held source roster stops the run. It never truncates quietly. No search, extraction, literature retrieval or tree building happens. This interface is not part of the standard workflow.
 
 ## Input-admission and write boundaries
 
 The package must already be sealed; this command does not re-check its seal.
 
 An external `--gene-table` is checked for alias, contig, unique tags and positive lengths only. It is
-not compared with the sealed CDS roster. The receipt labels it `package://` even when it is not, so
-record its real path and SHA-256.
+not compared with the sealed CDS roster. The receipt labels it `package://` even when it is not, so record its real path and SHA-256.
 
 Evidence-index `BOUND` rows are checked for locator and hash syntax, known genes and identity. The
 index file is hashed, but the sources it points to are not opened.
 
-The output folder must be new, and its parent must exist. A failure can leave a partial set that a
-retry refuses. The receipt does not list itself among its outputs.
+The child folder must not exist yet, and the `--out` folder must. A failure can leave a partial set that a retry refuses. Keep it for diagnosis and retry under a new `--out` root. The receipt does not list itself among its outputs.

@@ -1,61 +1,44 @@
-# Mode B LLM authoring-context hygiene
+# What to put in a Mode B writing prompt
 
-## Purpose
+If you write a Mode B card with a language model, give it the evidence about the locus and nothing else. Release labels, file paths and task names pull the prose off the biology. This page lists what to include and what to leave out. It does not run anything.
 
-Give the writer the smallest complete scientific evidence view. Distribution bookkeeping, rendering
-state, task nicknames, workspace paths, and unrelated package controls must not steer biological prose.
+For the card steps, see the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). For terms such as KCB and RG-GMCI, see the [glossary](GLOSSARY.md).
 
 ## Include
 
-- exact strain/reference label, full node or contig, antiSMASH region, coordinates, and BGC alias;
-- exact CDS roster and order;
-- antiSMASH class, products, domains, modules, motifs, and boundary evidence;
-- Mamey inventory, HMM/domain, MIBiG, ClusterBlast, RG-GMCI, resistance, and other available streams;
-- channel-separated BLASTP only when exact-bound;
-- typed source states for streams that are unavailable or not applicable;
-- prior-card and locus-map content through an explicit retention ledger; and
-- validated source-specific receipts for cross-strain sequence identity, qualified-family placement,
-  baseline-relative composition/mobile context, and the exact complete upstream synthesis inventory;
-- claim ceilings: similarity is not identity, capacity is not production, and missing evidence is not biological absence.
+- The exact strain or reference label, the full node or contig, the antiSMASH region, its coordinates and the BGC alias.
+- The exact CDS list, in order.
+- The antiSMASH class, products, domains, modules, motifs and boundary evidence.
+- Every other stream you have for this locus: the inventory, HMM and domain results, MIBiG, ClusterBlast, RG-GMCI and resistance.
+- BLASTp results, each channel kept apart, only when they are bound to this exact locus.
+- A typed state for each stream that is unavailable or does not apply.
+- Prior-card and locus-map content, with a list of which parts you kept.
+- Any validated source-specific receipts for cross-strain identity, family placement, composition or mobile-element context, and the full list of upstream results the card draws on.
+- The claim limits: similarity is not identity, capacity is not production, and missing evidence is not biological absence.
 
-## Exclude
+## Leave out
 
-- PUBLIC/PRIVATE release stamps or release-profile prose;
-- tier names, redaction instructions, or shareability labels;
-- PDF/image rendering status unless the task is specifically rendering;
-- filesystem paths when logical source names and hashes suffice;
-- task/chat nicknames and progress narration;
-- generic exemplar genes, comparators, experiments, or conclusions; and
-- private scoring weights, thresholds, phrase dictionaries, benchmark or holdout identities,
-  repeated-phrase fingerprints, and per-feature score deltas;
-- owner authentication keys, private attempt ledgers, signatures, or private calibration manifests; and
-- active-work placeholders presented as scientific results.
+- Public or private release labels, tier names and redaction instructions.
+- PDF or image rendering status, unless the task is rendering.
+- File paths, when a source name and hash say the same thing.
+- Chat or task names and progress notes.
+- Example genes, comparators, experiments or conclusions from some other locus.
+- Private scoring weights, thresholds, phrase dictionaries, benchmark or holdout identities, repeated-phrase fingerprints and per-feature score deltas.
+- Private material: owner authentication keys, private attempt ledgers, signatures and private calibration manifests.
+- Placeholders for work still in progress, presented as results.
 
-Distribution/redaction enforcement remains an export concern and may continue internally during
-migration. It must not be emitted into the LLM scientific-authoring prompt or copied into the card.
+Keep the rules about who owns the data and where output may be written in the assistant's working instructions. Leaving release labels out of the prose does not lift them.
 
-## Reference exemplar
+## A worked example
 
-Use `docs/reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md` to learn
-section order, evidence reconciliation, denominator preservation, and typed source closure. Do not
-copy its locus-specific science into another card.
+To see section order, how evidence is reconciled, how denominators stay separate and how a missing source is closed, read `docs/reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md`. It is a historical full48 format example, not a `current50_v2` card, and its own header says it is not substantive calibration for §§20, 39, 40, 42 and 48. Take section numbers and readiness rules from your selected profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md). Do not copy its science into another card.
 
 ## Feedback boundary
 
-The authoring process may receive the public contract and one coarse route:
-`PASS_TO_HUMAN_REVIEW`, `HOLD_FOR_REWRITE`, or `UNSCORABLE_EVIDENCE_UNBOUND`. Do not expose exact
-threshold misses or allow repeated probing of the same authoring pass. Blinding reduces metric gaming,
-but source authority still requires evidence production and owner review outside the authoring process.
+A reviewer may give the writer one coarse route after a review:
 
-## Enforcement and trusted task context
+- `PASS_TO_HUMAN_REVIEW`
+- `HOLD_FOR_REWRITE`
+- `UNSCORABLE_EVIDENCE_UNBOUND`
 
-This is a context-preparation policy, not a shipped automatic prompt sanitizer. The review receipt
-consumer can check a supplied blinded_score PASS_TO_HUMAN_REVIEW route and hash-shaped bindings;
-that check does not prove blinding, certify a private scorer or establish an independent audit.
-Do not infer a scorer run from any of the three route labels.
-
-Keep scientific evidence context concise, but retain the current trusted task’s ownership, privacy,
-redaction, allowed-input and write-destination constraints in the assistant’s operational context.
-Excluding release labels from scientific prose does not suspend those controls or authorize disclosure.
-Portable source locators/hashes must still resolve to the source register; an opaque logical name alone
-is not exact-source binding. This policy does not authorize constructing or sending a prompt externally.
+Do not expose exact threshold misses to the writer. Do not allow repeated probing of the same pass. No shipped command computes or sets a route. The finished-review-request check is a separate step: when a request carries a `blinded_score` record, it holds the request unless the supplied route is `PASS_TO_HUMAN_REVIEW` (`mamey/mode_b_receipt.py:2591-2594`). A route label does not show that any scoring ran.

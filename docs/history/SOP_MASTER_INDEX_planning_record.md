@@ -38,7 +38,7 @@ workpack's history; the current task router and owning procedures supply today's
 | [SOP-12](../SOPs/SOP-12_Troubleshooting_Common_Warnings.md) | Troubleshooting Common Warnings | POINTER (never written) | Converts scary warnings into action |
 | [SOP-13](../SOPs/SOP-13_Claim_Boundary_Evidence_Language.md) | Claim Boundary and Evidence Language | draft included | Prevents overclaiming |
 | [SOP-14](../SOPs/SOP-14_Figures_Publication_Quality_Visuals.md) | Figures and Publication-Quality Visuals | POINTER (never written) | Publication polish and QA |
-| [SOP-15](../SOPs/SOP-15_Cross_Chat_Merge_and_Patch_Handoff.md) | Cross-Chat Merge and Patch Handoff | draft included | Lets another chat join at any time |
+| [SOP-15](../SOPs/SOP-15_Cross_Chat_Merge_and_Patch_Handoff.md) | Cross-Chat Merge and Patch Handoff | draft included | Lets another contributor join at any time |
 | [SOP-16](../SOPs/SOP-16_Random_File_Inspection.md) | Random File Inspection | included | Hostile-auditor spot-check of random files: quality, functionality, wiring |
 | [SOP-17](../SOPs/SOP-17_CrossStrain_GCF_Cohort.md) | Cross-Strain GCF Cohort (BiG-SCAPE → Mamey) | included | Within-run family similarity, exact source/run joins and receipt-backed exports; no KNOWN/NOVEL labels in cohort-only mode |
 
@@ -46,7 +46,7 @@ workpack's history; the current task router and owning procedures supply today's
 
 The following reading order and patch streams are retained as planning history, not current startup requirements. Use current documentation first; release work requires the current owner cut process.
 
-Another chat can join by reading these files in order:
+Historical: do not use this as a startup route; the current route is the first paragraph of this page. A contributor could join by reading these files in order:
 
 1. `retired_458/release_planning/START_HERE_FOR_OTHER_CHATS.md`
 2. `SOP_MASTER_INDEX.md`
@@ -59,12 +59,12 @@ Another chat can join by reading these files in order:
 | Stream | Status | Merge order |
 |---|---|---|
 | v9.7.141e signed base | stable/frozen | base |
-| BGC BLASTP panel and follow-up parser | starter patch through REV5 / awaiting Claude feedback | first |
+| BGC BLASTP panel and follow-up parser | starter patch through REV5 / awaiting reviewer feedback | first |
 | Single-region accession intake rule | included in REV5 stream | first with BLASTP/intake |
 | C5/C7 REV2 | accepted starter patch, not release candidate | second |
 | C5/C7 audit documentation fixes | must be applied before candidate | second |
 | SOP library | this workpack | documentation stream; can merge with v9.7.142 |
-| Targeted AS-XXX BGC005 phosphonopeptide workflow | science deep-dive; not core default yet | later or optional |
+| Targeted `<strain>` phosphonopeptide workflow | science deep-dive; not core default yet | later or optional |
 
 ## Historical candidate-readiness definition
 
@@ -81,5 +81,7 @@ v9.7.142 candidate is ready only when:
 - final packet contains manifest and checksums.
 
 ## Pointer and draft status
+
+Historical: the SOP-09 row above says its pointer leads to a procedure for a public workbook. The two pages it links cover the code release and the strain privacy profiles. They do not give the public-workbook disclosure check. For a public workbook candidate, start at [the public-workbook audit limits](../CUSTOM_PRIVACY_TIERS.md#public-workbook-audit-limits), which describe what `tools/audit_public_cut.py` does and does not check. A clean diagnostic or a privacy-profile label is not release authorization. A separate full disclosure review is still needed, and the private source stays untouched.
 
 The POINTER pages route to existing current procedures and are not separate incomplete execution recipes. The draft SOPs need their claims checked against the selected bundle and task. Removal of a placeholder marker does not establish implementation, test completion or release acceptance.

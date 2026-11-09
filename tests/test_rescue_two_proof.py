@@ -29,9 +29,12 @@ def test_logic_proof_gate():
     # BOTH_CORE is documented paralogy ("corroborates an OVERLAPPING_PARALOG subject-tiling
     # verdict"), NOT complementarity -- it must NOT satisfy the logic proof on its own.
     assert not _logic_proof({"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "BOTH_CORE"})
-    # ...but strong independent subject-tiling corroboration (cdr>=3) still carries a BOTH_CORE row.
-    assert _logic_proof({"rggmci_confidence": "HIGH_RG_GMCI_RESCUE",
-                         "functional_rescue_class": "BOTH_CORE", "complementary_disjoint_refs": "3"})
+    # ...but strong subject-tiling corroboration (cdr>=3) with a measured zero overlap still carries a BOTH_CORE row.
+    assert _logic_proof({"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "BOTH_CORE",
+                         "complementary_disjoint_refs": "3", "overlapping_subject_refs": "0"})
+    # A missing overlap column is unmeasured, not zero (owner ruling 6 Nov 2026).
+    assert not _logic_proof({"rggmci_confidence": "HIGH_RG_GMCI_RESCUE",
+                             "functional_rescue_class": "BOTH_CORE", "complementary_disjoint_refs": "3"})
     # ACCESSORY_ONLY never passes
     assert not _logic_proof({"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "ACCESSORY_ONLY"})
     # AMBIGUOUS with too few disjoint refs fails

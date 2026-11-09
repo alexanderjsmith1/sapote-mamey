@@ -45,6 +45,7 @@ except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import argparse, csv, glob, os
 from collections import Counter
+from mamey.missing_values import optional_float as _optional_float
 from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 import numpy as np
 # W2-H3/v9.7.352: figure deps are optional ([all] extra). Guard the import so this module — reached
@@ -360,23 +361,23 @@ def fig_archetype(root, strains, out):
 def fig_kcb_novelty(root, strains, out):
     # KCB scores are bimodal (dark ~0 vs known >=40, essentially nothing between), so a
     # ranked score-height bar hides the dark BGCs at zero height. Show tier COUNTS instead.
-    dark, partial, known = [], [], []
+    # A blank, non-numeric or non-finite KCB_score is missing evidence: its own group, never 0.
+    dark, partial, known, missing = [], [], [], []
     for sid in strains:
-        ks = []
-        for r in load_inventory(root, sid):
-            try:
-                ks.append(float(r.get("KCB_score") or 0))
-            except ValueError:
-                ks.append(0.0)
-        dark.append(sum(1 for v in ks if v < 1))
-        partial.append(sum(1 for v in ks if 1 <= v < 40))
-        known.append(sum(1 for v in ks if v >= 40))
-    dark, partial, known = map(np.array, (dark, partial, known))
+        ks = [_optional_float(r.get("KCB_score")) for r in load_inventory(root, sid)]
+        dark.append(sum(1 for v in ks if v is not None and v < 1))
+        partial.append(sum(1 for v in ks if v is not None and 1 <= v < 40))
+        known.append(sum(1 for v in ks if v is not None and v >= 40))
+        missing.append(sum(1 for v in ks if v is None))
+    dark, partial, known, missing = map(np.array, (dark, partial, known, missing))
     fig, ax = plt.subplots(figsize=(_strain_bar_width(strains), 5.4))
     ax.bar(strains, dark, color="#b2182b", label="no KCB hit (<1)", edgecolor="white")
     ax.bar(strains, partial, bottom=dark, color="#e08214", label="partial (1-40)", edgecolor="white")
     ax.bar(strains, known, bottom=dark + partial, color="#2166ac", label="known-like (>=40)", edgecolor="white")
-    tot = dark + partial + known
+    if missing.any():
+        ax.bar(strains, missing, bottom=dark + partial + known, color="#999999",
+               label="unknown / missing score", edgecolor="white")
+    tot = dark + partial + known + missing
     for i, sid in enumerate(strains):
         pct = 100 * dark[i] / tot[i] if tot[i] else 0
         ax.text(i, dark[i] / 2, f"{dark[i]}", ha="center", va="center", color="white", fontsize=10, fontweight="bold")
@@ -389,9 +390,10 @@ def fig_kcb_novelty(root, strains, out):
     _png = os.path.join(out, "fig6_kcb_novelty.png")
     _sidecar_csv(_png, ["strain", "kcb_tier", "n_bgcs"],
                  [row for i, sid in enumerate(strains) for row in (
-                     [sid, "dark_lt1_candidate_novel", int(dark[i])],
-                     [sid, "partial_1_to_40", int(partial[i])],
-                     [sid, "known_like_ge40", int(known[i])])])
+                     [[sid, "dark_lt1_candidate_novel", int(dark[i])],
+                      [sid, "partial_1_to_40", int(partial[i])],
+                      [sid, "known_like_ge40", int(known[i])]] +
+                     ([[sid, "missing_or_nonnumeric_score", int(missing[i])]] if missing.any() else []))])
     plt.tight_layout(); plt.savefig(_png, dpi=_safe_dpi(plt.gcf(), PUBLICATION_RASTER_DPI), bbox_inches="tight", facecolor="white"); plt.close()
 
 
@@ -439,12 +441,19 @@ def fig_cctt_heatmap(root, strains, out):
 # ---------------- FIG 8: boundary / fragmentation profile ----------------
 def fig_boundary_profile(root, strains, out):
     """Interior / Edge / Full-contig BGCs per strain — the assembly-quality lens on every count."""
-    order = ["Interior", "Edge", "Full-contig"]
-    col = {"Interior": "#1b7837", "Edge": "#e08214", "Full-contig": "#b2182b"}
-    counts = {sid: Counter(r.get("Boundary", "") for r in load_inventory(root, sid)) for sid in strains}
+    order = ["Interior", "Edge", "Full-contig", "unknown / missing"]
+    col = {"Interior": "#1b7837", "Edge": "#e08214", "Full-contig": "#b2182b", "unknown / missing": "#999999"}
+    known_states = set(order[:3])
+    # A blank or unrecognized Boundary value keeps its own group so every BGC stays in the denominator.
+    counts = {sid: Counter((r.get("Boundary") or "").strip() if (r.get("Boundary") or "").strip() in known_states
+                           else "unknown / missing" for r in load_inventory(root, sid)) for sid in strains}
+    if not any(counts[sid].get("unknown / missing", 0) for sid in strains):
+        draw_order = order[:3]
+    else:
+        draw_order = order
     fig, ax = plt.subplots(figsize=(_strain_bar_width(strains), 5.4))
     bottom = np.zeros(len(strains))
-    for k in order:
+    for k in draw_order:
         vals = np.array([counts[sid].get(k, 0) for sid in strains], float)
         ax.bar(strains, vals, bottom=bottom, color=col[k], label=k, edgecolor="white", linewidth=0.5)
         for i in range(len(strains)):
@@ -458,12 +467,12 @@ def fig_boundary_profile(root, strains, out):
     ax.set_ylabel("BGC count", fontsize=11)
     ax.set_ylim(0, bottom.max() * 1.12)
     _finish_strain_axis(ax, strains)
-    ax.set_title("BGC boundary / fragmentation profile per strain\n(interior = confident; edge/full-contig = fragment-limited)",
+    ax.set_title("BGC boundary / fragmentation profile per strain\n(interior = away from a contig end; edge/full-contig = may be cut by the assembly)",
                  fontweight="bold", fontsize=11)
     ax.legend(fontsize=9, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig8_boundary_profile.png")
     _sidecar_csv(_png, ["strain", "boundary", "n_bgcs"],
-                 [[sid, k, int(counts[sid].get(k, 0))] for sid in strains for k in order])
+                 [[sid, k, int(counts[sid].get(k, 0))] for sid in strains for k in draw_order])
     plt.tight_layout(); plt.savefig(_png, dpi=_safe_dpi(plt.gcf(), PUBLICATION_RASTER_DPI), bbox_inches="tight", facecolor="white"); plt.close()
 
 
@@ -516,23 +525,28 @@ def fig_domain_cooccur(root, strains, out, top_n=16):
 # ---------------- FIG 10: source-derived resistance-marker map ----------------
 def fig_resistance_map(root, strains, out):
     """BGCs by source-derived resistance tier per strain; no potency inference."""
-    order = ["T1", "T2", "T3", "none"]
-    lab = {"T1": "T1 self-protection", "T2": "T2 resistance-like", "T3": "T3 transporter-only", "none": "no resistance signal"}
-    col = {"T1": "#b2182b", "T2": "#e08214", "T3": "#7fb0d3", "none": "#dddddd"}
+    order = ["T1", "T2", "T3", "none", "missing"]
+    lab = {"T1": "T1 self-protection", "T2": "T2 resistance-like", "T3": "T3 transporter-only",
+           "none": "no resistance signal (scanned)", "missing": "unknown / missing tier"}
+    col = {"T1": "#b2182b", "T2": "#e08214", "T3": "#7fb0d3", "none": "#dddddd", "missing": "#999999"}
     counts = {}
     for sid in strains:
         c = Counter()
         for b, gs in load_genes(root, sid).items():
-            tiers = set(g.get("resistance_tier", "").split("_")[0] for g in gs if g.get("resistance_tier", ""))
+            raw = [(g.get("resistance_tier") or "").strip() for g in gs]
+            tiers = set(t.split("_")[0] for t in raw if t)
             for t in ("T1", "T2", "T3"):
                 if t in tiers:
                     c[t] += 1; break
             else:
-                c["none"] += 1
+                # "none" only when every gene row carries the scanned-negative NULL tier; a blank or
+                # unrecognized value is missing evidence, not a completed negative.
+                c["none" if raw and all(t.startswith("NULL") for t in raw) else "missing"] += 1
         counts[sid] = c
+    draw_order = order if any(counts[sid].get("missing", 0) for sid in strains) else order[:4]
     fig, ax = plt.subplots(figsize=(_strain_bar_width(strains), 5.4))
     bottom = np.zeros(len(strains))
-    for k in order:
+    for k in draw_order:
         vals = np.array([counts[sid].get(k, 0) for sid in strains], float)
         ax.bar(strains, vals, bottom=bottom, color=col[k], label=lab[k], edgecolor="white", linewidth=0.5)
         for i in range(len(strains)):
@@ -547,7 +561,7 @@ def fig_resistance_map(root, strains, out):
     ax.legend(fontsize=8.5, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig10_resistance_map.png")
     _sidecar_csv(_png, ["strain", "resistance_tier", "n_bgcs"],
-                 [[sid, lab[k], int(counts[sid].get(k, 0))] for sid in strains for k in order])
+                 [[sid, lab[k], int(counts[sid].get(k, 0))] for sid in strains for k in draw_order])
     plt.tight_layout(); plt.savefig(_png, dpi=_safe_dpi(plt.gcf(), PUBLICATION_RASTER_DPI), bbox_inches="tight", facecolor="white"); plt.close()
 
 

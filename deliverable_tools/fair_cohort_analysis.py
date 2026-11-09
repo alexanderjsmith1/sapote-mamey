@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fair_as_sid_analysis.py — AS vs SID compound comparison + confounder analysis, both
+"""fair_as_sid_analysis.py — project-isolate vs public-reference compound comparison + confounder analysis, both
 cohorts extracted IDENTICALLY (COMPREHENSIVE_clusterblast_both.csv). Answers: is the
 AS-only/SID-only asymmetry driven by strain count, rare genera, and fragmentation?
 Homology/capacity only; judgment deferred."""

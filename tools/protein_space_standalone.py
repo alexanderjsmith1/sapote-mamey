@@ -59,10 +59,47 @@ def package_html(source,D,reference_js,vendor,plotly=False):
  bootstrap="""(async()=>{try{if(typeof DecompressionStream==='undefined')throw Error('A current browser with DecompressionStream support is required.');const b=Uint8Array.from(atob(document.getElementById('data').textContent.trim()),c=>c.charCodeAt(0));window.STANDALONE_DATA=JSON.parse(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text());const s=document.createElement('script');s.textContent=document.getElementById('viewer-program').textContent;document.body.appendChild(s);document.getElementById('offline-loading').remove()}catch(e){document.getElementById('offline-loading').textContent='Could not open embedded data: '+e.message}})();"""
  return shell+'\n<style id="offline-fonts">'+fonts(vendor)+'</style>\n'+vendor_js+'<script data-offline-vendor="reference-reader">'+safe_script(reference_js)+'</script>\n<p id="offline-loading" role="status">Opening embedded data…</p>\n<script id="data" type="application/octet-stream" data-encoding="gzip">'+encoded+'</script>\n<script id="viewer-program" type="text/plain">'+safe_script(program)+'</script>\n<script>'+bootstrap+'</script>\n<details style="margin:1rem"><summary>Embedded software licenses</summary><pre style="white-space:pre-wrap">'+licenses.replace('&','&amp;').replace('<','&lt;')+'</pre></details>\n</body></html>\n'
 
+def _same(a,b):
+ """True when two paths name the same file: equal after resolution and case folding, or same inode."""
+ a,b=Path(a),Path(b)
+ if str(a.resolve()).casefold()==str(b.resolve()).casefold():return True
+ try:return a.exists() and b.exists() and a.samefile(b)
+ except OSError:return False
+
+def check_outputs(outputs,inputs,replace_candidate):
+ """Refuse before any work: outputs that collide, alias an input, or already exist.
+
+ With --replace-candidate an existing output is replaced only when the existing receipt is a
+ standalone receipt whose recorded output hashes match those files now, i.e. this tool's own
+ unchanged earlier candidate. Raises ValueError with the reason."""
+ viewer_out,catalogue_out,receipt=outputs
+ for i,x in enumerate(outputs):
+  for y in outputs[i+1:]:
+   if _same(x,y):raise ValueError('OUTPUT_COLLISION: two outputs name the same file: '+str(x))
+  for src in inputs:
+   if _same(x,src):raise ValueError('OUTPUT_ALIASES_INPUT: '+str(x)+' is the input '+str(src))
+ present=[x for x in outputs if x.exists() or x.is_symlink()]
+ if not present:return
+ if not replace_candidate:raise ValueError('Output exists: '+', '.join(map(str,present))+'. Use --replace-candidate only for an identified derived candidate.')
+ if not receipt.is_file():raise ValueError('REPLACE_CANDIDATE_UNIDENTIFIED: no earlier receipt at '+str(receipt))
+ try:old=json.loads(receipt.read_text())
+ except ValueError:raise ValueError('REPLACE_CANDIDATE_UNIDENTIFIED: earlier receipt is not JSON')
+ if not isinstance(old,dict) or old.get('schema')!='sapote.protein_space.standalone.v1':raise ValueError('REPLACE_CANDIDATE_UNIDENTIFIED: earlier receipt is not a standalone receipt')
+ recorded=old.get('outputs') or {}
+ for x in (viewer_out,catalogue_out):
+  if not (x.exists() or x.is_symlink()):continue
+  match=[h for k,h in recorded.items() if _same(k,x) or k==str(x)]
+  if not x.is_file() or x.is_symlink() or not match or match[0]!=sha(x.read_bytes()):
+   raise ValueError('REPLACE_CANDIDATE_UNIDENTIFIED: '+str(x)+' is not the unchanged output recorded in '+str(receipt))
+
 def main():
  root=Path(__file__).resolve().parents[1];assets=root/'tools/protein_space_viewer_assets'
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--viewer',type=Path,required=True);ap.add_argument('--catalogue',type=Path,required=True);ap.add_argument('--viewer-template',type=Path,default=assets/'viewer_template.html');ap.add_argument('--catalogue-template',type=Path,default=assets/'catalogue_template.html');ap.add_argument('--reference-reader',type=Path,default=assets/'reference_browser.js');ap.add_argument('--vendor-dir',type=Path,default=root/'assets/protein_space_vendor');ap.add_argument('--viewer-out',type=Path,required=True);ap.add_argument('--catalogue-out',type=Path,required=True);ap.add_argument('--receipt',type=Path,required=True);ap.add_argument('--replace-candidate',action='store_true');a=ap.parse_args()
- if not a.replace_candidate and any(p.exists() for p in [a.viewer_out,a.catalogue_out]):raise ValueError('Output exists. Use --replace-candidate only for an identified derived candidate.')
+ source_inputs=[a.viewer,a.catalogue,a.viewer_template,a.catalogue_template,a.reference_reader,Path(__file__)]
+ source_inputs+=[p for p in a.vendor_dir.iterdir() if p.is_file()] if a.vendor_dir.is_dir() else []
+ for folder,names in ((a.viewer.parent,['SOURCE_BINDINGS.tsv','REFERENCE_SOURCE_BINDINGS.tsv','BUILD_RECEIPT.json']),(a.catalogue.parent,['ALL_COMPARISONS.tsv','STRAIN_COVERAGE.tsv','SOURCE_BINDINGS.tsv','AUDIT_RECEIPT.json'])):
+  source_inputs+=[folder/n for n in names if (folder/n).exists()]
+ check_outputs([a.viewer_out,a.catalogue_out,a.receipt],source_inputs,a.replace_candidate)
  inputs=[{'path':str(p.resolve()),'sha256':sha(p.read_bytes()),'bytes':p.stat().st_size} for p in [a.viewer,a.catalogue,a.viewer_template,a.catalogue_template,a.reference_reader,Path(__file__)]]
  # Read every input before replacing any derived candidate. Sources are never overwritten.
  viewer=read_data(a.viewer.read_text());catalogue=read_data(a.catalogue.read_text());old_points=sha(json.dumps([s['pts'] for s in viewer['sets']],separators=(',',':')).encode())
@@ -84,9 +121,10 @@ def main():
   path=a.catalogue.parent/filename
   if path.exists():catalogue.setdefault('offline_exports',{})[filename]=path.read_text()
  reader=a.reference_reader.read_text();vtext=package_html(a.viewer_template.read_text(),viewer,reader,a.vendor_dir,True);ctext=package_html(a.catalogue_template.read_text(),catalogue,reader,a.vendor_dir)
- for path,text in [(a.viewer_out,vtext),(a.catalogue_out,ctext)]:path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
  receipt={'schema':'sapote.protein_space.standalone.v1','viewer':str(a.viewer_out.resolve()),'catalogue':str(a.catalogue_out.resolve()),'viewer_bytes':len(vtext.encode()),'catalogue_bytes':len(ctext.encode()),'layouts':len(viewer['sets']),'point_rows':sum(len(s['pts']) for s in viewer['sets']),'point_fingerprint_before':old_points,'point_fingerprint_after':sha(json.dumps([s['pts'] for s in read_data(vtext)['sets']],separators=(',',':')).encode()),'embedded_region_strains':len(viewer['region_payloads']),'embedded_reference_strains':len(viewer['reference_payloads']),'comparison_rows':len(catalogue['rows']),'reference_gene_rows':viewer['reference_detail_coverage']['reference_gene_rows'],'network_dependencies':0,'new_analysis':False,'outputs':{str(a.viewer_out):sha(vtext.encode()),str(a.catalogue_out):sha(ctext.encode())},'vendor_files':[{'file':p.name,'sha256':sha(p.read_bytes()),'bytes':p.stat().st_size} for p in sorted(a.vendor_dir.iterdir()) if p.is_file()]}
+ # Check before any output is written, so a failed check leaves no partial new candidate.
  if receipt['point_fingerprint_before']!=receipt['point_fingerprint_after']:raise ValueError('Point geometry changed during packaging')
+ for path,text in [(a.viewer_out,vtext),(a.catalogue_out,ctext)]:path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
  receipt['inputs']=inputs;a.receipt.write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps({k:v for k,v in receipt.items() if k not in ['vendor_files','outputs','inputs']},indent=2))
 
 if __name__=='__main__':main()

@@ -156,7 +156,14 @@ def is_placeholder_taxonomy(taxonomy: str) -> bool:
     not infer taxonomy or reject valid unfamiliar/candidate organism names.
     """
     value = str(taxonomy or "").strip()
-    return bool(value) and (not any(c.isalpha() for c in value) or value.casefold() in {"sp", "sp.", "spp", "spp."})
+    return bool(value) and (not any(c.isalpha() for c in value) or value.casefold() in {"sp", "sp.", "spp", "spp."}
+                            or is_template_placeholder(value))
+
+
+def is_template_placeholder(value: str) -> bool:
+    """True for an unfilled template slot such as '<Genus species>', which `inspect` prints for the user to edit."""
+    v = str(value or "").strip()
+    return len(v) > 2 and v.startswith("<") and v.endswith(">")
 
 
 def normalize_taxonomy(taxonomy: str) -> str:

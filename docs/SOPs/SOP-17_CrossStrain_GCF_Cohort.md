@@ -1,70 +1,51 @@
 # SOP-17 — cross-strain GCF cohort with BiG-SCAPE
 
-Read [the companion tool protocol](../LLM_COMPANION_TOOL_PROTOCOL.md) and the [GCF workflow](../BIGSCAPE_GCF_WORKFLOW.md) first.
+To run a cohort, follow [Make BiG-SCAPE family tables and figures](../BIGSCAPE_COHORT_WALKTHROUGH.md). Setup and settings are in the [GCF workflow](../BIGSCAPE_GCF_WORKFLOW.md) and the [companion tool protocol](../LLM_COMPANION_TOOL_PROTOCOL.md). This page is the checklist to apply to a finished run.
 
-## Purpose
+A GCF (gene cluster family) is a group of BGC regions that BiG-SCAPE finds similar at one cutoff. See the [glossary](../GLOSSARY.md). A cohort family layer shows related architecture across strains. It does not assign compound identity, production, activity or novelty. It does not change a sealed package.
 
-Build a source-preserving, resumable family-similarity layer across antiSMASH BGC regions and emit
-portable cohort tables. This SOP does not assign compound identity, production, activity, or
-universal novelty, and it does not edit sealed Mamey outputs by default.
+## Before the run
 
-## Procedure
+1. Pick the exact strains. Record each antiSMASH ZIP hash, its region count and its antiSMASH version.
+2. Stage only region GBKs, with `tools/bigscape_prep.py`. Read `STRICTNESS_MANIFEST.tsv`. Every strain you expect must be `STAGED`, and every exclusion must have a row.
+3. Choose the design. Cohort-only mode uses no references. A reference-augmented design adds MIBiG. Do not download MIBiG unless the user approves it.
+4. State the plan first: region, strain and reference counts, the output folder, and the CPU setting.
 
-1. Find the current bundle, the cohort registry and the BiG-SCAPE workspace. Check for an existing
-   run and handoff before you create a new one.
-2. Select exact strain inputs and inventory their antiSMASH ZIP hashes, region-member counts, bytes,
-   locators, and antiSMASH versions.
-3. Stage region GBKs as content-addressed objects with strain-prefixed run links. Quarantine
-   AppleDouble/malformed/colliding records; preserve a row for every exclusion.
-4. Probe BiG-SCAPE, HMMER, Pfam, and FastTree names/versions. Hash the HMM assets.
-5. Declare `cohort-only` or an approved reference-augmented design. Do not auto-download MIBiG.
-6. Show the preflight: BGC/strain/reference counts, bytes, core plan, runtime/disk estimate, output
-   root, and mutation/network boundaries.
-7. Run the exact recorded BiG-SCAPE 2.x command at cutoffs 0.3, 0.5, and 0.7. The interactive
-   policy is one core; select the runner’s core flag explicitly. The generic `mamey_run.py bigscape`
-   parser defaults to four without `--cpus 1`, while `tools/bigscape_pipeline.py` defaults its
-   separate `--cores` option to one. Surface two and four only as explicitly selected resource options.
-8. On interruption, inspect state/log/database before retrying. Reuse cache only when the immutable
-   input manifest and scientific parameters are unchanged.
-9. Select the exact completed database run ID. QA count parity, integrity, families, memberships,
-   distances, exclusions, and reference loading.
-10. Export a locator-keyed TSV plus HTML/network/tree products, checksums, and `HANDOFF.md`.
-11. Interpret families as within-run related architecture. In cohort-only mode, never emit
-   KNOWN/NOVEL. In a reference run, say “MIBiG-anchored” or “unanchored in this panel.”
-12. If the user separately authorizes reconciliation, add source-preserving overlays to Mode B or
-   triage products and retain original hashes. Do not silently mutate canonical cards.
+## CPU setting
 
-## Reader implementation limits
+The interactive policy is one core. Pass it explicitly, because the two runners differ:
 
-The procedure above is the required run contract, not a promise that one helper creates every
-receipt. `bigscape_prep.py` writes strain-prefixed GBK copies and a strictness manifest; it
-does not create content-addressed links or hash every accepted member. The pipeline’s optional
-`--ingest-package` route mutates cards rather than implementing additive overlays. Resolve
-these gaps through the [adapter boundary](../BIGSCAPE_GCF_WORKFLOW.md#implemented-adapters-versus-the-requested-runbook)
-and retain the required source/member roster and receipts separately.
+- `python mamey_run.py bigscape` takes `--cpus`. The default is 4, so pass `--cpus 1`.
+- `tools/bigscape_pipeline.py` takes `--cores`. The default is 1.
 
-The cohort procedure above requires exact completed-run selection and count reconciliation. Some auxiliary family readers filter only by cutoff and can return 0 with empty, skipped or failed output rows. Their present behavior does not enforce all SOP gates. Read [the reader recovery guide](../../tools/BIGSCAPE_READER_RECOVERY.md), inspect per-output status tables and keep an explicit hold when the database contains unresolved/mixed run memberships. Never infer completion from the process exit status alone.
+Use two or four cores only when the user picks them.
+
+## After the run
+
+1. Choose one finished run. In the database, `select id, end_time from run;` must show an end time for it. Pass that ID as `--run-id` to every reader. A run with no end time is unfinished in the database, and its process may still be running. Check that the process for that output folder has exited and read `out/run.log` before you call it interrupted or retry. If you cannot tell, record it as unresolved. Reuse a cache only when the inputs and parameters are unchanged.
+2. Check that the query-region count in the database equals your staged count. Check the integrity of the SQLite file.
+3. Export the family table at each cutoff (0.3, 0.5 and 0.7 by default) with `tools/bigscape_family_verdicts.py`. Give each run and cutoff its own new table path. The tool refuses an existing table or `<table>.placement.tsv`, or a path equal to the database. If it is empty, compare counts before you read anything into it.
+4. Keep the staged list, tool versions, the exact command, the cutoffs, the run ID and the output hashes beside the results.
+5. If the user separately asks to add family context to Mode B cards or the triage board, do it as an addition. Keep the original card hashes. Do not change cards silently.
+
+If a reader gives an empty or failed table, or the database holds several finished runs, see [BiG-SCAPE troubleshooting](../troubleshooting/BIGSCAPE_TROUBLESHOOTING.md).
 
 ## Portable join key
 
-Use `(source_run_id, cutoff, strain, bgc_id, contig·region)` for memberships. Retain the local
-database `family.id` for display/audit only. Never join separate runs or databases by `family.id` or
-viewer `FAM_#####` labels.
+Join memberships on the run, the cutoff, the strain, the BGC alias and the contig and region. Use the database `family.id` for display only. It belongs to one database, run and cutoff. Never join two runs or databases by `family.id` or by viewer labels such as `FAM_#####`. The shipped family table carries `family_id` and `cutoff`. Record the run ID beside it.
 
-## Required receipts
+## How to read families
 
-- immutable run manifest and state history;
-- source/member/input-view checksums and exclusion ledger;
-- exact tool versions, Pfam hash, command, cores, and logs;
-- exact completed run ID and SQLite integrity result;
-- input/database/export count reconciliation;
-- cutoff-specific family and membership denominators;
-- portable GCF TSV, output manifest, QA report, and handoff;
-- claim ceiling and reference-panel statement.
+Read a family as related architecture within this run. In cohort-only mode, never write KNOWN or NOVEL. In a reference run, say "MIBiG-anchored" or "unanchored in this panel".
 
-## Stop conditions
+## When to stop
 
-Stop at `HOLD` rather than improvising when the HMM assets are inconsistent, region/member counts do
-not reconcile, locators collide, the requested run would exceed the approved resources, references
-require an unapproved download, no exact completed run can be identified, or canonical mutation has
-not been authorized.
+Stop and report a hold. Do not improvise. Stop when:
+
+- the HMM (Pfam) files are incomplete;
+- region counts do not match;
+- two files map to the same name;
+- the run would exceed the approved resources;
+- references need a download nobody approved;
+- no single finished run can be named; or
+- the user has not approved a change to a card.

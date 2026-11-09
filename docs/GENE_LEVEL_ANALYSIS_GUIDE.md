@@ -1,122 +1,136 @@
-# Gene-level BiG-SCAPE exploration — workflow guide (v9.7.294)
+# Gene-level analysis guide
 
-How to take a new batch of strains from antiSMASH GBKs through gene-level assembly-line analysis,
-predicted-chemistry context, sequence-divergence observations, and Mode B evidence inputs,
-with the parser, identity and selected-profile limits below.
-Everything here is capacity-level: biosynthetic potential, never production or bioactivity.
+This guide shows how to read a biosynthetic gene cluster (BGC) gene by gene. Use it after you have a sealed package for a strain. You end up with a per-gene table for one region, a rescue check, and a short evidence note you can hand to a Mode B card. Terms such as BGC, KCB, RG-GMCI and Mode B are in the [glossary](GLOSSARY.md). For install and the first run, see [first run](reader/01_FIRST_RUN.md).
 
-## The one rule that governs everything: count per GENE, not per region
-antiSMASH reports *regions*. On well-assembled contigs it MERGES neighbouring clusters into one region,
-so a region-level domain sum adds modules across several assembly lines (inflates); on fragmented
-contigs it splits one cluster across regions (deflates). Three annotation-counting traps handled within the parser's supported ID format:
-1. `/aSDomain="Condensation"` appears in real `nrpspksdomains` features AND in redundant `PFAM_domain`
-   (clusterhmmer) duplicates AND in detection-rule text. Count **only** `domain_id="nrpspksdomains_..."`.
-2. Condensation domains are subtyped (`_LCL/_DCL/_Dual/_Starter`, `Heterocyclization`) — sum the family.
-3. PKS carrier domains are `PKS_PP` as well as `ACP`/`PP-binding` — accept all three for completeness.
-(These caused three real over/under-counts in development. The tools bake in the fixes.)
+Every result here is capacity. A gene shows that a pathway step could exist. It does not show that the strain makes a compound. A similar sequence is not the same compound.
 
-## Workflow for a new strain batch
-1. **Scan into BiG-SCAPE** (see BiG-SCAPE_RUN_GUIDE): the old one-strain Nocardia chunk recommendation was a measurement on a particular 3.9 GB/single-core environment, not a universal CDS/OOM limit. Bind the intended run configuration and resource receipt; this guide does not authorize a scan.
-2. **Gene catalog:** `python gene_assembly_line.py --dir <region_gbks>/ --out gene_catalog.tsv`
-   -> per-gene annotated domain/module counts, local core-presence flag and kind for the supported identifier format; this is not every gene or whole-pathway completeness.
-3. **Predicted chemistry:**
-   - NRPS: `python nrps_substrate.py REGION.gbk` -> predicted backbone + siderophore/glycopeptide/
-     lipopeptide signature (glyco/lipo annotation-based candidates; keyword co-occurrence is not confirmation).
-   - PKS: `python pks_product_class.py REGION.gbk` -> polyene / aromatic / reduced-macrolide call from
-     per-module reductive loops.
-4. **MIBiG protein-homology context (BLASTp — run when the core is free, not during a scan):**
-   `bigscape_blastp_novelty.py build --mibig-dir mibig_gbks/ --mibig-release RELEASE_ID --db mibig_db`
-   `bigscape_blastp_novelty.py query --targets core_proteins.faa --db mibig_db --out mibig_protein_context.tsv`
-   `bigscape_blastp_novelty.py modeb --results mibig_protein_context.tsv --out modeb_mibig_protein_context.md`
-   BLAST `pident` is **percent amino-acid identity**. Interpret it with query and subject
-   coverage, E-value, bitscore, exact query/subject sequence hashes, and the declared MIBiG
-   database build. The build emits a hash-bound source-GBK manifest and versioned receipt
-   with portable relative locators rather than personal absolute source paths;
-   query refuses missing or drifted metadata, receipt, or source-manifest inputs. Both query
-   and subject coverage must pass the declared thresholds before a whole-protein homolog state
-   is emitted. A low-identity match is a sequence-divergence prior within that reference
-   set, not proof of a novel scaffold. A high-identity match is not a self-hit unless exact
-   source/strain provenance establishes that relationship. The historical filename is retained
-   for compatibility; this tool does not run BiG-SCAPE and its output must not be described as a
-   BiG-SCAPE family result.
-5. **Mode B enrichment:** the preferred MIBiG route requires the result TSV and canonical
-   protein roster plus their expected SHA-256 values and the complete identity in the order
-   `strain / full node-or-contig / region / BGC alias`. The enrichment command refuses an
-   unbound TSV, a query absent from the roster, hash/length drift, an unsupported evidence
-   state, or a missing/drifted database receipt. The legacy `--blastp-pct` summary remains
-   explicitly unbound and is insufficient for a finished card.
+## The rule
 
-## Mode B routing for the MIBiG protein-context stream
+Read the genes. Do not classify a region from its antiSMASH product label alone.
 
-The TSV and generated Markdown are evidence inputs, not standalone conclusions:
+antiSMASH reports regions. A region can merge neighboring clusters, which inflates any region-level domain sum. It can also split one cluster across contigs, which deflates it. Gene-level reading helps you spot both, but it does not settle the region boundaries, the assembly's coverage or whether two contigs are linked. Keep those as open questions with their evidence. A reference cluster that looks incomplete may be finished on another contig, so check RG-GMCI before you call a locus partial.
 
-- **Admission:** bind the exact result TSV hash, exact roster hash, complete locus identity,
-  database metadata hash, versioned build-receipt hash, and source-GBK-manifest hash. Display
-  escaping never changes the exact source TSV values.
+Name every locus with four parts, copied from one source row: `strain / full node-or-contig / region / BGC alias`. Do not shorten it.
 
-- **§4:** add the best admitted row for every queried gene, including protein SHA-256,
-  MIBiG accession/subject, percent identity, query coverage, subject coverage, E-value,
-  bitscore, and typed evidence state.
-- **§8 and §11:** reconcile the gene-level homologs with KCB/MIBiG cluster-level evidence and
-  the multi-gene biosynthetic logic chain. A single homolog cannot assign the product.
-- **§15 and §16:** list missing queries, low-coverage hits, database/version gaps, and the
-  next confirmatory comparison.
-- **§24:** use distributed, coverage-qualified divergence only as a bounded novelty prior.
-  Do not convert a fixed identity cutoff into chemical novelty.
-- **§28:** bind the query FASTA, protein SHA-256, database metadata/build receipt, TSV, and
-  command parameters.
-- **§39-§41 and §46-§47:** use admitted homologs to select comparator proteins or loci for
-  cross-strain identity, phylogeny, type/reference comparison, and host-matched controls.
+## 1. List the BGCs
 
-This stream should normally be run for committed core, maturation/tailoring, export, and
-mechanism-specific self-resistance candidates, not only the largest synthase. The card must
-still end with the locus-level logic chain: committed core -> assembly/maturation -> tailoring
--> export/self-resistance -> missing or contradictory step.
+```bash
+python mamey_run.py list-bgcs runs/EXAMPLE/package --top 10
+```
 
-## Local legacy helper labels (not a universal acceptance floor)
-- **15 kb confidence floor:** very likely = best contig >=15 kb AND complete core (NRPS C+A+PCP; PKS
-  KS+AT+carrier); likely = >=15 kb; fragment = <15 kb. Nothing <15 kb is "likely".
-- **Capacity language:** "capacity consistent with", never "produces"/"makes".
-- **BLASTp reports percent identity and percent positives; both are similarity evidence, not
-  biological identity.** KCB is a separate cluster-level comparison. Never merge the channels.
-- **Cite each BGC by `strain / full node-or-contig / region / BGC alias`.** The full
-  four-part identity is primary; module counts remain per gene.
-- **NAPAA excluded** from comparative claims. **Over-broad anchors** (platensimycin) flagged low-confidence.
-- **No em-dashes in card stamps.**
+You see a table of BGCs in triage order. Add `--json` for a machine-readable list, or `--include-dropped` to see BGCs removed as primary metabolism. Pick one BGC. Write down its strain, contig, region and alias.
 
-## Doing Mode B in the same deliverable
-The gene-level section is designed to slot into the existing Mode B card structure (it is one block,
-not a parallel document). Author the strain's Mode B cards as usual, and for each modular BGC insert the
-`gene_modeb_enrichment` output as the assembly-line subsection of the relevant card. The generated block remains evidence input: local helper labels and capacity wording do not verify the whole card, its current profile, exact identity or scientific claims. Keep all four identity components in every filesystem-safe card filename.
+The command needs a sealed package. If it fails, validate the package first (see [read results](reader/03_READ_RESULTS.md)).
 
-## Findings this workflow already produced (51-strain cohort)
-*(v9.7.372: the specific per-strain findings previously listed here are unpublished cohort results
-and are withheld from the public code tier. A worked example regenerated from a public type strain
-replaces them in a following cut — see the .372 disclosure-audit card. The workflow's capacity to
-produce class-level novelty reads is unchanged.)*
+## 2. Read the per-gene tables
 
-## Current parser, identity and profile limits
+A package holds the gene tables for each BGC. Open them in a spreadsheet or with a script.
 
-Use `tools/` paths from the bundle root; this older guide's bare script names are not root entry points. `gene_assembly_line.py:35–78` regex-matches `nrpspksdomains_ctg<digits>_<digits>_<domain>.<digits>` only, not arbitrary valid gene IDs. The catalog ignores genes without C/KS, counts modules as `max(C,KS)` and chooses NRPS on a tie. Its “complete” means presence of a C+A+any accepted carrier or KS+AT+carrier on that gene, not whole-pathway completeness. Empty catalog output can be a schema/ID mismatch rather than biological absence.
+- `EXAMPLE_cds_table.csv`: one row per gene in a BGC. Columns include `locus_tag`, `start`, `end`, `strand`, `length_aa`, `product` and `sec_met_domains`.
+- `EXAMPLE_domains.csv`: one row per domain on a BGC gene, with `domain`, `pfam_acc`, `bitscore`, `evalue` and `substrate`.
+- `EXAMPLE_gene_context.jsonl`: the same genes, one line per BGC.
 
-Catalog identity comes from filenames: strain is the first underscore-delimited token, node matching drops a NODE coverage suffix, and no BGC alias is emitted. Output TSV is directly overwritten and has no input/code/output receipt (`:62–107`). Bind the actual GBK hash and a verified four-part locus map separately; do not adopt truncated `node_region` as the full locus identity.
+Filter on your BGC's `contig` and `region`. Check three things.
 
-`gene_modeb_enrichment.py:54–65,209–228` gets “contig length” from a `length_<digits>` token in the display identity/filename, not the GBK sequence. The 15 kb label is a local heuristic using the **largest-module gene's** core flag; it is not measured confidence, boundary completeness, a universal genome/locus floor or current50 approval. Missing length defaults to zero/fragment. `--complete-identity` is optional for legacy unbound paths. A no-assembly-line branch returns before validating the MIBiG stream. Require exact identity and data binding before treating any emitted block as admitted evidence.
+1. Does the gene set cover a committed core, assembly or maturation, tailoring, and export or resistance? List what is missing.
+2. Is the region on a contig edge? An edge region can be cut mid-cluster.
+3. Do two genes share a `locus_tag` across contigs? Match on the full identity, not the tag alone.
 
-NRPS substrate consensus is concatenated across all matched genes in the region and corroborated by whole-file annotation keywords; this can combine adjacent candidates. PKS class labels are simple domain-order heuristics, including literal activity-like wording in the classifier. Neither defines a verified scaffold, activity or precise product. Enrichment only prints the first PKS gene's class, not all PKS genes (`nrps_substrate.py:35–69`; `pks_product_class.py:33–65`; `gene_modeb_enrichment.py:229–243`). “Auto-confirmed” in the older recipe is corrected above.
+An empty table is not evidence that a gene is absent. The tables hold only the genes antiSMASH placed in a region.
 
-The protein-context hash/roster path described earlier remains the preferred bound channel. It does not repair catalog identity truncation or validate the whole report. The numbered section suggestions are legacy full-card mapping; bind the actual current profile and verifier before insertion. Finished current50 cards require the applicable [current50 contract](MODEB_CURRENT50_V2_CONTRACT.md), not the legacy floors or a successful helper stdout result. The generated NAPAA/anchor warning is prose, not a general filter over every comparative output. Record biological/search/model execution and card adoption as separate evidence states.
+## 3. Look at one locus in detail
 
-The protein-context query checks the saved metadata and source-manifest digests against the supplied build receipt, but does not independently authenticate that receipt, rehash the source GBKs, verify the saved protein FASTA digest, or bind the compiled BLAST database volumes. Enrichment checks the result/roster/database-receipt locators and query hash/length values but does not establish complete roster-query coverage or independently recompute subject alignments. Retain the exact query FASTA, compiled database inventory, source GBK inventory, executable versions and command/output hashes in an external run receipt. A syntactically bound row is not independently validated sequence evidence, and an omitted query remains unavailable rather than no-hit.
+```bash
+python mamey_run.py modeb-gene-first --package runs/EXAMPLE/package \
+  --strain EXAMPLE --node NODE_7_length_120000_cov_42.5 \
+  --region region002 --bgc BGC007 --out explorations
+```
 
-## Saved RiPP views are separate readers
+The `--out` folder must already exist. A success prints a JSON receipt and exits 0. A refusal prints a line starting `MODEB_GENE_FIRST_SOURCE_HOLD` or `MODEB_GENE_FIRST_OUTPUT_REFUSED` and exits 1. Open the `.md` file it writes first. [Mode B gene-first exploration](MODEB_GENE_FIRST_EXPLORATION.md) lists the outputs and the evidence-index option.
 
-For precursor/core motif rows, start with [saved RiPP evidence and source mapping](ANTISMASH_INPUTS_CONSUMED.md#saved-ripp-motif-evidence). The normalized motif CSV/workbook sheet and `gene_data.json` → `ripp` are different projections. The latter retains strain/contig/family/locus/motif-index/core fields from saved evidence; it is not the normalized table's full BGC mapping or raw-detail export. Reconcile the complete four-part locus and source motif before reuse. Empty `gene_data.ripp` is not an independently validated RiPP-negative result.
+For the domain order of one region, run:
 
-`mamey.deep_data.build_deep_data_files` is a package-authoring helper, not a read-only repair command. It selects saved snapshot/evidence JSON (with wildcard fallback), silently treats missing/unreadable JSON as empty input, and directly replaces `deep_data.json` then `gene_data.json` through separate temporary files. Calling it can replace existing richer views with empties and can leave only one refreshed file after failure. Read accepted views in place; any separately authorized rebuild requires a preserved working copy, explicit input/hash bindings and inspection of both final files. Returned counts do not establish source completeness or scientific acceptance.
+```bash
+python mamey_run.py hmm-adjudicate path/to/EXAMPLE.region002.gbk
+```
 
-## Package gene records and completeness
+Add `--locus <locus_tag>` to see the module layout of one gene. The command reads a region GBK from the antiSMASH ZIP, so unzip the ZIP into a working folder first.
 
-For existing sealed results, read [current gene-context export scope](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-4-gene-exports-and-package-integrity) before reusing the JSONL, CDS/domain tables or protein FASTA. These exports are BGC-scoped; header CDS observations and summed per-BGC rows have different denominators. Available protein translations are retained, not a guaranteed complete proteome. The loader can return a partial prefix after warning, and four sequentially published outputs can be incomplete after a failure.
+It also needs the scanner HMM database. That database is an add-on and is not in the code ZIP (see [find a missing input](COMPANION_FILES.md)). The command looks for it in `Wheelhouse/hmm/` or the add-on folder. Set the environment variable `SM_HMM_DB` to a database file, or pass `--hmm <file>`, to point at it. If the command prints `no HMM database available` and no domain readout, it did not run, even though it exits 0.
 
-Before a gene-level claim, bind the expected file set, producer status, source hashes and complete strain / full node-or-contig / region / BGC alias. Check same-tag collisions across contigs and overlapping-region membership: some joins use locus_tag alone and one BGC assignment. An empty or partial exported view is not biological absence. Preserve failed attempts and reconcile identity or completeness before scaling a downstream analysis.
+## 4. Check for a rescue
+
+A KCB-dark or fragmented region may still pair with another region that supplies the missing genes. RG-GMCI proposes such pairs from reference similarity and gene context. The contigs stay separate sequences.
+
+1. Find the pairs for your strain in `EXAMPLE_4A_RGGMCI_ranked_pairs.csv` in the package. Look for your locus as either side of a pair.
+2. Run the second check on the package:
+
+   ```bash
+   python mamey_run.py two-proof-rescue runs/EXAMPLE/package --input-zip inputs/EXAMPLE.zip
+   ```
+
+   The default policy needs the antiSMASH ZIP the package was built from. Run `two-proof-rescue --help` for the other policies.
+3. For genes missing from the reference, a gap-rescue run searches the whole assembly. It is heavy, runs one genome at a time, and needs DIAMOND and MIBiG reference files. Read [gap-rescue evidence in a card](MODEB_GAP_RESCUE_READER.md) before you start.
+
+A pair is a hypothesis about linkage. Compare the competing partners and the genes that support each one. Do not call two contigs one cluster from a ranked pair alone. Detail on the atlas view is in [the RG-GMCI rescue atlas](RGGMCI_RESCUE_ATLAS.md).
+
+## 5. Read the assembly line for NRPS and PKS regions
+
+For modular synthase regions, count modules per gene.
+
+```bash
+python mamey_run.py assembly-line runs/EXAMPLE/package --out post_seal/EXAMPLE
+python mamey_run.py domain-level runs/EXAMPLE/package --top-n 10 --out post_seal/EXAMPLE_domain_level
+```
+
+Both commands read the sealed package. Send `--out` to a new folder outside the package. With `--out` outside the package, `domain-level` leaves the package's bytes unchanged. Without `--out`, or with an `--out` inside the package, it writes `domain_level/` there and refreshes `post_seal_checksums.txt`. An occupied output folder is refused (`REFUSED`, exit 2). `assembly-line` writes a predicted assembly line for each BGC. `domain-level` writes the domain-level enrichment for the top leads.
+
+Two standalone helpers work on region GBKs from the antiSMASH ZIP. Run them from the bundle root.
+
+```bash
+python tools/gene_assembly_line.py --dir regions/ --out gene_catalog.tsv
+python tools/nrps_substrate.py path/to/EXAMPLE.region002.gbk
+python tools/pks_product_class.py path/to/EXAMPLE.region002.gbk
+```
+
+- `gene_assembly_line.py` counts modules per gene from the `nrpspksdomains` features. It prints `wrote gene_catalog.tsv: N assembly-line genes` on success. It reads only genes whose IDs follow the `ctg<digits>_<digits>` pattern. An empty catalog can mean the IDs do not match, not that the region has no modular genes.
+- `nrps_substrate.py` lists predicted adenylation substrates in gene order. It flags nonproteinogenic building blocks that match siderophore, glycopeptide or lipopeptide patterns. A pattern match is a lead to confirm with other genes, not a class call.
+- `pks_product_class.py` reads the reductive domains per module and gives a rough class (aromatic, polyene, reduced macrolide). It is a domain-order heuristic.
+
+The catalog takes the strain from the first underscore-delimited part of each file name and the contig from a `NODE_..._length_...` part. It writes no BGC alias. Map each row back to a full four-part identity yourself before you cite it.
+
+## 6. Add homology context
+
+Compare the core proteins to MIBiG reference proteins. This is the gene-level counterpart to KCB, which compares whole clusters. Keep the two separate.
+
+```bash
+python tools/bigscape_blastp_novelty.py build --help
+python tools/bigscape_blastp_novelty.py query --help
+python tools/bigscape_blastp_novelty.py modeb --help
+```
+
+`build` makes a MIBiG protein database from a folder of reference GBKs (`--mibig-dir`) and records the release you name with `--mibig-release`. `query` searches your proteins (`--targets`, a protein FASTA) against it. `modeb` turns the result TSV into a Markdown block. `query` needs BLAST+ (`blastp`) on your path. The tool name is historical. It does not run BiG-SCAPE, and its output is not a BiG-SCAPE family result. For BiG-SCAPE, see the [cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Run each `--help` and use the flags it lists.
+
+The `pident` column is percent amino-acid identity. Read it with query coverage, subject coverage, E-value and bitscore. A low-identity hit over low coverage says little. A high-identity hit to a reference is similarity, not proof of the same product. A query with no result row is unavailable, not a tested negative.
+
+## 7. Write the evidence into a card
+
+The per-gene findings go into the Mode B card for the BGC. Follow the [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md). Use the section layout of the profile you chose (see the [current50 contract](MODEB_CURRENT50_V2_CONTRACT.md)), not section numbers from memory.
+
+`tools/gene_modeb_enrichment.py` can print a block from a region GBK for a card. Pass `--complete-identity "strain / full node-or-contig / region / BGC alias"` so the block carries the full identity. Its 15 kb contig label is a local heuristic taken from a `length_<digits>` part of the file name. It is not a measure of cluster completeness.
+
+To carry the section 6 search result into the block, use the bound route. Pass the `query` result TSV with `--mibig-protein-tsv` and its SHA-256 with `--mibig-protein-tsv-sha256`. Also pass a protein roster TSV with `--mibig-protein-roster` and `--mibig-protein-roster-sha256`. The roster lists every gene you searched, with its length and translation SHA-256, under the same complete identity. Get each digest with `shasum -a 256 <file>`. The command refuses a TSV that is not bound to the roster, a query missing from the roster, a hash mismatch, or a missing database receipt. The older `--blastp-pct` summary is unbound. It is not enough for a finished card.
+
+For RiPP precursor motifs, use [saved RiPP evidence](ANTISMASH_INPUTS_CONSUMED.md#read-saved-ripp-motif-evidence). The motif table and `gene_data.json` are different views. Reconcile both against the full locus identity before you reuse either.
+
+## What to write down
+
+For each BGC you read, record:
+
+- the full four-part identity;
+- the genes you checked and the files they came from;
+- the RG-GMCI result and whether a second check was run;
+- the homology channels you ran, kept separate;
+- what is missing or contradictory.
+
+Say "capacity consistent with" for pathway steps. Do not write that the strain produces a compound.

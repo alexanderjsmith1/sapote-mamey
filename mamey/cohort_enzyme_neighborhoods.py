@@ -71,9 +71,13 @@ def project(locus, genes, context, domains, agenes, features, census):
     """Geometry/identity join only; never infer functional or orthologous links."""
     exact = identity(locus)
     by_census = {gene_key(g): g for g in census}
-    by_arch = {gene_key(g): g for g in agenes if g['membership'] == 'EXACT_REGION'}
+    exact_arch = [g for g in agenes if g['membership'] == 'EXACT_REGION']
+    by_arch = {gene_key(g): g for g in exact_arch}
     if len(by_census) != len(census) or len({gene_key(g) for g in genes}) != len(genes):
         raise ValueError('DUPLICATE_GENE_HOLD')
+    if len(by_arch) != len(exact_arch):
+        # Two architecture rows for one gene key would let the later row silently replace the first.
+        raise ValueError('DUPLICATE_ARCHITECTURE_GENE_HOLD')
     if set(by_census) != {gene_key(g) for g in genes} or set(by_arch) != set(by_census):
         raise ValueError('EXACT_ROSTER_CONFLICT_HOLD')
     if len(genes)+len(context)>2500 or len(features)>10000:raise ValueError('PARTITION_SIZE_HOLD')
@@ -316,7 +320,8 @@ def build(config, output, pilot=False):
         index_checks.append(eid)
     write_json(output/'CURRENT50_APPLICABILITY.json',mapping,allowed)
     n_candidates=sum(r['locus']['call_state']=='OWNER_DKP_CDPS_CANDIDATE' for r in records)
-    audit={'status':'PASS','evidence_index_validated_loci':index_checks,'scope':scope_text(pilot,n_candidates,len(records)-n_candidates),
+    audit={'status':'PASS','pass_scope':'Bounded software check: exact census, architecture and gene rosters have one row per gene key and the same key set, and the parent join and evidence-index sidecars load. It is not a complete reconciliation of annotations, function or flank context.',
+           'evidence_index_validated_loci':index_checks,'scope':scope_text(pilot,n_candidates,len(records)-n_candidates),
            'sources':sources,'checks':[{'exact_identity':r['exact_identity'],'counts':r['denominators'],
                        'status':'EXACT_CENSUS_ARCHITECTURE_ROSTER_PARITY_AND_PARENT_JOIN_PASS'} for r in records],
            'elapsed_seconds':time.monotonic()-start,'denominators':data['denominators']}

@@ -132,6 +132,91 @@ def _tailoring_family_names() -> tuple:
         return ()
 
 
+IDENTITY_VERIFIED = "VERIFIED"
+IDENTITY_UNVERIFIED = "UNVERIFIED_NO_INVENTORY"
+IDENTITY_HELD = "HELD"
+_NODE_TOKEN = re.compile(r"(NODE_\d+)")
+_REGION_TOKEN = re.compile(r"(region\d+)", re.I)
+
+
+def _region_number(value) -> int | None:
+    m = re.search(r"(?:region)?0*(\d+)$", str(value or "").strip(), re.I)
+    return int(m.group(1)) if m else None
+
+
+def load_inventory_crosswalk(inventory_csv: Path | str) -> dict:
+    """Package inventory -> {Source_GBK basename: {bgc_alias, full_contig, region, line}}.
+
+    A basename bound by two rows that disagree is kept as {"duplicate": [lines]}, never overwritten.
+    Rows with a blank Source_GBK cannot be joined and are not keyed."""
+    path = Path(inventory_csv)
+    if not path.is_file():
+        raise DomainTreeError(f"INVENTORY_MISSING: no inventory file at {path}")
+    out: dict = {}
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        for line, r in enumerate(csv.DictReader(fh), start=2):
+            src = os.path.basename((r.get("Source_GBK") or "").strip())
+            if not src:
+                continue
+            rec = {"bgc_alias": (r.get("BGC_ID") or "").strip(),
+                   "full_contig": (r.get("Contig") or "").strip(),
+                   "region": (r.get("antiSMASH_Region") or r.get("Region") or "").strip(), "line": line}
+            prev = out.get(src)
+            if prev is None:
+                out[src] = rec
+            elif "duplicate" in prev:
+                prev["duplicate"].append(line)
+            elif any(prev[k] != rec[k] for k in ("bgc_alias", "full_contig", "region")):
+                out[src] = {"duplicate": [prev["line"], line]}
+    return out
+
+
+def crosswalk_identity(domains: list[dict], inventory_csv: Path | str, gbk_dir: Path | str) -> list[dict]:
+    """Join each extracted domain to the package inventory through its source region GBK.
+
+    The source file is the unique GBK in `gbk_dir` whose name gives the domain's node and region
+    (the extractor's own rule). Its basename, or the basename without a leading `<strain>_`, must be
+    the inventory's `Source_GBK`. The inventory row must carry a BGC_ID, a Contig whose NODE_<n>
+    token equals the domain node, and an antiSMASH_Region with the same number. A domain that passes
+    gets `bgc_alias`, `full_contig`, `identity_state=VERIFIED`; any other gets `identity_state=HELD`
+    and `identity_hold` naming the reason. Input dicts are not modified."""
+    xwalk = load_inventory_crosswalk(inventory_csv)
+    by_key: dict = {}
+    for p in sorted(Path(gbk_dir).glob("*.gbk")):
+        nm, rm = _NODE_TOKEN.search(p.name), _REGION_TOKEN.search(p.name)
+        key = (nm.group(1) if nm else "NODE_?", rm.group(1) if rm else "region001")
+        by_key.setdefault(key, []).append(p.name)
+    out = []
+    for d in domains:
+        node, region = str(d.get("node") or ""), str(d.get("region") or "")
+        strain = str(d.get("strain") or "")
+        e = dict(d, bgc_alias="", full_contig="", identity_state=IDENTITY_HELD, identity_hold="")
+        files = by_key.get((node, region), [])
+        if len(files) != 1:
+            e["identity_hold"] = (f"SOURCE_GBK_NOT_UNIQUE: {len(files)} region file(s) in gbk_dir give "
+                                  f"{node}/{region}")
+            out.append(e); continue
+        name = files[0]
+        stripped = re.sub(r"^" + re.escape(strain) + r"_+", "", name, flags=re.I) if strain else name
+        rec = xwalk.get(name) or xwalk.get(stripped)
+        if rec is None:
+            e["identity_hold"] = f"NO_INVENTORY_ROW: no Source_GBK row for {name}"
+        elif "duplicate" in rec:
+            e["identity_hold"] = (f"DUPLICATE_INVENTORY_KEY: Source_GBK {name} bound by conflicting rows "
+                                  f"on lines {rec['duplicate']}")
+        elif not (rec["bgc_alias"] and rec["full_contig"] and rec["region"]):
+            e["identity_hold"] = f"INCOMPLETE_INVENTORY_ROW: line {rec['line']} lacks BGC_ID, Contig or antiSMASH_Region"
+        elif not (rec["full_contig"] == node or rec["full_contig"].startswith(node + "_")):
+            e["identity_hold"] = f"CONTIG_MISMATCH: inventory {rec['full_contig']} vs file node {node}"
+        elif _region_number(rec["region"]) != _region_number(region):
+            e["identity_hold"] = f"REGION_MISMATCH: inventory {rec['region']} vs file {region}"
+        else:
+            e.update(bgc_alias=rec["bgc_alias"], full_contig=rec["full_contig"],
+                     identity_state=IDENTITY_VERIFIED)
+        out.append(e)
+    return out
+
+
 def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
                   min_tips: int = MIN_TIPS) -> dict:
     """Stage extracted domain dicts (ks_phylogeny/tailoring_extract shape: needs `translation`,
@@ -139,6 +224,10 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
     TSV. Dedups byte-identical sequences (receipt kept), applies the length window, refuses < min_tips.
     Refuses a tip whose identity is missing or holds a '?' placeholder, and two different sequences
     that would share one FASTA header.
+
+    Identity: a domain carrying `identity_state` (from crosswalk_identity) keeps it; one marked HELD
+    is recorded with status IDENTITY_HELD and its reason, and is not written to the FASTA. A domain
+    without `identity_state` is staged as before and recorded as UNVERIFIED_NO_INVENTORY.
 
     Returns {fasta, provenance, n_staged, n_dedup, n_short_excluded, n_long_flagged}."""
     _admit_min_tips(min_tips)
@@ -148,7 +237,7 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
     seen: dict[str, str] = {}       # seq-sha1 -> first header (dedup receipt)
     header_sha: dict[str, str] = {}  # header -> seq-sha1 of every sequence that enters or dedups into the tree
     rows, fasta_lines = [], []
-    n_dedup = n_short = n_long = 0
+    n_dedup = n_short = n_long = n_held = 0
     for d in sorted(domains, key=lambda x: (x.get("node", ""), x.get("locus_tag", ""),
                                             x.get("domain_id", ""))):
         seq = re.sub(r"\s+", "", d.get("translation", ""))
@@ -158,6 +247,15 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
               + (f"__{d['domain_id']}" if d.get("domain_id") else "")
         sha = hashlib.sha1(seq.encode()).hexdigest()
         status = "OK"
+        identity_state = d.get("identity_state") or IDENTITY_UNVERIFIED
+        if identity_state == IDENTITY_HELD:
+            n_held += 1
+            rows.append({"header": hdr, "domain_class": domain_class, "aa_len": len(seq),
+                         "seq_sha1": sha, "status": "IDENTITY_HELD",
+                         "matched_tag": d.get("matched_tag", ""), "evalue": d.get("evalue", ""),
+                         "bgc_alias": "", "full_contig": "", "identity_state": IDENTITY_HELD,
+                         "identity_hold": d.get("identity_hold", "")})
+            continue
         if len(seq) < lo:
             status, n_short = "SHORT_EXCLUDED", n_short + 1
         elif len(seq) > hi:
@@ -176,7 +274,9 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
                     f"tip-to-locus mapping would be ambiguous.")
         rows.append({"header": hdr, "domain_class": domain_class, "aa_len": len(seq),
                      "seq_sha1": sha, "status": status,
-                     "matched_tag": d.get("matched_tag", ""), "evalue": d.get("evalue", "")})
+                     "matched_tag": d.get("matched_tag", ""), "evalue": d.get("evalue", ""),
+                     "bgc_alias": d.get("bgc_alias", ""), "full_contig": d.get("full_contig", ""),
+                     "identity_state": identity_state, "identity_hold": d.get("identity_hold", "")})
         if status in ("OK", "LONG_FLAGGED"):
             seen.setdefault(sha, hdr)
             if not status.startswith("DUP_OF"):
@@ -186,19 +286,21 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
     with prov.open("w", encoding="utf-8", newline="") as fh:
         w = _SafeDictWriter(fh, fieldnames=list(rows[0].keys()) if rows else
                            ["header", "domain_class", "aa_len", "seq_sha1", "status",
-                            "matched_tag", "evalue"], delimiter="\t", lineterminator="\n")
+                            "matched_tag", "evalue", "bgc_alias", "full_contig", "identity_state",
+                            "identity_hold"], delimiter="\t", lineterminator="\n")
         w.writeheader()
         for r in rows:
             w.writerow(r)
     if staged < min_tips:
         raise DomainTreeError(
             f"STAGE_TOO_FEW_TIPS: {staged} staged sequence(s) for {domain_class} "
-            f"(min {min_tips}; short-excluded {n_short}, dedup {n_dedup}). A tree this thin is "
+            f"(min {min_tips}; short-excluded {n_short}, dedup {n_dedup}, identity-held {n_held}). A tree this thin is "
             f"decoration, not analysis — provenance kept at {prov.name}.")
     fasta = outdir / f"{domain_class}_staged.fasta"
     fasta.write_text("\n".join(fasta_lines) + "\n", encoding="utf-8")
     return {"fasta": str(fasta), "provenance": str(prov), "n_staged": staged,
-            "n_dedup": n_dedup, "n_short_excluded": n_short, "n_long_flagged": n_long}
+            "n_dedup": n_dedup, "n_short_excluded": n_short, "n_long_flagged": n_long,
+            "n_identity_held": n_held}
 
 
 def build_tree(staged_fasta: Path | str, outdir: Path | str, approved_by: str,
@@ -244,7 +346,8 @@ def gate_tree(treefile: Path | str, outgroup: str | None = None,
 
 
 SUMMARY_FIELDS = ["domain_class", "strain", "bgc_id", "node", "tip", "clade_id",
-                  "clade_support", "nearest_ref", "nearest_ref_family", "patristic_to_ref"]
+                  "clade_support", "nearest_ref", "nearest_ref_family", "patristic_to_ref",
+                  "full_contig", "region", "identity_state"]
 
 # The EXACT column contract tools/domain_phylo_rescue.py::load_clades() requires. That reader is the
 # tree-based (SH-aLRT/UFBoot) half of the RG-GMCI two-proof rescue channel, but nothing in the engine
@@ -269,12 +372,17 @@ def write_clade_table(rows: list[dict], outdir: Path | str, domain_class: str) -
     return str(p)
 
 
-def write_summary(rows: list[dict], outdir: Path | str, domain_class: str) -> str:
+def write_summary(rows: list[dict], outdir: Path | str, domain_class: str,
+                  identity_verified: bool = True) -> str:
     """The Mode-B data contract (card 3/3): domain_tree_summary.tsv. Deterministic; blank-fills
-    missing fields — a missing measurement stays visibly blank, never invented."""
+    missing fields — a missing measurement stays visibly blank, never invented.
+
+    `identity_verified=False` (no inventory crosswalk) writes `<class>_domain_tree_summary.UNVERIFIED.tsv`
+    instead. Mode B reads only `*_domain_tree_summary.tsv`, so an unverified summary is never displayed."""
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    p = outdir / f"{domain_class}_domain_tree_summary.tsv"
+    suffix = "_domain_tree_summary.tsv" if identity_verified else "_domain_tree_summary.UNVERIFIED.tsv"
+    p = outdir / f"{domain_class}{suffix}"
     with p.open("w", encoding="utf-8", newline="") as fh:
         w = _SafeDictWriter(fh, fieldnames=SUMMARY_FIELDS, delimiter="\t", lineterminator="\n")
         w.writeheader()

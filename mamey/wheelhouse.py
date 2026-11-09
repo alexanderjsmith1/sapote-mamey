@@ -74,7 +74,12 @@ def resolve_hmm_database(bundle_root: Path | None = None) -> dict:
     here = Path(bundle_root).resolve()
     # 1. An explicit file override wins (set when the addon lives somewhere non-standard).
     env = os.environ.get("SM_HMM_DB")
-    if env and os.path.exists(env):
+    if env and os.path.exists(env) and not os.path.isfile(env):
+        # The override names a FILE. A directory (or other non-file) is refused, not searched, and
+        # does not fall through to a different model the operator did not choose.
+        return {"path": None, "n_models_hint": 0, "tier": "none",
+                "reason": f"SM_HMM_DB={env} is not a regular file; set it to the .hmm file itself"}
+    if env and os.path.isfile(env):
         n = 148 if "150" in os.path.basename(env) else 35
         return {"path": env, "n_models_hint": n, "tier": "env-override", "reason": f"SM_HMM_DB={env}"}
     # 2./3. Operator-provisioned directories (the external_data.py contract for the `hmm` dataset).

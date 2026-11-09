@@ -107,7 +107,7 @@ def test_separate_full_locus_generator_preserves_source_and_semantics(tmp_path: 
     ]
     native = exact_locus_from_native_manifest_bgc("SMOKE", new_bgcs[0].crosswalk_dict())
     assert native.full_contig == "SYNTHETIC_CONTIG_000001"
-    assert native.normalized_node_id == "CONTIG_000001"
+    assert native.normalized_node_id == "SYNTHETIC_CONTIG_000001"  # ruling 479: full contig
     assert native.exact_locus == displays[0]
 
 

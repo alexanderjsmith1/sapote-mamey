@@ -307,7 +307,9 @@ def render_report_cards(package_dir: str, bgc_id: str | None = None, out: str | 
     # tracks the running engine instead of a stale hard-coded "v1.9.110". (Previously _loadj raised
     # NameError — no module-scope json import — which the except swallowed, pinning the stale value.)
     from . import __version__ as _engine_version
-    version = f"Mamey v{_engine_version}"
+    # A fallback names the running engine and says why: it is not necessarily the
+    # engine that built the package.
+    version = f"Mamey v{_engine_version} (running engine; package manifest.json absent)"
     manp = os.path.join(package_dir, "manifest.json")
     if os.path.exists(manp):
         try:
@@ -321,6 +323,9 @@ def render_report_cards(package_dir: str, bgc_id: str | None = None, out: str | 
                                "(manifest invalid: workflow_version must be a string)")
                 elif wv:
                     version = wv
+                else:
+                    version = (f"Mamey v{_engine_version} "
+                               "(running engine; manifest has no workflow_version)")
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             version = f"Mamey v{_engine_version} (manifest unreadable: {type(exc).__name__})"
 

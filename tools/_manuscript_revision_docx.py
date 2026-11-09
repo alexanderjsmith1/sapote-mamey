@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence
 
-INSTALL_HINT = "python-docx is not installed; install the documents extra: pip install 'mamey[documents]' (README.md, Optional extras)"
+INSTALL_HINT = "python-docx is not installed; from the program folder run: python -m pip install -e '.[documents]' (docs/INSTALL.md)"
 
 
 class DocxUnavailable(RuntimeError):

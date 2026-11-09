@@ -16,8 +16,8 @@
 - `rggmci_score`.
 
 Then build a graph from pairs with `strong_supporting_references ≥ 1` and report **connected components (rescue groups)**, not individual pairs:
-- **CLEAN_SPLIT** — a 2-fragment group → highest-confidence single split cluster.
-- **HUB_COMPONENT_NEEDS_SUBRESOLUTION** — a larger component with one or two high-degree hub nodes → likely a *small* number of large fragmented pathways, **not** one cluster and not N clusters. Resolve by the shared-protein edges, not by merging the whole component.
+- **CLEAN_SPLIT** — a 2-fragment group. The label comes from component size alone: two loci joined by reference-derived pair support. It does not show physical linkage, a single pathway or higher biological confidence; keep both full endpoint identities and treat the join as unresolved until checked.
+- **HUB_COMPONENT_NEEDS_SUBRESOLUTION** — any component with three or more fragments, whether or not it has a high-degree hub → likely a *small* number of large fragmented pathways, **not** one cluster and not N clusters. Resolve by the shared-protein edges, not by merging the whole component.
 
 **Worked result (AS-XXX; each alias stands for `AS-XXX / <contig> / region<NNN> / BGCnnn`):** 5 groups. They are one 19-fragment hub component (hubs BGC004 deg 11, BGC014 deg 8; top edge BGC004+BGC014 at 48 shared proteins) and four clean 2-fragment splits (BGC021+BGC032 siderophore; BGC024+BGC027 terpene; BGC006+BGC026 NRPS/lanthipeptide; BGC015+BGC060). The top lead BGC038 correctly returns `NO_STRONG_RESCUE` — it is a complete interior cluster.
 
@@ -67,7 +67,9 @@ The deterministic helper writes the selected lead-detail JSON; it does not emit 
 ```
 python mamey_run.py run …         # strain inventory + triage + RGGMCI (unchanged)
 python tools/build_lead_detail.py --package <pkg> --gbk-dir <gbks> \
-       --leads <nominated leads>   # → lead_detail.json  (Pass 1 + corrected rescue groups)
+       --leads <nominated leads> --out <fresh-folder>/lead_detail.json
+       # Pass 1 + corrected rescue groups. Without --out it writes <pkg>/lead_detail.json.
+       # An existing output, or an output that is one of the inputs, is refused (exit 2).
 # Sapote: Pass 2 + Pass 3 over lead_detail.json → Mode B lead cards + punch card
 # human relays punch card to web session → results → Sapote dereplication verdicts
 ```

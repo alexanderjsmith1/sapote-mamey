@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """build_v2_md.py — detailed v2 markdown (+ optional docx) from roster_v2.json,
-reproducing the AS-XXX_BGC_protein_roster_v2 format: class-family grouped, per-BGC
+reproducing the <strain>_BGC_protein_roster_v2 format: class-family grouped, per-BGC
 header, 8-col gene table (role, domains, nr hit %id, MIBiG compound %id).
 Adds a ClusterBlast %id column when that channel is populated.
 """

@@ -61,8 +61,8 @@ def test_strain_report_from_tsv():
     finally:
         sys.argv = argv
     txt = open(out).read()
-    assert "AS-X carries **3 BGC regions**" in txt
-    assert "2 anchor to a characterized MIBiG cluster (KNOWN), 1 have no analog" in txt
+    assert "AS-X has **3 BGC regions** in the supplied per-BGC table" in txt
+    assert "2 labeled KNOWN" in txt and "1 labeled NOVEL" in txt
     assert "under 15 kb" in txt and "1 of 3" in txt          # the 6 kb contig flagged
     assert "selvamicin" in txt and "antifungal" in txt        # antifungal flag applied
     assert "fam999" in txt                                     # novel family included

@@ -1006,7 +1006,7 @@ The core fraction — core gene count divided by (core + tailoring + transport +
 - Both fragments at ≤ 0.30 core fraction: **ACCESSORY_ONLY** — two tailoring-arm fragments, weak rescue evidence
 - Everything else: **AMBIGUOUS**
 
-These thresholds were calibrated against known genuine splits and known paralogs in the AS-XXX cohort. They are engineering calibration values, not literature-derived constants.
+These thresholds were calibrated against known genuine splits and known paralogs in the STRAIN_ID cohort. They are engineering calibration values, not literature-derived constants.
 
 ---
 

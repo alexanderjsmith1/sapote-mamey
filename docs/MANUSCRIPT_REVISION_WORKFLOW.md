@@ -6,7 +6,7 @@ Word ledger. Answers turn into staged edits. The edits are checked, applied to a
 A before/after change log closes the round.
 
 The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, which ships in the `documents` extra
-(`pip install 'mamey[documents]'`). Without it, the Word subcommands exit 3 with the install hint. The text steps
+(from the program folder, `python -m pip install -e '.[documents]'`). Without it, the Word subcommands exit 3 with an install hint. The text steps
 (`apply`, `check-numbers`, `scan-names`) need only the standard library.
 
 ## The steps
@@ -27,6 +27,7 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
    Part A holds the author's notes, Part B the reviewer findings grouped by `group`, and Part C the reviewer's revision
    packages. Where a note and a finding cover the same passage, each row names the other. The last column of each table is
    the answer column. `R` means "take the recommendation". A blank answer on a `FIX` row or a clear note means "go ahead".
+   Success: the command exits 0 and `ledger_r1.docx` opens in Word with Parts A, B and C.
 5. **Answers.** Read the answered ledger back against the issued copy.
 
    ```bash
@@ -61,6 +62,7 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
    `scan-names` lists internal names in prose (see "Internal-name patterns" below).
 
    A clean number check means only that the number appears somewhere in the find text, the document or a source file. Confirm it is the right value, unit and population for the claim, and cite the cell.
+   See "Limits" below before you apply.
 8. **Apply.**
 
    ```bash
@@ -70,7 +72,8 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
    Each edit's `find` must occur exactly once in its document. One refused edit holds back every edit to that document, and
    the file is left unchanged. An edit whose `find` is gone and whose `replace` is present is reported as already applied,
    which is a text check, not proof. If the replacement still contains the find text, a second run can apply it again, so dry-run every time. Each applied edit is appended, with a time stamp, to the change record (`<root>/CHANGES.jsonl`, or
-   `--record`). The record is opened in append mode.
+   `--record`). The record must be its own file. If `--record` names an edited document or the
+   edit file, including through a link, `apply` prints `REFUSED`, exits `2` and changes nothing.
 9. **Change log.**
 
    ```bash
@@ -98,7 +101,15 @@ The tool is `tools/manuscript_revision.py`. Its Word steps need python-docx, whi
 ## Input formats
 
 Tables are TSV with a header line, or a Markdown table with a header row (`\|` escapes a pipe inside a cell).
-Header names are matched without regard to case. Extra columns are allowed.
+Header names are matched without regard to case. Extra columns are allowed. One sample row for each table:
+
+```text
+Notes     N012 | p12, paragraph 3 | "too long" | Shorten the sentence | clear
+Findings  F007 | Introduction | p3, paragraph 2 | Count differs from Table 1 | CHECK | Check Table 1, then change the text | N012
+Packages  P01 | Fix counts | F007, F008 | CNT | Apply the counts from Table 1
+```
+
+Separate columns with a tab in a TSV file, or write a Markdown table.
 
 | Input | Columns |
 |---|---|
@@ -119,9 +130,12 @@ An edit file is a JSON list:
 `doc` is relative to `--root`; absolute paths and `..` are refused. Several rows that touch one sentence go into one edit,
 with their ids joined by `+`. Keep each `find` as short as uniqueness allows.
 
-Paths are checked for `..` and absolute forms only; symlinks are not resolved. There is no lock, so another editor's later changes can be overwritten. Work in a separate copy.
+## Limits
 
-Each file is written atomically, but the documents and the change record are not one transaction. After a failure, compare the files with the edit plan before retrying. Give every ledger, answers file and change log a new filename.
+- Paths are checked for `..` and absolute forms only. Symlinks are not resolved.
+- There is no lock, so another editor's later changes can be overwritten. Work in a separate copy.
+- Each file is written atomically, but the documents and the change record are not one transaction. After a failure, compare the files with the edit plan before you retry.
+- Give every ledger, answers file and change log a new filename.
 
 ## Internal-name patterns
 
@@ -139,6 +153,10 @@ with `#` are comments. `--patterns` adds to the built-in set; `--replace-default
 | 1 | Refused edits, flagged numbers or internal-name hits |
 | 2 | Bad input, or an answered ledger changed outside the answer column |
 | 3 | python-docx missing for a Word step |
+
+## Appendices: briefs for a helper
+
+Appendices A to D are briefs. Paste the one you need to an assistant that does that step.
 
 ## Appendix A. Brief: transcribe handwritten notes
 

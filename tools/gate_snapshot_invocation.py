@@ -9,8 +9,8 @@ import sys
 
 from gate_snapshot_contract import compare
 
-GATE_SHA256 = 'b84b7147eb83f91a02f8738e8ea54930d032e508acffdf777108723d1ed9e0e3'
-WRAPPER_SHA256 = 'b04c4959377ce7f8b9bdda4bf2772ef3793f739c239105d001ca3513932af67a'
+GATE_SHA256 = '6f9e63af2e96ddfad31aba78136b22b3d8263de0c7b5df6900f7c6097cd52e1c'
+WRAPPER_SHA256 = 'ed02dc55052579f3ab62f778694f2f321037a05e26b0cd49eb9e4b789cd064c5'
 WRAPPER = Path(__file__).resolve().parent / 'gate_structured_snapshot.py'
 
 

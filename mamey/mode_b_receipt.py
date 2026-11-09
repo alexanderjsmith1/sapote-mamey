@@ -312,6 +312,7 @@ def ingest_receipt(
     skipped_structure_invalid: list[tuple[str, int]] = []
     persistence_warnings: list[dict[str, str]] = []
     structure_contracts: dict[str, str] = {}
+    identity_notes: list[dict] = []
 
     for card in receipt["cards"]:
         bgc_id = (card.get("bgc_id") or "").strip()
@@ -329,12 +330,22 @@ def ingest_receipt(
         if card_strain and card_strain != package_strain:
             mismatch_reasons.append("CARD_STRAIN_MISMATCH")
         package_locus_mismatch = None
+        identity_unbound = None
+        card_notes: list[dict] = []
         if not mismatch_reasons:
             package_locus_mismatch = _card_identity_mismatch(
-                mode_b_md, pkg, package_strain, bgc_id
+                mode_b_md, pkg, package_strain, bgc_id, notes=card_notes
             )
             if package_locus_mismatch:
                 mismatch_reasons.append("CARD_PACKAGE_LOCUS_MISMATCH")
+        if not mismatch_reasons and bgc_id in known_bgcs:
+            # Identity is never overridable: this runs with or without --force-structure.
+            # An alias the register does not know stays a skipped_unknown, below.
+            identity_unbound = _card_identity_unbound(
+                mode_b_md, pkg, package_strain, bgc_id, notes=card_notes
+            )
+            if identity_unbound:
+                mismatch_reasons.append(CARD_IDENTITY_UNBOUND)
         if mismatch_reasons:
             mismatch = {
                 "receipt_bgc_id": bgc_id,
@@ -346,13 +357,18 @@ def ingest_receipt(
             if package_locus_mismatch:
                 mismatch["expected_locus"] = package_locus_mismatch[0]
                 mismatch["card_locus"] = package_locus_mismatch[1]
+            if identity_unbound:
+                mismatch["identity_hold"] = identity_unbound[0]
+                mismatch["identity_detail"] = identity_unbound[1]
             skipped_identity_mismatch.append(mismatch)
             emit(
-                f"  IDENTITY: {bgc_id} — {';'.join(mismatch_reasons)}; "
-                "card not recorded",
+                f"  IDENTITY: {bgc_id} — {';'.join(mismatch_reasons)}"
+                + (f" ({identity_unbound[0]})" if identity_unbound else "")
+                + "; card not recorded",
                 file=sys.stderr,
             )
             continue
+        identity_notes.extend(card_notes)
         # Fail-closed: never invent a register row for an unknown BGC.
         if bgc_id not in known_bgcs:
             skipped_unknown.append(bgc_id)
@@ -411,6 +427,7 @@ def ingest_receipt(
             rank=_q_rank,
             edge_status=_q_edge,
             cds_count=_q_cds,
+            identity_checked_by_caller=True,  # full identity bound above (_card_identity_unbound)
         )
         _extend_persistence_warnings(
             persistence_warnings, record_result, pkg, package_strain, bgc_id
@@ -440,6 +457,7 @@ def ingest_receipt(
         "skipped_unknown": skipped_unknown,
         "skipped_no_content": skipped_no_content,
         "skipped_identity_mismatch": skipped_identity_mismatch,
+        "identity_notes": identity_notes,
         "skipped_structure_invalid": skipped_structure_invalid,
         "structure_contracts": structure_contracts,
         "persistence_warnings": persistence_warnings,
@@ -542,6 +560,10 @@ def auto_detect_ingest(package_dir: str | Path,
         "skipped_structure_invalid": [],
         "skipped_unreadable": [],
         "skipped_no_content": [],
+        # Cards whose header names a different BGC, strain, node or region than the package.
+        "skipped_identity_mismatch": [],
+        # Accepted identities that carry a note, such as LEGACY_SHORT_NODE (ruling 479).
+        "identity_notes": [],
         "record_failures": [],
         "persistence_warnings": [],
         # v9.7.152 (AS-XXX Bug 1): recognizable near-miss filenames (e.g.
@@ -607,6 +629,29 @@ def auto_detect_ingest(package_dir: str | Path,
                 _exact_identity_or_unbound(pkg, strain, bgc_id)
             )
             continue
+        # The same exact-locus check the --card and --receipt paths make: a file name alone does
+        # not bind a card to a locus. A header BGC that differs from the file name, or a header
+        # strain/node/region that differs from the package, is skipped and nothing is recorded.
+        _header_bgc = _parse_card_bgc_id(content)
+        _card_notes: list[dict] = []
+        _mismatch = ((f"BGC {bgc_id} (file name)", f"BGC {_header_bgc} (card header)")
+                     if _header_bgc and _header_bgc != bgc_id
+                     else _card_identity_mismatch(content, pkg, strain, bgc_id,
+                                                  notes=_card_notes))
+        if _mismatch:
+            summary["skipped_identity_mismatch"].append({
+                "card": name, "expected": _mismatch[0], "found": _mismatch[1]})
+            continue
+        # Identity is never overridable: this runs with or without --force-structure.
+        _unbound = _card_identity_unbound(content, pkg, strain, bgc_id, notes=_card_notes)
+        if _unbound:
+            summary["skipped_identity_mismatch"].append({
+                "card": name,
+                "expected": "one four-part header matching the package triage row",
+                "found": f"{_unbound[0]}: {_unbound[1]}",
+                "identity_hold": _unbound[0]})
+            continue
+        summary["identity_notes"].extend(_card_notes)
 
         # ----- W9 structure gate -----
         n_errors = 0
@@ -641,6 +686,7 @@ def auto_detect_ingest(package_dir: str | Path,
             record_result = record_mode_b(
                 pkg, bgc_id, mode_b_md=content, session_id=session_id,
                 rank=_q_rank, edge_status=_q_edge, cds_count=_q_cds,
+                identity_checked_by_caller=True,  # full identity bound above (_card_identity_unbound)
             )
             _extend_persistence_warnings(
                 summary["persistence_warnings"], record_result, pkg, strain, bgc_id
@@ -748,6 +794,7 @@ def ingest_one_card(package_dir: str | Path,
         "structure_contract": None,
         "structure_contract_source": None,
         "structure_evaluated": False,  # True only once lint_card has run on this card
+        "identity_notes": [],  # accepted identities with a note, such as LEGACY_SHORT_NODE
     }
 
     # v9.7.409 (BC hostile audit H5): every early return below used to leave `structure_findings`
@@ -797,7 +844,8 @@ def ingest_one_card(package_dir: str | Path,
     # does not contain was RECORDED and marked COMPLETE. The exact-locus doctrine — strain / full node /
     # region / alias from ONE bound record — is enforced here: the card header's strain and node must
     # match the package's own inventory row for this BGC. Mismatch → typed ERROR, nothing recorded.
-    _mismatch = _card_identity_mismatch(content, pkg, strain, bgc_id)
+    _card_notes: list[dict] = []
+    _mismatch = _card_identity_mismatch(content, pkg, strain, bgc_id, notes=_card_notes)
     if _mismatch:
         summary["status"] = "SKIPPED_IDENTITY_MISMATCH"
         summary["structure_findings"] = [{
@@ -825,6 +873,20 @@ def ingest_one_card(package_dir: str | Path,
         summary["status"] = "SKIPPED_ALREADY_COMPLETE"
         summary["judgment_status"] = reg.get("judgment_status")
         return summary
+    # Identity is never overridable: this runs with or without --force-structure.
+    _unbound = _card_identity_unbound(content, pkg, strain, bgc_id, notes=_card_notes)
+    if _unbound:
+        summary["status"] = "SKIPPED_IDENTITY_MISMATCH"
+        summary["judgment_status"] = reg.get("judgment_status")
+        summary["structure_findings"] = [{
+            "severity": "ERROR", "code": CARD_IDENTITY_UNBOUND, "section": None,
+            "expected": "one four-part header (strain / full node-or-contig / region / alias) "
+                        "matching the package triage row",
+            "found": f"{_unbound[0]}: {_unbound[1]}",
+            "message": f"card identity is not bound to the package ({_unbound[0]}); nothing recorded",
+        }]
+        return summary
+    summary["identity_notes"].extend(_card_notes)
 
     # ----- W9 structure gate -----
     structure_findings: list[dict] = []
@@ -865,6 +927,7 @@ def ingest_one_card(package_dir: str | Path,
         record_result = record_mode_b(
             pkg, bgc_id, mode_b_md=content, session_id=session_id,
             rank=_q_rank, edge_status=_q_edge, cds_count=_q_cds,
+            identity_checked_by_caller=True,  # full identity bound above (_card_identity_unbound)
         )
         _extend_persistence_warnings(
             summary["persistence_warnings"], record_result, pkg, strain, bgc_id
@@ -1211,6 +1274,30 @@ def _emit_shared_2(e) -> None:
     emit(f'ERROR: {e}', file=sys.stderr)
 
 
+def _write_new_file(path, text: str) -> bool:
+    """Publish ``text`` at ``path`` only if ``path`` does not exist.
+
+    The bytes go to a unique sibling first and are hard-linked into place, so
+    an existing file is never replaced and a crash never leaves a partial file
+    at ``path``. Returns False when ``path`` already exists.
+    """
+    import os
+    import tempfile
+    from pathlib import Path as _P
+    path = _P(path)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        try:
+            os.link(tmp, path)
+        except FileExistsError:
+            return False
+        return True
+    finally:
+        os.unlink(tmp)
+
+
 def emit_modeb_template_command(args) -> int:
     """CLI: mamey emit-modeb-template --package <pkg> --bgc <BGC_ID>
                               | --package <pkg> --batch [--scope all|top|leads|pending] [--top-n N]
@@ -1238,6 +1325,17 @@ def emit_modeb_template_command(args) -> int:
 
     bgc = getattr(args, "bgc", None)
     batch = bool(getattr(args, "batch", False))
+    # A single-BGC --out path must be new. An existing file there may be an
+    # authored card; it is refused before any gate runs or byte is written.
+    out_arg = getattr(args, "out", None)
+    if bgc and out_arg:
+        from .output_transaction import preflight_output_roster
+        try:
+            preflight_output_roster([_P(out_arg)], protected_paths=[pkg], require_parents=True)
+        except ValueError as exc:
+            sys.stderr.write(f"ERROR: emit-modeb-template --out {out_arg}: {exc}. The file was not changed. "
+                             f"Choose a path that does not exist yet.\n")
+            return 1
     selection_error = None
     if not bgc and not batch:
         selection_error = "ERROR: either --bgc <BGC_ID> or --batch is required"
@@ -1293,7 +1391,10 @@ def emit_modeb_template_command(args) -> int:
             return 1
         out = getattr(args, "out", None)
         if out:
-            _P(out).write_text(card, encoding="utf-8")
+            if not _write_new_file(_P(out), card):
+                sys.stderr.write(f"ERROR: emit-modeb-template --out {out}: the path appeared while the "
+                                 f"template was being built. The file was not changed.\n")
+                return 1
             emit(f"template -> {out}")
         else:
             emit(card)
@@ -1337,13 +1438,15 @@ _CARD_NODE_RE = re.compile(r"<!--\s*MODE\s*B\b[^>]*?\bnode:\s*([^|>\s]+)", re.IG
 _CARD_REGION_RE = re.compile(r"<!--\s*MODE\s*B\b[^>]*?\bregion:\s*([^|>\s]+)", re.IGNORECASE)
 
 
-def _package_node_for_bgc(pkg: Path, bgc_id: str) -> str:
+def _package_node_for_bgc(pkg: Path, bgc_id: str, *, contig_only: bool = False) -> str:
     """Return the package's full node/contig for ``bgc_id``, or ``""``.
 
     ``Contig`` is the full physical identifier in current packages.  ``Node_ID``
-    can be a display-shortened derivative (for example, it may omit the decimal
-    coverage suffix), so it is only a fallback.  Exact-locus comparison must not
-    prefer that lossy field over the full source identifier.
+    can be a display-shortened derivative in packages from engines up to 1.9.179
+    (it may omit the decimal coverage suffix), so it is only a fallback.
+    Exact-locus comparison must not prefer that lossy field over the full source
+    identifier.  ``contig_only`` drops the ``Node_ID`` fallback, for callers that
+    must derive the legacy short form from the real contig.
     """
     import csv as _csv
     for inv in sorted(Path(pkg).glob("*_2_inventory.csv")):
@@ -1351,6 +1454,8 @@ def _package_node_for_bgc(pkg: Path, bgc_id: str) -> str:
             with open(inv, newline="", encoding="utf-8") as f:
                 for r in _csv.DictReader(f):
                     if (r.get("BGC_ID") or r.get("bgc_id") or "").strip() == bgc_id:
+                        if contig_only:
+                            return (r.get("Contig") or r.get("contig") or "").strip()
                         return (r.get("Contig") or r.get("contig") or r.get("Node_ID") or "").strip()
         except (OSError, UnicodeDecodeError, _csv.Error):
             continue
@@ -1374,21 +1479,92 @@ def _package_region_for_bgc(pkg: Path, bgc_id: str) -> str:
     return ""
 
 
-def _card_identity_mismatch(content: str, pkg: Path, strain: str, bgc_id: str):
+# Ruling 479: stored Mode B cards written before engine 1.9.180 name the legacy short
+# Node_ID in their header. Ingest accepts that short form, with a LEGACY_SHORT_NODE note,
+# only while this is None or the running bundle is older than the cut it names. The owner
+# names that cut; none is chosen yet. Set it to a bundle version such as "9.7.NNN".
+LEGACY_SHORT_NODE_ACCEPTANCE_ENDS_AT_CUT: str | None = None
+LEGACY_SHORT_NODE = "LEGACY_SHORT_NODE"
+
+
+def _cut_tuple(version: str) -> tuple[int, ...] | None:
+    parts = re.findall(r"\d+", str(version or ""))
+    return tuple(int(p) for p in parts) if parts else None
+
+
+def legacy_short_node_accepted(ends_at_cut: str | None = None,
+                               current_cut: str | None = None) -> bool:
+    """True while a legacy short card header is still accepted.
+
+    ``ends_at_cut`` defaults to ``LEGACY_SHORT_NODE_ACCEPTANCE_ENDS_AT_CUT`` and
+    ``current_cut`` to the running bundle version. An end cut that cannot be read
+    as a version refuses the short form, so a typo never extends acceptance.
+    """
+    end = ends_at_cut if ends_at_cut is not None else LEGACY_SHORT_NODE_ACCEPTANCE_ENDS_AT_CUT
+    if not end:
+        return True
+    if current_cut is None:
+        from . import BUNDLE_VERSION as current_cut
+    end_t, cur_t = _cut_tuple(end), _cut_tuple(current_cut)
+    if end_t is None or cur_t is None:
+        return False
+    return cur_t < end_t
+
+
+def _legacy_short_node_note(pkg: Path, strain: str, bgc_id: str, card_node: str) -> dict | None:
+    """Return a LEGACY_SHORT_NODE note when ``card_node`` is the legacy short form
+    of this BGC's own package Contig, else ``None``. Never matches by pattern."""
+    from .exact_identity import legacy_short_node_id
+    contig = _package_node_for_bgc(pkg, bgc_id, contig_only=True)
+    if not contig or card_node == contig or card_node != legacy_short_node_id(contig):
+        return None
+    return {
+        "code": LEGACY_SHORT_NODE,
+        "strain_id": str(strain),
+        "bgc_id": bgc_id,
+        "card_node": card_node,
+        "package_contig": contig,
+        "message": (f"card header names the legacy short Node_ID {card_node}; it equals the legacy "
+                    f"short form of package Contig {contig}, so it is accepted. The card file is "
+                    "not rewritten."),
+    }
+
+
+def _identity_note_lines(summary: dict[str, Any]) -> list[str]:
+    """Report lines for accepted identities that carry a note (ruling 479)."""
+    notes = summary.get("identity_notes") or []
+    if not notes:
+        return []
+    ids = ", ".join(n.get("bgc_id", "?") for n in notes)
+    return [f"  NOTE ({LEGACY_SHORT_NODE}): {ids}  (card header names the legacy short Node_ID "
+            "of the package Contig; accepted, card file left as written)"]
+
+
+def _card_identity_mismatch(content: str, pkg: Path, strain: str, bgc_id: str,
+                            notes: list | None = None):
     """Return ``(expected, found)`` when a stated card identity contradicts its package.
 
     The comparison covers strain, full node/contig, and region; ``bgc_id`` is
     already resolved by the caller.  Unstated fields remain a separate profile
     completeness concern rather than being guessed here.
+
+    A header node equal to the legacy short form of this BGC's own Contig is
+    accepted while ``legacy_short_node_accepted()`` holds (ruling 479). When the
+    whole identity then matches, a LEGACY_SHORT_NODE note is appended to ``notes``.
     """
+    pending_notes: list[dict] = []
     m_s = _CARD_STRAIN_RE.search(content)
     if m_s and strain and m_s.group(1).strip() != str(strain):
         return (f"strain {strain}", f"strain {m_s.group(1).strip()}")
     m_n = _CARD_NODE_RE.search(content)
     if m_n:
         pkg_node = _package_node_for_bgc(pkg, bgc_id)
-        if pkg_node and m_n.group(1).strip() != pkg_node:
-            return (f"{bgc_id} on node {pkg_node}", f"{bgc_id} on node {m_n.group(1).strip()}")
+        card_node = m_n.group(1).strip()
+        if pkg_node and card_node != pkg_node:
+            legacy_note = _legacy_short_node_note(pkg, strain, bgc_id, card_node)
+            if legacy_note is None or not legacy_short_node_accepted():
+                return (f"{bgc_id} on node {pkg_node}", f"{bgc_id} on node {card_node}")
+            pending_notes.append(legacy_note)
     m_r = _CARD_REGION_RE.search(content)
     if m_r:
         pkg_region = _package_region_for_bgc(pkg, bgc_id)
@@ -1397,7 +1573,65 @@ def _card_identity_mismatch(content: str, pkg: Path, strain: str, bgc_id: str):
         normalized_card_region = f"region{int(match.group(1)):03d}" if match else card_region
         if pkg_region and normalized_card_region != pkg_region:
             return (f"{bgc_id} in {pkg_region}", f"{bgc_id} in {card_region}")
+    if notes is not None:
+        notes.extend(pending_notes)
     return None
+
+
+CARD_IDENTITY_UNBOUND = "CARD_IDENTITY_UNBOUND"
+
+
+def _card_identity_unbound(content: str, pkg: Path, strain: str, bgc_id: str,
+                           notes: list | None = None):
+    """Return ``(hold_code, detail)`` unless the card's full identity is bound.
+
+    ``_card_identity_mismatch`` refuses only stated parts that conflict. The ingest
+    routes record a card COMPLETE, so they also need the positive check that
+    ``record_mode_b`` makes for direct callers: exactly one four-part header
+    (strain / full node-or-contig / region / alias) that matches this BGC's
+    package triage row. A missing header, a partial header, a missing triage row
+    or an unreadable triage board is a hold. ``--force-structure`` never reaches
+    this check: it overrides structure findings only.
+
+    Ruling 479 still applies. A header node equal to the legacy short form of
+    the package Contig is accepted while ``legacy_short_node_accepted()`` holds,
+    with one LEGACY_SHORT_NODE note per BGC.
+    """
+    from .judgment_store import _triage_row_for
+    load_errors: list[dict[str, str]] = []
+    row = _triage_row_for(pkg, bgc_id, load_errors)
+    if load_errors:
+        err = load_errors[0]
+        return ("TRIAGE_BOARD_UNREADABLE", f"{err.get('error_type')}: {err.get('message')}")
+    if not row:
+        return ("NO_TRIAGE_ROW",
+                "no triage-board row binds this alias, so its identity cannot be checked")
+    tools_dir = str(Path(__file__).resolve().parents[1] / "tools")
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
+    from locator_reconciliation import reconcile_heading_only
+    row = dict(row)
+    row["Strain"] = str(strain or "").strip()
+    verdict = reconcile_heading_only(content, row)
+    if verdict.get("status") == "PASS":
+        return None
+    errors = [e for e in (verdict.get("errors") or []) if isinstance(e, dict)]
+    if (verdict.get("refusal_reason") == "IDENTITY_CONFLICT" and len(errors) == 1
+            and errors[0].get("field") == "full_node_or_contig"):
+        card_node = str(errors[0].get("card") or "")
+        note = _legacy_short_node_note(pkg, strain, bgc_id, card_node)
+        if (note is not None and legacy_short_node_accepted()
+                and str(errors[0].get("triage") or "") == note["package_contig"]):
+            if notes is not None and not any(
+                    n.get("bgc_id") == bgc_id and n.get("code") == LEGACY_SHORT_NODE
+                    for n in notes):
+                notes.append(note)
+            return None
+    detail = "; ".join(
+        f"{e.get('field')}: card={e.get('card', '')!r} package={e.get('triage', '')!r} "
+        f"({e.get('reason', '')})" for e in errors) or str(verdict.get("error") or "")
+    return (str(verdict.get("refusal_reason") or verdict.get("status") or "ERROR"), detail)
+
 
 def _parse_card_bgc_id(content: str) -> str:
     """Return the BGC ID from a Mode B card's header comment, or '' if no
@@ -2646,6 +2880,7 @@ def ingest_receipts_command(args) -> int:
         emit(
             f"  register status:   {card_summary['judgment_status'] or '(unknown)'}",
             *([_advisory] if _advisory else []),
+            *_identity_note_lines(card_summary),
             sep="\n",
         )
         # Exit codes:
@@ -2674,6 +2909,7 @@ def ingest_receipts_command(args) -> int:
             bad = [f"{bid} ({n} err)"
                    for bid, n in summary["skipped_structure_invalid"]]
             report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  ({_structure_contract_label(summary, [b for b, _n in summary['skipped_structure_invalid']])} contract violations; rebuild from template or re-run with --force-structure)"])
+        report_lines.extend(_identity_note_lines(summary))
         # v9.7.152 (AS-XXX Bug 1): loud, actionable warning for recognizable
         # near-miss filenames that were skipped — prevents silent
         # 'scanned: N, recorded: 0' with no diagnostic.
@@ -2746,6 +2982,7 @@ def ingest_receipts_command(args) -> int:
         bad = [f"{bid} ({n} err)"
                for bid, n in summary["skipped_structure_invalid"]]
         report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  ({_structure_contract_label(summary, [b for b, _n in summary['skipped_structure_invalid']])} contract violations; rebuild from template or re-run with --force-structure)"])
+    report_lines.extend(_identity_note_lines(summary))
     cov = summary.get("coverage_receipt")
     if cov:
         report_lines.extend([f"  native coverage:   {cov.get('coverage_status') or '(not supplied)'} ({cov.get('emitted_card_count')}/{cov.get('inventory_bgc_count')} emitted)"])

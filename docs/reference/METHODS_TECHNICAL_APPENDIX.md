@@ -1,7 +1,8 @@
 # Methods technical appendix
 
-**Version of record:** Mamey engine v1.9.179 · bundle v9.7.463  
-**Scope:** implementation-oriented reporting reference. This appendix documents software behavior and claim ceilings; it is not evidence that a study used every module.
+**Version of record:** Mamey engine v1.9.180 · bundle v9.7.464  
+**Scope:** the parameters and limits to report when you describe what the software did. It documents software behavior and claim limits. It is not evidence that a study used every module.
+**Terms:** module acronyms (RG-GMCI, FLBR, EFLS, CCTT, CGAD, UMED, TFBS, RiQ, KCB) are defined in the [glossary](../GLOSSARY.md). For a copyable list of what to report, use the [methods reporting checklist](../METHODS_REPORTING_CHECKLIST.md). The [source map](../development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) shows which module to cite for each topic.
 
 ## Release-sensitive parameter register
 
@@ -17,12 +18,12 @@
 | source-derived scans | UMED coupling / TFBS upstream window | 5 kb / 300 bp | Record registry/pattern version and sequence availability. |
 | triage routing | tier cutoffs | 85 / 70 / 50 | Scores are routing priors, not biological probabilities. |
 | scoring | diagnostic / RG-GMCI HIGH / MODERATE bonuses | 25 / 8 / 4 | Preserve standing rules, guards, and raw scores. |
-| novelty | KCB reduction boundary | reference score above 10,000 | Missing KCB evidence must not increase certainty. |
+| novelty | KCB reduction boundary | antiSMASH rank-1 percent similarity (`kcb_similarity_pct`) of 70 or more | A cumulative score with no percent does not reduce novelty. Missing KCB evidence must not increase certainty. |
 | novelty | RiQ credit boundary | similarity below 0.5 | Record RiQ source and binding state. |
 
 All values above are release-specific. `tools/sync_version.py` owns the version-of-record line, and regression tests require it to match `pyproject.toml` and `mamey.__version__`.
 
-## Module records and claim ceilings
+## Module records and claim limits
 
 ### Input, inventory, and exact identity
 
@@ -30,7 +31,7 @@ Admission inspects archive members, rejects unsafe/non-regular members as eviden
 
 ### KnownClusterBlast, MIBiG, and RiQ
 
-Parsers normalize source-specific evidence while retaining provenance and source precedence. Reference compound names and similarity measures support class-level hypotheses only. Distinguish `NO_VERIFIED_SEARCH`, `SEARCH_FAILED`, `QUERY_UNBOUND`, `ZERO_ADMITTED_ROWS`, and `VERIFIED_NO_HIT`; they are not interchangeable.
+Parsers normalize source-specific evidence while retaining provenance and source precedence. Reference compound names and similarity measures support class-level hypotheses only. Distinguish `NO_VERIFIED_SEARCH`, `SEARCH_FAILED`, `QUERY_UNBOUND`, `ZERO_ADMITTED_ROWS`, and `VERIFIED_NO_HIT`; they are not interchangeable. A KnownClusterBlast file that is present with no hits reads `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`. That is not a verified no-hit.
 
 ### RG-GMCI, FLBR, and EFLS
 
@@ -42,7 +43,7 @@ CCTT uses versioned patterns, class compatibility, and vetoes. CGAD, UMED, resis
 
 ### Mode B
 
-Deterministic availability inventories, templates, and gates precede Sapote/human/LLM-authored interpretation. Evidence must remain channel-specific and exact-locus-bound. Gene roles, missing components, core/accessory divisions, ecology, and experiments are authored hypotheses with a recorded reviewer disposition. A structurally complete template is not a finished scientific analysis.
+Deterministic availability inventories, templates, and gates come first. A person or an assistant then writes the interpretation. Evidence must remain channel-specific and exact-locus-bound. Gene roles, missing components, core/accessory divisions, ecology, and experiments are authored hypotheses with a recorded reviewer disposition. A structurally complete template is not a finished scientific analysis.
 
 ### Cohort, phylogeny, and figures
 
@@ -58,11 +59,21 @@ Use explicit states such as `NOT_RUN`, `NOT_APPLICABLE`, `UNAVAILABLE`, `QUERY_U
 
 ## Study manifest minimum
 
-Freeze the bundle, engine, build or commit; input and reference hashes; antiSMASH version/strictness; registry and database versions; non-default limits; scoring policy; Mode B profile; model/prompt/controller for authored output; cohort roster and exclusions; external tool builds; seeds/threads; figure profile; privacy tier; commands; receipts; and reviewer dispositions.
+Freeze and report each item below. The [methods reporting checklist](../METHODS_REPORTING_CHECKLIST.md) covers the same ground as checkboxes.
 
+- Bundle, engine, and build or commit.
+- Input and reference hashes.
+- antiSMASH version and strictness.
+- Registry and database versions.
+- Non-default limits and the scoring policy.
+- Mode B profile, and the model, prompt and controller for any authored output.
+- Cohort roster and exclusions.
+- External tool builds, seeds and threads.
+- Figure profile and privacy tier.
+- Commands, receipts and reviewer dispositions.
 
-## Reading export limits and reproducibility correctly
+## Reading export limits and reproducibility
 
-`rggmci.py` caps references per BGC at 40. Its evidence export keeps every row associated with a HIGH pair before applying the 5,000-row budget; the resulting export can exceed 5,000 rows. Its ranked-pair export keeps the first 1,000 ranked pairs plus HIGH pairs beyond that point. The separate `split_candidates` list is sliced to 1,000. A displayed/exported list is therefore not interchangeable with the full pair census. Preserve `pairs_total`, evidence-row totals, omitted-row counts, and the summary's export message. A reported candidate remains a hypothesis, including a HIGH candidate.
+The budgets are in the register above. `rggmci.py` keeps every row associated with a HIGH pair before it applies the 5,000-row budget, so the evidence export can exceed 5,000 rows. Its ranked-pair export keeps the first 1,000 ranked pairs plus HIGH pairs beyond that point. The separate `split_candidates` list is sliced to 1,000. An exported list is therefore not the full pair census. Preserve `pairs_total`, evidence-row totals, omitted-row counts, and the summary's export message. A reported candidate remains a hypothesis, including a HIGH candidate.
 
 Analytical determinism is scoped to the named fields/artifacts and fixed inputs, policy, versions, and environment. It is not a guarantee that every package byte is invariant across invocations: `packaging.py` explicitly treats timing receipts as mutable, excludes selected post-seal images/PDFs from checksums, and notes PDF build timestamps. Record the checksum exclusions and the actual deterministic comparison scope. Refer to the [source map](../development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) to locate owners; its existence gate does not validate these parameter values.

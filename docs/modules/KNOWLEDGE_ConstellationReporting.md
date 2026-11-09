@@ -41,8 +41,9 @@ Constellations include (non-exhaustive): **deoxysugar cassettes**, **split-pathw
 
 **R2 — Contig-flank census.** A boundary walk must state honestly what it *cannot* see —
 the un-annotated ORFs past a cluster's edge — rather than implying there is nothing there.
-Delivered by `build_reconstruction.py` §4 (every flank CDS flagged
-`★ scaffold` / `· CB-family` / `unexplained`).
+Delivered by `build_reconstruction.py` §4: every CDS in each fragment's selected region GenBank
+file, flagged `★ scaffold` / `· CB-family` / `unexplained`. The region file covers the antiSMASH
+region and its flanks, not necessarily the whole contig.
 
 **R3 — Collective weight beats individual score.** Ranking and selection operate on the
 constellation as a unit. A cassette whose members each score below a lead threshold but which

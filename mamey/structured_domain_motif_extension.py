@@ -1,6 +1,6 @@
 """Index saved Mamey structured exports. No original antiSMASH parser or new scan."""
 from .source_context import source_zipfile as _source_zipfile, captured_digest as _captured_digest, source_exists as _source_exists
-import argparse,collections,hashlib,json,re,sqlite3,zipfile,zlib,time,csv,io
+import argparse,collections,hashlib,json,os,re,sqlite3,zipfile,zlib,time,csv,io
 from pathlib import Path
 from .mode_b.gene_first_store_bridge import read_round_fasta
 from .exact_identity import exact_locus_display
@@ -290,10 +290,24 @@ def main(argv=None):
  if a.archive_map:
   if not a.archive_root:raise ValueError('ARCHIVE_ROOT_REQUIRED')
   ar=Path(a.archive_root).resolve(strict=True);overrides={k:str(owner._relative_file(ar,ar,v)) for k,v in json.loads(Path(a.archive_map).read_text()).items()}
- result=build(rows,a.base,a.out,a.base_pin,a.allowed_root,a.selection,resume=a.resume,source_overrides=overrides)
+ # Admit the receipt path before building anything: inside the allowed root, not a symlink, not one
+ # of the inputs or the database (or its journal), and not an earlier receipt unless resuming.
+ if Path(a.receipt).is_symlink():raise ValueError('RECEIPT_SYMLINK_REFUSED')
  rp=Path(a.receipt).resolve()
  if not rp.is_relative_to(Path(a.allowed_root).resolve()):raise ValueError('RECEIPT_ROOT_DRIFT')
- rp.write_text(json.dumps(result,indent=2)+'\n');return 0
+ outp=Path(a.out).resolve()
+ taken={outp,outp.with_name(outp.name+'-journal'),outp.with_name(outp.name+'-wal'),outp.with_name(outp.name+'-shm'),
+        Path(a.inventory).resolve(),Path(a.base).resolve()}|({Path(a.archive_map).resolve()} if a.archive_map else set())
+ # Every consumed package file and every source tree is read-only evidence: refuse a receipt or
+ # database that equals one of them or sits inside the source or archive root.
+ consumed={Path(r[k]).resolve() for r in rows for k in ['manifest','structured_path']}|({Path(v).resolve() for v in overrides.values()} if overrides else set())
+ source_trees=[Path(a.source_root).resolve()]+([Path(a.archive_root).resolve()] if a.archive_root else [])
+ def _inside_sources(path):return path in consumed or any(path==t or path.is_relative_to(t) for t in source_trees)
+ if rp in taken or _inside_sources(rp):raise ValueError('RECEIPT_PATH_COLLISION')
+ if _inside_sources(outp):raise ValueError('OUTPUT_PATH_COLLISION')
+ if rp.exists() and not a.resume:raise FileExistsError(rp)
+ result=build(rows,a.base,a.out,a.base_pin,a.allowed_root,a.selection,resume=a.resume,source_overrides=overrides)
+ tmp=rp.with_name(f'.{rp.name}.{os.getpid()}.tmp');tmp.write_text(json.dumps(result,indent=2)+'\n');os.replace(tmp,rp);return 0
 
 if __name__=='__main__':
  try:raise SystemExit(main())

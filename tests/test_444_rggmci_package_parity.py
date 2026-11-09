@@ -109,7 +109,7 @@ def test_package_cli_public_pair_outputs_match_engine_and_current_input(package,
         [(row["pair"], row["rggmci_score"], row["rggmci_confidence"]) for row in expected["ranked_pairs"]]
     with (out / "SUMMARY.tsv").open(newline="") as fh:
         summary = list(csv.DictReader(fh, delimiter="\t"))
-    assert len(summary) == 1 and int(summary[0]["scored_pairs"]) == len(rows)
+    assert len(summary) == 1 and int(summary[0]["pairs_exported"]) == len(rows)
     direct = tmp_path / "shared_formatter"
     direct.mkdir()
     for path in ref_completion.write_tables(result["reference_completion"], direct, f"{FIXTURE.stem}_"):

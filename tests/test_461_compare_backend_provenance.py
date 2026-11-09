@@ -129,7 +129,7 @@ def test_missing_query_result_keeps_partial_provenance(monkeypatch, tmp_path):
     assert summary["backend_provenance"]["status"] == "PARTIAL"
     assert summary["backend_provenance"]["missing_result_genes"] == ["query_2"]
     assert rows[1]["backend"] == "unknown"
-    assert rows[1]["call"] == "no_hit" and rows[1]["pct_identity"] == ""
+    assert rows[1]["call"] == "no_result" and rows[1]["pct_identity"] == ""
 
 
 def test_unavailable_backend_refusal_is_preserved(monkeypatch, tmp_path):

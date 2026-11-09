@@ -18,11 +18,13 @@ def test_text_label_without_score_scores_as_zero():
     b = {"edge_status": "Interior", "architecture_confidence": "A", "kcb_cumulative": None,
          "kcb_top": "streptomycin (60% of genes show similarity)", "length_kb": 40}
     base, _, _ = wl.score_bgc(b, "T1")
-    assert wl.action_scores(b, base, "T1")[3] == "LOW"   # no KCB number -> dereplication LOW
+    # no KCB percent and no RiQ: dereplication cannot be judged (NOT_EVALUATED, not LOW)
+    assert wl.action_scores(b, base, "T1")[3] == "NOT_EVALUATED"
 
 
-def test_numeric_score_is_still_used():
-    b = {"edge_status": "Interior", "architecture_confidence": "A", "kcb_cumulative": 5000,
-         "kcb_top": "x", "length_kb": 40}
+def test_numeric_percent_is_still_used():
+    # The KCB terms read the antiSMASH percent similarity (engine bands), not the cumulative score.
+    b = {"edge_status": "Interior", "architecture_confidence": "A", "kcb_similarity_pct": 75,
+         "kcb_evidence_state": "KNOWNCLUSTERBLAST_OBSERVED", "kcb_top": "x", "length_kb": 40}
     base, _, _ = wl.score_bgc(b, "T1")
-    assert wl.action_scores(b, base, "T1")[3] == "HIGH"   # kcb > 1000
+    assert wl.action_scores(b, base, "T1")[3] == "HIGH"   # moderate band or higher

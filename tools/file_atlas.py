@@ -16,7 +16,7 @@ hitting, where a capability exists and nothing invokes it.
 Usage:
   python3 tools/file_atlas.py --out docs/FILE_ATLAS.csv --md docs/FILE_ATLAS.md
   python3 tools/file_atlas.py --check         # both bundle-default atlas files, no writes
-  python3 tools/file_atlas.py --orphans        # just the orphan list, for the bunny-hop roll
+  python3 tools/file_atlas.py --orphans        # just the files with no detected caller
 """
 from __future__ import annotations
 
@@ -56,13 +56,28 @@ def _py_files():
     return out
 
 
+_RELEASE_PAREN = re.compile(r"\s*\((?=[^()]*(?:\bv\d+\.\d+|\b[A-Z][A-Z0-9]*_\d{2,}))[^()]*\)")
+_RELEASE_LEAD = re.compile(r"^(?:[A-Z][A-Z0-9]*_\d+[A-Za-z0-9_]*(?:\s+[A-Z][A-Z0-9]*)?|v\d+(?:\.\d+)+[a-z]?)\s*:\s+")
+
+
+def _reader_summary(text: str) -> str:
+    """Drop release and card tags from a docstring summary; a reader needs what the file does.
+
+    Removes parentheticals that carry a version (`v9.7.409`) or a card name (`DEEP_AUDIT2`,
+    `CLAUDE_410_...`) and a leading tag such as `M5_452 P5:`. The source docstring is unchanged.
+    """
+    text = _RELEASE_PAREN.sub("", text)
+    text = _RELEASE_LEAD.sub("", text)
+    return " ".join(text.split())
+
+
 def _parse(p: pathlib.Path):
     try:
         src = p.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(src)
     except Exception:
         return None, "", 0, 0, set()
-    summary = _opening_paragraph(ast.get_docstring(tree) or "")
+    summary = _reader_summary(_opening_paragraph(ast.get_docstring(tree) or ""))
     defs = sum(1 for n in ast.walk(tree) if isinstance(n, ast.FunctionDef))
     classes = sum(1 for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
     imports = set()
@@ -204,7 +219,7 @@ def _render_md(rows):
     fh.write("\n## Largest files\n\n| file | loc | defs | fan-in | summary |\n|---|---:|---:|---:|---|\n")
     for r in big:
         fh.write(f"| {_catalog_code(r['path'], table=True)} | {r['loc']} | {r['n_defs']} | {r['fan_in']} | {_summary_cell(r['summary'])} |\n")
-    fh.write("\n## Orphan candidates — the bunny-hop roll pool\n\n")
+    fh.write("\n## Files with no detected caller\n\n")
     fh.write("These files have no references detected by this atlas's import, CLI-name, test-name "
              "or shell checks. Inspect the file and its callers before classifying it: legitimate "
              "entry points and indirect calls can appear here. Use this list to select an audit "

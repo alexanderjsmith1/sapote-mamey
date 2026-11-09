@@ -1,328 +1,215 @@
 # PKS ketosynthase-tree option guide
 
-## Purpose
+This page is for readers who already have a validated package (see [First run](reader/01_FIRST_RUN.md)) and want to compare polyketide synthase (PKS) ketosynthase (KS) domains. A KS domain is the catalytic domain that joins two-carbon units. The tools here are optional helpers. They read saved antiSMASH output, change nothing in the package, and give candidate evidence only.
 
-This track asks how individual PKS ketosynthase (KS) domains are related. It is
-not an organismal tree and is not a compound-identification procedure. The
-Actinobacteria 138-SCG GToTree alignment remains the organismal backbone.
+Which tool to use:
 
-## Why KS domains rather than complete PKS proteins
+| Question | Tool | Section |
+|---|---|---|
+| Do my contig pieces tile a reference PKS protein? | `tools/pks_piece_map.py` | [First check](#first-check-do-the-pieces-tile-the-reference-protein) |
+| Which KS domains are related? | `tools/prepare_biosynthetic_tree_inputs.py`, MAFFT, IQ-TREE | [Build a KS tree](#build-a-ks-tree) |
+| Which reference module does each KS sit on? | `tools/ks_module_placement.py` | [Placing fragments](#placing-fragments-on-a-reference-module-order) |
+| Which reference genes does my genome carry? | `tools/gene_synteny_map.py` | [Gene by gene](#gene-by-gene-against-a-reference-cluster) |
+| Where are the reference's missing genes? | `tools/gap_directed_rescue.py` | [Missing genes](#missing-genes-looked-for-across-the-genome) |
 
-Type I PKS proteins are frequently multi-module, duplicated, recombined, and
-several thousand amino acids long. Aligning complete proteins can compare
-different architectures rather than homologous catalytic units. The normalized
-antiSMASH module export already supplies domain-level translations, coordinates,
-domain IDs, active-site annotations, and often a `domain_subtypes` value.
+## Before you start
 
-The pool-design requirement is a separate identity for every KS domain:
+- Install the tools you use. Run `python mamey_run.py doctor --companions` to see whether MUSCLE and IQ-TREE 3 (`iqtree3`) are present. It does not check MAFFT, so check `mafft --version` yourself. Setup is in [Prerequisites](PREREQUISITES.md) and [Companion tools](companion_tools.md).
+- DIAMOND must be on your PATH for `pks_piece_map.py`, `gene_synteny_map.py` and `gap_directed_rescue.py`, unless you pass precomputed hits (see each section).
+- A tree is a long run. Run one tree at a time under `nice -n 15` with at most 4 threads. Read the size check in [LLM_COMPANION_TOOL_PROTOCOL.md](LLM_COMPANION_TOOL_PROTOCOL.md) first.
+- Write every output to a new folder outside the package.
+- Four tools take a reference cluster as a MIBiG GenBank file (`BGC0000116.gbk`, an antiSMASH-annotated GenBank file): `pks_piece_map.py` (`--reference-gbk`), `ks_module_placement.py`, `gene_synteny_map.py` and `gap_directed_rescue.py` (`--reference`). Download them from the [MIBiG download page](https://mibig.secondarymetabolites.org/download). Each tool opens the path you pass as given. Only `gap_directed_rescue.py` also looks in a folder, `--mibig-dir` or `SAPOTE_MIBIG_GBK_DIR`, when you omit `--reference`.
 
-```text
-strain|BGC_alias|locus|domain_id|subtype  # preparer token, incomplete locus identity
+## First check: do the pieces tile the reference protein?
+
+A modular type I PKS repeats near-identical modules. In a draft genome it often breaks into many contigs. `tools/pks_piece_map.py` aligns one genome's proteins to each large protein of a reference cluster. The reference is an antiSMASH-annotated MIBiG GenBank file. The tool uses DIAMOND (every alignment segment) and maps each piece of at least 85% identity onto the reference's modules.
+
+```bash
+python tools/pks_piece_map.py --reference-gbk BGC0000116.gbk \
+  --genome <antiSMASH.zip> --label EXAMPLE --out piece_map_run
 ```
 
-The preparation ledger retains multiple entries from one locus, BGC or strain
-and reports exact sequence groups. The separate native domain-tree runner
-`tools/build_domain_tree.py` collapses identical sequences into one staged tip
-and records `DUP_OF` rows in its provenance table. Retain that crosswalk when
-comparing pool entries with tree tips. See [the domain-tree contract](DOMAIN_TREE_CONTRACT.md#current-retry-and-output-boundaries)
-for retry behavior and the limits of staging success and summary output.
+It writes `PKS_PIECE_MAP.txt` (read this first), `PKS_PROTEIN_CALLS.tsv`, `PKS_PIECES.tsv`, `PKS_PIECE_MAP.tsv`, `PKS_GAPS.tsv`, `PKS_JUNCTIONS.tsv` and `RECEIPT.json`. The output folder must not exist yet.
 
-## Separate target pools
+- `TILED`: the pieces follow reference order, and no two consecutive pieces overlap by more than 10 amino acids, so their order along the gene can be read. It is an order-and-overlap rule only: it has no gap or piece-count requirement, so a single piece, or two pieces with a large uncovered stretch between them, are also `TILED`. It does not show continuous coverage or physical linkage. Read it with the `pieces`, `ref_covered_pct`, `uncovered_gaps` and `largest_gap_aa` columns of `PKS_PROTEIN_CALLS.tsv`. The tool lists every gap in `PKS_GAPS.tsv`, whether it falls at a contig end, and the contigs that carry the end of one reference protein and the start of the next.
+- `OVERLAPPING`: the pieces match several places. This is usually module resemblance at lower identity. The order cannot be read from the matches. Use KS placement below.
+- `NO_PIECES`: no match reached the identity threshold.
 
-Do not place all `PKS_KS` calls into one default tree. Prepare one pool per exact
-antiSMASH subtype and then inspect architecture before alignment.
+No contigs are joined. Linkage needs long reads or PCR across the breaks.
 
-| Pool | Initial selector | Primary use | Binding caution |
+## Build a KS tree
+
+### Why KS domains
+
+Type I PKS proteins are often multi-module and thousands of amino acids long. Aligning whole proteins can compare different architectures. The antiSMASH module export already gives one translation per domain, so the tree uses KS domains instead. A KS tree shows domain relatedness. It is not an organismal tree.
+
+### Choose one pool
+
+Build one tree per exact antiSMASH KS subtype. Do not mix subtypes.
+
+| Pool | `--subtype` value | Use | Caution |
 |---|---|---|---|
-| iterative KS | `Iterative-KS` | iterative/type-II-like or aromatic-pathway context | verify whether the call is a discrete enzyme or embedded domain |
-| modular KS | `Modular-KS` | cis-AT modular PKS comparison | one protein can contribute multiple module tips |
-| trans-AT KS | `Trans-AT-KS` | trans-AT pathway evolution | include trans-AT references; do not mix with cis-AT by default |
-| hybrid KS | `Hybrid-KS` | PKS-NRPS and mixed architecture | inspect adjacent domains and module boundaries manually |
+| iterative KS | `Iterative-KS` | type II-like or aromatic pathways | check whether the call is a discrete enzyme or an embedded domain |
+| modular KS | `Modular-KS` | cis-AT modular PKS | one protein can contribute several tips |
+| trans-AT KS | `Trans-AT-KS` | trans-AT pathways | add trans-AT references; do not mix with cis-AT |
+| hybrid KS | `Hybrid-KS` | PKS-NRPS and mixed architectures | inspect adjacent domains by hand |
 
-Unknown or blank subtypes remain a review pool. They are not assigned to the
-nearest clade merely from sequence identity.
+Blank or unknown subtypes stay in a review pool. Do not assign them to a clade by identity alone.
 
-## Preparation
+### Prepare the sequences
 
-The manifest is tab-separated and identifies every strain explicitly:
+The manifest is a tab-separated file with one row per strain. `strain_id` and `inventory_csv` are required. The `pks-ks` track also needs `modules_csv`. The other columns (`domains_csv`, `rrefinder_csv`, `ripp_motifs_csv`, `proteins_faa`) serve the RiPP tracks and can be left empty. Relative paths resolve from the manifest's folder.
 
 ```text
-strain_id  inventory_csv  modules_csv  rrefinder_csv  ripp_motifs_csv  proteins_faa
+strain_id	inventory_csv	modules_csv
+EXAMPLE_A	pkgA/EXAMPLE_A_2_inventory.csv	pkgA/EXAMPLE_A_3_antismash_modules.csv
+EXAMPLE_B	pkgB/EXAMPLE_B_2_inventory.csv	pkgB/EXAMPLE_B_3_antismash_modules.csv
 ```
 
-Example:
+`inventory_csv` is the package's BGC inventory file. `modules_csv` is the package's antiSMASH module table for the same strain, the file ending `_3_antismash_modules.csv`. Run `python tools/prepare_biosynthetic_tree_inputs.py --show-options` to list the tracks and filters.
 
 ```bash
 python tools/prepare_biosynthetic_tree_inputs.py sources.tsv pks_iterative_pool \
   --track pks-ks --subtype Iterative-KS
 ```
 
-Review:
+The output folder must be new. Open these files:
 
-- `sequence_ledger.tsv`: alias-level strain/BGC/locus-domain decisions, with source-row bindings;
-- `exact_sequence_groups.tsv`: retained identical copies;
-- `receipt.json`: source hashes, counts, parameters, and claim ceiling;
-- `sequences.faa`: alignment-ready sequences only.
+- `receipt.json`: source hashes, counts and parameters. Its status is `READY_FOR_ALIGNMENT` when at least four sequences qualify, and `HOLD_TOO_FEW_ELIGIBLE_SEQUENCES` otherwise. Four is a technical floor, not a sign of a good sample.
+- `sequence_ledger.tsv`: one row per KS domain, with the source row it came from.
+- `exact_sequence_groups.tsv`: identical copies that were kept.
+- `sequences.faa`: the alignment-ready sequences.
 
-`READY_FOR_ALIGNMENT` requires at least four eligible sequences. That is a
-technical floor, not evidence that the sample is biologically well designed.
+**Tip names are not full locus identities.** Each tip reads `strain|BGC_alias|locus|domain_id|subtype`. It does not carry the full contig or node and the region. A `MAPPED` row or a `READY_FOR_ALIGNMENT` status does not establish the whole `strain / full node-or-contig / region / BGC alias` identity. Before you use a tip in a figure, join it to the package inventory and keep all four parts plus the locus and domain. If a join fails or conflicts, hold the tip. Do not infer the missing parts from tip order or from the alias. The preparer does not emit this join. The same boundary is described in [the domain-tree contract](DOMAIN_TREE_CONTRACT.md#current-retry-and-output-boundaries).
 
-## Alignment choices
+### Align
 
-All examples keep one CPU per tree.
-
-| Choice | Command | When to use |
+| Choice | Command | When |
 |---|---|---|
-| higher-accuracy MAFFT | `mafft --localpair --maxiterate 1000 --thread 1 sequences.faa > aligned.faa` | preferred for a bounded, homologous KS pool |
-| automatic MAFFT | `mafft --auto --thread 1 sequences.faa > aligned.faa` | larger exploratory pools |
-| no automatic trim | retain full alignment first | review ends and conserved active-site region before trimming |
+| more accurate | `mafft --localpair --maxiterate 1000 --thread 1 sequences.faa > aligned.faa` | a bounded pool of clearly homologous KS |
+| automatic | `mafft --auto --thread 1 sequences.faa > aligned.faa` | a larger exploratory pool |
 
-If trimming is used, save the untrimmed alignment, command, version, retained
-columns, and tip crosswalk. Removal of poorly aligned residues does not validate
-a questionable domain call.
+Review the untrimmed alignment before you trim. If you trim, save the untrimmed file, the command, the tool version, the kept columns and the tip list. Trimming does not validate a doubtful domain call.
 
-## IQ-TREE choices
-
-Recommended governed starting point:
+### Build the tree
 
 ```bash
-iqtree3 -s aligned.faa \
+nice -n 15 iqtree3 -s aligned.faa \
   -m MFP -mset LG,WAG,JTT,Q.pfam -mrate G,I,I+G \
   -B 1000 -alrt 1000 -seed 12345 -T 1 --mem 2G \
   -pre pks_ks_iterative
 ```
 
-Keep the model-selection report, alignment, treefile, log, and checksums. Do not
-reuse organismal-tree branch lengths or root. Use a verified homologous outgroup
-when available; otherwise label midpoint rooting as a display choice.
+Success is a `.treefile` and a `.contree`, plus a `.iqtree` report and a `.log` that ends with "Total wall-clock time". A `.treefile` alone means the run was interrupted. Keep the alignment, the log and the model-selection report.
 
-## Reference choices
+Do not reuse an organismal tree's branch lengths or root. Use a verified homologous outgroup if you have one. Otherwise label midpoint rooting as a display choice.
 
-Prefer domain sequences from:
+The placement tool below writes its own IQ-TREE command with a smaller model set (`LG,WAG,JTT`) and aligns with MUSCLE. That tree has one job, placing KS on reference modules, so use the commands in its `COMMANDS.txt` as written.
 
-1. experimentally characterized MIBiG BGCs with explicit domain provenance;
-2. antiSMASH KnownClusterBlast/ClusterBlast candidates after exact BGC mapping;
+### Choose references
+
+Prefer domain sequences from, in this order:
+
+1. MIBiG clusters with characterized products and explicit domain provenance;
+2. antiSMASH KnownClusterBlast or ClusterBlast hits after you map them to the exact BGC;
 3. curated Swiss-Prot or reviewed literature sequences;
-4. nr/ClusteredNR only with database channel and query coverage preserved.
+4. nr or ClusteredNR hits, with the database channel and query coverage kept.
 
-A named-compound reference provides a comparison label, not a product call for
-the AS/SID BGC.
+A named-compound reference gives a comparison label. It is not a product call for your BGC.
 
-## First check: do the pieces tile the reference protein?
+### Checks before you interpret
 
-`tools/pks_piece_map.py` is the quick first check before a KS tree. It aligns one genome's proteins to each large protein of a reference cluster (an antiSMASH-annotated MIBiG GenBank; DIAMOND, every HSP) and maps each piece of at least 85 % identity onto the reference's aSModule spans.
-- **TILED:** the pieces line up end to end with at most 10 aa of overlap, so their order along the gene can be read. The tool also lists the gaps (and whether they fall at contig ends) and the contigs that carry the end of one reference protein and the start of the next.
-- **OVERLAPPING:** the pieces match several places. This is usually module resemblance at lower identity, so the order cannot be read from the matches, and the KS placement below is the method to use.
-
-No contigs are joined; linkage needs long reads or PCR across the breaks.
+- Keep the full four-part identity, locus tag and domain ID for every tip.
+- Check the BGC is in the matching inventory.
+- Check each sequence is valid amino acids above the minimum length.
+- Use one KS subtype per tree.
+- Review active-site motifs and long branches.
+- Review architecture and synteny before any biological reading.
+- Do not collapse duplicates or keep one tip per strain without recording it.
 
 ## Placing fragments on a reference module order
 
-A giant modular type I PKS in a draft genome often breaks into many small contigs. Each piece hits the same
-reference clusters almost equally, so shared-reference homology, which RG-GMCI uses, cannot tell one pathway in many
-pieces from a web of similar clusters. RG-GMCI demotes such webs as hubs. A KS tree that includes a reference
-cluster's own module KS can add candidate reference-module placement evidence. A one-to-one placement pattern does not establish that separate contigs belong to one pathway; retain architecture, synteny and linkage holds independently.
+In a draft genome, each contig piece of a giant modular PKS hits the same reference clusters almost equally. Shared-reference homology (RG-GMCI, the reference-guided linkage step in [the glossary](GLOSSARY.md)) cannot tell one pathway in many pieces from a web of similar clusters, so it demotes such webs as hubs. A KS tree that includes the reference cluster's own module KS can add candidate placement evidence.
 
 ```bash
 python tools/ks_module_placement.py inputs --gbk-dir <one isolate's region GBKs> \
   --reference BGC0002357.gbk --out placement_run
-# run the two commands written to placement_run/COMMANDS.txt (MUSCLE, then IQ-TREE)
+# run the two commands in placement_run/COMMANDS.txt (MUSCLE, then IQ-TREE)
 python tools/ks_module_placement.py place --tree placement_run/ks_tree.treefile \
   --out placement_run/placement.tsv
 ```
 
-- Reference KS are numbered by position along the reference record (`MIBiG__<accession>_KS<nn>`). They are labelled
-  tips, not a second query genome, so the one-isolate rule holds.
-- Each isolate KS gets the smallest well-supported split of the tree around it (UFBoot ≥ 80 by default) that holds
-  reference KS. The tree is read unrooted, so the call does not depend on the root.
-  - `PLACED_ON_REFERENCE_MODULE`: one reference KS, shared with at most one other isolate KS. The module number
-    is reported.
-  - `MODULE_FAMILY`: one reference KS but more isolate KS than that. It reads as a family of similar modules.
-  - `AMBIGUOUS_MODULES`: several reference KS fit.
-  - `UNPLACED`: no supported split holds a reference KS and no smaller missing/inadmissible-support candidate requires a hold.
-  - `SUPPORT_UNVERIFIED`: a reference-containing split smaller than the best supported candidate (or any such split when none is supported) has missing or inadmissible support, so placement is held. For slash-separated IQ-TREE labels, every component must be finite numeric and the last component is read as UFBoot in 0–100; malformed labels are not zero-support evidence.
-- Read the placements per contig. Consecutive KS of one contig should land on consecutive modules. A run in reverse
-  is what a minus-strand contig gives when KS are numbered by position.
-- Choose references the pieces actually hit (KnownClusterBlast), and keep the tip count modest: a 265-tip tree with
-  ModelFinder and 1,000 UFBoot took about 3.5 h on 4 threads.
-- Worked public example: SID8382 (WGS WWFZ01). KS domains on ten contigs placed on 18 of the 30 modules of
-  neomediomycin B (MIBiG BGC0002357), in order within each contig. The pieces included two RG-GMCI hubs whose pairs
-  the hub guard had demoted. Protein homology agreed: the contig carrying module 1 also carried homologs of the
-  reference's ten upstream genes in order (75–94% identity), and another carried the downstream acyltransferase,
-  transporters, type II thioesterase and sulfotransferase (78–92%).
-- Placement is advisory. It assigns no score, changes no RG-GMCI confidence, and joins nothing. Module order read from
-  a tree is not contig order, and KS similarity is not product identity. Use it to decide which demoted RG-GMCI pairs a
-  person should look at.
+`inputs` prints the KS count and the two commands to run, and writes `COMMANDS.txt` and `ks_with_references.faa`. `place` writes `placement.tsv`.
+
+- Reference KS are numbered by position (`MIBiG__<accession>_KS<nn>`). They are labelled tips, not a second query genome.
+- Each isolate KS gets the smallest well-supported split of the unrooted tree (UFBoot 80 or higher by default) that holds reference KS.
+
+| Call | Meaning |
+|---|---|
+| `PLACED_ON_REFERENCE_MODULE` | one reference KS, shared with at most one other isolate KS; the module number is reported |
+| `MODULE_FAMILY` | one reference KS but more isolate KS; a family of similar modules |
+| `AMBIGUOUS_MODULES` | several reference KS fit |
+| `UNPLACED` | no supported split holds a reference KS |
+| `SUPPORT_UNVERIFIED` | a smaller reference-containing split has missing or unusable support, so placement is held |
+
+- Read placements per contig. Consecutive KS on one contig should land on consecutive modules. A reversed run is what a minus-strand contig gives.
+- Choose references the pieces actually hit (KnownClusterBlast) and keep the tip count modest. A 265-tip tree with model selection and 1,000 UFBoot replicates took about 3.5 hours on 4 threads.
+- Placement is advisory. It assigns no score, changes no RG-GMCI confidence, and joins nothing. Module order read from a tree is not contig order. KS similarity is not product identity. Use it to decide which demoted RG-GMCI pairs a person should look at.
 
 ## Gene by gene against a reference cluster
 
-`tools/gene_synteny_map.py` answers, for each gene of a reference cluster: does the genome carry a candidate match,
-at what identity and coverage, on which contig, and do neighbouring reference genes find neighbouring matches on one
-contig, in the reference's order?
+`tools/gene_synteny_map.py` asks, for each gene of a reference cluster, whether the genome carries a candidate match, at what identity and coverage, and on which contig. It also asks whether neighboring reference genes find neighboring matches on one contig, in the reference's order.
 
 ```bash
-python tools/gene_synteny_map.py --zip <antiSMASH.zip> --label <strain> --reference BGC0000115.gbk \
-  --reference-name "nystatin A1" --out synteny_run [--placement placement_run/placement.tsv]
+python tools/gene_synteny_map.py --zip <antiSMASH.zip> --label EXAMPLE \
+  --reference BGC0000115.gbk --reference-name "nystatin A1" --out synteny_run \
+  [--placement placement_run/placement.tsv]
 ```
 
-- It writes `gene_synteny.png` (the reference to scale, a heat row of best identity with a colour scale, a contig
-  row, the full table and a contig key), `gene_synteny.tsv` and `gene_synteny_receipt.json`.
-- Homology comes from DIAMOND through `mamey.diamond_align` when it is installed, or from `--hits`, a precomputed
-  tabular file with the columns listed in the tool's docstring.
-- **Modular PKS genes need KS placement.** Their modules resemble one another, so the best whole-gene match of a
-  giant PKS gene tends to go to whichever contig carries the most modules. In SID8382 it placed one contig on three
-  PKS genes about 100 kb apart; the KS tree placed that contig on two modules only. With `--placement` (from
-  `tools/ks_module_placement.py place`), a PKS gene is assigned the contigs whose KS placed on its modules; without it,
-  PKS matches are drawn hatched and marked "paralogous modules; see KS placement".
-- Worked public examples: SID8382 against neomediomycin B, where 27 of 28 genes match (24 at ≥ 70% with placement)
-  and the contigs step through the reference in order; and a nystatin A1 comparison where three blocks keep the
-  reference order on single contigs.
-- Identity is similarity, not product identity. The figure orders no contigs and joins nothing; a similar cluster is
-  a class-level candidate.
+- It writes `gene_synteny.png`, `gene_synteny.tsv` and `gene_synteny_receipt.json`. Open the PNG first. It shows the reference to scale, a heat row of best identity, a contig row and a table.
+- Homology comes from DIAMOND, or from `--hits`, a precomputed table whose columns are listed in the tool's docstring.
+- Modular PKS genes need KS placement. Their modules resemble one another, so the best whole-gene match goes to whichever contig carries the most modules. With `--placement`, a PKS gene is assigned the contigs whose KS placed on its modules. Without it, PKS matches are drawn hatched and marked "paralogous modules; see KS placement".
+- Identity is similarity, not product identity. The figure orders no contigs and joins nothing. A similar cluster is a class-level candidate.
 
 ## Missing genes, looked for across the genome
 
-`tools/gap_directed_rescue.py` starts from one core region and a reference cluster and asks what the reference has
-that the core lacks, then looks for those genes in every protein of the genome, not only inside antiSMASH regions.
-The missing part of a split pathway often sits on a short contig that antiSMASH did not flag, because it holds
-tailoring genes and no core gene; region-to-region pairing cannot see it.
+`tools/gap_directed_rescue.py` starts from one core region and a reference cluster. It asks what the reference has that the core lacks, then searches every protein of the genome for those genes, not only those inside antiSMASH regions. The missing part of a split pathway often sits on a short contig that antiSMASH did not flag, because it holds tailoring genes and no core gene.
 
 ```bash
-python tools/gap_directed_rescue.py --zip <antiSMASH.zip> --label <strain> --core <contig>.region001 \
-  --reference BGC0000809.gbk --reference-name "AT2433-A1" --out rescue_run
+python tools/gap_directed_rescue.py --zip <antiSMASH.zip> --label EXAMPLE \
+  --core <contig>.region001 --reference BGC0000809.gbk \
+  --reference-name "AT2433-A1" --out rescue_run
 ```
 
-- A missing gene counts as found only when the genome's best match beats the next candidate's bitscore by 20% or more
-  at 35% identity or above. Halogenases, glycosyltransferases and methyltransferases come in paralog families; only a
-  clear margin picks one.
-- A partner is another contig with two or more clear finds. It is reported as concentrated when the two leading
-  partners hold at least 60% of all clear finds (a missing piece puts the genes in one or two places; paralogs
-  scatter them), and as a plausible split when the core runs to a contig end, the partner contig is under 30 kb, or
-  its region touches a contig end.
-- The reference's own antiSMASH `gene_kind` separates biosynthetic finds from regulators, transporters and flanking
-  housekeeping genes that some MIBiG entries include.
-- Outputs: `gap_rescue.tsv`, `gap_rescue_partners.tsv`, `gap_rescue_receipt.json` and `gap_rescue.png`. The figure puts
-  the reference in the middle and each contig above or below it, on the side where its ribbons cross no other contig.
-  Contig ends are heavy bars, and matched genes carry the number of their reference gene. The table beneath lists
-  locus, protein lengths, identity and coverage.
-- Modular PKS genes of the reference (genes carrying a KS domain) are drawn hatched and never count toward a partner:
-  their best whole-gene match follows module paralogy. Order those pieces with KS placement (above).
-- Ribbons use the forward-hit winner field `reciprocal_best`. When several reference genes select the same genome
-  protein, the reference row with the highest recorded identity keeps the ribbon; the table retains the other
-  cross-hits. This selection does not perform a reverse search or establish one-to-one orthology.
-- Homology comes from DIAMOND through `mamey.diamond_align`, or from `--hits`.
-- A partner contig is a candidate missing piece. Nothing is joined, and a fragmented assembly is never joined with
-  full confidence. Identity is similarity, not product identity.
+- A missing gene counts as found only when the best match beats the next candidate's bitscore by 20% or more, at 35% identity or above. Families of paralogs (halogenases, glycosyltransferases, methyltransferases) need a clear margin.
+- A partner is another contig with two or more clear finds. It is "concentrated" when the two leading partners hold at least 60% of all clear finds. It is a "plausible split" when the core runs to a contig end, the partner is under 30 kb, or its region touches a contig end.
+- The reference's own antiSMASH `gene_kind` separates biosynthetic finds from regulators, transporters and flanking housekeeping genes.
+- Outputs are `gap_rescue.tsv`, `gap_rescue_partners.tsv`, `gap_rescue_receipt.json` and `gap_rescue.png`. Open the PNG first. The reference sits in the middle and each contig above or below it. Contig ends are heavy bars. Matched genes carry the number of their reference gene.
+- Reference genes with a KS domain are drawn hatched and never count toward a partner. Order those with KS placement.
+- When several reference genes pick the same genome protein, the row with the highest identity keeps the ribbon. The table keeps the other cross-hits. This is a forward-hit choice. It runs no reverse search and does not show one-to-one orthology.
+- Homology comes from DIAMOND, or from `--hits`.
+- A partner contig is a candidate missing piece. Nothing is joined. Identity is similarity, not product identity.
 
-## Review an undrawn ambiguous contig
+### Redraw with a named contig
 
-`tools/gap_directed_rescue.py --named-contig` is a repeatable, explicit redraw
-selection. It requires `--redraw`, the supplied genome ZIP and label, the local
-reference folder, and a fresh `--out`. The output path must not exist or be a
-symlink, including a dangling symlink; choose a disjoint destination outside the
-old run folder and bundle, not an ancestor or descendant of the old run folder.
-This option does not run a new search or change the rescue analysis.
+`--named-contig` adds one undrawn, ambiguous contig to a redraw as review context. It needs `--redraw`, the same genome ZIP and label, the local reference folder, and a new `--out` that does not exist and is not a symlink. Give the contig as `strain / full contig / region / BGC alias`, copied from the source model. For a contig with no antiSMASH region, use `strain / full contig / NO_ANTISMASH_REGION / NO_BGC_ALIAS`. Duplicate, unresolved or already drawn contigs are refused, and so is a contig with no `MISSING_FOUND_AMBIGUOUS` candidate.
 
-Copy each exact identity from the supplied source model as
-`strain / full contig / region / BGC alias`. The strain and full contig must agree
-with the selected model record. For a contig with no called antiSMASH region in
-that supplied input, use the explicit four-part form
-`strain / full contig / NO_ANTISMASH_REGION / NO_BGC_ALIAS`; do not use that form
-to hide a region that is present. Duplicate, unresolved or already drawn contigs
-are refused. A selected contig must contain an existing
-`MISSING_FOUND_AMBIGUOUS` candidate with consistent protein/locus binding; for a
-region selection the candidate must overlap that exact region.
+The added row is labeled `AMBIGUOUS`. It adds no ribbon, promotes no partner, and changes no gene status or score. The run writes `named_contig_review.json`, which records the selections and the input and output hashes. A redraw rereads saved tables. It does not show which earlier alignment made them, so keep the earlier search receipts. If an input changes mid-run, treat any graphics left behind as incomplete.
 
-The added row is labeled `AMBIGUOUS` and is review context only. It adds no new
-reference ribbon and does not promote a partner, change gene statuses, rescue evidence counts
-or scores. Existing table evidence and candidate identity measurements remain
-available in the review record. Default contig selection is unchanged when this
-option is absent.
+### Forward and reverse match records
 
-The fresh output includes `named_contig_review.json` with schema
-`sapote.named-contig-review.v1`, exact selections, source/input/output hashes and
-`genome_parse_binding`. The CLI captures the ZIP hash before its actual
-`load_genome` call and verifies it after parsing and around the redraw; that path
-records `ZIP_HASH_VERIFIED_BEFORE_AND_AFTER_PARSE`. Direct callers supplying a
-protein/region model without that parse binding receive
-`OPERATOR_SUPPLIED_MODEL`. A model hash or a separately supplied ZIP does not
-upgrade an operator model to verified ZIP parsing.
+Rescue and completion records can carry a `reciprocal_provenance` field. Its `forward_winner` part says which reference row won among the forward hits. It does not mean a reverse search ran. Its `reverse_search` part records the state of the reverse check:
 
-Both paths retain
-`historical_alignment_binding=NOT_ESTABLISHED_BY_REDRAW`: rereading and drawing
-saved tables does not establish which earlier alignment produced them. Preserve
-those earlier search receipts separately. A changed input or failed final
-binding can leave partial graphics; retain them as incomplete rather than
-claiming a completed review. The receipt and context row are not biological
-adjudication, release acceptance or proof of full figure-policy compliance.
-
-## Read forward and reverse match provenance
-
-For reference-completion results carrying schema `rggmci-reciprocal-provenance-v1`,
-read `cores[].reciprocal_provenance`. The shared partner-check result also exposes
-`reciprocal_provenance`; a gap-rescue receipt retains that result under
-`partner_checks`. This additive record distinguishes two operations:
-
-- `forward_winner` describes selection among retained forward-hit reference rows.
-  It names `reciprocal_best` and records `separate_search=false`; a true winner is
-  not evidence that a reverse search ran.
-- `reverse_search` records the selected provider, callback invocation, query and
-  recognized MIBiG-hit query counts, reported execution state/source and reason.
-  Keep this record separate from gene statuses, partner verdicts and scores.
-
-| Reverse state | What the record establishes |
+| State | Meaning |
 |---|---|
-| `NOT_NEEDED` | No outside-core finds required this check. |
-| `NOT_RUN` | The check lacked its selected database or the search owner reported an unavailable prerequisite. |
-| `FAILED` | The selected search returned a failed response rather than a successful result or a reported not-run preflight. |
-| `RUN` | The search owner reported success, including an empty result; this is not a positive match or biological absence. |
-| `UNJUDGED` | Success was reported, but the reference was not an eligible MIBiG accession for the reciprocal judgment. |
+| `NOT_NEEDED` | no find outside the core required the check |
+| `NOT_RUN` | the database or a prerequisite was unavailable |
+| `FAILED` | the selected search returned a failure |
+| `RUN` | the search reported success, including an empty result; this is not a match and not proof of absence |
+| `UNJUDGED` | the search succeeded, but the reference was not an eligible MIBiG accession |
 
-`provider=native_search_mibig` identifies that actual selected function;
-`supplied_callback` identifies a function passed through the callback interface.
-Completion's internal cache closure is a supplied callback too, not necessarily
-an external plugin. Its reported `execution_source` can distinguish
-`alignment_workflow` from `sequence_cache`. Provider selection and callback-reported
-execution metadata do not independently attest an executable process or authenticate
-upstream results. Retain the actual alignment/cache evidence when available.
-
-The legacy `reciprocal_check` text remains separate and can say not run even when
-the structured state is `FAILED`. Neither wording changes a gene status, partner
-meaning, score or confidence. Older records may lack this additive field; that
-absence alone does not retrospectively prove whether a reverse search ran.
-Completion-level holds with no per-core result do not imply a per-core `RUN`.
-This mapping describes records that carry the named schema; it does not certify
-execution of an earlier experiment or an accepted release.
-
-## Required gates
-
-- exact `strain / full node-or-contig / region / BGC alias` crosswalk, plus locus tag and domain ID;
-- current mapped BGC in the matching inventory;
-- valid amino-acid sequence and minimum length;
-- one explicit KS subtype per default tree;
-- active-site/motif review and long-branch inspection;
-- architecture/synteny review for any biological interpretation;
-- no silent duplicate collapse or one-tip-per-strain reduction.
-
-
-## Current preparation identity boundary
-
-The .447 `tools/prepare_biosynthetic_tree_inputs.py` checks a strain-local BGC alias
-against the supplied inventory and records source file/row, locus, sequence digest
-and its generated tip token. Its inventory reader retains products by `bgc_id`;
-the emitted sequence ledger and FASTA tip do **not** carry the full contig/node and
-region components of `strain / full node-or-contig / region / BGC alias`.
-
-A `MAPPED` row, alias membership or `READY_FOR_ALIGNMENT` count therefore does not
-establish the complete locus identity. Before using an individual locus as an
-alignment/figure tip, make an exact join to the bound current inventory/module
-record and retain all four identity components plus locus/domain and source hashes.
-Do not infer those missing fields from tip order or the alias. Unresolved or
-conflicting joins remain identity holds. The preparer currently needs an owning
-code change to emit and verify that complete crosswalk automatically.
+Keep this record apart from gene statuses, partner verdicts and scores. A record without the field does not show whether a reverse search ran. The older `reciprocal_check` text is separate and can say "not run" when the structured state is `FAILED`.
 
 ## Claim ceiling
 
-KS topology can support domain-family relatedness and candidate evolutionary
-context. It does not establish product identity, pathway completeness,
-production, activity, novelty, species identity, or horizontal transfer.
+KS topology can support domain-family relatedness and candidate evolutionary context. It does not establish product identity, pathway completeness, production, activity, novelty, species identity, or horizontal transfer.

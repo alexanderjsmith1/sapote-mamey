@@ -1,39 +1,59 @@
-# Persisting Mode B drafts and reviewed cards
+# Saving a Mode B card in the register
 
-`mamey.judgment_store.record_mode_b` persists authored Markdown and optional reader notes in a package's judgment area. It records legacy quality findings and progress; it does not run the full current-profile verifier or establish scientific acceptance. Use the work-order profile described in the [profile matrix](../MODEB_PROFILE_MATRIX.md) and preserve the complete strain / full node-or-contig / region / BGC alias binding.
+This page is for scripts and maintainers. If you are writing a card by hand, use the [Mode B walkthrough](../MODE_B_USER_WALKTHROUGH.md) and its `ingest-receipts --card` command instead. For terms such as card and package, see the [glossary](../GLOSSARY.md).
 
-## Current API
+`mamey.judgment_store.record_mode_b` saves a card as a file in the package and adds a row to the register. It runs an older quality check and records the result. It does not run `verify-modeb`.
+
+## Call it
+
+Run from the bundle root so `mamey` imports:
 
 ```python
-record_mode_b(
-    package_dir=bound_package,
-    bgc_id=package_scoped_alias,
-    mode_b_md=authored_markdown,
-    session_id=review_session,
-    rank=bound_triage_rank,
-    edge_status=bound_boundary_state,
-    cds_count=bound_region_cds_count,
+from mamey.judgment_store import record_mode_b
+
+result = record_mode_b(
+    package_dir="runs/EXAMPLE/package",
+    bgc_id="BGC_ID_FROM_INVENTORY",
+    mode_b_md=open("card.md").read(),
+    session_id="manual",
+    rank=1,
+    edge_status="Interior",
+    cds_count=30,
 )
+print(result["persistence_warnings"])
 ```
 
-Inputs shown are caller-supplied variables from the selected evidence snapshot. Optional `layperson_paragraph` and `fermentation_note` default to empty strings. The API does not infer verified experiments or authorize a scientific procedure from those text fields. Preserve measured material-level observations separately from individual locus interpretation.
+The card must open with its exact identity, `# Mode B — <strain> / <full node-or-contig> / <region> / <BGC alias>`, matching the package's triage-board row and the manifest's `strain_id`. If the header is missing, incomplete or appears twice, if any part conflicts with the package, if the alias has no triage-board row, or if the board cannot be read, `record_mode_b` raises `ModeBIdentityHold` before it writes anything: no card, no reader note, no register row. The exception's `exit_code` is 2, `components` names the parts involved (strain, full contig, region, alias), and its message gives the card and package values. Fix the card header from the package inventory and call again. The `ingest-receipts` routes run their own identity check first and are not changed.
 
-The passive quality evaluator receives the Markdown, rank, boundary and CDS count. It stamps `FULL`, `SHALLOW`, `STUB`, or `UNKNOWN` on failure; claim-safety and locator findings are surfaced but do not block persistence. Treat legacy `FULL` as a quality-tier observation, not a current50/full48 verification receipt. Character floors are not evidence sufficiency or scientific depth by themselves.
+`rank`, `edge_status` and `cds_count` come from the package inventory. They set which character floor the check applies. `layperson_paragraph` and `fermentation_note` are optional and default to empty. The function returns a dict. Read its `persistence_warnings` and open the files it names.
 
-## Files and repeated writes
+## Files it writes
 
-The selected package contains `judgment/<strain>_<alias>_mode_b.md`, optional accumulated `judgment/<strain>_laypersons_section.md` and `judgment/<strain>_fermentation_section.md`, and `<strain>_judgment_register.json` (with a `.last-good` backup for trustworthy register writes). The `<alias>` remains a package-scoped lookup, not a globally unique locus.
+The card and the reader notes are under `<package>/judgment/`. The register and its `.last-good` backup are at the package root:
 
-The function writes/replaces the per-BGC Markdown, appends each nonempty optional reader-note section, and then updates the register. Individual text writes use atomic replacement, but these separate files are not one transaction. Repeating the call replaces the card while appending duplicate reader-note sections unless the caller has deliberately handled them. Preserve old content and review note accumulation before a retry; inspect returned `persistence_warnings` and actual files. Do not rely on a printed success alone.
+| File | Contents |
+|---|---|
+| `<strain>_<alias>_mode_b.md` | the card; replaced on each call |
+| `<strain>_laypersons_section.md` | reader notes; each call appends a nonempty one |
+| `<strain>_fermentation_section.md` | reader notes; each call appends a nonempty one |
+| `<package>/<strain>_judgment_register.json` (package root, not `judgment/`) | one row per cluster, with a `.last-good` backup |
 
-The register row becomes `status=COMPLETE` even when its quality tier is SHALLOW, STUB or UNKNOWN. `completion_pct` counts that status, not profile verification. `record_batch_complete` can mark known register aliases COMPLETE without per-BGC content. Neither this shortcut nor `judgment_status=COMPLETE` is sufficient to compile or accept the finished strain. [Batch guidance](MODE_B_BATCH_RUN.md) separates these checks.
+The alias is a lookup name within one package. It is not a unique locus ID.
 
-## Required verification handoff
+## The register
 
-Keep persistence, current-profile verification, source/evidence admission, visual review and owner acceptance as separate recorded states. Verify the exact saved card with the intended contract and package context, inspect warnings and roster/coverage flags, and bind the card/source hashes in a separate run record. A register row stores a filename and cached quality fields rather than a card hash, so changing a persisted file makes the cached verdict stale. Recheck the actual bytes before each handoff.
+A row gets `status=COMPLETE` and a `quality_tier` of `FULL`, `SHALLOW`, `STUB` or `UNKNOWN`. A thin card still counts as COMPLETE. `completion_pct` counts that status only. The register stores a file name, not a hash, so an edit to the card makes the stored tier stale.
 
-`compile_ready` reads cached legacy FULL counts and the supplied/registered roster; it does not re-open the cards or run current Mode B verification. Record the full expected exact-locus roster independently. Unknown alias writes can add rows to the register without validating the inventory denominator. Source or profile changes require explicit reconciliation rather than reuse of old completion percentages. Corrupt-register recovery is a separate hold; preserve original and last-good files before investigating.
+The three writes are separate. Repeating a call replaces the card but adds the same reader note a second time. Check the files before you retry.
 
-Workbook write-back functions consume the stored judgment state; they are separate mutations and do not supply missing verification or experimental evidence. Use the appropriate governed workflow and actual schema, preserving source identity and a backup/versioned destination. Old ten-section examples and illustrative biological narratives are not current completion definitions.
+## What to run afterward
 
-Source owners: `mamey/judgment_store.py:318–484,489–512,679–704,727–820`; `mamey/mode_b_quality_gate.py:60–99,264–291`; `mamey/authored_verify.py:591–680,804–891`.
+`record_mode_b` does not verify the card. Run:
+
+```bash
+python mamey_run.py verify-modeb card.md --package runs/EXAMPLE/package --bgc BGC_ID_FROM_INVENTORY
+```
+
+Add `--contract current50_v2` for that profile. Read every ERROR and WARN. Batch progress and completion checks are on the [batch page](MODE_B_BATCH_RUN.md).
+
+Workbook write-back functions read the register. They add no verification of their own, so back up the workbook first.

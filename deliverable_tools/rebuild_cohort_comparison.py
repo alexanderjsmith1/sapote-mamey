@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""rebuild_as_sid_comparison.py — AS vs SID compound comparison over the FULL SID set:
-N1 SID from the gene master + N2 SID from the extracted supplement = N SID vs M AS.
+"""rebuild_as_sid_comparison.py — project-isolate vs public-reference compound comparison over the full reference set:
+references from the gene master plus references from the extracted supplement.
 Per-gene KnownClusterBlast (MIBiG) is the common currency. Homology/capacity only."""
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))

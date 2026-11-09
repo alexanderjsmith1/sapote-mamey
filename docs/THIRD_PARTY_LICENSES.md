@@ -1,7 +1,8 @@
 # Third-Party Licenses
 
-Sapote–Mamey's own code and documentation are licensed under `LICENSE` (MIT, code) and
-`LICENSE-DOCS.txt` (documentation). This file covers third-party components.
+Sapote–Mamey's own code is licensed under `LICENSE` (MIT). `LICENSE-DOCS.txt` applies CC-BY-4.0
+to the documentation files and patterns it lists; it does not name every page under `docs/`. For a
+page it does not list, the terms are not settled by this notice. This file covers third-party components.
 
 ## Redistributed in this repository (vendored code)
 
@@ -66,12 +67,23 @@ The license labels below are convenience metadata, not a legal conclusion about 
 - **lxml** — XML backend used by python-docx. License: BSD-3-Clause (libxml2/libxslt it wraps are MIT). Installed from PyPI; not redistributed here.
 - **pypdf** — PDF page-count / render verification. License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **Pillow** — image handling for figure/PDF paths. License: HPND (MIT-CMU style, permissive). Installed from PyPI; not redistributed here.
+- **markdown** — HTML rendering for `tools/build_chat_export.py`. License: BSD-3-Clause (installed package metadata, 3.10.2). Installed from PyPI; not redistributed here.
 
 `figures` extra (optional figure outputs):
 
 - **networkx** — BiG-SCAPE GCF-network figure (`mamey/bigscape_figures.py`); soft-guarded (`SKIPPED_NO_DEPS`). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **scipy** — cohort clustermap ordering (`mamey/cohort_figures.py`, `tools/cluster_relate.py`); soft-guarded (falls back to count-ordering). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **scikit-learn** — t-SNE companion layout (`tools/protein_pcoa_ordinate.py tsne`); soft-guarded (the step refuses with a message; nothing is substituted). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
+- **pyshp** — shapefile import for local collection-map basemaps (`tools/collection_map.py`). License: MIT (installed package metadata, 3.1.6). Installed from PyPI; not redistributed here.
+- **dna-features-viewer** — lazy locus-diagram renderer (`mamey/bgc_figures.py`). License: not checked here; read the installed package metadata. Installed from PyPI; not redistributed here.
+- **pycirclize** — lazy circular atlas renderer (`mamey/bgc_figures.py`). License: MIT (installed package metadata, 1.10.1). Installed from PyPI; not redistributed here.
+
+The `figures` extra also lists matplotlib, numpy, pandas and biopython; see the table above.
+
+`slides` extra (per-strain slide decks, `tools/strain_slides.py` and `tools/strain_slides_pcoa.py`):
+
+- **python-pptx** — PowerPoint output. License: MIT (installed package metadata, 1.0.2). Installed from PyPI; not redistributed here.
+- It also lists matplotlib, numpy and Pillow, covered above.
 
 ## External bioinformatics tools (operator-installed, invoked-only — not bundled, not linked)
 

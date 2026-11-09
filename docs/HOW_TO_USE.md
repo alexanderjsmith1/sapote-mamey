@@ -1,4 +1,4 @@
-# How to Use Sapote-Mamey v9.7.463
+# How to Use Sapote-Mamey v9.7.464
 
 The [README](../README.md) is the human landing page. For orientation, run
 `python mamey_run.py start --no-doctor` from the extracted bundle root for the current
@@ -12,7 +12,7 @@ figures, and Mode B. This page keeps the core operating contract in one short pl
 
 Follow [the Master Walkthrough](MASTER_WALKTHROUGH.md) for one maintained command sequence, including explicit evidence and rendering settings. For an existing package, start with [Reading your results](READING_YOUR_RESULTS.md). Keep the original input and transfer the complete package as explained in [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md).
 
-A validator exit of zero can coexist with interpretation pending or workbook warnings. See [recovery and status checks](COMMON_MISTAKES.md#a-validation-or-seal-command-returns-zero); `validate` normally updates its mutable package-status receipt.
+A validator exit of zero can coexist with interpretation pending or workbook warnings. See [recovery and status checks](COMMON_MISTAKES.md#validate-exits-0-but-the-workbook-looks-wrong); `validate` normally updates its mutable package-status receipt.
 
 ## After validation
 

@@ -44,6 +44,81 @@ def _inspect_strain_guess(path: Path) -> str:
     return stem or "ISOLATE"
 
 
+def _shorten_strain_guess(guess: str, limit: int = 64) -> str:
+    """Cut a too-long guess at the last token boundary that fits `limit` characters."""
+    import re as _re
+    if len(guess) <= limit:
+        return guess
+    cut = guess[:limit]
+    boundary = max(cut.rfind("_"), cut.rfind("-"), cut.rfind("."))
+    if boundary >= 8:
+        cut = cut[:boundary]
+    return _re.sub(r"[._-]+$", "", cut) or "ISOLATE"
+
+
+def _inspect_strain_name(path: Path) -> tuple[str, str]:
+    """A ``--strain`` value that ``run`` accepts, and a note whenever it is not the file name.
+
+    ``run`` refuses a strain over 64 characters, outside the safe path alphabet or holding
+    ``..``, and refuses a database accession when the archive names an organism. In order:
+      1. the file-name guess (with ``..`` collapsed to ``.``) when ``run`` accepts it and it is
+         neither an accession nor accession-prefixed while the archive offers a name;
+      2. the archive's own suggestion (the name ``--strain auto`` resolves to), cut to 64
+         characters if needed;
+      3. a bare accession as given, when the archive names no organism (``run`` accepts it);
+      4. the guess cut at a word boundary to fit 64 characters.
+    The note says which rule applied, and also when characters a strain name cannot hold were
+    removed from the file name.
+    """
+    import re as _re
+    from .strain_identity import (UnsafeStrainId, _from_archive, looks_like_accession,
+                                  looks_like_accession_prefixed, validate_strain_id)
+
+    def _valid(value: str | None) -> bool:
+        if not value:
+            return False
+        try:
+            validate_strain_id(value)
+        except UnsafeStrainId:
+            return False
+        return True
+
+    raw_stem = Path(path).stem
+    guess = _re.sub(r"\.{2,}", ".", _inspect_strain_guess(path))
+    removed = bool(_re.search(r"[^A-Za-z0-9_.\- ()]", raw_stem) or ".." in raw_stem
+                   or _re.match(r"[-_.]", raw_stem))
+    cleaned = (" Characters a strain name cannot hold were removed from the file name."
+               if removed else "")
+    too_long = len(guess) > 64
+    accession = looks_like_accession(guess)
+    prefixed = not accession and looks_like_accession_prefixed(_re.sub(r"[^A-Za-z0-9]+", "_", guess))
+    suggestion = None
+    if not _valid(guess) or accession or prefixed:
+        suggestion, _organism = _from_archive(str(path))
+    if _valid(guess) and not accession and not (prefixed and suggestion):
+        return guess, cleaned.strip()
+    why = ("longer than 64 characters" if too_long else
+           "a database accession" if accession else
+           "built from a database accession" if prefixed else "not a safe strain name")
+    if suggestion:
+        fitted = _shorten_strain_guess(_re.sub(r"\.{2,}", ".", _re.sub(r"[^A-Za-z0-9_.-]+", "_", suggestion)).strip("_.-"))
+        if _valid(fitted) and not looks_like_accession(fitted):
+            cut = " cut to fit 64 characters" if fitted != suggestion else ""
+            return fitted, (f"The file name gives a strain name that is {why}; this is the name the "
+                            f"archive itself suggests (the one --strain auto picks){cut}.")
+    if accession:
+        # No organism to suggest instead, so run accepts the accession as given.
+        return guess, cleaned.strip()
+    short = _shorten_strain_guess(guess)
+    if not _valid(short):
+        return "ISOLATE", (f"The file name gives a strain name that is {why}, and no usable name "
+                           "could be made from it; replace ISOLATE with a short name of your own.")
+    if short == guess:
+        return guess, cleaned.strip()
+    return short, (f"The file name gives a strain name that is {why}; it was cut at a word "
+                   f"boundary to fit. Change it to a short name of your own if you prefer.{cleaned}")
+
+
 def classify_antismash_zip(names: list[str]) -> dict[str, object]:
     """Classify common antiSMASH ZIP shapes for ChatGPT-safe intake guidance.
 
@@ -213,7 +288,13 @@ def inspect_command(args) -> int:
     gbk_regions = [n for n in names if n.endswith(".gbk") and "region" in n.lower()]
     gbk_other   = [n for n in names if n.endswith(".gbk") and "region" not in n.lower()]
     json_files  = [n for n in names if n.endswith(".json")]
-    cb_txt      = [n for n in names if "clusterblast" in n and n.endswith(".txt")]
+    # KnownClusterBlast (the MIBiG comparison) is counted on its own. antiSMASH also writes
+    # ClusterBlast and SubClusterBlast TXT files; the old count lumped all three together, so a
+    # 62-region archive reported 186 "KCB" files, and an archive with only ClusterBlast output
+    # reported KCB as available. The predicate matches the evidence parser's KCB test.
+    cb_txt      = [n for n in names if "knownclusterblast" in n.lower() and n.lower().endswith(".txt")]
+    other_cb_txt = [n for n in names if "clusterblast" in n.lower() and n.lower().endswith(".txt")
+                    and "knownclusterblast" not in n.lower()]
     html_files  = [n for n in names if n.endswith(".html") or n.endswith(".htm")]
     input_shape = classify_antismash_zip(names)
 
@@ -263,13 +344,25 @@ def inspect_command(args) -> int:
                 stacklevel=2,
             )
 
-    # Detect if this looks like a bare assembly (no GBK regions)
+    # No region GBKs: ask the same question `run` asks. Whole records are admitted only under the
+    # parser's whole-record rule (exactly one numbered region feature each); anything else is held.
+    whole_records_admitted, whole_records_held = 0, []
     if not gbk_regions:
-        emit(f"\n⚠  {zip_path.name} — does NOT look like an antiSMASH output ZIP", f"   Found {len(names)} files but no GBK region files.", "   This may be a raw NCBI/genome download. Run antiSMASH first:", "   https://antismash.secondarymetabolites.org", sep="\n")
+        try:
+            from .parsers import iter_region_core_inputs as _whole_record_intake
+            _diagnostics = []
+            whole_records_admitted = sum(1 for _ in _whole_record_intake(zip_path, intake_diagnostics=_diagnostics))
+            whole_records_held = sorted({d["code"] for d in _diagnostics
+                                         if str(d.get("code", "")).endswith("_HELD")})
+        except (OSError, ValueError, UnicodeError, zipfile.BadZipFile):
+            whole_records_admitted, whole_records_held = 0, []
+    if not gbk_regions and not whole_records_admitted:
+        emit(f"\n⚠  {zip_path.name} — does NOT look like an antiSMASH output ZIP", f"   Found {len(names)} files but no GBK region files.", "   This may be a raw NCBI/genome download. Run antiSMASH first:", "   https://antismash.secondarymetabolites.org",
+             *(["   Whole records were held instead of admitted: " + ", ".join(whole_records_held)] if whole_records_held else []), sep="\n")
         return 1
 
     report_lines = []
-    report_lines.extend([f'\nMamey inspect — {zip_path.name}', f"{'─' * 50}", f"  antiSMASH version : {as_version or 'not detected'}", f'  GBK region files  : {len(gbk_regions)}  ← Mamey will parse one BGC per file', f'  GBK other files   : {len(gbk_other)}', f"  JSON evidence     : {('YES (' + str(len(json_files)) + ' file(s))' if json_files else 'NO — KCB/RiQ will fall back to TXT')}", f"  KCB TXT files     : {len(cb_txt)}  ({('available' if cb_txt else 'absent — KCB may be blank')})", f'  HTML/viz files    : {len(html_files)}', f'  Total ZIP entries : {len(names)}', f"  Input shape       : {input_shape['summary']}"])
+    report_lines.extend([f'\nMamey inspect — {zip_path.name}', f"{'─' * 50}", f"  antiSMASH version : {as_version or 'not detected'}", f'  GBK region files  : {len(gbk_regions)}  ← Mamey will parse one BGC per file', *([f'  Whole records     : {whole_records_admitted} admitted as BGCs (one numbered region feature each)' + (f'; held: {", ".join(whole_records_held)}' if whole_records_held else '')] if not gbk_regions else []), f'  GBK other files   : {len(gbk_other)}', f"  JSON evidence     : {('YES (' + str(len(json_files)) + ' file(s))' if json_files else 'NO — KCB comes from the TXT files; RiQ needs the JSON and will be absent')}", f"  KCB TXT files     : {len(cb_txt)}  ({('available' if cb_txt else 'absent — KCB may be blank')})", *([f"  Other ClusterBlast TXT : {len(other_cb_txt)}  (ClusterBlast and SubClusterBlast; not counted as KCB)"] if other_cb_txt else []), f'  HTML/viz files    : {len(html_files)}', f'  Total ZIP entries : {len(names)}', f"  Input shape       : {input_shape['summary']}"])
     if input_shape.get("accession_like"):
         report_lines.extend([f"  Public accession  : {input_shape.get('accession')}"])
 
@@ -277,10 +370,12 @@ def inspect_command(args) -> int:
         report_lines.extend(['\n  Single-region accession note:', '    This looks like a raw antiSMASH run on one public GenBank/INSDC sequence, not a full genome and not a sealed Mamey package.', '    It is still a valid Mamey intake target if inspect passes.', '    Assembly completeness warnings such as VERY_POOR / 0% interior BGCs can be expected for this input shape.', '    Treat this as reference/control evidence unless the user says it is a discovery strain.'])
 
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
-    strain_guess = _inspect_strain_guess(zip_path)
+    strain_guess, strain_note = _inspect_strain_name(zip_path)
 
-    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release PRIVATE \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate {shlex.quote(str(Path("runs") / strain_guess / "package"))}'])
+    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release PRIVATE \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate {shlex.quote(str(Path("runs") / strain_guess / "package"))} --workbook-strict'])
 
+    if strain_note:
+        report_lines.extend([f"    Strain name: {strain_note}"])
     report_lines.extend(["    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.", "    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>."])
 
     if not json_files:
@@ -565,7 +660,8 @@ def _read_bgc_board(board_path):
 
 def _select_bgc_rows(rows, axis="rank", top_n=None, include_dropped=False):
     if not include_dropped:
-        rows = [r for r in rows if not r.get("Primary_metab_flag") and not r.get("Standing_rule")]
+        from .scoring import is_lead_excluded
+        rows = [r for r in rows if not is_lead_excluded(r)]
     if axis == "ab":
         rows = sorted(rows, key=lambda r: _bgc_score(r, "AB_auto"), reverse=True)
     elif axis == "af":

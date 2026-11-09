@@ -11,6 +11,7 @@ this offline, read-only harness should never enable on its own.
 """
 from __future__ import annotations
 import importlib.util
+import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -24,12 +25,16 @@ def test_rebase_verify_pytest_invocation_includes_run_slow(tmp_path, monkeypatch
     base = tmp_path / "base"
     (base / "tests").mkdir(parents=True)
     card = tmp_path / "card"
-    card.mkdir()  # no *.diff/*.patch, no test_*.py -- exercises the pytest step in isolation
+    card.mkdir()
+    (card / "card.diff").write_text("")  # an empty card is refused; patch itself is faked
 
     captured: list[tuple[list[str], object]] = []
 
     def _fake_run(cmd, cwd=None, timeout=None):
         captured.append((list(cmd), cwd))
+        if cmd[0] == "rsync":  # a real, complete copy so the copy-roster check passes
+            shutil.copytree(cmd[-2], cmd[-1], dirs_exist_ok=True)
+            return 0, ""
         return 0, "1 passed in 0.01s\n"
 
     monkeypatch.setattr(cut_audit, "_run", _fake_run)
@@ -55,11 +60,15 @@ def test_rebase_verify_honors_explicit_tests_scope_alongside_run_slow(tmp_path, 
     (base / "tests").mkdir(parents=True)
     card = tmp_path / "card"
     card.mkdir()
+    (card / "card.diff").write_text("")
 
     captured: list[list[str]] = []
 
     def _fake_run(cmd, cwd=None, timeout=None):
         captured.append(list(cmd))
+        if cmd[0] == "rsync":
+            shutil.copytree(cmd[-2], cmd[-1], dirs_exist_ok=True)
+            return 0, ""
         return 0, "2 passed in 0.02s\n"
 
     monkeypatch.setattr(cut_audit, "_run", _fake_run)

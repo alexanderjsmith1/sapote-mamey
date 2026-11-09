@@ -1,8 +1,14 @@
 # Sapote slim judgment kernel (retired)
 
-> Retired. Kept for old integrations only. For current interpretation rules use
-> [the Sapote rules reference](SAPOTE_MAMEY_BUNDLE_MONOLITH.md); for startup use [AGENTS.md](../AGENTS.md);
-> for Mode B cards use [the profile matrix](MODEB_PROFILE_MATRIX.md).
+<!-- SAPOTE_DOC_STATE: HISTORICAL_SUPERSEDED -->
+<!-- SAPOTE_SUPERSEDED_BY: MODEB_PROFILE_MATRIX.md | CHATGPT_EXECUTION_SLICE_v97147.md -->
+
+> Retired. Kept for old integrations only. The rest of this page is a prompt written for an assistant
+> session, kept as a record. Do not follow it as current instructions.
+> For startup use [AGENTS.md](../AGENTS.md). For Mode B cards use [the profile matrix](MODEB_PROFILE_MATRIX.md):
+> the eight-section report in Module 13 below is not a current Mode B format.
+> [The Sapote-Mamey rules reference](SAPOTE_MAMEY_BUNDLE_MONOLITH.md) is a design and history reference;
+> AGENTS.md and [assistant governance](ASSISTANT_GOVERNANCE.md) take precedence over it.
 > If this kernel and [the execution slice](CHATGPT_EXECUTION_SLICE_v97147.md) are both loaded, the execution slice wins.
 
 ## HOW TO USE THIS DOCUMENT
@@ -85,7 +91,7 @@ Sort all BGCs by `Corrected_rank` when present; otherwise by the active priority
 2. **check_kcb_concordance()** — compares architecture vs KCB compound class. Five states: CONCORDANT (use both), DISCORDANT (architecture wins), WEAK_SIGNAL (KCB <30% coverage — ignore), ARCHITECTURE_DEFERS (UNKNOWN arch + ≥60% KCB → provisional), NO_KCB (orphan).
 3. **make_assignment()** — final product class. Architecture is PRIMARY EVIDENCE. KCB is corroboration, not proof.
 
-**Critical rule:** The KCB compound name is a SIMILARITY SIGNAL, not a product class assignment. When architecture and KCB disagree, architecture wins. Always.
+**Critical rule:** The KCB compound name is a SIMILARITY SIGNAL, not a product class assignment. When architecture and KCB disagree, architecture wins. The exception is `ARCHITECTURE_DEFERS` in step 2: when the architecture is UNKNOWN and KCB is strong, the KCB class is provisional (`mamey/architecture_first.py:70`).
 
 **Known misanchor patterns:** T2PKS KCB on terpene BGC (boundary-bleed from shared flanking genes); PTM KCB on collinear trans-AT PKS (KS subdomain match); macrolide KCB on full-contig fragment (generic module match).
 
@@ -134,6 +140,8 @@ Key criteria (abbreviated):
 
 Decision categories: ≥10 Immediate | 7–9 Strong | 4–6 Conditional | 1–3 Inventory | ≤0 Deprioritized
 
+> Historical: the `>5000` and `>3000` KCB numbers here are old cumulative-score cut-offs. Current KCB bands read antiSMASH percent similarity, with edges at 70 and 40 (`mamey/precision.py:17-18`). Do not apply these numbers to current packages.
+
 ---
 
 ## MODULE 5 — §34 HALLUCINATION-TRAP AUDIT
@@ -144,6 +152,7 @@ Run before Mode B. Flag and correct:
 - Tiny T1PKS FC fragment → Arch D/E unless FLBR split-pathway anchor
 - ≥2 BGCs same KCB compound >3000 → apply §30.3 split-pathway gate (two-level rule)
 - KCB >5000 with ≤4 proteins → truncation likely; do not call full pathway
+  (Historical: this line and the `>3000` line above use old cumulative-score cut-offs; see the note under Module 4.)
 - 0% MIBiG cluster similarity but ≥1 individual gene bitscore >300 → call class from gene homology
 - Halogenase without scaffold → do NOT fire T43-HAL
 - Aminoglycoside KCB without DOIS → affirmatively rule out
@@ -190,7 +199,7 @@ From `manifest.json` → `source_scans.blda_tta`. State T4 BGC list and culture 
 ## MODULE 9 — §45 RESISTANCE GENE TIERS
 
 From `manifest.json` → `source_scans.resistance_tiers`. For each BGC:
-- **Tier 1 within BGC coordinates:** near-definitive class confirmation (+1 WL, supports Arch B→A); flag with full marker description
+- **Tier 1 within BGC coordinates:** strong class-consistent support (+1 WL, supports Arch B→A); a resistance marker is capacity evidence, not class proof; flag with full marker description
 - **Tier 2 within 15 kb:** strong contextual support (+1 WL); apply HGT guard (check for flanking integrase/transposase)
 - **Tier 3:** polarity routing only; no WL adjustment
 - **HGT resistance island:** flag per §34; do not count as class confirmation
@@ -299,7 +308,7 @@ For top 3–5 leads: media, temperature, duration, induction condition (DasR/Glc
 
 ## MODULE 19 — LAYPERSON-RANKED BGC GUIDE
 
-Top 5 BGCs in plain language (3–5 sentences each): what the cluster makes, why it matters, one sentence on how the compound might be detected. No jargon; no compound identity claims.
+Top 5 BGCs in plain language (3–5 sentences each): what class of compound the cluster has the genes to make, why it matters, one sentence on how the compound might be detected. No jargon; no compound identity claims.
 
 ---
 
@@ -377,4 +386,4 @@ Compile the Master Layperson Guide for [cohort/all strains/habitat].
 | v2.0 | 2026-06-08 | Derived from SAPOTE_MAMEY_BUNDLE_MONOLITH_v9.1.md; two-level split-pathway priority rule (Module 3); Literature Deep Dive replaces legacy Bert/Davey modes; brand cleanup |
 | v2.1 | 2026-06-08 | Module 21 added: Master Multi-Strain Layperson Compilation (cross-strain deliverable, monolith §53) |
 | v2.2 | 2026-06-09 | Derived-from updated to v9.3; §57 sub-grade grades corrected (HAL/ENE A/B/C, LAN added); T43-LAN and T43-DKP added to Module 6; WL score column added to Module 12 triage board; ten-scan count confirmed |
-| v2.3 | 2026-06-22 | Module 0.5 (RG-GMCI front-end validation); Module 2 KCB_top→KCB_anchor provenance-aware; Module 2.5 (architecture-first assessment); reconciled to v9.7.107 |
+| v2.3 | 2026-06-22 | Module 0.5 (RG-GMCI front-end validation); Module 2 KCB_top→KCB_anchor provenance-aware; Module 2.5 (architecture-first assessment) |

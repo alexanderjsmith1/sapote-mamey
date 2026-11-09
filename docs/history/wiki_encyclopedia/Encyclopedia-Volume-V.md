@@ -91,7 +91,7 @@ reference search; the original worked-run and assay evidence remain unverified.
   class-dependent bottom tier (`Low` or `Inventory`); this branch does not test
   precursor absence. Retain source completeness/precursor evidence separately.
 
-**Worked score computation (real v9.7.33 run — a lanthipeptide lead in the Bumblebee *Streptomyces*).** A clean
+**Worked score computation (real v9.7.33 run — a lanthipeptide lead in a *Streptomyces* strain).** A clean
 Interior RiPP lead, BGC label `RiPP; RiPP-like; lanthipeptide-class-iii`, Architecture grade A, KCB cumulative
 8,260. The axes compute as: <span class="tag t-engine">\[engine: real run; strain in the PRIVATE worked-examples key\]</span>
 
@@ -212,7 +212,7 @@ mobile-element demotion; and the `[E-signal]` note. This is built engine code, n
 place a missing demotion (the \#28 case) becomes visible: a mobile-dominant region whose rationale shows no
 `MOBILE-ELEMENT DEMOTION` line is the tell.
 
-**Worked guard-trace (real v9.7.33 run — the Attine *Pseudonocardia*).** A Saccharide region (Edge, KCB anchor to
+**Worked guard-trace (real v9.7.33 run — a *Pseudonocardia* strain).** A Saccharide region (Edge, KCB anchor to
 a *Nocardia* T1PKS/trans-AT cluster, KCB 5,436) scores AB 48.9 / AF 33.9 / novelty 50.8 on raw keywords — enough
 to rank. Its board row carries **`Standing_rule = saccharide-exclusion`**, and the rationale therefore reads
 `…; STANDING-RULE DOWNGRADE (saccharide-exclusion): excluded from corrected lead rank`. The effect: the region is
@@ -235,13 +235,10 @@ extract-level and that absence of recorded activity is never a negative call —
 mechanism, never by phenotype (→ §I.3). <span class="tag t-spec">\[spec\]</span> — DAPR's columns are in the canonical master schema and
 <span class="tag t-spec">\[spec\]</span> — As of v9.7.91 the per-strain package *does* emit the core of this: `4c_AB_lead_board.csv` (Track A, AB-ranked) and `4c_AF_lead_board.csv` (Track B, AF-ranked), each carrying a `Downgrade` column (the standing-rule / primary-metab / mobile flag — the "excluded, not ranked" signal) and a `Corrected_rank` (the v9.7.45 dedicated lead boards). What remains master-level / <span class="tag t-spec">\[spec\]</span> is the *combined* DAPR deliverable — the cross-track dual-threat list and the exact mandatory-footer wording — so a later edition can promote the per-strain AB/AF boards to <span class="tag t-engine">\[engine\]</span> while keeping the combined cross-track view as the spec'd master artifact.
 
-A standing caveat tied to V.4, **now resolved**: the \#28 corroboration↔mobile fix (class-axis, v9.7.35) and PC-12 (resistance-axis, v9.7.37) both shipped, so the mobile-element flag the DAPR excluded-list relies on is now populated correctly on the canonical class-trigger-bearing ICE (BGC032: AB 57→25, mobile-flagged, dropped from the ranked leads). A hand-built DAPR on an *older* run (engine ≤1.9.84, missing one or both fixes) should still apply the mobile-dominance test directly; on a v9.7.91 run the flag can be trusted.
+A standing caveat tied to V.4, **now resolved**: the \#28 corroboration↔mobile fix (class-axis, v9.7.35) and PC-12 (resistance-axis, v9.7.37) both shipped, so the mobile-element flag the DAPR excluded-list relies on is now populated correctly on the canonical class-trigger-bearing ICE (BGC032: AB 57→25, mobile-flagged, dropped from the ranked leads). A hand-built DAPR on an *older* run (engine ≤1.9.84, missing one or both fixes) should still apply the mobile-dominance test directly; on a v9.7.91 run the original author judged the flag trustworthy. Historical claim: the current code does not guarantee it, so check the mobile-element flag on any run you rely on.
 
 ------------------------------------------------------------------------
 
 *End of Volume V. Remaining planned: Volume VII — Operations, Release & Provenance; Volume VIII — Reference &
 Apparatus. With V drafted, the eight-volume set is built except for the operations and apparatus references.*
 
-</div>
-
-<div id="vol6" class="section vol">

@@ -21,9 +21,9 @@ The context guard refuses corrupt/ambiguous supplied context instead of silently
 <details>
 <summary>Preserved dated record — historical reference, not an execution request</summary>
 
-# INSTRUCTIONS — cohort-wide BLASTp for the AS Hymenoptera cohort
+# INSTRUCTIONS — cohort-wide BLASTp for a multi-strain cohort
 
-**For:** the multi-strain cohort chat · **From:** patch chat · **Bundle:** v9.7.319 / engine 1.9.111
+**For:** a multi-strain cohort run · **From:** the patch workstream · **Bundle:** v9.7.319 / engine 1.9.111
 **Date:** 2026-07-09
 
 Read all of §1 before you start. The short version: **do not run EBI across the whole cohort.** The
@@ -90,6 +90,8 @@ Until v9.7.239, **nothing wrote the file the guard reads.** `authored_verify:99`
 
 ### Per-strain loop (NCBI / nr)
 
+Historical: do not run these. They send sequences to a public service through `python3 -m mamey.cli`. The current route is the [online BLASTp protocol](../../ONLINE_BLASTP_PROTOCOL.md).
+
 ```bash
 # 0. one strain, one sealed package, one BGC scope at a time
 PKG=runs/<STRAIN>/package
@@ -121,6 +123,8 @@ NOVELTY_CONTRADICTION)`. **If you do not see that line, the run did nothing for 
 
 ### If you must use EBI (prepared panel, no nr)
 
+Historical: do not run these. The submit step uploads sequences to a public service. The current route is the [online BLASTp protocol](../../ONLINE_BLASTP_PROTOCOL.md).
+
 ```bash
 python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --submit --confirm-public-sequence-upload --hits 10 --submit-gap 6
 python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --harvest --poll-budget 600
@@ -133,13 +137,13 @@ only `OK`. Re-run either phase after an interruption; it picks up where it stopp
 
 ---
 
-## 3 · Traps I hit, so you don't
+## 3 · Traps encountered (first-person notes from the original instructions)
 
 1. **`setsid` loses the working directory.** A detached harvest died with `ModuleNotFoundError: No module
-   named 'mamey'`. Always `setsid bash -c 'cd <bundle> && python3 -m mamey.cli …'`. This was environment,
+   named 'mamey'`. Always `setsid bash -c 'cd <bundle> && python3 -m mamey.cli …'` (historical advice; a background job needs the user's approval, see [AGENTS.md](../../../AGENTS.md)). This was environment,
    not data — but it silently cost a run.
 2. **`--to-outfmt10` gives you no subject titles.** outfmt10 is the standard 12-column format: it carries
-   the subject *accession* (`A0A7X0TWU3`) and nothing else. In my AS-XXX overlays `locus_tag`, `aa_length`,
+   the subject *accession* (`A0A7X0TWU3`) and nothing else. In my STRAIN_ID overlays `locus_tag`, `aa_length`,
    `pct_identity`, `query_coverage`, `evalue` were 22/22 populated, but **`blastp_top_def` and
    `blastp_organism` were 0/22**. `conservation_median_id` only needs identity + coverage, so the medians
    were sound — but a §4 gene table built from that overlay has no hit descriptions. **Pass `--xml` to
@@ -199,7 +203,7 @@ per panel gene, `pct_identity` + `query_coverage` populated, and the database is
    BGC whose draft card claims novelty). Expect ~80 BGCs.
 2. For each: `blastp-online --database nr --batch-size 10` → `ingest-blastp --package --xml` → confirm the
    overlay file exists.
-3. Re-run `verify-modeb --strict` on the affected cards. Any `NOVELTY_CONTRADICTION` that now fires is a
+3. Re-run `verify-modeb --strict` [flag removed; `verify-modeb --help` lists `--no-strict-depth` and `--interp-strict`] on the affected cards. Any `NOVELTY_CONTRADICTION` that now fires is a
    card that was making an unsupported claim against ClusterBlast data.
 4. **Two named leads on the private lead board are waiting on exactly this.** Do them first.
 5. Only then consider Tier 2. Skip Tier 3 unless something specific demands it.

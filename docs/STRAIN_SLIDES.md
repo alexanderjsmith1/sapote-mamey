@@ -10,10 +10,10 @@ From the program folder, install the slide dependencies first:
 
 ```bash
 python -m pip install '.[slides]'
-python tools/strain_slides.py template > AS-40_sources.json
+python tools/strain_slides.py template > EXAMPLE_sources.json
 ```
 
-Open `AS-40_sources.json`. Set `strain` to your run label and `package` to the
+Open `EXAMPLE_sources.json`. Set `strain` to your run label and `package` to the
 extracted package folder. For a sources file in the program folder, the example
 values are `EXAMPLE` and `runs/EXAMPLE/package`. Leave unavailable inputs empty.
 The strain must match the names of the inventory and gene-table files.
@@ -21,7 +21,7 @@ The strain must match the names of the inventory and gene-table files.
 Choose a new output folder, then build:
 
 ```bash
-python tools/strain_slides.py build --sources AS-40_sources.json --out decks/EXAMPLE/
+python tools/strain_slides.py build --sources EXAMPLE_sources.json --out decks/EXAMPLE/
 ```
 
 The terminal reports the main-deck slide count, region count and gene-table slide
@@ -50,6 +50,13 @@ of just the first three labels use the same rule. The receipt lists the omitted
 region slides and reasons. Keep each identity as
 **strain / full contig / region / BGC alias**.
 
+The builder joins inputs on single keys, so those keys must be unique. A
+`BGC_ID` repeated in `<strain>_2_inventory.csv`, or a `locus_tag` repeated in
+`<strain>_cds_table.csv`, stops the build with `refused:` and exit 2 before any
+file is written. Stored BLASTp rows are matched by locus tag alone, with no
+contig or sequence check, so point `blastp_csv_globs` at this strain's tables
+only.
+
 The gene-table deck uses up to 20 genes per page. It shortens descriptions and
 shows at most three unique domain names, ordered by E-value; use the CSV for the
 complete annotations. GECCO-only clusters outside the antiSMASH inventory have
@@ -75,7 +82,7 @@ The [installation guide](INSTALL.md) covers the core environment.
 | `gecco_dir` | The strain's GECCO genes, features and clusters tables |
 | `bigscape_region_tsv`, `bigscape_figure` | A per-region family table and overview panel |
 | `pcoa_kit`, `pcoa_drop_origins` | An existing protein PCoA kit and any origins to omit |
-| `blastp_csv_globs` | Saved BLASTp tables with gene, hit rank, organism and identity fields |
+| `blastp_csv_globs` | Saved BLASTp tables with `gene`, `hit_rank`, `subject_acc`, `subject_organism` and `pct_identity` columns. Only rank-1 rows are read. A blank identity shows as "identity not recorded", not 0%. When two rank-1 rows for one locus tag name different accessions, the cell says "conflicting stored hits" and the region line leaves that gene out. |
 | `rescue_verdicts_tsv` | Reviewed link rulings: HOLDS, TWO_SIMILAR_LOCI, REJECT or UNRESOLVED |
 | `metadata`, `nearest`, `trees` | Recorded sample metadata, nearest-genome results and tree panels |
 | `family_figures`, `extra_figures`, `pointers` | Existing panels and links to other files |

@@ -17,10 +17,10 @@ from mamey.models import BGCRecord
 from mamey.scoring import triage_bgcs
 
 
-def _bgc(bgc_id, kcb=None, riq=None):
+def _bgc(bgc_id, kcb=None, riq=None, pct=None):
     return BGCRecord(bgc_id=bgc_id, contig="c1", region_number=1, start=1, end=9000, contig_length=20000,
                      products=["other"], edge_status="Interior", architecture_confidence="A",
-                     kcb_cumulative=kcb, riq_score=riq,
+                     kcb_cumulative=kcb, riq_score=riq, kcb_similarity_pct=pct,
                      kcb_evidence_state=("KNOWNCLUSTERBLAST_OBSERVED" if kcb is not None else "UNKNOWN_KCB"))
 
 
@@ -53,10 +53,17 @@ def test_explicit_unknown_state_cannot_apply_stale_kcb_penalty():
     assert rec.novelty_score == 30.0
 
 
-def test_overwhelming_kcb_cumulative_penalty_still_applies():
-    bgcs = [_bgc("SWAMPED", kcb=90000)]
+def test_high_kcb_percent_penalty_still_applies():
+    bgcs = [_bgc("SWAMPED", kcb=90000, pct=90)]
     recs = _by_id(triage_bgcs(bgcs, None, _scans()))
     assert recs["SWAMPED"].novelty_score == 15.0   # 30 - 15, legitimate branch untouched
+
+
+def test_large_cumulative_score_without_percent_moves_nothing():
+    # The cumulative BLAST score is not a percent; without one the penalty does not fire.
+    bgcs = [_bgc("BIGSCORE", kcb=90000)]
+    recs = _by_id(triage_bgcs(bgcs, None, _scans()))
+    assert recs["BIGSCORE"].novelty_score == 30.0
 
 
 def test_observed_low_riq_similarity_still_earns_novelty_credit():

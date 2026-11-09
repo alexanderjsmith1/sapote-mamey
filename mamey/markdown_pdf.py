@@ -25,6 +25,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -71,7 +72,7 @@ def _footer_line() -> str:
     return "Sapote-Mamey" + ver
 
 
-def inline(text: str) -> str:
+def inline(text: str, *, companion_base=None, link_output_dir=None) -> str:
     """Convert the supported Markdown-inline subset to ReportLab markup."""
     spans: list[str] = []
 
@@ -80,21 +81,44 @@ def inline(text: str) -> str:
         return f"\x00{len(spans) - 1}\x00"
 
     text = re.sub(r"`([^`]+)`", stash, text)
+    companions: list[str] = []
+    def stash_companion(match):
+        if companion_base is None or link_output_dir is None:
+            return match.group(0)
+        value = match.group(1)
+        if "://" in value:
+            return match.group(0)
+        target = Path(value)
+        target = target if target.is_absolute() else Path(companion_base) / target
+        try:
+            target = target.resolve(strict=True)
+            if not target.is_file() or target.suffix.lower() != ".svg":
+                return match.group(0)
+            relative = os.path.relpath(target, Path(link_output_dir).resolve())
+        except (OSError, ValueError, RuntimeError):
+            return match.group(0)
+        uri = quote(Path(relative).as_posix(), safe="/-._~")
+        companions.append(f'<link href="{html.escape(uri, quote=True)}">SVG version</link>')
+        return f"\x01{len(companions) - 1}\x01"
+    text = re.sub(r"\[SVG version\]\(<([^>\n]+)>\)", stash_companion, text)
     text = html.escape(text)
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     text = re.sub(r"\*\*([^*]+?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])", r"<i>\1</i>", text)
-    return re.sub(
+    text = re.sub(
         r"\x00(\d+)\x00",
         lambda match: f'<font face="{MONO}" size=9>{spans[int(match.group(1))]}</font>',
         text,
     )
+    return re.sub(r"\x01(\d+)\x01",
+                  lambda match: companions[int(match.group(1))] if int(match.group(1)) < len(companions) else match.group(0),
+                  text)
 
 
-def P(text: str, style, **kwargs):
+def P(text: str, style, *, companion_base=None, link_output_dir=None, **kwargs):
     """Build a paragraph, falling back to escaped text on malformed inline markup."""
     try:
-        return Paragraph(inline(text), style, **kwargs)
+        return Paragraph(inline(text, companion_base=companion_base, link_output_dir=link_output_dir), style, **kwargs)
     except Exception:  # noqa: BLE001 - one malformed line must not abort a card export
         return Paragraph(html.escape(text), style, **kwargs)
 
@@ -339,7 +363,7 @@ def _table_cells(row):
     return cells
 
 
-def parse(md, base_dir=".", *, identity_context=None):
+def parse(md, base_dir=".", *, identity_context=None, link_output_dir=None):
     """Parse the supported Markdown subset into ReportLab flowables."""
     lines = md.split("\n")
     flow = []
@@ -348,7 +372,7 @@ def parse(md, base_dir=".", *, identity_context=None):
 
     def flush_paragraph():
         if buffer:
-            flow.append(P(" ".join(buffer), BODY))
+            flow.append(P(" ".join(buffer), BODY, companion_base=base_dir, link_output_dir=link_output_dir))
             buffer.clear()
 
     def flush_table():
@@ -456,7 +480,7 @@ def cover(canvas, title, subtitle):
     canvas.drawString(0.9 * inch, 0.7 * inch, _footer_line())
 
 
-def render(md_path, out_path, title=None, subtitle="", *, identity_package=None):
+def render(md_path, out_path, title=None, subtitle="", *, identity_package=None, link_output_dir=None):
     """Render a Markdown file to a PDF; retained for the legacy CLI wrapper.
 
     Refuses (EmbeddedFontUnavailable) rather than write a PDF with unembedded base-14 fonts."""
@@ -471,7 +495,9 @@ def render(md_path, out_path, title=None, subtitle="", *, identity_package=None)
     if identity_package is not None:
         from .compile_report import _report_identity_context
         identity_context = _report_identity_context(Path(identity_package).resolve())
-    flow = [Spacer(1, 3.2 * inch)] + parse(md, str(markdown_path.resolve().parent), identity_context=identity_context)
+    link_output_dir = Path(link_output_dir).resolve() if link_output_dir else Path(out_path).resolve().parent
+    flow = [Spacer(1, 3.2 * inch)] + parse(md, str(markdown_path.resolve().parent),
+                                         identity_context=identity_context, link_output_dir=link_output_dir)
     doc = SimpleDocTemplate(str(out_path), pagesize=letter, topMargin=0.7 * inch, bottomMargin=0.7 * inch,
                             leftMargin=0.9 * inch, rightMargin=0.8 * inch, title=title,
                             initialFontName=SANS)  # else every page carries base-14 Helvetica
@@ -496,7 +522,8 @@ def main(argv=None) -> int:
     if len(args) < 2:
         raise SystemExit("usage: python -m mamey.markdown_pdf INPUT.md OUTPUT.pdf [title] [subtitle]")
     render(args[0], args[1], args[2] if len(args) > 2 else None, args[3] if len(args) > 3 else "",
-           identity_package=os.environ.get("MAMEY_REPORT_IDENTITY_PACKAGE"))
+           identity_package=os.environ.get("MAMEY_REPORT_IDENTITY_PACKAGE"),
+           link_output_dir=os.environ.get("MAMEY_PDF_LINK_OUTPUT_DIR"))
     emit(f"wrote {args[1]}")
     return 0
 

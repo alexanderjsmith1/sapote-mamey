@@ -2,25 +2,50 @@
 
 ## Purpose
 
-A support card is a reviewable evidence bridge into later Mode B writing. It recovers useful interpretation while preserving source identity, database provenance, denominators, alternatives, and claim ceilings. It is not a chemical identification and does not replace the authored Mode B judgment.
+A support card is a short evidence write-up for one biosynthetic gene cluster (BGC). It is a reviewable evidence bridge into later Mode B writing. It recovers useful interpretation while preserving source identity, database provenance, denominators, alternatives, and claim ceilings. It is not a chemical identification and does not replace the authored Mode B judgment.
+
+Terms are in the [glossary](GLOSSARY.md). Statuses such as `OBSERVED_UNBOUND` and `QUARANTINED` are defined in the [status vocabulary](MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md). The live BLASTP channel is described in the [online BLASTP protocol](ONLINE_BLASTP_PROTOCOL.md).
 
 ## One-card workflow
 
-1. Resolve one assignment row and confirm `(priority_rank, strain, bgc_id, markdown_path)`.
-2. Confirm ownership before any write.
-3. Read the quarantined artifact and existing Markdown.
-4. Read the current sealed package, exact crosswalk, inventory, manifest, and locus map.
-5. Read the exact antiSMASH region and comparison files.
-6. Establish the complete current protein denominator.
-7. Match every BLASTP query sequence to its current raw translation.
-8. Audit each database channel separately.
-9. Reconcile domains, modules, comparisons, cohort context, linkage hypotheses, and phylogeny.
-10. Determine value tier before writing extensive prose.
-11. Author one Markdown outcome.
-12. Run BLASTP, claim-safety, source-path, denominator, URL, and ledger checks.
-13. Append only the task-specific ledger.
+Write a support card after `run` and `validate` have produced a validated package for the strain (see the [first-run recipe](reader/01_FIRST_RUN.md)). The package is the folder under `runs/<ID>/package`. A card covers one BGC and starts from a plain Markdown file you create. The [Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md) covers the full card that follows.
+
+A ledger is optional. It is a CSV with one row per card, which keeps a batch of cards consistent. If you use one, the checker reads the columns `priority_rank`, `markdown_path`, `value_tier`, `qc_status`, `expected_genes`, `direct_hit_union` and `no_significant_hit`. Without a ledger, skip steps 1 and 13.
+
+1. Find the card's ledger row and confirm `(priority_rank, strain, bgc_id, markdown_path)`.
+2. Read any earlier Markdown for the same BGC, and keep unresolved evidence from it as `OBSERVED_UNBOUND` or `QUARANTINED` rows (see the status vocabulary above).
+3. Read the package's crosswalk, inventory, manifest and locus map.
+4. Read the exact antiSMASH region and comparison files.
+5. Establish the complete current protein denominator.
+6. Match every BLASTP query sequence to its current raw translation.
+7. Audit each database channel separately.
+8. Reconcile domains, modules, comparisons, cohort context, linkage hypotheses and phylogeny.
+9. Determine the value tier before writing extensive prose.
+10. Write the card as one Markdown file.
+11. Fill the metadata lines the checker reads (next section).
+12. Run the checks (see [Checks before you finish](#checks-before-you-finish)). Some are commands and some are manual.
+13. If you use a ledger, update its row for this card only.
+
+## Metadata lines the checker requires
+
+Write each as a bullet with a bold label that ends in a colon inside the bold, for example `- **Expected proteins:** 12`. The match ignores case. The checker takes the first run of digits as the integer for a count.
+
+| Label | Required | Value |
+|---|---|---|
+| `Priority rank` | yes | an integer |
+| `Value tier` | yes | one of `THESIS_READY`, `USEFUL_WITH_LIMITATIONS`, `CONTEXT_ONLY`, `HOLD` |
+| `QA status` | yes | any text except `PENDING_FINAL_VALIDATION`, which fails |
+| `Expected proteins` | yes | integer, the E below |
+| `Direct-hit union` | yes | integer, the D below |
+| `No-significant-hit proteins` | yes | integer, the N below |
+| `Unresolved/unavailable direct-query proteins` | no | integer, the U below; a missing line counts as 0 |
+| `Claim ceiling` | yes | any text |
+
+Without these lines the checker reports `METADATA_MISSING` (or `CLAIM_CEILING_MISSING`). The card must also mention each of these names somewhere in its text: `NCBI nr`, `EBI`, `Local Swiss-Prot`, `General ClusterBlast`, `KnownClusterBlast`, `SubClusterBlast`, `BiG-SCAPE` and `RG-GMCI`. A missing name reports `CHANNEL_MISSING` or `COMPARISON_MISSING`.
 
 ## Required card sections
+
+The checker needs real Markdown `##` headings. The first two are unnumbered (`## Recovery disposition`, `## Executive verdict`). The other ten are numbered 1 to 10 (for example `## 1. Source lock and locus identity`). A plain numbered list does not count.
 
 1. Recovery disposition
 2. Executive verdict
@@ -58,7 +83,7 @@ Protein identity is sequence-first and fail-closed:
    neighbor radius, corpus scope, and corpus receipt.
 4. Bind the sequence identity to the exact assembly, full node/contig, region interval, CDS roster,
    channel/database, and result-job receipt.
-5. Preserve rows that fail positive admission as `OBSERVED_UNBOUND` or `QUARANTINED` with a reason;
+5. Preserve rows that fail positive admission as `OBSERVED_UNBOUND` or `QUARANTINED` with a reason (see the status vocabulary above);
    do not quote their percentages as exact-current evidence.
 
 A direct homology row can support a current exact-gene verdict only when:
@@ -132,7 +157,7 @@ Keep collection source and host context separate from ecological function. Keep 
 - Verify every cited absolute path.
 - Label legacy paths and namespaces.
 - Never silently repair a source path in prose without recording the correction.
-- Never cite or access the forbidden legacy workspace.
+- Do not cite a legacy workspace path. The checker flags one literal placeholder path.
 
 ## Writing rules
 
@@ -148,7 +173,7 @@ Keep collection source and host context separate from ecological function. Keep 
 
 Record:
 
-- assignment tuple and ownership check;
+- strain, BGC and ledger-row identity;
 - exact region and gene denominator;
 - current-query sequence reconciliation;
 - protein SHA-256 match count and duplicate-protein count;
@@ -162,35 +187,45 @@ Record:
 - visible URL count;
 - claim-safety result;
 - card/ledger reconciliation;
-- confirmation that no DOCX or out-of-range card was changed.
+- the checks run, with their exit codes.
 
-## Implemented support-card checker
+## Checks before you finish
 
-`tools/audit_modeb_support_card.py` is a provenance-pattern screen; it does not implement every
-normative direct-query/source requirement above. Use headings as actual Markdown: `## Recovery disposition`
-and `## Executive verdict` are unnumbered; the remaining required headings use a numeric prefix such as
-`## 1. Source lock and locus identity`, `## 2. Complete gene-by-gene verdict`, through the other named topics.
-A plain numbered contents list alone will not satisfy its heading regexes.
+Step 12 has five checks. The first two are commands. The rest are manual.
 
-The checker reads metadata as lines such as `- **Expected proteins:** <integer>`, counts unique backticked
-`ctg<digits>_<digits>` tags and checks declared D+N+U arithmetic. Integers are read from the first run of digits, and a missing U counts as zero, so write every count explicitly. Other locus-tag families need a separately
-reviewed mapping/check; do not rename real genes to game this regex. It checks channel/comparison name
-presence, selected claim patterns and ledger fields by priority rank. Optional source existence checks
-recognize a limited set of backticked /Users or /home paths and check the archive path before `::`; they
-do not validate ZIP-member existence, hash/sequence equality, duplicate-neighborhood identity, job receipts,
-canonical gene membership, all accession URLs, or independently certified QA status. A declared tier such
-as THESIS_READY is accepted syntax, not thesis approval.
+| Check | How |
+|---|---|
+| Card structure, metadata, D+N+U arithmetic, channel names, linkage and locus claim patterns, visible URL, cited `/Users` and `/home` paths | `python tools/audit_modeb_support_card.py <support-card.md> --json` |
+| Ledger row, when the card has one | `python tools/audit_modeb_support_card.py <support-card.md> --ledger <ledger.csv> --json`. Without `--ledger` no ledger check runs. |
+| Claim safety (for example "produces X" without a capacity ceiling) | `python tools/claim_safety_linter.py <support-card.md>` (exit 0 clean, 1 overclaim) |
+| Query sequence equals the current raw translation by SHA-256, and duplicate-protein neighborhoods | manual; no single command checks it. Compare hashes of the submitted query and the package protein by hand, as the direct-query rules above require |
+| Result-job receipts, and that every cited ZIP member exists | manual; open the receipt and the archive |
+| Every accession URL resolves to the cited record | manual |
 
-Example of the structural checker’s current interface (inspection only until an audit is authorized):
+Save the output of both commands with the card. Neither writes a receipt.
+
+### The support-card checker
+
+`tools/audit_modeb_support_card.py` is a pattern screen. It does not check every requirement above.
 
 ```bash
-python tools/audit_modeb_support_card.py <support-card.md> --ledger <task-ledger.csv> --rank-min <N> --rank-max <N> --json
+python tools/audit_modeb_support_card.py <support-card.md> --ledger <ledger.csv> --rank-min <N> --rank-max <N> --json
 ```
 
-It prints findings and exits 0 for its pattern PASS, 1 for ERROR findings; it does not write a persistent
-QA receipt. Preserve actual output under the owned task. --skip-source-existence weakens that already limited
-check and must remain explicit. Source/query/job verification and the current claim-safety linter remain
-separate; this screen does not confer the completed full48/current50 judgment state. “No DOCX or out-of-range
-card was changed” is a scoped task receipt statement, not a universal ban on separately requested companions.
-Bind any forbidden legacy workspace to the actual task; the checker’s literal placeholder detection is not
-a configurable universal denylist.
+`--ledger`, `--rank-min`, `--rank-max`, `--skip-source-existence` and `--json` are optional. Without `--json` it prints `modeb-support-card — PASS` or `FAIL` and the findings. It exits 0 on PASS and 1 on FAIL. Keep `--skip-source-existence` explicit when you use it, because it weakens the source-path check.
+
+What it reads:
+
+- The metadata lines above.
+- Unique backticked `ctg<digits>_<digits>` tags, as the gene list. Their count must equal `Expected proteins`. Other locus-tag styles need a separate reviewed mapping. Do not rename real genes to match this pattern.
+- The D+N+U arithmetic, the channel and comparison names, and selected claim patterns.
+- With `--ledger`, the ledger row whose `priority_rank` equals the card's priority rank. It compares six fields: `markdown_path`, `value_tier`, `qc_status`, `expected_genes`, `direct_hit_union` and `no_significant_hit`. More than one row with that rank fails with `LEDGER_DUPLICATE_RANK`. The row is found by rank only: the checker does not compare the ledger's strain or locus with the card. Check that the row names the same `strain / full node-or-contig / region / BGC alias` yourself.
+- Backticked `/Users` or `/home` paths, to confirm the file exists. For `archive.zip::member`, it checks only the archive.
+
+What it does not check:
+
+- ZIP-member existence, hash or sequence equality, or duplicate-neighborhood identity;
+- job receipts, canonical gene membership, or all accession URLs;
+- independent QA status. A declared tier such as `THESIS_READY` is accepted as syntax and is not approval.
+
+A PASS here does not give a card a completed full48 or current50 judgment state.

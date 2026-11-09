@@ -1,5 +1,5 @@
 <!-- MODE B exemplar | class: RiPP / class-III lanthipeptide | strain: S. amethystogenes subsp. fukuiense | bgc: BGC008 | node: JBHTEE010000001.1 region008 | contract: modeb_full30 | public -->
-# Reader scope — v9.7.447 documentation audit
+# RiPP (lanthipeptide) class sketch: reader scope
 
 This preserved legacy class-calibration sketch is not a current50_v2 finished-card exemplar. New current50_v2 cards require the explicit 50-section contract: literature in §48–§49 with relevance, data evidence table last in §50, and the complete identity `strain / full node-or-contig / region / BGC alias`. Historical pass/FULL labels below have not been rerun or scientifically certified here.
 

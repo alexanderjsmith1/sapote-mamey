@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from mamey.bgc_decomp import TWO_MODEL_DECOMP_HEADERS, run_bgc_decomp
-from mamey.crosswalk import infer_node_id
+from mamey.crosswalk import infer_node_id, legacy_short_node_id
 from mamey.exact_identity import ExactLocusIdentityError
 from mamey.lead_board import AXIS_LEAD_BOARD_HEADERS, axis_lead_board_rows
 
@@ -44,8 +44,9 @@ def _triage(alias):
 
 
 def test_auxiliary_producers_emit_complete_native_anchors_without_node_collision():
-    first = _bgc("BGC101", CONTIG_A, "region001")
-    second = _bgc("BGC102", CONTIG_B, "region002")
+    # Ruling 479: new packages keep the full contig; a stored legacy package still collides.
+    first = _bgc("BGC101", CONTIG_A, "region001", node_id=legacy_short_node_id(CONTIG_A))
+    second = _bgc("BGC102", CONTIG_B, "region002", node_id=legacy_short_node_id(CONTIG_B))
     assert first.node_id == second.node_id  # normalized join key, not physical identity
 
     decomp_rows = run_bgc_decomp([first, second], None, strain=STRAIN)["rows"]

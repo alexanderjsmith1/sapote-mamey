@@ -17,7 +17,8 @@ class AvailabilityFreshness(unittest.TestCase):
     def test_current_unbound_does_not_refresh_stale_exact(self):
         rows = [self.observation("EXACT_LOCUS", "STALE", "old"),
                 self.observation("UNBOUND", "CURRENT", "conflicting")]
-        self.assertEqual(availability._best_state(rows), ("EXACT_LOCUS", 2, "STALE"))
+        # The unbound record is not counted under the exact-locus state.
+        self.assertEqual(availability._best_state(rows), ("EXACT_LOCUS", 1, "STALE"))
 
     def test_promotion_held_for_stale_bound_plus_current_conflict(self):
         locus = availability.InventoryLocus("TEST-1", "BGC001", "ctg1", "region001",
@@ -30,7 +31,7 @@ class AvailabilityFreshness(unittest.TestCase):
     def test_current_alias_cannot_refresh_exact_cohort(self):
         rows = [self.observation("EXACT_LOCUS", "STALE", "old"),
                 self.observation("ALIAS_BOUND", "CURRENT", "alias")]
-        self.assertEqual(availability._best_state(rows), ("EXACT_LOCUS", 2, "STALE"))
+        self.assertEqual(availability._best_state(rows), ("EXACT_LOCUS", 1, "STALE"))
 
     def test_current_at_same_binding_still_eligible(self):
         for binding in ("EXACT_LOCUS", "ALIAS_BOUND"):

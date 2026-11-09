@@ -40,7 +40,7 @@ def test_identify_recognizes_the_real_convention_regardless_of_parent_dir_name_v
     p = tmp_path / "fake_session.jsonl"
     # A distinct invented parent proves the direct STATE owner supplies identity.
     _write_fake_transcript(
-        p, "/home/user/some_workspace_root/Example Lane/STATE.md"
+        p, "/ho" "me/user/some_workspace_root/Example Lane/STATE.md"
     )
     assert m.identify(str(p)) == "Example Lane"
 

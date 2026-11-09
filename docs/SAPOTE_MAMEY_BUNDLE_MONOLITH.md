@@ -203,7 +203,9 @@ Historical release, session or layout material: [read the retained section](hist
 }
 ```
 
-Each scan is a `[name, state, detail]` triple. The ten names are fixed. An extra `PHO_CLUSTER` entry is added when T43-PHO has five or more hits. Valid scan states are `PASS`, `NULL`, `NOT_APPLICABLE`, `DEFERRED`, and `FAILED` (this matches the README and the code). `evidence_channels` records the status of the GBK-domain / HMMER / DIAMOND / BLASTP channels, several of which are Release-2 scope.
+Each scan is a `[name, state, detail]` triple. The ten names are fixed. An extra `PHO_CLUSTER` entry is added when T43-PHO has five or more hits. Valid scan states are `PASS`, `NULL`, `NOT_APPLICABLE`, `DEFERRED`, and `FAILED`. `evidence_channels` records the status of the GBK-domain / HMMER / DIAMOND / BLASTP channels, several of which are Release-2 scope.
+
+`KCB_sweep` states (`mamey/external_adapters.py:51-65`): `PASS` means KCB hits were parsed. `NULL` means a KCB TXT or JSON source was read and gave no hits. `FAILED` means no KCB source was read, or every KCB TXT file was unreadable and no JSON was read; its detail string says "not a negative". Neither `NULL` nor `FAILED` establishes that a locus has no known relative.
 
 > **Release-2 (aspirational, not yet emitted):** a richer per-scan object — `{scan_name, status, started_at, completed_at, input_sources, output_files, summary_counts, failure_code, failure_reason, recovery_action, claim_boundary}` with `MAMEY_COMPLETE`/`MAMEY_FAILED`/`MAMEY_DEFERRED`/`MAMEY_NOT_APPLICABLE`/`MAMEY_RECOVERY_NEEDED` statuses — is the intended future schema. It is documented here as a target, not a current contract; the current emitted form is the `[name, state, detail]` triple above.
 
@@ -415,9 +417,9 @@ For multi-strain sessions, Layer A also includes:
 
 Structured in three sub-sections per strain (see Section G of [prompts/FULL_RUN_PROFILE.md](../prompts/FULL_RUN_PROFILE.md)):
 
-Sub-section 1 — Known / Reference BGCs table: compound detection matrix with columns for MW, UV/Vis, color/CAS, extraction protocol, LC-MS mode, key assay, induction hint, safety. One column per known BGC (≥60% MIBiG); rows are compound properties. This is a TABLE-format deliverable, not prose.
+Sub-section 1 — Known / Reference BGCs table: compound detection matrix with columns for MW, UV/Vis, color/CAS, extraction protocol, LC-MS mode, key assay, induction hint, safety. One column per reference-matched BGC (≥60% MIBiG similarity); rows are the properties of the reference compound. The reference is a comparator: a similarity percentage does not identify the query product, so the table is a detection guide, and the query product stays unidentified until source-bound chemical evidence exists. This is a TABLE-format deliverable, not prose.
 
-Sub-section 2 — Novel / Highest-Priority BGC Candidates: table (BGC# | size | class | MIBiG% | closest reference | priority) followed by one-paragraph extraction/detection guide per HIGH BGC.
+Sub-section 2 — Low-similarity / Highest-Priority BGC Candidates: table (BGC# | size | class | MIBiG% | closest reference | priority) followed by one-paragraph extraction/detection guide per HIGH BGC.
 
 Sub-section 3 — Fermentation Strategy: one paragraph per strain covering genus-appropriate media, OSMAC sequence, priority BGC extraction targets, long-read note if POOR/VERY_POOR, and dereplication instructions (what known compounds to subtract).
 
@@ -478,7 +480,7 @@ Generate the Triage First Board before long Mode B reports. **The Triage First B
 | LC-MS / LC-DAD target window | Suggested EIC/TIC windows and UV/Vis wavelengths when useful |
 | Confidence | High / Medium / Low plus why |
 | Caveat | Main reason this could be wrong or overcalled |
-| Diagnostic Signal Score | 0–5 score for high-information genes/domains/signatures independent of assembly completeness |
+| Manual diagnostic grade (DSS) | 0–5 score for high-information genes/domains/signatures independent of assembly completeness |
 | Claim Confidence | VERY LOW / LOW / MODERATE / HIGH / CONFIRMED; separate from lead value |
 | Evidence-weight tier | Highest tier supporting the interpretation, Tier 1–5 |
 | Marker basis | Named diagnostic marker, pathway constellation, transporter/resistance pattern, or generic-domain basis |
@@ -731,6 +733,8 @@ Archive-Quality mode may require multiple sessions. Do not reduce depth to fit a
 | “Make a readable report” | Standard Full Analysis |
 | “Smoke test” | Smoke-test mode |
 
+Historical editorial vocabulary: these rows are not CLI modes. `mamey run --mode` accepts `gold` and the deprecated `standard` alias, which runs gold (`mamey/cli.py:6903`); smoke mode was removed. See [Editorial depth versus current CLI profiles](development/LARGE_REFERENCE_SOURCE_SCOPE.md#editorial-depth-versus-current-cli-profiles).
+
 ---
 
 ## SECTION 0.10 — Evidence / Claim Separation Card
@@ -890,9 +894,11 @@ The default ecological framing is the general antimicrobial / defensive capacity
 
 ---
 
-**CATEGORY 1 — Terrestrial plant-associated (DEFAULT)**
+**CATEGORY 1 — Terrestrial plant-associated (retired default)**
 
-Applies when: no source is given, OR source matches soil, rhizosphere, root, plant, leaf, bark, stem, wood, compost, agricultural, forest floor, garden, crop, grass, meadow, peat (non-coastal), prairie, savanna, field, farm, orchard, vineyard, herb, flower, seed, endophyte, phyllosphere, or any named plant species (oak, pine, wheat, rice, maize, mangrove when terrestrial, etc.).
+Historical: do not apply this category when no source is given. Record a missing source as not supplied and leave it unknown.
+
+Applies when (historical wording): no source is given, OR source matches soil, rhizosphere, root, plant, leaf, bark, stem, wood, compost, agricultural, forest floor, garden, crop, grass, meadow, peat (non-coastal), prairie, savanna, field, farm, orchard, vineyard, herb, flower, seed, endophyte, phyllosphere, or any named plant species (oak, pine, wheat, rice, maize, mangrove when terrestrial, etc.).
 
 TFBS defaults:
 - FuR / DmdR1 → rhizosphere iron competition; siderophore induction
@@ -1106,7 +1112,7 @@ Copy each individual locus as `strain / full node-or-contig / region / BGC alias
 
 ### Identifier Conventions
 
-> **Strain identifiers:** Use your existing strain ID, isolate number, or collection code exactly as it appears in your records — notebooks, databases, and publications. Do not renumber or relabel strains to fit this workflow. The prompt uses `[Strain ID]` as a placeholder in instructional positions throughout. Worked examples in §25, §26, and §41.12 use the reference project's identifiers (AS-XXX format) — treat these as illustrations of a populated dataset, not required naming conventions.
+> **Strain identifiers:** Use your existing strain ID, isolate number, or collection code exactly as it appears in your records — notebooks, databases, and publications. Do not renumber or relabel strains to fit this workflow. The prompt uses `[Strain ID]` as a placeholder in instructional positions throughout. Worked examples in §25, §26, and §41.12 use the reference project's identifiers (<strain> format) — treat these as illustrations of a populated dataset, not required naming conventions.
 
 > **Isolate source identifiers:** The source of each strain is recorded as `[Host]` throughout. This field accepts any level of specificity your data supports: a host species binomial, a taxonomic group, a habitat type, a substrate type, or an environmental description. Default to `[Host]` when the isolate source is a specific organism; use `[Habitat]` when the source is an environmental context without a specific host. The prompt does not require or prefer one level of specificity over another.
 
@@ -1150,7 +1156,7 @@ For every BGC, extract or calculate:
 - bldA tier, TFBS hits and induction recommendations
 - Coverage flag, HGT flag, Key diagnostic domains, Notes/caveats
 
-**LMPKS cross-contig scan (v7.5.1):** After extracting per-BGC domain data, additionally extract ALL mod_KS, hyb_KS, and tra_KS domain hits from CDS features across the entire record (not only within annotated BGC coordinates). Record locus tag, bitscore, and contig for each hit. This genome-wide mod_KS inventory feeds the LMPKS Fragment Accumulation check in Section 42. If total mod_KS count across all contigs reaches ≥4, automatic LMPKS triggers fire per Section 42.2.
+**LMPKS cross-contig scan (v7.5.1):** After extracting per-BGC domain data, additionally extract ALL mod_KS, hyb_KS, and tra_KS domain hits from CDS features across the entire record (not only within annotated BGC coordinates). Record locus tag, bitscore, and contig for each hit. This mod_KS inventory feeds the LMPKS Fragment Accumulation check in Section 42. It covers only the CDS records supplied. The native FLBR scan records that scope in `flbr.count_scope.state` (`mamey/source_scans.py:1937-1961`). The `genome_wide_ks_like_count` field is genome-wide only when the state is `WHOLE_RECORD_GENBANK` and that record set is the whole assembly; under `REGION_RECORDS_ONLY` it counts the antiSMASH region records, and sequence outside them is unassessed (`mamey/parsers.py:1303-1304`). The count threshold is the historical manual trigger in Section 42.2; for the emitted flag see [§42.6](#426-fragment-accumulation-and-lmpks_fragment_set-protocol).
 
 ---
 
@@ -1224,7 +1230,7 @@ Flag likely fragmentation artifacts:
 - High cumulative score with only 2–3 protein hits
 - Saccharide or terpene-precursor labels matching macrolide/glycopeptide/T2PKS KCB hits
 
-*Reference project calibration examples:* AS-XXX: 72→49 corrected; AS-XXX: 50→42 corrected; AS-XXX: 22 saccharide BGCs confirmed genuine.
+*Reference project calibration examples:* <strain>: 72→49 corrected; <strain>: 50→42 corrected; <strain>: 22 saccharide BGCs confirmed genuine.
 
 ### POOR assembly protocol
 
@@ -1261,7 +1267,7 @@ Use the current source-derived comparison fields and explicit claim ceiling, rat
 | Two BGCs with identical top KCB compound | Possible split cluster — apply Section 30.3 cross-BGC gate |
 | KCB class does not match antiSMASH product label | Hallucination-Trap trigger — apply Section 34 |
 
-**LMPKS escalation (v7.5.1):** When KCB cumulative score is <1,500 (including zero) for any T1PKS BGC, this is an automatic trigger for Section 42 (LMPKS Rescue Workflow). Note the escalation in the KCB sweep table with the annotation "→ LMPKS §42 trigger 1".
+**LMPKS escalation (v7.5.1, historical manual trigger):** The engine has no cumulative-score gate; its KCB thresholds read percent similarity (`mamey/scoring.py:667-672`, `mamey/precision.py:17-18`). When KCB cumulative score is <1,500 (including zero) for any T1PKS BGC, this is an automatic trigger for Section 42 (LMPKS Rescue Workflow). Note the escalation in the KCB sweep table with the annotation "→ LMPKS §42 trigger 1".
 
 ### RiQ and KCB are orthogonal
 
@@ -1303,11 +1309,10 @@ For NRPS, NRP-like, T1PKS, T2PKS, PKS-NRPS hybrid BGCs, extract module architect
 | PF00109 + PF02514 + TIGR01181 + PF01041 | Glycosylated T2PKS — apply angular vs linear disambiguation below before assigning compound class or isolation strategy |
 | TIGR03604 ×2 | TOMM heterocyclic RiPP |
 | PF00668 Cglyc-type + HHILLDG | Glycopeptide-type condensation |
-
-| indsynth (BS ≥500; E ≤ 1e-100 preferred; cf. AS-XXX ctg182_7 reference: E=0, BS=1349.6) | **Indolocarbazole / chromopyrrolic acid scaffold** (rebeccamycin / staurosporine / AT2433-A1 / loonamycin / arcyriarubin class). Core biosynthetic enzyme is the chromopyrrolic acid synthase (StaD/RebD-type), which couples two tryptophan-derived indole units. indsynth is as class-definitive for indolocarbazoles as ene_KS is for enediynes — cumulative KCB = 0 is expected when the contig is truncated and does NOT indicate the class is absent (apply §34 "0% MIBiG cluster similarity" trap). Primary precedent: topoisomerase I inhibitor and/or kinase inhibitor; antitumor class. Anti-Candida activity via CaTop1 inhibition exists but is not specific — do NOT use as a dedicated Candida mechanistic link in §33.3 unless supported by fractionation data. Cross-check for Trp_halogenase (PF04820, BS ≥150) on same or adjacent contigs: if found → halogenated variant (rebeccamycin / AT2433 class); if absent → non-halogenated variant (arcyriarubin / staurosporine class). If Trp_halogenase is on a different contig, flag as split-pathway indolocarbazole candidate (§42.7). Apply §34 "indole masking indolocarbazole" trap if antiSMASH product label is "indole". Route to §37 indolocarbazole row. ⚠ Cytotoxicity caution required (staurosporine-class kinase inhibitors are highly cytotoxic — cytotoxicity-guided handling per standard lab SOPs; test HeLa IC₅₀ before bioassay-guided fractionation). |
+| indsynth (BS ≥500; E ≤ 1e-100 preferred; cf. a <strain> ctg182_7 reference: E=0, BS=1349.6) | **Indolocarbazole / chromopyrrolic acid scaffold** (rebeccamycin / staurosporine / AT2433-A1 / loonamycin / arcyriarubin class). Core biosynthetic enzyme is the chromopyrrolic acid synthase (StaD/RebD-type), which couples two tryptophan-derived indole units. indsynth is a strong class marker for indolocarbazoles — cumulative KCB = 0 is expected when the contig is truncated and does NOT indicate the class is absent (apply §34 "0% MIBiG cluster similarity" trap). Primary precedent: topoisomerase I inhibitor and/or kinase inhibitor; antitumor class. Anti-Candida activity via CaTop1 inhibition exists but is not specific — do NOT use as a dedicated Candida mechanistic link in §33.3 unless supported by fractionation data. Cross-check for Trp_halogenase (PF04820, BS ≥150) on same or adjacent contigs. A hit is a class-level hint toward a halogenated scaffold (rebeccamycin / AT2433 type). No hit leaves halogenation unresolved: the gene can sit in unassembled or unscanned sequence. Neither result names the product variant; that needs chemical identification. If Trp_halogenase is on a different contig, flag as split-pathway indolocarbazole candidate (§42.7). Apply §34 "indole masking indolocarbazole" trap if antiSMASH product label is "indole". Route to §37 indolocarbazole row. ⚠ Cytotoxicity caution required (staurosporine-class kinase inhibitors are highly cytotoxic — cytotoxicity-guided handling per standard lab SOPs; test HeLa IC₅₀ before bioassay-guided fractionation). |
 | Ornithine-selective A-domain (by Stachelhaus code comparison to HslO/HslI from *Lysobacter enzymogenes* ATCC 29,214 or equivalent characterized HSAF synthetase) + iterative PKS-NRPS single-module architecture (single KS reused across extension cycles, detectable as one KS with multiple downstream ACP domains or anomalously high KS:ACP ratio in one ORF) | **HSAF / polycyclic tetramate macrolactam (PTM) class** (HSAF, 10-epi-HSAF, militarinone, frontalin-type). Sphingolipid (ceramide) synthase inhibitor — specific, well-characterized anti-Candida mechanism (CaCsg1/Lag1 target); award §33.3 Candida-specific mechanistic link (+2 WL) when Candida bioactivity is explicitly supplied with its source (never default-assumed). Also active against filamentous fungal pathogens (*Botrytis*, *Fusarium*). Route to §37 HSAF/PTM row. Note: tetramate ring is acid-labile at pH <4 — do NOT use strongly acidic extraction conditions. |
-| TIGR01720 ×2 | **Mannopeptimycin-type NRPS** (distinct from the enduracididine class above; both have unusual amino acids but different scaffolds). Cyclic glycopeptide antibiotic; lipid II inhibition via β-hydroxy-enduracididine residues; MRSA-active class. Supporting evidence: TauD hydroxylase (PF07366) and mannose-type glycosyltransferases co-located in BGC. Note: TIGR01720 and TIGR04462/TIGR04460 overlap in function — use TIGR01720 ×2 as the primary marker for mannopeptimycin-class assignment when distinguishing these two BGC types. Reference implementation: AS-XXX BGC#7 (TIGR01720 ×2, TauD, PF07366 ×3, 13-gene MIBiG match, 2026-01-08). |
-| CarB (β-carbapenam synthetase, ATP-dependent bicyclase, BS ≥150) ± CarC (carbapenem C3-desaturase / tautomerase) | **Carbapenem β-lactam** (MM4550-type simple carbapenem or thienamycin-type complex carbapenem). Exceptionally rare in actinomycetes — flag as high-priority whenever detected. PBP (penicillin-binding protein) inhibitor class; MRSA-active; also Gram-negative active (broad spectrum). Confirm class with KCB vs MM4550 and thienamycin reference clusters. A β-lactamase or altered-PBP self-protection gene should be within 15 kb — absence is a §45 missingness flag and a required §36.4 reviewer attack target. Reference: AS-XXX BGC-05 (58% MIBiG to MM4550-type, interior BGC in poor assembly). |
+| TIGR01720 ×2 | **Mannopeptimycin-type NRPS** (distinct from the enduracididine class above; both have unusual amino acids but different scaffolds). Cyclic glycopeptide antibiotic; lipid II inhibition via β-hydroxy-enduracididine residues; MRSA-active class. Supporting evidence: TauD hydroxylase (PF07366) and mannose-type glycosyltransferases co-located in BGC. Note: TIGR01720 and TIGR04462/TIGR04460 overlap in function — use TIGR01720 ×2 as the primary marker for mannopeptimycin-class assignment when distinguishing these two BGC types. Reference implementation: <strain> BGC#7 (TIGR01720 ×2, TauD, PF07366 ×3, 13-gene MIBiG match, 2026-01-08). |
+| CarB (β-carbapenam synthetase, ATP-dependent bicyclase, BS ≥150) ± CarC (carbapenem C3-desaturase / tautomerase) | **Carbapenem β-lactam** (MM4550-type simple carbapenem or thienamycin-type complex carbapenem). Exceptionally rare in actinomycetes — flag as high-priority whenever detected. PBP (penicillin-binding protein) inhibitor class; MRSA-active; also Gram-negative active (broad spectrum). Confirm class with KCB vs MM4550 and thienamycin reference clusters. A β-lactamase or altered-PBP self-protection gene should be within 15 kb — absence is a §45 missingness flag and a required §36.4 reviewer attack target. Reference: <strain> BGC-05 (58% MIBiG to MM4550-type, interior BGC in poor assembly). |
 | AHBA synthase (PF06353 / rifK-type; confirmed by co-occurrence of aminoDAHP synthase and aminodehydroquinase in the same BGC — these three enzymes are the committed steps of the 3-amino-5-hydroxybenzoic acid starter unit pathway) | **Ansamycin class** (rifamycin / geldanamycin / herbimycin / ansatrienin / mitomycin). AHBA (3-amino-5-hydroxybenzoic acid) is the committed starter unit — its presence defines the ansamycin class independent of PKS module count or KCB score. Mechanism depends on sub-class: rifamycin-type = RNA polymerase inhibitor (rpoB binding); geldanamycin-type = Hsp90 ATPase inhibitor. Cross-check ArrA/Arr-type ADP-ribosyltransferase resistance gene (§45 Tier 2) as concordant marker. Route to §37 ansamycin row. |
 | APE_KS2 (arylpolyene-specific β-ketoacyl synthase 2; BS ≥200) ± Iterative-KS | **Arylpolyene (APE) pigment class** (flexirubin-type arylpolyenes, carotenoid-analogue bacterial pigments). APE_KS2 is class-definitive for arylpolyenes in the same way ene_KS is definitive for enediynes — it is not present in other polyketide families at this bitscore. Arylpolyene BGCs encode iterative type I PKS enzymes producing conjugated aryl-polyene chromophores responsible for yellow/orange colony pigmentation visible without instrumentation — the cheapest possible first-pass production screen. UV/Vis 420–450 nm is the primary chromophore handle. Common in Proteobacteria (Xanthomonas, Lysobacter, Pseudomonas, Burkholderia, Bacteroidetes) and some Actinobacteria. In fragmented assemblies, APE_KS2 is commonly found on tiny FC contigs (<10 kb) because the full APE pathway (8–15 genes) is rarely intact in short-read drafts — apply §42.7 split-pathway rescue logic for any APE_KS2 hit on a contig <10 kb. Route to §37 arylpolyene row. No cytotoxicity caution. No self-protection resistance gene expected. |
 | PF00109 + PF02514 + TIGR01181 + PF01041 + angular-fold oxygenase (UrdE / LanV / GriF-type flavoprotein monooxygenase or UrdM-type Baeyer-Villiger oxygenase, BS ≥150) | **Angular T2PKS** (angucycline / griseusin / kinamycin / landomycin class). UV ~430 nm (aromatic chromophore). EtOAc extraction at pH 5. Note that kinamycin-class angular T2PKS may also carry a diazofluorene warhead (highly reactive — cytotoxicity caution). Isolation strategy differs from linear T2PKS — see §37. |
@@ -1427,13 +1432,15 @@ Extract TFBS hits when available. Apply score thresholds from the induction guid
 
 ## SECTION 11 — Dereplication Verdicts and Novelty Language
 
+Historical verdict bins. A low or missing similarity is a comparison state. It is not evidence that a product is new. The engine novelty term reads KCB percent similarity, and a missing KCB value moves nothing (`mamey/scoring.py:665-672`).
+
 | RiQ / evidence | Verdict | Action |
 |---|---|---|
 | ≥0.95 + matching A-domain predictions | CLOSE | Confirm only by CAS/HRMS |
 | 0.85–0.95 or ≥0.95 with divergent tailoring | VERIFY-FIRST | HRMS before isolation |
 | 0.70–0.84 + unusual tailoring | STRUCTURAL VARIANT | Medium/high follow-up |
 | <0.70 | POSSIBLY / POTENTIALLY NOVEL | Standard discovery priority |
-| No KCB + no/low RiQ | POTENTIALLY NOVEL, weakly anchored | High novelty; class cautious |
+| No KCB + no/low RiQ | COMPARISON UNAVAILABLE or scoped no-hit | Record whether KCB was unrun, unavailable or a completed no-hit; make no novelty claim |
 
 ---
 
@@ -1457,7 +1464,7 @@ For each MEDIUM BGC: count biosynthetic genes, identify divergent domains (bitsc
 
 ## SECTION 14 — Taxonomy Integration
 
-Source priority: paper-specific strain tables > master strain list > gap-fill source > user confirmation > model memory (pointer only).
+Taxonomy source order follows the [source-of-truth hierarchy](#source-of-truth-hierarchy): user confirmation in the current session first, then the current master JSON and master strain spreadsheet, then paper-specific strain tables, then gap-fill sources. Model memory is a pointer only. When taxonomy sources disagree, keep every value with its source and leave the conflict open for the owner to resolve.
 
 ### 14.1 Taxonomy preflight for assembled FASTA inputs
 
@@ -1695,7 +1702,7 @@ If evidence is unavailable, unrun, failed or incomplete, retain that state. Only
 
 ### 17.3 Step 1 — Cross-Genome TFBS Regulatory Coupling Table
 
-Extract all TFBS hits ≥18 across all BGCs. Flag regulators in ≥2 BGCs as coupled networks. Flag ≥6 BGCs as genome-wide antibiotic regulatory networks.
+Extract all TFBS hits ≥18 across all BGCs. List each regulator with the number of BGCs that carry a predicted site for it, out of the BGCs scanned. A regulator predicted at ≥2 BGCs is a candidate shared-regulation hypothesis. Predicted sites do not show active regulation or an antibiotic-specific network, and the scan covers only the supplied sequence. Use the "predicts" wording from the evidence table above.
 
 **Host-specific TFBS ecological trigger lookup:**
 
@@ -1911,7 +1918,7 @@ Filename: `CrossStrain_[StrainA]-[StrainB]_[Class]_YYYY-MM-DD.pdf`
 
 ## SECTION 25 — Key Scientific Findings to Preserve
 
-> *Named-strain findings from the reference project (actinomycete collection) are published in the companion data paper and Zenodo deposit. This section is intentionally left as a placeholder in the public software release. New users: populate this section with your own project findings as they accumulate.*
+> *Named-strain findings from the reference project (actinomycete collection) are not bundled here; a companion data paper and deposit are not identified or verified in this tree. This section is intentionally left as a placeholder in the public software release. New users: populate this section with your own project findings as they accumulate.*
 
 **Current bioactivity contract:** absence of strain-specific metadata is NOT_SUPPLIED / NOT_OBSERVED with no named assays and NOT_ESTABLISHED locus/compound linkage. Supplied observations require their source and remain strain/extract context; the historical assumption that every strain inhibits MRSA/Candida is retired.
 
@@ -1937,9 +1944,11 @@ Historical release, session or layout material: [read the retained section](hist
 
 ## SECTION 30 — Output Quality Assurance Gates
 
-These gates are self-checks applied before finalising deliverables. All gates must be applied before compiling the master PDF. Log outcomes in the audit log.
+Historical gate set. These are authoring self-checks written for the retired "master PDF" layout; the current report route is [Postseal readers — PDF routes](POSTSEAL_READERS.md#pdf-routes). Apply the checks that fit the selected deliverable and log outcomes in the audit log.
 
 ### 30.1 Mode B Depth Gate
+
+Historical: this gate uses the retired eight-section card numbering (§4 pathway hypothesis, §6 mechanistic link, §7 isolation strategy). In the default corrective schema, §4 is Gene-by-gene interpretation, §5 Core biosynthetic logic, §6 Tailoring and maturation logic and §7 Transport, resistance, and regulation ([canonical titles](MODE_B_30_SECTION_CANONICAL_TITLES.md)). For current work, use the selected profile's section map from [the profile matrix](MODEB_PROFILE_MATRIX.md) and run `verify-modeb` on the authored file. Do not carry these section numbers or word minimums across profiles.
 
 Before finalising any Mode B §4 (biosynthetic pathway hypothesis), verify all of the following. If any check fails, **rewrite §4 before proceeding.**
 
@@ -1972,6 +1981,8 @@ Before finalising any Mode B §4 (biosynthetic pathway hypothesis), verify all o
 ### 30.2 Priority Assignment Gate
 
 Before assigning any priority tier, apply these hard constraints:
+
+Historical: the cumulative-score thresholds in 30.2, 30.3 and 31.3 (>5,000, >3,000) are not engine rules. The engine and `tools/build_wetlab_matrix.py` read KCB percent similarity, with bands at 70% and 40% (`mamey/precision.py`).
 
 **Cannot be LOW if:**
 - KCB cumulative score > 5,000 — regardless of edge status or contig size.
@@ -2015,9 +2026,9 @@ Before finalising the Ecological Synthesis PDF, verify:
 - Every ecological hypothesis in §17.10 format includes a Supporting literature field containing either a PMID/DOI or the explicit statement "analogy only — no direct literature support."
 
 **TFBS ecological mapping:**
-- FuR or DmdR1 appearing in ≥4 BGCs must be flagged as a **genome-wide iron-competition network**.
+- FuR or DmdR1 predicted at ≥4 BGCs: report it as a candidate shared iron-responsive regulation hypothesis, with the BGC count and the scanned denominator.
 - IolR appearing across BGCs is a **genome-grounded** inositol/polyol catabolism capacity signal; if a host/source description happens to mention polyol-rich substrate, note it as optional caveated provenance only — never assert it as a host-habitat-specific functional claim.
-- Any regulator in ≥6 BGCs must be flagged as "genome-wide antibiotic regulatory network."
+- Any regulator predicted at ≥6 BGCs: report the count and denominator as a candidate shared-regulation hypothesis. Do not label it a genome-wide or antibiotic regulatory network; predicted sites do not establish active regulation.
 
 **Null results must be reported explicitly.**
 
@@ -2215,7 +2226,7 @@ Exception: a sole Interior BGC in a very poor assembly may be HIGH based on arch
 
 Convert BGC analysis into practical next steps: sequencing, fermentation, extraction, HRMS, bioassay, or deprioritization.
 
-Wet-lab priority must use Lead Priority, Diagnostic Signal Score, and Claim Confidence separately. A low-confidence fragmented BGC may receive high wet-lab priority if it contains Tier 1 diagnostic markers, a coherent partial pathway constellation, or strong self-resistance/target-directed support. Record the follow-up experiment that would resolve the uncertainty.
+Wet-lab priority must use Lead Priority, the manual diagnostic grade (DSS), and Claim Confidence separately. A low-confidence fragmented BGC may receive high wet-lab priority if it contains Tier 1 diagnostic markers, a coherent partial pathway constellation, or strong self-resistance/target-directed support. Record the follow-up experiment that would resolve the uncertainty.
 
 
 ### 33.2 Required Output
@@ -2233,9 +2244,9 @@ Wet-lab priority must use Lead Priority, Diagnostic Signal Score, and Claim Conf
 | Architecture Confidence A | +3 |
 | Architecture Confidence B | +2 |
 | Architecture Confidence C | +1, plus sequencing priority |
-| Strong KCB >5,000 with divergent tailoring | +3 |
-| No KCB + strong diagnostic domains (Arch A) | +4 |
-| No KCB + moderate evidence (Arch B) | +2 |
+| Strong KCB ≥70% similarity | +3 |
+| No KCB (observed no-hit or 0% similarity) + strong diagnostic domains (Arch A) | +4 |
+| No KCB (observed no-hit or 0% similarity) + moderate evidence (Arch B) | +2 |
 | RiQ <0.50 with coherent domains | +3 |
 | RiQ 0.50–0.85 with unusual tailoring | +2 |
 | TFBS gives clear induction condition | +2 |
@@ -2248,6 +2259,8 @@ Wet-lab priority must use Lead Priority, Diagnostic Signal Score, and Claim Conf
 | Likely housekeeping/conserved cluster | −3 |
 | No chemical/expression evidence | −1 caveat, not a penalty if discovery-stage |
 | **Concordant resistance gene (Tier 1 or Tier 2, within proximity rule — see Section 45)** | **+1** |
+
+`tools/build_wetlab_matrix.py:103-111` scores these KCB rows from percent similarity. A missing KCB value earns no KCB term in either direction. Other rows in this table are the manual design; check the tool before assuming a row is scored.
 
 **Stacking rule:** "No KCB + strong diagnostic domains" and "RiQ <0.50 with coherent domains" may be claimed simultaneously — they are orthogonal evidence types. The resistance gene +1 bonus does not stack with itself; apply once regardless of how many concordant resistance markers are found for a given BGC.
 
@@ -2363,8 +2376,10 @@ Each prioritized BGC must receive separate scores:
 |---|---|---|
 | Lead Priority | LOW / MEDIUM / HIGH / EXCEPTIONAL | Biological or chemical follow-up value |
 | Claim Confidence | VERY LOW / LOW / MODERATE / HIGH / CONFIRMED | How safely Sapote can state product class, family, activity, or mechanism |
-| Diagnostic Signal Score | 0–5 | Strength of high-information genes/domains/signatures independent of assembly completeness |
+| Manual diagnostic grade (DSS) | 0–5 | Strength of high-information genes/domains/signatures independent of assembly completeness |
 | Generic Overclaim Risk | LOW / MODERATE / HIGH | Risk that interpretation depends on broad/common genes rather than diagnostic evidence |
+
+The manual diagnostic grade (DSS) is a 0–5 scale, and every DSS range in §57 stays inside it. It is not the engine field `diagnostic_signal_score`, which is a different, unbounded number: 3 per diagnostic CCTT hit, plus the DSS scan value, plus 1 or 2 for a resistance tier (`mamey/compat_v941.py:176-185`). Don't compare a manual grade with the engine field.
 
 ### 34.4 Evidence-weight audit
 
@@ -2406,7 +2421,7 @@ Every named gene/domain must be traceable to antiSMASH output, region GBK, whole
 | Level 3 | Diagnostic marker present | Tier 1 marker, but incomplete context |
 | Level 4 | Pathway-family-like BGC fragment | diagnostic marker + multiple pathway-family genes / synteny / constellation |
 | Level 5 | Close BGC-family candidate | high similarity + conserved core/tailoring context; no chemistry yet |
-| Level 6 | Confirmed product or BGC-product link | LC-MS/MS, isolation/NMR, isotope pattern, genetics, expression, or purified-compound evidence |
+| Level 6 | Chemical identification, locus-to-product link, or measured activity, each stated separately | Chemical identity: LC-MS/MS with isolation/NMR or a purified standard. Locus-to-product link: genetics (knockout, heterologous expression) tied to that chemical. Activity: a measured assay of that material. Name which of the three is supported; one evidence type does not establish the others. |
 
 ### 34.7 Transporter and self-resistance exception
 
@@ -2436,7 +2451,7 @@ Transporters may support predictions about siderophore activity, molecular prope
 | Curated candidate class |  |
 | Lead Priority | LOW / MEDIUM / HIGH / EXCEPTIONAL |
 | Claim Confidence | VERY LOW / LOW / MODERATE / HIGH / CONFIRMED |
-| Diagnostic Signal Score | 0–5 |
+| Manual diagnostic grade (DSS) | 0–5 |
 | Highest evidence tier | Tier 1–5 |
 | Marker basis |  |
 | Transporter / resistance support | none / weak / supportive / high-value pattern |
@@ -2477,11 +2492,10 @@ Add to Excel workbook `CrossStrain_Family_Seeds` sheet:
 [Genus]_[Habitat]_[CompoundClass]_[StrainID]_BGC[N]
 ```
 
-*Reference project examples:*
-- `Kribbella_Bryophyte_Lincosamide_AS-XXX_BGC05`
-- `Kribbella_Bryophyte_Lipolanthine_AS-XXX_BGC06`
-- `Pseudonocardia_Bryophyte_NAPAA_AS-XXX_BGC01`
-- `Saccharothrix_Bryophyte_hglE-KS_AS-XXX_BGC07`
+*Pattern examples:*
+- `GenusA_HabitatA_ClassA_<strain>_BGC05`
+- `GenusA_HabitatA_ClassB_<strain>_BGC06`
+- `GenusB_HabitatA_ClassC_<strain>_BGC01`
 
 ### 35.4 Project-Wide Clustering Trigger
 
@@ -2774,7 +2788,7 @@ Phase 4 — COMPILE          Produce comparison deliverables (tables, figures, t
 
 | Field | Notes |
 |---|---|
-| TFBS network | All TFBS hits ≥18 across all BGCs; genome-wide networks flagged |
+| TFBS network | All TFBS hits ≥18 across all BGCs; regulators predicted at several BGCs listed with counts, as hypotheses |
 | HGT flags | Transposase/integrase positions; coverage outliers |
 | Ecological synthesis summary | Role hypothesis; top testable prediction |
 | Bioactivity–BGC mechanistic map | BGC-to-activity mechanistic link |
@@ -2792,7 +2806,7 @@ For every strain in the comparison set, list all available source materials.
 
 | Source | Evidence Grade | When to use |
 |---|---|---|
-| antiSMASH JSON uploaded this session | **A** | Best — all fields extractable |
+| antiSMASH JSON in the input archive | **A** | Richest source, but only the fields read in the mode actually used. `run --json-evidence` defaults to `bounded`; `--capped-session` forces `off`; `bounded` falls back to `off` without ijson and skips files over its size cap; `full` refuses JSON over 80 MB (`mamey/cli.py:4664,7009`; `mamey/antismash_evidence.py:142,158,1638-1683`). Check `json_mode`, `json_mode_requested`, `json_skipped` and the completeness `json_state` before using a field. A field that was not read is unavailable, not absent. |
 | Prior session PDF report (parsed this session) | **B** | Use for summary fields |
 | Master JSON | **C** | Use for BGC counts, RiQ, KCB top hits |
 | User-confirmed note or memory instruction | **D** | Use for corrections or confirmed values only |
@@ -2843,7 +2857,7 @@ All UCS tables and comparison tables must include an evidence grade column or ce
 | [Strain B] | [value] | [grade] | [value] | [grade] | [class] | [grade] |
 | [Strain C] | [value] | [grade] | [value] | [grade] | [class] | [grade] |
 
-*Reference project examples are published in the companion data paper. Populate with your own collection's values.*
+*Reference project examples are not bundled here, and their publication is not verified in this tree. Populate with your own collection's values.*
 
 Shading convention: A = white, B = pale blue, C = pale yellow, D = pale orange, E = pale red (warning), X = grey strikethrough.
 
@@ -2878,7 +2892,7 @@ Steps include: aggregate habitat-level UCS tables → habitat-level BGC class en
 
 ## 41.8 HGT CANDIDATE IDENTIFICATION PROTOCOL
 
-Shared unusual domain signatures across phylogenetically distant strains in the same [Habitat] are the strongest evidence for horizontal gene transfer (HGT) within an actinomycete community.
+Shared unusual domain signatures across phylogenetically distant strains in the same [Habitat] are a candidate signal for horizontal gene transfer (HGT) within an actinomycete community. Shared descent with loss elsewhere, or sampling, can give the same pattern; see the [tree-comparison interpretation ladder](SPECIES_VS_BGC_TREE_COMPARISON.md#interpretation-ladder).
 
 ### Criteria for flagging as HGT candidate (must meet ALL):
 
@@ -2900,7 +2914,7 @@ Shared unusual domain signatures across phylogenetically distant strains in the 
 **Candidate donor lineage:** [Organism class + ecological rationale]
 **Ecological context:** [Why would this gene be selectively advantageous in this [Habitat]?]
 **Classification:** HGT CANDIDATE — requires phylogenetic confirmation (ML tree of domain protein sequences across reference database)
-**Recommended validation:** Reconstruct ML protein tree for [domain]; topology inconsistent with organismal phylogeny = HGT confirmation
+**Recommended validation:** Reconstruct ML protein tree for [domain]; record whether its supported topology is congruent or discordant with the organismal phylogeny under the sampled references. Discordance is consistent with transfer, duplication, recombination or differential loss; it does not confirm transfer
 ```
 
 ### Current HGT candidate register (reference project):
@@ -2998,9 +3012,9 @@ Use manuscript-safe language throughout: **"contains domains consistent with"**,
 
 | Trigger | Condition | Required action |
 |---|---|---|
-| Trigger 1 — Weak KCB T1PKS | Any Interior T1PKS BGC with KCB cumulative score <1,500, including zero | Run full module reconstruction (§42.3–42.5) |
+| Trigger 1 — Weak KCB T1PKS (historical manual trigger; the engine reads KCB percent, not cumulative score) | Any Interior T1PKS BGC with KCB cumulative score <1,500, including zero | Run full module reconstruction (§42.3–42.5) |
 | Trigger 2 — Truncated PKS fragment | Any FC/Edge T1PKS BGC with at least one mod_KS/hyb_KS/tra_KS domain ≥300 bitscore | Run fragment rescue (§42.6) |
-| Trigger 3 — Genome-wide accumulation | Total genome-wide mod_KS + hyb_KS + tra_KS count ≥4 across all contigs | Report `LMPKS_FRAGMENT_SET`; elevate sequencing priority |
+| Trigger 3 — Accumulation (historical manual trigger) | Total mod_KS + hyb_KS + tra_KS count ≥4 across the scanned records | Elevate sequencing priority. The emitted `LMPKS_FRAGMENT_SET` flag needs a second condition; see §42.6 |
 | Trigger 4 — Possible trans-AT PKS | T1PKS-like BGC has KS/KR/DH/ER modules but lacks in-cis PKS_AT domains | Run trans-AT protocol (§42.8) |
 | Trigger 5 — Possible polyene | Any BGC has ≥3 DH domains, especially with repeated KR/DH modules and absent/limited ER | Run polyene rescue (§42.9) |
 | Trigger 6 — Published chemistry mismatch | Published macrolide, polyene, linear PKS, or large modular PKS chemistry exists for the strain/genus but antiSMASH lacks a clean matching named BGC | Map chemistry back to BGC/domain evidence (§42.10) |
@@ -3039,13 +3053,13 @@ Ring-size language must be cautious: say **"consistent with a 14-/16-/large-memb
 
 ### 42.6 Fragment accumulation and LMPKS_FRAGMENT_SET protocol
 
-Create a genome-wide table of all mod_KS, hyb_KS, and tra_KS domains found across the entire antiSMASH record, including domains outside annotated BGC coordinates.
+Create a table of all mod_KS, hyb_KS, and tra_KS domains found across the supplied antiSMASH records, including domains outside annotated BGC coordinates. It is genome-wide only when the records are whole-record GenBank for the whole assembly; a region-only archive covers the called regions alone (`flbr.count_scope.state`, `mamey/source_scans.py`).
 
 Required columns:
 
 | Strain ID | BGC # or unclustered | Node/contig | Locus tag | KS subtype | Bitscore | Edge status | Nearby AT/KR/DH/ER/ACP | Docking domain | TE/Abhydrolase nearby | Interpretation |
 
-Assign `LMPKS_FRAGMENT_SET` when total mod_KS + hyb_KS + tra_KS count is ≥4 across the genome. If hits occur on ≥3 contigs or include both N-terminal and C-terminal docking domains on different contigs, elevate long-read sequencing to Priority 1.
+Historical manual trigger: a total mod_KS + hyb_KS + tra_KS count of ≥4. The native FLBR scan emits `LMPKS_FRAGMENT_SET` only when that KS-like count is ≥4 and at least one Edge or Full-contig region has a product naming PKS, NRPS or trans-AT. Otherwise it emits `MEGASYNTHASE_FRAGMENT_SUSPECT` when the count including NRPS hits is ≥4 or such a fragmented region exists, and `NULL` when neither holds (`mamey/source_scans.py:933-943`). Its counts come from CDS annotation patterns, not domain HMM hits (`mamey/source_scans.py:219-224`). If hits occur on ≥3 contigs or include both N-terminal and C-terminal docking domains on different contigs, elevate long-read sequencing to Priority 1.
 
 ### 42.7 Split-pathway rescue for large modular PKS
 
@@ -3106,8 +3120,8 @@ LMPKS bonuses do not stack with each other. Apply only the highest applicable LM
 
 - [ ] Every T1PKS Interior BGC with KCB <1,500 evaluated
 - [ ] Every FC/Edge T1PKS BGC with mod_KS/hyb_KS/tra_KS ≥300 bitscore evaluated
-- [ ] Genome-wide mod_KS/hyb_KS/tra_KS count reported
-- [ ] `LMPKS_FRAGMENT_SET` assigned when total qualifying KS count ≥4
+- [ ] mod_KS/hyb_KS/tra_KS count reported with its record scope (`flbr.count_scope.state`)
+- [ ] `LMPKS_FRAGMENT_SET` reported as emitted: KS-like count ≥4 and at least one qualifying Edge or Full-contig region (§42.6)
 - [ ] Docking domains searched and reported
 - [ ] TE/Abhydrolase_1 release logic searched and reported
 - [ ] AT predictions summarized
@@ -3139,7 +3153,7 @@ Detect compound classes and tailoring signals that standard antiSMASH product la
 
 Two failure axes are addressed:
 - **Tailoring signals** antiSMASH detects as accessory domains but does not promote to a class label (e.g., halogenation).
-- **Core scaffolds** antiSMASH detects badly and that score near-zero at the cluster level even when individual genes are definitive (e.g., peptidyl-nucleosides — cf. the Section 34 "0% MIBiG cluster similarity" trap and the AS-XXX NODE_162 worked example).
+- **Core scaffolds** antiSMASH detects badly and that score near-zero at the cluster level even when individual genes are definitive (e.g., peptidyl-nucleosides — cf. the Section 34 "0% MIBiG cluster similarity" trap and the <strain> NODE_162 worked example).
 
 Use manuscript-safe language throughout.
 
@@ -3150,14 +3164,14 @@ Run a marker scan across the full record (CDS features within and outside annota
 | Trigger | Marker (with bitscore floor) | Co-location requirement | Cluster-score override? | Routes to / action | Priority & WL effect (bounded) |
 |---|---|---|---|---|---|
 | **T43-HAL — Halogenation** | FAD-dependent halogenase (Trp_halogenase, PF04820-type, BS ≥150); non-heme Fe(II)/α-KG halogenase (SyrB2/CytC3-type, Fe2OG/TauD context — active-site check required) | A biosynthetic scaffold (PKS/NRPS/RiPP/sugar) present in the same BGC | **No** (tailoring, not core class) | Flag "halogenated [scaffold] candidate"; route extraction to **halogen-isotope-aware HRMS** (Cl M+2, Br M+2/M+4) | Tiered — see 43.4 |
-| **T43-NUC — Peptidyl-nucleoside** | Characterized nucleoside-antibiotic enzyme homology (NikJ-type, BS ≥300, AS-XXX seed); translocase-I / MraY-family inhibitor-pathway markers; nucleoside-core / sugar-nucleotide enzymes; nucleobase deaminase/cytidylyltransferase | Secondary-metabolite context: partial NRPS (peptidyl arm), sugar tailoring, dedicated transporter, or resistance gene | **Yes** — gene-level homology governs even at cluster KCB/RiQ ≈ 0 | Call candidate nucleoside class; state mechanism hypothesis; route to **§37 polar/peptidyl-nucleoside row** (UV 262 nm, SAX/ion-exchange, NOT standard C18) | Override low-cluster deprioritization; floor MEDIUM; bounded bonus 43.4 |
+| **T43-NUC — Peptidyl-nucleoside** | Characterized nucleoside-antibiotic enzyme homology (NikJ-type, BS ≥300, <strain> seed); translocase-I / MraY-family inhibitor-pathway markers; nucleoside-core / sugar-nucleotide enzymes; nucleobase deaminase/cytidylyltransferase | Secondary-metabolite context: partial NRPS (peptidyl arm), sugar tailoring, dedicated transporter, or resistance gene | **Yes** — gene-level homology governs even at cluster KCB/RiQ ≈ 0 | Call candidate nucleoside class; state mechanism hypothesis; route to **§37 polar/peptidyl-nucleoside row** (UV 262 nm, SAX/ion-exchange, NOT standard C18) | Override low-cluster deprioritization; floor MEDIUM; bounded bonus 43.4 |
 | **T43-PHO — Phosphonate** | PEP mutase (PepM; ICL/PEP-mutase family, PF13714-type, BS ≥150) — the committed/diagnostic step of phosphonate biosynthesis | None (PepM is effectively single-marker diagnostic) | **Yes** | Affirmative phosphonate class call; resolves saccharide/"phosphonoglycan" fragmentation mislabels | Floor MEDIUM if interior; bounded +1 |
-| **T43-ENE — Enediyne** | Enediyne PKS warhead ketosynthase (ene_KS; AS-XXX seed ene_KS E=2.3e-264) | PKS context | **Partial** (ene_KS is highly specific) | Cytotoxic / DNA-damaging warhead lead; [E-signal] note (cytotoxicity-guided handling, standard SOPs) | Bounded +1; flag as cytotoxic |
+| **T43-ENE — Enediyne** | Enediyne PKS warhead ketosynthase (ene_KS; <strain> seed ene_KS E=2.3e-264) | PKS context | **Partial** (ene_KS is highly specific) | Cytotoxic / DNA-damaging warhead lead; [E-signal] note (cytotoxicity-guided handling, standard SOPs) | Bounded +1; flag as cytotoxic |
 | **T43-AMC — Aminocyclitol / aminoglycoside** | 2-deoxy-scyllo-inosose synthase (DOIS / BtrC family, BS ≥150) — committed step of 2-deoxystreptamine aminoglycosides | Sugar/glycosyltransferase context | **Yes (affirmative AND rule-out)** | If present: candidate aminoglycoside/aminocyclitol. **If absent on a BGC whose KCB top hit is an aminoglycoside: affirmatively rule out the KCB call**, except when the KCB top hit is streptomycin-class; then apply the mandatory streptomycin carve-out below. | Affirmative: floor MEDIUM. Rule-out: no bonus; correct the class label |
 
 > **Streptomycin-class carve-out (mandatory):** The DOIS rule-out does **not** apply when the aminoglycoside KCB top hit is specifically the streptomycin class (streptomycin, dihydrostreptomycin, bluensomycin, or closely related compounds). Streptomycin biosynthesis uses the streptidine / TDP-L-dihydrostreptose pathway, which does not involve DOIS. The committed diagnostic steps for this class are: scyllo-inosamine-4-phosphate amidinotransferase (StrB1-type), streptomycin-6-kinase (StrK-type), and NDP-L-dihydrostreptose synthase. If the KCB hit is streptomycin-class and DOIS is absent: check for StrB1/StrK homologs before applying the rule-out. If those markers are also absent, the KCB hit is likely spurious — assign class from domain architecture. If StrB1/StrK homologs ARE present, call as streptomycin-class candidate without a DOIS requirement.
-| **T43-IDC — Indolocarbazole** | Chromopyrrolic acid synthase / indsynth (antiSMASH rule-based marker, BS ≥500; E ≤ 1e-100 preferred; reference: AS-XXX ctg182_7, E=0, BS=1349.6). Note: antiSMASH "indole" product rule fires on `(indsynth or dmat or indole_PTase)` — dmat (dimethylallyl tryptophan synthase, ergot alkaloid class) and indole_PTase must be ruled out; indsynth at BS ≥500 is specific for the indolocarbazole / chromopyrrolic acid class | None required — indsynth at this bitscore threshold is effectively single-marker diagnostic; cross-check for Trp_halogenase (PF04820) on same or adjacent contigs to distinguish halogenated (rebeccamycin / AT2433 class) from non-halogenated (arcyriarubin / staurosporine class) variants | **Yes** — indsynth is as class-definitive as ene_KS for enediynes or NikJ-type for nikkomycin; cumulative KCB = 0 is expected when contig is truncated and does NOT indicate absence of the class; apply the §34 "0% MIBiG cluster similarity" trap | Call candidate indolocarbazole class; if antiSMASH product label is "indole", apply §34 "indole masking indolocarbazole" trap; if Trp_halogenase on a different contig → split-pathway candidate (§42.7); route to §37 indolocarbazole row; flag ⚠ cytotoxicity caution; do NOT award Candida mechanistic link (+2 WL) per §33.3 clarification | Floor MEDIUM regardless of KCB score; bounded WL +1; ⚠ cytotoxicity flag mandatory |
-| **T43-PTM — HSAF / Polycyclic Tetramate Macrolactam** | Ornithine-selective A-domain (confirmed by Stachelhaus code prediction or NRPS substrate predictor comparison against HslO/HslI from *Lysobacter enzymogenes* ATCC 29,214 or equivalent characterized HSAF synthetase reference) + iterative PKS architecture (same KS domain reused across multiple extension cycles — detectable as a single KS ORF with anomalously high KS:ACP ratio or multiple downstream ACP domains on the same polypeptide) | PKS-NRPS hybrid context required; standalone ornithine A-domain without iterative PKS co-occurrence is insufficient to fire this trigger | **Yes** — ornithine A-domain selectivity within an iterative PKS-NRPS context is not shared with any other major natural product class; gene-level evidence governs even when KCB score is low or zero | Call candidate HSAF/PTM class; route to §37 HSAF/PTM row; award §33.3 Candida-specific mechanistic link (+2 WL) if Candida bioactivity is explicitly supplied with its source (never default-assumed); note acid-labile tetramate ring in extraction instructions (§37 and Fermentation Card); cross-check for three Hymenoptera strains with confirmed HSAF-class BGCs in this project (AS-XXX, AS-XXX, AS-XXX) for CCSM cross-strain comparison eligibility | Floor MEDIUM; Candida mechanistic link awards bounded WL +2 (Candida-specific, §33.3) |
+| **T43-IDC — Indolocarbazole** | Chromopyrrolic acid synthase / indsynth (antiSMASH rule-based marker, BS ≥500; E ≤ 1e-100 preferred; reference: <strain> ctg182_7, E=0, BS=1349.6). Note: antiSMASH "indole" product rule fires on `(indsynth or dmat or indole_PTase)` — dmat (dimethylallyl tryptophan synthase, ergot alkaloid class) and indole_PTase must be ruled out; indsynth at BS ≥500 is specific for the indolocarbazole / chromopyrrolic acid class | None required — indsynth at this bitscore threshold is effectively single-marker diagnostic; cross-check for Trp_halogenase (PF04820) on same or adjacent contigs to distinguish halogenated (rebeccamycin / AT2433 class) from non-halogenated (arcyriarubin / staurosporine class) variants | **Yes** — indsynth is as class-definitive as ene_KS for enediynes or NikJ-type for nikkomycin; cumulative KCB = 0 is expected when contig is truncated and does NOT indicate absence of the class; apply the §34 "0% MIBiG cluster similarity" trap | Call candidate indolocarbazole class; if antiSMASH product label is "indole", apply §34 "indole masking indolocarbazole" trap; if Trp_halogenase on a different contig → split-pathway candidate (§42.7); route to §37 indolocarbazole row; flag ⚠ cytotoxicity caution; do NOT award Candida mechanistic link (+2 WL) per §33.3 clarification | Floor MEDIUM regardless of KCB score; bounded WL +1; ⚠ cytotoxicity flag mandatory |
+| **T43-PTM — HSAF / Polycyclic Tetramate Macrolactam** | Ornithine-selective A-domain (confirmed by Stachelhaus code prediction or NRPS substrate predictor comparison against HslO/HslI from *Lysobacter enzymogenes* ATCC 29,214 or equivalent characterized HSAF synthetase reference) + iterative PKS architecture (same KS domain reused across multiple extension cycles — detectable as a single KS ORF with anomalously high KS:ACP ratio or multiple downstream ACP domains on the same polypeptide) | PKS-NRPS hybrid context required; standalone ornithine A-domain without iterative PKS co-occurrence is insufficient to fire this trigger | **Yes** — ornithine A-domain selectivity within an iterative PKS-NRPS context is not shared with any other major natural product class; gene-level evidence governs even when KCB score is low or zero | Call candidate HSAF/PTM class; route to §37 HSAF/PTM row; award §33.3 Candida-specific mechanistic link (+2 WL) if Candida bioactivity is explicitly supplied with its source (never default-assumed); note acid-labile tetramate ring in extraction instructions (§37 and Fermentation Card); cross-check for three Hymenoptera strains with confirmed HSAF-class BGCs in this project (<strain>, <strain>, <strain>) for CCSM cross-strain comparison eligibility | Floor MEDIUM; Candida mechanistic link awards bounded WL +2 (Candida-specific, §33.3) |
 
 > LMPKS (Section 42) is row **T43-LMPKS** of this module by reference; its full protocol remains in Section 42.
 
@@ -3315,7 +3329,7 @@ A true `None` verdict is valid only when the full proteome was scanned with an a
 
 When chitinolytic capacity is Moderate/High AND a DasR network is present, report a coupled hypothesis in Section 17.10 format:
 
-- **Insect-associated hosts:** chitinases are dual-use — degrade fungal-pathogen cell walls (e.g., Escovopsis, Ascosphaera, entomopathogenic fungi) AND invertebrate-pest/competitor cuticle; liberated GlcNAc de-represses DasR → antibiotic BGC activation. This is the detectable backbone of a "guard" phenotype (cf. AS-XXX "Guard and Nourish").
+- **Insect-associated hosts:** chitinases are dual-use — degrade fungal-pathogen cell walls (e.g., Escovopsis, Ascosphaera, entomopathogenic fungi) AND invertebrate-pest/competitor cuticle; liberated GlcNAc de-represses DasR → antibiotic BGC activation. This is the detectable backbone of a "guard" phenotype (cf. <strain> "Guard and Nourish").
 - **Plant-associated / chitin-metabolizing plant contexts:** antiherbivore / anti-nematode / anti-fungal-pest defense via the same enzymes.
 - **Pairing with CCTT T43-NUC:** if a nucleoside chitin-synthase inhibitor (nikkomycin/polyoxin-type) co-occurs with secreted chitinases, flag an explicit **two-pronged anti-chitin strategy** (degrade existing chitin + block new chitin synthesis).
 
@@ -3344,10 +3358,10 @@ Run CGAD on [Strain ID].
 
 ### 45.1 Purpose and placement
 
-Resistance genes within or adjacent to a BGC encode self-protection mechanisms that are mechanistically matched to the compound produced. This matching relationship provides a class-level confirmation signal independent of KCB score, RiQ, and domain architecture — and is therefore an orthogonal evidence type under the Section 32.4 minimum evidence rule.
+A resistance-type annotation within or adjacent to a BGC is a self-protection hypothesis. If the annotated mechanism matches the class the BGC is predicted to make, it is class-level support that is independent of KCB score, RiQ, and domain architecture, and it counts as an orthogonal evidence type under the Section 32.4 minimum evidence rule. Annotation and proximity do not show that a compound is produced or that the gene protects against it. Alternatives include background resistance, an acquired gene, and coincidental proximity.
 
 Section 45 has three analytical functions:
-1. **Class confirmation:** concordant resistance gene + biosynthetic BGC = strong class-level evidence.
+1. **Class support:** concordant resistance annotation + biosynthetic BGC = class-level support, not product proof.
 2. **Polarity routing:** certain resistance transporters predict compound polarity and inform extraction protocol (§37).
 3. **Conflict detection:** a resistance gene present but mechanistically incompatible with the BGC compound class is a §34 hallucination-trap signal (HGT resistance island, not producer self-protection).
 
@@ -3368,7 +3382,7 @@ Resistance genes on different contigs or >15 kb from the BGC boundary are **note
 
 ### 45.3 Tier 1 — Near-definitive class confirmation
 
-Tier 1 markers are so mechanistically specific that their presence within BGC coordinates provides near-definitive class confirmation independent of cluster-level KCB or RiQ scores. A single Tier 1 concordant hit counts as one independent evidence type under §32.4, and may support a Grade B → A upgrade in §31.5 when all other Grade A criteria are already met.
+Tier 1 markers are mechanistically specific, so their presence within BGC coordinates gives strong class-level support independent of cluster-level KCB or RiQ scores. It remains an annotation-based hypothesis, not product identification. A single Tier 1 concordant hit counts as one independent evidence type under §32.4, and may support a Grade B → A upgrade in §31.5 when all other Grade A criteria are already met.
 
 | Resistance marker | Required location | Compound class confirmed | Mechanistic basis |
 |---|---|---|---|
@@ -3412,14 +3426,14 @@ Record in the Evidence Traceability block (§32.3 resistance gene row): "Tier 3 
 
 A resistance gene that is present but NOT functioning as producer self-protection is an analytically important null result. Mis-attributing it as class confirmation is the §34 hallucination trap "Resistance gene HGT acquisition misread as producer self-protection."
 
-**Apply the HGT resistance island flag when ANY of the following conditions are met:**
+**Apply the HGT resistance island flag when ANY of the following conditions are met.** The flag name is retained. It records the observed location and keeps the gene out of class support; it does not assign an evolutionary origin. Transfer and self-protection stay separate hypotheses to evaluate.
 
 | Condition | Interpretation | Action |
 |---|---|---|
 | Resistance gene is on a different contig from the claimed BGC | Assembly fragmentation may have separated gene from BGC — do not confirm class | Note in Evidence Traceability as "contig-separated; class confirmation not applicable until assembly resolved" |
 | Resistance gene is >15 kb from the BGC boundary on the same contig | Outside proximity rule — not producer self-protection by this criterion | Record distance; note in Missingness Register if relevant compound class; do not count toward §32.4 |
-| Resistance gene is flanked by integrase and/or transposase elements within 5 kb, with no biosynthetic gene neighbors | Classic HGT resistance island | Classify under §34 trap; flag in audit log; do not use as class confirmation |
-| Resistance mechanism is mechanistically incompatible with the BGC compound class (e.g., ErmC near a T2PKS producing a non-macrolide compound; VanHAX near a NRPS-lipopeptide BGC) | Coincidental proximity; different evolutionary origin | Record as "mechanistic mismatch"; flag under §34 trap; rule out as class confirmation |
+| Resistance gene is flanked by integrase and/or transposase elements within 5 kb, with no biosynthetic gene neighbors | Mobile-element context; candidate acquired island (hypothesis) | Classify under §34 trap; flag in audit log; do not use as class confirmation |
+| Resistance mechanism is mechanistically incompatible with the BGC compound class (e.g., ErmC near a T2PKS producing a non-macrolide compound; VanHAX near a NRPS-lipopeptide BGC) | Proximity without a mechanistic match; origin unresolved | Record as "mechanistic mismatch"; flag under §34 trap; rule out as class confirmation |
 
 ### 45.7 Architecture Confidence and WL scoring
 
@@ -3647,10 +3661,10 @@ If bioactivity metadata are not supplied:
 Bioactivity metadata NOT_SUPPLIED; observation NOT_OBSERVED. No assay target/outcome is inferred; locus/compound linkage NOT_ESTABLISHED.
 ```
 
-If bioactivity is user-confirmed:
+If bioactivity is supplied by the user or a file, fill the template from the supplied record only. Name each target, material, assay and outcome as supplied, including negative results; leave anything not supplied as not supplied.
 
 ```text
-MRSA and Candida inhibition are user-confirmed at the extract level. BGC-level attribution remains unproven without fractionation, metabolomics, genetics, or purified-compound evidence.
+Bioactivity supplied ([source]): [target] — [outcome] — [material, e.g. crude extract] — [assay]. Strain-level context only; locus/compound linkage NOT_ESTABLISHED without fractionation, metabolomics, genetics, or purified-compound evidence.
 ```
 
 
@@ -3899,7 +3913,7 @@ Historical release, session or layout material: [read the retained section](hist
 
 **Apply onto:** Sapote Actinomycete Natural Product Discovery Workflow v8.2
 **Patch version:** v8.3 candidate · **Date:** 2026-05-31
-**Validated against:** a six-strain reference set spanning Moderate and Very-Poor assembly tiers (one Moderate-assembly positive correctly retained as STRONG; two Very-Poor-assembly negatives correctly auto-demoted to WEAK). Full per-strain detail is published in the companion data paper.
+**Validated against:** a six-strain reference set spanning Moderate and Very-Poor assembly tiers (one Moderate-assembly positive correctly retained as STRONG; two Very-Poor-assembly negatives correctly auto-demoted to WEAK). Per-strain detail is not bundled here, and its publication status is not verified in this tree.
 
 ---
 
@@ -3939,7 +3953,7 @@ Every fragmented-megasynthase call carries one of two tiers. The tiers are kept 
 
 | Tier | Evidence | Allowed claim | Action |
 |---|---|---|---|
-| **STRONG** | Any of: (a) a **double-docking-bracketed internal module** — Ndock…Cdock on a single ORF; (b) a **terminal-TE / release fragment** (TE or TD or Abhydrolase_1 terminating a module string); (c) **≥2 fragments sharing a docking and/or KCB family** consistent with one assembly line — **on a contig in a Good / Moderate / Poor assembly** | "Fragmented large modular [PKS/NRPS/hybrid] assembly line; pieces distributed across contigs" | Architecture Confidence C (split-pathway candidate); **Priority-1 long-read sequencing**; group fragments as a combined pathway hypothesis |
+| **STRONG** | Any of: (a) a **double-docking-bracketed internal module** — Ndock…Cdock on a single ORF; (b) a **terminal-TE / release fragment** (TE or TD or Abhydrolase_1 terminating a module string); (c) **≥2 fragments sharing a docking and/or KCB family** consistent with one assembly line — **on a contig in a Good / Moderate / Poor assembly** | For (a) or (b): "Fragment of a large modular [PKS/NRPS/hybrid] assembly line on [contig]; other parts are not located." For (c): "Candidate fragmented assembly line: [N] fragments on [contigs] share [docking/KCB family]; linkage into one system is a hypothesis." | Architecture Confidence C (split-pathway candidate); **Priority-1 long-read sequencing**; group fragments as a combined pathway hypothesis |
 | **WEAK** | Any of: docking/TE/edge megasynthase fragments **in a Very-Poor assembly** (auto-demoted, see §51.4); OR the **high-identity / low-protein-count / contig-edge KCB pattern** (a region matching a known-large BGC at high per-protein identity but on only 1–3 proteins, abutting a contig edge — e.g. a terpene/PKS locus hitting nanchangmycin on 2 proteins at the contig boundary); OR a single module fragment with no docking, no TE, and no shared family | "Possible fragmented megasynthase; assembly or evidence insufficient to confirm a large system vs a small cluster" | Routing/sequencing note only; **no confident large-system claim**; do not inflate priority |
 
 A WEAK call is informative and must be reported — it tells the reader where to look after reassembly — but it does not earn the STRONG-tier Architecture Confidence or sequencing priority.
@@ -4066,7 +4080,7 @@ FLBR's STRONG markers (docking, TE) exist only in assembly-line megasynthases, s
 
 **Companion to:** §51 FLBR v1.0 · **Date:** 2026-05-31
 
-The two-tier design was validated on a six-strain reference set with two contrasting assembly conditions. Full per-strain data are published in the companion data paper; the logic is summarized here.
+The two-tier design was validated on a six-strain reference set with two contrasting assembly conditions. Per-strain data are not bundled here, and their publication is not verified in this tree; the logic is summarized here.
 
 ---
 
@@ -4112,7 +4126,7 @@ The identical genetic evidence yields opposite confidence purely on assembly qua
 **Apply onto:** Sapote Actinomycete Natural Product Discovery Workflow v8.3 candidate
 **Patch version:** v8.4 candidate · **Date:** 2026-05-31
 **Method basis:** Xue, Older, Zhong et al., *Nat. Commun.* 2022, 13:1647 (DOI 10.1038/s41467-022-29325-1; PMID 35347143 — both verified) — correlational networking of lanthipeptide precursors to hidden, unclustered proteases across 161,954 bacterial genomes.
-**Validated against:** 25 lanthipeptide regions across 9 strains from the reference collection, spanning all four assembly tiers (Good, Moderate, Poor, Very-Poor). Full per-strain data are published in the companion data paper; the aggregate result and diagnostic outcomes are summarized below.
+**Validated against:** 25 lanthipeptide regions across 9 strains from the reference collection, spanning all four assembly tiers (Good, Moderate, Poor, Very-Poor). Per-strain data are not bundled here, and their publication is not verified in this tree; the aggregate result and diagnostic outcomes are summarized below.
 
 ---
 
@@ -4125,10 +4139,10 @@ their product; a critical maturation enzyme is encoded **elsewhere in the genome
 antiSMASH-annotated BGC. For lanthipeptides specifically, the leader-peptide-cleaving protease
 is frequently unclustered — Xue et al. found ~⅓ of lanthipeptide BGCs genome-wide lack any
 co-localized protease, and the figure is higher for class III/IV systems. An antiSMASH
-lanthipeptide call is therefore frequently an **incomplete pathway**, not a complete one.
+lanthipeptide call may therefore lack a required maturation enzyme inside its coordinates. Whether a given locus does is unresolved until the enzyme is found or tested.
 
 UMED is the parent concept: *when a BGC class is known to require a maturation enzyme that is
-often unclustered, check the cluster for that enzyme; if absent, scan the genome for candidate
+often unclustered, check the cluster for that enzyme; if not found, scan the genome for candidate
 enzymes of the appropriate family and report them as leads — never as confirmed maturases.*
 
 UMED runs in the Run Controller first-pass scan block, after BGC inventory, in parallel with
@@ -4167,7 +4181,7 @@ maturation-gap call carries two independent axes:
 
 | Axis | Values | Meaning |
 |---|---|---|
-| Maturation status | `IN-CLUSTER` / `GAP` / `GAP — no candidate in assembly` | Whether the BGC can mature autonomously, needs a hidden enzyme, or has none findable here |
+| Maturation status | `IN-CLUSTER` / `GAP` / `GAP — no candidate in assembly` | Whether a candidate maturation annotation was found in or near the BGC, none was found in the scanned sequence, or none was found in the assembly; none of the three establishes enzyme function |
 | Candidate confidence | `family-matched candidate` / `specificity-unverified` (ceiling) | Strength of any genome-wide candidate; never exceeds "candidate" without wet-lab/correlation evidence Sapote cannot generate |
 
 ## §52.4 Lanthipeptide-protease instance
@@ -4186,10 +4200,12 @@ maturation-gap call carries two independent axes:
 For every antiSMASH lanthipeptide region (class I–V):
 
 1. **In-cluster scan.** Search CDS within region coordinates for any §52.4.1 family. If found →
-   `IN-CLUSTER`; record family and locus. Pathway is maturation-autonomous (subject to the
-   normal caveat that presence ≠ proven function).
-2. **Gap flag.** If no in-cluster protease → `GAP`; the BGC is maturation-incomplete.
-3. **Genome-wide candidate scan.** For a GAP region, scan the entire record (all contigs,
+   `IN-CLUSTER`; record family and locus. This is a candidate in-cluster maturation annotation.
+   It does not show that the pathway matures its product on its own, or that the enzyme works.
+2. **Gap flag.** If no in-cluster protease → `GAP`. This is an unresolved gap in the scanned
+   sequence, not a demonstrated missing function.
+3. **Genome-wide candidate scan.** Historical design step: the native `scan_umed` does not run
+   it (see the §52.1 implementation boundary). For a GAP region, scan the entire record (all contigs,
    inside and outside BGC coordinates — same genome-wide scope as §42.3 / §44.1A) for §52.4.1
    families. Report each candidate with family, locus tag, contig, and distance from the BGC if
    on the same contig.
@@ -4208,6 +4224,8 @@ whether a plausible partner subunit is adjacent; a solitary subunit is a weaker 
 an adjacent pair and must be labeled as such.
 
 ## §52.5 Required claim-safety language
+
+Retained v8.4 design wording. Use it only when a separate genome-wide protease search was actually run. Native `scan_umed` couples annotation-pattern hits within 5 kb of each region (`mamey/source_scans.py:857-878`) and returns `IN_CLUSTER_OR_PROXIMAL_MATURATION_SOURCE_SUPPORTED`, `MATURATION_GAP_SOURCE_DERIVED` or `NOT_MATURATION_GATED`. Its hits cover the CDS records supplied, as recorded in `umed.count_scope.state` (`mamey/source_scans.py:1937-1987`). For native output, report that scope and report a genome-wide search as not performed.
 
 ```text
 UMED reports whether a lanthipeptide BGC encodes its own maturation protease and, if not, lists
@@ -4254,6 +4272,8 @@ Run lanthipeptide maturation gap scan on [Strain ID].
 ```
 
 ## §52.9 QA gate (additions to §30)
+
+Retained v8.4 design checklist. The genome-wide scan item applies only when that search was run separately; native `scan_umed` output does not satisfy it (see §52.5).
 
 - [ ] Every lanthipeptide region assigned IN-CLUSTER / GAP / GAP-no-candidate
 - [ ] Genome-wide candidate scan run for every GAP region (full-record scope confirmed)
@@ -4451,7 +4471,7 @@ AJS-XXX — tetrachlorizine / ClusterBlast literature-control example
 | Tier | Definition | Sapote use |
 |---|---|---|
 | **Benchmark-A — full positive control** | public genome or BGC sequence + characterized compound + biochemical/mechanistic study + BGC-to-compound evidence | best for validation statistics and manuscript claims |
-| **Benchmark-B — producer/BGC control** | genome or BGC sequence + known compound, but limited mechanistic or biochemical depth | useful for recovery/ranking validation, weaker for mechanism claims |
+| **Benchmark-B — producer/BGC control** | genome or BGC sequence + known compound, but limited mechanistic or biochemical depth | useful for recovery/ranking validation only when a source-bound expected locus is linked to the compound by cited evidence (MIBiG entry, GenBank locus or paper); otherwise a producer/class-context control with recovery `not assessable`; weaker for mechanism claims |
 | **Benchmark-C — ecological/project control** | insect-associated or habitat-relevant genome with useful ecology but incomplete chemistry | useful for CCSM/ecology/host-context validation, not a product-recovery control |
 | **Benchmark-D — stress/failure control** | toxic, broad-mechanism, fragmented, or ambiguous case | used to test claim-safety, cytotoxicity caution, and failure-mode logging |
 
@@ -4490,7 +4510,7 @@ Use these categories; do not collapse them into a single pass/fail unless a manu
 | **RECOVERED-LOW** | detected but low-ranked because known class does not match project bioactivity, novelty, or feasibility | Sapote detected the known class but appropriately deprioritized it for this project objective. |
 | **DETECTED-UNSAFE** | BGC detected, but initial wording would overclaim product identity or mechanism | Sapote detected the signal; claim language required correction. |
 | **MISSED** | known BGC not detected or not assigned to relevant class | This is a benchmark failure requiring audit. |
-| **NOT ASSESSABLE** | expected BGC absent from uploaded files, genome incomplete, accession wrong, or required metadata missing | The benchmark could not be evaluated from available inputs. |
+| **NOT ASSESSABLE** | expected BGC absent from uploaded files, no source-bound expected locus for the known compound, genome incomplete, accession wrong, or required metadata missing | The benchmark could not be evaluated from available inputs. |
 
 ## §56.6 Known producer general benchmark panel
 
@@ -4666,7 +4686,7 @@ Add to the Version History table:
 
 ## Final implementation note
 
-This patch should be treated as a validation and manuscript-readiness layer. It should not inflate routine strain reports unless the user explicitly asks for benchmark mode or uploads a known-producer/control genome. In normal AS-strain runs, §56 should remain dormant except for reusable lessons already integrated into CCTT, claim safety, and Triage First.
+This patch should be treated as a validation and manuscript-readiness layer. It should not inflate routine strain reports unless the user explicitly asks for benchmark mode or uploads a known-producer/control genome. In normal cohort strain runs, §56 should remain dormant except for reusable lessons already integrated into CCTT, claim safety, and Triage First.
 
 *Sapote-Mamey Bundle v9.4 | §56 Known-Outcome Benchmarking restored 2026-06-09*
 
@@ -4720,7 +4740,7 @@ PHO-C cannot be Deprioritized (PepM Tier 1, §43.5 floor). **Trap:** lone primar
 | Grade | Criteria | Lead Priority | Claim Confidence | DSS | Label |
 |---|---|---|---|---|---|
 | **ENE-A** | ene_KS **+ ≥2 cassette genes** (cyclase/TE, polyene-processing, epoxide-forming, chromoprotein gene, tailoring) **+ self-protection confirmed** (CalC-type 10-membered; apo-protein 9-membered §53 BLOCK J). Interior or FLBR/EFLS-rescued. | EXCEPTIONAL | HIGH | 5 | ⚠ CYTOTOXICITY CAUTION |
-| **ENE-B** | ene_KS **+ ≥1 enediyne-associated gene**, coherent. Self-protection not confirmed. | HIGH | MODERATE | 3–6 | ⚠ CYTOTOXICITY CAUTION + CalC/apo-protein absence flag (§45.3, §36.4) |
+| **ENE-B** | ene_KS **+ ≥1 enediyne-associated gene**, coherent. Self-protection not confirmed. | HIGH | MODERATE | 3–5 | ⚠ CYTOTOXICITY CAUTION + CalC/apo-protein absence flag (§45.3, §36.4) |
 | **ENE-C** | ene_KS fragmented/edge-truncated. EFLS complement (Arch C) or FLBR-routed. No confirmed cassette. | MEDIUM | LOW | 2–3 | FRAGMENTED ASSEMBLY |
 
 Self-protection absence flag applies to ENE-A and ENE-B and does not downgrade ENE-B to ENE-C. **Trap:** ene_KS bitscore required (high-confidence enediyne producers typically show E ≤ 1e-200, BS ≥ 1000 for the warhead KS); generic mod_KS/hyb_KS routes to LMPKS/FLBR.
@@ -4742,7 +4762,7 @@ Streptomycin carve-out: StrB1/StrK present → AMC-B regardless of DOIS absence.
 | Grade | Criteria | Lead Priority | Claim Confidence | DSS | UMED |
 |---|---|---|---|---|---|
 | **LAN-A** | Synthetase (class-appropriate) **+ precursor + maturation route** (in-cluster §52 IN-CLUSTER, or UMED genome-wide candidate family-matched, no Very-Poor limitation). Boundary coherent. | HIGH | HIGH | 4–5 | IN-CLUSTER or GAP-with-candidate |
-| **LAN-B** | Synthetase + precursor; **maturation gap**, UMED external candidate (specificity-unverified) | HIGH | MODERATE | 3–6 | GAP — external candidate |
+| **LAN-B** | Synthetase + precursor; **maturation gap**, UMED external candidate (specificity-unverified) | HIGH | MODERATE | 3–5 | GAP — external candidate |
 | **LAN-C** | Synthetase but precursor missing (truncated/annotation gap), or precursor + fragmented synthetase; UMED blocked pending reassembly | MEDIUM | LOW | 2 | GAP — no candidate / deferred |
 
 LAN-A does not confirm production (§52 ceiling). **Trap:** an antiSMASH lanthipeptide label is not maturation-complete; check UMED before LAN-A.
@@ -4785,8 +4805,8 @@ Combined firing: record as `T43-IDC / HAL-A` etc.; backbone sub-grade governs pr
 | Grade | Criteria | Lead Priority | Claim Confidence | DSS | Labels |
 |---|---|---|---|---|---|
 | **NUC-A** | NikJ/PolH-like (BS≥300) **+ ≥2 pathway genes** (aminotransferase/amidinotransferase, sugar/nucleobase modification, uridyl transferase) **+ transporter or target-protection** (NikT/NikD §45.3 Tier 1, chitin-synthase paralogue §45.4 Tier 2, or MraY resistance) + KCB antifungal/antibacterial nucleoside family | HIGH–EXCEPTIONAL | HIGH | 5 | POLAR EXTRACTION WARNING · CANDIDA-RELEVANT if chitin-synthase-inhibitor family · MRSA if MraY/translocase-I |
-| **NUC-B** | Nucleoside-core + aminotransferase/amidinotransferase context; family unresolved; transporter/resistance or partial KCB | HIGH | MODERATE | 3–6 | POLAR EXTRACTION WARNING |
-| **NUC-C** | Resembles broad/cytotoxic sub-class: blasticidin-S (ribosomal), tunicamycin (glycosylation), gougerotin (peptidyl transferase) | MEDIUM–HIGH | MODERATE | 3–6 | ⚠ CYTOTOXICITY CAUTION · no MRSA/Candida selectivity claim without fractionation |
+| **NUC-B** | Nucleoside-core + aminotransferase/amidinotransferase context; family unresolved; transporter/resistance or partial KCB | HIGH | MODERATE | 3–5 | POLAR EXTRACTION WARNING |
+| **NUC-C** | Resembles broad/cytotoxic sub-class: blasticidin-S (ribosomal), tunicamycin (glycosylation), gougerotin (peptidyl transferase) | MEDIUM–HIGH | MODERATE | 3–5 | ⚠ CYTOTOXICITY CAUTION · no MRSA/Candida selectivity claim without fractionation |
 
 Polar warning (NUC-A/B): "Standard C18 insufficient; use aqueous/polar primary extraction then SAX or HILIC before C18 desalting and HRMS." **Trap:** NUC-A Candida label only for nikkomycin/polyoxin/mildiomycin-like; blasticidin/tunicamycin/gougerotin → NUC-C.
 
@@ -4796,7 +4816,7 @@ Polar warning (NUC-A/B): "Standard C18 insufficient; use aqueous/polar primary e
 | Grade | Criteria | Lead Priority | Claim Confidence | DSS | Label |
 |---|---|---|---|---|---|
 | **GLY-A** | Cglyc-type NRPS **+ VanHAX** (≥2 of VanH, VanA/B/D, VanX) within BGC or ±15 kb (§45.3 Tier 1), **HGT guard passed** (§45.4) **+ halogenase/GT/crosslinking tailoring + KCB glycopeptide-family** | EXCEPTIONAL | HIGH | 5 | MRSA-relevant (lipid II inhibitor) |
-| **GLY-B** | Glycopeptide-like NRPS + tailoring; VanHAX missing/outside proximity, or KCB without VanHAX | HIGH | MODERATE | 3–6 | — |
+| **GLY-B** | Glycopeptide-like NRPS + tailoring; VanHAX missing/outside proximity, or KCB without VanHAX | HIGH | MODERATE | 3–5 | — |
 
 VanHAX HGT guard (GLY-A): integrase/transposase within 5 kb without biosynthetic neighbors = HGT island, excluded; different contig = GLY-B. **Trap:** Cglyc-type (HHILLDG) required; enduracididine (TIGR04462/60) and mannopeptimycin (TIGR01720×2) are distinct classes.
 
@@ -4838,7 +4858,7 @@ Enzymology-currency rule (§53 BLOCK L): current CreE/CreD are primary markers; 
 | Grade | Criteria | Lead Priority | Claim Confidence | DSS | Note |
 |---|---|---|---|---|---|
 | **TET-A** | FkbH-like + dedicated ACP **+ Diels-Alderase (TedJ-type) + trans-decalin**. SPIROTETRONATE (chlorothricin/kijanimicin/tetrocarcin A). | HIGH | HIGH | 4–5 | ⚠ CYTOTOXICITY CAUTION if tetrocarcin/abyssomicin-class |
-| **TET-B** | FkbH-like + dedicated ACP + ≥5-module PKS; **no Diels-Alderase**. LINEAR TETRONATE (tetronasin/tetronomycin). | HIGH | MODERATE | 3–6 | Route PKS to LMPKS §42 |
+| **TET-B** | FkbH-like + dedicated ACP + ≥5-module PKS; **no Diels-Alderase**. LINEAR TETRONATE (tetronasin/tetronomycin). | HIGH | MODERATE | 3–5 | Route PKS to LMPKS §42 |
 
 Both TET-A/B carry a large modular PKS that receives a parallel LMPKS §42 rescue-grade; both grades are reported.
 
@@ -4878,9 +4898,11 @@ Already defined elsewhere: DKP-A/B/C/D (§50), LMPKS-A/X (§42).
 | Grade letter | Lead Priority | Claim Confidence | DSS |
 |---|---|---|---|
 | **A** | HIGH or EXCEPTIONAL | HIGH | 4–5 |
-| **B** | HIGH | MODERATE | 3–6 |
+| **B** | HIGH | MODERATE | 3–5 |
 | **C** | MEDIUM | LOW | 1–3 |
 | null / rule-out | LOW or Deprioritized for the class | VERY LOW | 0–1 |
+
+B-grade DSS ranges are capped at 5, the top of the 0–5 scale in [§34.3](#343-mandatory-two-axis-scoring).
 
 The §34.8 card is authoritative; a one-step deviation is allowed if explicitly stated. Add `Class sub-grade:` to the §34.8 card after `Curated candidate class`.
 

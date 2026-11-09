@@ -18,27 +18,29 @@ attach existing source paths and SHA-256 receipts without copying the evidence c
 
 ## What checks actually establish
 
-`mamey/authored_verify.py:635–675` separates full48 from current50-v2. Full48 finished tokens trigger
+`verify_modeb_command` in `mamey/authored_verify.py` separates full48 from current50-v2. Full48 finished tokens trigger
 its publication branch; later semantic, reconciliation, selection and figure checks remain opt-in.
 Current50-v2 uses its own contract and checks; legacy full48 publication/semantic sections are not
 silently renumbered onto it. The shared evidence adapter routes §4 or §50 only
-(`mamey/modeb_structure_gate.py:1106–1110`). Consult the actual saved report for the selected
-contract, flags, denominators, findings and input bindings; a command mentioned in a guide is not execution.
+(the `check_evidence_presence` step of `lint_card` in `mamey/modeb_structure_gate.py`). The `--report-json` report records the card name, profile, contract and schema, status and exit
+code, the findings, and three booleans: `independent_roster_bound`, `package_core_denominator_bound`
+and `coverage_verified`. It does not record the command-line flags, the denominator values, input
+paths or input hashes. Save the exact command, the roster, and the paths and SHA-256 of the card and
+package yourself. A command mentioned in a guide is not execution.
 
-`mamey/modeb_publication_gate.py:2735–2785` checks full48 section/table/scaffold structures under
-its defaults. `mamey/modeb_current50_v2.py:165–206` checks active prompts, literature citation/relevance
+`publication_quality_findings` in `mamey/modeb_publication_gate.py` checks full48 section/table/scaffold structures under
+its defaults. `v2_findings` in `mamey/modeb_current50_v2.py` checks active prompts, literature citation/relevance
 patterns and the last evidence table among its own requirements. A DOI/PMID/PMCID pattern is not
 retrieval or verification of a paper. A hash-shaped cell is not proof that the source bytes were opened
 and compared. Roster text correspondence does not prove sequence identity or an experiment.
 
-The first-twenty facade derives titles from the default JSON (`mamey/validators/modeb_full20.py:30–65`)
+The first-twenty facade derives titles from the default JSON (`_load_contract` in `mamey/validators/modeb_full20.py`)
 for compatibility diagnostics. Passing this facade cannot complete a 48- or 50-section profile.
 
-The generated pages currently describe measured assembly-line predicates as allowing class tokens,
-but `_build_predicates` deliberately excludes class labels from the required measured predicate
-(`mamey/modeb_structure_gate.py:713–724`). Use actual bound module counts/flags and preserve unknowns;
-do not assert measured architecture from a class token. This discrepancy needs a generator/schema
-owner decision and is not repaired by hand-editing a generated page.
+The measured assembly-line predicate (`_build_predicates` in `mamey/modeb_structure_gate.py`) needs a
+module count above zero or a `has_assembly_line` flag; a class label alone does not trigger it. The
+contract JSON and the generated pages describe it the same way. Use actual bound module counts/flags and
+preserve unknowns; do not assert measured architecture from a class token.
 
 None of these checks grants source access, submissions, scientific adoption, independent-review status,
 visual QA, release or publication authority. Preserve original normative requirements when auditing a

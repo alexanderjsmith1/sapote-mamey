@@ -1,5 +1,5 @@
 # Sapote–Mamey: The Kernel and Evidence Gates
-**Sapote–Mamey v9.7.463 · Engine 1.9.179 · build 20261104v97463a**
+**Sapote–Mamey v9.7.464 · Engine 1.9.180 · build 20261108v97464a**
 
 ## Extraction and interpretation
 
@@ -11,7 +11,7 @@ Start with [the Master Walkthrough](../MASTER_WALKTHROUGH.md). The [current docu
 
 - Environment diagnostics report selected dependency discovery and tool checks. Read [doctor’s reserved write-probe scope](../INSTALL.md#doctor-scope-and-write-probe) before invoking it.
 - Package validation checks the selected package's declared files, identity and evidence contract.
-- Evidence admission binds external results to their source and exact locus.
+- Evidence admission checks external results against their source and exact locus only on the route that runs a binding guard. `ingest-blastp` with `--package` and a sealed context runs the guard and quarantines unbound rows; without `--package`, or with an older package that carries no sealed context, rows are admitted with the binding marked unvalidated (`binding guard: no sealed context (not validated)`). Read the route's receipt, reconcile source and complete locus identity yourself, and treat unvalidated rows as held.
 - Card verification checks the selected authoring profile and its required content.
 - Figure and document checks assess generated deliverables and their supporting data.
 

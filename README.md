@@ -92,68 +92,25 @@ the generated reports and receipts; a chat response alone is not a validated or 
 
 ## Beyond extraction
 
-**Optional class-evidence commands.** `gecco-crosscheck --package <package> --zip <source.zip>` runs an externally installed GECCO 0.11 adapter with the source CDS (protein-coding sequence) calls. `export-metabolomics --package <package> --source-zip <source.zip>` stages broad class hypotheses and exact region GBKs for operator MS review. `two-proof-rescue --package <package> --policy nonks_position_v1 --scorecard <scorecard.tsv>` selects the named alternative position rule. The default policy is `class_routed_v1`; `ks_clade_v2` remains an explicit policy choice. All three write fresh external sibling outputs with source/policy receipts. See the [class-evidence command guide](docs/COMPANION_CLASS_EVIDENCE.md) for inputs, claim ceilings and operating choices.
+Each of these is optional and runs after a first run. Each guide gives the inputs, the commands and how to check the result.
 
-**Independent GECCO evidence.** GECCO is an optional, externally installed BGC caller.
-Before checking for it, read the [doctor write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe):
-the check writes under `runs/_doctor_probe/` in the program folder.
-`python mamey_run.py doctor --companions` reports whether its executable is detected.
-Detection is not a GECCO run or validation of its outputs. Keep its input assembly,
-sequence bindings, tool/model version and run receipt with the results. The shipped
-[companion guide](docs/companion_tools.md#gecco) explains the integration boundary.
-[Strain slides](docs/STRAIN_SLIDES.md) consume explicitly supplied `*.genes.tsv`,
-`*.features.tsv` and `*.clusters.tsv` through `gecco_dir`, showing per-gene evidence,
-overlaps and GECCO-only candidates. The [current50 v2 Mode B contract](docs/MODEB_CURRENT50_V2_CONTRACT.md)
-provides a GECCO section (§22) and gene-level evidence table (§50); carry
-`--contract current50_v2` through template emission and authored-card verification. The [gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md) describes optional supplied context and its existence-only verification boundary.
-For supported context on other contigs, the [expanded-locus guide](docs/MODEB_EXPANDED_LOCUS.md) describes pinned CDS inventories, bounded interval selection and verification with `--require-expanded-locus`. Context genes retain separate roles from core membership.
-GECCO evidence complements antiSMASH evidence; it does not alter the deterministic
-sealed package or establish a product or activity.
+| You want to | Command | Guide |
+|---|---|---|
+| Compare a region's proteins with NCBI (BLASTp) | `blastp-online`, `auto-blastp`, `ingest-blastp` | [Protein search](docs/ONLINE_BLASTP_PROTOCOL.md) |
+| Group regions into gene-cluster families | `bigscape` | [BiG-SCAPE walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) |
+| Check a split pathway across contigs (RG-GMCI, a reference-guided fragment check) | runs inside `run` | [Fragment review](docs/GUIDE/02_Quick_Guide.md#fragmented-pathway-review), [RG-GMCI reference](docs/reference/04_RGGMCI_ClusterBlast_Utilization.md) |
+| Get a second opinion from GECCO, stage regions for mass-spec review, or read a two-proof rescue | `gecco-crosscheck`, `export-metabolomics`, `two-proof-rescue` | [Class-evidence commands](docs/COMPANION_CLASS_EVIDENCE.md) |
+| Place a strain in a tree, or add tracks to one | `phylo-autopilot`, `phylo-mlsa`, `phylo-run` | [Phylogenetics workflow](docs/PHYLOGENETICS_WORKFLOW.md) |
+| Write reports from a sealed package | `compile-report` and other readers | [Post-seal readers](docs/POSTSEAL_READERS.md) |
+| Write a gene-by-gene Mode B card | `mode-b`, `emit-modeb-template`, `verify-modeb` | [Mode B walkthrough](docs/MODE_B_USER_WALKTHROUGH.md) |
+| Draw bioassay figures | Figure Factory | [Bioassay figures](docs/BIOASSAY_FIGURE_FACTORY.md) |
+| Make any other figure | `render-figures` and others | [Figures](docs/FIGURES_START_HERE.md) |
 
+`blastp-online` and `auto-blastp --submit` upload the selected protein sequences to NCBI. A
+live `auto-blastp` run also needs `--confirm-public-sequence-upload`.
 
-**Protein evidence.** Mamey extracts translated CDS sequences from antiSMASH region GenBank
-files. `bgc-blastp-panel` exports representative proteins as FASTA batches for a manual BLASTp
-search. `blastp-online` submits a selected region's proteins to NCBI; `blastp-round` plans broader
-coverage before submission; `auto-blastp` is a resumable scheduler that defaults to a local plan.
-Live scheduling requires `--submit --confirm-public-sequence-upload`; the acknowledgement states
-that the selected sequences may be disclosed to NCBI. Import saved hit tables with
-`ingest-blastp`. Before you revise a functional call, compare hit identity, alignment coverage,
-protein length, domains and neighboring genes. Keep each search database and its provenance
-with the result. See the [protein-search walkthrough](docs/GUIDE/02_Quick_Guide.md#protein-search-and-result-import).
-
-**Fragmented pathways.** Poor assemblies need more than an [edge flag](docs/GLOSSARY.md#4-edge-status). The built-in RG-GMCI pass
-compares fragments against shared ClusterBlast/KnownClusterBlast references (antiSMASH's matches to public and known clusters), checks where their
-hits fall, and tests whether they cover complementary parts of the reference pathway. Boundary and
-terminus evidence add context; paralogous overlap and promiscuous links can weaken or reject a
-proposed rescue. "Rescue" here means recovering an interpretable candidate pathway relationship.
-It does not join contigs or reconstruct missing sequence. See
-[fragment review](docs/GUIDE/02_Quick_Guide.md#fragmented-pathway-review).
-
-**External reader outputs.** For sealed inputs, report compilation, compound-family
-reports, assembly-line reports and lead pages use sibling `post_seal/<command>/`
-folders. Compiled reports retain a source snapshot and byte-bound receipt. The current compile-report reader detects sealed inputs and validates the original with status-receipt writes disabled; pre-seal working-package validation can still write its mutable receipt. Use fresh output paths when retaining earlier reports, and check each other reader's own mutation/output scope. See
-[post-seal readers and portable PDF routes](docs/POSTSEAL_READERS.md).
-
-**Cluster families.** `bigscape` stages region GBKs, runs an externally installed BiG-SCAPE 2.x,
-and can chain the results into cohort widgets. The command is integrated; you supply the
-BiG-SCAPE binary and the pressed Pfam database separately. Family membership belongs to that run
-and cutoff; read it alongside assembly fragmentation and protein evidence. See
-[the BiG-SCAPE walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md).
-
-**Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
-placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo-mlsa` can plan or stage an
-optional five-locus MLSA (multilocus sequence analysis) screen from it. Review assembly completeness separately.
-Local reference genomes and external companion tools are needed to run the screen. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow,
-with optional ANI (average nucleotide identity) inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
-Mode B, assembly or bioassay tracks. Each track needs an explicit tip-to-strain mapping and its own data;
-nothing is inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
-
-**Bioassay figures.** The bioassay Figure Factory takes a hash-bound long-form observation table
-that keeps plate format, well, material lineage, target resolution, time point, replicate,
-control and inclusion state. It emits an R/ggplot2 summary without averaging unlike materials or
-treating a missing positive control as valid. Tree overlays need a separate, explicit selection
-of material, target, time point and experiments. See the
-[bioassay figure contract](docs/BIOASSAY_FIGURE_FACTORY.md).
+None of these outputs establishes a compound, its production or its activity. A match is
+a similarity, and a family is membership in one run at one cutoff.
 
 ## Install
 
@@ -166,8 +123,8 @@ of material, target, time point and experiments. See the
 You need **Python 3.12 or newer**. Run these from the extracted directory that contains
 `pyproject.toml` and `mamey_run.py`. Use a writable working installation. Before
 running `doctor`, read its [write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
-If `runs/_doctor_probe` already exists, move it out of `runs/` (keep it; do not delete it)
-before you run doctor. Then run:
+If `runs/_doctor_probe` already exists, leave it where it is. Doctor does not touch it and
+reports a failed write check. Use another working installation instead. Then run:
 
 ```bash
 python3 -m venv .venv
@@ -193,6 +150,34 @@ add-ons. [PREREQUISITES](docs/PREREQUISITES.md) covers companion tools and
 [EXTERNAL ASSETS](docs/EXTERNAL_ASSETS_GUIDE.md) covers data provision. antiSMASH runs
 separately; you give its result ZIP to Mamey. The core Python package does not install external
 databases, system tools, or the curated Pfam HMM.
+
+## Quickstart
+
+[Your first run](docs/reader/01_FIRST_RUN.md) is the full recipe. In short, from the
+program folder:
+
+```bash
+python mamey_run.py doctor
+python mamey_run.py inspect path/to/EXAMPLE.zip
+```
+
+`inspect` prints a capped `run` command for that ZIP, which is a shorter run with no PDF
+brief and no gene maps. The strain name comes from the file name, here `EXAMPLE`. Edit the
+command's `--taxonomy` and `--source` lines to match your records, or delete them. `run`
+refuses the text in angle brackets. Run the command, then check the package:
+
+```bash
+python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
+```
+
+`run` exits `0` when the package is complete. It exits `1` on a `[BLOCKING]` issue,
+and `2` when it refuses a bad command line before starting, such as an unsafe strain name.
+Unedited `<Genus species>` or `<isolation source>` text is refused with exit `1`. Open
+`runs/EXAMPLE/package/OPEN_ME_FIRST.html` to see the results. A passing package means
+the steps completed. It does not show that any cluster makes a compound.
+
+The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review and cohort work, and the
+[Mode B walkthrough](docs/MODE_B_USER_WALKTHROUGH.md) covers writing a card. `python mamey_run.py --help` lists every command.
 
 ## Tool downloads and licenses
 
@@ -284,7 +269,7 @@ Python libraries the optional workflows import, and the extra that installs each
 | `figures` | matplotlib, numpy, pandas, scipy, scikit-learn (imported as `sklearn`; t-SNE companion layout), networkx, pyshp, dna-features-viewer, pycirclize, Biopython |
 | `documents` | python-docx, lxml, pypdf, Pillow, markdown |
 | `slides` | python-pptx, matplotlib, numpy, Pillow |
-| `render` | CairoSVG |
+| `render` | CairoSVG, with its tinycss2 dependency (the PDF preparer also uses tinycss2 to check CSS `url()` references in SVG figures; without it, an SVG with CSS urls is refused with `PDF_SVG_CSS_PARSER_UNAVAILABLE`) |
 | `addons` | pyrodigal, pyfastani, pyswrd, pyhmmer, pyskani and the other `pyproject.toml` add-ons |
 | `test` | pytest, build, pdfplumber, psutil |
 | not in any extra; install only if wanted | pypdfium2 (PDF page images for interactive-figure bridges), certifi (extra TLS certificates for reference-metadata lookups in `tools/resolve_reference_metadata.py`), diamond4py (in-process DIAMOND alignment), RDKit (structure drawing, above) |
@@ -335,51 +320,6 @@ Keep database versions and hashes with the analysis. Installing the Python packa
 download these databases or install the external binaries. Run
 `python mamey_run.py doctor --companions` to check the analysis machine, and use the
 [installation guide](docs/INSTALL.md) for the bundle setup.
-
-## Quickstart
-
-Replace the example paths and metadata with values you have verified from your input. Run from
-the bundle root. The package path below assumes `--strain EXAMPLE` and that output root.
-
-```bash
-python mamey_run.py inspect path/to/antismash_result.zip
-python mamey_run.py run --strain EXAMPLE \
-  --input-zip path/to/antismash_result.zip \
-  --taxonomy 'Genus sp.' --source 'recorded isolation source' \
-  --mode gold --json-evidence bounded --brief none --locus-maps off \
-  --reference-completion off --require-workbook --outdir /path/to/project/runs
-python mamey_run.py validate /path/to/project/runs/EXAMPLE/package --workbook-strict
-python mamey_run.py explain /path/to/project/runs/EXAMPLE/package
-```
-
-`--mode gold` is the default analysis mode. This first run requests tables and a workbook, defers the brief and locus maps, and turns
-reference-completion searches off. `--require-workbook` fails the run if workbook production
-fails; `--workbook-strict` makes missing or invalid workbook content fail validation. Optional
-searches and figures are separate follow-on work.
-
-Before you interpret anything, read the run status, the issue log and the output paths.
-Validation checks package structure and the encoded evidence gates. It does not establish
-biological identity, production or activity.
-
-`--capped-session` reduces work so a run is more likely to finish in a short session. It is
-not a timeout. It forces `--brief none` and `--json-evidence off`, requires the workbook, and
-turns off automatic locus maps unless you enable them. For bounded JSON evidence, leave it out,
-use `--json-evidence bounded` and allow enough runtime. The old `--chatgpt-safe` spelling still
-works only as a deprecated alias for `--capped-session`.
-
-To render the deferred figures, first identify a working copy of the validated package
-and keep the original ZIP and hashes. This command can refresh package integrity records;
-an external image destination does not make it read-only. Follow the
-[post-seal write boundaries](docs/POSTSEAL_READERS.md#commands-that-write-into-the-package)
-and use the working copy’s actual path (figure dependencies required):
-
-```bash
-python mamey_run.py render-all-figures --package path/to/working-copy/package
-```
-
-The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review, cohort work and the move
-into Mode B. `python mamey_run.py --help` lists the commands. A Mode B template or lead table is
-material for Sapote judgment; it is not a finished authored card.
 
 ## Repository layout
 
@@ -437,9 +377,9 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Troubleshooting](docs/COMMON_MISTAKES.md)
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
----
-*Current bundle: sapote-mamey-v9.7.463 / engine 1.9.179 · build 20261104v97463a · release profile: CODE (see RELEASE_MANIFEST.md)*
-
 ## Choose a task by name
 
 Use [Choose a task](docs/USER_TASK_ROUTER.md) to turn your request into a named workflow, required inputs, owning guide and reviewable outputs. Assistants can use its [JSON routes](docs/USER_TASK_ROUTER.json), under the scope and source rules in [AGENTS.md](AGENTS.md).
+
+---
+*Current bundle: sapote-mamey-v9.7.464 / engine 1.9.180 · build 20261108v97464a · release profile: CODE (see RELEASE_MANIFEST.md)*

@@ -196,16 +196,31 @@ def split_region_name(basename):
 
 
 def load_identity(paths):
-    """Source_GBK basename -> (strain-free record) from Mamey *_2_inventory.csv files."""
+    """Source_GBK basename -> (strain-free record) from Mamey *_2_inventory.csv files.
+
+    A basename bound by two rows that disagree is kept as a duplicate-key hold, never overwritten.
+    """
     bound = {}
     for p in paths:
         with open(p, encoding="utf-8", newline="") as h:
             for r in csv.DictReader(h):
                 src = os.path.basename((r.get("Source_GBK") or "").strip())
                 if src:
-                    bound[src] = {"alias": (r.get("BGC_ID") or "").strip(), "contig": (r.get("Contig") or "").strip(),
-                                  "region": (r.get("antiSMASH_Region") or r.get("Region") or "").strip(), "file": p}
+                    rec = {"alias": (r.get("BGC_ID") or "").strip(), "contig": (r.get("Contig") or "").strip(),
+                           "region": (r.get("antiSMASH_Region") or r.get("Region") or "").strip(), "file": p}
+                    prev = bound.get(src)
+                    if prev is not None and any(prev.get(k) != rec[k] for k in ("alias", "contig", "region")):
+                        files = sorted({prev.get("file", ""), p} | set(prev.get("dup_files", [])))
+                        bound[src] = {"alias": "", "contig": "", "region": "", "file": p, "duplicate": True, "dup_files": files}
+                    elif prev is None:
+                        bound[src] = rec
     return bound
+
+
+def _region_number(value):
+    """`region003`, `3` or `NODE_1.region003` -> 3; anything else -> None."""
+    m = re.search(r"(?:region)?0*(\d+)$", (value or "").strip(), re.I)
+    return int(m.group(1)) if m else None
 
 
 def row_identity(basename, bound):
@@ -214,12 +229,25 @@ def row_identity(basename, bound):
         return {"label": strain, "strain": "", "contig": "", "region": "", "alias": "", "hold": "", "reference": True}
     key = re.sub(r"^" + re.escape(strain) + r"_+", "", basename) if strain else basename
     rec = bound.get(key) or bound.get(basename)
-    if rec and rec["alias"]:
-        if rec["contig"] and rec["contig"] != contig:
-            hold = f"contig mismatch: package {rec['contig']} vs file {contig}"
-            return {"label": f"{strain} / {contig} / {region} / {HOLD}", "strain": strain, "contig": contig, "region": region, "alias": "", "hold": hold, "reference": False}
-        return {"label": f"{strain} / {contig} / {region} / {rec['alias']}", "strain": strain, "contig": contig, "region": region, "alias": rec["alias"], "hold": "", "reference": False}
-    return {"label": f"{strain} / {contig} / {region} / {HOLD}", "strain": strain, "contig": contig, "region": region, "alias": "", "hold": "no bound package record for this region file", "reference": False}
+
+    def held(reason):
+        return {"label": f"{strain} / {contig} / {region} / {HOLD}", "strain": strain, "contig": contig, "region": region, "alias": "", "hold": reason, "reference": False}
+
+    if rec and rec.get("duplicate"):
+        return held("duplicate Source_GBK key with conflicting records in " + "; ".join(rec.get("dup_files", [])))
+    if not rec:
+        return held("no bound package record for this region file")
+    if not rec["alias"]:
+        return held("bound package record has no BGC_ID")
+    if not rec["contig"]:
+        return held("bound package record has no Contig")
+    if rec["contig"] != contig:
+        return held(f"contig mismatch: package {rec['contig']} vs file {contig}")
+    if not rec["region"]:
+        return held("bound package record has no antiSMASH_Region")
+    if _region_number(rec["region"]) is None or _region_number(rec["region"]) != _region_number(region):
+        return held(f"region mismatch: package {rec['region']} vs file {region}")
+    return {"label": f"{strain} / {contig} / {region} / {rec['alias']}", "strain": strain, "contig": contig, "region": region, "alias": rec["alias"], "hold": "", "reference": False}
 
 
 def family_from_db(db_path, family_id, gbk_dirs):

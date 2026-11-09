@@ -1,41 +1,128 @@
-# BGC figure set (tools/bgc_figures.py)
+# Single-region and comparison figures for one BGC
 
-Per-BGC figures for deliverables, each with a reproducible data CSV. Locus map (region GBK),
-GCF-novelty lollipop (anchored BiG-SCAPE DB), and per-gene BLASTp identity (blastp-online panel).
-Genes are labeled by function and colored by role, with no decorative reference lines.
+A BGC is a biosynthetic gene cluster. This page covers the small figure tools you run by hand
+on one region GenBank file (GBK) or one antiSMASH ZIP. For the standard gene maps of a whole
+package, use `render-figures --figure-set locus-maps` ([figures router](FIGURES_START_HERE.md)).
 
-## KCB comparative locus map (`figures kcb-locusmap`, `mamey/kcb_locusmap.py`)
-An offline (matplotlib-only; no DIAMOND, no clinker CLI, no network) KnownClusterBlast query-vs-MIBiG
-gene-cluster alignment. Query gene arrows sit on top (to genomic scale, role-colored from the region GBK
-when a raw ZIP is supplied, else by KCB participation). The top-N MIBiG reference clusters stack
-beneath, with each subject gene aligned under the query gene it pairs with. Homology ribbons link paired
-genes, shaded by BLAST %identity. The figure carries a claim-safe caption and legend. Reads the antiSMASH
-`knownclusterblast/*.txt` (or `clusterblast/*.txt`) already inside the raw ZIP — no new inputs. Emits
-`<stem>_kcb_locusmap.png` + `.svg` + `<stem>_kcb_locusmap_data.csv`. Similarity, not identity; a
-SUPPORTING figure, never acceptance evidence for a card.
+Use this page when you want one of these:
 
-## Optional Python dependencies
-
-From the bundle root and the intended virtual environment, install `python -m pip install -e '.[figures]'` (or the broader `.[all]`). This selects DNA Features Viewer (`dna-features-viewer`, imported as `dna_features_viewer`), pyCirclize (`pycirclize`) and Biopython alongside the plotting stack. Native `figures diagram` and `figures atlas` require Biopython's `Bio.SeqIO`; the legacy tool's GBK parser has a separate built-in fallback. ANI additionally needs `pyskani` from the separate `addons` extra; `figures` and `all` do not provision that scanner/comparison stack, external binaries or reference datasets.
-
-The two plotting libraries have no declared version interval pending API compatibility validation. Dependency selection does not establish a successful install, valid scientific input or successful rendering. For offline wheels and the best-effort add-on installer, see [Install](INSTALL.md#3-add-the-features-you-need). Optional imports stay local to the render functions; a lean core install does not acquire these libraries.
-
-## Current routes and limits
-
-There are distinct producers; do not transfer one route's receipt or data guarantee to another.
-
-| Producer | Current behavior | Review limit |
+| I want | Run | Needs |
 |---|---|---|
-| `tools/bgc_figures.py` | Up to three PNGs with per-figure CSVs; supplied GBK required, DB/BLASTp optional | Legacy PNG-only route (150-dpi request), no full identity/hash receipt or run/cutoff selector |
-| `mamey/bgc_figures.py` / `figures diagram` | GBK arrow view through shared PNG/SVG save helper | Arrow labels use truncated first domain tokens, not a lossless exact-locus roster; no per-gene CSV from this function |
-| `figures atlas` | Top 20 sectors by default from recursively found region GBKs | Sector lengths are region-record sequence lengths; multiple regions overwrite same filename-derived contig key. This is not a validated whole-genome/contig atlas |
-| `figures ani` | First discovered FASTA per directory; per-sequence identities averaged and directional matrix symmetrized | Missing directions do not count as zero: retain the measured direction, average two measured directions, or show `no hit`/`NO_HIT` when neither is measured. Diagonal 100 is assigned; this is not automatic taxonomy/species admission. |
-| `figures kcb-locusmap` | PNG/SVG plus pair-alignment CSV from supplied ZIP/text | Supporting comparative view, not the v8 complete gene-roster/receipt contract |
+| Gene arrows for one region | `python mamey_run.py figures diagram <region.gbk> <out.png>` | A region GBK |
+| A region against its closest MIBiG clusters | `python mamey_run.py figures kcb-locusmap` | The antiSMASH ZIP, or one KnownClusterBlast text file |
+| Locus map, GCF novelty and BLASTp identity for one region | `python tools/bgc_figures.py --gbk <region.gbk>` | A region GBK; the database and BLASTp table are optional |
+| A circular map of one strain | `python mamey_run.py figures atlas <antismash_dir> <out.png>` | An antiSMASH output folder |
+| A GCF network from a BiG-SCAPE database | `python mamey_run.py figures gcf-network` | See `--help` and the [BiG-SCAPE walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md) |
+| A gene-cluster alignment as HTML | `python mamey_run.py figures clinker <gbk> <gbk> ... --out <out.html>` | Two or more region GBKs |
 
-The legacy DB lollipop reads all distance rows for a selected record with no run/cutoff binding and takes the first matching record. Supply a separately verified single-run evidence export/database view or retain a run-scope hold; do not merge distances from different run identities. Missing BLASTp identity is plotted as zero while the CSV writes `NO_HIT`; that bar is missing comparison state, not measured zero percent identity. The consumer's nr axis label does not verify the imported search channel/query/run. Preserve those bindings independently. Optional plots may be absent despite overall completion.
+Terms. **KnownClusterBlast (KCB)** is the antiSMASH comparison of a region with characterized
+clusters in **MIBiG**, the database of known clusters. A **GCF** is a gene cluster family from
+BiG-SCAPE. See the [glossary](GLOSSARY.md). Every figure here shows similarity, not product
+identity. Treat each one as a supporting view, not evidence for a finished card.
 
-The native ANI route returns `out_png=None` with an error if fewer than two eligible strain directories remain, and its CLI branch reports that no figure was written and returns 1. It can cap the strain list, chooses the first recursively discovered `.fna/.fasta` without validating a genome manifest, and omits alignment-fraction admission. Verify the exact selected input roster/hashes and directional comparison evidence separately; never use its fixed species-boundary title as a taxonomy verdict. Its artwork receipt hashes rendered outputs and prose provenance, not the source FASTAs.
+## Install the plotting libraries
 
-Supply the full contig and region for KCB ZIP selection and verify that they identify one source member. The parser rejects some ambiguous selections, but a region-only selector can take the first matching region across contigs. Prefer an independently checked, uniquely selected `--kcb-txt` input when ZIP membership is ambiguous. The parser prefers knownclusterblast files globally and uses clusterblast only if none exist, so a missing KCB region is not silently supplemented from another channel. Pair CSV rows omit nonmatching query genes and do not carry full source identity/coordinates as separate columns. Zero query/reference counts can still render. Record source ZIP/member/text hashes, selection, full four-part locus identity and complete query roster separately. Use a fresh output/stem: current producers reuse fixed filenames, and shared receipts are candidate engineering artifacts. See [locus-map review](LOCUS_MAP_REVIEW_CONTRACT.md) and [v8](LOCUS_MAP_V8.md).
+From the bundle root, inside your virtual environment:
 
-Source: `tools/bgc_figures.py`, `mamey/bgc_figures.py`, `mamey/kcb_locusmap.py`, `mamey/figure_save.py`.
+```bash
+python -m pip install -e '.[figures]'
+```
+
+This adds DNA Features Viewer, pyCirclize and Biopython. It does not add the ANI scanner or any
+reference data. For offline wheels, see [Install](INSTALL.md#3-add-the-features-you-need).
+A successful install does not show that your input is valid or that a figure will render.
+
+## KCB comparative locus map
+
+This map is offline. It needs only matplotlib and the files inside the raw antiSMASH ZIP. Query
+gene arrows sit on top, colored by role from the region GBK. The top MIBiG reference clusters
+stack below, each reference gene under the query gene it pairs with. Ribbons join paired genes
+and are shaded by BLAST percent identity.
+
+```bash
+python mamey_run.py figures kcb-locusmap --zip inputs/EXAMPLE_antismash.zip \
+  --contig NODE_106 --region region002 --out-dir reviews/EXAMPLE/kcb_map
+```
+
+Give the full contig name and the region together. A contig alone does not name one region, and
+a region number alone can match the same region on a different contig. If the ZIP is ambiguous,
+extract the one `knownclusterblast/*.txt` file you mean and pass it with `--kcb-txt`.
+
+You should see a line such as `[kcb-locusmap] reviews/EXAMPLE/kcb_map/<stem>_kcb_locusmap.png`
+and three files in the output folder:
+
+- `<stem>_kcb_locusmap.png`
+- `<stem>_kcb_locusmap.svg`
+- `<stem>_kcb_locusmap_data.csv`, one row per paired gene
+
+How to read it:
+
+- The tool reads `knownclusterblast/*.txt`. If the ZIP has none, it reads `clusterblast/*.txt`
+  instead. ClusterBlast compares against other genomes, not MIBiG, so that figure is not a MIBiG
+  comparison. Check the ZIP before you rely on the title.
+- An empty KnownClusterBlast file still draws a figure, with no reference clusters and zero pairs.
+  That is "no hits", not proof that nothing similar exists. The package reports it as
+  `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`.
+- The CSV lists only query genes that pair with a reference. It does not carry the strain,
+  contig and region as separate columns. Record the four-part identity
+  (**strain / full contig / region / BGC alias**) beside the figure yourself.
+- The figure prints the claim-ceiling sentence in small type at the bottom. The
+  [figure house rules](FIGURE_HOUSE_RULES.md) put that wording in the caption, not on the plot.
+  Cut the sentence from the figure and put it in your caption before you publish.
+- Output names come from the stem, and a repeat run with the same stem overwrites. Use a new
+  `--out-dir` each time.
+
+## Gene arrow diagram
+
+```bash
+python mamey_run.py figures diagram inputs/EXAMPLE_region001.gbk reviews/EXAMPLE/region001.png
+```
+
+The command writes the PNG you name. Arrow labels use the first domain word of each gene, so
+the labels do not list every locus tag. Use the locus-map package figure when you need the
+full gene roster.
+
+## Region figure set
+
+```bash
+python tools/bgc_figures.py --gbk inputs/EXAMPLE_region001.gbk --bgc BGC001 --strain EXAMPLE \
+  --blastp inputs/EXAMPLE_blastp.csv --outdir reviews/EXAMPLE/region_figs
+```
+
+`--gbk` is the only required flag. Without `--db` the GCF novelty plot is skipped, and without
+`--blastp` the BLASTp plot is skipped. Before it writes anything, the tool checks every output it
+plans: if any of those files already exists, or an output path is one of the inputs, it prints
+`refused:` and exits 2. Use a new `--outdir` for each run. The tool prints each file it wrote. Each
+figure is a 150-dpi PNG with a matching `_data.csv`:
+
+- `<tag>_fig1_locus.png`: gene arrows, labeled by function
+- `<tag>_fig2_gcf_novelty.png`: the records with the smallest BiG-SCAPE distance to this region,
+  from `--db`. Distance 0 is the closest value in that run, not sequence or product identity.
+- `<tag>_fig3_blastp.png`: per-gene BLASTp identity, from `--blastp`
+
+Limits to check:
+
+- The GCF plot reads every distance row for the strain in the database and takes the first
+  matching record. It does not pick a BiG-SCAPE run or a cutoff. Use a database from one run.
+- The BLASTp plot draws a bar only for a gene with a recorded identity. The CSV lists every gene
+  of the region with `identity_state`: `MEASURED`, `NO_IDENTITY_RECORDED` (the gene has a row in
+  `--blastp` but no readable identity; that can be a no-hit search or a missing value) or
+  `NOT_IN_BLASTP_TABLE` (the gene has no row). Neither of the last two is 0 percent identity.
+- The tool writes no receipt with input hashes. Save the inputs and a hash of each output
+  yourself.
+
+## Circular map and ANI
+
+`figures atlas` draws the top 20 regions of one strain as a circular map. Two regions with the
+same contig name overwrite each other, so do not read it as a whole-genome atlas.
+
+`figures ani` compares two or more strain folders and needs `pyskani` from the `addons` extra.
+It uses the first FASTA it finds in each folder and does not check that the FASTA belongs to
+the strain. A missing direction is not zero. The matrix shows the measured value, the average
+of two measured values, or `no hit`. The fixed species-boundary title is not a taxonomy
+verdict. With fewer than two usable folders it writes no figure and exits 1.
+
+## Related pages
+
+- [Locus map v8](LOCUS_MAP_V8.md): the package's default gene map, with the full gene roster
+- [Locus-map review contract](LOCUS_MAP_REVIEW_CONTRACT.md): the maintainer contract those maps follow

@@ -1,3 +1,5 @@
+> Historical release notes. Current release status: [RELEASE_MANIFEST](../../RELEASE_MANIFEST.md).
+
 # v9.7.441 · 2026-09-24 · build 20260924v97441b · engine 1.9.169 · CODE
 
 Build b removes `bundle_support/vendor/ggrepel-master.zip` (5.8 MB), which build a shipped: ggrepel is GPL-3 and this CODE tier is MIT, and no bundle code needs it at runtime. The R installer's offline route now takes an operator-supplied `--from <dir>`. No other change from build a.
@@ -8,7 +10,7 @@ Accretion-justified: no new mamey runtime module. New standalone track adapter a
 - **Portable placement assets and output containment.** Resolve workspace assets through explicit roots or verified marker parents, diagnose missing companion binaries, accept documented flat placement layouts, normalize merged FASTA deflines, and refuse reference-package output inside the bundle, including symlink routes.
 - **Admitted assay tracks on existing trees.** Join exact tip crosswalks to hash-bound Figure Factory selections. Preserve zero, negative and unmeasured values; support configurable display thresholds and explicit reference labels. Ship generic fixtures and single/grouped R renderers, with no project-specific pooling or taxonomy inference.
 - **Re-authored clinker and cohort controls.** Bound long-label layout, deterministic row order, visible hidden-track counts, valid query regexes, full deposited labels and centered PDFs. Add opt-in product parking and explicit query-only CDS-count staging filters with provenance receipts; preserve reference inputs and join keys.
-- **Companion setup and documentation.** Prepend the active interpreter bin for BiG-SCAPE subprocesses; document optional R dependencies, provide installer readiness checks and an operator-supplied `--from <dir>` offline route (no third-party package source is vendored); regenerate inventories and observed health metrics.
+- **Companion setup and documentation.** Prepend the active interpreter bin for BiG-SCAPE subprocesses; document optional R dependencies, provide installer readiness checks and an operator-supplied `--from <dir>` offline route (this applies to the R installer route: it does not vendor R package source. It is not a statement about the whole bundle. Python source for `ijson` is vendored under `mamey/_vendor/ijson/`, and other third-party components may be present; check the bundled notices and licenses before redistributing); regenerate inventories and observed health metrics.
 
 Engine remains 1.9.169. No scoring threshold, scientific acceptance, publication authority or owner seal is changed. A local engineering cut candidate requires its own source and extracted-archive validation; consult RELEASE_MANIFEST.md for the measured status.
 

@@ -47,6 +47,7 @@ except ImportError as _e:  # pragma: no cover - optional dependency path
     _MPL_ERR = str(_e)
 
 from .locus_map import classify
+from .missing_values import optional_float, optional_text
 from .kcb_locusmap import (
     BIOSYN,
     GRID,
@@ -100,6 +101,7 @@ class Comparator:
     compound: str = ""
     genes: dict[str, ComparatorGene] = field(default_factory=dict)
     median_identity: float | None = None
+    unresolved_rows: int = 0
 
 
 @dataclass
@@ -165,6 +167,32 @@ def _tokens(value: Any) -> list[str]:
             seen.add(token)
             out.append(token)
     return out
+
+
+def _strand(value: Any) -> int:
+    """Source strand as 1 or -1; 0 when the source gives no strand or an unreadable one.
+
+    An unknown strand is drawn as a plain box with no arrowhead, never as a forward arrow.
+    """
+    text = str(value).strip() if value is not None else ""
+    if text in {"+", "1", "+1"}:
+        return 1
+    if text in {"-", "-1"}:
+        return -1
+    return 0
+
+
+def _strand_text(strand: int) -> str:
+    return {1: "+", -1: "-"}.get(strand, "")
+
+
+def _supported_hit(row: Mapping[str, Any]) -> bool:
+    """A per-gene comparator row counts only with a query gene, a subject gene and a numeric identity."""
+    return (
+        optional_text(row.get("query_gene")) is not None
+        and optional_text(row.get("subject_gene")) is not None
+        and optional_float(row.get("pct_identity")) is not None
+    )
 
 
 def _sha(path: Path) -> str:
@@ -370,8 +398,7 @@ def load_genes(package_dir: Path, bgc_id: str) -> tuple[list[GeneRow], Path | No
             continue
         if end < start:
             start, end = end, start
-        strand_text = _first(row, ("strand", "Strand"), "+")
-        strand = -1 if strand_text in {"-", "-1"} else 1
+        strand = _strand(_first(row, ("strand", "Strand")))
         domains = _tokens(_first(row, ("sec_met_domains", "aSDomains", "domain_annotations")))
         function = _first(
             row, ("gene_function_inference", "gene_functions", "product_qualifier", "product")
@@ -410,10 +437,17 @@ def _best_gene_row(rows: list[dict[str, str]]) -> dict[str, str]:
 
 
 def choose_comparator(package_dir: Path, bgc_id: str) -> tuple[Comparator, Path | None]:
-    """Choose the comparator with most unique query genes, then median identity and rank."""
+    """Choose the comparator with most unique query genes, then median identity and rank.
+
+    Only supported hits count: a row needs a query gene, a subject gene and a numeric
+    percent identity. Rows without them are left out of the choice and the gene metrics,
+    and their number is returned on the comparator as unresolved_rows.
+    """
     pkg = Path(package_dir)
     source = _package_file(pkg, "_3_mibig_per_gene.csv")
-    rows = [row for row in _read_csv(source) if _first(row, ("bgc_id", "BGC_ID")) == bgc_id]
+    all_rows = [row for row in _read_csv(source) if _first(row, ("bgc_id", "BGC_ID")) == bgc_id]
+    rows = [row for row in all_rows if _supported_hit(row)]
+    unresolved = len(all_rows) - len(rows)
     grouped: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         accession = _first(row, ("mibig_accession", "reference", "ref_bgc"))
@@ -424,7 +458,7 @@ def choose_comparator(package_dir: Path, bgc_id: str) -> tuple[Comparator, Path 
         if any(str(row.get("query_gene", "")).strip() for row in grows)
     }
     if not grouped:
-        return Comparator(), source
+        return Comparator(unresolved_rows=unresolved), source
 
     def group_key(item: tuple[tuple[str, str], list[dict[str, str]]]):
         (accession, _compound), grows = item
@@ -456,6 +490,7 @@ def choose_comparator(package_dir: Path, bgc_id: str) -> tuple[Comparator, Path 
         compound=compound,
         genes=genes,
         median_identity=median(identities) if identities else None,
+        unresolved_rows=unresolved,
     ), source
 
 
@@ -566,7 +601,7 @@ def _draw_map_axis(ax, genes: list[GeneRow], comparator: Comparator, title: str)
         color = SELECTED if selected else gene.color
         patch = Polygon(
             _arrow_polygon(gene.start, gene.end, 0.55, 0.38, "+" if gene.strand == 1 else "-",
-                            tip_frac=0.28),
+                            tip_frac=0.28 if gene.strand else 0.0),
             closed=True, facecolor=color, edgecolor="#1B1F23", linewidth=1.1, zorder=3,
         )
         patch.set_joinstyle("round")
@@ -767,7 +802,7 @@ def render_bgc_v8(
                 "order": gene.order,
                 "start": gene.start,
                 "end": gene.end,
-                "strand": "+" if gene.strand == 1 else "-",
+                "strand": _strand_text(gene.strand),
                 "length_aa": gene.length_aa,
                 "role": gene.role,
                 "gene_functions": gene.gene_functions,
@@ -826,6 +861,8 @@ def render_bgc_v8(
             "median_identity": comparator.median_identity,
         },
         "selected_genes_displayed_in_evidence_panel": selected_displayed,
+        "comparator_rows_unresolved": comparator.unresolved_rows,
+        "strand_unknown_loci": [gene.locus_tag for gene in genes if not gene.strand],
         "coverage_display_policy": "RAW_UNCAPPED_SOURCE_REPORTED; values over 100% marked with *",
         "coverage_values_over_100": sum(
             gene.pct_coverage is not None and gene.pct_coverage > 100

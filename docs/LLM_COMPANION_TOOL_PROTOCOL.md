@@ -1,7 +1,7 @@
 # LLM companion-tool protocol — BiG-SCAPE, GToTree, and IQ-TREE
 
-**Status:** authoritative LLM-facing operating contract.  This file governs Claude, Codex, and
-other agents that prepare, run, resume, interpret, or hand off the named companion workflows.
+**Status:** operating contract for assistants, not a user guide. People should start with the
+[companion tool guide](COMPANION_TOOL_GUIDE.md). This file governs any assistant that prepares, run, resume, interpret, or hand off the named companion workflows.
 BiG-SCAPE and phylogenomics remain downstream of a sealed Mamey package. They do not alter Mamey
 scores or establish production, activity, compound identity, novelty, or formal taxonomy.
 
@@ -29,8 +29,8 @@ An agent entering an existing workspace must read, in this order:
 4. only the paths named by those files.
 
 Do not recursively scan a large user workspace when a verified handoff exists. Do not create a new
-run merely because the producing agent was Claude and the consuming agent is Codex, or vice versa.
-The filesystem contract, not the chat transcript, is the cross-agent source of truth.
+run merely because a different assistant picked up the work.
+The filesystem contract, not the chat transcript, is the cross-assistant source of truth.
 
 ## Required run layout
 
@@ -93,15 +93,15 @@ and say it is uncalibrated. Never present a guessed runtime as measured.
 
 ## Check companion instruction consistency
 
-Request the **LLM companion instruction gate** to check the configured companion-document phrases and routing markers:
+Run the instruction check:
 
 ```bash
 python tools/audit_llm_companion_instructions.py --bundle-root '<extracted-bundle>' --out '<fresh-review-directory>/instruction-check.json'
 ```
 
-The default policy is `mamey/data/llm_companion_instruction_policy.json`. The checker compares case-sensitive literal strings in configured active, routing and historical documents, plus forbidden fragments on selected pages. It does not parse Markdown roles, validate commands or links, check every document, or confirm software availability/execution. A token in a comment or historical example can satisfy a required phrase. Read the policy, result rows and checked scope together; a policy with empty maps can return PASS with zero checks. Policy metadata such as schema version and authority is not independently validated.
+It compares literal strings in the documents named by `mamey/data/llm_companion_instruction_policy.json` and writes a JSON report. Exit 0 means every configured string was found. It does not parse Markdown, validate commands or links, or confirm that software is available. A policy whose four maps are all empty raises `instruction gate requires a nonempty valid policy scope` and exits 1 with a traceback, not a report. A file entry with an empty list or a blank string is a failed row. `checks` counts one row per file entry, not one per string, and each forbidden-fragment entry is one row. Read the policy and the report rows together.
 
-Use a new report destination outside the bundle, policy and supplied evidence. `--out` creates its parent and directly replaces an existing file; input/output aliases are not refused. `--policy` selects an alternate policy, whose paths are joined to the bundle root without containment enforcement. Admit its exact paths and intended scope before using it. Missing configured files become failed rows; malformed policy structures or unreadable files can raise instead of producing a completed report. Preserve the previous report separately and retain the actual failure. Exit 0 is this configured string check's PASS, not a semantic, scientific or release certification.
+Write the report outside the bundle. `--out` must be a new path outside the bundle; an existing path, a symlink or a path inside the bundle is refused. `--policy` selects another policy file; check its paths before using it. A missing configured file is a failed row. A malformed policy can raise instead of producing a report.
 
 ## Resource policy
 

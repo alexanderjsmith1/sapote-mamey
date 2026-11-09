@@ -176,7 +176,8 @@ specific downstream stage). **Fallback:** what happens when it is absent.
   renders NOT MEASURED.
 - **OFFICIAL_DATA** (governance, not third-party): the release owner's `exclusions.json` / `EXCLUSIONS.md`
   set the governed denominator. Set `MAMEY_OFFICIAL_DATA` to that folder (or `$MAMEY_DATA_ROOT/OFFICIAL_DATA/`).
-  An explicit `MAMEY_OFFICIAL_DATA` is exclusive; when it is absent the in-module default applies.
+  An explicit `MAMEY_OFFICIAL_DATA` is exclusive.
+  Historical: the old sentence here said that when it is absent "the in-module default applies". That is not the current order. `mamey/exclusions.py` (`_probe_paths`, `_load_bound`) reads an active source context first, then `$MAMEY_OFFICIAL_DATA`, then `$MAMEY_DATA_ROOT/OFFICIAL_DATA/`, then an `OFFICIAL_DATA/` folder found by walking up from the package. It uses the in-module default only when none of those yields a readable file, and in strict mode a missing bound source is refused. Read the path and SHA-256 of the source actually used before relying on a governed result. The current contract is in [External Assets Guide](../EXTERNAL_ASSETS_GUIDE.md).
   Check `doctor` so you know which denominator is in force before generating a governed claim.
 
 ### 9. Optional Python packages — *speed / sturdier parsing*

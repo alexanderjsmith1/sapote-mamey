@@ -9,7 +9,7 @@ self-verify + anchor-free leak scan).
 ## -i … -j — hard-guard leak fix
 Real strain IDs are underscore-wrapped (`_AS-NNN_`); every scrub/audit used a `\b` word-boundary that
 skips `_`, so the bundle had been mis-certifying public tiers. Fix: anchor-free hyphenated pattern
-`(?<![A-Za-z])AS-[0-9]{2,4}` (preserves the public `AL-KSAMP_AS10_SC01` substring), real refs scrubbed
+a hyphenated pattern: the `AS` prefix, a hyphen and two to four digits, not preceded by a letter (preserves the public `AL-KSAMP_AS10_SC01` substring), real refs scrubbed
 in all 3 public tiers, and a **fail-closed invariant** (`test_no_unpublished_ids_in_public_tier.py`)
 that skips on the private tier. Piericidin added (75th reference).
 

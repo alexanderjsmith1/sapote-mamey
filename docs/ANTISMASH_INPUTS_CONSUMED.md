@@ -28,14 +28,17 @@ reports file types and counts, rather than individual filenames. Use
 
 Assembly statistics use FASTA first, then full-record GenBank. A region-only ZIP
 lacks whole-genome input: zero assembly counts mean missing input, and contig
-lengths may be unknown. Use **strain / full node-or-contig / region / BGC alias**
-to join records.
+lengths may be unknown. FLBR KS counts and UMED hits cover the CDS records read,
+so from a region-only ZIP they are region-scoped, even under `genome_wide_*` key
+names. Each scan's `count_scope.state` names the record set. `run` does not yet
+pass that set to the scans, so it currently reads `NOT_BOUND`.
+Use **strain / full node-or-contig / region / BGC alias** to join records.
 
 ## Read saved RiPP motif evidence
 
-In `runs/EXAMPLE/package/`, open `AS-40_5_workbook.xlsx` and select
-`antiSMASH_RiPP_Motifs`. The same rows are in `AS-40_3_antismash_ripp_motifs.csv`
-and `AS-40_3_antismash_structured.json`.
+In `runs/EXAMPLE/package/`, open `EXAMPLE_5_workbook.xlsx` and select
+`antiSMASH_RiPP_Motifs`. The same rows are in `EXAMPLE_3_antismash_ripp_motifs.csv`
+and `EXAMPLE_3_antismash_structured.json`.
 
 Read the mapping status, source file, locus tag, core sequence and details.
 A gene can have several predictions; count rows and distinct gene tags separately.
@@ -66,8 +69,10 @@ may omit coverage warnings.
 
 ## Optional: change JSON reading
 
-The default, `bounded`, streams the main walker under byte and stored-leaf limits.
-Keep it for the first run.
+Without `--capped-session`, the default is `bounded`. It streams the main walker
+under byte and stored-leaf limits. The [first run](reader/01_FIRST_RUN.md) uses
+`--capped-session`, which forces `off`. To read JSON with the bounded walker, drop
+`--capped-session` and allow a longer run.
 
 `--json-evidence off` skips that walker. KCB text and separate metadata/record
 readers can still supply evidence. `--capped-session` forces this mode; check

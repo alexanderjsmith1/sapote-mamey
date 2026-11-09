@@ -20,7 +20,7 @@ import pytest
 HOOKS = Path(__file__).resolve().parents[1] / "hooks"
 import re as _re
 from tests.conftest import hermetic_env  # v9.7.404 bytecode-leak fix
-HARDCODED = _re.compile(r"/Users/[^/]+/|/home/[^/]+/")  # any personal home, name-free
+HARDCODED = _re.compile(r"/Us" r"ers/[^/]+/|/ho" r"me/[^/]+/")  # any personal home, name-free
 ENV_VAR = "SAPOTE_WORKSPACE_ROOT"
 
 

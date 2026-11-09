@@ -16,12 +16,12 @@ The original scoring example has wrong flags; the denominator example below is c
 read-only check against existing inputs, are:
 
 ```bash
-python tools/cohort_scoring_version_gate.py --workbooks-dir <per-strain-workbooks> --engine <pinned-engine>
+python tools/cohort_scoring_version_gate.py --workbooks-dir <per-strain-workbooks> --engine <pinned-engine> --roster <intended-workbook-list>
 python tools/cross_strain_denominator_audit.py <existing-cohort-workbook.xlsx>
 python tools/check_antismash_profile.py <existing-packages-root>
 ```
 
-The scoring gate checks recorded versions against the supplied engine; it does not rerun or prove all
+The scoring gate reads every manifest data row of each top-level `*.xlsx` in the directory and checks the recorded versions against the supplied engine (`tools/cohort_scoring_version_gate.py`, `_read_workbook_versions`, `collect_versions`). `--roster` names the intended workbook stems, one per line, and the gate fails unless the top-level files match it exactly. Without `--roster`, the OK line says no intended roster was checked, so a missing workbook would not be seen. The gate does not rerun anything or prove all
 measurements comparable. Profile guard rejects empty/unknown/mixed/duplicate identities by default, but
 `--warn-only` softens exit behavior. The denominator audit scans N/M tokens on four selected sheets and can PASS when none are present. It counts nonempty rows rather than unique identities, allows registry/BGC row totals and has a detector window: PASS_WITH_REVIEW_NOTES exits zero. Read [the exact detector/coverage contract](../reference/06_CURRENT_SOURCE_SCOPE.md#cross-strain-denominator-and-conservation-audit-coverage). It does not verify every
 claim, subset denominator or numerical/statistical comparison. Inspect findings, scope and actual sources.
@@ -64,7 +64,7 @@ Workbook and report publication are separate atomic replacements. A later report
 <!-- CP018 preserved original body follows. -->
 **How to make valid cross-strain claims and what you cannot claim**
 
-**v9.7.149a** | Source: `docs/COHORT_RESCORING_PLAN.md`, `docs/GLOSSARY.md`, `AGENTS.md` | Last updated: 2026-06-29
+**v9.7.149a** | Source: `docs/history/retired_458/COHORT_RESCORING_PLAN.md`, `docs/GLOSSARY.md`, `AGENTS.md` | Last updated: 2026-06-29
 
 ---
 
@@ -73,6 +73,8 @@ Workbook and report publication are separate atomic replacements. A later report
 Cross-strain comparisons are only valid when every strain in the comparison was scored by the **same engine version**. Mixing strains scored at different engine versions produces numbers from different rulebooks — not valid for any comparative claim.
 
 The `cohort_scoring_version_gate.py` tool enforces this as a fail-closed gate: a comparative build refuses to aggregate strains with mixed scoring engine versions.
+
+Historical: do not run the block below. `cohort_scoring_version_gate.py` has no `--banked-dir` or `--workbook` option. Use the form near the top of this page, which has `--workbooks-dir`, `--engine` and `--roster`.
 
 ```bash
 python tools/cohort_scoring_version_gate.py \
@@ -85,6 +87,8 @@ python tools/cohort_scoring_version_gate.py \
 
 ## What you need before making any comparative claim
 
+Historical: item 3 ("never raw counts") and item 4 (blanket exclusions) in this list are superseded. See the scope note at the top of this page: NAPAA is neutral, saccharide scope is lead prioritization, and the corrected count is a weighted diagnostic, not a replacement for stated denominators.
+
 1. **Engine version check:** All strains in the comparison scored at the same engine version (verify with `cohort_scoring_version_gate.py`)
 2. **antiSMASH profile check:** All strains run with the same antiSMASH strictness setting (verify with `check_antismash_profile.py`)
 3. **Corrected counts:** Use corrected BGC counts (Interior + ½·Edge + ¼·FC), never raw counts
@@ -94,6 +98,8 @@ python tools/cohort_scoring_version_gate.py \
 ---
 
 ## Corrected BGC count — the only valid count for comparisons
+
+Historical: "the only valid count", "locked" and "authoritative" below are superseded. Corrected count is a deterministic weighted diagnostic, not a physically reconciled cluster census. Report what was counted and its denominator.
 
 **Formula:** Interior × 1.0 + Edge × 0.5 + Full-contig × 0.25
 
@@ -109,6 +115,8 @@ This is locked. Do not re-derive it in downstream tools. The formula is authorit
 ---
 
 ## Standing exclusions (mandatory before any cross-strain claim)
+
+Historical: these exclusions are withdrawn. The current registry treats NAPAA as neutral and nonblocking, and saccharide scope is lead prioritization, not automatic exclusion from every comparison. State your own inclusion and exclusion rules and denominators.
 
 These three classes must be excluded from every cross-strain comparison:
 
@@ -138,7 +146,7 @@ These three classes must be excluded from every cross-strain comparison:
 
 ### ✓ Valid: strain-unique capacity (provisional, sample-limited)
 
-> "A fluorinated phosphonate BGC was detected in SID8375 (NODE_3 · region_004) with no close KCB match in any other strain in the 12-bee cohort — a strain-specific biosynthetic capacity not represented elsewhere in this sample (provisional; sample-limited observation)."
+> "A fluorinated phosphonate BGC was detected in `<strain>` (`<contig>` · region_004) with no close KCB match in any other strain in the 12-bee cohort — a strain-specific biosynthetic capacity not represented elsewhere in this sample (provisional; sample-limited observation)."
 
 ### ✗ Invalid: phenotypic binary
 
@@ -194,7 +202,7 @@ After re-scoring or adding strains, these layers must be recomputed from scratch
 - Pan-genome / BGC family groupings
 - Cross-strain rankings
 
-The merge tool (`hub_merge.py`) recomputes these automatically after merge. If you build these layers manually, never concatenate a new strain's cohort-local layer onto an existing one — always recompute from all strains together.
+Historical: the old text here said the merge tool (`hub_merge.py`) recomputes these automatically after merge. That is not true. `hub_merge.py` does not automatically rebuild pan-genome families, prevalence layers or biological interpretation (see the scope note at the top of this page). If you build these layers manually, never concatenate a new strain's cohort-local layer onto an existing one — always recompute from all strains together.
 
 ---
 
@@ -239,6 +247,6 @@ This produces a deterministic filter → CSV → panel workflow. Caption: "The s
 - **Scoring version gate tool:** `tools/cohort_scoring_version_gate.py`
 - **Denominator audit tool:** `tools/cross_strain_denominator_audit.py`
 - **Profile guard tool:** `tools/check_antismash_profile.py`
-- **Re-scoring plan:** `docs/COHORT_RESCORING_PLAN.md`
+- **Re-scoring plan:** `docs/history/retired_458/COHORT_RESCORING_PLAN.md`
 - **Pan-genome tool:** `tools/build_pangenome.py`
 - **Normalization matrix:** `tools/build_normalization_matrix.py`

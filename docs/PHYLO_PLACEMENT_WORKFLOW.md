@@ -1,92 +1,99 @@
-# Phylogenetic placement workflow — putting lab strains into a strong reference tree's neighborhood
+# Phylogenetic placement workflow
 
-**Purpose.** Build a trustworthy reference phylogeny from high-quality data (type strains). Then *place* the lab
-test strains onto that fixed backbone and report which clade/neighborhood each lands in. This keeps the
-lower-quality query sequences from distorting the reference topology. This is standard phylogenetic placement, the
-method EPA-ng was built for.
+Use this page to put 16S sequences from your isolates onto a fixed reference tree and report which clade each one lands in. The reference tree is built once from high-quality type-strain sequences. Your queries are attached to it afterward, so lower-quality reads cannot change its shape. The method is called phylogenetic placement, and EPA-ng is the program that does it.
 
-## What placement can and cannot say
-- **The method has a name: phylogenetic placement**. A reference tree + reference alignment are fixed; each
-  query is attached to the branch (edge) that maximizes likelihood, reported with a **likelihood-weight ratio
-  (LWR)** and a **pendant length**. You then say *"query X places within/near clade Y"* — a neighborhood
-  statement, with a confidence number, not a hard species call.
-- **Two correctness constraints with different checks:**
-  1. **Data types must match.** A 16S query places onto a **16S** reference tree. It cannot be placed onto a
-     **GToTree** backbone — GToTree concatenates single-copy *protein/core genes*, a different alphabet and
-     different loci. GToTree is the backbone only for strains that have **genomes** (place them there directly,
-     no 16S needed, far higher resolution). 16S-only strains use the 16S backbone here.
-  2. **Source separation.** Keep each selected biological cohort's references, queries and outputs
-     separate, with a source-bound query roster. `build-ref` requires `--group`, and placement stamps
-     that reference group into its receipts; this does not verify that each supplied query belongs
-     to the cohort. The operator must validate membership before placing. Molecule compatibility
-     and duplicate/backbone-tip checks do not replace that provenance check.
-- **16S resolution ceiling.** 16S often cannot separate Streptomyces species (near-identical rRNA). Placement
-  then gives a **genus/clade neighborhood**, which is the correct, defensible claim; species-level resolution
-  needs genomes (GToTree backbone) + ANI. Every report states this.
+For a shorter route that classifies your files and builds the reference for you, see the [autopilot workflow](PHYLO_AUTOPILOT_WORKFLOW.md). For the EPA-ng details, see [EPA-ng placement](EPA_NG_PLACEMENT_WORKFLOW.md).
 
-## The pipeline (one cohort at a time)
-1. **Reference set** — select source-bound full-length 16S references for the cohort's genera
-   from separately supplied NCBI 16S, SILVA or LPSN-associated material. Record actual local asset
-   paths, sequence hashes and reference metadata; the bundle does not ship a `Tools/databases/`
-   directory. Curate the selected type-material evidence rather than inferring it from collection
-   names, and use NCBI Assembly `from_type` evidence for `[Type]` labels. Preserve each tip's full
-   name/designation and accession in the metadata and display according to the figure house rules.
-2. **`build-ref`** — `mafft` align → `raxml-ng` (or `iqtree`) ML tree + model → frozen `refpkg/`. CPU-heavy →
-   **requires `--approved-by`** (tree-approval gate). Select an explicit output location
-   outside the sealed code bundle; `build-ref` refuses a reference package inside the bundle. Bootstraps for the backbone only; the queries never enter
-   this inference. Without `--refpkg`, the package goes beside the placements (`<outdir>/refpkg`) when the
-   command has an `--outdir` (the `all` command), and otherwise to `_PLACEMENT/<group>/refpkg` in the
-   generic `trees/` home. Set `SAPOTE_TREE_HOME` to an absolute path or a workspace-relative path to override it. No top-level `strain_data/` folder is made, and
-   `placement_to_docx --auto` finds both locations.
-3. **`place`** — align the lab 16S into the reference coordinate system (`mafft --add --keeplength`, or
-   `mafft --addfragments --keeplength` via `--fragmentary` for short Sanger reads) → **epa-ng** →
-   `epa_result.jplace`. epa-ng does not fit model parameters, so `place` passes the fitted model from
-   the reference package: `ref.bestModel` (raxml-ng), or `ref.iq.iqtree` (IQ-TREE, GTR family). It
-   stops with `EPA_MODEL_NOT_REPRESENTABLE` when the IQ-TREE model uses FreeRate, and with
-   `EPA_MODEL_UNFITTED` when a nucleotide package holds only a model name. Rebuild the reference
-   package with the current `build-ref` in either case. The autopilot writes `query_qc.tsv` and selects fragment mode when any
-   routed query is shorter than 1,200 bp; unsupported symbols and reads shorter than 200 bp are held.
-   The placement reader keeps identical sequences with distinct query IDs, but repeated IDs keep only the first record with a warning, without proving that repeated sequences agree. Reconcile the exact input/retained roster and resolve conflicting IDs before placement; a reduced query count is not an accepted isolate merge. The separate sequence-admission gate is not automatically run by this step.
-4. **`report`** — `gappa examine graft` (a tree with the queries attached = the figure) + a
-   `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README. The optional advisory
-   sign-off helper runs only if found in the resolved external workspace's uppercase `Tools/` directory as `signoff_check.py`. This is an optional workspace path; the bundled helper is `tools/signoff_check.py`.
-   Its status is not a hard completion gate. Reporting can return zero while a figure
-   or caption is held; inspect the actual output roster and diagnostics.
+## What placement can say
 
-## EPA-ng version admission before placement
+Each query is attached to the branch of the reference tree where it fits best. The report gives two numbers for it:
 
-`place` checks EPA-ng `--version` before writing anything and requires release 0.3.4 or later; 0.3.0–0.3.3 have a [rooted-input bug](https://github.com/pierrebarbera/epa-ng#warning-v030---v033). Missing, failed, timed-out, ambiguous, development or unknown banners are refused, with no bypass. The executable's bytes are checked before and after placement; a change refuses the run and keeps partial outputs. Use a fresh output directory. Existing reports stay usable.
+- the **likelihood-weight ratio (LWR)**, which is the share of the placement likelihood that falls on that branch, out of the alternative branches EPA-ng kept. It holds only for this reference tree, alignment and model. It is not a bootstrap, a species probability or a calibrated confidence;
+- the **pendant length**, which is how far the query sits from the branch.
 
-## Example (after install; approval recorded)
+You can say "query X places within or near clade Y". That is a neighborhood statement with a relative placement weight. Report the alternative placements too. It is not a species call. 16S often cannot separate species in a genus such as Streptomyces, so the claim is a genus or clade neighborhood. Species-level work needs genomes and ANI.
+
+Two rules apply:
+
+1. **Match the data type.** A 16S query goes on a 16S reference tree. Do not place it on a GToTree backbone, which is built from protein genes. Strains with genomes use the [GToTree route](GTOTREE_WORKFLOW.md).
+2. **Keep cohorts separate.** Use one cohort's references, queries and outputs per run. `build-ref` requires `--group` and stamps it into the receipts. It does not check that your queries belong to that cohort, so check this yourself before step 3.
+
+## Before you start
+
+- Install the placement tools: MAFFT, EPA-ng 0.3.4 or later, gappa, and RAxML-NG (or IQ-TREE). See [external tools](EXTERNAL_TOOL_INVENTORY.md).
+- Set `PLACEMENT_BIN` and `PHYLO_BIN` to the folders that hold them, as in the example below.
+- Work from the bundle root in the activated environment. Write all outputs to a writable workspace folder outside the bundle. `build-ref` refuses a reference folder inside the bundle.
+- Use a new output folder for each run.
+
+`place` checks `epa-ng --version` before it writes anything. It refuses versions below 0.3.4 (0.3.0 to 0.3.3 have a [rooted-input bug](https://github.com/pierrebarbera/epa-ng#warning-v030---v033)) and any banner it cannot read. There is no bypass. It also checks the program file before and after the run. A change refuses the run and keeps partial outputs.
+
+## Steps
+
+### 1. Build the reference FASTA
+
+Make a FASTA of full-length 16S type-strain sequences for your cohort's genera. Use `tools/phylo_refset.py`, which finds references for your queries, removes duplicates and adds an outgroup. See [outgroups and reference sets](OUTGROUP_AND_REFSET_WORKFLOW.md). Your FASTA must carry an outgroup. Either build it with `phylo_refset.py`, or pass `--add-outgroup GENUS` in step 2.
+
+Keep each tip's full name and accession. Use NCBI Assembly type-material evidence for any `[Type]` label. Do not infer type status from a collection name.
+
+### 2. Build the reference package (`build-ref`)
+
+`build-ref` aligns the references with MAFFT, builds a maximum-likelihood tree with RAxML-NG (or IQ-TREE), and saves a frozen `refpkg/` folder. It uses a lot of CPU, so it needs `--approved-by NAME`. Give the name of the person who authorized the tree. The run records it in its receipt. Any non-empty text is accepted, so the name is a record, not a check. Queries never enter this tree.
+
+If you do not pass `--refpkg`, the package goes in `<outdir>/refpkg` when the command has `--outdir` (the `all` command), and otherwise in `_PLACEMENT/<group>/refpkg` under the tree home. Set `SAPOTE_TREE_HOME` to change the tree home.
+
+You should see a `refpkg/` folder with `ref.aln.fasta`, `ref.tree` and `_provenance.json`.
+
+### 3. Place the queries (`place`)
+
+Before you place, check that every query belongs to your cohort and that the query count matches your roster. The reader keeps identical sequences that have different IDs. For a repeated ID it keeps only the first record and prints a warning, so a lower count than you expect means some IDs repeated. Resolve them first. The separate sequence-admission gate does not run in this step.
+
+`place` aligns the queries into the reference alignment with `mafft --add --keeplength`. Add `--fragmentary` for short Sanger reads; it uses `mafft --addfragments --keeplength`. The autopilot chooses fragment mode when any routed query is shorter than 1,200 bp and holds reads shorter than 200 bp or with unsupported symbols.
+
+Then EPA-ng places the queries, using the model fitted for the reference tree. It stops with `EPA_MODEL_NOT_REPRESENTABLE` if the IQ-TREE model uses FreeRate, and with `EPA_MODEL_UNFITTED` if a nucleotide package holds only a model name. In both cases, rebuild the package with the current `build-ref`.
+
+You should see `epa_result.jplace` in the placements folder.
+
+### 4. Report (`report`)
+
+`report` runs `gappa examine graft` to attach the queries to the reference tree. It writes these files to the output folder:
+
+- `<group>_placements.tsv`: the best branch, LWR and pendant length for each query;
+- `<group>_placement_alternatives.tsv`: the other branches for each query;
+- `<group>_neighborhoods.tsv`: each query's nearest reference tip;
+- the grafted tree as `.newick`, and `<group>_placement_tree.png` and `.svg` when it can draw the figure;
+- `<group>_PLACEMENT_README.md`, which holds the claim-safe summary.
+
+`report` can exit 0 while a figure or caption is held. Open the output folder and check that each file above is there and nonempty. A missing figure is a hold, not a success.
+
+To put the figures and captions in a Word file, use `tools/placement_to_docx.py`; run it with `--help` first.
+
+## Example
+
 ```bash
 export PLACEMENT_BIN="/absolute/path/to/placement/bin"
 export PHYLO_BIN="/absolute/path/to/phylo/bin"
-PLACEMENT_OUT="/absolute/path/to/writable/placement/streptomyces"
-python tools/phylo_place.py build-ref /path/to/streptomyces_reference_16S.fasta \
+PLACEMENT_OUT="/absolute/path/to/writable/placement/EXAMPLE"
+python tools/phylo_place.py build-ref /path/to/EXAMPLE_reference_16S.fasta \
     --group streptomyces --refpkg "$PLACEMENT_OUT/refpkg" \
-    --approved-by "<recorded-approval>" --threads 2
+    --approved-by "Your Name" --threads 2
 python tools/phylo_place.py place --refpkg "$PLACEMENT_OUT/refpkg" \
     --query /path/to/cohort_query_16S.fasta --outdir "$PLACEMENT_OUT/placements"
 python tools/phylo_place.py report --refpkg "$PLACEMENT_OUT/refpkg" \
     --jplace "$PLACEMENT_OUT/placements/epa_result.jplace"
 ```
 
-## How to state the result (claim-safe)
-Replace all example paths and the approval placeholder with selected inputs and recorded authority.
-Use the actual inference receipt for software, model and support method: the RAxML-NG route uses
-classical bootstraps and a `GTR+I+G` nucleotide model; the IQ-TREE fallback selects a model among
-`+I`, `+G` and `+I+G` rate variants and uses ultrafast bootstraps. FreeRate (`+R`) is excluded
-because epa-ng cannot read it. Backbone support is separate from EPA-ng query LWR. Do not relabel one method
-as the other or claim that this workflow's example text verifies type status.
+Replace every path and the name with your own. The reference FASTA here already carries its outgroup.
 
-> "On the selected 16S reference backbone (n=NN, software/model/support method from the receipt), isolate QUERY places within the
-> *Streptomyces* clade containing *S. albidoflavus* (LWR 0.86, pendant 0.004) — i.e. it falls in that
-> neighborhood of 16S phylogenetic space. 16S is an anchor, not a species call. Species-level placement awaits
-> the genome/ANI track."
+This example and the [autopilot route](PHYLO_AUTOPILOT_WORKFLOW.md) differ in one setting. The autopilot passes `--one-per-species` to keep one reference sequence per species. This example keeps every reference you give it. `build-ref` accepts `--one-per-species` and `--one-per-genus`; both thin the backbone, so compare with a denser one before you interpret the result.
 
-## Relationship to the genome track (when genomes exist)
-For strains **with genomes**, use a GToTree core-genome backbone and ANI/aligned fraction to selected,
-source-verified reference assemblies for higher-resolution comparison. These measurements
-support taxonomic investigation; neither a tree nor an ANI threshold automatically
-establishes a species name, formal taxonomy or strain identity. Use 16S placement for the strains that only have Sanger 16S, and as a fast,
-cohort-wide first pass. The two are complementary; do not graft a 16S query onto a genome tree.
+## How to state the result
+
+Read the inference receipt for the software, model and support method. The RAxML-NG route uses classical bootstraps and a `GTR+I+G` model. The IQ-TREE fallback chooses among `+I`, `+G` and `+I+G` models and uses ultrafast bootstraps. FreeRate (`+R`) is excluded because EPA-ng cannot read it. Backbone support is separate from query LWR. Do not describe one method as the other.
+
+Template, with your values in place of the capitals:
+
+> On the selected 16S reference backbone (n=N; software, model and support method from the receipt), isolate QUERY places within the GENUS clade containing REFERENCE (LWR X, pendant Y). It falls in that neighborhood of 16S phylogenetic space. 16S is an anchor, not a species call. Species-level placement awaits the genome and ANI track.
+
+## When you have genomes
+
+For strains with genomes, use a GToTree core-genome backbone and ANI to selected reference assemblies. A tree or an ANI value supports taxonomic work; neither sets a species name or strain identity. Use 16S placement for strains that only have Sanger 16S, and as a fast first pass. Do not graft a 16S query onto a genome tree.

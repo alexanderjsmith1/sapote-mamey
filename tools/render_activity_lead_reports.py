@@ -82,11 +82,15 @@ CLAIM_SAFETY_BANNER = (
     "Judgment on every hypothesis below is deferred to the Sapote (Tier 2/3) judgment layer."
 )
 
+# The tier is computed only from where each BGC sits on its contig (interior / edge /
+# full-contig). It does not measure assembly contiguity or reliability, so the wording below
+# describes the boundary counts and never recommends sequencing; that needs separate
+# assembly-quality evidence (contig count, N50 and an assembly QC receipt).
 TIER_TABLE_ROWS = [
-    ("GOOD", "≥70%", "Low priority", "Raw ≈ corrected; BGC routing counts are reliable"),
-    ("MODERATE", "45–69%", "Consider", "Minor correction needed; most interior BGCs are reliable"),
-    ("POOR", "20–44%", "Recommended", "Corrected count only; edge/full-contig BGCs are unreliable"),
-    ("VERY_POOR", "<20%", "Urgent", "Raw count is inflated; only interior BGCs are defensible"),
+    ("GOOD", "≥70%", "At least 70% of this board's BGCs are interior to a contig"),
+    ("MODERATE", "45–69%", "45–69% of this board's BGCs are interior to a contig"),
+    ("POOR", "20–44%", "20–44% of this board's BGCs are interior; the rest touch a contig edge or fill a contig"),
+    ("VERY_POOR", "<20%", "Under 20% of this board's BGCs are interior; most touch a contig edge or fill a contig"),
 ]
 
 # Deterministic, class-level bench-method suggestions. Keyed by the normalized class token this
@@ -273,12 +277,12 @@ def _why_it_ranks(strain: str, top_lead: dict[str, str], assembly_row: dict[str,
     axis = "antifungal" if top_lead.get("axis") == "antifungal" else "antibacterial"
     tier = (assembly_row or {}).get("tier", "UNKNOWN")
     tier_phrase = {
-        "GOOD": "reliable assembly",
-        "MODERATE": "assembly needs minor correction",
-        "POOR": "assembly correction strongly recommended",
-        "VERY_POOR": "assembly is unreliable; long-read sequencing urged",
-        "UNKNOWN": "assembly quality not recorded",
-    }.get(tier, "assembly quality not recorded")
+        "GOOD": "boundary tier GOOD (at least 70% of BGCs interior to a contig)",
+        "MODERATE": "boundary tier MODERATE (45-69% of BGCs interior to a contig)",
+        "POOR": "boundary tier POOR (20-44% of BGCs interior to a contig)",
+        "VERY_POOR": "boundary tier VERY_POOR (under 20% of BGCs interior to a contig)",
+        "UNKNOWN": "boundary tier not recorded",
+    }.get(tier, "boundary tier not recorded")
     return (
         f"Top {axis} routing candidate is a {primary} locus at score "
         f"{_num(top_lead.get('axis_score')):.0f} ({top_lead.get('interpretability_tier', '')}); {tier_phrase}."
@@ -333,21 +337,24 @@ def build_markdown(
     out.append("# Activity-Lead Report — Gene-Anchored AF/AB Routing Boards")
     out.append("")
     out.append(f"Cohort: {len(strains_with_leads)} strain(s) with an admitted routing lead, "
-                f"{len(assembly_rows)} strain(s) with an assembly-quality record." +
+                f"{len(assembly_rows)} strain(s) with a contig-boundary record." +
                 (f" Build: {stamp}." if stamp else ""))
     out.append("")
     out.append("> " + CLAIM_SAFETY_BANNER)
     out.append("")
 
-    out.append("## Assembly-quality tiers")
+    out.append("## Contig-boundary tiers")
     out.append("")
     out.append("Corrected BGC count = Interior + 0.5×Edge + 0.25×Full-contig "
-                "(`mamey.assembly.corrected_bgc_count`). Interior % gates the tier.")
+                "(`mamey.assembly.corrected_bgc_count`). Interior % gates the tier. The tier "
+                "describes BGC positions on contigs only; it does not measure assembly "
+                "contiguity or reliability and is not a sequencing recommendation. Use contig "
+                "count, N50 and a separate assembly-quality receipt for those.")
     out.append("")
-    out.append("| Tier | Interior % | Long-read | Interpretation |")
-    out.append("|---|---:|---|---|")
-    for tier, pct, rec, note in TIER_TABLE_ROWS:
-        out.append(f"| {tier} | {pct} | {rec} | {note} |")
+    out.append("| Tier | Interior % | What the tier counts |")
+    out.append("|---|---:|---|")
+    for tier, pct, note in TIER_TABLE_ROWS:
+        out.append(f"| {tier} | {pct} | {note} |")
     out.append("")
     out.append("| Strain | Genome | Contigs | N50 | Raw BGC | Corrected BGC | Interior % | Tier |")
     out.append("|---|---|---:|---:|---:|---:|---:|---|")
@@ -397,7 +404,7 @@ def build_markdown(
             out.append(
                 f"{_fmt_mb(assembly_row['genome_bp'])} | {assembly_row['contigs'] or 'n/a'} ctgs | "
                 f"Raw: {assembly_row['raw_bgc']} | Corrected: {assembly_row['corrected_bgc']:.2f} | "
-                f"Interior: {_fmt_pct(assembly_row['interior_pct'])} | Assembly: {assembly_row['tier']}"
+                f"Interior: {_fmt_pct(assembly_row['interior_pct'])} | Boundary tier: {assembly_row['tier']}"
             )
         else:
             out.append("Assembly record not found in `--runs-dir` for this strain.")
@@ -452,6 +459,50 @@ def build_markdown(
     return "\n".join(out)
 
 
+def _same_or_inside(path: Path, root: Path) -> bool:
+    """True when ``path`` is ``root`` or lies under it, on this filesystem.
+
+    Each existing ancestor of the resolved output is compared with the root by device and
+    inode, so a case variant (``RUNS`` for ``Runs`` on a case-insensitive volume such as
+    default APFS) or any other alias of the same directory is caught. A root that does not
+    exist is compared by name, case-folded where the platform folds case.
+    """
+    resolved = path.resolve()
+    try:
+        root_stat = os.stat(root)
+    except OSError:
+        root_stat = None
+    if root_stat is not None:
+        for candidate in (resolved, *resolved.parents):
+            try:
+                st = os.stat(candidate)
+            except FileNotFoundError:
+                continue
+            if (st.st_dev, st.st_ino) == (root_stat.st_dev, root_stat.st_ino):
+                return True
+        return False
+    fold = sys.platform in ("darwin", "win32")
+    norm = (lambda p: os.path.normcase(str(p)).casefold()) if fold else (lambda p: os.path.normcase(str(p)))
+    root_n = norm(Path(root).resolve())
+    return any(norm(candidate) == root_n for candidate in (resolved, *resolved.parents))
+
+
+def check_output_location(outputs: list[Path], input_dirs: tuple[str, ...]) -> None:
+    """Refuse an output that already exists or that sits inside an input tree.
+
+    Inputs are package and leads directories; writing a report inside one would edit a package.
+    Containment is checked on the filesystem itself, so a case variant of an input path is
+    refused on a case-insensitive volume.
+    """
+    from mamey.output_transaction import preflight_output_roster
+    for output in outputs:
+        for source in input_dirs:
+            if _same_or_inside(output, Path(source)):
+                raise ValueError(f"output {output} is inside input tree {source}; "
+                                 "choose an output stem outside --runs-dir and --leads-dir")
+    preflight_output_roster(outputs, protected_paths=[Path(d) for d in input_dirs])
+
+
 def render(
     runs_dir: str,
     leads_dir: str,
@@ -470,11 +521,13 @@ def render(
     )
 
     out_path = Path(out_stem)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
     md_path = out_path.with_suffix(".md")
-    tmp = md_path.with_suffix(md_path.suffix + ".tmp")
-    tmp.write_text(markdown, encoding="utf-8")
-    os.replace(tmp, md_path)
+    pdf_target = out_path.with_suffix(".pdf")
+    want_pdf = fmt in ("auto", "pdf")
+    check_output_location([md_path] + ([pdf_target] if want_pdf else []), (runs_dir, leads_dir))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with md_path.open("x", encoding="utf-8") as handle:
+        handle.write(markdown)
 
     result: dict[str, Any] = {
         "markdown_path": str(md_path),
@@ -484,7 +537,6 @@ def render(
         "n_strains_with_assembly": len(assembly_rows),
         "n_lead_rows": len(leads),
     }
-    want_pdf = fmt in ("auto", "pdf")
     if not want_pdf:
         result["pdf_skipped_reason"] = "format=markdown requested explicitly"
     if want_pdf:
@@ -495,7 +547,7 @@ def render(
                 raise
             result["pdf_skipped_reason"] = "reportlab is not importable in this environment"
         else:
-            pdf_path = out_path.with_suffix(".pdf")
+            pdf_path = pdf_target
             _render_pdf(
                 str(md_path), str(pdf_path),
                 title="Activity-Lead Report",
@@ -515,7 +567,8 @@ def main(argv: list[str] | None = None) -> int:
                               "(+ optionally `mamey activity-lead-genes`).")
     parser.add_argument("--out", default="activity_lead_reports/ACTIVITY_LEAD_REPORT",
                          help="Output path stem (no extension); .md always written, "
-                              ".pdf written when reportlab is importable.")
+                              ".pdf written when reportlab is importable. Both must be new "
+                              "files outside --runs-dir and --leads-dir.")
     parser.add_argument("--top-n-targets", type=int, default=15,
                          help="Rows in the cross-strain best-targets table (default 15).")
     parser.add_argument("--format", choices=("auto", "pdf", "markdown"), default="auto",
@@ -527,10 +580,13 @@ def main(argv: list[str] | None = None) -> int:
                               "Never affects ranking or content, only the one summary line.")
     args = parser.parse_args(argv)
 
-    result = render(
-        args.runs_dir, args.leads_dir, args.out,
-        top_n_targets=args.top_n_targets, fmt=args.format, stamp=args.stamp,
-    )
+    try:
+        result = render(
+            args.runs_dir, args.leads_dir, args.out,
+            top_n_targets=args.top_n_targets, fmt=args.format, stamp=args.stamp,
+        )
+    except (ValueError, FileExistsError) as exc:
+        parser.error(f"output refused: {exc}")
     # v9.7.405 (lane 2, per the composer's ratchet request): print(...) -> sys.stdout.write(...) --
     # behaviour-identical (this IS the tool's own stdout receipt), but keeps this front door out
     # of the print-call ratchet count rather than needing a whole-file exclusion (the .404 A3

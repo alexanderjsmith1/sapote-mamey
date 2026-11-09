@@ -15,8 +15,14 @@ class ActivityDecisionTreeError(ValueError):
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def _cell(row: dict[str, Any], key: str) -> str:
+    """A TSV cell as text. A cell missing from a short row (csv gives None) is blank, never "None"."""
+    value = row.get(key)
+    return "" if value is None else str(value).strip()
+
+
 def _identity(row: dict[str, Any]) -> tuple[dict[str, str], str]:
-    values = {k: str(row.get(k, "")).strip() for k in IDENTITY_KEYS}
+    values = {k: _cell(row, k) for k in IDENTITY_KEYS}
     try:
         display = exact_locus_display(*(values[k] for k in IDENTITY_KEYS))
     except ExactLocusIdentityError as exc:
@@ -30,18 +36,20 @@ def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_di
         raise ActivityDecisionTreeError("lead table is empty")
     admitted: list[tuple[dict[str, str], str]] = []
     seen: set[str] = set()
-    for row in rows:
+    for line_number, row in enumerate(rows, start=2):
+        if None in row:
+            raise ActivityDecisionTreeError(f"lead table line {line_number} has more cells than the header")
         identity, display = _identity(row)
         if display in seen:
             raise ActivityDecisionTreeError(f"duplicate exact locus: {display}")
         seen.add(display)
-        claim = str(row.get("claim_ceiling", "")).strip()
+        claim = _cell(row, "claim_ceiling")
         if not claim:
             raise ActivityDecisionTreeError(f"missing claim ceiling for {display}")
         # Test the raw string, not the Path: Path("") normalises to Path("."),
         # which is truthy and would clear every guard below.  Mirrors the
         # reference implementation in mamey/thesis_handoff.py::_safe.
-        raw_locator = str(row.get("report_receipt", "")).strip()
+        raw_locator = _cell(row, "report_receipt")
         locator = Path(raw_locator)
         if not raw_locator or locator.is_absolute() or ".." in locator.parts:
             raise ActivityDecisionTreeError("report_receipt must be a safe relative locator")
@@ -54,7 +62,7 @@ def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_di
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if receipt.get("identity") != identity:
             raise ActivityDecisionTreeError("report receipt exact identity mismatch")
-        admitted.append((row, display))
+        admitted.append((dict(row, claim_ceiling=claim), display))
     try:
         output_dir.mkdir(parents=True, exist_ok=False)
     except FileExistsError as exc:
@@ -64,7 +72,7 @@ def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_di
     md = ["# Metabolomics and Activity Decision Trees", "", "These are bounded decision gates, not product or activity claims.", ""]
     decision_rows: list[dict[str, str]] = []
     for row, display in admitted:
-        md += [f"## {display}", "", f"Hypothesis: {row.get('hypothesis','unresolved')}", "",
+        md += [f"## {display}", "", f"Hypothesis: {_cell(row, 'hypothesis') if 'hypothesis' in row else 'unresolved'}", "",
                "1. Expression gate: confirm transcript, protein, or culture-condition evidence for the target genes.",
                "2. Genetic linkage gate: compare a targeted perturbation or orthogonal genotype to an appropriate control.",
                "3. Feature gate: require a reproducible LC-MS or MS/MS feature with blank subtraction and replicate support.",

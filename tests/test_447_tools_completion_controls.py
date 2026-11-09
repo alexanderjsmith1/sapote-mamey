@@ -42,7 +42,9 @@ def test_one_to_one_copy_denominator_permutation_engine_and_empty(monkeypatch):
     monkeypatch.setattr(tool, '_genes', lambda path: {'a':['MKTAYIAK']*3, 'b':['MKTAYIAK'], 'c':[]}[path])
     for engine in ('pyswrd', 'biopython'):
         _, dist, sim, detail = tool.pairwise_distances(['a','b'], ['a','b'], metric='one_to_one_v1', engine=engine)
-        assert sim[0][1] == .3333 and dist[0][1] == .6667
+        # v9.7.464: the matrix is unrounded (the tree uses it); distance_matrix.csv rounds to 4 decimals.
+        assert sim[0][1] == pytest.approx(1 / 3) and dist[0][1] == pytest.approx(2 / 3)
+        assert round(sim[0][1], 4) == .3333 and round(dist[0][1], 4) == .6667
         assert detail[(0,1)] == (1,100.0)
         assert tool.pairwise_distances(['b','a'], ['b','a'], metric='one_to_one_v1', engine=engine)[1] == dist
     with pytest.raises(ValueError, match='nonempty'):

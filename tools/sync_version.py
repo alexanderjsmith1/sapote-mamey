@@ -196,6 +196,10 @@ RULES = [
     ("bundle_support/project_state_template.json",
      re.compile(r'("bundle_version":\s*"sapote-mamey-v)[\w.\-]+(")'),
      rf'\g<1>{BUNDLE}\g<2>'),
+    # The task router's baseline names the bundle it was checked against; with no rule it drifted for six cuts.
+    ("docs/USER_TASK_ROUTER.json",
+     re.compile(r'("bundle":\s*")[\w.\-]+(",\s*"engine":\s*")[\w.\-]+(",\s*"build":\s*")\w+(")'),
+     rf'\g<1>{BUNDLE}\g<2>{ENGINE}\g<3>{STAMP}\g<4>'),
     # RELEASE_CHECKLIST footer only ('| Active controller' line); 'added vX' annotations are
     # historical and left untouched.
     ("docs/RELEASE_CHECKLIST_v9.md",

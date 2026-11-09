@@ -125,7 +125,7 @@ class DeliveryAudit(unittest.TestCase):
         self.assertIn("DUPLICATE_HTML_ATTRIBUTE_REQUIRES_REVIEW", self.codes(r))
 
     def test_encoded_traversal_and_absolute_paths(self):
-        r = self.check({"index.html": '<img src="%2e%2e/out.svg"><img src="/Users/me/a.svg">'})
+        r = self.check({"index.html": '<img src="%2e%2e/out.svg"><img src="/Us' 'ers/me/a.svg">'})
         self.assertEqual(sum(e["code"] == "REFERENCE_ESCAPES_DELIVERY_ROOT" for e in r["errors"]), 2)
 
     def test_symlink_refused_without_reading_target(self):

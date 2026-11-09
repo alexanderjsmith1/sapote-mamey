@@ -6,6 +6,10 @@ The adapter presents saved KnownClusterBlast ranks within one exact `strain / fu
 
 The external audit script `inventory_audit.py::parse_kcb` (not shipped) extracts the saved KCB rank, reference identifier/name, cumulative BLAST score, distinct AS query count, distinct reference subject count and median identity after keeping each query's highest-bitscore row. Its ranking TSV is a saved-channel summary, not a new exhaustive MIBiG search.
 
+No shipped tool writes the ranking TSV. To use this adapter without that script, build the file yourself from your saved KnownClusterBlast output. It is tab-separated, with the headers `identity`, `run`, `selected`, `rank`, `mibig`, `name`, `distinct_query_genes`, `distinct_reference_genes`, `median_identity` and `cumulative_blast_score` (`tools/ranked_match_shortlist.py:24,40`). `selected` is `true`, `false` or blank. Pin the script or notes that produced the file in `owner`, with an excerpt that appears in it.
+
+The identity check is narrow. A context passes only when its identity has the in-house strain-ID shape followed by ` / <contig> / regionNNN / BGCnnn`, and each `mibig` value has the form `BGC<digits>` (`tools/ranked_match_shortlist.py:22,109-114`). Any other identity, including a public strain name, is still shown, but with `COMPLETE_LOCUS_IDENTITY_HOLD`.
+
 The bundle's `tools/multi_reference_comparison.py::rank_references` owns a separate DIAMOND comparison policy: discovery-threshold filtering, one-to-one pair selection, then distinct matched genes and summed bitscore ordering. Its builder also applies reference/span/annotation filtering and compound grouping. This candidate does not call or transplant that policy onto KCB rows.
 
 The retained selection-policy audit documents original choices, including maximum-query-count/first-tie policy consistency, explicit paired comparators and assembly/package holds. Those are copied as source-labeled snapshots, not converted into a new recommended order. A policy-consistent choice is not automatically biologically optimal.

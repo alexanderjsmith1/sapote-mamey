@@ -117,6 +117,9 @@ CLAIM_SAFE = (
 )
 
 
+MAX_THREADS = 4  # project resource policy: one placement job uses at most four threads
+
+
 def _positive_threads(value):
     try:
         threads = int(value)
@@ -124,6 +127,8 @@ def _positive_threads(value):
         raise argparse.ArgumentTypeError("threads must be a positive integer") from exc
     if isinstance(value, bool) or threads < 1 or str(value).strip() != str(threads):
         raise argparse.ArgumentTypeError("threads must be a positive integer")
+    if threads > MAX_THREADS:
+        raise argparse.ArgumentTypeError(f"threads must be at most {MAX_THREADS}")
     return threads
 
 

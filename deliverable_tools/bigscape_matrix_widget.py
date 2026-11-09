@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """bigscape_matrix_widget.py — self-contained, theme-aware strain x GCF-family sharing matrix
-for the Sapote-Mamey BiG-SCAPE cohort deliverable (graduated into the engine, v9.7.349x).
+for the Sapote-Mamey BiG-SCAPE cohort deliverable.
 
 A cohort heatmap: rows = gene-cluster families (GCFs), columns = query-cohort strains
 (AS + SID), cell = number of member BGCs that strain contributes to the family. A right-hand

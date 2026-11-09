@@ -20,6 +20,8 @@ not itself establish production, exact compound, phenotype or physical contig jo
 
 <!-- Historical source text follows. -->
 
+Historical: the doctrine below is a planning policy, not behavior the software enforces. Its closing line, "the basic expected behavior for an AI-assisted BGC workflow", is the original author's wording. The queue command is `python mamey_run.py wise-fragmented-pks` (`mamey/cli.py`, default `--active-files 2`).
+
 Sapote–Mamey should act like it has done this before.
 
 For fragmented polyketide discovery:

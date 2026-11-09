@@ -23,6 +23,8 @@ python tools/gen_user_catalog.py --check
 python tools/gen_marker_catalog.py --check
 ```
 
+`gen_marker_catalog.py --help` prints usage and writes nothing. An unknown option exits 2.
+
 These are declared check interfaces, not an assertion that they passed for your working tree. `gen_tools_inventory.py --root` controls search/connections modes; its ordinary inventory generation/check still uses the script's owning root. Do not use that flag as a general redirected-output sandbox.
 
 ## Task-router and prose ownership
@@ -64,7 +66,7 @@ Catalog regex entries explain scanner matching, not biological proof. Source/reg
 python tools/check_md_links.py docs/INSTALL.md docs/PREREQUISITES.md
 ```
 
-`--dir DIR` recursively selects filenames ending in lowercase `.md`; explicit inputs are filtered to that same suffix and then to paths that already exist. Missing requested files and directory traversal errors are not necessarily reported when another input survives. With no surviving input the parser exits two; with selected inputs it returns one for recorded problems or zero for none. `--quiet-if-clean` suppresses the clean summary. There is no persisted source/hash receipt or discovery/omission roster. Reconcile the intended input list, readable files and exact result before claiming a directory or bundle was checked.
+`--dir DIR` recursively selects filenames ending in lowercase `.md`. Explicit inputs that do not end in `.md` are dropped without a message. A missing explicit `.md` input, a `--dir` that is not a directory, or an error while walking it stops the run with a parser error and exit 2 before any file is checked. With no `.md` input at all it also exits 2. Otherwise it returns 1 for recorded problems or 0 for none. `--quiet-if-clean` suppresses the clean summary. There is no persisted source/hash receipt or discovery/omission roster. Reconcile the intended input list, readable files and exact result before claiming a directory or bundle was checked.
 
 The parser strips triple-backtick blocks and single-backtick spans with regular expressions, then recognizes simple inline `[text](target)` syntax, including image-style targets caught by that pattern. It does not validate reference-style link definitions, bare code/path references, heading existence, line-number bounds or remote destinations. Pure fragments are ignored, and filename fragments and numeric `:line[:column]` suffixes are removed before an existence check. A file link with a nonexistent heading can therefore pass. This is not a complete Markdown parser or a check that a reader can reach every section/figure.
 
@@ -72,7 +74,7 @@ Targets are percent-decoded, then tested first relative to the Markdown file and
 
 Raw space/parenthesis warnings reflect this legacy checker, not a complete renderer grammar. Angle-delimited paths and link titles are not correctly parsed, and a percent-encoded literal `#` in a filename is decoded before anchor stripping. Such links can be reported broken despite an existing intended target. Review the actual syntax and renderer instead of deleting evidence or rewriting a valid locator merely to clear a warning. Keep ordinary file-relative links portable and perform separate heading, route, figure-link and rendered-reader checks with their own stated scope.
 
-The optional `hooks/md_link_check.sh` wrapper runs this checker on each Markdown file just written. It uses a workspace copy of the checker when one exists, and otherwise the bundle's own `tools/check_md_links.py`. Broken links print a warning and exit 2. If the checker itself fails without output, the hook says the links were not checked, so silence means a clean check. The hook exits 0 without checking only when no checker can be found at all. It checks file links, not full rendering, and neither the hook nor the checker edits the Markdown. Sources: `tools/check_md_links.py` and `hooks/md_link_check.sh`.
+The optional `hooks/md_link_check.sh` wrapper runs this checker on each Markdown file just written. It uses a workspace copy of the checker when one exists, and otherwise the bundle's own `tools/check_md_links.py`. Broken links print a warning and exit 2. It also warns that the links were not checked, and exits 2, when the written `.md` file is missing, when no checker can be found, or when the checker exits nonzero with no report. It stays silent and exits 0 for a file that is not Markdown or a payload it cannot parse, and it does not check those. A clean check is silent too. It checks file links, not full rendering, and neither the hook nor the checker edits the Markdown. Sources: `tools/check_md_links.py` and `hooks/md_link_check.sh`.
 
 ## Bundle-write-default static check
 

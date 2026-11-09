@@ -184,10 +184,30 @@ def plan_edits(root: Path, edits: list[dict]):
     return texts, applied, already, refused
 
 
+def _same_file(left: Path, right: Path) -> bool:
+    key = lambda p: tuple(part.casefold() for part in p.resolve().parts)
+    if key(left) == key(right):
+        return True
+    try:
+        return left.samefile(right)
+    except OSError:
+        return False
+
+
+def _refuse_record_alias(record: Path, inputs: list[Path]) -> None:
+    """The change record is appended to, so it must never be an edited document or the edit file."""
+    for path in inputs:
+        if _same_file(record, path):
+            raise InputError(f"change record {record} is the same file as an input ({path}); "
+                             "choose a separate --record path")
+
+
 def cmd_apply(a) -> int:
     root = Path(a.root)
     edits = load_edits(a.edits)
     record = Path(a.record) if a.record else root / "CHANGES.jsonl"
+    _refuse_record_alias(record, [doc_path(root, d) for d in dict.fromkeys(e["doc"] for e in edits)]
+                         + [Path(a.edits)])
     texts, applied, already, refused = plan_edits(root, edits)
     if not a.dry_run:
         for doc, t in texts.items():

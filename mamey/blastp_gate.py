@@ -33,7 +33,9 @@ from pathlib import Path
 CHANNEL_TROVE = {
     "nr":           (("_nr_rid", "nr_rid", "/nr/", "ncbi_nr"),
                      ("*_top_hit_per_gene.csv", "*_nr_top_hit_per_gene.csv")),
-    "clustered_nr": (("clustered nr", "clustered_nr", "clusterednr", "cluster_nr"),
+    # "nr_cluster" and "clnr": the workspace's clustered-nr troves are named "_NR_CLUSTER_RID*" and "*_CLNR_*"
+    # (the latter searched nr_cluster_seq); neither matched a name here, so the gate never reported them.
+    "clustered_nr": (("clustered nr", "clustered_nr", "clusterednr", "cluster_nr", "nr_cluster", "clnr"),
                      ("*_top10_clustered.csv", "*clustered*per_gene*.csv", "*_top_hit_per_gene.csv")),
     "swissprot":    (("swissprot", "swiss_prot", "swiss-prot"),
                      ("*_top10_local.csv", "*_swissprot*.csv", "*local*per_gene*.csv")),
@@ -585,8 +587,40 @@ def format_rekey_reconciliation(reconciliation: list[dict]) -> str:
     )
 
 
+def alias_drift(package: str | Path, missing: list) -> dict:
+    """{channel: (drifted_files, files)} for missing trove files whose genes this package places in other BGCs.
+
+    A trove made from an older package keeps that package's BGC numbers. Ingested without --rekey-by-locus,
+    every row whose gene now sits in another BGC is quarantined, and the gate stays blocked. A file counts
+    as drifted when most of its resolvable genes belong to another current BGC. Read-only; a package
+    without one CDS table reports nothing."""
+    from .blastp_ingest import _current_locus_rekey_index, _pick, _TROVE_ALIASES
+    try:
+        index = _current_locus_rekey_index(Path(package))
+    except (OSError, ValueError):
+        return {}
+    out: dict[str, list[int]] = {}
+    for ch, bgc, path in missing:
+        try:
+            with Path(path).open(newline="", encoding="utf-8-sig") as handle:
+                rows = list(csv.DictReader(handle))
+        except (OSError, UnicodeDecodeError, csv.Error):
+            continue
+        here = other = 0
+        for row in rows:
+            homes = {str(m["bgc"]).upper() for m in index.get(_pick(row, _TROVE_ALIASES["locus_tag"]), [])}
+            if len(homes) != 1:
+                continue
+            here, other = (here + 1, other) if homes == {bgc.upper()} else (here, other + 1)
+        counts = out.setdefault(ch, [0, 0])
+        counts[1] += 1
+        if other > here:
+            counts[0] += 1
+    return {ch: tuple(v) for ch, v in out.items() if v[0]}
+
+
 def format_block_message(strain: str, package: str | Path, missing: list,
-                         rekey_channels: set[str] | None = None) -> str:
+                         rekey_channels: set[str] | None = None, drift: dict | None = None) -> str:
     by_ch: dict[str, list] = {}
     for ch, bgc, _p in missing:
         by_ch.setdefault(ch, []).append(bgc)
@@ -604,10 +638,24 @@ def format_block_message(strain: str, package: str | Path, missing: list,
         root = _trove_root_for(missing, ch)
         lines.append(f"  channel {ch}: {len(bgcs)} BGC(s) not ingested "
                      f"({', '.join(bgcs[:8])}{' …' if len(bgcs) > 8 else ''})")
-        rekey_arg = " --rekey-by-locus" if ch in (rekey_channels or set()) else ""
-        lines.append(f"    fix: python -m mamey ingest-blastp-trove "
-                     f"--trove \"{root}\" --package \"{package}\" --channel {ch} --strain {strain}"
-                     f"{rekey_arg}")
+        if ch in (drift or {}):
+            n, total = drift[ch]
+            lines.append(f"    {n} of {total} saved BGC folders hold genes this package places in other BGCs "
+                         f"(the trove predates this package's numbering); --rekey-by-locus resolves each gene "
+                         f"through the package CDS table.")
+        rekey_arg = " --rekey-by-locus" if ch in (rekey_channels or set()) | set(drift or {}) else ""
+        # One command per trove root that holds missing BGCs: a strain's results can be spread over
+        # several roots (one strain's clustered nr sat in _NR_CLUSTER_RID and _NR_CLUSTER_RID_WAVE1_B), and the
+        # first root alone left the rest blocked.
+        per_root: dict[str, list[str]] = {}
+        for c, b, path in missing:
+            if c == ch:
+                per_root.setdefault(str(Path(path).parent.parent.parent), []).append(b)
+        for r, rb in (per_root.items() if per_root else [(root, bgcs)]):
+            note = f"  # {len(rb)} BGC(s)" if len(per_root) > 1 else ""
+            lines.append(f"    fix: python -m mamey ingest-blastp-trove "
+                         f"--trove \"{r}\" --package \"{package}\" --channel {ch} --strain {strain}"
+                         f"{rekey_arg}{note}")
     return "\n".join(lines)
 
 
@@ -681,7 +729,7 @@ def gate(package: str | Path, strain: str, waiver: str | None = None, extra_root
         return {"ok": True, "blocked": False, "missing": missing, "message": msg, "waived": True,
                 "source_reconciliation": reconciliation,
                 "rekey_receipt_summaries": receipt_summaries}
-    block_message = format_block_message(strain, package, missing, rekey_channels)
+    block_message = format_block_message(strain, package, missing, rekey_channels, alias_drift(package, missing))
     if reconciliation_message:
         block_message += "\n\n" + reconciliation_message
     return {"ok": False, "blocked": True, "missing": missing,

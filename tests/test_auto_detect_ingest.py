@@ -16,7 +16,7 @@ import pathlib
 
 import pytest
 
-from tests._modeb_card_fixtures import valid_modeb_card_stub
+from tests._modeb_card_fixtures import valid_modeb_card_stub, write_identity_triage_board
 
 
 # ---------------------------------------------------------------------------
@@ -61,12 +61,13 @@ def _make_pkg_with_register(tmp_path: pathlib.Path,
     }
     (pkg / f"{strain_id}_judgment_register.json").write_text(json.dumps(reg))
 
-    # Also create the triage board (needed by session_resume in some tests)
-    triage_rows = ["BGC_ID,Products,Corrected_rank,Standing_rule"]
-    for i, bid in enumerate(bgc_states.keys(), 1):
-        triage_rows.append(f"{bid},NRPS,{i},")
-    (pkg / f"{strain_id}_4_triage_board.csv").write_text(
-        "\n".join(triage_rows) + "\n")
+    # Also create the triage board (needed by session_resume in some tests). Its
+    # Contig and region columns bind each stub card's four-part header for ingest.
+    write_identity_triage_board(
+        pkg, strain_id, list(bgc_states.keys()),
+        extra={"Products": "NRPS",
+               "Corrected_rank": {bid: str(i) for i, bid in enumerate(bgc_states, 1)},
+               "Standing_rule": ""})
 
     return pkg
 

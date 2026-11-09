@@ -7,7 +7,7 @@ This page covers four setup and retrieval tasks that sit beside the main pipelin
 3. what the protein-space extractor accepts;
 4. how the BLASTp RID runner tracks, retries and saves searches.
 
-None of these steps interprets biology.
+None of these steps interprets biology. Each section stands alone; read the one you need.
 
 <a id="companion-installation"></a>
 ## 1. Install the optional companions
@@ -22,19 +22,19 @@ bash bundle_support/install_sapote_addons.sh --online         # offline first, i
 
 The `addons` extra installs Python comparison and scanner dependencies. It installs no external programs and no
 databases. The add-on script stays offline unless you pass `--online`, which allows the pip index for
-wheels it cannot find locally. Invalid core installation failures still fail. Its separate figure/analysis group is best-effort and can remain unavailable while core verification succeeds. The script checks selected core imports, not every installed dependency; data files, HMMs and external programs need their own checks.
+wheels it cannot find locally. A failed core install fails the script. The figure and analysis group is best-effort and can stay unavailable while the core check passes. The script checks selected core imports, not every installed dependency; data files, HMMs and external programs need their own checks.
+
+The install worked when the script ends with `[sapote-addons] done. Run a comparison with:  python3 -m mamey compare --help` and exits 0. If you see `REFUSED: activate a virtual environment first` (exit 2) or `no .whl files found` (exit 1), fix that and run it again.
 
 Before `doctor`, read its [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe) and use an editable working install. An occupied `runs/_doctor_probe` is refused; leave it intact.
 
 `python mamey_run.py doctor` reports whether `Rscript` is present and, separately, whether each R
-package loads. A package that loads is not a figure that rendered. In the test suite, the shared
-`require_r_packages` fixture skips a test when a package is `UNAVAILABLE` and fails it when the probe
-is `UNVERIFIED`.
+package loads. A package that loads is not a figure that rendered.
 
 <a id="scanner-subset-provisioning"></a>
 ## 2. Build the scanner Pfam HMM subset
 
-The bundle ships accession lists, not models:
+The scanner reads protein domains with HMMER, a profile-HMM search program. It needs a small set of Pfam models (Pfam is a database of protein-family models; an HMM is one such model). Without that set, the scanner's HMMER fields read `NEEDS_HMMER_DOMTBLOUT` and the regex checks still run. The bundle ships accession lists, not models:
 
 - `bundle_support/scanner_pfam_35_accessions.txt` and `scanner_pfam_148_accessions.txt` list exact,
   versioned Pfam selectors.
@@ -51,9 +51,9 @@ python tools/build_scanner_hmm.py --source /path/to/Pfam-A.hmm --preset 148 --ou
   without a version. Each `hmmfetch` result must hold exactly one matching `ACC` line and one model.
   Asking for an unversioned accession and getting a versioned one is refused, not substituted.
 - A preset reads the bundled list as it is now. The builder hashes that list but does not compare it
-  with the source pins or check the model count. Check the list, hash and count yourself. The name
-  `scanner_pfam_150.hmm` is a naming convention, not a 150-model count.
-- After the build, set `SM_HMM_DB` to the new file.
+  with the source pins or check the model count. Check the list, hash and count yourself. The `150` in the file
+  name is not a model count.
+- After the build, set `SM_HMM_DB` to the new file. `SM_HMM_DB` accepts any regular file under any name, so check the file against the receipt hash. The name still sets the model-count hint: a name containing `150` is reported as 148 models, any other as 35. Directory lookup (`MAMEY_HMM_DIR`, `MAMEY_DATA_ROOT/hmm/`, add-on folders) finds only `scanner_pfam_150.hmm` or `scanner_pfam.hmm`, so keep the name `scanner_pfam_150.hmm` if you place the file in a folder. The full lookup order is in [External assets](EXTERNAL_ASSETS_GUIDE.md#scanner-hmms).
 
 **Outputs.** The builder writes six files: the HMM, its four `hmmpress` indexes (`.h3f`, `.h3i`,
 `.h3m`, `.h3p`) and `<out>.build_receipt.json` with status `COMPLETE_NEW_SOURCE_BUILD`. It prints no
@@ -78,7 +78,7 @@ python tools/protein_pcoa_ordinate.py extract --kit /path/to/new_kit \
   [--assembly-table /path/to/assemblies.tsv]
 ```
 
-`--input` can be repeated and requires `SOURCE=PATH`, with `SOURCE` one of `isolate`, `reference`, `SID` or `MIBiG`; the path is a ZIP or folder. Reference and SID inputs retain their `reference_held`/`SID_held` source classes. For an assembly table, the `input` column is the path alone, without the `SOURCE=` prefix.
+`extract` pulls the proteins out of antiSMASH region files into a kit, a folder that the next command, `ordinate`, reads to draw a protein PCoA (see [locus and PCoA tools](LOCUS_AND_PCOA_TOOLS.md)). `--input` can be repeated and requires `SOURCE=PATH`, with `SOURCE` one of `isolate` (your own strains), `reference` (public genomes), `SID` (a source class kept apart from the others) or `MIBiG`; the path is a ZIP or folder. Reference and SID inputs retain their `reference_held`/`SID_held` source classes. For an assembly table, the `input` column is the path alone, without the `SOURCE=` prefix.
 
 - **Accepted files.** In ZIPs and folders alike: `*.region*.gbk`, and names that start with `BGC` and
   end with `.gbk`. Whole-genome GenBank files go to the rejected-file list.
@@ -100,7 +100,7 @@ python tools/protein_pcoa_ordinate.py extract --kit /path/to/new_kit \
 <a id="rid-retrieval-and-checkpoints"></a>
 ## 4. BLASTp RID runner (`tools/blastp_crawl/nr_rid_runner.py`)
 
-The runner submits query batches to NCBI BLAST, polls them by request ID (RID) and saves results. Its
+The runner submits query batches to NCBI BLAST, polls them by request ID (RID, the ticket NCBI gives each search) and saves results. Its
 subcommands are `run`, `status`, `rebuild` and `coverage`. It needs a `curl` that supports
 `--fail-with-body`; an older `curl` fails visibly.
 
@@ -128,11 +128,7 @@ are holds, not "no hit" results: `query_unbound`, `retrieval_unverified`, `unsur
 
 **Packet coverage.** Each `_result_generation.json` records `genes_done`, `genes_expected` and `complete`. Completion is true only for a nonempty expected gene roster whose members are all done, including completed no-hit genes. A partial packet can grow as another query batch returns. Treat `complete` as necessary coverage of the recorded roster, alongside current query bindings and admission/generation hashes; it is not scientific acceptance.
 
-**Saving and locking.** A POSIX `flock` gives one process ownership of a lane; systems without `flock`
-refuse. The PID file is advisory. Ledgers and raw checkpoints are written atomically. Each top-10 and
-top-1 result pair carries a generation receipt; read the two files together with that receipt. An
-interrupted publication is recovered under lane ownership: it accepts an already fully published, hash-matching generation or restores the preserved predecessor. Two filenames do not give readers a simultaneous multi-file replacement; consumers must use the generation receipt. Locks are never taken over automatically. If recovery
-fails, keep the pending transaction and its journal for diagnosis.
+**Saving and locking.** Only one runner can use a lane (an output folder) at a time. Systems without `flock` refuse. Locks are never taken over automatically. Results are written atomically, and each top-10 and top-1 pair carries a generation receipt; read the two files together with that receipt. If an interrupted publish cannot be recovered, keep the pending transaction and its journal and look at them before rerunning.
 
 **Importing results.** `blastp-followup` writes review files beside your outputs. `ingest-blastp`
 writes into the workbook and, with `--package`, the package:
@@ -142,5 +138,10 @@ python mamey_run.py ingest-blastp --master <workbook.xlsx> --strain <ID> --hit-t
   [--xml <alignment.xml>] [--package <package>] [--source "EBI (uniprotkb_bacteria)"]
 ```
 
-`--source` defaults to NCBI web-BLASTp; pass it for EBI results. See
-[BLASTp follow-up](BLASTP_FOLLOWUP_v9.7.142.md) and the [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md).
+`hits.csv` is the NCBI Hit Table CSV (`-outfmt 10`). The [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md) shows how to get one.
+
+`--source` defaults to NCBI web-BLASTp; pass it for EBI results. With `--package`, only an NCBI nr
+source is accepted, because the package overlay is the nr channel; an EBI, UniProt, ClusteredNR or
+Swiss-Prot `--source` is refused with `BLASTP_CHANNEL_UNSUPPORTED_FOR_PACKAGE_OVERLAY`. Load those
+into the workbook without `--package`. See
+[BLASTp follow-up](BLASTP_FOLLOWUP_v9.7.142.md) for the review files.

@@ -288,7 +288,8 @@ def main(argv=None) -> int:
         except OSError as exc:
             print(f"output error: {exc}", file=sys.stderr)
             return 2
-        print(f"{z.name}: {s['regions']} regions, {s['scored_pairs']} pairs, {s['high']} HIGH "
+        kept = "" if s["pairs_exported"] == s["scored_pairs"] else f" ({s['pairs_exported']} kept in the pair table)"
+        print(f"{z.name}: {s['regions']} regions, {s['scored_pairs']} pairs{kept}, {s['high']} HIGH "
               f"({s['high_cross_contig']} across contigs), {s['candidate_groups']} candidate groups; "
               f"reference completion {s['completion_tier']}")
     if a.out_dir:

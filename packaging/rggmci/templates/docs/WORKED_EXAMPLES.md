@@ -1,25 +1,16 @@
-# Worked-example provenance boundary
-
-The four pairs and 40-genome census below are retained historical scientific examples. Check the original run, assembly and database records before reusing their names, locators, scores, counts or interpretations. These historical examples do not establish current scientific acceptance. Reading-order BGC aliases are not stable join keys. Use exact strain / full node-or-contig / region / BGC alias with input and result hashes before comparing an example to a current run.
-
-These examples are not the generated repository's small engine-parity fixture. `make_repo_candidate.py` generates that fixture's expected JSON by running the selected Sapote-Mamey engine and writes `tests/test_example_matches_engine.py`. That test compares records and result for one fixture and requires at least one ranked pair; it does not validate these four pairs or the 40-genome census, prove independent scientific correctness, or certify all package/platform modes. The plain package builder does not create that repository-only test.
-
-The standalone source tree receives this guide under `docs/`; the wheel does not declare docs as package data. Use [output scope and recovery](OUTPUT_GUIDE.md) and [the README](../README.md) for installed/source/provenance boundaries. Do not run the repository-candidate builder to read an example: it executes the engine probe and can replace a target checkout's files.
-
-## Retained worked examples — unchanged below
-
 # Worked examples on public reference genomes
 
 Four pairs from public antiSMASH results (NCBI WGS assemblies, antiSMASH relaxed strictness), one for each common
 verdict. Every region in them sits on a contig edge: rggmci pairs only regions antiSMASH flags as touching a contig
-edge (`/contig_edge="True"`). A region antiSMASH places inside a contig is whole there, so no assembly break can have
-separated it. Two regions on one contig are never paired either. Such pairs are listed apart as related loci, never as
+edge (`/contig_edge="True"`), and never two regions on one contig. Such pairs are listed apart as related loci, never as
 rescues. Every region is named as `organism strain / submitter's contig name = accession / antiSMASH region / alias`.
 The submitter's contig name comes from each record's DEFINITION line. The alias (`BGC014`) is rggmci's reading
 order and is not stable between runs, so look regions up by accession and region.
 
 To check any pair yourself, open the two region files in the antiSMASH ZIP, `<accession>.<region>.gbk`. Read their
 genes and domains, then the pair's supporting references in `best_sources`.
+
+These results come from an earlier rggmci release. Scores and confidences on these genomes may differ in the current release; rerun the genome and compare by accession and region before quoting a number.
 
 ## 1. A complementary split: HIGH
 
@@ -32,7 +23,8 @@ MIBiG). The MIBiG entries among the best sources are BGC0000136 (rifamycin) and 
 
 What it means:
 - The two fragments hit different genes of the same reference clusters, and those genes sit side by side in the
-  references. That is the signature of one pathway cut by the assembly.
+  references. That fits one pathway cut by the assembly. Two separate pathways that share reference genes could
+  give the same pattern.
 - Each region's own KnownClusterBlast list points the same way. The contig-end fragment's top hits are ansamycin-type
   clusters (microansamycin, naphthomycin); the whole-contig fragment's include rifamorpholine and rifamycin.
 - A hypothesis at the class level: the two fragments may be parts of one ansamycin-type type I PKS pathway. It
@@ -43,7 +35,7 @@ hit erythromycin) is HIGH with both fragments above. Those pairs cite other MIBi
 selvamicin) and the gene check reads them as a `MIXED_SUBJECT_SIGNAL`. A group of HIGH pairs can hold more than one
 pathway: read each pair's references and the genes, not only the group.
 
-## 2. Two copies, not two halves: demoted to LOW
+## 2. Two copies rather than two halves: demoted to LOW
 
 *Actinomadura montaniterrae* CYP1-1B (WBMR00000000.1, 492 contigs)
 - `Scaffold2 = WBMR01000002.1 / region002 / BGC003`: NRPS; T2PKS; oligosaccharide, at a contig end.
@@ -53,8 +45,8 @@ Result: score 35, high enough for HIGH, with 19 strong references and 16 with go
 `LOW_SHARED_REFERENCE_SIGNAL`, with gate `ST-PARALOG_no_complementarity_proof` and gene check `OVERLAPPING_PARALOG`.
 
 Why: on the shared references the two regions hit the same reference genes (87 shared, 0 references where they are
-complementary). One region repeating the other's genes looks like a second copy of a type II PKS, not the missing
-half. A shared gene or two does not trigger this: the check allows up to 2 shared genes, when they are at most 15%
+complementary). One region repeating the other's genes fits a second copy of a type II PKS better than the missing
+half; the check cannot tell which. A shared gene or two does not trigger this: the check allows up to 2 shared genes, when they are at most 15%
 of all genes hit and each side still hits 2 genes of its own.
 
 ## 3. A promiscuous fragment: HIGH demoted to MODERATE by the hub guard
@@ -66,8 +58,8 @@ of all genes hit and each side still hits 2 genes of its own.
 Result: score 35, 21 strong references and 22 with good geometry (13 of them MIBiG), but
 `MODERATE_RG_GMCI_CANDIDATE` with `DEMOTED_HUB_PROMISCUITY_degree_5_gt_4`.
 
-Why: one of the two regions reached HIGH with five partners. A real split rarely produces more than four linked
-fragments, so a region linked to more is treated as a hub, and all its HIGH pairs step down to MODERATE. The pair
+Why: one of the two regions reached HIGH with five partners. rggmci treats a region with more than four HIGH
+partners as a hub. The limit of four is a setting of the method, not a measured property of genomes. A hub's pairs step down from HIGH to MODERATE. The pair
 stays in the table as a place to look; `max_endpoint_hub_degree` gives the degree. Only contig-edge partners count
 toward the degree.
 
@@ -91,61 +83,3 @@ have no HIGH pair, and 27 of them have no contig-edge region at all. One of the 
 one contig are not paired: Saccharothrix variisporea DSM 43911 / Ga0197496_11 = RBXR01000001.1 / region001 / BGC001
 and Saccharothrix variisporea DSM 43911 / Ga0197496_11 = RBXR01000001.1 / region032 / BGC032 sit at the two ends of
 one 9.4 Mb contig and share type I PKS references. They are a related locus, not a rescue.
-
-
-## Shared invocation contract (`rggmci-shared-invocation-v3`)
-
-The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
-binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
-process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
-public standalone `run` rejects snapshot overrides. The
-high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
-behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
-standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
-disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
-sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
-
-Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
-diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
-members refuse common intake before a subset is reported. General source-reader malformed/empty-member
-warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
-empty successful RGGMCI result.
-
-Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
-no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
-then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
-implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
-DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
-the actual selected content. Standalone
-`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
-Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
-`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
-Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
-retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
-is a distinct requested layer. No automatic database download is introduced.
-
-Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
-loci, candidate groups, summary, and three completion tables). Every row key is retained, including
-later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
-tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
-region metadata and four-component endpoint identities: logical strain / full physical contig / region /
-BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
-effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
-`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
-
-Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
-attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
-and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
-`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
-presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
-contract; runtime parity, optional active-resource profiles and published standalone synchronization
-require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
-physical joins, compound identity or biological accuracy.
-
-Shared invocation v3 adds the existing native functional-role and modular-continuation annotations to
-both distributions before canonical export. Ranked pairs and split-candidate views carry the same ten
-fields and source-derived functional/modular profiles, from the same archive CDS/domain/context parser.
-This does not change RG-GMCI scoring thresholds or establish physical linkage. Missing context retains
-explicit UNKNOWN_NO_PROFILE defaults. Raised extraction/computation failures propagate; existing general
-source-reader malformed/empty-member warnings remain visible. Package gene-context write/readback no
-longer determines the analytical annotation. Low-level explicit contigs=None remains unavailable.

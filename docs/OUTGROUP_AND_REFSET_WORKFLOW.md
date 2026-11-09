@@ -1,94 +1,90 @@
-# Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)
+# Outgroups and reference sets
 
-Two companion tools to `phylo_place.py`. Together they turn "I have query 16S for cohort X" into an annotation-selected,
-de-duplicated candidate reference set with explicit rooting review — no bulk downloads, no duplicate tips, no
-ad-hoc outgroup.
+Two tools prepare the reference FASTA that [16S placement](PHYLO_PLACEMENT_WORKFLOW.md) needs.
 
-## 1. outgroup_registry.py — the outgroup generator
+- `tools/outgroup_registry.py` looks up the outgroup for a genus.
+- `tools/phylo_refset.py` builds a reference set for your queries, removes duplicate strains and adds the outgroup.
 
-Enter a genus, get the selected registry outgroup. It reads the already-curated
-external project registry (the taxon→sister-outgroup table with real accessions) and adds a
-**sequence layer** on top; it never edits the TSV. Select that governed registry explicitly with
-`OUTGROUP_REGISTRY`; a path selection records provenance and does not itself grant scientific
-acceptance. The shipped `mamey/data/outgroup_registry.tsv` is reference-only: lookup and sequence
-extraction refuse it as project authority. Record the selected registry's source and SHA-256.
-In the shipped snapshot, the rare-genera 16S row roots trees on *Bifidobacterium bifidum* KCTC 3202 (T),
-accession NR_044771.1, an outgroup inside the phylum Actinomycetota, and the sequence is fetched by accession.
-It replaced a *Pseudomonas* row, which drew one genus to the root.
+Run `phylo_refset.py` first, then `phylo_place.py build-ref` with its output. The [autopilot route](PHYLO_AUTOPILOT_WORKFLOW.md) builds its own reference set and does not use these tools.
 
-Before the examples, activate the bundle Python environment, work from the bundle root and bind
-these separately supplied resources to actual existing locations:
+An outgroup is a taxon outside your group of interest. It sets the root of the tree. A governed registry is a table of chosen outgroups that you or your lab have reviewed and selected.
+
+## 1. Set up
+
+Work from the bundle root in the activated environment. You need:
+
+- **A governed registry.** The bundled `mamey/data/outgroup_registry.tsv` is a reference snapshot. The tools refuse it as project authority and stop with `OUTGROUP_AUTHORITY_UNBOUND`. To make your own, copy that file to a folder you control, review every row you will use, and select the copy. Keep the header and these tab-separated columns: `tree_scope`, `ingroup_taxon`, `family`, `outgroup_genus`, `outgroup_species_strain`, `assembly_accession`, `status`, `rationale`. Record the file's SHA-256.
+- **A local 16S BLAST database.** See [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md).
+- **BLAST+** on your machine.
+
+Bind them to real paths:
 
 ```bash
-export OUTGROUP_REGISTRY="/absolute/path/to/governed/OUTGROUP_REGISTRY.tsv"
-export NCBI_16S_DB="/absolute/path/to/ncbi_16S_RefSeq/16S_ribosomal_RNA"
-export BLAST_BIN="/absolute/path/to/blast/bin"
+export OUTGROUP_REGISTRY="/absolute/path/to/your/OUTGROUP_REGISTRY.tsv"
 export OUTGROUP_CACHE="/absolute/path/to/writable/outgroup_cache"
+export BLAST_BIN="/absolute/path/to/blast/bin"
 ```
 
-Replace the path placeholders before use. Check the selected registry before marker searches or
-reference de-duplication so a later outgroup-authority refusal does not waste those steps.
+`OUTGROUP_CACHE` must be outside the bundle. The 16S database location comes from the shared lookup described in [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md#how-the-tools-find-the-blast-database). Check the registry first. A refusal later costs the marker searches you already ran.
+
+## 2. Look up an outgroup
 
 ```bash
-python tools/outgroup_registry.py list                 # every registered taxon -> outgroup
-python tools/outgroup_registry.py lookup Actinomadura  # the row (outgroup genus + species + acc)
-python tools/outgroup_registry.py get-16s Streptomyces # cached 16S FASTA (extracts if missing)
-python tools/outgroup_registry.py genome Nocardia --fetch   # GC[AF]_ acc + a fetch script (no download)
-python tools/outgroup_registry.py cache-16s --all      # pre-populate the whole 16S cache
+python tools/outgroup_registry.py list                       # every registered taxon and its outgroup
+python tools/outgroup_registry.py lookup Actinomadura        # one row
+python tools/outgroup_registry.py get-16s Streptomyces       # the outgroup's 16S FASTA
+python tools/outgroup_registry.py genome Nocardia --fetch    # accession and a fetch script
+python tools/outgroup_registry.py cache-16s --all            # fill the cache for every row
 ```
 
-- **16S track** — extracts the outgroup species' 16S from the local `ncbi_16S_RefSeq` BLAST DB (offline) and
-  caches it at `OFFICIAL_DATA/outgroup_cache/16S/<Genus>_<species>.fasta`. Cache reuse requires verifying the current registry/accession binding; filename reuse alone does not prevent drift.
-- **genome track** — returns the assembly accession and, with `--fetch`, writes a `datasets` fetch script.
-  It does NOT download — downloading is a permissioned action; run the script yourself.
-- **rule of two rows**: a GENUS tree roots on a sister genus (same family); a FAMILY tree roots outside the
-  family. Pass `--scope family` for a backbone tree. The requested scope and selected row still require review; this does not establish sign-off by construction.
+What you get:
 
-## 2. phylo_refset.py — right-sized + de-duplicated reference sets
+- `lookup` prints the registry row: outgroup genus, species and strain, accession and status.
+- `get-16s` extracts the outgroup's 16S from your local database and saves it in `OUTGROUP_CACHE/16S/<Genus>_<species>.fasta`. It reuses a cached file whose header passes the 16S admission screen. When the cached file fails the screen, or you pass `--force`, it extracts the record again into a new file and screens that. A new record that fails is deleted and the old cache file is left as it was. A new record that passes replaces the cache, and the old file is kept beside it as `<name>.fasta.replaced-<time>-<pid>`. `--out` must name a file that does not exist yet.
+- `genome --fetch` prints the assembly accession and writes a `datasets` fetch script in `OUTGROUP_CACHE/genomes/`. It does not download. If a script of that name already exists with the same text, it is reused. If its text differs, the command stops and leaves it unchanged. Read the script, then run it yourself.
+- Add `--scope family` for a family-level tree. The default scope is genus. A genus tree roots on a sister genus. A family tree roots outside the family.
 
-It solves two problems: (a) "we don't need 400+ genomes" → don't bulk-download, marker-BLAST a
-query-relevant set; (b) "duplicate reference strains, 2 culture-collection IDs for the same strain" → dedup.
+Check the row you get before you use it:
+
+- Read `status` and `tree_scope`. If no row has the scope you asked for, the tool uses the first row for the same taxon at any scope. A family request can return a genus row.
+- If two unlocked rows match, the tool uses the first and prints a warning.
+- `list` shows rows without the authority check. `cache-16s` exits 0 even when it reports missing entries. Read its output.
+- The cache filename comes from the outgroup name, not the registry hash. After you change the registry, clear the cache entry and extract again.
+- If the ruled accession is missing from your database, the tool picks a record by genus name. That is not the ruled sequence. Treat it as an open question until you have checked it.
+
+## 3. Build the reference set
 
 ```bash
-# one-shot: marker-blast (top-5 named RefSeq hits/query, union) -> dedup -> add registry outgroup
 python tools/phylo_refset.py build \
-    --query cohort_16S.fasta --group streptomyces --outgroup-genus Streptomyces \
-    --out refs_final.fasta
-# then hand refs_final.fasta to phylo_place:
-python tools/phylo_place.py build-ref refs_final.fasta --group streptomyces --approved-by "<recorded-approval>"
+    --query cohort_16S.fasta --group streptomyces \
+    --outgroup-genus Streptomyces --out refs_final.fasta
 ```
 
-Sub-steps are also available standalone: `marker-blast`, `dedup`, `add-outgroup`.
+`--group` names the cohort. `--outgroup-genus` names the genus whose outgroup you want; with the shipped snapshot, `Streptomyces` returns a *Gordonia* row. It does not add Streptomyces as the outgroup.
 
-### How dedup decides (two auditable tiers — every collapse is written to `*_DEDUP_REPORT.tsv`)
-- **Tier 1 (metadata)** — same species + same strain token, two RefSeq accessions (e.g. *S. mashuensis*
-  DSM 40221 = NR_026174 = NR_116638). Keep one.
-- **Tier 2 (sequence)** — group same-species reference records whose pairwise 16S matches meet
-  `--identity` (default 99.5%) and at least 90% coverage of the shorter sequence. Keep one sequence
-  representative per connected group. This removes redundant reference tips; it does not establish
-  that different collection IDs denote the same physical strain. Record verified collection aliases
-  separately. Transitive group members need not have a measured qualifying alignment to the retained tip.
-- **Which one is kept**: a recognized culture-collection token is preferred
-  (DSM > ATCC > NBRC > JCM > NRRL > …), then a present strain token, then the longer sequence,
-  then the lower accession (deterministic). This ranking does not verify type material; use NCBI
-  Assembly `from_type` evidence for a reader-facing `[Type]` label.
+The build takes the top five named RefSeq hits per query (`--top`), removes duplicates and adds the registry outgroup. The standalone steps are `marker-blast`, `dedup` and `add-outgroup`. Run `python tools/phylo_refset.py build --help` for `--db`, `--identity` and `--scope`.
 
-Tier 2 needs the `blast` env (makeblastdb/blastn); if absent it is skipped with a warning and Tier 1 still runs.
+Then pass `refs_final.fasta` to `build-ref`. The outgroup is already in it, so you do not need `--add-outgroup`. One exception: if `--group` is a single genus name such as `Actinomadura`, `build-ref` requires `--add-outgroup` with a sister genus.
 
-## Wiring into phylo_place
-`phylo_place.py build-ref` / `all` accept `--add-outgroup <GENUS>` to append the registry outgroup 16S directly,
-if you didn't already build the refset with `phylo_refset.py`.
+### How duplicates are removed
+
+Every collapse is written to a report named `<out>_DEDUP_REPORT.tsv`. Use an `--out` that ends in `.fasta`, or the report can overwrite your FASTA.
+
+- **Tier 1, metadata:** the same species and strain token under two RefSeq accessions. One is kept.
+- **Tier 2, sequence:** same-species records whose 16S meets `--identity` (default 99.5%) with at least 90% coverage of the shorter sequence. One per group is kept. Tier 2 needs `makeblastdb` and `blastn`. Without them it is skipped with a warning and Tier 1 still runs.
+- **Which record stays:** a recognized collection token first (DSM, then ATCC, NBRC, JCM, NRRL), then any strain token, then the longer sequence, then the lower accession.
+
+Removing a duplicate tip does not show that two collection IDs are one physical strain. The ranking does not show type status. For a `[Type]` label, use NCBI Assembly type-material evidence.
+
+### Check the result
+
+- Count your queries, the references retained and the outgroup. `phylo_refset.py` skips a failed or empty extraction, writes fewer records and still exits 0. A build can end up holding only the outgroup.
+- The tools do not write a hash receipt or refuse an existing output. Use new paths and save the hashes of your outputs.
+
+## 4. Add an outgroup at the placement step
+
+If you built the set without `phylo_refset.py`, `phylo_place.py build-ref` and `all` accept `--add-outgroup GENUS` to append the registry outgroup. Do not use both routes for the same set.
 
 ## What a reference set can claim
-16S is an anchor, not a species call. A right-sized reference set gives "nearest among the chosen refs";
-dedup removes redundant tips but does not change that. Reference-tree compute needs the project owner's approval.
 
-## Registry, cache, scope and output holds
-
-`find_row` prefers an unambiguous LOCKED exact-scope row when available, but multiple unlocked candidates use file order with a warning. If no exact-scope row exists, it falls back to the first same-taxon row of **any** scope. A family request can therefore select a genus row; inspect and hold scope mismatch rather than assuming the rule-of-two-rows is enforced. Registry provenance identifies the selected file, not biological outgroup suitability.
-
-The 16S cache filename derives from outgroup genus/species/strain text, not registry SHA-256, database hash or ruled accession. A nonempty cached FASTA is checked for admissible header shape but not rebound to the current ruled accession. If a ruled accession is missing locally, extraction falls back to a name-based choice and checks genus, not exact accession/strain equivalence. Preserve that fallback as an authority hold until reviewed; do not describe it as the exact ruled sequence. Force/re-extraction writes the cache directly and may remove a rejected newly written cache file; optional `--out` copies over its destination. Keep authoritative sources disjoint from writable derived cache/output paths and externally bind sequence/cache hashes.
-
-`cache-16s` returns 0 even when its missing list is nonempty. `list` displays registry rows without lookup's project-authority gate. Neither result admits all rows/sequences as approved current outgroups.
-
-`phylo_refset` marker retrieval skips individual failed/empty `blastdbcmd` extractions and can write fewer records, even an empty marker-only set, with zero exit. A build can still contain just an appended outgroup. Check query/reference/extraction denominators before tree inference. Dedup reports and FASTAs overwrite directly; the report name uses literal `.replace('.fasta', '_DEDUP_REPORT.tsv')`, so an output without `.fasta` can collide with the FASTA and lose its report. Use distinct explicitly reviewed paths and retain output hashes. There is no integrated source/database/code/output hash receipt or fresh-destination guard. The proposed sequence collapse is display/reference reduction, not physical strain identity or taxonomy acceptance.
+16S is an anchor, not a species call. The set gives "nearest among the chosen references". Removing duplicates does not change that. Building the reference tree needs approval, as described in [the placement workflow](PHYLO_PLACEMENT_WORKFLOW.md).

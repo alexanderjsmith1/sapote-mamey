@@ -1,36 +1,32 @@
 # Mode B dual-writer / dual-auditor evidence-retention protocol
 
-**Date:** 2026-08-20
-**Audience:** Claude and Codex
-**Purpose:** enable either system to write Mode B cards and either system to audit them without allowing polished prose, filenames, section counts, or self-certification to substitute for evidence completeness.
-**Immediate lesson:** a 48-section card can still be materially incomplete. The predecessor-to-successor evidence-retention audit is a mandatory gate.
+**Audience:** anyone who writes or audits a Mode B card (the per-locus interpretive write-up). Terms are in the [glossary](GLOSSARY.md).
+**Purpose:** let one system or person write a card and a different one audit it, so that polished prose, file names, section counts or self-certification cannot stand in for complete evidence.
+**Main rule:** a card with all its sections can still be materially incomplete. The predecessor-to-successor evidence-retention audit is a required gate.
 
-*(Relayed verbatim by the Developer or User, 2026-08-20, into the .372 patch queue. Staged by the patch lane; see
-PATCH_CARD.md for the review notes and the FINISHED_CURRENT_EVIDENCE trigger-token conflict.)*
+**Commands:** this page defines roles and ledgers, not commands. To author and check a card, use [the Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md) (`emit-modeb-template`, `verify-modeb`). The section list in section 10 is the full48 profile only. For any other profile, take the section list from the [profile matrix](MODEB_PROFILE_MATRIX.md).
 
 ## Current implementation and profile boundary
 
 For a new card, choose the [profile](MODEB_PROFILE_MATRIX.md) and follow the
-[authoring walkthrough](MODE_B_USER_WALKTHROUGH.md). Use this retained 20 August 2026 protocol for
-writer/auditor responsibilities and predecessor retention. It is normative guidance, not an automatic
-role dispatcher or universal runtime state machine. Its numbered inventory is the full48 lineage;
-current50 v2 needs its own template/verifier and section map. Keep that card's 50 sections rather than
-truncating it to this list. The dated status ladder below remains a governance record; retain the
-current document/evidence states from the [ratified vocabulary](MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
-without translating labels or inferring approvals from filenames.
+[authoring walkthrough](MODE_B_USER_WALKTHROUGH.md). Use this page for writer and auditor
+responsibilities and for predecessor retention. It is guidance, not an automatic role dispatcher or a
+runtime state machine. Its numbered section list is the full48 profile. A current50_v2 card has 50
+sections and its own template and verifier; keep all 50 and do not cut it to the list below. For
+document and evidence states, use the [ratified vocabulary](MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
+and do not infer approvals from file names.
 
 `mamey/modeb_publication_gate.py` checks specified inline evidence-stream/history dispositions and
 section-specific structures; it does not independently enumerate all predecessor artifacts or audit
 every retention-ledger value. `mamey/mode_b_receipt.py` has profile-specific, source-bound review checks,
 but invoking a basic writer/structure checker does not run that entire review path. Store actual reviewer
-identity, selected profile, source hashes, findings and holds. A different system/chat name alone does
+identity, selected profile, source hashes, findings and holds. A different system name alone does
 not prove independence or owner acceptance. Normative gates remain required when runtime coverage is narrower.
 
 Freeze source evidence by existing path/portable locator and SHA-256; do not duplicate a whole package,
 database, report corpus or asset set just to create the source register. Keep one current owned candidate
 and authoritative index. The listed deliverable names are a per-card ledger convention, not a requirement
-to proliferate copies at every checkpoint. Permission comes from the actual user/task, never this archived
-relay line, an assistant role label or a claimed Developer acceptance. Scientific/release authority remains
+to proliferate copies at every checkpoint. Permission comes from the actual user and task, never a role label or a claimed acceptance. Scientific/release authority remains
 with the designated owner under the current task.
 
 ## 1. Controlling principles
@@ -40,37 +36,37 @@ with the designated owner under the current task.
 3. Missing, unbound, or un-ingested evidence is not biological absence.
 4. Exact assembly + full node/contig + antiSMASH region/interval + sequence/CDS roster controls identity. A BGC alias is display metadata, never a sufficient join key.
 5. Every predecessor evidence element must receive an explicit disposition. It may be retained, corrected, superseded, quarantined, declared not applicable, or declared missing. It may not silently disappear.
-6. A writer cannot establish publication readiness by completing §§1–48. An independent audit must first demonstrate evidence retention, exact-source binding, and claim safety.
+6. A writer cannot establish publication readiness by completing all full48 sections (§§1–48). An independent audit must first demonstrate evidence retention, exact-source binding, and claim safety.
 7. Mamey is deterministic extraction and routing evidence. It informs writing but does not supply product, activity, novelty, merge, or publication judgment.
 8. Historical material remains evidence even when its interpretation is superseded. Preserve source bytes and separate useful measurements from stale conclusions.
 9. Reference comparisons must identify the reference assembly/record and report identity, coverage, synteny, and source provenance. Host category or compound label alone is not a comparison.
-10. the Developer or User alone accepts a card, authorizes scaling, approves rendering, and determines release/publication status.
+10. The project owner alone accepts a card, authorizes scaling, approves rendering, and determines release/publication status.
 
 ## 2. Mandatory display and folder identity
 
-Every deliverable, table, heading, filename, message, ledger, and review note referring to an AS locus must use:
+Every deliverable, table, heading, filename, message, ledger, and review note referring to a locus must use:
 
 `strain / full node-or-contig / antiSMASH region / BGC alias`
 
 Example:
 
-`AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / BGC028`
+`ABC-12 / NODE_7_length_250000_cov_50.000000 / region002 / BGC002`
 
-Never write `BGC028` by itself when referring to an AS locus. MIBiG accession identifiers such as `BGC0002676.2` are reference-record identifiers and must be labeled as MIBiG accessions.
+Never write `BGC002` by itself when referring to a locus. MIBiG accession identifiers such as `BGC0002676.2` are reference-record identifiers and must be labeled as MIBiG accessions.
 
 Recommended folder name:
 
 `<strain>__<full_node_or_contig>__<region>__<BGC_alias>/`
 
-Loose and relaxed antiSMASH runs may renumber aliases. Preserve these only as qualified local aliases, for example:
+antiSMASH can be run with a looser or more relaxed detection setting than the one the frozen record used. Such runs may renumber aliases. Preserve these only as qualified local aliases, for example:
 
-`AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / loose-package local alias BGC037`
+`ABC-12 / NODE_7_length_250000_cov_50.000000 / region002 / loose-package local alias BGC005`
 
 Never transfer a local alias to the frozen card identity. Crosswalk on the full node, region interval, sequence hash, and CDS roster. Quarantine ambiguity.
 
 ## 3. Dual-role operating model
 
-Claude and Codex may each serve as writer or auditor. Assign roles per card, not permanently.
+Any system or person may serve as writer or auditor. Assign roles per card, not permanently.
 
 ### Writer responsibilities
 
@@ -80,7 +76,7 @@ The writer:
 2. establishes exact locus identity and denominator;
 3. creates the evidence-retention ledger before prose;
 4. extracts every admitted evidence stream;
-5. writes the ordered §§1–48 card;
+5. writes the ordered §§1–48 card (full48);
 6. includes the complete per-gene evidence table;
 7. declares corrections, supersessions, quarantines, and missing evidence;
 8. issues a candidate receipt without claiming independent acceptance.
@@ -93,14 +89,14 @@ The auditor independently:
 2. checks hashes, source locators, and denominator;
 3. compares predecessor, candidate, and source evidence;
 4. verifies every retention-ledger disposition;
-5. confirms all §§1–48 are substantive and correctly ordered;
+5. confirms that every section the selected profile requires is present, substantive and correctly ordered: §§1–48 for full48, or the required and applicable conditional sections of `current50_v2`, following that profile's rule for optional sections (see the [current50 guide](MODEB_CURRENT50_V2_CONTRACT.md#required-conditional-and-optional-sections));
 6. checks every gene and every BLASTP channel row;
 7. challenges product, activity, novelty, ecology, HGT, resistance, prevalence, and cross-contig claims;
 8. issues findings without silently rewriting the writer's candidate.
 
 ### Independence rule
 
-The same writing pass may run mechanical self-checks, but it may not self-certify `CONTENT_QA_PASSED`, `MAINTAINER_ACCEPTED`, or publication readiness. A second system, a separate saved task, or a later independent pass must audit it. The auditor reports evidence; the Developer or User decides acceptance.
+The same writing pass may run mechanical self-checks, but it may not self-certify `INDEPENDENT_CONTENT_QA_PASSED_CANDIDATE`, `MAINTAINER_ACCEPTED`, or publication readiness. A second system or person, a separate saved task, or a later independent pass must audit it. The auditor reports evidence; the project owner decides acceptance.
 
 ## 4. Status vocabulary
 
@@ -150,7 +146,7 @@ At minimum inspect and account for:
 15. literature and gene-family cards;
 16. cohort prevalence;
 17. predecessor Mode B card(s);
-18. V7 evidence chapter and locus map/data;
+18. an earlier evidence chapter and locus map or data for this locus;
 19. reference-strain comparisons;
 20. assay, metabolomics, expression, or culture evidence if present.
 
@@ -238,7 +234,7 @@ Use the sealed package manifest, crosswalk, CDS/domain/module/HMM/motif outputs,
 
 ### MIBiG/KCB
 
-Retain the full comparator set or provide a complete appendix. Report accession, reference compound label, distinct query genes, identity, coverage, QC flags, class concordance, and tier. A compound label belongs to the reference record, not automatically to the AS locus.
+Retain the full comparator set or provide a complete appendix. Report accession, reference compound label, distinct query genes, identity, coverage, QC flags, class concordance, and tier. A compound label belongs to the reference record, not automatically to this locus.
 
 ### BiG-SCAPE
 
@@ -250,7 +246,7 @@ Retain per-gene rows or a complete machine-readable companion. Report reference 
 
 ### RG-GMCI
 
-Display every AS partner as strain/full node/region/local alias. Report score, evidence base, reference geometry, functional-rescue class, tiling verdict, and guard. It is homology-guided linkage, not nucleotide joining.
+Display every partner locus as strain/full node/region/local alias. Report score, evidence base, reference geometry, functional-rescue class, tiling verdict, and guard. It is homology-guided linkage, not nucleotide joining.
 
 ### Chitin
 
@@ -266,13 +262,13 @@ Report the governed denominator, filtered families, exact genes, rarity threshol
 
 ### Literature
 
-Retain primary pathway, class-level, and gene-specific citations. Separate what the reference study demonstrated from what similarity suggests for the AS locus. Never transfer exemplar activity or structure.
+Retain primary pathway, class-level, and gene-specific citations. Separate what the reference study demonstrated from what similarity suggests for this locus. Never transfer exemplar activity or structure.
 
 ### Prevalence
 
 Report the exact dated denominator and unit: genes, loci/cards, strains, or events. Never merge them. Historical measurements must be labeled historical unless recomputed against the current governed cohort.
 
-### Historical Mode B and V7
+### Earlier cards and evidence chapters
 
 Preserve valuable measurements, tables, citations, and comparator logic. Correct stale denominators and overstrong conclusions explicitly. Preserve old bytes; do not overwrite.
 
@@ -280,60 +276,11 @@ Preserve valuable measurements, tables, citations, and comparator logic. Correct
 
 Use reference strains when exact records are available. Report assembly/accession, node/region/interval, sequence identity, alignment coverage, synteny, missing segments, and source receipt. If the panel is still being built, use `PENDING_EXACT_BOUND_IMPORT`; do not infer absence.
 
-## 10. The 48-section writing contract
+## 10. The 48-section writing contract (full48 profile)
 
-The card must contain §§1–48 exactly once and in order. Each section must be substantive, locus-specific, and source-aware. Drafts can record `Not applicable`, `not measured` or `pending` with reasons and next evidence. `Pending` is not terminal closure for a selected finished-current-evidence profile; apply its ratified readiness, matrix and independent review requirements.
+A full48 card must contain §§1–48 exactly once and in order. Each section must be substantive, locus-specific, and source-aware. Drafts can record `Not applicable`, `not measured` or `pending` with reasons and next evidence. `Pending` is not terminal closure for a selected finished-current-evidence profile; apply its ratified readiness, matrix and independent review requirements.
 
-The required section names are:
-
-1. Identity and node/region
-2. Why this BGC was selected
-3. Boundary and assembly status
-4. Gene-by-gene interpretation
-5. Core biosynthetic logic
-6. Tailoring and maturation logic
-7. Transport, resistance, and regulation
-8. Comparator/KCB interpretation
-9. Alternative hypotheses
-10. Fragmentation and co-capture risks
-11. Product-family interpretation
-12. Host/microbe ecological interpretation
-13. Antibacterial/antifungal relevance
-14. What cannot be claimed
-15. Missing evidence
-16. BLASTP/HMMER next steps
-17. LC-MS/fermentation implications
-18. Figure/locus-map notes
-19. Final Mode B judgment
-20. Next actions
-21. Precursor mass ladder
-22. RiPP database search
-23. Heterologous expression
-24. Scaffold novelty score
-25. Genome neighborhood
-26. OSMAC protocol
-27. Self-resistance assessment
-28. Evidence provenance ledger
-29. Cross-cluster interactions
-30. Experimental decision tree
-31. Region CDS census
-32. Assembly-line inventory
-33. Module programming readout
-34. Initiation and release logic
-35. Protocluster decomposition
-36. Boundary/overmerge/locus-splitting adjudication
-37. Partner and accessory proteins
-38. Co-located resistance and efflux
-39. Cross-strain sequence identity
-40. BiG-SCAPE family/cohort placement
-41. Protein/domain phylogeny
-42. Horizontal-transfer evidence
-43. Split-pathway/cross-contig RG-GMCI
-44. Within-cohort prevalence and tier
-45. Supervisor/university cohort comparison
-46. Type/reference-strain comparison
-47. Host-matched unrelated reference
-48. Cross-cohort synthesis and claim ceiling
+Copy the section titles exactly from the template that `emit-modeb-template` writes. Do not retype them from memory or from another document: the verifier compares each title, including spelling (for example "judgement") and punctuation, and reports `TITLE_MISMATCH` when one differs. The profile matrix shows how to read the emitted titles.
 
 Appendices may follow §48 but may not create duplicate `## §N` headings.
 
@@ -390,7 +337,11 @@ assigned" paragraph for the searched genes and denominator.
 
 ### 11.3 Section 45 cohort gene-comparison contract
 
-Predecessor preservation, V7 rank, authoring history and source-loss accounting
+This subsection uses full48 numbering. In `current50_v2`, §45 is the optional "Supervisor / university
+cohort comparison" section with its own requirement in `mamey/data/mode_b/modeb_current50_v2_contract.json`.
+Apply the rules below to a `current50_v2` card only where it reports a cohort gene comparison.
+
+Predecessor preservation, earlier ranking, authoring history and source-loss accounting
 belong in the provenance ledger; they do not satisfy cohort comparison. Section
 45 requires:
 
@@ -423,7 +374,9 @@ A shorter dense card is preferable to a longer padded card.
 
 ## 12. Writer deliverables
 
-For each card, the writer produces additively:
+For each card, the writer produces the files below. This is a hand-made convention; no Mamey command writes them. Add new versions; do not overwrite old ones.
+
+
 
 - `...__ModeB_CARD__EVIDENCE_RECONCILED_CANDIDATE_vN.md`
 - `EVIDENCE_RETENTION_LEDGER.tsv`
@@ -438,14 +391,14 @@ For each card, the writer produces additively:
 - `ARTIFACT_MANIFEST.tsv`
 - `SAVE_STATE.md`
 
-No predecessor is overwritten. Rendering is deferred until the Developer or User explicitly authorizes it.
+No predecessor is overwritten. Rendering is deferred until the project owner explicitly authorizes it.
 
 ## 13. Auditor acceptance tests
 
 The auditor must fail the candidate if any condition below is false:
 
 1. exact identity resolves one-to-one;
-2. sections 1–48 appear exactly once and in order;
+2. sections 1–48 (full48) appear exactly once and in order;
 3. all predecessor locus tags are accounted for;
 4. exact and context denominators are explicit;
 5. every displayed gene has all expected channel states;
@@ -455,13 +408,13 @@ The auditor must fail the candidate if any condition below is false:
 9. all required evidence streams have ledger dispositions;
 10. all predecessor citations and comparator records are retained, superseded with reason, or quarantined;
 11. Mamey aliases are crosswalked rather than transferred;
-12. every other AS locus is displayed with strain/full node/region/BGC or qualified local alias;
+12. every other locus is displayed with strain/full node/region/BGC or qualified local alias;
 13. run-relative BiG-SCAPE and RG-GMCI guards are present;
 14. no product, activity, novelty, ecology, HGT, resistance, or physical-linkage claim exceeds evidence;
 15. source hashes and artifact-manifest hashes validate;
 16. the document state is not falsely labeled finished or publication-ready;
 17. unresolved reference work is `PENDING`, not interpreted as negative;
-18. no rendering occurred without the Developer or User's green light.
+18. no rendering occurred without the project owner's green light.
 
 The auditor reports each check as `PASS`, `FAIL`, or `HOLD` with evidence and line/file locator. A failed card remains preserved as an unaccepted candidate.
 
@@ -493,7 +446,7 @@ Feedback is welcome but not required for progress.
 2. Auditor produces an additive findings file.
 3. Writer answers each finding in a disposition table.
 4. Auditor rechecks only changed and dependent claims plus global invariants.
-5. the Developer or User accepts, rejects, or requests another pass.
+5. the project owner accepts, rejects, or requests another pass.
 
 Do not silently edit another system's accepted source. Use additive versions and supersession pointers.
 
@@ -501,30 +454,25 @@ Do not silently edit another system's accepted source. Use additive versions and
 
 Do not scale based on one polished card. First pass two deliberately difficult pilots with zero unexplained omissions. Only then convert the contract into automation. Automated generation must still preserve one-card-at-a-time exact-locus ledgers and permit independent content audit.
 
-## 17. Historical recovery pilot
+## 17. Recovery pilot pattern
 
-The retained 20 August 2026 record names this recovery pilot. Its counts and biological interpretations
-below remain historical claims requiring their original source evidence:
+Before scaling, run the protocol on a deliberately difficult locus and check that it keeps these distinctions:
 
-`AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / BGC028`
+- exact-region CDS versus boundary-context CDS;
+- the frozen identity versus a qualified local identity from a loose or relaxed run;
+- a bounded subsystem versus a broader multi-system region;
+- retained historical measurements versus current source-state limits;
+- strain-level capacity versus exact-locus intersection;
+- routing evidence versus accepted physical linkage;
+- historical prevalence versus current recomputation.
 
-It demonstrates the required distinction between:
+Reuse the protocol and schemas only. Never carry one locus's biological conclusions to another.
 
-- 90 exact-region CDS and one boundary-context CDS;
-- frozen identity `AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / BGC028` and qualified local identity `AS-XXX / NODE_4_length_335315_cov_71.173128 / region002 / loose-package local alias BGC037`;
-- a bounded skyllamycin/WS9326-like subsystem and a broader multi-system region;
-- retained historical BLASTP measurements and current source-state limitations;
-- strain-level chitin capacity and zero exact-locus chitin intersection;
-- Mamey/RG-GMCI routing and accepted physical linkage;
-- historical prevalence and current recomputation.
+## 18. Compact assignment text for a writer or auditor
 
-The example's biological conclusions must not be transferred to other loci. Reuse only the protocol and schemas.
+> Act as the Mode B writer for one exact locus. Use `strain / full node-or-contig / antiSMASH region / BGC alias` everywhere. Freeze and hash the exact GBK, Mamey package, BLASTP channels, MIBiG, BiG-SCAPE, ClusterBlast, RG-GMCI, chitin, resistance, domain rarity, literature, prevalence, earlier Mode B cards and evidence chapters, and reference-strain evidence. Build an evidence-retention ledger before prose. Write the profile's sections (§§1–48 for full48) exactly once and include the complete gene × channel table with matched accession/protein/organism, identity, positives, aligned length, query coverage, coverage basis, E-value, bitscore, and evidence state. Every predecessor element must be retained, corrected, superseded, quarantined, not-applicable, or missing with reason. Do not call the result finished or publication-ready. Preserve predecessors and issue an evidence-reconciled candidate plus source register, difference report, QA receipt, durable state, and manifest. Do not render without the project owner's authorization.
 
-## 18. Compact assignment text for Claude or Codex
-
-> Act as the Mode B writer for one exact locus. Use `strain / full node-or-contig / antiSMASH region / BGC alias` everywhere. Freeze and hash the exact GBK, Mamey package, BLASTP channels, MIBiG, BiG-SCAPE, ClusterBlast, RG-GMCI, chitin, resistance, domain rarity, literature, prevalence, historical Mode B, V7, and reference-strain evidence. Build an evidence-retention ledger before prose. Write §§1–48 exactly once and include the complete gene × channel table with matched accession/protein/organism, identity, positives, aligned length, query coverage, coverage basis, E-value, bitscore, and evidence state. Every predecessor element must be retained, corrected, superseded, quarantined, not-applicable, or missing with reason. Do not call the result finished or publication-ready. Preserve predecessors and issue an evidence-reconciled candidate plus source register, difference report, QA receipt, durable state, and manifest. Do not render without the Developer or User's authorization.
-
-> Act as the independent Mode B auditor for one candidate. Re-resolve exact identity and denominator from sources. Compare predecessor, candidate, evidence-retention ledger, and every supporting stream. Fail any unexplained omission, alias-only join, missing gene/channel row, unnamed percentage match, conflated BLASTP channel, unsupported product/activity/novelty/HGT/resistance/linkage claim, stale prevalence presented as current, missing source hash, or false completion label. Produce additive findings with file/line evidence. Do not rewrite or accept the candidate; the Developer or User owns acceptance.
+> Act as the independent Mode B auditor for one candidate. Re-resolve exact identity and denominator from sources. Compare predecessor, candidate, evidence-retention ledger, and every supporting stream. Fail any unexplained omission, alias-only join, missing gene/channel row, unnamed percentage match, conflated BLASTP channel, unsupported product/activity/novelty/HGT/resistance/linkage claim, stale prevalence presented as current, missing source hash, or false completion label. Produce additive findings with file/line evidence. Do not rewrite or accept the candidate; the project owner owns acceptance.
 
 ## 19. Claim ceiling
 

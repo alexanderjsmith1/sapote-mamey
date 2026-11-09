@@ -9,7 +9,7 @@ release seal, disclosure or publication.
 - [ ] Record the actual source path/tree digest, engine/bundle/build identities and requested operation.
 - [ ] Distinguish reviewed source, prepared candidate, staged tier, published archive and extracted archive.
 - [ ] Retain owner decisions separately from machine status labels and document unresolved holds.
-- [ ] Use CODE-only default; any retired tier/promotion requires its own explicitly selected scope.
+- [ ] Cut the CODE tier only (the full code bundle; see [tier differences](TIER_DIFFERENCES.md) and the [glossary](GLOSSARY.md)). Any retired tier or promotion needs its own explicitly selected scope.
 - [ ] Keep original inputs immutable and perform authorized source preparation in a candidate copy.
 
 ## Documentation and source contracts
@@ -67,7 +67,7 @@ not grant a version bump, cut, extraction acceptance, seal or publication.
 python tools/cut_audit.py rebase-verify --base '<reviewed-tree>' --card '<patch-card>' --tests '<selected-test-path>' --python '<selected-python>' --timeout '<seconds>'
 ```
 
-This operation makes two whole-tree temporary copies, applies sorted top-level
+This operation makes two whole-tree temporary copies with rsync, applies sorted top-level
 `.diff`/`.patch` files, copies top-level `test_*.py` files into both trees and runs
 pytest in each. It is an execution/copy operation, not a read-only card review.
 Before selecting it, confirm the authorized test scope, scripts/dependencies,
@@ -80,9 +80,14 @@ is not proof that all selected test bodies are offline or free of external write
 Retain the separately authorized execution scope.
 
 Rebase exit 1 means patch application failed or new parsed FAILED/ERROR node IDs
-were found after both runs met the helper's completion screen. Exit 2 marks an
-inconclusive run, including timeout, unsupported pytest exit status, missing
-passed/failed timing summary, interruption or internal error. A timeout does
+were found after both runs met the helper's completion screen. Exit 2 prints
+`REBASE-VERIFY: INCONCLUSIVE` and marks an inconclusive run. Two cases are caught
+before any test runs (`tools/cut_audit.py:78-93,182-195`): a copy that failed or is
+incomplete, and a card with no top-level `.diff` or `.patch` file. A copy is
+complete only when rsync exits 0 and the copy holds the same paths, kinds and file
+sizes as its source; sizes are compared, not hashes. The other exit-2 cases are a
+timeout, unsupported pytest exit status, missing passed/failed timing summary,
+interruption or internal error. A timeout does
 not become an accepted delta merely because no new node IDs were parsed.
 Exit 0 means both runs met that screen and no new parsed IDs were found; the
 screen does not certify the required node roster or investigate matching
@@ -119,9 +124,8 @@ reports collisions and file count, not a saved source-bound completion receipt.
 
 The checker compares hashable literal keys using Python equality, including
 collisions such as `1`/`True`/`1.0`. Computed keys and dictionary expansions are
-outside its detection scope. Literal `None` is also currently skipped because it
-shares the unknown-key sentinel, so repeated `None` keys can escape the gate.
-Reported entry counts concern tracked literal keys, not every literal entry or
+outside its detection scope. Literal `None` is a real key and is checked like the
+others (`tools/check_duplicate_dict_keys.py:88`). Reported entry counts concern tracked literal keys, not every literal entry or
 runtime construction. PASS does not establish absence of all overwrites,
 valid execution or data integrity. The current source allowlist is empty;
 `--strict` ignores any future configured allowlist. The historical three-site
@@ -134,13 +138,18 @@ scope or disclosure authority.
 python tools/check_module_accretion.py --json
 ```
 
-The gate uses the bundle containing the script. It compares discovered `mamey/**/*.py` membership with paths parsed from `SOURCE_CHECKSUMS_SHA256.txt`; the editable `MODULE_MANIFEST.txt` is not its comparison baseline. The checksum reader admits digest format and duplicate raw path checks, not actual source-byte hash equality or full checksum-path containment. Preserve independently verified baseline identity and the intended module roster.
+The gate uses the bundle containing the script. It compares the `mamey/**/*.py` files it finds with the paths listed in `SOURCE_CHECKSUMS_SHA256.txt`; the editable `MODULE_MANIFEST.txt` is not its baseline. It exits 1 for an unjustified new module, an unreadable path or a baseline parse error, and 0 otherwise (`tools/check_module_accretion.py:216`). JSON goes to stdout; no receipt is saved.
 
-Current discovery excludes `__pycache__`; missing/empty module roots can yield zero current modules without a traversal error. Removed modules are reported but do not make the gate fail. A parse/read error while extracting a docstring becomes `(no docstring)` and the module remains counted, without a separate failed-file state. A normal exit 0 therefore means no unjustified additions, reported directory-walk errors or baseline-parser errors under this membership check; it does not prove a complete, runnable or intact bundle. Inspect counts, removals and independent source/read/parse coverage.
+A new module counts as justified when its basename appears on a `Consolidates:` or `Accretion-justified:` line in the first recognized top-level version entry of the changelog, or in its first 4,000 characters when no version header is recognized.
 
-Justification takes basenames from `Consolidates:`/`Accretion-justified:` lines in the first recognized top-level version entry. One basename can justify distinct same-named modules under different subdirectories. The checker does not admit the entry's version against the selected cut or establish a real consolidation/reason. If no version header is recognized, it uses the first 4,000 characters. Review exact full paths, selected current entry and rationale independently.
+What exit 0 does not show:
+- The checksum reader checks digest format and duplicate paths. It does not compare actual source bytes with the listed hashes or check full path containment.
+- `__pycache__` is skipped, and a missing or empty module root can give zero modules without an error.
+- Removed modules are reported but do not fail the gate.
+- A read or parse error while taking a docstring becomes `(no docstring)`, and the module stays counted.
+- One basename can justify same-named modules in different folders, and the entry's version is not checked against the cut.
 
-`--write` is a separate direct overwrite of `MODULE_MANIFEST.txt`, not a read-only check. It can write a zero-module inventory and it does not update `SOURCE_CHECKSUMS_SHA256.txt`; consequently it does not clear a checksum-baseline addition merely by regenerating the editable manifest. Select writes only as part of the authorized versioned cut procedure, preserve prior metadata and validate inventory before publication. Neither mode saves a structured input-hash receipt; JSON is emitted to stdout. Record actual command, inputs/hashes, complete diagnostics and exit status into a fresh disjoint destination. Unexpected read/write errors may prevent a complete report.
+`--write` overwrites `MODULE_MANIFEST.txt`; it is not a check. It can write a zero-module inventory, and it does not update `SOURCE_CHECKSUMS_SHA256.txt`, so regenerating the manifest does not clear a checksum-baseline addition. Run it only inside the authorized cut procedure. Record the command, inputs and their hashes, full output and exit status in a fresh receipt.
 
 ## Verify the tier and archive
 
@@ -165,4 +174,4 @@ promotional label or signed-looking metadata substitutes for this evidence.
 
 ## Version reference
 
-*Sapote-Mamey Bundle v9.7.463 | Active controller: current user task, AGENTS.md and docs/USER_TASK_ROUTER.md; the monolith is a design/history reference.*
+*Sapote-Mamey Bundle v9.7.464 | Active controller: current user task, AGENTS.md and docs/USER_TASK_ROUTER.md; the [rules reference](SAPOTE_MAMEY_BUNDLE_MONOLITH.md) (the monolith) is a design/history reference.*

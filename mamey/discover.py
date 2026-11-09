@@ -63,6 +63,7 @@ def _capabilities(pkg: Path) -> dict:
     return {
         "figures":   ("gold_figures" in names) or any_suffix("_8a_fig_landscape.png"),
         "mode_b":    any_suffix("modeb_verdicts.csv") or ("modeb_verdicts.csv" in names),
+        # Panel-folder presence only: a prepared panel is not a submitted search or an ingested result.
         "blastp":    ("bgc_blastp_panel" in names),
         "blastp_worklist_only": has_worklist and ("bgc_blastp_panel" not in names),
         "report":    any_suffix("_compiled_report.md"),
@@ -145,7 +146,8 @@ def _suggest(pkgs: list[dict], ctx: dict) -> list[str]:
         s.append(f"validate — {len(incomplete)} package(s) not at a passing gate: "
                  + ", ".join(p['strain'] for p in incomplete[:6]))
     if bp_wait:
-        s.append(f"ingest-blastp — {len(bp_wait)} package(s) have a BLASTp worklist but no ingested panel: "
+        s.append(f"ingest-blastp — {len(bp_wait)} package(s) have a BLASTp worklist but no bgc_blastp_panel/ folder "
+                 f"(folder presence only; submission and ingestion are not checked): "
                  + ", ".join(p['strain'] for p in bp_wait[:6]))
     if no_fig:
         s.append(f"render-all-figures — {len(no_fig)} package(s) have no figure set")
@@ -217,7 +219,7 @@ def _render(rep: dict) -> str:
     L.append(f"## Packages found: {len(pk)}")
     if pk:
         L.append("")
-        L.append("| Strain | Engine | Release | Gate | Tier | BGCs (raw/corr) | Figs | ModeB | BLASTp | Report |")
+        L.append("| Strain | Engine | Release | Gate | Tier | BGCs (raw/corr) | Figs | ModeB | BLASTp panel files | Report |")
         L.append("|---|---|---|---|---|---|--:|--:|--:|:--:|")
         def y(b): return "✓" if b else "·"
         def num(n): return str(n) if n else "·"

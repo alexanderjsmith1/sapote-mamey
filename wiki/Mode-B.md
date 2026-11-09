@@ -93,7 +93,7 @@ identity, expression unknown without culture data.*
 
 # Gene-first and full-card manual
 
-*Current to bundle v9.7.463 · engine Mamey 1.9.179.*
+*Current to bundle v9.7.464 · engine Mamey 1.9.180.*
 
 The machine contract and the verifier are the authority; this page explains them.
 

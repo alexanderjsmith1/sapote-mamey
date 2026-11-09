@@ -1,44 +1,63 @@
 # rggmci: Reference-Guided Genome Mining Candidate Inference (RG-GMCI)
 
-
-## Output and result-scope checks
-
-The primary antiSMASH CLI admits the entire input/output roster before analysis or directory creation. Use new JSON/TSV files and a new or empty ordinary `--out-dir`; an occupied directory (including unrelated or hidden files) or a symlink directory is refused. Duplicate physical inputs, case/Unicode-insensitive ZIP-stem collisions, input/output aliases, overlapping output paths and multi-input `--out`/`--pairs` are refused with exit 2. Rename colliding input files explicitly while retaining their provenance, or run them separately into fresh directories. Preflight refusals preserve existing bytes.
-
-For every successfully analyzed input in `--out-dir`, the CLI writes JSON, ranked-pair and related-locus TSVs, per-input summary/group TSVs, and the three completion tables. Requested pair TSVs and per-input related-locus TSVs are header-only when no rows exist: their empty schema contains identity/score fields (plus related-locus fields where applicable), while populated tables retain the engine's full columns. Zero rows describe the current result, not biological absence or proof that missing reference evidence was searched. Read the JSON and completion tier.
-
-JSON/TSV files are created exclusively, including completion tables from the shared byte formatter. Concurrent filesystem changes or a write failure can still leave partial fresh outputs; this is not a transactional batch. An output failure returns 2. Per-input analysis exceptions remain recorded in `SUMMARY.tsv`, with final exit 1 if any input errored; earlier successful outputs remain and a failed input has no success JSON. These admission rules cover the primary antiSMASH CLI; the optional subcommands have their own write contracts.
-
-The BLASTp layer returns 0 even when result queries are unmapped and excluded. Review NOT_IN_RESULTS, unmapped queries and the exact query/result roster rather than interpreting a zero exit as complete coverage. Keep original files, generated manifest and input hashes. No cross-locus evidence transfer follows from a matching alias alone.
-
 RG-GMCI surfaces antiSMASH regions in a fragmented genome assembly that may belong to one biosynthetic
 pathway: fragments that the assembly left on separate contigs. It reads biosynthetic logic through the
 ClusterBlast and KnownClusterBlast results that antiSMASH already wrote.
 
-It is a homology-guided candidate method, not a contig joiner. Assembly fragmentation can have several causes; this reader does not determine which caused a particular break. A candidate is a hypothesis to check at gene level.
+It is a homology-guided candidate method, not a contig joiner. An assembly can break for several reasons, and
+rggmci does not say which one caused a particular break. A candidate is a hypothesis to check at gene level.
 
-It has no required dependencies. Biopython is used when installed; otherwise a built-in
-GenBank reader is used.
+## Install
+
+```bash
+pip install "git+https://github.com/alexanderjsmith1/rggmci"
+```
+
+Python 3.12 or newer. Biopython is installed with it; it reads joined and origin-spanning gene locations.
 
 ## Run it
 
 ```bash
-pip install rggmci-*.whl
 rggmci my_genome.antismash.zip --out result.json --pairs pairs.tsv --reference-completion off
 rggmci antismash_zips/ --out-dir rggmci_results/ --reference-completion off
 ```
 
-A successful batch writes one JSON, one pairs table and one related-locus table per genome, three
-completion tables per genome, plus `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv`. Empty pair/related-locus
-tables contain headers only. The examples above read saved antiSMASH evidence with completion explicitly
-off; optional completion still defaults to auto when this flag is omitted.
-[docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
+The first line scores one genome. The second scores every ZIP in a folder. These examples turn reference-guided
+completion off; without the flag it runs whenever its database and aligner are found (see below).
 
-The input is a saved antiSMASH result ZIP with region GenBank files and usable cluster-level
-`knownclusterblast/` (KCB) and/or `clusterblast/` (CB) records. The channels remain separate, and
-either can support a candidate pair. SubClusterBlast alone is not pairing evidence. A region-only
-ZIP can be read, but without usable CB/KCB records it has no reference-supported pairs; preserve
-missing/parse states rather than interpreting that result as biological absence.
+`--out`, `--pairs` and `--out-dir` must be new files or a new or empty folder. Every input and output is checked
+before any work starts, and a clash stops the run before anything is written.
+
+With `--out-dir`, each genome gets eight files:
+- `<genome>.json`, the result;
+- `<genome>_pairs.tsv`, the scored region pairs (see the limit below);
+- `<genome>_related_loci.tsv`, `<genome>_candidate_groups.tsv` and `<genome>_summary.tsv`;
+- three completion tables: `_reference_completion.tsv`, `_split_genes.tsv` and `_partner_contigs.tsv`.
+
+The folder also gets `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv` across all genomes. A table with no rows has its
+header only. [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
+
+A genome can score thousands of pairs. The pair table and the JSON's `ranked_pairs` keep the top 1,000 by rank, plus
+every HIGH pair below them. `pairs_total` in the JSON and `scored_pairs` in `SUMMARY.tsv` count every scored pair;
+`pairs_exported` counts the rows kept.
+
+Exit codes:
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Every genome was scored. |
+| `1` | At least one genome failed. Its row in `SUMMARY.tsv` gives the error in the `error` column, and it has no JSON. The other genomes' files are complete. |
+| `2` | The command was refused (a missing input, a clash between inputs or outputs, an occupied folder), or a file could not be written. |
+
+Zero pairs means none scored in this run. It does not mean the genome has no split pathway: read the JSON's
+`reference_map_status` and each table's `completion_tier`.
+
+## The input it needs
+
+A saved antiSMASH result ZIP with its region GenBank files and the cluster-level `knownclusterblast/` (KCB) or
+`clusterblast/` (CB) results, or both. Each channel can support a pair on its own. SubClusterBlast alone is not
+pairing evidence. A ZIP of region files without CB or KCB results can be read, but it gives no
+reference-supported pairs.
 
 ### Starting from an assembly
 
@@ -52,27 +71,47 @@ rggmci does not call genes or detect clusters. antiSMASH does both, so run it on
 The proteins `rggmci fasta` writes are antiSMASH's own gene calls, so no separate gene calling or Pfam scan
 is needed.
 
-## A second layer from your own BLASTp
+## What it reports
 
-`rggmci fasta` writes the proteins of the regions in HIGH cross-contig pairs as FASTA files sized for NCBI
-web BLASTp, plus a manifest and a short how-to. You run the searches yourself. `rggmci blastp-layer` reads the
-results back.
+- One row per kept region pair (the top 1,000 by rank, plus every HIGH pair), with the two regions' contigs,
+  products and edge status.
+- `rggmci_confidence`: `HIGH_RG_GMCI_RESCUE`, `MODERATE_RG_GMCI_CANDIDATE` or
+  `LOW_SHARED_REFERENCE_SIGNAL`.
+  - HIGH needs a pair score over the threshold. The score counts shared references, references where
+    the two regions' hits overlap or sit side by side, and whether the regions touch a contig end or
+    lie on different contigs.
+  - HIGH also needs at least two such overlapping or side-by-side references, and a specific shared
+    product class or a known compatible hybrid.
+  - Only regions at a contig edge are paired, and never two regions on one contig. Two regions on one contig are
+    listed apart as related loci (`related_locus_pairs` in the JSON), never as rescues. rggmci reads antiSMASH's own `/contig_edge` flag on each region feature. When the flag is missing, or the region's
+    features disagree, it uses its own edge status instead (`Edge` or `Full-contig`, defined in
+    [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md)). This is a rule of the method. A region inside a contig can still lack
+    pieces that the assembly or antiSMASH did not show; rggmci does not look for them.
+  - Product classes are compared by antiSMASH family, so an arylpolyene or PKS-like fragment matches a type I
+    PKS as PKS, and a lanthipeptide matches as RiPP.
+  - Further gates demote a pair that fails them: too few strong references, noise-only classes, a
+    region linked to more than four HIGH partners, or paralog-like overlap. `acceptance_gate` says which gate
+    acted; [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) lists every verdict.
+  - Paralog-like overlap means the two regions hit the same genes of a reference. Up to 2 shared genes are
+    tolerated when they are at most 15% of all genes hit and each region hits 2 genes of its own.
+  - A pair held back only by the product-class gate, where one fragment carries only sugar genes, can return to
+    HIGH when its partner is a backbone class (PKS, NRPS, RiPP, terpene) whose own region file names a
+    glycosyltransferase. The two must be on different contigs, pass the gene-level split check, and tile 2 to 6
+    MIBiG clusters together.
+- The references that support each pair.
+- `both_at_contig_ends`: whether both regions of a pair run to a contig end. It describes where the
+  fragments sit and hides nothing.
+- Candidate groups: HIGH pairs on different contigs that share regions, gathered into one group. That is
+  how a pathway spread over three or more fragments shows up.
+- Gene context, when the ZIP's gene annotations allow it: each fragment's functional roles and core fraction, and
+  whether a modular assembly line continues across the pair. These describe the pair and never change a score.
 
-```bash
-rggmci fasta my_genome.antismash.zip --out-dir queries/          # then BLASTp each queries/*.fasta on NCBI
-rggmci blastp-layer --manifest queries/blastp_manifest.json \
-       --hits Hit_Table.csv --xml2 results.xml --out-dir layer/
-```
+To cite one region of a pair, copy `identity_a` or `identity_b`: strain / full contig name / region / BGC alias.
+The strain label is the ZIP name or `--label`; rggmci does not check it against any taxonomy. The alias
+(`BGC014`) is a reading order and can change between runs, so never use it alone.
 
-- Per region it takes up to 6 biosynthetic genes from the whole region, core genes first and nearest the
-  contig end first. `--edge-genes N` adds the N genes nearest the break, of any kind. `--include-moderate` adds
-  MODERATE pairs.
-- Download both the Hit Table (CSV) and the Single-file XML2. The XML2 carries organism names and lists the
-  queries that found nothing. A Hit Table alone cannot tell "no hits" from "not run".
-- The layer reports, per pair, which source organisms carry homologs of both fragments' proteins. If the
-  genome is already in NCBI, pass `--exclude-organism "<its species>"`, or its own proteins come back as hits.
-- The layer sits beside the RG-GMCI confidence and never changes it. Similarity is not identity: shared
-  homologs in one organism are a reason to look at that organism's genome, not proof of one pathway.
+[docs/WORKED_EXAMPLES.md](docs/WORKED_EXAMPLES.md) walks through four pairs from public genomes: a complementary
+split, two copies of one cluster, a hub, and a pair with too little support.
 
 ## Reference-guided completion
 
@@ -111,7 +150,7 @@ rggmci my_genome.antismash.zip --out-dir results/ --mibig-db mibig_proteins/
 - It writes the protein FASTA, a protein table, a cluster table and a manifest with checksums, plus a DIAMOND index
   when DIAMOND is found. It downloads nothing, and it refuses a folder that already holds files.
 - With `pyhmmer` installed and a pressed `Pfam-A.hmm` (`--pfam` or `$RGGMCI_PFAM_HMM`), a lone find with two or more
-  primary-metabolism genes among its four neighbours on each side (lysine or arginine synthesis, ribosomes, tRNA
+  primary-metabolism genes among its four neighbors on each side (lysine or arginine synthesis, ribosomes, tRNA
   charging and similar) is set aside as housekeeping.
 
 Every pair and table row says which tier ran: `FULL`, `NO_ALIGNER`, `NO_MIBIG_PROTEINS`, `NO_WHOLE_GENOME_GENBANK`
@@ -120,46 +159,32 @@ than `FULL` means the search did not run; it does not mean no partner exists.
 
 Completion is homology evidence. A partner is a candidate missing piece, a split gene is two pieces of one reference
 protein at facing contig ends, no contigs are joined, and no score or confidence changes.
-[docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) describes every column.
 
-## What it reports
+## A second layer from your own BLASTp
 
-- One row per scored region pair, with the two regions' contigs, products and edge status.
-- `rggmci_confidence`: `HIGH_RG_GMCI_RESCUE`, `MODERATE_RG_GMCI_CANDIDATE` or
-  `LOW_SHARED_REFERENCE_SIGNAL`.
-  - HIGH needs a pair score over the threshold. The score counts shared references, references where
-    the two regions' hits overlap or sit side by side, and whether the regions touch a contig end or
-    lie on different contigs.
-  - HIGH also needs at least two such overlapping or side-by-side references, and a specific shared
-    product class or a known compatible hybrid.
-  - Only regions antiSMASH flags as touching a contig edge are paired, and never two regions on one contig. A region
-    antiSMASH places inside a contig is whole there, and two regions on one contig have no assembly break between
-    them; such pairs are listed apart as related loci (`related_locus_pairs` in the JSON), never as rescues.
-  - Product classes are compared by antiSMASH family, so an arylpolyene or PKS-like fragment matches a type I
-    PKS as PKS, and a lanthipeptide matches as RiPP.
-  - Further gates demote a pair that fails them: too few strong references, noise-only classes, a
-    region linked to more than four HIGH partners, or paralog-like overlap. `acceptance_gate` says which gate
-    acted; [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) lists every verdict.
-  - Paralog-like overlap means the two regions hit the same genes of a reference. Up to 2 shared genes are
-    tolerated when they are at most 15% of all genes hit and each region hits 2 genes of its own.
-  - A pair held back only by the product-class gate, where one fragment carries only sugar genes, can return to
-    HIGH when its partner is a backbone class (PKS,
-    NRPS, RiPP, terpene) whose own region file names a glycosyltransferase. The two must be on different
-    contigs, pass the gene-level split check, and tile 2 to 6 MIBiG clusters together.
-- The references that support each pair.
-- `both_at_contig_ends`: whether both regions of a pair run to a contig end. It describes where the
-  fragments sit and hides nothing.
-- Candidate groups: HIGH pairs on different contigs that share regions, gathered into one group. That is
-  how a pathway spread over three or more fragments shows up.
+`rggmci fasta` writes the proteins of the regions in HIGH cross-contig pairs as FASTA files sized for NCBI
+web BLASTp, plus a manifest and a short how-to. You run the searches yourself. `rggmci blastp-layer` reads the
+results back.
 
-For each endpoint, copy the canonical `identity_a` or `identity_b`: logical strain / full physical
-contig / region / BGC alias, with the source archive and result hash. The logical strain label is
-caller-supplied or derived from the archive stem; it is not independently verified taxonomy. Preserve
-`source_gbk_a`/`source_gbk_b` and the complete original contig value. Contig/region alone or a bare
-reading-order alias is not a complete source-bound identity, and aliases can change between runs.
+```bash
+rggmci fasta my_genome.antismash.zip --out-dir queries/          # then BLASTp each queries/*.fasta on NCBI
+rggmci blastp-layer --manifest queries/blastp_manifest.json \
+       --hits Hit_Table.csv --xml2 results.xml --out-dir layer/
+```
 
-[docs/WORKED_EXAMPLES.md](docs/WORKED_EXAMPLES.md) walks through four pairs from public genomes: a complementary
-split, two copies of one cluster, a hub, and a pair with too little support.
+- Per region it takes up to 6 biosynthetic genes from the whole region, core genes first and nearest the
+  contig end first. `--edge-genes N` adds the N genes nearest the break, of any kind. `--include-moderate` adds
+  MODERATE pairs.
+- Download both the Hit Table (CSV) and the Single-file XML2. The XML2 carries organism names and lists the
+  queries that found nothing. A Hit Table alone cannot tell "no hits" from "not run".
+- A Hit Table saved without its header row is read when its columns can be matched unambiguously. Otherwise it is
+  refused; download it again with the header.
+- `blastp-layer` exits 0 even when some queries are missing from your results. Check `NOT_IN_RESULTS` and the
+  unmapped list before treating the layer as complete.
+- The layer reports, per pair, which source organisms carry homologs of both fragments' proteins. If the
+  genome is already in NCBI, pass `--exclude-organism "<its species>"`, or its own proteins come back as hits.
+- The layer sits beside the RG-GMCI confidence and never changes it. Similarity is not identity: shared
+  homologs in one organism are a reason to look at that organism's genome, not proof of one pathway.
 
 ## What it does not do
 
@@ -168,15 +193,6 @@ split, two copies of one cluster, a hub, and a pair with too little support.
 - Region products come from antiSMASH's own annotations. A shared product label is a reason to look,
   not proof of one pathway.
 
-## Install
-
-```bash
-pip install "git+https://github.com/alexanderjsmith1/rggmci"          # or: pip install rggmci-*.whl
-pip install "rggmci[bio] @ git+https://github.com/alexanderjsmith1/rggmci"  # with Biopython
-```
-
-Python 3.12 or newer. No other dependency is required.
-
 ## Cite
 
 If you use rggmci, cite it (see `CITATION.cff`) and cite antiSMASH, whose output it reads:
@@ -184,77 +200,10 @@ antiSMASH 8.0, doi:10.1093/nar/gkaf334. Reference clusters come from MIBiG 4.0, 
 
 ## Where it comes from
 
-`src/rggmci/PROVENANCE.json` records the package, source bundle, engine and build versions and hashes
-selected copied/lifted engine source files. Its `source_sha256` map does not cover every template,
-repository extra, builder, dependency or database. Retain those input/output hashes separately when
-reviewing an assembled artifact; matching provenance labels do not prove a complete build or release.
+rggmci is built from the Sapote-Mamey pipeline, which runs the same scorer. `src/rggmci/PROVENANCE.json` records
+the source version, build and the SHA-256 of each engine source file copied into the package.
+[CONTRIBUTING.md](CONTRIBUTING.md) says where to send a fix.
 
-## Licence
+## License
 
 MIT. See `LICENSE`.
-
-
-## Shared invocation contract (`rggmci-shared-invocation-v3`)
-
-The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
-binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
-process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
-public standalone `run` rejects snapshot overrides. The
-high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
-behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
-standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
-disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
-sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
-
-Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
-diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
-members refuse common intake before a subset is reported. General source-reader malformed/empty-member
-warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
-empty successful RGGMCI result.
-
-Both routes default to completion auto, sensitivity sensitive, threads 4, residue scope st_paralog and
-no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
-then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
-implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
-DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
-the actual selected content. Standalone
-`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
-Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
-`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
-Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
-retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
-is a distinct requested layer. No automatic database download is introduced.
-
-Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
-loci, candidate groups, summary, and three completion tables). Every row key is retained, including
-later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
-tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
-region metadata and four-component endpoint identities: logical strain / full physical contig / region /
-BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
-effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
-`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
-
-Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
-attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
-and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
-`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
-presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
-contract; runtime parity, optional active-resource profiles and published standalone synchronization
-require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
-physical joins, compound identity or biological accuracy.
-
-## Shared functional context (invocation schema v3)
-
-The embedded and standalone high-level programs derive the same CDS/domain context directly from
-archive features, using the shared native parser and gene-context builder. Ranked pairs and exported
-split-candidate views retain `functional_rescue_class`, both core fractions and functional-role strings,
-`modular_continuation`, and both assembly-line/release CDS counts. These are existing source-derived
-annotations; they do not change RG-GMCI confidence thresholds or prove physical linkage or product identity.
-The result also records functional/modular profiles and context counts bound to the input archive hash.
-
-This migrates native-only annotations into the shared invocation. Package gene-context file write/readback
-no longer determines scientific pair fields. Absent CDS context retains `UNKNOWN_NO_PROFILE` and existing
-empty defaults; raised extraction/computation errors and resource refusals propagate consistently.
-Existing general source-reader malformed/empty-member warnings remain visible.
-The native wrapper consumes shared profiles for its downstream report/triage context. Low-level scorer
-APIs and explicit unavailable sequence context (`contigs=None`) retain their previous semantics.

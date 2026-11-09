@@ -23,6 +23,34 @@ v9.7.151 — re-verify if the contract JSON ever changes shape.
 from __future__ import annotations
 
 
+def fixture_region(bgc_id: str) -> str:
+    """The region a fixture card and its triage row share: BGC007 -> region007."""
+    import re
+    m = re.search(r"(\d+)", str(bgc_id))
+    return f"region{int(m.group(1)):03d}" if m else "region001"
+
+
+def write_identity_triage_board(pkg, strain_id: str, bgc_ids, node: str = "NODE_1",
+                                extra: dict | None = None):
+    """Write ``<strain>_4_triage_board.csv`` binding each alias to ``node`` and its
+    fixture region, so a ``valid_modeb_card_stub`` card for it is identity-bound.
+
+    ``extra`` maps column -> value (or column -> {bgc_id: value}) for further columns.
+    """
+    import csv
+    from pathlib import Path
+    extra = dict(extra or {})
+    cols = ["BGC_ID", "Contig", "antiSMASH_Region", *extra.keys()]
+    path = Path(pkg) / f"{strain_id}_4_triage_board.csv"
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(cols)
+        for bid in bgc_ids:
+            vals = [v.get(bid, "") if isinstance(v, dict) else v for v in extra.values()]
+            w.writerow([bid, node, fixture_region(bid), *vals])
+    return path
+
+
 def valid_modeb_card_stub(bgc_id: str = "BGC001", node: str = "NODE_1",
                           strain_id: str = "AS-XXX") -> str:
     """Return a §1–§30-contract-valid Mode B card with stub prose under
@@ -75,7 +103,10 @@ def valid_modeb_card_stub(bgc_id: str = "BGC001", node: str = "NODE_1",
             ]
         ]
 
-    lines = [f"# Mode B — {bgc_id} ({node}) — {strain_id}", ""]
+    # The four-part exact-locus header (strain / full node-or-contig / region / alias):
+    # every ingest route requires it to match the package triage row before a card is
+    # recorded COMPLETE. Pair this stub with ``write_identity_triage_board``.
+    lines = [f"# Mode B — {strain_id} / {node} / {fixture_region(bgc_id)} / {bgc_id}", ""]
     for s in sections:
         lines.append(f"## §{s['number']} {s['title']}")
         lines.append("Stub content for testing.")

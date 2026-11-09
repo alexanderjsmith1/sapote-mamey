@@ -75,16 +75,38 @@ TIER={'Confirmed':'#2E7D32','Predicted-functional':'#2E86AB','KCB-anchored':'#E5
 def genus(org): return (org or 'Unknown').split()[0] if org else 'Unknown'
 
 def tier_of(b, verdict):
-    anchor=(b.get('closest_kcb_product') or '').strip()
-    dark=(not anchor) or anchor.upper()=='UNRESOLVED' or (b.get('closest_mibig') or '').strip().upper() in ('','UNRESOLVED')
+    # A placeholder anchor or MIBiG cell (blank, NA, -, none, n/a, UNRESOLVED ...) names nothing.
+    from build_priority_leads import kcb_anchor_named
+    dark=(not kcb_anchor_named(b.get('closest_kcb_product'))
+          or not kcb_anchor_named(b.get('closest_mibig')))
     if verdict=='CONFIRM': return 'Confirmed'
     if dark: return 'Candidate-novel'
     return 'KCB-anchored'
 
-def build_rows(banked, tag, strain_set):
+def _kb_value(value):
+    """A cluster length in kb, or None when it was not recorded (never 0 for missing)."""
+    from mamey.missing_values import optional_float
+    v = optional_float(value)
+    return v if v is not None and v > 0 else None
+
+
+def _sarp_call(cpl, sid, bgc_id):
+    """'y' / 'n' from the per-BGC coupling table; '' when the table, the strain or the BGC is absent."""
+    per = cpl.get(sid) if isinstance(cpl, dict) else None
+    if not isinstance(per, dict) or bgc_id not in per:
+        return ''
+    return 'y' if 'SARP' in (per.get(bgc_id) or []) else 'n'
+
+
+def build_rows(banked, tag, strain_set, counts=None):
+    """Rows for every banked locus matching the filters, after the figure policy removes
+    pure-saccharide regions. ``counts`` (a dict) receives the number of policy-omitted loci."""
     bgc=_read_json(os.path.join(banked,'bgc_data.json'))
     from mamey.figure_policy import omit_saccharides
+    before=len(bgc['bgcs'])
     bgc['bgcs']=omit_saccharides(bgc['bgcs'])  # figure policy: pure-saccharide regions never plotted
+    if counts is not None:
+        counts['policy_omitted_saccharide']=before-len(bgc['bgcs'])
     org={s['sid']:s.get('organism','') for s in _read_json(os.path.join(banked,'strains.json'))}
     vmap={}
     vp=os.path.join(banked,'modeb_verdicts.csv')
@@ -97,10 +119,13 @@ def build_rows(banked, tag, strain_set):
         if tag and tag.lower() not in prods: continue
         if strain_set and b['sid'] not in strain_set: continue
         v=vmap.get((b['sid'],b['bgc_id']),'[EG]')
-        sarp = 'y' if 'SARP' in (cpl.get(b['sid'],{}).get(b['bgc_id'],[]) if isinstance(cpl.get(b['sid']),dict) else []) else 'n'
-        rows.append({'sid':b['sid'],'region':b.get('region',b.get('bgc_id','')),'genus':genus(org.get(b['sid'],'')),
+        sarp = _sarp_call(cpl, b['sid'], b['bgc_id'])
+        kb = _kb_value(b.get('length_kb'))
+        rows.append({'sid':b['sid'],'region':b.get('region',b.get('bgc_id','')),
+                     'contig':b.get('contig') or b.get('node_id') or '','bgc_id':b.get('bgc_id',''),
+                     'genus':genus(org.get(b['sid'],'')),
                      'class':(b.get('products') or '').split(';')[0],'kcb':b.get('closest_kcb_product') or 'UNRESOLVED',
-                     'kb':b.get('length_kb') or 0,'edge':b.get('edge_status') or '?','sarp':sarp,
+                     'kb':'' if kb is None else kb,'edge':b.get('edge_status') or '?','sarp':sarp,
                      'verdict':v if v in ('CONFIRM','DROP','DOWNGRADE') else '[EG]','tier':tier_of(b, v)})
     return rows
 
@@ -110,8 +135,10 @@ def plot(rows, title, claim, out):
     fig_h=max(3, 0.5*len(genera)+2)
     fig,ax=plt.subplots(figsize=(11,fig_h))
     for r in rows:
+        if _kb_value(r.get('kb')) is None:
+            continue  # no recorded length: not placed on the size axis (counted by the caller)
         y=ylane[r['genus']]+ (stable_jitter_step(r['sid']+r['region'])-4)*0.045  # stable jitter within lane
-        ax.scatter(r['kb'], y, s=70, color=TIER[r['tier']], edgecolor='white', linewidth=0.6, zorder=3)
+        ax.scatter(float(r['kb']), y, s=70, color=TIER[r['tier']], edgecolor='white', linewidth=0.6, zorder=3)
     ax.set_yticks(range(len(genera))); ax.set_yticklabels(genera, fontsize=9)
     ax.set_xlabel('cluster size (kb)'); ax.set_ylim(-0.6, len(genera)-0.4)
     ax.set_title(title, fontsize=12, pad=10)
@@ -135,20 +162,39 @@ def main():
         label = a.tag or (a.strain_set.replace(',','_') if a.strain_set else 'subset')
     safe=re.sub(r'[^A-Za-z0-9_]+','_',label)
     csvp=a.csv or os.path.join(a.out_dir, f'subset_{safe}_loci.csv')
-    if a.replot and os.path.exists(csvp):
+    from mamey.output_transaction import preflight_output_roster
+    counts={}
+    if a.replot:
+        # Replot reproduces a saved table. A missing table is refused, never rebuilt from the bank.
+        if not os.path.isfile(csvp):
+            _sys.stderr.write(f"REPLOT_INPUT_MISSING: {csvp} is not a file; nothing written\n"); raise SystemExit(2)
         rows=list(csv.DictReader(open(csvp)))
-        for r in rows: r['kb']=float(r['kb'] or 0)
     else:
-        rows=build_rows(a.banked_dir, a.tag, sset)
+        rows=build_rows(a.banked_dir, a.tag, sset, counts)
         if not rows: emit(f"  no loci match (tag={a.tag}, strains={a.strain_set})"); return
-        with open(csvp,'w',newline='') as f:
-            w=_SafeDictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
     is_as=any(r['sid'].upper().startswith('AS') for r in rows)
-    title=f"{'Product tag '+a.tag if a.tag else 'Strain-set'} panel · {len(rows)} loci across {len(set(r['genus'] for r in rows))} genera"
+    out=os.path.join(a.out_dir, f"fig_subset_{safe}{'_PRIVATE' if is_as else ''}.png")
+    # Fresh outputs only: never replace an earlier panel or table, or the replot input.
+    fresh=[out] if a.replot else [csvp, out]
+    try:
+        preflight_output_roster(fresh, protected_paths=[csvp] if a.replot else
+                                [os.path.join(a.banked_dir, n) for n in ('bgc_data.json','strains.json','modeb_verdicts.csv','tfbs_coupling.json')])
+    except ValueError as exc:
+        _sys.stderr.write(f"OUTPUT_REFUSED: {exc}; use a fresh --out-dir\n"); raise SystemExit(2)
+    if not a.replot:
+        with open(csvp,'x',newline='') as f:
+            w=_SafeDictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
+    unplaced=sum(1 for r in rows if _kb_value(r.get('kb')) is None)
+    placed=[r for r in rows if _kb_value(r.get('kb')) is not None]
+    title=f"{'Product tag '+a.tag if a.tag else 'Strain-set'} panel · {len(placed)} loci across {len(set(r['genus'] for r in placed))} genera"
     claim=(f"Shared thread is the {a.tag} machinery / antiSMASH E-signal, NOT one shared compound — KCB anchors may differ. "
 if a.tag else "KCB anchors are similarity, not identification. ") + "Bioactivity metadata is optional strain-level context; verdicts [EG] offline."
-    out=os.path.join(a.out_dir, f"fig_subset_{safe}{'_PRIVATE' if is_as else ''}.png")
     plot(rows, title, claim, out)
-    emit(f"  wrote {out} (+ {csvp}) — {len(rows)} loci{' [PRIVATE: AS present]' if is_as else ''}")
+    notes=[]
+    if counts.get('policy_omitted_saccharide'):
+        notes.append(f"  figure policy omitted {counts['policy_omitted_saccharide']} pure-saccharide loci before filtering")
+    if unplaced:
+        notes.append(f"  {unplaced} loci have no recorded length and are not placed on the size axis (kb blank in the CSV)")
+    emit("\n".join([f"  wrote {out} (+ {csvp}) — {len(rows)} loci{' [PRIVATE: AS present]' if is_as else ''}", *notes]))
 
 if __name__=='__main__': main()

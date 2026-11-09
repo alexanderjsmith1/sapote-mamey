@@ -13,7 +13,8 @@ def sha256(p):
 def ro(p): return sqlite3.connect(f"file:{p}?mode=ro",uri=True)
 _WORD=re.compile(r"[a-z]+")
 def classify(src):
-    # whole words: "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee
+    # Heuristic label, not validated host taxonomy: word tokens plus prefix/suffix tests ("bumblebee" -> bee,
+    # "mosses" -> moss, "fungal" -> fungus_assoc). "plant", "Antarctic", "halotolerant" are not ants; "beetle" is not a bee.
     s=(src or "").lower(); w=_WORD.findall(s)
     if "bee or wasp" in s: return "bee_or_wasp"
     if any(x in ("wasp","wasps") or x.endswith("wasp") for x in w): return "wasp"
@@ -23,6 +24,11 @@ def classify(src):
     if any(x.startswith("moss") for x in w): return "moss"
     if any(x.startswith(("mushroom","fung")) for x in w): return "fungus_assoc"
     return "other" if s.strip() else "unknown"
+def locus_label(lid, lk):
+    """The locus's full exact identity, or an explicit hold that names the source-scoped key as a locator only."""
+    ident=lid.get(lk)
+    ident=ident.strip() if isinstance(ident,str) else ""
+    return ident if ident else f"IDENTITY_HOLD: exact_identity missing; source locus_key {lk} (locator, not a locus identity)"
 def build(a):
     t0=time.time(); os.makedirs(a.out,exist_ok=True); db=ro(a.scan_db)
     strains=sorted(r[0] for r in db.execute("select distinct strain from source"))
@@ -64,7 +70,7 @@ def build(a):
             "by_host":{h:{"strains":len(v["strains"]),"loci":len(v["loci"]),"genes":len(v["genes"])} for h,v in x["byh"].items()},
             "evidence":{ch:{"hit":0,"nohit":0,"missing":0,"mixed":0} for ch in ("nr","cnr","sp")},
             "strain_idx":sorted(SIDX[s] for s in x["strains"]),
-            "loci_list":([lid.get(lk,lk) for lk in sorted(x["loci"])] if len(x["loci"])<=a.rare_loci_max else [])})
+            "loci_list":([locus_label(lid,lk) for lk in sorted(x["loci"])] if len(x["loci"])<=a.rare_loci_max else [])})
     rows.sort(key=lambda r:(r["strains"],r["loci"],-r["feature_occurrences"]))
     loci_scope=len({lk for lk,st in locus_strain.items() if st in hostmap})
     genes_scope=sum(1 for (lk,tag) in prot if locus_strain.get(lk) in hostmap)

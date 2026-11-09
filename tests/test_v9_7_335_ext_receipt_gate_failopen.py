@@ -32,7 +32,7 @@ from mamey.judgment_store import init_register, read_register
 from mamey import mode_b_receipt
 from mamey.mode_b_receipt import RECEIPT_SCHEMA_VERSION
 
-from tests._modeb_card_fixtures import valid_modeb_card_stub
+from tests._modeb_card_fixtures import valid_modeb_card_stub, write_identity_triage_board
 
 STRAIN = "AS-TEST"
 
@@ -42,6 +42,7 @@ def _pkg(tmp_path: Path, bgc_ids=("BGC001",)) -> Path:
     pkg.mkdir()
     (pkg / "manifest.json").write_text(json.dumps({"strain_id": STRAIN}), encoding="utf-8")
     init_register(pkg, strain_id=STRAIN, bgc_ids=list(bgc_ids))
+    write_identity_triage_board(pkg, STRAIN, bgc_ids)
     return pkg
 
 

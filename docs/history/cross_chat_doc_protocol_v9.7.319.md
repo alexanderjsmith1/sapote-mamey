@@ -1,7 +1,7 @@
 > Historical record (bundle v9.7.319). Not current operating instructions; kept for provenance.
 
 # Sapote–Mamey Documentation Protocol
-## Instructions for Contributing Claude Instances
+## Instructions for Contributing Assistants
 **Bundle v9.7.319 · Engine 1.9.111**
 
 > **SUPERSEDED ROUTING NOTICE.** This historical protocol formerly routed new definitions to `comprehensive_glossary.md` and dependency claims to `sapote_mamey_wheel_glossary.md`. Those files are retained snapshots, not current authorities. New or corrected reader-facing definitions go to [`docs/GLOSSARY.md`](../GLOSSARY.md); versioned formulas, command lists, schemas, and dependency facts stay grounded in their current code or schema source.
@@ -13,6 +13,8 @@
 ## 1. What This Protocol Covers
 
 The Sapote–Mamey project maintains a living documentation set consisting of:
+
+Historical: the bare file names in this list do not resolve from `docs/history/`. The kernel guide is at `docs/user_guides/sapote_kernel_guide.md`. The two superseded glossaries are in `docs/user_guides/` (and under `docs/history/retired_458/user_guides/`). No `large_files_reference.md` exists anywhere in the tree.
 
 1. `sapote_kernel_guide.md` — The kernel architecture, gates, and recent version changes
 2. `../GLOSSARY.md` — The one canonical reader-facing term glossary
@@ -295,7 +297,7 @@ Example:
 **Data source:** `_4_triage_board.csv` (column `CCTT_triggers`, comma-separated trigger codes per BGC)
 **Module:** `mamey/figures_extra.py:fig_cctt_map`
 **Companion CSV:** `_8h_fig_cctt_map_data.csv` — columns: `cctt_trigger`, `bgc_count`, `bgc_ids`
-**Failure mode:** Empty if no CCTT triggers fired in this strain (a valid result for gene-poor VERY_POOR assemblies). Also empty if the triage board column `CCTT_triggers` is blank for all rows (check that source_scans ran).
+**Failure mode:** Historical: the old text said the figure is "empty" if no CCTT triggers fired. That is wrong. When no trigger token is collected, `fig_cctt_map` returns None and writes neither the PNG nor its `_data.csv` (`mamey/figures_extra.py:187-197`). A missing 8h figure therefore means "no figure written". It is not a verified zero, and it does not show whether the field was blank or missing (`mamey/cli.py` writes a blank string when a BGC has no triggers).
 **Policy:** Pure-saccharide exclusion applies (BGCs excluded from figure population).
 
 ---
@@ -385,7 +387,7 @@ The receipt does three things the description cannot. It proves the tool runs in
 
 ## 18. Anti-Pattern 5: The Vivid Foreign Example
 
-Added after v9.7.246, where a genuine per-gene BLASTp result from *Amycolatopsis* sp. NPDC004378 was templated into 74 Mode B cards belonging to two other strains, and every guard passed it.
+Added after v9.7.246, where a genuine per-gene BLASTp result from *<genus>* sp. `<strain>` was templated into 74 Mode B cards belonging to two other strains, and every guard passed it.
 
 **The pattern:** a real, specific, illustrative example — a locus tag, a score, an accession, a BGC id — is embedded in a template, a glossary entry, or a protocol document. It is true. It illustrates its point perfectly. And it belongs to a different subject than the one the reader is looking at.
 
@@ -393,7 +395,7 @@ Added after v9.7.246, where a genuine per-gene BLASTp result from *Amycolatopsis
 
 **The rule for documentation.** An example may carry a concrete identifier only when the source of that identifier is named in the same sentence. Write:
 
-> Verified against the real AS-XXX package: 758 loci loaded, `ctg12_71` not among them.
+> Verified against the real <strain> package: 758 loci loaded, `ctg12_71` not among them.
 
 Not:
 

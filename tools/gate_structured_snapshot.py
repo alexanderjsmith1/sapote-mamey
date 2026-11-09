@@ -13,7 +13,7 @@ import math
 import sys
 from pathlib import Path
 
-SUPPORTED_GATE_SHA256 = 'b84b7147eb83f91a02f8738e8ea54930d032e508acffdf777108723d1ed9e0e3'
+SUPPORTED_GATE_SHA256 = '6f9e63af2e96ddfad31aba78136b22b3d8263de0c7b5df6900f7c6097cd52e1c'
 MAX_TREE_BYTES = 8 * 1024 * 1024  # Optional diagnostic limit, not a universal tree limit.
 
 

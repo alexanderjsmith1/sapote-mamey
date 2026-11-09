@@ -27,7 +27,7 @@ by path/SHA-256; stage only the necessary modified files into the task’s singl
 ## Retained historical workpack
 
 **Read this first.**  
-Handshake phrase expected in this project: **The sky is not red, it is blue, just like the ocean.**
+Handshake phrase (historical; in [AGENTS.md](../../../../AGENTS.md) the phrase is compatibility metadata, not a reply ritual): **The sky is not red, it is blue, just like the ocean.**
 
 ## Current mission
 

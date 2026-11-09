@@ -1,98 +1,47 @@
 # Prepare to write a Mode B card
 
-Check whether you can begin a draft and what is still needed to finish it.
-You need the package, the complete locus identity and a gene-level source.
-Use the [walkthrough](MODE_B_USER_WALKTHROUGH.md) to emit a template, write the
-card and run its checks. This page explains the evidence decisions along that path.
+Check whether you can start a draft and what you still need to finish the card. You need a package, the complete locus identity and a gene-level evidence source. To emit the template, write the card and run its checks, use the [walkthrough](MODE_B_USER_WALKTHROUGH.md). This page explains the evidence decisions along that path. Terms are in the [glossary](GLOSSARY.md).
 
 ## Begin a draft
 
-`PASS_FOR_GAP_AWARE_AUTHORING` requires an exact canonical locus and a gene-level
-source bound at exact-locus or alias level. Identify the locus as **strain / full
-node-or-contig / region / BGC alias** from one source record. Keep missing or
-conflicting identity fields unresolved.
+You can start a draft when the planner reports `PASS_FOR_GAP_AWARE_AUTHORING` for the locus. That needs an exact locus and a gene-level source tied to it by exact locus or by alias. The state comes from the `modeb-availability` command. It reads a per-BGC inventory table (CSV or TSV) and writes `modeb_bgc_availability.tsv` and a summary into `--out`. Its `writing_gate` column holds the state. A `HOLD_` value in that column means you cannot start yet. Run `python mamey_run.py modeb-availability --help` for the arguments.
 
-Read the closest class sketch in the [exemplar guide](reference/modeb_exemplars/README.md)
-and the [depth policy](modules/MODE_B_DEPTH_POLICY.md). Use the sketch for writing
-style, then write in the current emitted template. Legacy FULL/OK labels describe
-those older examples, not completion under the current profile.
+Write the locus as **strain / full node-or-contig / region / BGC alias**, copied from one source record. If a field is missing or two sources disagree, leave it unresolved and say so.
 
-Mark gaps as absent, available but not ingested, unbound, or an adjudicated terminal
-hold. A result you already have should be ingested and checked before calling that
-channel missing. See the [availability contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md).
+Read the closest class sketch in the [exemplar guide](reference/modeb_exemplars/README.md), and the [profile matrix](MODEB_PROFILE_MATRIX.md) for what each profile requires. Use the sketch for writing style only. Write in the template you emitted. The FULL and OK labels in the older examples do not mean a card is complete under the current profile.
+
+Name each gap as one of four things: absent, available but not ingested, unbound, or an adjudicated terminal hold. If you already have a result, ingest it and check it before you call that channel missing. See the [availability contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md).
 
 ## Assemble the gene evidence
 
-Start with the rule-based biosynthetic cores in the region GBK or package
-`cds_table`. Get translations together with their gene tags. If using cohort-DB
-`aa_seq`, reconcile region-relative ORFs to the source contig tags first.
+Start with the rule-based biosynthetic core genes in the region GenBank file (GBK) or the package `cds_table`. Take the translations together with their gene tags.
 
-For each search, keep the sequence, database, transport, result and source binding.
-The EBI transport defaults to `uniprotkb_bacteria`; label it that way rather than
-as nr. Keep nr, ClusteredNR and Swiss-Prot channels separate. Read the
-[online-search protocol](ONLINE_BLASTP_PROTOCOL.md) before sending sequences.
+For each search, keep the sequence, database, transport, result and source. The EBI transport defaults to `uniprotkb_bacteria`. Label it that way, not as nr. Keep nr, ClusteredNR and Swiss-Prot results in separate channels. Read the [online-search protocol](ONLINE_BLASTP_PROTOCOL.md) before you send sequences.
 
-Reconcile each hit as CONFIRM, REFINE or OVERTURN against the antiSMASH call.
-Include protein lengths and named matches. The finished evidence table covers
-the complete canonical gene roster: §4 for full48 or §50 for current50 v2.
-A core-only table or Pfam-only explanation leaves that work unfinished.
+Mark each hit CONFIRM, REFINE or OVERTURN against the antiSMASH call. Give protein lengths and named matches. The finished evidence table covers the whole gene roster: section 4 for full48, section 50 for current50_v2. A table of core genes only, or an explanation from Pfam alone, leaves that work unfinished.
 
-When evidence cannot be obtained, name the exact sequence or source file needed
-and record the gap. The [escalation workflow](MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md)
-covers large modular proteins, repeated matches and split/composite candidates.
+When you cannot get evidence, name the exact sequence or source file you need and record the gap. For large modular proteins, repeated matches and split or composite candidates, use the [escalation workflow](MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md).
 
 ## Use the selected profile
 
-The native default is **full48**. Its historical contract filename contains
-`full30`, but it defines 48 sections. Copy the emitted titles.
-Choose `--contract current50_v2` on both emit and verify only when using that
-profile. The separate [50-section reference](MODEB_FULL50_CONTRACT_USAGE.md)
-has its own consumers; use the [profile matrix](MODEB_PROFILE_MATRIX.md) to
-check which contract the producer and verifier actually support.
+Choose the profile once, in the [profile guide](MODEB_PROFILE_MATRIX.md), and copy the emitted section titles. Add `--contract current50_v2` to both emit and verify only if you chose that profile. The [50-section reference](MODEB_FULL50_CONTRACT_USAGE.md) lists which tools read it.
 
-Keep source-derived capacity and similarity separate from measured production
-or activity in the written conclusion. Check a claimed product against the
-corresponding evidence, including contradictory results.
+Keep what the sequence suggests separate from what was measured. A gene set shows capacity. A database match shows similarity. Neither shows production or activity. If you name a product, check it against the evidence, including results that disagree.
 
 ## Check the saved draft
 
-Run the walkthrough's `verify-modeb` and `claim-safety` commands on the saved
-file and keep the findings. `claim-safety` defaults to warn mode, which exits 0
-even with findings. Use `--report` when you need its CSV; otherwise it prints
-to the terminal. Select `--mode fail` only when you want findings to fail that check.
+Run `verify-modeb` as the walkthrough's step 5 shows. Then run the claim check on the same saved file and keep both outputs:
 
-For a full48 finished-card check, add the active declaration
-`**Document state:** FINISHED_FULL48_CURRENT_EVIDENCE` when the authored file
-is ready for that check. The ordinary structure lint treats §31–§48 as optional
-or conditional, so its exit status alone cannot answer whether the card is finished.
-For current50 v2, keep the emitted canonical identity/contract/profile header
-as the first line.
+```bash
+python mamey_run.py claim-safety <card.md> --package <package>
+```
 
-The optional Python API `mamey.mode_b_quality_gate.evaluate_card` takes the full
-authored text and the selected record's rank, edge status and CDS count. Report
-its tier (FULL/SHALLOW/STUB), priority (HIGH/MID/LOW) and floor separately.
-Omitting rank selects the most lenient priority. Keep this result alongside the
-selected profile's checks and the actual evidence review.
+The claim check runs in warn mode by default, so it exits 0 even with findings. Add `--report <new-file.csv>` to write its CSV. The path must not exist yet, and it cannot be the card itself; a refused path prints `REFUSED:` and exits 2. Add `--append-report` only when you mean to add rows to an existing report. Add `--mode fail` to make findings fail the check.
+
+For a full48 finished-card check, add the line `**Document state:** FINISHED_FULL48_CURRENT_EVIDENCE` when the card is ready. The walkthrough, step 5, shows where it goes. Without it, the structure check treats sections 31 to 48 as optional, so a zero exit does not show the card is finished. For current50_v2, keep the emitted first line (the identity, contract and profile header) as it is.
 
 ## Finish and save
 
+These keep the card open: evidence that exists but is not ingested, evidence you could get but have not, evidence still being produced, and evidence whose freshness is unchecked. An adjudicated terminal limitation can stay if you give its reason, its type and its scope. Rows marked `OBSERVED_UNBOUND` can stay, but they cannot support a claim about a protein's function.
 
-Evidence that is available but not ingested, attainable but unobtained, active,
-or freshness-unverified keeps completion open. An adjudicated terminal limitation
-can remain with its reason, typed state and scope. `OBSERVED_UNBOUND` rows may
-remain, but cannot support a protein/function assertion.
-
-Save the card with its full source identity, source hashes, selected profile,
-actual check outputs and unresolved questions in the agreed destination. Use
-the walkthrough's receipt steps. Keep evidence review separate from mechanical
-findings and from permission to integrate or publish. Review the actual channel
-rows before relying on an availability planner's aggregate CURRENT label.
-
-<a id="three-states-three-different-bars"></a>
-<a id="checklist-for-readiness-and-promotion"></a>
-<a id="the-failure-this-stops"></a>
-<a id="step-0--read-the-class-exemplar-before-writing-anything"></a>
-<a id="step-1--prepare-per-gene-evidence-before-promotion"></a>
-<a id="step-2--author-to-the-contract--exemplar"></a>
-<a id="step-3--run-the-selected-mechanical-gates-and-retain-their-actual-outputs"></a>
-<a id="explicitly-selected-handoff"></a>
+Save the card with its full identity, the source hashes, the profile, the real check output and the open questions, as the walkthrough's step 6 says. Review the evidence yourself. Do not treat a clean check as permission to integrate or publish. Before you trust a planner's overall CURRENT label, read the channel rows behind it.

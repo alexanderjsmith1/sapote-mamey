@@ -1,6 +1,6 @@
 # Locus-map review contract
 
-**Status:** normative content and presentation contract.  
+**Status:** normative content and presentation contract. This is a maintainer contract, not a how-to. To draw a map, see [locus map v8](LOCUS_MAP_V8.md).  
 **Applies to:** all single-BGC and paired locus maps used in Mode B cards, per-BGC dossiers, atlases, and compiled reports.
 
 ## 1. Identity and scope
@@ -23,7 +23,7 @@ Every map must include:
 
 The capacity-level claim note goes in the caption, not on the map.
 
-Label collision management may rotate or suppress labels, but suppression must never be silent. Every suppressed gene remains in the companion data and is counted on the figure.
+Label collision management may rotate or suppress labels, but suppression must never be silent. Every suppressed gene remains in the companion data and is counted on the figure. The v8 renderer does not suppress labels; it moves them to a label rail.
 
 ## 3. Review overlays
 
@@ -44,6 +44,8 @@ An overlay may be omitted when unavailable, but the map or its dossier must name
 The sidecar is the lossless record. At minimum it contains:
 
 `panel, strain/reference, bgc_alias, full_node, region, locus_tag, order, start, end, strand, length_aa, role, label_visible_on_figure, source`
+
+The v8 sidecar writes `label_displayed` (`YES`) for every gene, and `tools/sapote_locus_map.R` draws a label for each row marked `YES`. The field records that a label was requested and placed. It is not a measurement that the label is visible or legible in the final image, so it does not satisfy `label_visible_on_figure` on its own. Visibility is the visual QA check in section 5.
 
 Overlay columns are additive and must preserve their channel provenance. Per-gene identity and coverage must not be collapsed into a cluster-level similarity score.
 
@@ -73,6 +75,8 @@ Gene roles, domain calls, BLASTp, KCB/MIBiG, and GCF context are evidence channe
 ## 8. Contract checks versus current renderer guarantees
 
 Not every renderer enforces all of this contract. The v8 sidecar uses `label_displayed=YES` and includes complete identity in `panel`; it does not provide each required identity component as a separate column. An adapter may derive explicit columns only from the verified receipt/package crosswalk, preserving the original panel and source binding. Do not infer identity from a BGC alias or shortened filename.
+
+Direction comes from the source strand. Both renderers read `+` or `1` as forward and `-` or `-1` as reverse. Any other value, including blank or `?`, is drawn as a box with no arrowhead; v8 writes a blank `strand` in its CSV and lists the gene in the receipt's `strand_unknown_loci`. Reconcile those genes with the source before accepting a direction.
 
 For v8, reconcile raw source rows with accepted CSV rows because malformed gene rows may be skipped. Check recorded identity and source hashes independently of output-triple validation, inspect the non-blocking adapter's skipped results, and retain the exact ranked/full-inventory scope. R arrow redraws lack the v8 evidence panel and receipt, so acceptance requires their own layer accounting and visual review. See [current v8 limits and recovery](LOCUS_MAP_V8.md).
 

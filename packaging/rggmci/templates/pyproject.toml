@@ -9,14 +9,15 @@ description = "Surfaces antiSMASH regions in a fragmented assembly that may belo
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-dependencies = []
+# Biopython reads joined and origin-spanning CDS locations; the built-in reader refuses them.
+dependencies = ["biopython>=1.83,<2.0"]
 
 [project.urls]
 Repository = "https://github.com/alexanderjsmith1/rggmci"
 
 [project.optional-dependencies]
-# Biopython is used when present; a built-in GenBank reader is the fallback.
-bio = ["biopython>=1.83,<2.0"]
+# Kept so `pip install "rggmci[bio]"` still works; Biopython is now a required dependency.
+bio = []
 
 [project.scripts]
 rggmci = "rggmci.cli:main"

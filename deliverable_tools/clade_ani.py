@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""clade_ani.py — fastANI all-vs-all + sign-off species-boundary calls (Sapote-Mamey deliverable tool).
+"""clade_ani.py — fastANI all-vs-all + review-bound ANI threshold labels, not species decisions (Sapote-Mamey deliverable tool).
 
 Track N1 of the genus/clade deep-dive apparatus. Given a directory of genome FASTAs (one per
 strain / comparator), run fastANI all-vs-all, and emit:
@@ -9,7 +9,8 @@ strain / comparator), run fastANI all-vs-all, and emit:
 
 Post-seal / reader-side: does NOT touch the sealed package, scores, or tiers. fastANI reports
 genome-wide NUCLEOTIDE identity over shared regions; this is a *relatedness* measure, NOT a formal
-species designation. Sign-off boundary rule (master's-student gate):
+species designation. The labels below are threshold classifications for review; a formal species
+call still needs the source identities, the alignment scope and a person's taxonomic judgment:
   * ANI >= 96%  -> same_species        (confidently within-species)
   * 94-96%      -> BOUNDARY_indeterminate  (within ~1% of the 95% cutoff — DO NOT call)
   * ANI < 94%   -> candidate_distinct_species

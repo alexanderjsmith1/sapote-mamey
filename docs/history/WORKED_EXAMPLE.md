@@ -1,7 +1,7 @@
 > **Historical page.** Its later short rewrite is also retired, to [retired_458/WORKED_EXAMPLE.md](retired_458/WORKED_EXAMPLE.md). Current guide: [Type Strain walkthroughs](../TYPE_STRAIN_WALKTHROUGHS.md). Kept as a record; its commands and counts are not current instructions.
 
 <!-- SAPOTE_DOC_STATE: HISTORICAL_REFERENCE -->
-> **Dated worked example, not a current acceptance baseline.** The commands and numbers below describe v9.7.363. Round 4 did not download or rerun that accession. Use [the current Type Strain cases](../TYPE_STRAIN_WALKTHROUGHS.md) for locally measured v9.7.428 candidate results and [the Master Walkthrough](../MASTER_WALKTHROUGH.md) for the first-run procedure. Differences from historical numbers require investigation, not an automatic conclusion that your setup is wrong.
+> **Dated worked example, not a current acceptance baseline.** The commands and numbers below describe v9.7.363. The numbers below have not been re-run against the current tree. Use [the current Type Strain cases](../TYPE_STRAIN_WALKTHROUGHS.md) for the recorded results and [the Master Walkthrough](../MASTER_WALKTHROUGH.md) for the first-run procedure. Differences from historical numbers require investigation, not an automatic conclusion that your setup is wrong.
 
 # Worked example — run the pipeline end to end on a public genome
 
@@ -9,11 +9,9 @@
 **Example genome:** *Streptomyces olivochromogenes*, NCBI RefSeq **GCF_001514115.1**
 
 This is the bundle's reference walkthrough. It uses a **public** genome with **public** antiSMASH
-results, so every number below is reproducible by anyone: download one file, run three commands, compare
-your output to this page. Nothing here depends on unpublished data, and nothing is bundled.
+results. Historical: the old text said every number below is reproducible by anyone by downloading one file and running three commands. That was not re-checked against the current tree and may no longer hold, so treat the numbers as a dated record. Nothing here depends on unpublished data, and nothing is bundled.
 
-> Every figure in this document came from an actual run of this bundle on this genome. If your numbers
-> differ, something in your setup differs — that is the point of having a fixed reference.
+> Historical: the old text here said every figure came from an actual run of this bundle on this genome and that a difference means your setup differs. No run receipt is bundled, so that is unverified. A difference from these numbers calls for investigation, not an automatic conclusion that your setup is wrong.
 
 ---
 
@@ -57,6 +55,8 @@ output directory; the engine reads either.
 ---
 
 ## Step 1 — the gold run
+
+Historical: do not copy this command. The current form is `python mamey_run.py run ...` from the bundle root (see [AGENTS.md](../../AGENTS.md) and the [Master Walkthrough](../MASTER_WALKTHROUGH.md)). The flags below were not re-checked against the current `--help`.
 
 ```bash
 mamey run --mode gold \
@@ -133,7 +133,7 @@ mamey list-bgcs runs/GCF-001514115/package --top 5 --axis ab
 
 **Read these correctly.** AB and AF are **routing priors** — they rank what is worth looking at first.
 They are **not** activity predictions, and no per-BGC bioactivity claim follows from them. `Boundary:
-Interior` means the region is not truncated by a contig edge, so its counts are not a lower bound.
+Interior` describes only where the observed region sits relative to a contig edge. It does not show that every relevant locus or pathway component in the genome was detected, or that the counts are complete. Historical: the old text here said an interior region's counts "are not a lower bound". That inference is withdrawn. Keep input-coverage, detection and completeness holds before interpreting any count.
 
 ---
 

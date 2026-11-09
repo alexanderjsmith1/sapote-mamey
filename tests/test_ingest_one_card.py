@@ -17,7 +17,7 @@ import pathlib
 
 import pytest
 
-from tests._modeb_card_fixtures import valid_modeb_card_stub
+from tests._modeb_card_fixtures import valid_modeb_card_stub, write_identity_triage_board
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +56,8 @@ def _make_pkg_with_register(tmp_path: pathlib.Path,
                  for bid, s in bgc_states.items()},
     }
     (pkg / f"{strain_id}_judgment_register.json").write_text(json.dumps(reg))
+    # Ingest records a card only when its four-part header matches a triage row.
+    write_identity_triage_board(pkg, strain_id, list(bgc_states.keys()))
     return pkg
 
 
@@ -72,9 +74,9 @@ def _card_with_header(bgc_id: str, strain: str, session_id: str,
     edge cases specifically — those tests aren't exercising card validity.
     """
     if body is None:
-        # Strip the leading title line — _card_with_header supplies its own header
-        full = valid_modeb_card_stub(bgc_id, strain_id=strain)
-        body = full.split("\n", 2)[2]  # drop "# Mode B — ..." title + blank line
+        # Keep the four-part title line: it is the card's exact-locus identity, which
+        # ingest requires. _card_with_header adds only the record comment above it.
+        body = valid_modeb_card_stub(bgc_id, strain_id=strain)
     return (
         f"<!-- MODE B: {bgc_id} | strain: {strain} | "
         f"session: {session_id} | 2026-06-29T12:00:00Z -->\n\n"
@@ -141,7 +143,8 @@ def test_auto_detect_falls_back_when_no_session_header(tmp_path):
     # v9.7.151: needs to be structurally valid (no MODE B header by design —
     # that's what this test is about — but the §1-30 contract still applies).
     full_card = valid_modeb_card_stub("BGC001", strain_id="AS-XXX")
-    body_only = full_card.split("\n", 2)[2]  # drop the "# Mode B — ..." title line
+    # Keep the four-part title: no MODE B comment, so the BGC still comes from the name.
+    body_only = full_card
     (jd / "AS-XXX_BGC001_mode_b.md").write_text(body_only)
 
     auto_detect_ingest(pkg)
@@ -201,7 +204,8 @@ def test_ingest_one_card_resolves_bgc_from_filename_when_no_header(tmp_path):
     card = tmp_path / "AS-XXX_BGC002_mode_b.md"
     # v9.7.151: needs to be structurally valid; no MODE B header by design.
     full_card = valid_modeb_card_stub("BGC002", strain_id="AS-XXX")
-    body_only = full_card.split("\n", 2)[2]  # drop the "# Mode B — ..." title line
+    # Keep the four-part title: no MODE B comment, so the BGC still comes from the name.
+    body_only = full_card
     card.write_text(body_only)
 
     summary = ingest_one_card(pkg, card)

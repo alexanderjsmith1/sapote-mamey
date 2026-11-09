@@ -1,6 +1,6 @@
 # Methods implementation source map
 
-**Version of record:** Mamey engine v1.9.179 · bundle v9.7.463  
+**Version of record:** Mamey engine v1.9.180 · bundle v9.7.464  
 **Gate:** `tests/test_methods_documentation_contract.py` verifies every semicolon-separated path and representative test below. Symbols after `::` are documentation locators; the path before `::` must exist. Test filenames are resolved under `tests/`.
 
 | # | Methods component | Implementation source(s) | Representative tests | Boundary |

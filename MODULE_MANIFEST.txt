@@ -249,6 +249,7 @@ mamey/metabolomics_bridge.py	Deterministic genome-side class hypotheses and immu
 mamey/mibig_comparator_coverage.py	Two-denominator comparator-coverage evidence layer (FA2).
 mamey/mibig_neighborhoods_api.py	mibig_neighborhoods_api.py — read-only accessor for the packaged MIBiG reference "neighborhoods".
 mamey/mibig_per_gene.py	Rank-uncapped per-gene KnownClusterBlast/MIBiG evidence (P-MPG).
+mamey/missing_values.py	One rule for missing values: a blank or placeholder cell is missing evidence, never a measured zero.
 mamey/mode_b/__init__.py	Mode B evidence-escalation workflow helpers (v9.7.143a).
 mamey/mode_b/availability.py	Portable Mode B evidence-availability audit and writing planner.
 mamey/mode_b/claim_safety.py	Split/composite BGC claim-safety labels for Mode B (v9.7.143a).
@@ -371,7 +372,7 @@ mamey/source_context.py	Per-run source binding for explicitly migrated readers; 
 mamey/source_provenance.py	source_provenance.py — how strongly is this strain's isolation source evidenced?
 mamey/source_scans.py	Source-derived scanning engine — all pattern dictionaries and scan functions.
 mamey/split_detector.py	Contig-end split detector v2 — with discriminating filters to cut false positives.
-mamey/split_evidence_layers.py	Independent evidence layers for one candidate split pair, read from the antiSMASH result archive.
+mamey/split_evidence_layers.py	Separate evidence layers for one candidate split pair, read from the antiSMASH result archive.
 mamey/stage2_overlay.py	Attach hash-bound scientific-review overlays to a locator-first report cohort.
 mamey/strain_data_home.py	strain_data_home.py — canonical per-strain data-home resolver for Sapote-Mamey.
 mamey/strain_identity.py	strain_identity.py — a strain ID must be an identity, not an accession.

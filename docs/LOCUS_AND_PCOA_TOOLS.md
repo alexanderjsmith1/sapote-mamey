@@ -1,161 +1,168 @@
-# Read locus maps, gene tables and protein PCoA comparisons
+# Locus maps, gene tables and protein PCoA
 
-The optional `gap-rescue` command runs after validation and requires separately provisioned search inputs. It is a screen, not an adjudication. The main extraction command does not launch it. Use `python mamey_run.py gap-rescue --help` to check its inputs and output destination before authorizing a run.
+These tools compare one antiSMASH region, or one protein family, with other genomes. Run them from the bundle root. The quick start needs only region GenBank files. An antiSMASH result ZIP works as input: `extract` reads the `*.region*.gbk` files inside it. To get a ZIP, see [your first run](reader/01_FIRST_RUN.md). Some tools below (gap rescue, reading pages) also need a validated package. A position or a match is sequence similarity. It does not show product identity, function or production.
 
-`tools/gap_rescue_gene_table.py` pairs a reference-gene table with the locus map. Each reference gene has one row; a displayed split lists both pieces together in that row. The table includes saved local and reference protein lengths and a local/reference full-protein length ratio; split rows leave the ratio blank, and the ratio is not alignment coverage. Captions distinguish reference-gene counts from distinct local proteins. Homology does not establish physical linkage, product identity or production.
+## Terms
 
-`tools/locus_reading_pages.py` builds Markdown reading pages from supplied packages, annotation ledgers and optional comparison evidence. Run its `--help` from the bundle root to bind the required arguments. Search inputs, when supplied, can trigger additional searches; omit them for an existing-evidence reading pass and retain the reported unsearched states. Each locus retains strain / full node-or-contig / region / BGC alias. Hand assessments remain separately authored material.
+- **Kit:** the folder `protein_pcoa_ordinate.py extract` creates. `REGION_CDS.faa` holds each CDS that has a translation in the region files it admits (an exact repeat of a region file is admitted once); a CDS with no translation is left out. The set files hold only proteins matched to a named family: `extract` writes the KS, AT, A and C domain sets and the LANC and YCAO sets, `pfam` adds the Pfam family sets, and `card` adds the resistance sets. A translated CDS that matches none of them is in `REGION_CDS.faa` but in no set.
+- **Set:** one protein family inside a kit, for example `KS` (ketosynthase), `AT`, `A`, `C`, or a resistance family `RES01`. Each set is ordinated on its own.
+- **PCoA:** principal coordinates analysis. It turns protein-to-protein identity distances into points on a plane. Close points are similar proteins.
+- **Cohort table:** a TSV with `strain` and `cohort` columns. It says which of your strains belong to which group. `protein_pcoa_compare.py` calls the second column `collection`.
+- **DIAMOND:** a fast protein search program (`diamond` on `PATH`). **tblastn** is a BLAST+ program that searches protein queries against genome DNA.
+- **Region GenBank file:** one antiSMASH region as a `.gbk` file, named like `<contig>.region001.gbk`. **Locus:** one such region.
+- **Ledger:** a TSV with one row per gene (CDS) and a `strain` column, holding annotations. **Gap rescue:** the optional `gap-rescue` command, which looks for missing genes of a cluster near its edges.
+- **Receipt:** a JSON file that lists a step's inputs and outputs with SHA-256 hashes, so you can check later that nothing changed.
 
-`tools/protein_pcoa_compare.py` consumes an existing protein PCoA kit and a cohort table. Its denominator uses cohort members represented in the kit's canonical per-set tables before set selection. It records denominator membership and hashes contributing tables, including unselected sets. Genome-level tests are primary; protein-level tests are secondary and pairwise p-values are raw, exploratory values. Similarity and position do not establish activity or resistance.
+## Quick start: extract, ordinate, render
 
-`tools/locus_rarity_by_genus.py` asks how common one antiSMASH region is among the genomes of each genus. It reads a `protein_pcoa_ordinate.py extract` kit, searches the region's proteins against every non-MIBiG region protein of the kit (DIAMOND, ≥ 50 % identity over ≥ 70 % of the query gene by default) and counts, per genus, the genomes with a region matching ≥ 50 % of the genes, ≥ 50 % of the core genes and ≥ 30 % of the core genes (core = antiSMASH gene_kind biosynthetic or biosynthetic-additional). Public references and SID genomes are counted in separate columns. Denominators come from the kit, or from `--genome-table` so that genomes with no region are counted. A match is sequence similarity, not product identity or production.
+Needs DIAMOND, a fast protein search program. Install it with
+`conda install -c bioconda diamond`, or pass the path to an existing `diamond` with `--diamond`. Each step refuses to overwrite its own outputs.
 
-Since v1.1.0 the tool counts genomes **by assembly** by default, because a genome collection can hold one assembly several times (a versioned and an unversioned accession, a WGS id and its GCA, a complete-genome CP/AP entry and the GCA entry of the same genome). Each strain's key is its `assembly_accession` from `--genome-table`, else its own id (GCF folded to GCA, version dropped). Strains of one genus with identical `total_bp` are then merged. `ASSEMBLY_KEYS.tsv` shows every key and the rule that set it. Every count and denominator is reported both `_by_assembly` and `_by_entry`. The main columns follow `--count-by` (`assembly` by default; `--count-by entry` keeps the v1.0.0 counts). Without `total_bp`, only the id rules apply. Two different assemblies of one strain still count as two.
+**1. Extract.** Reads region GenBank files (`*.gbk` in a folder, searched recursively, or a `.zip` of them) and writes the kit. `--input` is `SOURCE=PATH`, where SOURCE is `isolate`, `reference` or `MIBiG`. The strain name comes from the input: for a ZIP it is the ZIP file name without `.zip`; for a loose `.gbk` file it is the part of the file name before `__`, or before the first `.` when there is no `__`. Your cohort table must use these exact names.
 
-`tools/family_rarity_by_window.py` asks the whole-genome question for every region of one strain: how many genomes of the strain's family carry the region's core genes **side by side**? It searches each region's core genes (from the strain's antiSMASH zip) against a whole-proteome database whose headers carry `ACC|contig|start|end|strand` (DIAMOND, ≥ 50 % identity over ≥ 70 % of the query gene). It counts a genome's genes in one window, on one contig with gaps of ≤ 20 kb, and counts apart genomes that reach 30 % only when scattered. The headline counts are for `--query-family`, with whole-table counts beside them. It counts by assembly, with the same rule and `--count-by` option as `locus_rarity_by_genus.py`. A region is called family-rare at ≤ 2 family genomes with ≥ 30 % of its core in one window, if it has ≥ 3 core genes. `PASS_GENOMES.tsv.gz` keeps every genome that reached 30 %, so the counts can be redone later, for example under a new duplicate rule, without searching again.
+**Where the inputs come from.** Isolate inputs are your own antiSMASH result ZIPs. Reference inputs are antiSMASH region files from public genomes, for example from the [public antiSMASH datasets](PUBLIC_DATASETS.md). MIBiG inputs are MIBiG GenBank files ([MIBiG download](EXTERNAL_DATA.md#mibig-reference-index-and-neighborhoods)). One isolate ZIP alone is too small: `ordinate` needs at least four retained points and stops with `REFUSED: fewer than four retained points` otherwise. Accepted file names, duplicates and the assembly table are in [protein input rules](447_COMPANION_RETRIEVAL_CONTROLS.md#3-protein-input-for-protein_pcoa_ordinatepy-extract).
 
-`tools/region_presence_survey.py` asks whether **one** region is present in each of a set of genomes, under two rules side by side. The protein rule is the `locus_rarity_by_genus.py` rule (DIAMOND on the genomes' proteomes, ≥ 50 % identity over ≥ 70 % cover). The nucleotide rule is tblastn on each genome sequence, keeping the best HSP per gene if it covers ≥ 50 % of the protein, with no identity floor. Per genome and per rule it reports the genes found, the identity range and the largest one-contig window (gaps of ≤ 20 kb), with its coordinates. The query can be cut from the strain's antiSMASH zip (a region's CDS plus `--flank` genes each side) or given as a FASTA. The tblastn rule finds genes that the protein rule misses: genes below 50 % identity, short genes near the cover floor, and ORFs the gene caller did not annotate. Report which rule a number comes from. A gene below a rule's floor is not thereby absent.
+```bash
+python3 tools/protein_pcoa_ordinate.py extract --kit kits/demo \
+  --input isolate=regions/isolates --input reference=regions/references \
+  --cohort-table cohorts.tsv
+```
 
-`tools/comparison_map_pages.py` draws `tools/multi_reference_comparison.py` maps in batches from a spec TSV, one row per map. A row names the query locus (zip, label, BGC alias or gap-rescue folder) and its candidate references: public-genome antiSMASH regions staged by genus from a library `INDEX.tsv` (the `regions` subcommand builds such a folder on its own), region folders or files, other isolate loci (`label|BGC|zip`) and MIBiG GenBank files. Other isolate loci and MIBiG clusters are pinned: they are drawn whenever they match the discovery minimum of locus genes, and the `top` best public regions fill the remaining rows. All maps of a batch, or of one `page_group`, share one width and one kb per inch, so a kilobase has the same length on every map; `--shared-scale none` lets each map fill its width. Maps are stacked onto pages in spec order. For each compared isolate locus, `locus_pairs.tsv` gives a global alignment (BLOSUM62, gap open 11, extend 1) of every matched protein pair. The receipt records every input and output with SHA-256, and each map's `_references/_sources.tsv` lists the staged files. Run `python tools/comparison_map_pages.py run --help` for the spec columns. A matched gene is a best protein hit, not orthology, function or product.
+You should see the kit folder with `REGION_CDS.faa`, `REGION_CDS_META.tsv`, and one `<SET>.faa` and `<SET>_META.tsv` per set (a set with no proteins gets an empty file; the counts print to the terminal). `cohorts.tsv` is tab-separated with the header `strain<TAB>cohort`.
 
-`tools/pcoa_bgc_explorer.py` adds an offline rotatable three-axis view of the same coordinates. Rotation changes the display, not the scores or point membership. Points without identity values retain a separate symbol. Supplied metadata and disagreements are recorded rather than silently inferred.
+**2. Ordinate.** Pick one set. Run `--preflight` first to see the size estimate without computing anything.
 
-Use [figure house rules](FIGURE_HOUSE_RULES.md) and [figure style](FIGURE_STYLE.md) for exports. Inspect the actual rendered page and keep its caption, methods, source bindings and denominator together. Tools and command availability are listed by the generated [command catalog](COMMAND_CATALOG.generated.md) and [tools inventory](TOOLS_INVENTORY.generated.md).
+```bash
+python3 tools/protein_pcoa_ordinate.py ordinate --kit kits/demo --set KS \
+  --preflight --resource-receipt-dir kits/demo_preflight
+python3 tools/protein_pcoa_ordinate.py ordinate --kit kits/demo --set KS
+```
 
-## Saved coordinate replay
+Success writes `kits/demo/out_KS/PCOA_KS.tsv` and `RUN_KS.json`. A refusal prints the reason (a limit that failed, fewer than four retained points, or an input problem). Nothing is shrunk or subsampled. A refused run leaves `out_KS/RESOURCE_ATTEMPT/terminal.json` in the kit, and rerunning with the same `--kit` then prints `REFUSED: existing ordinate output is retained; choose a fresh --attempt-root`. To retry, fix the cause and add a new output folder: `python3 tools/protein_pcoa_ordinate.py ordinate --kit kits/demo --set KS --attempt-root kits/demo_try2`. Later steps then read `kits/demo_try2`. To also write `out_KS/NEAREST_KS.tsv` (each cohort protein's closest reference or MIBiG protein), run `python3 tools/protein_pcoa_ordinate.py nearest --kit kits/demo --set KS`.
 
-`tools/protein_pcoa_render.py` can redraw an existing kit without refitting an ordination. Bind its cohort table, drop-origin list, optional set-name table, selected PCoA/nearest tables and original `RUN_<SET>.json` metadata. A folder of delivered tables may need an adapter to the documented `out_<SET>/` layout.
+**3. Render.** `--panel NAME=COHORT` draws the cohort named COHORT (a value in the `cohort` column of the cohort table) among the reference points, and NAME is used in the output file names.
 
-Missing `pct_axes` now produces plain axis labels and `axis_metadata.state = NOT_PROVIDED` in each panel receipt. It never prints `nan%`. Use `--require-axis-metadata` to refuse missing axis percentages before any selected panel is drawn. Invalid supplied values are refused. The tool does not infer percentages from saved coordinates. This option checks axis metadata only; it does not certify a publication cohort or exclusion policy.
+```bash
+python3 tools/protein_pcoa_render.py --kit kits/demo --set KS --out figs/ks \
+  --cohort-table cohorts.tsv --panel isolates=isolate_group
+```
 
-The final render receipt binds input paths and bytes, optional missing files, output hashes, renderer source and figure policy. If input or renderer files change during drawing, the attempt is refused and its partial artwork remains without a final success receipt. Preserve that attempt rather than presenting it as a completed figure. Receipts do not freeze external libraries or fonts, establish historical equivalence or replace rendered-page inspection.
+Success writes `PCOA_KS_isolates.pdf`, `.svg` and `.png`, plus `LABELS_KS_isolates.tsv` and `panel_KS_isolates.json`. The output folder must be new or empty. Inspect the picture yourself, then follow [figure house rules](FIGURE_HOUSE_RULES.md) and [figure style](FIGURE_STYLE.md).
 
+If `extract` fails it can leave partial files in the kit; keep them and start a new kit folder. If `ordinate` is refused, see step 2. A refused render leaves its output folder; use a new one.
 
-## Watched protein ordination attempts
+## Which tool answers which question
 
-`protein_pcoa_ordinate.py ordinate` streams and binds metadata/FASTA before admitting heavy work. Its existing distance definition, clustering thresholds, cohort retention, solver branches and axis calculations remain unchanged. Conservative resource estimates include dense matrices/workspace, input overhead and quadratic all-vs-all text growth; they are estimates rather than guaranteed peak memory or disk bounds.
+| Tool | Question | Needs | Writes |
+|---|---|---|---|
+| `protein_pcoa_ordinate.py` | Where do these proteins sit among references? | region GenBank files | the kit, `out_<SET>/` |
+| `protein_pcoa_render.py` | Draw that picture | a kit, a cohort table | PDF, SVG, PNG, label tables |
+| `protein_pcoa_compare.py` | Do cohorts differ on the kit? | `--kit`, `--cohort`, `--out` | statistics, plots, `CAPTION.md` |
+| `pcoa_bgc_explorer.py` | Click a cohort protein to see its whole BGC; rotate the three axes on request | `--kit --regions --out` | an offline HTML view |
+| `locus_rarity_by_genus.py` | How common is one region in each genus? | `--kit --query-strain --query-region --out` | per-genus counts |
+| `family_rarity_by_window.py` | How many genomes carry a region's core genes side by side? | `--antismash-zip --strain --proteomes --genome-table --query-family --out` | per-region counts, `PASS_GENOMES.tsv.gz` |
+| `region_presence_survey.py` | Is one region present in each of these genomes? | `--genomes --out`, plus `--query-faa` or `--antismash-zip --contig --region` | per-genome table |
+| `comparison_map_pages.py` | Draw many locus comparison maps on one scale | a spec TSV | maps, pages, `locus_pairs.tsv` |
+| `locus_reading_pages.py` | One reading page per region, every gene and evidence layer | `--out --package STRAIN=DIR` and a ledger | Markdown pages |
+| `gap_rescue_gene_table.py` | Per-gene table for a gap-rescue run | `--run --zip --reference` | gene table |
 
-Use `ordinate --kit INPUT_KIT --set KS --preflight --resource-receipt-dir NEW_DIAGNOSTIC_DIR` for counts and estimates without tool discovery or computation. The explicit diagnostic destination must be fresh with an existing parent; no automatic sibling receipt is written. Preflight does not create an output kit.
+Run `python3 tools/<name>.py --help` for every flag.
 
-Compute defaults are 3,800,000,000 bytes process-tree RSS, 2,000,000,000 bytes minimum free disk, 900 seconds and 4 DIAMOND threads. CLI `--rss-limit-bytes`, `--min-free-disk-bytes`, `--timeout-seconds` and positive `--threads` configure these limits. The M5 campaign's execution ceilings are separate from portable user configuration. Available CPU count is recorded as an observation, not an inferred scheduler allocation or a universal thread cap. Numerical libraries use one thread within the worker.
+## Locus tools
 
-A set with reference or MIBiG sequences is admitted cluster-first by default, as described below: those sequences are clustered in every run, so the dense solver is admitted at the clustered count. A cohort-only set is never clustered; it is admitted on its retained-point upper bound before any work, then actual retained n is checked before all-vs-all and dense allocation. An estimate over 80% of the RSS budget refuses. `--no-cluster-first` forces the upper-bound admission for any set, and `--cluster-first` forces cluster-first. The receipt records `admission_mode` and whether it came from the default or an explicit flag (`admission_mode_source`). No automatic subsampling or threshold change occurs.
+**Gap rescue.** `python mamey_run.py gap-rescue` is optional and runs after validation. It needs separately provisioned search inputs, and the main `run` never starts it. It is a screen, not an adjudication. Required: `--strain`, `--input-zip` and `--out`; `--out` must be outside the bundle. Example: `python mamey_run.py gap-rescue --strain EXAMPLE --input-zip antiSMASH.zip --out /path/outside/bundle/gap`. It finds MIBiG GenBank files and Pfam-A through `--mibig-dir` and `--pfam`, or the environment variables `SAPOTE_MIBIG_GBK_DIR` and `SAPOTE_PFAM_HMM` (these differ from the `MAMEY_*` variables in [external data](EXTERNAL_DATA.md)). Check `python mamey_run.py gap-rescue --help`. It writes one folder per region plus `SUMMARY.tsv` to `--out`. Then, for one region folder:
 
-All heavy Python work, including sequence loading and the eigensolver, and DIAMOND descendants run under one watched worker. POSIX process monitoring must be available; a failed monitor refuses rather than silently running unmonitored. Sampling can overshoot limits between observations and is not a kernel-enforced resource sandbox. Coordinator streaming memory is separate from the reported worker-tree RSS.
+```bash
+python tools/gap_rescue_gene_table.py --run OUT/<region folder> --zip antiSMASH.zip --reference reference.gbk
+```
 
-Ordinate requires a fresh `out_<SET>` directory. Use `--attempt-root NEW_OUTPUT_KIT` for another attempt without changing previous kits; this output kit need not contain extraction inputs. Inputs and ancestor paths must have no symlink aliases. Retained scratch/logs under `RESOURCE_ATTEMPT` belong to that one attempt; never treat failed scratch as a successful kit. Only the two expected scientific tables are promoted, with no overwrite; final RUN is written after successful monitor and hash checks. The terminal success receipt binds RUN, and RUN binds the frozen monitored resource receipt. Interrupted promotion is incomplete, not an atomic multi-file success.
+The table has one row per reference gene. A displayed split lists both pieces in one row. It gives saved local and reference protein lengths and their ratio (blank for splits). The ratio is not alignment coverage. Captions separate reference-gene counts from distinct local proteins.
 
-New resource-contract kits require their matching successful receipt chain for replay. Legacy saved-coordinate kits remain usable with unknown historical producer metadata; replay receipts separately record saved-coordinate mode, supplied historical provenance and current rendering runtime. Installed package versions and loaded-module versions are distinguished; unrecorded R/font details remain unknown. These fields do not establish scientific accuracy or historical PNG byte equivalence. Original RUN metadata is never rewritten by replay. Resource receipts remain local/internal by default and may contain paths; public export requires its own projection review.
+**Reading pages.** `locus_reading_pages.py` needs one `--package STRAIN=DIR` per strain and a gene annotation ledger (`--ledger` or `--ledger-dir`). `--gecco`, `--mibig-json`, `--mibig-proteins`, `--proteomes`, `--pfam` and `--hmmsearch` read extra evidence, and `--proteomes`, `--pfam` and `--mibig-proteins` start new searches. Leave those out to read existing evidence only; unsearched layers are reported as unsearched. Each locus is shown as strain / full node-or-contig / region / BGC alias. Hand assessments (`--assessments`) are separate authored material.
 
-## Retaining the distance input
+**Rarity by genus.** `locus_rarity_by_genus.py` searches the region's proteins against every non-MIBiG region protein in the kit (DIAMOND, at least 50 % identity over at least 70 % of the query gene). Per genus it counts genomes with a region matching at least 50 % of the genes, at least 50 % of the core genes, and at least 30 % of the core genes. Core means antiSMASH `gene_kind` biosynthetic or biosynthetic-additional. Public reference genomes and your own isolates are counted in separate columns. Denominators come from the kit, or from `--genome-table` so that genomes with no region are counted.
 
-`ordinate --keep-allvsall` additionally promotes `allvsall.tsv.gz`. The RUN file's `retained_allvsall` record binds compressed and original TSV SHA-256, original byte length, and ID-order SHA-256. The order is the `id` column of the PCOA table. `tools.protein_pcoa_ordinate.distance_matrix(path, ids)` accepts the retained gzip or a plain hit table and constructs the same float32 identity-distance matrix as ordinate: each pair keeps the smallest observed `1 − percent_identity/100` distance from either hit direction. Unreported pairs remain at distance 1 and the diagonal is 0. Callers must perform their own resource admission before its dense allocation. Without the flag, the hit table is removed as before. Retention is an input replay aid, not a new embedding method or a scientific accuracy claim.
+The tool counts genomes by assembly by default, because a collection can hold one assembly several times (a versioned and an unversioned accession, a WGS id and its GCA, a CP/AP entry and the GCA entry). A strain's key is its `assembly_accession` from `--genome-table`, else its own id (GCF folded to GCA, version dropped). Strains of one genus with identical `total_bp` are merged only when at most one distinct explicit accession is among them (an `assembly_accession`, or a GCA/GCF accession used as the strain id). Two entries with different explicit accessions stay separate even at the same length, and `RECEIPT.json` lists them in `assembly_key_length_review_candidates`. Both rules are heuristics: equal length, or the same accession after dropping the version and folding GCF to GCA, does not prove two entries are one assembly. So `_by_assembly` counts are not verified unique assemblies. `ASSEMBLY_KEYS.tsv` shows every key and the rule that set it, and `RECEIPT.json` lists each length merge in `assembly_key_length_merges` for review. Every count is reported both `_by_assembly` and `_by_entry`; the main columns follow `--count-by` (`assembly` or `entry`).
 
-The retained input is hashed before and after distance construction, and retention must match that consumed-input binding. The existing disk estimate reserves four times the quadratic hit-table term, covering the raw table, gzip temporary output and promoted gzip copy; compression streams in bounded blocks.
+**Rarity by window.** `family_rarity_by_window.py` searches each region's core genes (from the strain's antiSMASH zip) against a whole-proteome database whose headers read `ACC|contig|start|end|strand`. Same DIAMOND thresholds. A genome counts for a region when its genes sit in one window on one contig with gaps of at most 20 kb. A region is family-rare at 2 or fewer family genomes with at least 30 % of its core in one window, if it has at least 3 core genes. Headline counts are for `--query-family`, with whole-table counts beside them. `PASS_GENOMES.tsv.gz` keeps every genome that reached 30 %, so counts can be redone without searching again. It uses the same assembly rule and `--count-by` as above.
 
-## Cluster-first admission (default for reference and MIBiG sets)
+**Presence survey.** `region_presence_survey.py` tests one region in each genome under two rules, side by side. The protein rule is the one above (DIAMOND on proteomes). The nucleotide rule runs tblastn on each genome sequence and keeps the best hit per gene if it covers at least 50 % of the protein, with no identity floor. Per genome and rule it reports genes found, the identity range and the largest one-contig window (gaps of at most 20 kb) with coordinates. Give `--antismash-zip` with `--contig` and `--region` (`--flank` adds genes on each side), or give `--query-faa`. tblastn finds genes the protein rule misses: below 50 % identity, short genes, and ORFs the gene caller skipped. Report which rule a number comes from. A gene below a rule's floor is not thereby absent.
 
-Cluster-first admission (the default when the set has reference or MIBiG sequences, or `--cluster-first`) admits bounded input materialization and reference/MIBiG clustering first, retaining the existing clustering settings and every cohort sequence. A linear cluster-stage engineering allowance replaces the initial dense upper-bound admission only in this mode. It does not guarantee that clustering fits. The same watched RSS ceiling, timeout and free-disk floor remain active; the RSS limit is never automatically raised. Large irreducible cohort membership still refuses early.
+**Comparison maps.** `comparison_map_pages.py run SPEC.tsv --out DIR` draws `multi_reference_comparison.py` maps in batches, one spec row per map. Spec columns (tab-separated; `#` lines are comments; relative paths resolve against the spec's folder):
 
-After clustering, actual retained n must pass the existing 80% RSS admission margin and a fresh scratch-disk check before all-vs-all, distance allocation or eigensolving. The run records its exact matrix admission estimate and receipt hash. The outer cluster-first watch keeps the free-disk floor throughout both phases; it does not reuse a small cluster-stage growth estimate as a dense-matrix quota.
+| Column | Meaning |
+|---|---|
+| `map_id` | required; output folder name |
+| `zip` | required; antiSMASH zip of the query locus |
+| `label` | required; the strain label the locus is drawn with |
+| `bgc` or `rescue` | one required; the BGC alias, or a gap-rescue `<BGC>_vs_<ref>` folder |
+| `genus`, `ref_gbk_dirs`, `ref_gbks`, `extra_zips` | optional; where public-genome references come from |
+| `compare_loci`, `mibig` | optional; other isolate loci (`label|BGC|zip`) and MIBiG GenBank files, always drawn when they match |
+| `top` | optional; how many unpinned references to draw |
+| `gene_labels`, `page_group` | optional; a label TSV; maps sharing a value share pages |
 
-Metadata-only `--preflight --cluster-first` reports `PREFLIGHT_CLUSTER_ADMITTED_ORDINATION_PENDING`; it does not execute clustering, know the final centroid count or claim that ordination is admitted. No subsampling, method substitution, cohort clustering or threshold change is performed. Native workspace safety and input/source binding refusals still apply.
+All maps in a batch or `page_group` share one width and one kilobase scale; `--shared-scale none` lets each map fill its width. `locus_pairs.tsv` gives a global alignment (BLOSUM62, gap open 11, extend 1) of each matched protein pair. The receipt records every input and output with SHA-256. A matched gene is a best protein hit, not orthology, function or product.
 
-## Native page artwork and raster QA
+**Compare cohorts.** `protein_pcoa_compare.py` takes the kit and a TSV with `strain` and `collection` columns. Its denominator is the cohort members represented in the kit's per-set tables. Genome-level tests are primary. Protein-level tests are secondary, and pairwise p-values are raw and exploratory.
 
-New protein pages preserve their PDF/SVG vector masters and the PNG drawn directly by R. A separate `_plot_only.png` is drawn natively at 300 DPI from the same checked geometry. No PDF screenshot replaces source artwork. Captions and Methods remain editable separate files; this clean-artwork packet does not establish a caption band or compiled-publication acceptance. The final completion receipt binds the packet, raster dimensions/declared width and direct QA/helper sources.
+**Explorer.** `pcoa_bgc_explorer.py` gives an offline rotatable three-axis view of the same coordinates. Rotating changes the display, not the scores. Points without identity values keep a separate symbol.
 
-Page QA passes its declared print width to `figure_render_qc.py --print-width-in`; `--dpi` is a minimum. The checker distinguishes metadata DPI from pixels divided by declared embedded width. Without a supplied width, effective DPI is explicitly NOT_CHECKED. Pixel counts alone cannot detect an earlier upscale or establish native-render provenance; retain the bound direct-R source and rendering receipt.
+Tools and commands are listed in the [command catalog](COMMAND_CATALOG.generated.md) and [tools inventory](TOOLS_INVENTORY.generated.md).
 
-## Completed packet transfer and current byte checks
+# Reference: limits, receipts and refusals
 
-A completed render receipt records an earlier successful operation. Post-completion figure QA rechecks every declared output hash and byte length, including captions, PNGs, metadata and runtime records. Editing a file while retaining the old COMPLETE marker is refused. The checker maps original absolute output locators lexically into the selected artifact folder, so a transferred packet can be checked without opening the old source paths. Duplicate JSON keys or output locators, escaping paths, symlink members and unbound selected PNG/SVG/caption files are refused.
+You do not need this half for a first figure. Terms:
 
-Use a fresh QA child folder under the completed packet or a separate sibling folder; the packet root and an ancestor containing bound members refuse. A destination overlapping bound outputs is refused before OCR or report writes. For an admitted transfer, `figure_render_qc.py --render-receipt-sha256 <admitted_sha256>` also binds the receipt itself. Without that external hash, the checker establishes freshness against the supplied manifest; it cannot authenticate a manifest and artwork edited together. The receipt does not certify scientific correctness or historical fit execution. Unreceipted figures retain ordinary image/text QA without a completed-packet freshness claim.
+- **RSS:** the memory a process holds in RAM.
+- **Cluster-first:** group near-identical reference and MIBiG proteins first and keep one representative each, so the ordination matrix stays small. Cohort proteins are never grouped.
+- **Admission:** the check, before heavy work, that estimated memory and disk fit the limits.
+- **Bound:** recorded in a receipt with a SHA-256 hash, so a later check can detect a change.
+- **Native vs supplied:** native values were computed by the bundle's own ordination code. Supplied values (axis percentages, an embedding) came from a file you gave the renderer.
 
-Keep authored caption changes in a separately versioned document/artifact record with their new hashes, preserving the prior completion record. Changing wording does not require recomputing a figure whose data and geometry are unchanged. The compiled development prototype demonstrates separate caption binding without rewriting a source artwork packet.
+## Replay and receipts
 
-## In-run page runtime and observed fonts
+`protein_pcoa_render.py` redraws a kit from saved coordinates and fits nothing. It needs the cohort table, the `out_<SET>/` PCoA and nearest tables and the original `RUN_<SET>.json`. Optional: a drop-origins list (region files whose points are not drawn) and a set-names table. A folder of delivered tables may need renaming into the `out_<SET>/` layout.
 
-New page renders write an exact-stamp runtime sidecar from the R process that drew the final page. It records R/platform, the loaded namespace versions, the actual page labeler and the fact that the renderer executed no numeric ordination fit. Python binds that record and observes the font faces used by nonblank text in the final PDF. Per-page runtime/font records replace NOT_RECORDED in the final page receipt and travel in its output roster. Late changes to drawn artifacts during document/QC finalization refuse completion.
+Axis percentages come from `pct_axes` in the RUN file. If missing, labels are plain and the panel receipt says `axis_metadata.state = NOT_PROVIDED`. `--require-axis-metadata` refuses to draw when they are missing.
 
-This bounded route records current page rendering, not upstream coordinate fitting, historical package equivalence or every font file's bytes. Single-panel R routes still have the separately recorded runtime gap until their producer is extended. A post-run installed-version probe is not substituted for the new in-run record.
+The render receipt lists input and output hashes, the renderer source and the figure policy. If an input changes while drawing, the attempt is refused and the partial artwork is left without a success receipt. Do not present it as finished. Receipts can contain local paths; check them before sharing.
 
-### QA destination and refusal policy
+## Limits for `ordinate`
 
-QA reports are create-only: an existing `RENDER_QC.md` or `RENDER_QC.tsv` (including a symlink) refuses before receipt parsing or OCR. Use a fresh QA folder. A completed-packet admission error, including a bad external hash or malformed receipt, returns exit 2 with a diagnostic on stderr and writes no QA reports. A missing receipt is an admission error when an external receipt hash was requested; without that option ordinary pre-completion figure QA remains supported. Content QA findings can produce reports in a fresh destination.
+Defaults: 3,800,000,000 bytes of RSS (process and DIAMOND children), 2,000,000,000 bytes of free disk, 900 seconds, 4 DIAMOND threads. Change them with `--rss-limit-bytes`, `--min-free-disk-bytes`, `--timeout-seconds` and `--threads`. The estimates are conservative guesses. The tool never raises a limit or subsamples. If process monitoring is unavailable, it refuses.
 
-For a completed packet, the destination must not contain any bound packet member. A fresh child folder under the packet or a separate sibling folder is allowed; the packet root or an ancestor containing its members is refused. Output members are resolved only inside the selected local artifact root. Report files are also created exclusively to guard against a file appearing after preflight. In that race a newly created empty report can remain for inspection; existing files are never truncated. Multi-page generation writes all companions first and runs folder QA once, so no page overwrites another page’s QA reports.
+`--preflight --resource-receipt-dir NEW_DIR` prints counts and estimates and computes nothing; `NEW_DIR` must not exist. A refused preflight writes `terminal.json` there.
 
-### PCoA axis definition and execution provenance
+Sets with reference or MIBiG proteins use cluster-first by default; `--no-cluster-first` checks the unclustered upper bound instead. Cohort-only sets are never clustered. After clustering, the count must fit within 80 % of the RSS limit before the all-against-all search. `--preflight --cluster-first` reports `PREFLIGHT_CLUSTER_ADMITTED_ORDINATION_PENDING`: clustering was not run and the final count is unknown.
 
-A finite `pct_axes` vector is an annotation format, not proof of variance explained or of a fit. For supplied/legacy metadata the caption identifies percentage annotations with unverified definition and fit execution. Values are preserved, including percentages above 100 or below zero.
+Each attempt needs a fresh `out_<SET>`. Use `--attempt-root` to retry (see step 2). Failed scratch under `RESOURCE_ATTEMPT` is not a kit. Inputs must not pass through symlinks.
 
-The inspected native `classical_pcoa` function reports `100 * eigenvalue / signed trace` of the double-centered squared-distance matrix. It clips negative eigenvalues only for coordinates. For non-Euclidean input these signed ratios are not conventional variance explained and must not be clipped or renormalized for presentation. Full ratios remain in `axis_metadata`; the page shows the first two axes.
+`--keep-allvsall` keeps `allvsall.tsv.gz`, the hit table behind the distances; the RUN file records its hashes. `distance_matrix(path, ids)` in `protein_pcoa_ordinate.py` rebuilds the float32 distance matrix from it: each pair takes the smallest `1 - percent_identity/100` over both hit directions, unreported pairs are 1, the diagonal is 0. Check memory before calling it.
 
-A native definition claim requires a validated successful resource terminal chain, matching consumed-coordinate output hash, matching selected native-source hash/byte count, and the known complete numerical-function fingerprint. The render receipt binds the RUN, coordinates and selected source. Unknown or unmatched source definitions stay supplied/unverified. This checks an upstream record association, not an independent rerun; no sidecar alone establishes fit execution, and this renderer only replays saved coordinates. The numerical producer and all fitted values are unchanged by this caption/provenance change.
+## Axis percentages
 
-## Renderer controls, supplied embeddings and explorer scope
+A `pct_axes` vector is an annotation. It does not prove variance explained. Values are kept as given, including above 100 or below zero. The bundle's own PCoA reports `100 * eigenvalue / signed trace` of the double-centered squared-distance matrix. For non-Euclidean distances these ratios are not variance explained; do not clip or renormalize them. A caption calls the definition native only when the `ordinate` receipt chain is valid and the hashes match; otherwise it says "supplied".
 
-`protein_pcoa_render.py --layout pcoa` replays the kit's PC1/PC2. `--layout trimap` or `--layout tsne` requires one `--embedding-table SET=TSV` per selected set, with the same exact point IDs and finite `TRIMAP1/TRIMAP2` or `TSNE1/TSNE2` columns. Duplicate/blank/padded headers, ragged rows, duplicate IDs, nonfinite coordinates and missing/extra identities refuse. These controls select saved coordinates; they do not run TriMap or t-SNE fitting.
+## Renderer controls
 
-An optional exact adjacent `.json` sidecar can supply `coordinates_sha256` and separate `trimap` or `tsne` objects containing a nonempty `version`, a nonnegative integer `seed` and optional `parameters`. Only matching coordinate hashes and complete per-layout fields enter the supplied-metadata caption. Missing, unbound, wrong-method and incomplete metadata remain explicitly unknown; even correctly bound supplied metadata is not proof that a fitter executed.
+- `--layout trimap` or `--layout tsne` needs one `--embedding-table SET=TSV` per set, with the kit's point IDs and `TRIMAP1/TRIMAP2` or `TSNE1/TSNE2` columns. Bad headers, duplicate or missing IDs and non-finite values are refused. No fit is run.
+- An adjacent `.json` file may give `coordinates_sha256` and a `trimap` or `tsne` object with `version`, an integer `seed` and optional `parameters`. Only complete metadata with a matching hash enters the caption; otherwise the caption says unknown.
+- `--page pcoa,trimap` puts saved layouts side by side on one R page with one legend. It needs R, uses an 8 pt text floor and 70/85 % identity tiers by default. `--label-names` takes a TSV with the header `strain<TAB>short<TAB>display`.
+- `--quantile` (default 0.95) sets the fraction of background nearest-neighbor distances used to pick labels. Label TSVs add `threshold_distance` and `label_quantile`; `threshold_p95` is filled only at 0.95.
+- `protein_pcoa_compare.py` writes `AXIS_ANNOTATIONS.json` and `CAPTION.md`. `--min-text-pt` (default 8, lower values refused) applies at each PDF's native width: 6.4 in for share-below, 7.2 in for other panels. A layout that does not fit is refused, not shrunk. It also writes `<figure>_text_check.json` and `SOURCES.tsv`.
 
-`--page pcoa,trimap` combines saved layouts with one shared legend and one cohort panel. Pages require the R route; an explicit unavailable R selection or page/matplotlib contradiction refuses. Page defaults supply an 8 pt floor and 70/85% identity tiers. `--label-names` may supply `short` for the canvas and `display` for the full caption key, keyed by `strain`; names and placement still require visual review. Optional `--require-axis-metadata` validates finite annotations, not their scientific definition or fit execution. Current page runtime and axis-definition records do not certify single-panel, comparison or explorer outputs automatically.
+## Page artwork and checks
 
-The offline `pcoa_bgc_explorer.py` interface selects PC1/2/3 axis pairs and rotates the existing
-three-axis point cloud; `fitView` fits the display viewport, not an ordination. New per-set data
-includes `axis_annotations`, and a visible note beside the plot identifies percentage labels as
-supplied annotations with unverified definition and historical fit execution. The introduction
-states saved-coordinate replay. Full finite values, including ratios above 100 or below zero,
-are retained without clipping or renormalization. These consumers do not perform the page
-reader's native terminal/source/coordinate admission; a purported native field in RUN alone
-cannot establish a native definition or a fit.
+Pages keep PDF and SVG masters and the PNG drawn by R, plus a `_plot_only.png` at 300 DPI. Captions and methods are separate files. `figure_render_qc.py --print-width-in W` checks effective DPI as pixels divided by W; without a width it reports `NOT_CHECKED`.
 
-`protein_pcoa_compare.py` writes the same disclosure per set in `AXIS_ANNOTATIONS.json` and
-its separate `CAPTION.md`; percentage-bearing PCoA axis labels say “supplied”. Missing
-annotations produce plain axis labels. Comparison statistics and cohort denominators are
-unchanged and separate from axis provenance. Invalid supplied annotation vectors refuse
-rather than displaying nonfinite percentages.
-
-Comparison plots retain their SciPy/matplotlib route, palette, marker meanings and panel grids.
-`--min-text-pt` defaults to 8 and refuses nonfinite values or values below 8 before output creation.
-The floor applies at each PDF's native width (6.4 in for share-below, 7.2 in for other panels).
-Smaller embedded widths require separate validation. Fixed axes and legends place no point
-labels; no R/ggrepel substitution is made. Larger text uses layout-aware margins, wrapped
-collection counts, and a minimum 2.6-in carriage height. Each figure is checked for text size,
-collisions, canvas overflow and tick/data clearance before saving, then its PDF is read back
-with the shared minimum-text checker. `<figure>_text_check.json` records the native width,
-geometry result and PDF readback, source hash and image hashes. `SOURCES.tsv` binds those
-records and the shared annotation source. A layout that cannot fit at the requested floor
-refuses; it never shrinks text. These checks do not establish compiled-publication acceptance,
-SVG live-text delivery or a new ordination fit. Prior delivered output directories remain
-protected by the existing nonempty-output refusal.
-
-For completed-packet read capabilities, platform refusals, consumed-generation binding and OCR prerequisites, see [completed render-packet QA](COMPLETED_RENDER_PACKET_QA.md).
-
-
-### Page label quantiles and table compatibility
-
-`--quantile` is the fraction of background nearest-neighbor distances used for label selection
-(default 0.95, finite range 0–1). It does not refit coordinates. New page captions and receipt
-`label_rule` describe the actual configured percentile, including when no label is drawn.
-New page receipts declare `label_table_schema.version = 2`. Page label TSVs preserve existing
-columns and append `threshold_distance` (the applied cutoff) and `label_quantile` (its fraction).
-The historical `threshold_p95` column equals the applied cutoff only at the default 0.95; it
-is blank for other quantiles so a legacy reader cannot mistake a nondefault cutoff for p95.
-Readers of new tables should use the two canonical appended fields; a default-only reader can
-continue to use `threshold_p95` at 0.95. Historical tables/COMPLETE packets are never rewritten.
-For an old caption record with no quantile field, the historical 0.95 default is retained.
+A finished packet has a completion receipt with every output hash. QA rechecks them and refuses an edited file. QA reports (`RENDER_QC.md`, `RENDER_QC.tsv`) are create-only: use a new folder inside the packet or beside it, never the packet root. A bad receipt or `--render-receipt-sha256` exits 2 and writes no reports. See [completed render-packet QA](COMPLETED_RENDER_PACKET_QA.md).
 
 ## t-SNE companion panel
 
-`protein_pcoa_ordinate.py tsne --kit KIT --set S` fits t-SNE on the same identity distances as `ordinate`. It reads them from the retained `allvsall.tsv.gz`, checks the SHA-256 and ID order bound in `RUN_<SET>.json`, and refuses a mismatch. A kit without a retained table needs `--allvsall PATH`, and the sidecar then records the binding as `SUPPLIED_NOT_BOUND_BY_RUN`.
+`protein_pcoa_ordinate.py tsne --kit KIT --set S` fits t-SNE on the same identity distances. It reads the retained `allvsall.tsv.gz` and checks it against `RUN_<SET>.json`; a kit without one needs `--allvsall PATH` (the sidecar then records `SUPPLIED_NOT_BOUND_BY_RUN`). Defaults: perplexity 40, seed 20261019. It writes `out_<SET>/TSNE_<SET>.tsv` (`id`, `TSNE1`, `TSNE2`) and `TSNE_<SET>.json`, read by `protein_pcoa_render.py --page pcoa,tsne --embedding-table S=.../TSNE_<SET>.tsv`. It needs scikit-learn and scipy, refuses existing outputs, and substitutes no other method.
 
-The defaults are perplexity 40 and seed 20261019. The step writes `out_<SET>/TSNE_<SET>.tsv` (columns `id`, `TSNE1`, `TSNE2`) and the exact sidecar `TSNE_<SET>.json`, which `protein_pcoa_render.py --page pcoa,tsne --embedding-table S=…/TSNE_<SET>.tsv` reads. Existing outputs are refused. The step needs scikit-learn and scipy; if either is missing it refuses, and no other method is substituted. Admission is an estimate of the dense-matrix size against `--rss-limit-bytes`. This step does not run in the watched ordinate worker.
+The sidecar holds trustworthiness (`k = min(10, (n - 1) // 2)`) and a Spearman rho over up to 200,000 seeded pairs (`spearman_pairs` gives the count used). Use PCoA for distances between groups. In t-SNE, cluster sizes, gaps and positions are not distances.
 
-The sidecar records two scores. Trustworthiness uses `k = min(10, (n − 1) // 2)`; the sidecar records the actual `trustworthiness_k`. Spearman ρ compares input and plotted distances after 200,000 seeded index-pair draws and removal of self-pairs, so the evaluated count can be smaller; `spearman_pairs` records it. These scores describe local-neighbor and sampled distance-rank agreement. Use PCoA for distances between groups. t-SNE keeps near neighbors, but cluster sizes, gaps and placement on the page are not distances. Positions in either panel are sequence similarity only.
+## Single-file offline viewers
 
-## Single file offline viewers
-
-[Standalone protein space and reference match explorer](PROTEIN_SPACE_STANDALONE.md) documents `tools/protein_space_standalone.py`. It packages an existing enriched display and catalog, including gene-detail records, Plotly and fonts, into independent HTML files. It preserves coordinates and performs no new search, ordination, figure redraw or statistical test.
+[Standalone protein space and reference match explorer](PROTEIN_SPACE_STANDALONE.md) documents `tools/protein_space_standalone.py`. It packs an existing display and catalog, with Plotly and fonts, into standalone HTML files. It runs no new search, ordination, redraw or test.

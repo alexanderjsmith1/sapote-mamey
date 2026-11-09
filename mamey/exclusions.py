@@ -129,25 +129,35 @@ def _warn_official_data_present_but_file_missing(candidates: list[Path], filenam
         )
 
 
-def load_exclusions(*, strict: bool = False) -> dict[str, Any]:
-    """Return the parsed exclusions mapping (OFFICIAL_DATA/exclusions.json or _DEFAULT).
+def _source_type() -> str:
+    if os.environ.get("MAMEY_OFFICIAL_DATA"):
+        return "MAMEY_OFFICIAL_DATA"
+    if os.environ.get("MAMEY_DATA_ROOT"):
+        return "MAMEY_DATA_ROOT"
+    return "PARENT_WALK"
 
-    Falls back to the in-module default (mirroring the JSON) and warns if a JSON
-    file is present but unreadable/malformed, so a corrupt file can never silently
-    drop a strain from an exclusion set — and also warns if an OFFICIAL_DATA/
-    directory is present but exclusions.json specifically is missing from it (see
-    :func:`_warn_official_data_present_but_file_missing`); a genuinely code-only
-    tree with no OFFICIAL_DATA directory anywhere stays silent, as documented.
+
+def _load_bound(strict: bool) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read the exclusion source once; return the parsed mapping and its binding.
+
+    The binding names the source type, the path actually read and the SHA-256 of
+    the exact bytes parsed, so a caller can record what it used from one snapshot.
     """
+    import hashlib
     from .source_context import active
     frame = active()
     if frame is not None and getattr(frame, "governance", None) is not None:
-        return frame.governance.read(strict=strict)
+        data = frame.governance.read(strict=strict)
+        captured = frame.governance.binding()
+        selected = captured.get("selected") or {}
+        return data, {"source_type": "SOURCE_CONTEXT", "capture_state": captured.get("state"),
+                      "path": selected.get("path"), "sha256": selected.get("sha256")}
     candidates = _candidate_json_paths()
     for p in candidates:
         try:
             if p.is_file():
-                data = json.loads(p.read_text(encoding="utf-8"))
+                payload = p.read_bytes()
+                data = json.loads(payload.decode("utf-8"))
                 if isinstance(data, dict):
                     if strict:
                         ids = data.get("hard_excluded")
@@ -156,7 +166,8 @@ def load_exclusions(*, strict: bool = False) -> dict[str, Any]:
                             for value in ids
                         ):
                             raise ValueError("hard_excluded must be a list of non-empty strain identifiers")
-                    return data
+                    return data, {"source_type": _source_type(), "path": str(p.absolute()),
+                                  "sha256": hashlib.sha256(payload).hexdigest()}
                 if strict:
                     raise ValueError("exclusions must be a JSON object")
         except (OSError, ValueError) as exc:  # pragma: no cover - defensive
@@ -167,13 +178,39 @@ def load_exclusions(*, strict: bool = False) -> dict[str, Any]:
                 f"exclusions.py: could not read {p} ({exc}); "
                 "falling back to the in-module default.",
                 RuntimeWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
     if strict and (os.environ.get("MAMEY_OFFICIAL_DATA") or os.environ.get("MAMEY_DATA_ROOT")
                    or any(p.parent.is_dir() for p in candidates)):
         raise ValueError("bound exclusion source is missing")
     _warn_official_data_present_but_file_missing(candidates, "exclusions.json")
-    return dict(_DEFAULT)
+    return dict(_DEFAULT), {"source_type": "MODULE_DEFAULT", "path": None, "sha256": None}
+
+
+def load_exclusions(*, strict: bool = False) -> dict[str, Any]:
+    """Return the parsed exclusions mapping (OFFICIAL_DATA/exclusions.json or _DEFAULT).
+
+    Falls back to the in-module default (mirroring the JSON) and warns if a JSON
+    file is present but unreadable/malformed, so a corrupt file can never silently
+    drop a strain from an exclusion set — and also warns if an OFFICIAL_DATA/
+    directory is present but exclusions.json specifically is missing from it (see
+    :func:`_warn_official_data_present_but_file_missing`); a genuinely code-only
+    tree with no OFFICIAL_DATA directory anywhere stays silent, as documented.
+    """
+    return _load_bound(strict)[0]
+
+
+def exclusion_binding() -> dict[str, Any]:
+    """Strictly load once and report what was bound, from that same read.
+
+    Keys: ``source_type`` (SOURCE_CONTEXT, MAMEY_OFFICIAL_DATA, MAMEY_DATA_ROOT,
+    PARENT_WALK or MODULE_DEFAULT), ``path`` (the file read, or None for the
+    default), ``sha256`` (of the bytes parsed, or None) and ``hard_excluded``
+    (sorted). A failed binding raises ``ValueError``.
+    """
+    data, binding = _load_bound(True)
+    binding["hard_excluded"] = sorted(set(data.get("hard_excluded", [])))
+    return binding
 
 
 def official_data_json(filename: str, default: Any = None) -> Any:
@@ -249,8 +286,9 @@ def governed_excluded() -> set[str]:
     of falling back to the empty default. A tree with no pack bound still returns the
     empty generic default.
     """
-    load_exclusions(strict=True)
-    return hard_excluded()
+    # One strict snapshot: the returned set comes from the same bytes that were validated.
+    data = load_exclusions(strict=True)
+    return set(data.get("hard_excluded", _DEFAULT["hard_excluded"]))
 
 
 def qc_hold_audit_only() -> set[str]:

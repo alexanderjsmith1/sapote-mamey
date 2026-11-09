@@ -134,7 +134,7 @@ def test_end_to_end_markdown_has_day5_shaped_sections(tmp_path, two_strain_cohor
     md = Path(result["markdown_path"]).read_text(encoding="utf-8")
 
     # Tier table (assembly-quality bar).
-    assert "## Assembly-quality tiers" in md
+    assert "## Contig-boundary tiers" in md
     assert "| GOOD | ≥70% |" in md
     assert "| AS-901 " in md and "GOOD" in md
     assert "| AS-902 " in md and "VERY_POOR" in md

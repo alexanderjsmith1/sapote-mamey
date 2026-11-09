@@ -2894,7 +2894,7 @@
     ],
     "description": "Detects C-P-bond (phosphonate) biosynthesis and self-protection: phosphonate wording plus the committed first-step enzyme PEP mutase (PepM) / phosphoenolpyruvate mutase, and FomA/FomB-type resistance markers. Phosphonates (e.g., fosfomycin-, rhizocticin-class) are antibacterial/antifungal antimetabolites of high interest.",
     "positive_interpretation": "High-value antibacterial/antimetabolite hypothesis when PepM-like biosynthesis and FomA/FomB-like self-resistance are concordant in the same neighbourhood; KCB similarity to rhizocticin/fosfomycin is corroborating, not identity.",
-    "claim_safety": "Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The regex already vetoes C-P lyase / phn transporter / utilization false-positives; confirm by HMM/BLAST, \u00b3\u00b9P-NMR, and fractionation.",
+    "claim_safety": "Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The phosphonate alternative of the regex skips an annotation only when transporter, utilization, C-P lyase or a phnG-phnM name comes after the word phosphonate; the same words before it, and the PEP-mutase and fom alternatives, are not screened. A match is an annotation-level candidate, not a screened call: review its context and confirm by HMM/BLAST, \u00b3\u00b9P-NMR, and fractionation.",
     "citation": "Sapote-Mamey v1.9.3 harmonized bundle; source_scans.py / SAPOTE_v8.10.2_MONOLITH.md.",
     "source_locator": "mamey/source_scans.py:CASSETTE_PATTERNS.phosphonate",
     "version_added": "v1.9.4-registry-draft",

@@ -5,9 +5,8 @@
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Changelog](../../../../CHANGELOG.md).
 ## Documented Bugs, Misidentifications, and Design Failures
 **Bundle v9.7.241 · Engine 1.9.111**
-Hamilton, Ontario
 
-*Source: `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` (645 lines). Content is a curated summary of entries from the living development log, arc v9.7.102–v9.7.241 (engine 1.9.98–1.9.111). Entries that were resolved are documented with their fix; unresolved items (if any) are noted. Root causes and prevention rules are the primary value — not the incidents themselves.*
+*Source: `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` (645 lines; now [`docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`](../ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md)). Content is a curated summary of entries from the living development log, arc v9.7.102–v9.7.241 (engine 1.9.98–1.9.111). Entries that were resolved are documented with their fix; unresolved items (if any) are noted. Root causes and prevention rules are the primary value — not the incidents themselves.*
 
 ---
 
@@ -33,7 +32,7 @@ Mini-header blocks copied from the cover page into subsequent sections produced 
 ### PDF-2: Dark blue background from wkhtmltopdf dark mode inheritance
 **Severity:** High · **Fix in:** v9.7.148
 
-wkhtmltopdf inherits dark-mode CSS from the host system environment. On a dark-mode machine, PDFs render with dark backgrounds. The pipeline's correct PDF path is: `Markdown → tools/md_to_pdf.sh → pandoc → xelatex`.
+wkhtmltopdf inherits dark-mode CSS from the host system environment. On a dark-mode machine, PDFs render with dark backgrounds. The pipeline's PDF path at the time was `Markdown → tools/md_to_pdf.sh → pandoc → xelatex`. Historical: superseded. `tools/md_to_pdf.sh` now tries the ReportLab renderer first and uses pandoc and XeLaTeX as the fallback (`tools/md_to_pdf.sh:1-8`).
 
 **Prevention:** `wkhtmltopdf` is banned for compiled report rendering. Always produce Markdown first; the Markdown file is the canonical deliverable. The PDF is a presentation copy.
 
@@ -70,7 +69,7 @@ No dedicated section title pages. No double rules. No explicit `\clearpage` or `
 ### PDF-5: 324 bare BGC ID instances in 111-page report
 **Severity:** High · **Fixed in:** v9.7.148b (rule), v9.7.148c (scan enforcement)
 
-An audit found 383 bare BGC ID instances (`BGC028`, `BGC020` etc.) in the AS-XXX compiled report. 324 were in prose sections (violations); 28 were in the TOC (acceptable); 4 were cover summary table entries (acceptable). The node/region citation rule existed as a soft guideline but was not enforced in prose outside triage tables.
+An audit found 383 bare BGC ID instances (`BGC028`, `BGC020` etc.) in the STRAIN_ID compiled report. 324 were in prose sections (violations); 28 were in the TOC (acceptable); 4 were cover summary table entries (acceptable). The node/region citation rule existed as a soft guideline but was not enforced in prose outside triage tables.
 
 **Prevention:** Hard rule (§15 of execution slice): every BGC instance in prose carries its node citation. Required formats:
 - First mention in a section: `BGC007 (NODE_1_length_406707_cov_83 · region001)`
@@ -84,7 +83,7 @@ Before PDF rendering: run a pre-delivery scan for bare BGC ID patterns across th
 ### PDF-6: Hand-written TOC page numbers up to 53 pages wrong
 **Severity:** High · **Fix in:** v9.7.148d
 
-The AS-XXX compiled report (115 pages) had page numbers that drifted progressively as the document grew. The Outstanding Work section was listed as page 60; it actually started on page 113 (+53). Users following the TOC could not find major sections.
+The STRAIN_ID compiled report (115 pages) had page numbers that drifted progressively as the document grew. The Outstanding Work section was listed as page 60; it actually started on page 113 (+53). Users following the TOC could not find major sections.
 
 **Root cause:** TOC was hand-written with estimated page numbers before finalising content.
 
@@ -102,7 +101,7 @@ This inserts `\tableofcontents` at the LaTeX level, computed correctly after two
 ### PDF-7: Overclaims in layperson guide plain-English descriptions
 **Severity:** Medium · **Fix in:** v9.7.148c
 
-The AS-XXX layperson guide contained compound identity claims: "produces a structurally distinct analogue of totopotensamide," "the compound is secreted into the growth medium," "the compound is also heavily methylated." Plain English is inherently declarative; writers slip from capacity language to identity claims.
+The STRAIN_ID layperson guide contained compound identity claims: "produces a structurally distinct analogue of totopotensamide," "the compound is secreted into the growth medium," "the compound is also heavily methylated." Plain English is inherently declarative; writers slip from capacity language to identity claims.
 
 **Claim-safety line for layperson text:**
 - ✅ Class-level: "produces siderophore-type iron-grabbing molecules"
@@ -114,10 +113,10 @@ The AS-XXX layperson guide contained compound identity claims: "produces a struc
 
 ## Group 2: BGC Class Misidentification
 
-### MISID-1: BGC044 ranthipeptide → mycofactocin (redox cofactor, not antibiotic)
+### MISIDENT-1: BGC044 ranthipeptide → mycofactocin (redox cofactor, not antibiotic)
 **Severity:** High · **Discovered in:** v9.7.146
 
-BGC044 (AS-XXX, NODE_73) was assigned as ranthipeptide across multiple analysis sessions. Full §1–§20 Mode B cards and §21–§30 extensions were produced under this assumption. All were wrong. BGC044 produces mycofactocin — a redox cofactor RiPP used in electron transfer.
+A BGC (alias only; strain and contig omitted) was assigned as ranthipeptide across multiple analysis sessions. Full §1–§20 Mode B cards and §21–§30 extensions were produced under this assumption. The entry concluded the cluster is a mycofactocin-type RiPP locus (a redox-cofactor RiPP class). Historical wording stated production as fact; a TIGRFAM annotation shows biosynthetic capacity, not production.
 
 **Root cause:** Analysis was done from raw antiSMASH GBK files before running the Mamey TIGRFAM scan. TIGR03997 (MftE, HMHP hydrolase — a mycofactocin-specific enzyme) was annotated under a name that superficially resembled an RRE domain.
 
@@ -130,10 +129,10 @@ TIGR03969 (MftA precursor), TIGR03968 (MftB, RRE cognate to MftC), TIGR03967 (Mf
 
 ---
 
-### MISID-2: BGC022 Linocin_M18 bacteriocin → encapsulin nanocompartment
+### MISIDENT-2: BGC022 Linocin_M18 bacteriocin → encapsulin nanocompartment
 **Severity:** Medium · **Discovered by:** BLASTp validation
 
-BGC022 (AS-XXX) was initially assigned Linocin_M18 bacteriocin. BLASTp of the shell protein gene at 94.2% identity to *Pseudonocardia sulfidoxydans* encapsulin shell protein revealed it is an encapsulin nanocompartment with hemerythrin cargo.
+BGC022 (STRAIN_ID) was initially assigned Linocin_M18 bacteriocin. BLASTp of the shell protein gene at 94.2% identity to *Pseudonocardia sulfidoxydans* encapsulin shell protein revealed it is an encapsulin nanocompartment with hemerythrin cargo.
 
 **Root cause:** The Linocin_M18 Pfam domain is structurally homologous to encapsulin shell proteins — antiSMASH identifies the fold correctly but cannot distinguish biological context. Accepting the domain-level call as the class call without BLASTp confirmation was the error.
 
@@ -141,12 +140,12 @@ BGC022 (AS-XXX) was initially assigned Linocin_M18 bacteriocin. BLASTp of the sh
 
 ---
 
-### MISID-3: BGC036 terpene/carotenoid → SUF operon (primary metabolism)
+### MISIDENT-3: BGC036 terpene/carotenoid → SUF operon (primary metabolism)
 **Severity:** Medium · **Discovered in:** v9.7.146 Mamey run
 
 BGC036 was reported by antiSMASH as a terpene/carotenoid BGC. The Mamey TIGRFAM scan identified SUFBD (TIGR01980/01981), ABC transporter (TIGR01978), aminotransferase (TIGR01979), and NifU (TIGR01994) — the complete iron-sulphur cluster assembly pathway (sufBCDSU). Primary metabolism, not secondary metabolite.
 
-**Rule:** TIGRFAM-based primary metabolism designation is authoritative over antiSMASH product class calls when they conflict.
+**Rule (historical wording):** TIGRFAM-based primary metabolism designation was treated as authoritative over antiSMASH product class calls when they conflicted. Treat that as a review heuristic, not a verdict.
 
 ---
 
@@ -205,7 +204,7 @@ Affected files: TAG, docs/BUNDLE_CAPABILITIES.md, RELEASE_MANIFEST.md, docs/PLAY
 ### CITE-1: 79 bare BGC IDs in analysis report prose
 **Severity:** High · **Fix in:** v9.7.148b
 
-The AS-XXX full analysis report had 79 lines with bare BGC IDs in prose sections, §28/§30 evidence ledgers, exclusion lists, cross-reference sentences, and ecological synthesis. The node citation rule existed as a soft guideline but had no mechanical enforcement.
+The STRAIN_ID full analysis report had 79 lines with bare BGC IDs in prose sections, §28/§30 evidence ledgers, exclusion lists, cross-reference sentences, and ecological synthesis. The node citation rule existed as a soft guideline but had no mechanical enforcement.
 
 **Impact:** BGC IDs are Mamey-internal bookkeeping. A collaborator cannot locate `BGC007` in the assembly or antiSMASH HTML without the node and region. The node citation is the actual locus identifier.
 
@@ -227,7 +226,7 @@ The AS-XXX full analysis report had 79 lines with bare BGC IDs in prose sections
 ### BLASTP-2: Large protein (3,049 aa) may exceed NCBI web BLASTP limit
 **Severity:** Low · **Documented in:** v9.7.147
 
-ctg94_18 (BGC050, AS-XXX) at 3,049 aa may be rejected by NCBI web BLASTP (practical limit ~2,500 aa per individual protein).
+ctg94_18 (BGC050, STRAIN_ID) at 3,049 aa may be rejected by NCBI web BLASTP (practical limit ~2,500 aa per individual protein).
 
 **Mitigation:** Split at domain boundaries into ~1,000 aa parts and submit as batches 10a, 10b, 10c. Domain boundaries for a 3-module PKS are approximately at residues 1–1,000 (loading module), 1,001–2,000 (first extension), 2,001–end (second extension).
 
@@ -267,7 +266,7 @@ BGC006 card anchored to colibrimycin (KCB score 3734) as a class precedent. The 
 ### SCORE-2: antiSMASH Pfam calls trusted without per-gene BLASTp validation
 **Severity:** High · **Documented in:** ONLINE_BLASTP_PROTOCOL
 
-On BGC006 (AS-XXX), BLASTp overturned two of ten antiSMASH domain calls:
+On BGC006 (STRAIN_ID), BLASTp overturned two of ten antiSMASH domain calls:
 - `ctg12_71`: antiSMASH Beta-lactamase → BLASTp EstA serine hydrolase / esterase (78% id). The "self-resistance β-lactamase" read was wrong.
 - `ctg12_21`: antiSMASH Phenol_Hydrox → BLASTp ferritin-family protein (97% id).
 A third call (`ctg12_74`: antiSMASH Antibiotic_NAT) was sharpened from generic annotation to named AAC(3) aminoglycoside N-acetyltransferase (77% id) — not overturned but substantially improved.
@@ -288,7 +287,7 @@ When a strain's own genome is in the nr reference database, its own BGCs match t
 ### SCORE-4: Over-merge banner misassignment (P1, v9.7.240)
 **Severity:** High · **Fix in:** v9.7.240
 
-The `_over_merge_facts` function matched `predicted_polymers.csv` on the bare contig name, never comparing the region number. Every BGC sharing a contig with an over-merged region inherited the wrong banner — 13 wrong banners generated instead of 7 correct ones on the AS-XXX analysis.
+The `_over_merge_facts` function matched `predicted_polymers.csv` on the bare contig name, never comparing the region number. Every BGC sharing a contig with an over-merged region inherited the wrong banner — 13 wrong banners generated instead of 7 correct ones on the STRAIN_ID analysis.
 
 **Rule:** Over-merge banners must cite specific node·region identifiers, not just node names. A banner on BGC008 that carries the same merge signature as BGC009 and BGC010 (which share a contig) is the P1 pattern.
 
@@ -297,14 +296,14 @@ The `_over_merge_facts` function matched `predicted_polymers.csv` on the bare co
 ### SCORE-5: `authored_verify` aliased wrong field for protocluster count (P2, v9.7.240)
 **Severity:** Medium · **Fix in:** v9.7.240
 
-`authored_verify` aliased `single_protocluster_count` onto `protocluster_count`. These fields are different for hybrid BGCs where a single region contains multiple protoclusters (BGC041 in AS-XXX was the specific case — the alias caused the wrong count to be reported). Fixed by reading the correct field directly.
+`authored_verify` aliased `single_protocluster_count` onto `protocluster_count`. These fields are different for hybrid BGCs where a single region contains multiple protoclusters (BGC041 in STRAIN_ID was the specific case — the alias caused the wrong count to be reported). Fixed by reading the correct field directly.
 
 ---
 
 ### SCORE-6: UMED registry patterns unanchored → 14 false LanT_C39 hits
 **Severity:** Medium · **Fix in:** v9.7.240 (P3)
 
-UMED patterns for the LanT_C39 transporter-peptidase family were unanchored (no word boundary enforcement). The pattern matched substrings inside unrelated gene names, producing 14 false hits out of 15 total across the AS-XXX BGC set. Only 1 real LanT_C39 hit after P3 anchoring.
+UMED patterns for the LanT_C39 transporter-peptidase family were unanchored (no word boundary enforcement). The pattern matched substrings inside unrelated gene names, producing 14 false hits out of 15 total across the STRAIN_ID BGC set. Only 1 real LanT_C39 hit after P3 anchoring.
 
 **Rule:** UMED patterns (and all source scan patterns) must use word-boundary or negative-lookbehind anchoring. Test against real genomes, not just synthetic fixtures, before deploying a new pattern.
 
@@ -342,9 +341,9 @@ The `isolate-giants` function was splitting correctly-identified BGC merger grou
 ### PERSIST-1: P7a overlay write truncation (43% gene loss)
 **Severity:** High · **Fix in:** v9.7.241
 
-`write_nr_overlay()` opened the output CSV in `"w"` mode. Each BLASTp ingest round erased the previous round's data for any BGC it touched. On AS-XXX: 877 genes submitted, 504 retained (43% loss). BGC042 worst case: 44 → 7 genes retained. All per-BGC identity scores for affected BGCs were based on the 44% of data that survived the last round.
+`write_nr_overlay()` opened the output CSV in `"w"` mode. Each BLASTp ingest round erased the previous round's data for any BGC it touched. On STRAIN_ID: 877 genes submitted, 504 retained (43% loss). BGC042 worst case: 44 → 7 genes retained. All per-BGC identity scores for affected BGCs were based on the 44% of data that survived the last round.
 
-**Fix:** Opens in merge mode keyed on `locus_tag`; higher bitscore wins collision. Post-patch: 877/877 for AS-XXX.
+**Fix:** Opens in merge mode keyed on `locus_tag`; higher bitscore wins collision. Post-patch: 877/877 for STRAIN_ID.
 
 **Diagnosis:** compare gene count in the overlay file against the count of proteins submitted to BLASTp for that BGC. If below 100%, suspect write-mode bug.
 
@@ -396,13 +395,13 @@ These historical prevention rules are derived from the issues above. Before appl
 
 ---
 
-*Source: `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`, arc v9.7.102–v9.7.241. Compiled 2026-07-09 · bundle v9.7.241.*
+*Source: `docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md` (now `docs/history/retired_458/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md`), arc v9.7.102–v9.7.241. Compiled 2026-07-09 · bundle v9.7.241.*
 
 ---
 
 ## Group 11: Known Calibration Reference Cases
 
-*These entries use the CALIBRATION_CORPUS (known-compound BGCs) to document where the scoring model behaves correctly vs. where it requires human judgment. Source: `docs/CALIBRATION_CORPUS_KNOWN_BGCS.md` and live teicoplanin run 2026-07-09.*
+*These entries use the CALIBRATION_CORPUS (known-compound BGCs) to document where the scoring model behaves correctly vs. where it requires human judgment. Source: `docs/CALIBRATION_CORPUS_KNOWN_BGCS.md` (now `docs/history/retired_458/CALIBRATION_CORPUS_KNOWN_BGCS.md`) and live teicoplanin run 2026-07-09.*
 
 ### CAL-1: Teicoplanin — correct class call, correct self-resistance, correct architecture
 
@@ -523,7 +522,7 @@ Both findings are false positives: "are claim-safe" is a procedural statement ab
 > *"per-gene BLASTp overturned two of ten on BGC006 (β-lactamase→esterase, phenol-hydroxylase→ferritin)"*
 > *"the offline, deterministic channel that settled BGC006 ctg12_71"*
 
-Those numbers are genuine. They live in `Wheelhouse/validations/BGC006_online_blastp.csv`, whose organism is ***Amycolatopsis* sp. NPDC004378**. Templated into §4, they were emitted verbatim into **every card of every strain** — asserting a specific per-gene BLASTp outcome for strains on which **no BLASTp had ever been run**, and citing `ctg12_71`, a locus that exists on neither AS-XXX's BGC006 (NODE_1) nor AS-XXX's (NODE_16).
+Those numbers are genuine. They live in `Wheelhouse/validations/BGC006_online_blastp.csv`, whose organism is ***Amycolatopsis* sp. NPDC004378**. Templated into §4, they were emitted verbatim into **every card of every strain** — asserting a specific per-gene BLASTp outcome for strains on which **no BLASTp had ever been run**, and citing `ctg12_71`, a locus that exists on neither STRAIN_ID's BGC006 (NODE_1) nor STRAIN_ID's (NODE_16).
 
 §8 carried a lesser instance: *"the BGC006/colibrimycin fix: score 3734"* — another strain's BGC id and another run's KCB score.
 
@@ -552,11 +551,11 @@ def _phantom_locus_findings(card_md, bgc_context=None):
 
 `authored_verify` loads `known_loci` from the sealed `<strain>_cds_table.csv` (globbing `*_cds_table.csv` and `cds_table.csv`). `PHANTOM_LOCUS` is added to `_READINESS_BLOCKING`, alongside `NOVELTY_CONTRADICTION`, `INTERNAL_CONTRADICTION`, and `FACT_MISMATCH`. A card citing a gene from another organism **cannot reach `RELEASE_READY`** and therefore cannot be presented.
 
-**Verified against the real AS-XXX package:** 758 loci loaded; `ctg12_71` not among them; the exact leaked sentence raises ERROR and drops `readiness_state` below `RELEASE_READY`. A card citing that strain's real loci passes clean.
+**Verified against the real STRAIN_ID package:** 758 loci loaded; `ctg12_71` not among them; the exact leaked sentence raises ERROR and drops `readiness_state` below `RELEASE_READY`. A card citing that strain's real loci passes clean.
 
 **Two sibling lints extended this class in v9.7.256** (same file, same entry points), for fabrications `PHANTOM_LOCUS` cannot see because the gene *does* exist:
 
-- **`LOCUS_BGC_MISMATCH`** — a real locus cited under the wrong BGC (the AS-XXX BGC006/BGC010 leak class: templated boilerplate carries a real gene into another BGC's card). `authored_verify` builds per-BGC membership so a gene cited under a BGC it does not belong to raises ERROR.
+- **`LOCUS_BGC_MISMATCH`** — a real locus cited under the wrong BGC (the STRAIN_ID BGC006/BGC010 leak class: templated boilerplate carries a real gene into another BGC's card). `authored_verify` builds per-BGC membership so a gene cited under a BGC it does not belong to raises ERROR.
 - **`PANEL_ABSENT_CLAIM`** — a per-gene BLASTp *result* asserted for a BGC that has **no BLASTp panel** in the package. It keys on whether a BGC has a panel *selection*, not on returned alignments — so a fabricated result on an in-panel-but-never-run BGC still passes (reproduced on `S_erythraea` BGC017); the residual gap is "asserted result vs actual alignments," to be closed by extending this lint to require a results artifact, not by a new gate.
 
 Both are ERROR-severity, so they drop the card to `DRAFT` via the any-ERROR path; neither is a member of the four-code `_READINESS_BLOCKING` set.
@@ -617,7 +616,7 @@ That is region001's span, region001's products, and the **whole contig's** CDS c
 
 **Verified on the real record, all three regions:** `region001 → 233558-275304 / NRPS-like / 40 CDS` · `region002 → 332841-394488 / NRPS / 48` · `region003 → 438609-463791 / lanthipeptide-class-i / 22`. The 22 is an independent cross-check: the BGC018 BLASTp panel run in v9.7.239 had exactly 22 queries.
 
-**Why no test caught it:** the reference fixture (BGC028/AS-XXX) sits on a contig with exactly **one** region, where `areas[0]` is always right. **A single-region fixture cannot exercise region selection.** This is the fixture-shape lesson: a test fixture that cannot distinguish the correct behaviour from the bug is not a test of that behaviour.
+**Why no test caught it:** the reference fixture (BGC028/STRAIN_ID) sits on a contig with exactly **one** region, where `areas[0]` is always right. **A single-region fixture cannot exercise region selection.** This is the fixture-shape lesson: a test fixture that cannot distinguish the correct behaviour from the bug is not a test of that behaviour.
 
 ### REG-2: `region_label(-1)` returned `region001`
 

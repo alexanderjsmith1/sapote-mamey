@@ -4,10 +4,8 @@
 
 ## Current scope: historical examples are not evidence
 
-This June 2026 companion retains its original body for history. Read the scoped canonical
-[interpretive floor](../MODEB_INTERPRETIVE_FLOOR_v97146.md), [profile matrix](../MODEB_PROFILE_MATRIX.md)
-and [contract/gate scope](../MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md) before authoring.
-The companion's “no MIBiG hit implies novel class” rule conflicts with its corrected canonical source:
+This June 2026 companion retains its original body for history. Before authoring, read the [Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md), the current [writing checklist](../batches/batch16_modeb_interpretive_floor.md), the [profile matrix](../MODEB_PROFILE_MATRIX.md) and the [contract/gate scope](../MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md). The older [interpretive floor](../MODEB_INTERPRETIVE_FLOOR_v97146.md) is itself a historical record, not a canonical source.
+The companion's “no MIBiG hit implies novel class” rule conflicts with its corrected record:
 report a scoped search-negative, not novelty. Enzyme counts/domain labels do not determine a product or
 modification; absent broad markers do not uniquely reject an alternative mechanism. Historical example scores, identities, architecture grades, prevalence fractions and citations require their original evidence records before reuse.
 
@@ -29,6 +27,8 @@ simply to complete a checklist. Lexical/structural gate compliance is distinct f
 Mode B cards are often structurally complete but interpretively thin. The same pattern recurs: §4 gene tables are detailed, but the findings don't flow forward into §5, §9, §11, §12, or §19. Each of those sections has a minimum floor defined here. Meeting the floor is not the goal — it is the baseline below which a card is incomplete.
 
 **Authority:** `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md` is the canonical source. This document is a readable companion to that spec, not a replacement. If they conflict, the spec wins.
+
+Historical: that authority statement no longer holds. `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md` is now a historical record too. See the scope note at the top of this page.
 
 ---
 

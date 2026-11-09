@@ -72,8 +72,8 @@ Then wire into CLI/report rendering in a second implementation patch if needed.
 
 Run one before/after strain:
 
-- AS-XXX, because timing evidence already exists; or
-- AS-XXX, because poor assembly creates many repeated caveats and is a good stress case.
+- a strain with existing timing evidence; or
+- a strain with a poor assembly, because it creates many repeated caveats and is a good stress case.
 
 Metrics:
 

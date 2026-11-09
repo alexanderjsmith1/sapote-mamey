@@ -116,7 +116,7 @@ def _fasta_records(path):
 
 def classify_input(path: str, rrna_max_len=5_000, genome_min_contig=10_000,
                    genome_min_total=500_000) -> str:
-    """Return 'protein', 'rrna', or 'genome'.
+    """Return 'protein', 'rrna', 'genome', 'empty' (no records) or 'empty_record' (a header with no sequence).
 
     Classification is by per-record LENGTH, not record count: a user may legitimately upload one
     multi-FASTA holding many 16S sequences (one per strain), which must NOT be mistaken for a genome.
@@ -126,6 +126,8 @@ def classify_input(path: str, rrna_max_len=5_000, genome_min_contig=10_000,
     recs = list(_fasta_records(path))
     if not recs:
         return "empty"
+    if any(not s for _, s in recs):
+        return "empty_record"   # a zero-length record is held, never sorted by the length rule
     total = sum(len(s) for _, s in recs)
     max_len = max(len(s) for _, s in recs)
     letters = set("".join(s.upper() for _, s in recs[:5]))
@@ -318,16 +320,29 @@ def workspace_root_guess(marker="OFFICIAL_DATA/STRAIN_METADATA.tsv"):
 
 # CLI. `plan` and `route` are dry (no ML); `run-16s` shells phylo_place per group (gated downstream).
 # --------------------------------------------------------------------------------------------------
-def _iter_inputs(indir):
+FASTA_SUFFIXES = (".fa", ".fasta", ".fna", ".faa", ".fas")
+
+
+def _iter_inputs(indir, skipped=None):
     for root, _d, files in os.walk(indir):
         for f in files:
-            if f.lower().endswith((".fa", ".fasta", ".fna", ".faa", ".fas")):
+            if f.lower().endswith(FASTA_SUFFIXES):
                 yield os.path.join(root, f)
+            elif skipped is not None:
+                skipped.append(os.path.join(root, f))
 
 
 def cmd_plan(a):
-    plan = plan_from_inputs(list(_iter_inputs(a.indir)))
-    print(json.dumps({k: v for k, v in plan.items() if v}, indent=2))
+    if not os.path.isdir(a.indir):
+        sys.stderr.write(f"[autopilot] plan: {a.indir} is not a readable folder\n")
+        return 2
+    skipped = []
+    plan = plan_from_inputs(list(_iter_inputs(a.indir, skipped)))
+    out = {k: v for k, v in plan.items() if v}
+    if skipped:
+        out["not_classified_suffix"] = sorted(skipped)
+    print(json.dumps(out, indent=2))
+    return 0
 
 
 def cmd_route(a):
@@ -381,7 +396,9 @@ def cmd_run_16s(a):
     refs = genera_for_reference(assigned)
     genera = refs.get(a.group, [])
     if not genera:
-        print(f"[autopilot] no queries routed to group '{a.group}'. Available: {sorted(refs)}")
+        print(f"[autopilot] no queries routed to group '{a.group}'. Available: {sorted(refs)}. "
+              f"Read {os.path.join(a.outdir, 'routing_table.tsv')} for each query's genus and routing_state.",
+              file=sys.stderr)
         return 2
     # subset the query fasta to the members of this group
     members = {q for q, i in assigned.items()

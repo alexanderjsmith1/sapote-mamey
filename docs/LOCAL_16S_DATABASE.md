@@ -16,11 +16,21 @@ Every tool below except the store builder resolves the database through one func
 3. the `ncbi_16s_blastdb` row of the workspace asset registry, `OFFICIAL_DATA/ASSET_REGISTRY.tsv`. Its `path` column is the prefix, or a folder holding `16S_ribosomal_RNA.*`;
 4. `<workspace>/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA`, then `<workspace>/blast_dbs/16S_ribosomal_RNA`; the first that has database volumes is used.
 
-`tools/phylo_16s_build_db.py` is the exception. It reads RefSeq records only from an explicit `--refseq-blastdb`; the environment and registry settings do not reach it.
+Items 3 and 4 apply only inside the project workspace. With only the bundle, set `SAPOTE_16S_DB` or pass `--db`.
+
+`tools/phylo_16s_build_db.py` is the exception. It reads RefSeq records only from an explicit `--refseq-blastdb`; the environment and registry settings do not reach it. Pass it the same path you exported in `SAPOTE_16S_DB`.
 
 Keep one copy and point everything at it. Two copies of different dates would give different answers from different tools. BLAST+ cannot read a database path that contains spaces, so keep it in a path without spaces.
 
-The BLAST programs are found through `$BLAST_BIN` (a folder), then `PATH`.
+The BLAST programs are found separately from the database, and not every tool looks in the same place:
+
+- `phylo_16s_panel.py`, `phylo_16s_from_genome.py` and `phylo_16s_build_db.py` use `$BLAST_BIN` (a folder), then `PATH`, then `<workspace>/miniconda3/envs/blast/bin`. A `$BLAST_BIN` that lacks the program is an error, not a fallback.
+- `outgroup_registry.py` looks for `blastdbcmd` in `$BLAST_BIN`, or in `<workspace>/miniconda3/envs/blast/bin` when `$BLAST_BIN` is unset, then on `PATH`.
+- `phylo_autopilot.py` (`route` and `run-16s`) runs `blastn` and `blastdbcmd` by name, so they must be on `PATH`. `$BLAST_BIN` alone does not reach it.
+- `sixteen_s_similarity_check.py` uses `--blast-bin` when you give it. Without it, it tries `PATH` first, then the `$BLAST_BIN` lookup above.
+- `comparator_select.py` uses `--blastn`, then `$SAPOTE_BLASTN`, then `PATH`. It does not read `$BLAST_BIN`.
+
+The safest setup is to put the BLAST+ folder on `PATH` and also export `BLAST_BIN` to that folder, so every tool finds the same copy.
 
 ## Full build (all type strains)
 
@@ -64,7 +74,7 @@ For several genera, join them in one query: `33175[BioProject] AND (Nocardia[Org
 
 **What a partial database cannot do.** It answers "the nearest type strain *among the genera you chose*" only. A query whose true nearest type strain belongs to another genus finds a worse match, or none, and a genus-routing step cannot see the missing genera. Name the genera in every output and caption made from a partial database. Use the full database for routing, nearest-type checks and novelty statements.
 
-**A subset from a full copy you already have.** List the accessions you want in a file, then run `blastdbcmd -db <full> -entry_batch accessions.txt > subset.fasta` and `makeblastdb` as above. For a placement run, `tools/harvest_16s.py --genus <Genus> --strains <ids> --out-dir <dir>` writes that genus's reference FASTA from the full database beside your query FASTA. It needs your strains and their 16S FASTA (`--authoritative`).
+**A subset from a full copy you already have.** List the accessions you want in a file, then run `blastdbcmd -db <full> -entry_batch accessions.txt > subset.fasta` and `makeblastdb` as above. For a placement run, `tools/harvest_16s.py --genus <Genus> --strains <isolate IDs, comma-separated> --out-dir <dir>` (or `--strain-table`) writes that genus's reference FASTA from the full database beside your query FASTA. It needs your strains and their 16S FASTA (`--authoritative`).
 
 ## The 16S SQLite store
 

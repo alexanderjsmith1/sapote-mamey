@@ -17,11 +17,9 @@ REVIEW_REQUIRED flags. A detected tool still needs the selected workflow's
 inputs and databases. Record its binary path and environment so later runs use
 the same installation.
 
-The registry uses the invoking Python for import probes. Native probes try their
-declared executable names; a selected failing executable is not replaced silently.
-GToTree tries `GToTree`, then `gtotree`. The registry IQ-TREE probe names only
-`iqtree3`, while ordinary doctor also accepts `iqtree2` or `iqtree`; this can
-explain different reports. Web/manual entries are NOT_PROBED.
+Plain `doctor` and `doctor --companions` can report IQ-TREE differently, because
+they look for different executable names. If they disagree, check which IQ-TREE
+binary is on your `PATH`. Web and manual entries are not probed.
 
 Use separate external-tool environments. The companion protocol,
 `docs/LLM_COMPANION_TOOL_PROTOCOL.md` ([open it](LLM_COMPANION_TOOL_PROTOCOL.md)),
@@ -86,7 +84,9 @@ input generator and runs separately from Mamey.
 The [CORASON adapter](CORASON_WORKFLOW.md) has a plan/run/read route, but its
 external runtime remains unassessed and manual in the registry. It preserves
 pre-filter neighborhoods and distinguishes multilocus inference from query-only
-or BLAST-order fallbacks. Derived outputs remain PRIVATE. Follow that workflow
+or BLAST-order fallbacks. Everything it writes is marked PRIVATE: not cleared
+for sharing, even when the inputs are public, until a separate review clears it
+(see [privacy tiers](CUSTOM_PRIVACY_TIERS.md)). Follow that workflow
 before running it; the antiSMASH-only figure route is separate.
 
 Executable detection is defined in `mamey/data/companion_tools.json`. Changes to

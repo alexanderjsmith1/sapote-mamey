@@ -34,7 +34,8 @@ _LX_MOBILE = ("mobile_element_flag", "mobile_element", "Mobile_element_flag")
 
 
 def _lx_truthy(v) -> bool:
-    return bool(v) and str(v).strip().upper() not in ("", "NONE", "FALSE", "0")
+    # "NO" / "N" mean not flagged; reading them as a flag withheld unflagged BGCs from leads.
+    return bool(v) and str(v).strip().upper() not in ("", "NONE", "FALSE", "0", "NO", "N")
 
 
 def is_lead_excluded(row) -> bool:
@@ -642,7 +643,13 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         esignal_note = ""
         if isinstance(mis, dict):
             if mis.get("enediyne_misanchor"):
-                novelty -= NOVELTY_KEYWORDS.get("enediyne", 0)   # strip the spurious enediyne novelty
+                # Strip only the enediyne credit the keyword score actually banked. The mis-anchor
+                # flag comes from the KCB anchor; when the products never named enediyne there is
+                # no credit to remove, and subtracting 18 would push novelty below baseline.
+                _nov_texts = [pp.lower() for pp in _pc_prods] if _deinflate else [class_txt]
+                _no_ene = {k: v for k, v in NOVELTY_KEYWORDS.items() if k != "enediyne"}
+                novelty -= (max(score_keywords(x, NOVELTY_KEYWORDS) for x in _nov_texts)
+                            - max(score_keywords(x, _no_ene) for x in _nov_texts))
                 _ev = mis.get("enediyne_verdict", "")
                 misanchor_parts.append("enediyne_anchor_no_ene_KS(similarity_only)" if _ev == "ENEDIYNE_MISANCHOR"
                                        else "enediyne_anchor_is_PREV-001_hglE_artifact")
@@ -657,7 +664,11 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         # An explicit UNKNOWN_KCB state wins over a contradictory stale score:
         # absence is not comparator evidence in either novelty direction.
         _kcb_observed = getattr(bgc, "kcb_evidence_state", "UNKNOWN_KCB") != "UNKNOWN_KCB"
-        if _kcb_observed and bgc.kcb_cumulative is not None and bgc.kcb_cumulative > 10000:
+        # The penalty reads antiSMASH's percent similarity. The cumulative BLAST score is not a
+        # percent and grows with cluster size; a missing percent moves nothing.
+        from .precision import KCB_PCT_HIGH
+        _kcb_pct = getattr(bgc, "kcb_similarity_pct", None)
+        if _kcb_observed and _kcb_pct is not None and _kcb_pct >= KCB_PCT_HIGH:
             novelty -= 15
         # v9.7.402 (audit W402-23): missing KCB evidence used to add +5 novelty here — the same
         # direction as an OBSERVED low-similarity comparator (the riq_score branch below). UNKNOWN

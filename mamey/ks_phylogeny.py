@@ -26,7 +26,7 @@ TWO GATES (baked in, per the review lane / an audit lane 2026-08-10 — the haza
     is COMPLETE at a low KS count, so a low count is NOT evidence of a missing module or a
     fragmented pathway. This module never emits a "missing/fragmented" claim from a count.
   * STRAIN-INTERNAL ONLY: one strain per extraction (asserted from the region-GBK filenames). A
-    cross-strain KS tree would fuse e.g. AS-XXX Micromonospora KS with AS-XXX KS (a contamination
+    cross-strain KS tree would fuse e.g. one strain's Micromonospora KS with another strain's KS (a contamination
     chimera) into a fictitious pathway.
 
 FALSE-RESCUE GUARD (shared with rggmci.py:289): conserved catalytic domains that converge by

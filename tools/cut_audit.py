@@ -20,7 +20,9 @@ Two hard lessons this encodes:
     copy location. Only failures PRESENT IN PATCHED BUT NOT IN BASE are attributable to the
     card. rebase-verify runs both trees the same way and reports the set difference.
 
-Exit code: 0 = clean (verify passed / card introduced no NEW failures); 1 = problem.
+Exit code: 0 = clean (verify passed / card introduced no NEW failures); 1 = problem;
+2 = inconclusive (a tree copy failed or is incomplete, the card holds no patch, or a suite
+did not complete).
 Non-scoring, read-only w.r.t. the sealed tree (all work happens in a temp copy).
 """
 from __future__ import annotations
@@ -59,6 +61,36 @@ def _summary_line(out: str) -> str:
         if "passed" in line or "failed" in line or "error" in line:
             return line.strip()
     return "(no pytest summary line found)"
+
+
+def _tree_roster(root: str) -> dict[str, tuple]:
+    """Relative path -> (kind, size) for every file and link under root, links not followed."""
+    roster = {}
+    for top, dirs, files in os.walk(root):
+        for name in dirs + files:
+            full = os.path.join(top, name)
+            st = os.lstat(full)
+            kind = "link" if os.path.islink(full) else "dir" if os.path.isdir(full) else "file"
+            roster[os.path.relpath(full, root)] = (kind, st.st_size if kind == "file" else None)
+    return roster
+
+
+def _copy_tree(source: str, dest: str) -> str | None:
+    """Whole-tree rsync copy. Returns None when the copy exit code is 0 and the copy holds the same
+    paths, kinds and file sizes as the source; otherwise the reason it is not a complete copy."""
+    rc, out = _run(["rsync", "-a", source + "/", dest + "/"])
+    if rc != 0:
+        return f"rsync {source} -> {dest} exited {rc}: {out.strip()[-300:]}"
+    want, got = _tree_roster(source), _tree_roster(dest)
+    if want != got:
+        differ = sorted(set(want) ^ set(got) | {k for k in set(want) & set(got) if want[k] != got[k]})
+        return f"copy {dest} differs from {source} at {len(differ)} path(s), first: {differ[:3]}"
+    return None
+
+
+def _inconclusive(reason: str) -> int:
+    sys.stdout.write(f"\nREBASE-VERIFY: INCONCLUSIVE ({reason})\n")
+    return 2
 
 
 def verify(args) -> int:
@@ -147,12 +179,19 @@ def rebase_verify(args) -> int:
     patch_tree = os.path.join(work, "patched")
     try:
         # WHOLE-TREE copies (do NOT exclude Wheelhouse — tree-wide guards need it)
-        sys.stdout.write((f"[copy] rsync full base -> {base_tree}") + "\n")
-        _run(["rsync", "-a", base + "/", base_tree + "/"])
-        _run(["rsync", "-a", base_tree + "/", patch_tree + "/"])
+        # Both copies are checked: rsync must exit 0 and the copy must hold the same roster
+        # (paths, kinds, file sizes) as its source, or the delta below would mean nothing.
+        sys.stdout.write((f"[copy] rsync full base -> {base_tree}, then -> {patch_tree}") + "\n")
+        for source, dest in ((base, base_tree), (base_tree, patch_tree)):
+            problem = _copy_tree(source, dest)
+            if problem:
+                return _inconclusive(f"incomplete copy: {problem}")
 
-        # apply every *.diff / *.patch in the card dir to the patched tree
+        # apply every *.diff / *.patch in the card dir to the patched tree; a card with none
+        # has nothing to verify, so an empty roster is not a pass
         diffs = sorted(f for f in os.listdir(card) if f.endswith((".diff", ".patch")))
+        if not diffs:
+            return _inconclusive(f"no *.diff or *.patch file in {card}; nothing was applied")
         for d in diffs:
             rc, out = _run(["patch", "-p1", "-i", os.path.join(card, d)], cwd=patch_tree)
             sys.stdout.write((f"[apply] {d}: {'OK' if rc == 0 else 'FAILED'}") + "\n")
@@ -200,8 +239,7 @@ def rebase_verify(args) -> int:
             for rc, out in ((base_rc, base_out), (patch_rc, patch_out))
         )
         if not valid_runs:
-            sys.stdout.write("\nREBASE-VERIFY: INCONCLUSIVE (pytest did not complete valid test runs)\n")
-            return 2
+            return _inconclusive("pytest did not complete valid test runs")
 
         base_f = _pytest_failures(base_out)
         patch_f = _pytest_failures(patch_out)

@@ -51,9 +51,9 @@ result.
 
 State the data type first. A GToTree/IQ-TREE result uses genome marker genes. An EPA-ng result places
 a partial or full 16S sequence onto a fixed reference backbone. A strain without a genome may still
-appear in the 16S view and bioassay overlay. Preserve the raw isolation source and location beside
-any simplified display category, and describe proximity as a neighborhood rather than a tested
-ecological association.
+appear in the 16S view and bioassay overlay. Report the isolation source and location as deposited,
+in the depositor's words. Do not group or reword them. Describe proximity as a neighborhood rather
+than a tested ecological association.
 
 ## Chemical structures
 
@@ -70,6 +70,7 @@ the figure sidecar or reference table.
 
 ## Sources and reproducibility
 
-Link the sealed package, tree/placement receipt, bioassay Figure Factory receipt, exact selected
+Link the sealed package, tree/placement receipt, the bioassay figure's receipt from
+`figure-factory` (see [Figure Factory](../docs/FIGURE_FACTORY_NEXT.md)), exact selected
 tree track, structure record, and reviewed citations. The visible guide should stay readable; the
 full hashes, mappings, and decisions travel in those sidecars.

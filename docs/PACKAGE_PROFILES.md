@@ -1,12 +1,12 @@
 # Sapote-Mamey Package Profiles
 
-Different ZIP files serve different purposes. File size alone is not a quality signal.
+Different ZIP files serve different purposes. File size alone is not a quality signal. No ChatGPT
+standalone or Lite bundle is built: `tools/make_public_tier.sh` refuses every tier except CODE unless
+`SAPOTE_ENABLE_DISABLED_TIERS=1` is set.
 
 | Package profile | Purpose | Typical contents | antiSMASH / strain outputs? | GitHub suitable? |
 |---|---|---|---|---|
 | Source repo | Public codebase | Python package, docs, tests, templates, prompts | No | Yes |
-| ChatGPT standalone bundle | Execution handoff requiring a compatible runtime/dependencies | Source repo plus launch docs and lightweight examples | Usually no | Release asset only |
-| Lite bundle | Minimal runnable package | Core code/docs with fewer extras | No | Maybe release asset |
 | Strain output package | One analyzed strain | Manifest and recorded CSV/JSON outputs; workbook/figures/reports according to completed phases and selected options | Derived outputs yes | No, unless demo/synthetic |
 | Full archival package | Complete private reproducibility package | Source outputs plus generated reports and possibly large antiSMASH-derived files | Yes | No |
 

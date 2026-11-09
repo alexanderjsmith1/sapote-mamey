@@ -170,4 +170,7 @@ def caption(workflow, versions=None, params=None, result=None, extra=None):
 if __name__ == "__main__":
     import sys, json
     wf = sys.argv[1] if len(sys.argv) > 1 else "phylo_placement"
-    emit(caption(wf, versions=detect_versions()))
+    known = wf in WORKFLOWS
+    emit(caption(wf, versions=detect_versions()) if known else
+         f"Usage: python tools/figure_methods.py [WORKFLOW]  (default phylo_placement)\nWorkflows: {', '.join(sorted(WORKFLOWS))}")
+    sys.exit(0 if known or wf in ("-h", "--help") else 2)

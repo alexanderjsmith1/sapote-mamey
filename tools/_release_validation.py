@@ -12,6 +12,7 @@ import json
 import math
 import os
 from pathlib import Path
+import selectors
 import shutil
 import signal
 import subprocess
@@ -263,6 +264,166 @@ def process_tree_rss(pid: int) -> int:
     return sum(row[2] for row in _OwnedProcessTree(pid).refresh().values())
 
 
+NICE_INCREMENT = 15
+
+
+def _priority_not_applied(record: dict, message: str, strict: bool) -> dict:
+    """Ruling 16: record and warn by default; refuse only under an explicit strict-priority request."""
+    record["status"] = "NOT_APPLIED"
+    record["message"] = message
+    if strict:
+        raise ValidationRefused("RESOURCE_POLICY_HOLD: " + message)
+    # A direct stderr write: a warning, not a counted print/emit site.
+    sys.stderr.write("WARNING: priority policy not applied: " + message + "\n")
+    sys.stderr.flush()
+    return record
+
+
+PRIORITY_PROBE_TIMEOUT = 10.0
+_PROBE_CAPTURE_BYTES = 65536  # per stream; anything beyond is read and discarded
+
+
+def _wait_bounded(pid: int, deadline: float) -> int | None:
+    """Reap ``pid`` by ``deadline``; return its wait status, or None if it is still running."""
+    while True:
+        done, status = os.waitpid(pid, os.WNOHANG)
+        if done:
+            return status
+        if time.monotonic() >= deadline:
+            return None
+        time.sleep(0.01)
+
+
+def _kill_probe(pid: int, notes: list[str]) -> int:
+    """SIGKILL the probe's own session and reap it. A probe that already exited is noted."""
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError as exc:
+        notes.append(f"probe group already gone: {exc}")
+    _, status = os.waitpid(pid, 0)
+    return status
+
+
+def verify_nice(nice: str | None, *, strict: bool = False,
+                timeout: float = PRIORITY_PROBE_TIMEOUT) -> dict:
+    """Check that `nice -n 15` really lowers a child's priority here, before relying on it.
+
+    `nice` prints a warning and still runs the command when it cannot change priority (seen in
+    a sandbox), so the argv alone does not show the policy took effect. A tiny probe child reports
+    its own niceness. The result is returned as the receipt's `priority` record either way, with
+    `status` APPLIED or NOT_APPLIED. NOT_APPLIED warns on stderr by default and is a
+    RESOURCE_POLICY_HOLD refusal only when `strict` is true (ruling 16; the `strict_priority`
+    keyword of `run_watched`). A probe that cannot start, exits nonzero, or does not finish within
+    `timeout` seconds is NOT_APPLIED: it is killed and reaped, never waited on without a bound.
+    Both probe pipes are drained together, so a probe that floods stderr cannot deadlock."""
+    if not nice:
+        record = {"requested_increment": NICE_INCREMENT, "expected_niceness": None,
+                  "probe_niceness": None, "probe_stderr": "", "probe_pipe_close_errors": [],
+                  "probe_timed_out": False}
+        return _priority_not_applied(record, "no `nice` executable; the nice -n 15 policy cannot be applied",
+                                     strict)
+    expected = min(19, os.getpriority(os.PRIO_PROCESS, 0) + NICE_INCREMENT)  # lowest priority that counts
+    probe = [nice, "-n", str(NICE_INCREMENT), sys.executable, "-I", "-c",
+             "import os; print(os.getpriority(os.PRIO_PROCESS, 0))"]
+    # posix_spawn, not subprocess: the probe must not depend on (or disturb) a caller's
+    # subprocess.Popen, and it is a few milliseconds of work with no input.
+    out_r, out_w = os.pipe(); err_r, err_w = os.pipe()
+    close_errors: list[str] = []
+    notes: list[str] = []
+    chunks: dict[int, list[bytes]] = {out_r: [], err_r: []}
+    kept = {out_r: 0, err_r: 0}
+    spawn_error: OSError | None = None
+    timed_out = False
+    status: int | None = None
+    try:
+        try:
+            pid = os.posix_spawn(nice, probe, dict(os.environ), setsid=True, file_actions=[
+                (os.POSIX_SPAWN_DUP2, out_w, 1), (os.POSIX_SPAWN_DUP2, err_w, 2),
+                (os.POSIX_SPAWN_CLOSE, out_r), (os.POSIX_SPAWN_CLOSE, err_r)])
+        except OSError as exc:
+            spawn_error = exc
+            pid = None
+        if pid is not None:
+            os.close(out_w); out_w = -1; os.close(err_w); err_w = -1
+            deadline = time.monotonic() + timeout
+            with selectors.DefaultSelector() as selector:
+                for fd in (out_r, err_r):
+                    selector.register(fd, selectors.EVENT_READ)
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    for key, _events in selector.select(remaining):
+                        block = os.read(key.fd, 65536)
+                        if not block:
+                            selector.unregister(key.fd)
+                        elif kept[key.fd] < _PROBE_CAPTURE_BYTES:
+                            chunks[key.fd].append(block)
+                            kept[key.fd] += len(block)
+            if not timed_out:
+                status = _wait_bounded(pid, deadline)
+                timed_out = status is None
+            if timed_out:
+                status = _kill_probe(pid, notes)
+    finally:
+        for fd in (out_r, out_w, err_r, err_w):
+            if fd >= 0:
+                try:
+                    os.close(fd)
+                except OSError as exc:
+                    # A failed close of a probe pipe does not change the measured niceness, but it
+                    # is recorded in the receipt rather than dropped.
+                    close_errors.append(f"fd {fd}: {type(exc).__name__}: {exc}")
+    stdout = b"".join(chunks[out_r]).decode("utf-8", "replace").strip()
+    stderr = b"".join(chunks[err_r]).decode("utf-8", "replace").strip()
+    record = {"requested_increment": NICE_INCREMENT, "expected_niceness": expected,
+              "probe_niceness": None, "probe_stderr": stderr[:500],
+              "probe_pipe_close_errors": close_errors, "probe_timed_out": timed_out}
+    if notes:
+        record["probe_notes"] = notes
+    if spawn_error is not None:
+        return _priority_not_applied(
+            record, f"priority probe could not start ({type(spawn_error).__name__}: {spawn_error})", strict)
+    if timed_out:
+        return _priority_not_applied(
+            record, f"priority probe did not finish within {timeout:g} s; it was killed", strict)
+    try:
+        observed = int(stdout) if os.waitstatus_to_exitcode(status) == 0 else None
+    except ValueError:
+        observed = None
+    record["probe_niceness"] = observed
+    # The ceiling is 19 on Linux and 20 on macOS, so "at least the expected value" is the check.
+    if observed is None or observed < expected:
+        return _priority_not_applied(
+            record, f"nice -n 15 did not take effect (expected niceness {expected}, probe saw {observed}; "
+                    f"{record['probe_stderr'] or 'no message'})", strict)
+    record["status"] = "APPLIED"
+    return record
+
+
+def _check_child_niceness(priority: dict, pid: int, strict: bool) -> str | None:
+    """Read the launched child's own niceness; return a stop reason only under strict."""
+    try:
+        child = os.getpriority(os.PRIO_PROCESS, pid)
+    except (ProcessLookupError, PermissionError) as exc:
+        priority["child_check"] = f"not read: {type(exc).__name__}"
+        return None
+    priority["child_niceness"] = child
+    expected = priority.get("expected_niceness")
+    if expected is None or child >= expected:
+        priority["child_check"] = "AT_EXPECTED_NICENESS"
+        return None
+    priority["child_check"] = "BELOW_EXPECTED_NICENESS"
+    message = (f"the launched child runs at niceness {child}, not the expected {expected}, "
+               "although the probe was reniced")
+    try:
+        _priority_not_applied(priority, message, strict)
+    except ValidationRefused as exc:
+        return str(exc)
+    return None
+
+
 @_cleanup_on_sigterm
 def run_watched(
     command: list[str], *, cwd: Path, log: Path, env: dict[str, str],
@@ -271,8 +432,17 @@ def run_watched(
     sampler: Callable[[int], int] = process_tree_rss,
     additional_disk_floors: tuple[tuple[Path, int], ...] = (),
     log_header: dict | None = None,
+    strict_priority: bool = False,
 ) -> dict:
     """Run one command with fail-closed resource checks and an exclusive durable log.
+
+    `strict_priority=True` refuses when `nice -n 15` cannot lower the child's priority; by default
+    that is recorded in the receipt's `priority` field and warned. It is a keyword of this function
+    only: no command-line front end passes it yet. When the probe shows the policy did not take
+    effect, the command runs without the `nice` wrapper (`priority["wrapper"]` is "none"), never
+    through a wrapper that was just seen to fail. When the wrapper is used, the launched child's own
+    niceness is read once it starts (`priority["child_niceness"]`); a child that is not at the
+    expected niceness downgrades the record to NOT_APPLIED (a RESOURCE_POLICY_HOLD stop under strict).
 
     Sampling is best-effort periodic observation, not a kernel-enforced memory limit.
     A stop reason invalidates the command even if it happens to return zero.
@@ -304,7 +474,12 @@ def run_watched(
     log.parent.mkdir(parents=True, exist_ok=True)
     started = utc_now(); clock_start = time.monotonic(); peak = 0; stop = None
     nice = shutil.which("nice")
-    argv = [nice, "-n", "15", *command] if nice else list(command)
+    priority = verify_nice(nice, strict=strict_priority)  # warns, or refuses under strict_priority
+    use_nice = bool(nice) and priority.get("status") == "APPLIED"
+    argv = [nice, "-n", "15", *command] if use_nice else list(command)
+    priority["wrapper"] = "nice -n 15" if use_nice else "none"
+    priority["child_niceness"] = None
+    child_checked = not use_nice
     with log.open("x", encoding="utf-8") as output:
         if log_header is not None:
             output.write("# sapote-suite-environment " + json.dumps(log_header, sort_keys=True) + "\n")
@@ -346,6 +521,9 @@ def run_watched(
                         stop = "TIME_LIMIT"
                 except (OSError, ValueError, subprocess.SubprocessError) as exc:
                     stop = "MONITOR_ERROR: " + str(exc)
+                if not stop and not child_checked and time.monotonic() - clock_start >= poll_interval:
+                    child_checked = True
+                    stop = _check_child_niceness(priority, process.pid, strict_priority)
                 if stop:
                     cleanup()
                     break
@@ -367,7 +545,7 @@ def run_watched(
             raise ValidationRefused("Owned command remains live after bounded cleanup; retain " + str(cleanup_report))
         if cleanup_error and stop is None:
             stop = cleanup_error
-    return {"argv": argv, "cwd": str(cwd), "started_utc": started, "completed_utc": utc_now(),
+    return {"argv": argv, "priority": priority, "cwd": str(cwd), "started_utc": started, "completed_utc": utc_now(),
             "exit_code": code, "stop_reason": stop, "cleanup_error": cleanup_error,
             "cleanup_events": tree.cleanup_events, "cleanup_report": str(cleanup_report) if cleanup_report else None,
             "observed_owned_processes": len(tree.known), "peak_process_tree_rss": peak,

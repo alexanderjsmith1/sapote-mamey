@@ -99,7 +99,7 @@ def test_seal_locator_mismatch_is_blocking(pkg):
     record_mode_b(
         pkg, "BGC001",
         "# Mode B — AS-TEST / NODE_99 / region001 / BGC001\n§1 content.",
-    )
+    identity_checked_by_caller=True)
     result = seal_package(pkg, strict=True)
     loc = next(g for g in result["gates"] if g["name"] == "locator_reconciliation")
     assert loc["status"] == "FAIL"
@@ -113,7 +113,7 @@ def test_seal_clean_package_passes(pkg):
     init_register(pkg, "AS-TEST", ["BGC001"])
     card = ("# Mode B — AS-TEST / NODE_10 / region001 / BGC001\n"
             "§1 §2 §3 §4 §5 §6 §7 §8 Biosynthetic capacity consistent with a RiPP-like compound.")
-    record_mode_b(pkg, "BGC001", card)
+    record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     result = seal_package(pkg, strict=True)
     loc = next(g for g in result["gates"] if g["name"] == "locator_reconciliation")
     cs = next(g for g in result["gates"] if g["name"] == "claim_safety")
@@ -139,7 +139,7 @@ def test_seal_blocks_on_real_identity_overclaim(pkg):
     """A card asserting 'produces <compound>' makes the claim-safety gate FAIL and blocks strict seal."""
     _kcb_workbook_and_triage(pkg)
     init_register(pkg, "AS-TEST", ["BGC001"])
-    record_mode_b(pkg, "BGC001", "## BGC001 (NODE_1 · region001)\n§1 This cluster produces colibrimycin.")
+    record_mode_b(pkg, "BGC001", "## BGC001 (NODE_1 · region001)\n§1 This cluster produces colibrimycin.", identity_checked_by_caller=True)
     result = seal_package(pkg, strict=True)
     cs = next(g for g in result["gates"] if g["name"] == "claim_safety")
     assert cs["status"] == "FAIL"
@@ -154,7 +154,7 @@ def test_seal_does_not_block_on_descriptive_prose(pkg):
             "§1 §2 §3 §4 §5 §6 §7 §8 This BGC is Edge-status. No activity is assumed at the "
             "extract level. The boundary is interior. These are routing priors. "
             "KCB anchor: colibrimycin — similarity anchor, not a product identity.")
-    record_mode_b(pkg, "BGC001", card)
+    record_mode_b(pkg, "BGC001", card, identity_checked_by_caller=True)
     result = seal_package(pkg, strict=True)
     cs = next(g for g in result["gates"] if g["name"] == "claim_safety")
     assert cs["status"] == "PASS", cs["findings"]

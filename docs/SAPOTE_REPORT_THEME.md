@@ -1,48 +1,66 @@
 # Sapote-Mamey report theme
 
-The `sapote-evidence-dossier` theme is a shared visual layer for Mode B cards,
-ecological synthesis, and technical reports. It separates evidence, interpretation,
-and typed uncertainty visually without changing their meaning.
+The `sapote-evidence-dossier` theme is a shared set of colors, fonts and page
+settings for Mode B cards (the per-locus evidence write-ups), ecology
+synthesis and technical reports. It changes how a document looks. It does not
+change what the document says.
 
-Use deep navy for document identity and primary headings, teal for evidence-linked
-structure, gold for decision or next-action accents, cream for metadata and holds,
-and pale coral for warnings. Always pair color with a text label such as `HOLD`,
-`NOT_SCORED`, or `PRESENT`.
+Colors have jobs. Navy is for document identity and main headings. Teal marks
+evidence-linked structure. Gold marks decisions and next actions. Cream marks
+metadata and holds. Pale coral marks warnings. Always pair a color with a text
+label such as `HOLD`, `NOT_SCORED` or `PRESENT`, so the page reads without color.
 
-Mode B cards should open with the exact four-part locus identity, a compact status
-panel, and a short evidence summary. Sections 4, 27, 29, 45, and 46 should use
-readable tables with explicit widths and repeating headers. Long interpretation
-belongs in paragraphs or bullets, not dense table cells.
+A card opens with the exact four-part locus identity, a short status panel and
+a short evidence summary. Put long interpretation in paragraphs or bullets, not
+dense table cells. The recommended order is: identity header, evidence summary,
+decision or interpretation, holds and next experiment, claim-safety footer.
+That order is a layout habit. It never reorders or drops a governed section.
 
-The theme is compatible with Markdown, DOCX, and PDF renderers. It is not a
-scientific inference layer: similarity remains distinct from identity, capacity
-from production, and missing evidence from biological absence.
+## Use the helpers
 
-## Semantic presentation helpers
+`mamey/report_theme.py` holds the tokens and helpers. They return plain values
+for an exporter to use. They draw nothing. Run from the bundle root:
 
-`section_role()` and `section_accent()` return presentation values for a renderer
-to consume: identity sections use navy, evidence sections use teal, interpretation
-sections use gold, and safety/hold sections use muted neutral styling.
-`status_badge()` returns `label`, `fill` and `foreground` values; it does not draw
-a badge or export a document. Have the chosen renderer display the label with the
-colors, then inspect the actual PDF or DOCX so the status remains readable without
-color.
+```python
+from mamey.report_theme import (
+    section_role, section_accent, status_badge,
+    format_locus_identity, theme_variant,
+)
 
-`format_locus_identity()` is the single display helper for the required order:
-strain / full node-or-contig / region / BGC alias. It rejects blank/whitespace string fields after conversion; it does not validate locus provenance, component grammar or source agreement.
-Use it in headings, evidence cards, table rows, and footers; never substitute a
-bare alias for visual compactness.
+section_role(4)        # 'evidence'
+section_accent(4)      # 'teal'
+status_badge("hold")   # {'label': 'HOLD', 'fill': 'F5F1E7', 'foreground': '243648'}
+format_locus_identity("DEMO", "demo_contig_0001_length_80000", "region001", "BGC001")
+# 'DEMO / demo_contig_0001_length_80000 / region001 / BGC001'
+```
 
-The recommended card layout is: identity header → evidence summary → decision /
-interpretation → typed holds and next experiment → claim-safety footer. This is a
-layout convention only; it must not reorder or omit the card's governed sections.
+- `section_role()` takes a section number and returns `identity`, `evidence`,
+  `interpretation` or `safety`, for presentation only. The built-in table
+  (`SECTION_ROLES`) lists these sections:
+  - `identity`: 1, 2, 3;
+  - `evidence`: 4, 20, 29, 34, 45, 46;
+  - `interpretation`: 5, 6, 7, 18, 19, 22, 33, 48;
+  - `safety`: 8, 27, 35 to 44, 47.
 
-## Implementation versus layout policy
+  Every other number returns `safety` as a fallback. That includes 9 to 17, 21,
+  23 to 26, 28 and 30 to 32, and any text that is not a number. A `safety`
+  result can therefore mean either a listed section or an unlisted one.
+- `status_badge()` upper-cases the status and returns `label`, `fill` and
+  `foreground`. Empty input becomes `NOT_SCORED`. An unknown label gets the
+  neutral cream fill.
+- `format_locus_identity()` joins the four parts in the required order. It
+  raises `ValueError` if any part is blank. Never put a bare alias in a heading
+  to save space.
+- `theme_variant()` returns a copy of one preset: `evidence_dossier` (the
+  default), `field_notebook`, `dark_lab` or `minimal_clinical`. Hyphens and
+  underscores are both accepted. An unknown name raises `ValueError`.
 
-These table-width/repeating-header/layout suggestions are reader-facing policy, not universal renderer guarantees. `mamey/report_theme.py` provides renderer-neutral tokens and helpers; inclusion in this document does not prove every Markdown, DOCX or PDF path consumes them. Use the chosen exporter contract and inspect actual pages before asserting appearance or accessibility.
+## Limits
 
-`section_role()` converts the input with `int()` and maps hardcoded section numbers; unknown/unconvertible sections become `safety`. This is presentation fallback, not a current50 schema validator. Do not let its colors authorize a missing section or reinterpret the active contract (`:52–74`). `status_badge()` uppercases arbitrary input, substitutes `NOT_SCORED` for falsey input, and returns neutral colors for unknown labels. It does not validate status enums or clear a HOLD (`:77–95`).
-
-`format_locus_identity()` converts each value with `str()` before trimming (`:85–90`). Therefore `None` becomes literal `None`, and numeric values can pass; the old “raises on incomplete input” promise was broader than implementation. Reject missing/nonstring fields in the governed caller and bind strain / full node-or-contig / region / BGC alias to exact source identity before formatting. A correctly styled header is not verified evidence.
-
-`theme_variant()` normalizes hyphens/underscores and raises for unknown names, returning copied tokens (`:98–107`). Theme variants do not change scoring, scientific approval, full-profile verification or output receipt scope. Preserve input/renderer/config/command/output hashes separately when the selected producer does not emit them. Inspect the actual rendered pages and retain their visual-review status.
+- The helpers format values. They do not check that a section list is complete,
+  that a status is allowed, or that the four identity parts match a source
+  record. Check the identity against its source before you format it. `None`
+  becomes the text `None`, so reject missing fields in your own code first.
+- A color never clears a `HOLD`, adds a missing section or approves a result.
+- Not every export path uses these tokens. Open the finished DOCX or PDF and
+  look at it before you rely on how it appears.

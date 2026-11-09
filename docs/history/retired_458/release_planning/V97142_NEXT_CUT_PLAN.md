@@ -42,12 +42,12 @@ Primary themes:
 2. BLASTP follow-up parsing and reprioritization,
 3. single-region accession intake handling,
 4. C5/C7 deliverable safety,
-5. SOP library for ChatGPT/Claude operation.
+5. SOP library for assistant operation.
 
 ## Apply order
 
 1. Start from fresh v9.7.141e CODE tier.
-2. Apply BGC BLASTP/intake patch stream after Claude feedback.
+2. Apply BGC BLASTP/intake patch stream after reviewer feedback.
 3. Run BLASTP focused tests.
 4. Apply C5/C7 REV2.
 5. Apply C5/C7 documentation fixes.
@@ -72,7 +72,7 @@ Primary themes:
 
 ### C5/C7
 
-- no `SID-XXX` placeholder vignettes
+- no `<strain>` placeholder vignettes
 - `build_size_profile.py` root import behavior
 - optional DAPR skip visible
 - public workbook private-term scan
@@ -94,7 +94,7 @@ Primary themes:
 - [ ] Surrogate gate pass or CHECK explained
 - [ ] Real BLASTP examples parse
 - [ ] KY089035 inspect behavior passes
-- [ ] AS-XXX BLASTP panel smoke passes
+- [ ] STRAIN_ID BLASTP panel smoke passes
 - [ ] C5 deliverable build passes
 - [ ] C7 public scan passes
 - [ ] Manifest/checksums included
@@ -105,5 +105,5 @@ Primary themes:
 
 - Live RID retrieval from NCBI is not required.
 - Domain-splitting of giant NRPS/PKS proteins can be a follow-up if giant proteins are clearly flagged.
-- AS-XXX BGC005 phosphonopeptide deep proof can remain targeted/optional.
+- STRAIN_ID BGC005 phosphonopeptide deep proof can remain targeted/optional.
 - Full SOP library can include outline-only low-priority SOPs if the master index makes their status clear.

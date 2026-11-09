@@ -23,9 +23,30 @@ def sha(path):
     return h.hexdigest()
 
 
+def _publish_new(out, text):
+    """Write ``text`` to a unique sibling, then hard-link it to ``out``.
+
+    ``out`` is never replaced: if it appears meanwhile the link fails and the
+    sibling is removed. A crash leaves at most a hidden ``.tmp`` sibling, never
+    a partial file at ``out``.
+    """
+    import os
+    import tempfile
+    fd, tmp = tempfile.mkstemp(prefix="." + out.name + ".", suffix=".tmp", dir=str(out.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(text)
+        os.link(tmp, out)
+    finally:
+        os.unlink(tmp)
+
+
 def export(source, member, package, strain, out):
     source, package, out = Path(source).resolve(), Path(package).resolve(), Path(out).resolve()
     table = package / (strain + "_cds_table.csv")
+    from mamey.output_transaction import preflight_output_roster
+    # Refuse an existing output, or one that aliases an input, before reading anything.
+    preflight_output_roster([out], protected_paths=[source, table, package])
     aliases = {}
     with table.open(encoding="utf-8-sig", newline="") as stream:
         for row in csv.DictReader(stream):
@@ -50,11 +71,16 @@ def export(source, member, package, strain, out):
                   assembly_source={"path": str(source), "sha256": sha(source), "gbk_member": member,
                                    "gbk_sha256": member_hash},
                   package_cds_source={"path": str(table), "sha256": sha(table)},
+                  # What was checked: every package CDS key is among the member's
+                  # translated CDS, with the same coordinates and length. No
+                  # independent contig roster is read, so whole-assembly coverage
+                  # (including contigs with no translated CDS) stays a hold.
+                  coverage_check={"package_cds_reconciled": True,
+                                  "contigs_with_translated_cds": len({g["contig"] for g in genes}),
+                                  "whole_assembly_contig_coverage": "NOT_VERIFIED_NO_INDEPENDENT_CONTIG_ROSTER"},
                   genes=sorted(genes, key=lambda g: (g["contig"], g["start_1based"], g["locus_tag"])))
-    if out in (source, table) or (out.exists() and any(out.samefile(path) for path in (source, table))):
-        raise ValueError("output may not overwrite an input or inode alias")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    _publish_new(out, json.dumps(result, indent=2) + "\n")
     print(json.dumps({"inventory": str(out), "sha256": sha(out), "translated_CDS": len(genes)}))
 
 

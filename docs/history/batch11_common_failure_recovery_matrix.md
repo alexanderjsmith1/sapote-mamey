@@ -46,7 +46,7 @@ Source boundaries: input/profile selection `mamey/cli.py:1405–1426`; optional 
 | `antiSMASH ZIP not found` | File path wrong | Use full path: `python -m mamey run ... --input-zip /full/path/antismash.zip` | 1 min |
 | `VALIDATION_FAIL` (after Mamey run) | Corrupted or incomplete antiSMASH ZIP | Re-run antiSMASH at web server. Download full ZIP. Re-run Mamey. | 10 min |
 | `No region GBK files found` | antiSMASH ZIP is malformed | Check ZIP structure: `unzip -l antismash.zip` should show `regions/`, `json/` folders | 2 min |
-| All KCB scores are 0 | KnownClusterBlast evidence absent or unbound for this run | Follow [Missing KCB, RiQ or JSON evidence](../COMMON_MISTAKES.md#missing-kcb-riq-or-json-evidence): check the run's KCB source and channel receipts. Do not regenerate the assistant bootstrap files; they hold instructions, not evidence. A missing channel is not a biological negative. | 5 min |
+| All KCB scores are 0 | KnownClusterBlast evidence absent or unbound for this run | Follow [Missing KCB, RiQ or JSON evidence](../COMMON_MISTAKES.md#kcb-riq-or-json-evidence-is-missing): check the run's KCB source and channel receipts. Do not regenerate the assistant bootstrap files; they hold instructions, not evidence. A missing channel is not a biological negative. | 5 min |
 | Assembly tier: VERY_POOR | Genome is fragmented (<20% interior) | Continue normally; add caveat: "Assembly fragmentation limits BGC boundary confidence" | 0 min |
 | [HALLUCINATION TRAP] in Mode B | LLM made an over-confident claim | Rewrite claim to match evidence scope. E.g., "produces X" → "biosynthetic capacity consistent with X-class" | 2 min |
 | Mode B card incomplete (stops at §8) | LLM timed out mid-response | Continue in new chat with remaining BGCs. Split batches into groups of 3. | 1 min |
@@ -166,6 +166,8 @@ unzip -l antismash.zip | head -20
 
 ### Error: "All KCB scores are 0" or "Unknown BGC" in output
 
+Historical: do not run the commands in this section. The current route is [KCB, RiQ or JSON evidence is missing](../COMMON_MISTAKES.md#kcb-riq-or-json-evidence-is-missing).
+
 ```bash
 # Check registry detector status
 python -m mamey doctor
@@ -183,6 +185,8 @@ python -m mamey run --strain test --input-zip antismash.zip --mode gold
 ## Section D: Assembly & Quality Errors
 
 ### Warning: "Assembly tier: POOR (40% interior)"
+
+Historical: the caveat suggested below, "Comparative claims based on interior BGCs only", is withdrawn. Poor assemblies do not justify hiding edge clusters (see [AGENTS.md](../../AGENTS.md)). Report edge and full-contig regions with their boundary labels. `python -m mamey` in the commands below is not the current form; use `python mamey_run.py <command>`.
 
 This is **not a failure**—it's a metadata warning. Continue:
 
@@ -288,6 +292,8 @@ pip install matplotlib numpy --break-system-packages
 
 # Retry figure generation
 python tools/build_figures.py --package package/ --outdir figures/
+# Historical: those two flags do not exist. The current options are --banked-dir, --workbook, --out-dir and --replot (python tools/build_figures.py --help), for example:
+#   python tools/build_figures.py --banked-dir <dir> --out-dir figures/
 ```
 
 ---
@@ -320,6 +326,8 @@ This gives LLM more time per BGC (fewer timeouts).
 ---
 
 ### Error: "No Python execution available" in ChatGPT
+
+Historical: the product statements in this section, such as "Claude in claude.ai always has code execution available", were not checked and may be out of date. Do not rely on them.
 
 ```
 This means: Text-only ChatGPT session (no code interpreter enabled)
@@ -384,11 +392,14 @@ Is it a Mamey run error, a Mode B writing error, or a data error?
 ├─ Figures broken? → Search "Figure Generation Errors" (Section H)
 ├─ ChatGPT/Claude broken? → Search "LLM Errors" (Section I)
 └─ Still stuck? → Check batch04_gotcha_guide.md for more detailed diagnosis
+   (Historical: that file is not in the tree. Use ../COMMON_MISTAKES.md.)
 ```
 
 ---
 
 ## Pro tips
+
+Historical: do not copy these tips. Use `python mamey_run.py <command>`, not `python -m mamey`. The `--break-system-packages` install is not the normal setup path (see [installation](../INSTALL.md)). There is no `run (smoke)` step; see [AGENTS.md](../../AGENTS.md) for the current workflow. The "When in doubt, re-run" tip is superseded: a replacement run is separate work, not an automatic recovery step, and re-running does not by itself clear a failure.
 
 1. **Before you start, install everything:**
    ```bash

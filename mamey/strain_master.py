@@ -1329,7 +1329,7 @@ def check(master: str | None = None, layout_file: str | None = None, config_file
        folders missing on disk                                                             FAIL / WARN
     3. every file and folder is named in its folder's README, its parent's or the top README  WARN
     4. every README with a ``| File | SHA-256 |`` table (within ``checksum_readmes``) lists
-       exactly the files on disk, and each SHA-256 matches                                   FAIL
+       exactly the files on disk, and each SHA-256 matches; no table checked at all        FAIL / WARN
     5. each CHANGELOG entry's latest SHA-256 matches the file (a copy changed outside
        ``store``); no CHANGELOG.md is a warning                                             FAIL / WARN
     6. inbox bookkeeping: every submission has a ledger row, no submitter verified their own,
@@ -1423,8 +1423,19 @@ def check(master: str | None = None, layout_file: str | None = None, config_file
                     bad.append(f"{shown}/README.md: in the README, not on disk")
                 elif _file_sha(p) != copy_sha:
                     bad.append(f"{shown}/README.md: checksum differs (a byte copy)")
+    patterns = list(cfg.get("checksum_readmes") or [])
+    if bad:
+        checksum_status = "FAIL"
+    elif n_tables == 0:
+        # Nothing was compared: zero coverage is unverified, not a clean integrity check.
+        checksum_status = "WARN"
+        bad = [f"no record table was checked: checksum_readmes patterns {patterns!r} selected "
+               f"{len(readmes)} README path(s) and none held a | File | SHA-256 | table "
+               "outside Superseded, staged and byte-copied areas"]
+    else:
+        checksum_status = "PASS"
     checks.append({"name": f"files match their README checksums ({n_files} files in {n_tables} record tables)",
-                   "status": "FAIL" if bad else "PASS", "lines": bad})
+                   "status": checksum_status, "lines": bad})
 
     if not os.path.isfile(os.path.join(root, STRAIN_MASTER_CHANGELOG)):
         checks.append({"name": "CHANGELOG entries match the files", "status": "WARN",

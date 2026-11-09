@@ -10,6 +10,7 @@ from typing import Any
 from .csv_safety import SafeDictWriter
 from .deep_bgc_report import IDENTITY_KEYS
 from .exact_identity import exact_locus_display, ExactLocusIdentityError
+from .missing_values import is_missing
 
 class ThesisHandoffError(ValueError):
     pass
@@ -32,7 +33,11 @@ def build_thesis_handoff(index_tsv: Path, input_root: Path, output_dir: Path) ->
         rows=list(csv.DictReader(handle, delimiter="\t"))
     if not rows: raise ThesisHandoffError("handoff index is empty")
     admitted=[]; seen=set()
-    for row in rows:
+    for line_no,row in enumerate(rows,2):
+        # csv.DictReader fills a short row with None and puts extra cells under the None key.
+        # str(None) is the text "None", which would pass the mandatory-text checks below.
+        if None in row or any(v is None for v in row.values()):
+            raise ThesisHandoffError(f"handoff index line {line_no} has the wrong number of cells")
         ident={k:str(row.get(k," ")).strip() for k in IDENTITY_KEYS}
         try: display=exact_locus_display(*(ident[k] for k in IDENTITY_KEYS))
         except ExactLocusIdentityError as exc: raise ThesisHandoffError(str(exc)) from exc
@@ -47,7 +52,7 @@ def build_thesis_handoff(index_tsv: Path, input_root: Path, output_dir: Path) ->
         activity_path=_safe(input_root,activity_locator) if activity_locator else None
         claim=str(row.get("claim_ceiling","")).strip()
         gaps=str(row.get("gaps","")).strip()
-        if not claim or not gaps: raise ThesisHandoffError("claim_ceiling and gaps are mandatory")
+        if is_missing(claim) or is_missing(gaps): raise ThesisHandoffError("claim_ceiling and gaps are mandatory")
         admitted.append((row,display,receipt_path,report_path,map_path,activity_path))
     output_dir.mkdir(parents=True, exist_ok=False)
     artifacts=output_dir/"artifacts"; artifacts.mkdir()

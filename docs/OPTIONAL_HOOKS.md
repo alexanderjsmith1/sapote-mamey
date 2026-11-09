@@ -4,7 +4,7 @@ These scripts are available for explicit installation. Shipping them does not ac
 and the bundle does not change any user's assistant settings. The current user's instructions
 and authorization take precedence over advisory text emitted by a hook.
 
-Set SAPOTE_WORKSPACE_ROOT to the project whose work is being checked. Set SAPOTE_BUNDLE_ROOT
+These are Claude Code hooks. Set SAPOTE_WORKSPACE_ROOT to the project whose work is being checked. Set SAPOTE_BUNDLE_ROOT
 to the extracted bundle used to invoke the hooks; keep that path pinned to the reviewed cut.
 Python hooks require Python 3.12 or newer. Shell hooks require Bash and Python; the BLASTp
 concurrency hook uses Python standard-library JSON parsing and requires permission to inspect the process list.
@@ -13,7 +13,7 @@ concurrency hook uses Python standard-library JSON parsing and requires permissi
 |---|---|---|
 | require_phylo_workflow.sh | PreToolUse with Bash matcher | Requires an explicit tree path and local tools/tree_sanity_check.py for recognized render commands; checks exit status. This is a command-pattern guard, not a universal render interceptor. |
 | block_blastp_overconcurrency.sh | PreToolUse with Bash matcher | Checks recognized runner launches and stagger syntax; default cap 10, configurable 1 to 12. This does not enforce service-wide submission timing across machines. |
-| c10_tool_drift.py | SessionStart with --mode baseline; Stop with --mode check | Baseline writes `SAPOTE_CONTROL/tool_drift/baseline_<session>.json`; check reports modified/removed `.py` and `.sh` files at tools root or one nested level. Unreadable files are skipped and added-only files are not flagged. |
+| c10_tool_drift.py | SessionStart with --mode baseline; Stop with --mode check | Baseline writes `SAPOTE_CONTROL/tool_drift/baseline_<session>_<digest>.json`; the digest comes from the exact session identifier, so two sessions with different identifiers do not share a baseline. Check reports modified/removed `.py` and `.sh` files at tools root or one nested level. Unreadable files are skipped and added-only files are not flagged. A check with no baseline for its session says `unarmed` when other baselines exist, and an internal error says `check not completed`. With no baseline at all it prints nothing, so silence does not show a clean check. |
 | reasoning_self_audit_stop.py | Stop | Emits a debounced Stop block request for selected unsupported factual phrases; heuristic, not verification. |
 | contradiction_and_magnitude_stop.py | Stop | Emits a debounced Stop block request for selected numeric discrepancies; does not prove an arithmetic or scientific error. |
 | state_save_reminder.py | Stop | Reports stale STATE.md files under task_state/ or SAPOTE_TASK_STATE_ROOT; advisory. |
@@ -47,6 +47,8 @@ entries. Confirm that the host supports these events and payloads before enablin
 ```
 
 For c10_tool_drift.py, use the same project root and session identifier for both events.
+A new baseline for the same identifier replaces the earlier one, so a resumed session compares
+against its latest SessionStart, not its first.
 For the workflow hook, point SAPOTE_WORKSPACE_ROOT at the bundle root containing the intended
 checker. It does not search neighboring releases or install a workspace-specific gate wrapper.
 Test selected hooks with generic inputs before using them on active work. A hook warning is

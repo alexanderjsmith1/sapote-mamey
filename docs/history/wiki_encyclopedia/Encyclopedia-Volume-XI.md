@@ -42,7 +42,7 @@ The low KCB score requires explanation. A 75 kb multi-class cluster cannot be ca
 
 The diagnostic signal the judgment layer treats as the novelty anchor is the combination of Class II lanthipeptide modification (T43-LAN, LanM enzymes) with tetronate biosynthesis (T43-TET). Lanthipeptides and tetronates co-occurring in a single locus is not a documented combination in MIBiG 4.0. The low RiQ (0.836) is consistent with this: the cluster is partially novel by reference-library standards, specifically in the combination of modification systems. AB=96 reflects the combined scoring weight of multiple corroborated trigger families plus high-scoring class keywords; it is not traceable to any single compound.
 
-Claim-safe capacity statement: biosynthetic capacity consistent with a complex multi-class hybrid megacluster encoding a product or suite of products incorporating NRPS peptide backbone, Type I PKS extension, Class II lanthipeptide modification, tetronate-forming enzyme, and terpene accessory elements. This cluster warrants highest isolation priority.
+Claim-safe capacity statement: biosynthetic capacity consistent with a complex multi-class hybrid megacluster encoding a product or suite of products incorporating NRPS peptide backbone, Type I PKS extension, Class II lanthipeptide modification, tetronate-forming enzyme, and terpene accessory elements. The scorer ranked this cluster highest; isolation priority is a decision for the owner.
 
 ## §XI.4 · The two High leads: BGC031 and BGC050
 
@@ -50,7 +50,7 @@ Claim-safe capacity statement: biosynthetic capacity consistent with a complex m
 
 This illustrates a recurring pattern in large hybrid clusters: the KCB score can be very high (strong evidence for the macrolide component) while RiQ remains moderate (the total architecture diverges from the reference because the reference doesn't encode the co-resident RiPP). The correct interpretation is that structural novelty is possible in the lanthipeptide component specifically, even though the macrolide backbone is well-characterised by similarity.
 
-**BGC050** (203 kb, 11,203,964–11,407,643 bp, Interior) is the largest cluster in the genome. KCB top hit: bafilomycin B1 (BGC0000028.5, 10 proteins, KCB=160,481). Bafilomycin B1 is a macrolide V-ATPase inhibitor with potent antifungal activity — the mechanism of action explains AF=77, the highest antifungal score in the genome. Two CCTT triggers fired: T43-NUC (nucleoside biosynthesis enzyme) and T43-TET (tetronate, same genome-wide signal appearing in BGC036, BGC038, and BGC047). The T3PKS annotation within a large T1PKS cluster is architecturally unusual. RiQ=0.858 (likely known, but with meaningful divergence from the bafilomycin reference). Primary antifungal lead for this genome.
+**BGC050** (203 kb, 11,203,964–11,407,643 bp, Interior) is the largest cluster in the genome. KCB top hit: bafilomycin B1 (BGC0000028.5, 10 proteins, KCB=160,481). Bafilomycin B1 is a macrolide V-ATPase inhibitor with potent antifungal activity — the reported mechanism of action is consistent with AF=77, the highest antifungal routing score in the genome (AF is a score, not measured activity). Two CCTT triggers fired: T43-NUC (nucleoside biosynthesis enzyme) and T43-TET (tetronate, same genome-wide signal appearing in BGC036, BGC038, and BGC047). The T3PKS annotation within a large T1PKS cluster is architecturally unusual. RiQ=0.858 (likely known, but with meaningful divergence from the bafilomycin reference). Primary antifungal lead for this genome.
 
 ## §XI.5 · The arch_capacity bug and its fix: BGC040 and BGC047
 
@@ -110,10 +110,7 @@ family-normalized architecture guard and neutral NAPAA rule differ from the old
 checks described above. The reported scan and pair counts remain measurements
 of the historical run until their original receipts and coverage are recovered.
 
-The package from this run is available as a public reference in the project's validation infrastructure alongside the spectabilis run.
+The original page said the package from this run is available as a public reference in the project's validation infrastructure alongside the spectabilis run; no path was given and none is verified here.
 
 → Volume X for the spectabilis Mamey-only comparison. → Volume II for the extraction engine. → Volume IV for each scan. → Volume V for the scoring model. → §VIII.5 for the version history covering the v9.7.58 fixes documented in §XI.5 and §XI.6.
 
-</div>
-
-<div id="vol-xii" class="section vol">

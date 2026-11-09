@@ -230,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     ps = sub.add_parser("scan", help="flag AS-strain BGC files missing a node token")
     ps.add_argument("root", help="directory to scan (e.g. 'strain_data')")
     ps.add_argument("--strains", nargs="*", default=None,
-                    help="limit to these AS strains (e.g. AS-XXX AS-XXX)")
+                    help="limit to these strains (e.g. ABC-12 ABC-13)")
     ps.add_argument("--tsv", dest="tsv", default=None, help="write full violation list here")
 
     pc = sub.add_parser("crosswalk", help="emit BGCnn -> NODE.rNNN from a sealed inventory")

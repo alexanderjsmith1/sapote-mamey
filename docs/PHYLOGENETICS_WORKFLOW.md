@@ -1,68 +1,90 @@
 # Phylogenetics workflow
 
-## Start here: choose the sequence route
+Read this page before any tree task. It tells you which route to use and what to check before you call a tree finished. Terms are in the [glossary](GLOSSARY.md).
 
-Sapote-Mamey supports three related routes. **16S placement** uses EPA-ng to place a query 16S sequence onto a prepared reference backbone. **Five-locus MLSA** uses the protein-coding genes `atpD`, `gyrB`, `recA`, `rpoB`, and `trpB` as a quicker screen for selecting related genomes. **Core-genome inference** uses GToTree marker alignments and IQ-TREE for the selected genome panel. These analyses answer different questions; an MLSA screen can guide the genome panel but does not replace the 16S or core-genome tree.
+## Choose a route
 
-**You can start from an antiSMASH ZIP.** Many antiSMASH result ZIPs contain the full assembly FASTA, but some contain only region-level records. Check which is present. If a full assembly is available, the optional `phylo-mlsa` route can plan, stage, and run a five-locus screen from that ZIP and a separately chosen set of local reference genomes. You may also supply genome FASTA files directly to the established MLSA and GToTree workflows. Reference genomes can be retrieved from online sources when access is permitted, but the bundled MLSA tool does not select or download them automatically. Retain their accession, source, retrieval date, and sequence hash.
+| Question | Route | Input | What the tree supports |
+|---|---|---|---|
+| Where does a query 16S sequence fall among references? | **16S placement.** EPA-ng places the query onto a prepared reference tree. | Aligned 16S references, a reference tree, query 16S FASTA | A 16S clade or neighborhood. It does not establish a species. |
+| Which genomes should we compare more deeply? | **Five-locus MLSA** (multilocus sequence analysis). A quick tree from `atpD`, `gyrB`, `recA`, `rpoB` and `trpB`. | Full assembly FASTAs and a declared reference set | A fast comparator topology and a candidate panel. It is not species delimitation. |
+| How do whole genomes relate? | **Core-genome tree.** GToTree aligns single-copy marker genes. IQ-TREE infers the tree. | A declared set of genomes with an outgroup | A topology for the genomes included. Species delimitation needs a separate genome comparison such as ANI. |
 
-For 16S, supply an existing 16S FASTA or extract candidate 16S spans from an assembled genome. The bundled `tools/phylo_16s_from_genome.py` uses BLASTn against a specified 16S reference database, groups nearby matches, and writes candidate spans with an extraction receipt. These are **candidates**, not validated rRNA gene boundaries. Check orientation, length, and identity before alignment and EPA-ng placement. A curated NCBI or other 16S reference set can support this route when its sequence and metadata provenance are recorded.
+Do not compare tip counts across routes as if they were versions of one tree. Do not place a 16S query on a protein-marker GToTree tree. The MLSA screen is optional. You do not need it to review an existing tree.
 
-For a large genome panel, one optional planning sequence is: gather a broad reference set, run the comparatively fast five-locus MLSA screen, select a smaller informative panel, then run GToTree and IQ-TREE. The latter steps can consume substantial CPU time; an agent can prepare other work while an approved job runs. Record the actual companion-tool versions and resources used. IQ-TREE performs tree inference after alignment, while R/ggtree renders the resulting figure; these are separate steps.
+An outgroup is a distant genome that fixes the root. A tip is one leaf of the tree.
 
-Use the chosen environment and input/output paths rather than historical workstation filenames. Preparation and dry-run modes can still read inputs and write staged files; they mean no inference, not no mutation. Keep the selected producer receipt and output roster.
-
-Start with the sequences, trees, and metadata you already have. A tree can be reviewed without rebuilding it, but a PDF alone does not establish which sequences were inferred, which tips were removed for display, or whether its labels are correct. Record those links before calling a figure complete.
-
-Prepare tip metadata early. GenBank or NCBI records may lack isolation source or geographic location, so check the exact accession against the original publication, abstract, BacDive, or a culture collection where necessary. An agent with access to those sources can help gather evidence, but every display category must remain traceable to its raw source. Bioassay and Sapote-Mamey heatmap tracks can be joined to EPA-ng or GToTree displays through an explicit tip-to-strain mapping. BGC and genome tracks generally need the corresponding antiSMASH and assembly evidence.
-
-Where the input metadata and renderer support them, make companion views: a concise publication view and a more detailed view that shows isolation source or internal experiment/sample identifiers. These can reveal sampling patterns for review; a visual pattern alone does not establish host or geographic specificity. Keep the editable R script, tree and metadata beside the rendered PDF/PNG so you can adjust labels and layout in R/ggtree without reinferring the tree.
-
-The three routes at a glance:
-
-| Question | Input and method | What the tree can support |
-|---|---|---|
-| Where does a query 16S sequence fall relative to a reference backbone? | Aligned 16S references, a reference tree, query 16S sequences, and EPA-ng placement | A 16S clade or neighborhood, with placement support where available. It does not establish a species identity. |
-| Which genomes should we compare more deeply? | Full assembly FASTAs, a declared reference set, and a five-locus MLSA screen | A fast comparator topology and a reasoned candidate panel for the later core-genome run. It is not species delimitation. |
-| How do assembled genomes relate? | A declared set of genomes, a single-copy-marker alignment, and GToTree/IQ-TREE inference | A core-genome topology for the genomes actually included. Species delimitation needs separate genome comparisons such as ANI. |
-
-Do not compare tip counts across these methods as if they were successive versions of one tree. Do not put a 16S query onto a protein-marker GToTree backbone. An MLSA screen is an optional way to choose genome comparators; it is not a prerequisite for reviewing an existing EPA-ng or GToTree result.
+CPU-heavy steps (EPA-ng placement, IQ-TREE) need explicit approval. Heavy jobs run `nice -n 15`, one build at a time, at most 4 threads.
 
 ## Review an existing tree before rebuilding it
 
-Make one record per **tree version**, including superseded versions. Keep its exact paths and SHA-256 values. A review record should answer:
+Start with the sequences, trees and metadata you already have. A PDF alone does not show which sequences were inferred, which tips were removed for display, or whether the labels are right.
 
-1. **Analysis:** Which alignment or sequence roster produced the analysis Newick? What marker set, inference tool and version, model, support calculation, and outgroup were used? If the alignment or log is absent, mark that part *unbound* rather than reconstructing it from a PDF.
-2. **Tips:** Parse the Newick tips and join them by exact tip ID to metadata. Record unmatched, duplicate, and metadata-only IDs. Keep accession versions; a similar name or accession stem is not an identity match.
-3. **Provenance:** For every reference, retain its accession, sequence hash when available, organism name as deposited, type-status evidence, source/geography evidence, and the source record or URL. Query strain and biological-sample identities must come from the project's own governed table.
-4. **Display:** Identify the actual Newick used for the PDF. Compare its tips with the full analysis tree and record each excluded tip and reason. A display omission is not an absent placement. A folder called “final” or “validated” is a review lead, not a substitute for these checks.
-5. **Figure:** Check that every visible label and metadata strip has a matching row; the caption or Methods block **at the bottom of the figure** must name the method, inputs, reference policy, outgroup, support, displayed tip count, exclusions, and metadata source. Include the complete tree and display ledger beside the figure.
+Keep one record per tree version, including superseded versions, with exact paths and SHA-256 values. Each record answers five questions.
 
-Use status terms that describe the evidence: `ANALYSIS_BOUND`, `SEQUENCE_UNBOUND`, `METADATA_HOLD`, `DISPLAY_SUBSET`, `SUPERSEDED`, and `READY_FOR_OWNER_REVIEW`. A mechanically complete record is not scientific or publication acceptance.
+1. **Analysis.** Which alignment or sequence list produced the analysis Newick? Which markers, inference tool and version, model, support calculation and outgroup? If the alignment or log is missing, mark that part unbound. Do not reconstruct it from a PDF.
+2. **Tips.** Join the Newick tips to metadata by exact tip ID. List unmatched, duplicate and metadata-only IDs. Keep accession versions. A similar name or accession stem is not a match.
+3. **Provenance.** For each reference keep the accession, sequence hash if you have it, organism name as deposited, type-status evidence, source and geography evidence, and the source record. Query strain and sample identities come from your own governed table.
+4. **Display.** Find the Newick that drew the PDF. Compare its tips with the full analysis tree and record each excluded tip and why. A display omission is not an absent placement. A folder called "final" is a lead, not proof.
+5. **Figure.** Every visible label and metadata strip needs a matching row. The caption names the method, inputs, reference policy, outgroup, support, displayed tip count, exclusions and metadata source. Keep the complete tree and the display list beside the figure.
+
+These record labels are yours; no tool emits them. A complete record is not scientific or publication acceptance.
 
 ### Full tree and display tree
 
-EPA-ng reports may contain a full grafted placement tree and a smaller `tree_display.newick` used by a color-strip PDF. List **both** query rosters. A focused display must say which queries it omits. The strict prepared-series contract in [Tree Catalog](TREE_CATALOG.md) requires preservation of all declared queries; an older pruned figure that omits queries does not become a complete all-query series merely because its PDF renders. Rebuild the display with the queries retained, or prepare an explicitly scoped spotlight analysis and keep its full-context companion.
+EPA-ng reports can hold a full grafted placement tree and a smaller `tree_display.newick` used by a color-strip PDF. List both query lists. A display must say which queries it omits. The prepared-series rules in [Tree Catalog](TREE_CATALOG.md) require all declared queries to be kept. Rebuild the display with the queries retained, or prepare a clearly scoped spotlight and keep the full companion.
 
-For GToTree, an inferred `.treefile`, a `.contree`, an aligned single-copy-gene FASTA, and a PDF may represent different stages. An IQ-TREE build is complete only when the `.contree` exists, the `.treefile` carries support labels, and the log says "Total wall-clock time". A `.treefile` without those is an interrupted run, not an earlier stage; the tree launchers stop with `IQTREE_INCOMPLETE`. Check exact sequence/tree tip agreement where the alignment is available. A renderer may prune a duplicate reference accession while retaining the source analysis tree; record the exclusion and use the **displayed** count in the figure caption. Do not delete or relabel the source tree to make the count agree.
+### A finished IQ-TREE build
+
+An IQ-TREE build is complete only when all three hold:
+
+- the `.contree` exists;
+- the `.treefile` carries support labels;
+- the log says "Total wall-clock time".
+
+A `.treefile` without those is not a finished run. The launchers stop, with route-specific messages:
+
+- `tools/build_tree.sh` prints `IQ-TREE run is INTERRUPTED (needs iqtree.contree + support labels + 'Total wall-clock time')` and exits 1;
+- `tools/gtotree_execution_gate.py --check-completion PREFIX` logs a JSON status (`INTERRUPTED` or `MISSING`) with its reasons, and exits 1;
+- `tools/build_mlsa.py` and the domain-tree builder stop with `IQTREE_INCOMPLETE` and the same reasons.
+
+The reasons list what is missing, not why. Do not render or publish the tree. Keep the folder, find the cause, and re-run to completion.
+
+A renderer may drop a duplicate reference accession from the display and keep the source tree. Record the exclusion and use the displayed count in the caption. Never delete or relabel the source tree to make the count agree.
 
 ### Resolve missing metadata
 
-Search by the exact versioned accession in an authoritative sequence or assembly record. Save the raw field, source URL or accession, retrieval date, and any transformation to a display category. `Not recorded` in a source is missing evidence, not a negative habitat or geographic observation. Do not fill a gap from a species-level generalization or a near-matching strain. If a reference cannot be resolved, keep the hold or exclude that reference upstream with a ledger; do not remove an owner query merely to make a figure pass. The prepared display series refuses missing source/geography categories for visible tips; see [Tree Catalog](TREE_CATALOG.md).
+Search by the exact versioned accession in an authoritative sequence or assembly record. Save the raw field, the source URL or accession, the retrieval date, and any step that turned the raw text into a display category. "Not recorded" means missing evidence, not a negative observation. Do not fill a gap from a species-level generalization or a near-matching strain. If a reference cannot be resolved, keep the hold, or exclude it upstream and list it. Do not drop a query just to make a figure pass. The prepared display series refuses visible tips with no source or geography; see [Tree Catalog](TREE_CATALOG.md).
 
-## Build a new tree when the existing evidence cannot answer the question
+Make two views if the metadata allows it: a short publication view and a detailed view with isolation source and sample IDs. A visual pattern alone does not show host or geographic specificity. Keep the R script, tree and metadata beside the PDF so you can change labels without re-inferring the tree.
 
-**16S route.** Inventory files with `python tools/phylo_autopilot.py plan INPUT_DIR`. Route sequences with `python tools/phylo_autopilot.py route --query QUERIES.fasta --db DB_PREFIX --out ROUTING.tsv`, then review genus conflicts. `run-16s --dry-run` prepares a reference/query plan without inference. A real run requires its `--approved-by` argument. The [autopilot guide](PHYLO_AUTOPILOT_WORKFLOW.md) and [16S data contract](PHYLO_16S_DATA_CONTRACT.md) describe sequence admission, reference evidence, and the EPA-ng outputs. `phylo_place.py report` can write a grafted tree without the required color-strip figure if owner or reference metadata is missing; inspect `COLOR_STRIPS_NOT_RENDERED.txt` rather than treating the absence as success.
+## Build a new tree
 
-If you have a genome assembly but no 16S FASTA, first inspect candidate spans:
+### 16S route
+
+1. Inventory your inputs: `python tools/phylo_autopilot.py plan INPUT_DIR`. It classifies each file as rRNA, genome, protein or empty.
+2. Route the queries to a genus group: `python tools/phylo_autopilot.py route --query QUERIES.fasta --db DB_PREFIX --out ROUTING.tsv`. Review any genus conflict by hand.
+3. Prepare one group without running inference:
+
+```bash
+python tools/phylo_autopilot.py run-16s --query QUERIES.fasta --db DB_PREFIX \
+  --group streptomyces --outdir NEW_OUTDIR --dry-run
+```
+
+`--group` is one of `nocardia`, `rare_genera` or `streptomyces`. `--db` defaults to the shared 16S database ([LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md)). The dry run writes into `NEW_OUTDIR`: `query_qc.tsv`, `routing_table.tsv`, `<group>_reference.fasta` and `<group>_query.fasta`. It prints `dry-run:` and exits 0. It exits 2 in two cases. If a query is refused, it says how many and tells you to read `query_qc.tsv`. If no query routes to your group, it names the groups that did get queries and tells you to read `routing_table.tsv`. It runs BLAST but no tree inference.
+
+4. A real run needs `--approved-by NAME` instead of `--dry-run`. Without either flag it refuses. Details are in the [autopilot guide](PHYLO_AUTOPILOT_WORKFLOW.md); sequence admission is in the [16S data guide](PHYLO_16S_DATA_CONTRACT.md).
+
+`phylo_place.py report` can write a grafted tree without the color-strip figure when the owner table or reference metadata is missing. It then writes `<group>_REPORT_ATTEMPT.json` in the report folder with state `HOLD` and a `metadata_strips` entry that gives the reason. It exits 2. Do not treat a missing strip figure as success.
+
+If you have a genome but no 16S FASTA, extract candidates first:
 
 ```bash
 python tools/phylo_16s_from_genome.py genome.fna \
   --blastdb /path/to/curated_16s_db --out candidate_16s.fasta
 ```
 
-This uses local BLASTn and the specified database. Review its receipt and sequence before treating a span as a 16S query.
-To build that 16S database, fully or for chosen genera, and to see which tools read it, use [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md).
+This runs local BLASTn and writes candidate spans with a receipt. They are candidates, not validated rRNA boundaries. Check orientation, length and identity before alignment and placement. To build the 16S database, see [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md).
 
 ### How identity is measured
 
@@ -86,22 +108,63 @@ See [How identity is measured in the local database guide](LOCAL_16S_DATABASE.md
 for the shared rule and reporting fields. These measurements support reference selection, not species
 identification or scientific adoption.
 
+### Optional MLSA screen
 
-**Optional MLSA screen.** A full-assembly antiSMASH ZIP can be checked without starting inference:
+Check an antiSMASH ZIP without starting inference:
 
 ```bash
 python mamey_run.py phylo-mlsa --input-zip antismash_results.zip \
   --query-label QUERY_A --mode plan
 ```
 
-To run the five-locus screen, provide a curated directory of local `.fna` reference genomes, including one filename marked `_OUTGROUP`, and a new output directory. Use `--mode prepare` to stage and review the inputs or `--mode run` to invoke `build_mlsa.py`. The latter needs Prodigal, BLAST+, MUSCLE, and IQ-TREE. A ZIP containing only clipped region records is refused. See the [Quick Guide](GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays) and [GToTree workflow](GTOTREE_WORKFLOW.md) for panel selection after the screen.
+The ZIP must hold a full assembly. A ZIP with only clipped region records is refused. `--mode plan` reads the ZIP and reports what it found. To go on, give `--references-dir` (a folder of local `.fna` reference genomes, one filename containing `_OUTGROUP`) and `--outdir` (new or empty). `--mode prepare` stages and checks those inputs. `--mode run` runs `build_mlsa.py`, which needs Prodigal, BLAST+, MUSCLE and IQ-TREE. The tool does not choose or download references. Keep each reference's accession, source, retrieval date and sequence hash. See the [Quick Guide](GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays) and the [GToTree workflow](GTOTREE_WORKFLOW.md) for choosing a panel afterward.
 
-**Genome route.** Start with an explicit genome list, comparator rationale, outgroup, and space-free work directory. The `phylo-run` front door forwards released-v1 controls, not the governed-v2 runtime/probe/plan bindings. For selected governed GToTree 2.0.0, use the reviewed planner-generated `COMMAND.sh` and retain its exact approval/runtime/resource bindings; see [companion run contracts](COMPANION_RUN_CONTRACTS.md). `python mamey_run.py phylo-run --help` shows the current executable interface; `--approved` records authorization for the CPU run. GToTree, IQ-TREE, and optional fastANI are external companions, not included databases. The [GToTree execution guide](GTOTREE_WORKFLOW.md) and [preflight](GTOTREE_IQTREE_PREFLIGHT.md) describe the more detailed controlled route. Record the actual installed GToTree marker set and IQ-TREE settings for each tree; versions or marker sets must not be silently relabeled to match another figure.
+### Genome route
 
-Use a declared outgroup appropriate to the taxonomic scope and check the resulting root. `tools/signoff_check.py` is **advisory**; its process exit does not certify a tree. Keep preflight, branch/sanity checks, alignment completeness, support, ANI if run, and human review as separate receipts. A tree alone does not establish a new species, genus, compound, or bioactivity.
+Start with an explicit genome list, the reason for each comparator, an outgroup, and a work folder with no spaces in its path. `python mamey_run.py phylo-run --help` shows the interface. `--approved` records approval for the CPU run. GToTree, IQ-TREE and optional fastANI are external tools, not shipped. Use the [GToTree workflow](GTOTREE_WORKFLOW.md) and the [preflight](GTOTREE_IQTREE_PREFLIGHT.md) for the controlled route, and [companion run contracts](COMPANION_RUN_CONTRACTS.md) for the reviewed planner command. Record the marker set and IQ-TREE settings for each tree.
+
+Use an outgroup that fits the taxonomic scope, and check the root. `tools/signoff_check.py` is advisory; its exit code does not certify a tree. Keep preflight, sanity checks, alignment completeness, support, ANI and human review as separate records. A tree alone does not establish a new species, genus, compound or bioactivity.
+
+### Advisory tree sign-off check
+
+Use explicit current artifact paths when requesting sign-off review:
+
+```bash
+python mamey_run.py signoff '<tree.treefile>'
+```
+
+The bundle CLI exposes files and `--minutes` only. Use the direct helper when
+selection requires its additional options:
+
+```bash
+python tools/signoff_check.py --root '<review-root>' --outgroup '<declared-tip-token>' '<tree.treefile>'
+```
+
+The helper accepts repeated/comma-separated outgroup terms; recognizing a label
+is not approval of outgroup choice. Without explicit files, it walks the selected
+root for case-sensitive `.treefile` names modified in the last 90 minutes by
+default. Hidden directories and its named environment/database/reference pruning
+list are excluded; `SIGNOFF_PRUNE_DIRS` adds exclusions. This is a selected recent
+file sweep, not the authoritative artifact roster or proof of current-run input
+binding. Record the exact files, hashes, source/run identities, scan window and
+exclusions separately. Use explicit paths for required older or pruned artifacts.
+
+The report checks regex-extracted labels and support-like text rather than fully
+validating Newick structure, every numeric measurement or provenance. It does not
+read ANI data, validate comparator downloads or make biological sign-off decisions.
+Those are independent review requirements. No structured receipt or report file
+is saved by the helper; retain console diagnostics with the selected input hashes.
+
+Valid advisory invocations return 0 for issues, read failures, an incomplete walk
+and no selected files. `--quiet-if-clean` can suppress the no-selection message or
+caution notes when no issues were found. Silence is not a completed clean review.
+The direct helper parses its options with argparse. `--help` prints usage and
+exits 0. An unknown option, a missing value or a non-numeric `--minutes` exits 2.
+Do not use its exit alone for input admission or completion. The bundle CLI has
+its own parser and does not offer these extra helper options.
 
 ## Deliver one reviewable figure packet
 
-For each selected figure, retain the source analysis tree; alignment or a typed absence statement; exact tip/sequence and tip/metadata joins; reference-accession provenance; display Newick and exclusions; figure PDF/PNG; Methods caption; tool versions; and hashes. Prefer a review index that can point to multiple versions while identifying superseded ones. Do not overwrite an earlier figure to hide why the roster or metadata changed.
+Keep, for each figure: the source analysis tree; the alignment (or a statement that none exists); the tip-to-sequence and tip-to-metadata joins; reference provenance; the display Newick and exclusions; the PDF and PNG; the caption; tool versions; and hashes. Do not overwrite an earlier figure to hide a change in the tip list or metadata.
 
-The [tree display receipts](TREE_DISPLAY_RECEIPTS.md) explain reproducible pruning. The [Tree Catalog](TREE_CATALOG.md) gives the stricter prepared-series contract. [Species and BGC tree comparison](SPECIES_VS_BGC_TREE_COMPARISON.md) explains why a BGC overlay is an annotation track rather than an organismal phylogeny.
+See [tree display receipts](TREE_DISPLAY_RECEIPTS.md) for reproducible pruning, [Tree Catalog](TREE_CATALOG.md) for the prepared series, and [species and BGC tree comparison](SPECIES_VS_BGC_TREE_COMPARISON.md) for why a BGC overlay is an annotation, not an organismal tree.

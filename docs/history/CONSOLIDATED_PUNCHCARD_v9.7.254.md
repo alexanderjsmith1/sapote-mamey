@@ -2,7 +2,7 @@
 
 ## Historical reconciliation — current reader boundary
 
-This punch card records the extracted .254 tree and its then-pending patches/tests. Do not apply its old fixes or use its blocker decisions for the .447/.448 cut without checking current owners. The current structure gate already contains LOCUS_BGC_MISMATCH and PANEL_ABSENT_CLAIM checks (`mamey/modeb_structure_gate.py:2207–2356`), so the old assertion that neither exists is historical, not a current defect diagnosis. Their presence alone does not prove complete locus/evidence admission.
+This punch card records the extracted .254 tree and its then-pending patches/tests. Do not apply its old fixes or use its blocker decisions for any later cut without checking current owners. The current structure gate already contains LOCUS_BGC_MISMATCH and PANEL_ABSENT_CLAIM checks (`mamey/modeb_structure_gate.py:2207–2356`), so the old assertion that neither exists is historical, not a current defect diagnosis. Their presence alone does not prove complete locus/evidence admission.
 
 The reported regression counts, patch applications and strain anecdotes below are retained as historical evidence and not recertified. Current work is local documentation patches for maintainers to review and integrate; see [metadata readers](../BUNDLE_METADATA_READERS.md), [profile matrix](../MODEB_PROFILE_MATRIX.md) and [debugging audit request](../../debugging_modules/CURRENT_AUDIT_REQUEST.md). No release-manifest regeneration, remediation or cut was executed. Original body follows unchanged.
 
@@ -30,7 +30,7 @@ test-applied against the real tree, each bug re-checked, ID collisions flagged.
 | my prior audit (this chat) | full regression, PC-set verification, N1/#1 |
 | pandas chat (`PATCH_PUNCH_CARD_v9_7_254.md`) | S1–S7 findings, S4+S6+N1 patches, `.254+fixes → 3002/0` receipt |
 | Archive PC-card (`PUNCHCARD_v9.7.254.md`) | PC-11…PC-15 new findings |
-| Archive AS-cards (`PATCH_PUNCHCARD*.md`, Guanabana) | strain-level findings (AS-XXX phantom, AS-XXX, AS-XXX/956) |
+| Archive strain cards (`PATCH_PUNCHCARD*.md`, Guanabana) | strain-level findings (a phantom-locus case in `<strain>`, plus two further `<strain>` cases) |
 | Archive bug reports | phantom-locus gap, blastp-ebi `--hits` |
 | Archive `.patch` (cohort_figures v222) | stale — see below |
 
@@ -84,7 +84,7 @@ patch (`\d`, `\s`) is verified: match → **True**, split → correct. This is t
 
 | Bug | Status @ .254 | Receipt |
 |---|---|---|
-| **B1 — `PHANTOM_LOCUS` silent on cross-assembly contamination** | 🔴 **OPEN** | `_phantom_locus_findings` at `modeb_structure_gate.py:996` checks existence in the whole-strain CDS table; `ctgN_M` is a contig-index name that recurs across assemblies, so a leaked locus that *happens to exist* passes. No `LOCUS_BGC_MISMATCH` / `PANEL_ABSENT_CLAIM` in the tree. AS-XXX's 14 cards passed the gate carrying the fabricated §4 sentence. Needs BGC-membership check. |
+| **B1 — `PHANTOM_LOCUS` silent on cross-assembly contamination** | 🔴 **OPEN** | `_phantom_locus_findings` at `modeb_structure_gate.py:996` checks existence in the whole-strain CDS table; `ctgN_M` is a contig-index name that recurs across assemblies, so a leaked locus that *happens to exist* passes. No `LOCUS_BGC_MISMATCH` / `PANEL_ABSENT_CLAIM` in the tree. <strain>'s 14 cards passed the gate carrying the fabricated §4 sentence. Needs BGC-membership check. |
 | **B2 — `blastp-ebi --hits` unregistered (v218)** | ✅ **RESOLVED in .254** | now registered at `cli.py:3597` (`--hits`, default 6). The v218 report is stale; no action. |
 
 B1 is the live residue of the phantom-locus failure class. It is the single most important
@@ -133,15 +133,13 @@ From the Archive PC-card (PC-11..15 — that chat overloaded the PC namespace; s
 | PC-12 | split monolithic D-series `build()` | proposal (follow-on to PC-2) |
 | PC-13 | wire governance gates into `release.sh` | proposal; same theme as S1-gate / my "wire the gate" path |
 | PC-14 | confirm `view_fidelity` populated on a real run | verification task (I can run it) |
-| PC-15 | re-run figure suite per tier on dense strain | verification (AS-XXX → 21 figs) |
+| PC-15 | re-run figure suite per tier on dense strain | verification (`<strain>` → 21 figs) |
 
 ---
 
 ## ⚠ ID collisions flagged
 
-1. **`AS-1/2/3` as finding IDs** (`PATCH_PUNCHCARD.md`) collide with the **AS-strain-ID**
-   namespace (AS-XXX, AS-XXX, AS-XXX are strains). A reader can't tell "audit finding AS-2"
-   from "strain AS-2". Recommend the AS-cards renumber their findings to a non-AS prefix.
+1. **Audit finding IDs that reuse the strain-ID prefix** (`PATCH_PUNCHCARD.md`) collide with the strain-ID namespace. A reader can't tell an audit finding `<finding>` from a strain `<strain>`. Recommend the strain cards renumber their findings to a prefix that no strain uses.
 2. **Two schemes for NEW findings.** The pandas chat uses **S1–S7**; the Archive PC-card uses
    **PC-11–PC-15**. PC-1…PC-10 are the *cut's own* patch IDs — extending PC with audit findings
    overloads it. Recommend one scheme (S-series is cleaner; keep PC for cut patches only).

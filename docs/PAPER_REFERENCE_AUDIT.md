@@ -3,7 +3,7 @@
 `tools/paper_reference_audit.py` checks explicit citation and caption keys in supplied
 DOCX files. It reads the cached visible text from paragraphs, table cells, text boxes,
 footnotes, endnotes, headers and footers. It never changes documents, updates Word
-fields, resolves a DOI or contacts a service. No Crossref option is implemented.
+fields, resolves a DOI or contacts a service.
 
 ```bash
 python tools/paper_reference_audit.py main.docx supplement.docx --style author-year
@@ -11,22 +11,38 @@ python tools/paper_reference_audit.py main.docx --style numbered --strict
 python tools/paper_reference_audit.py main.docx supplement.docx --reference-scope document
 ```
 
-JSON goes to stdout. Redirect it to a selected output path outside original evidence.
-Each input has its absolute requested path, SHA-256 and main/supplementary scope
-in the JSON. The reader opens each input once and hashes that descriptor before
-and after parsing. A pathname or symlink replacement does not retarget the open
-reader; the hash still describes the selected bytes. An observed in-place change
-refuses with `SOURCE_CHANGED_DURING_READ`. `xml_parts_sha256` binds the exact XML
-parts consumed. Archive hashing uses 1 MiB chunks and no full archive snapshot
-is made. Each inspected XML part is bounded to 8 MiB and their total to 32 MiB;
-parsed text/XML and ZIP metadata remain materialized.
-Inputs are not locked against concurrent writers; these checks do not certify an
-immutable historical source generation or exclude adversarial transient changes. The default
-reference scope combines all supplied files. Use `--reference-scope document` when
-numbered reference lists restart independently in separate documents. S-prefixed
-figure/table numbers remain distinct from main numbers. Supplying a supplementary
-file makes citations found only there count toward the applicable reference list.
-Unsupplied files cannot establish whether a reference was cited elsewhere.
+The tool prints JSON on stdout. Redirect it to a file outside your original evidence. The JSON
+holds each input's absolute path, SHA-256 and scope (main or supplementary). It can also hold excerpts
+from your files, so keep it with the manuscript.
+
+## Read the result
+
+Look at `status`, `parsing_holds`, `missing_references`, `uncited_references`, `undefined_callouts`
+and `uncalled_captions`. This is the output for a document with no reference list (shortened):
+
+```text
+"status": "INCOMPLETE",
+"references_parsed": 0,
+"missing_references": [],
+"parsing_holds": [
+  {"code": "NO_REFERENCE_SECTION", "detail": "No recognized references in supplied documents."}
+]
+```
+
+Empty finding lists do not mean a clean manuscript here. A hold means the tool could not read part of
+the text, so read `parsing_holds` first. Each finding has a `confirmed` flag. Confirmed means the key
+is absent from the files you supplied, in the syntax this tool reads. It does not show that a
+reference exists in the literature or supports the sentence.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | The report was written. Without `--strict`, this holds even when it lists findings or holds. |
+| 1 | `--strict` only: confirmed findings. |
+| 2 | Parsing holds (`--strict`), or an input was refused (any mode). |
+
+By default the reference scope combines all supplied files. Use `--reference-scope document` when
+numbered lists restart in each document. S-prefixed figure and table numbers stay separate from main
+numbers. Citations found only in a supplementary file count toward the list if you supply that file.
 
 ## Supported syntax
 
@@ -44,6 +60,9 @@ names before the first 1800–2099 year. `Aylward FO, ... 2012`, `Aylward, F. O.
 `World Health Organization. (2020)` retain the surname or full corporate name.
 Trailing initials are removed from the first author; particles, apostrophes and
 Unicode letters are preserved. Keys are Unicode-normalized and case-insensitive.
+A parenthetical citation is read when it has a letter in any script and a year, as in
+`(王 2020)`. A year joined to a name with no space, as in `(王2020)`, is held as
+`UNSUPPORTED_CITATION` for manual review.
 Initial-first references are held. A corporation containing an ampersand or a comma,
 an abbreviated corporation, and different spellings need manual reconciliation.
 The parser does not infer author aliases or interpret reference identity.
@@ -67,13 +86,7 @@ ranges of more than 200 numbers remain holds; a range containing exactly 200 num
 within `S19–21` the range carries the prefix. Chapter-style numbers are unsupported.
 Definitions/callouts share the supplied document set, independently of reference scope.
 
-## Interpreting results
-
-`missing_references`, `uncited_references`, `undefined_callouts` and
-`uncalled_captions` carry a `confirmed` boolean. Confirmation means absence of the
-parsed key within the supplied inputs and supported syntax. It does not establish
-whether a reference exists in literature, supports a statement or has been correctly
-interpreted. Check `parsing_holds` and `status` before using any absence finding.
+## What makes a finding provisional
 
 Unparseable reference rows downgrade missing-reference findings in that reference
 scope to `UNRESOLVED_CITATION`. Duplicate reference keys are ambiguous. Unparseable
@@ -84,11 +97,10 @@ Unsupported figure syntax similarly makes figure/table absence findings provisio
 This is a bounded text parser; a clean supported-syntax result is not a general
 proof of manuscript correctness or exhaustive recognition of every citation style.
 
-With `--strict`, exit 1 means confirmed findings, exit 2 means parsing holds or an
-input refusal, and exit 0 means neither was found. Without `--strict`, a readable
-report exits 0 even when it contains findings/holds; input refusal still exits 2.
-XML reads are bounded to 8 MiB per part and 32 MiB across inspected parts. Duplicate
-ZIP members, DTD/entity declarations and non-UTF-8 XML are refused. ZIP content is
-never extracted and external relationships are never followed. Unsupported/corrupt
-inputs remain incomplete evidence. JSON can contain excerpts from supplied files;
-retain it within the same authorized evidence boundary.
+## Limits
+
+The tool reads each input once. If a file changes while it is read, the tool stops with
+`SOURCE_CHANGED_DURING_READ`. Files are not locked against other writers. `xml_parts_sha256` lists
+the XML parts it read. Each XML part may be up to 8 MiB and all parts together up to 32 MiB.
+Duplicate ZIP members, DTD or entity declarations and non-UTF-8 XML are refused. ZIP content is never
+extracted and external links are never followed. Unsupported or corrupt inputs are incomplete evidence.

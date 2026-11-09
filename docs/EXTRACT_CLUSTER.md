@@ -1,16 +1,44 @@
 # Extract a marker-co-occurrence candidate region
 
-Finds a candidate gene-cluster region in a raw genome FASTA by looking for your marker proteins close together. Use it for genomes without an antiSMASH run.
+Finds a candidate gene-cluster region in a raw genome FASTA by looking for matches to your marker proteins on predicted genes that lie close together. Use it for genomes without an antiSMASH run.
 
-    python tools/extract_cluster.py --genome fixture.fna --marker markers.faa \
-      --label FixtureA --min-markers 2 --outdir OUT
+    python tools/extract_cluster.py --genome genome.fna --marker markers.faa \
+      --label EXAMPLE --min-markers 2 --outdir OUT
+
+| Flag | Meaning | Default |
+|---|---|---|
+| `--genome` | Genome FASTA (`.fna`) | required |
+| `--marker` | Marker protein FASTA with one or more diagnostic genes | required |
+| `--label` | Label for the output GBK and locus tags | required |
+| `--min-markers` | Markers needed to call the region present, each matched to a different predicted gene | 2 |
+| `--min-identity` | Minimum percent identity for a marker match | 40 |
+| `--window` | Most genes the marker window may span | 25 |
+| `--flank` | Genes of flank kept on each side of the region | 2 |
+| `--outdir` | Output folder | `extract_cluster_out` |
 
 This tool predicts genes with Pyrodigal, searches supplied marker proteins with
 pyswrd, and admits a region when the declared distinct-marker/window thresholds
-are met. It requires the optional gene-call/alignment dependencies; no antiSMASH
+are met. It requires the optional gene-call and alignment dependencies. Install them with `bundle_support/install_sapote_addons.sh` (see [prerequisites](PREREQUISITES.md)). No antiSMASH
 run occurs. The result is a computational candidate region, not confirmation of
 a complete cluster, compound or activity. Insufficient matches mean no region
 was admitted by this procedure, not biological absence.
+
+The marker count is the largest number of markers that can each be assigned a
+different predicted gene in the window. Two marker names that both match one protein
+count once. `LABEL_extract.json` reports `n_markers_found` on that basis, together
+with `n_marker_names_matched` (distinct marker names with any hit),
+`n_distinct_target_genes`, and `shared_target_genes` (each gene hit by more than one
+marker, with the marker names). A shared hit is ambiguous evidence; review it before
+you describe the window as several co-occurring genes.
+
+Outputs are `LABEL_cluster.gbk` when admitted and `LABEL_extract.json`. Names must
+be safe basenames; every output destination must be fresh and contained, including
+symlinks. Output aliases of input files are refused before gene calling. Marker
+labels in the GBK report the supplied matches; they do not establish function.
+
+Output artifacts are serialized before publication and ordinary write failures roll back owned files. Publication is not crash-atomic; stable inputs and no uncooperating output writer are required. Nonfinite identities or hit indices outside the supplied roster refuse before region admission.
+
+## Coordinates
 
 Pyrodigal's one-based inclusive gene intervals are converted once to zero-based
 half-open intervals before any slicing. The GBK CDS intervals use that convention
@@ -18,15 +46,6 @@ within the extracted slice, on both strands. The JSON records the source and
 output conventions; `region_nt` is a zero-based half-open source-genome interval.
 Gene coordinates are bounded by their contig, duplicate FASTA record identities
 are refused, and sequence padding is clamped at contig ends.
-
-Outputs are `LABEL_cluster.gbk` when admitted and `LABEL_extract.json`. Names must
-be safe basenames; every output destination must be fresh and contained, including
-symlinks. Output aliases of input files are refused before gene calling. Marker
-labels in the GBK report the supplied matches; they do not establish function.
-Synthetic tests check terminal intervals and both strands. Historical example
-runs do not establish current-byte biological validation.
-
-Output artifacts are serialized before publication and ordinary write failures roll back owned files. Publication is not crash-atomic; stable inputs and no uncooperating output writer are required. Nonfinite identities or hit indices outside the supplied roster refuse before region admission.
 
 ## Status and evidence binding
 

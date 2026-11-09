@@ -784,14 +784,28 @@ def _best_state(observations: Iterable[EvidenceObservation]) -> tuple[str, int, 
     if not rows:
         return "ABSENT", 0, "UNVERIFIED"
     best = max(rows, key=lambda obs: BINDING_SCORE[obs.binding_state])
-    count = sum(obs.record_count for obs in rows)
-    # Binding and freshness must describe the same evidence cohort. A current
-    # unbound/conflicting artifact cannot refresh an older locus-bound source.
+    # Binding, record count and freshness must describe the same evidence
+    # cohort. A current unbound/conflicting artifact cannot refresh an older
+    # locus-bound source, and its records are not counted under the stronger
+    # state. The per-state breakdown is reported by _records_by_state().
     bound_rows = [obs for obs in rows if obs.binding_state == best.binding_state]
+    count = sum(obs.record_count for obs in bound_rows)
     freshness = "CURRENT" if any(obs.freshness_state == "CURRENT" for obs in bound_rows) else (
         "STALE" if all(obs.freshness_state == "STALE" for obs in bound_rows) else "UNVERIFIED"
     )
     return best.binding_state, count, freshness
+
+
+def _records_by_state(observations: Iterable[EvidenceObservation]) -> str:
+    """Record counts per binding state, strongest first, e.g. EXACT_LOCUS=1;UNBOUND=9.
+
+    Blank when no observation was found, so a missing stream never reads as 0.
+    """
+    totals: dict[str, int] = defaultdict(int)
+    for obs in observations:
+        totals[obs.binding_state] += obs.record_count
+    ordered = sorted(totals, key=lambda state: -BINDING_SCORE[state])
+    return ";".join(f"{state}={totals[state]}" for state in ordered)
 
 
 def build_availability(
@@ -814,6 +828,7 @@ def build_availability(
         state_by_stream: dict[str, str] = {}
         count_by_stream: dict[str, int] = {}
         freshness_by_stream: dict[str, str] = {}
+        breakdown_by_stream: dict[str, str] = {}
         for stream_id in stream_ids:
             alias_rows = by_alias.get((locus.strain, locus.bgc, stream_id), [])
             strain_rows = by_strain.get((locus.strain, stream_id), [])
@@ -821,11 +836,13 @@ def build_availability(
             state_by_stream[stream_id] = state
             count_by_stream[stream_id] = count
             freshness_by_stream[stream_id] = freshness
+            breakdown_by_stream[stream_id] = _records_by_state(alias_rows or strain_rows)
 
         # The authoritative inventory row itself establishes the identity channel.
         state_by_stream["inventory_identity"] = "EXACT_LOCUS" if locus.full_node and locus.region else "ALIAS_BOUND"
         count_by_stream["inventory_identity"] = 1
         freshness_by_stream["inventory_identity"] = "CURRENT"
+        breakdown_by_stream["inventory_identity"] = state_by_stream["inventory_identity"] + "=1"
 
         gene_source_score = max(
             BINDING_SCORE[state_by_stream.get("gene_inventory", "ABSENT")],
@@ -870,6 +887,7 @@ def build_availability(
         for stream_id in stream_ids:
             row[f"{stream_id}_state"] = state_by_stream[stream_id]
             row[f"{stream_id}_records"] = count_by_stream[stream_id]
+            row[f"{stream_id}_records_by_state"] = breakdown_by_stream[stream_id]
         bgc_rows.append(row)
 
         for section_number in range(1, 31):

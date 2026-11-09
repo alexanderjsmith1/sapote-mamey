@@ -43,7 +43,7 @@ def test_corrupt_triage_is_typed_in_write_time_verdict(tmp_path):
     pkg = _package(tmp_path)
     (pkg / f"{STRAIN}_4_triage_board.csv").write_bytes(b"\xff\xfe\x00bad")
 
-    result = judgment_store.record_mode_b(pkg, BGC, CARD)
+    result = judgment_store.record_mode_b(pkg, BGC, CARD, identity_checked_by_caller=True)
 
     assert result["verdict"]["locator"]["status"] == "ERROR"
     assert "triage" in result["verdict"]["locator"]["error"]
@@ -54,7 +54,7 @@ def test_corrupt_triage_is_typed_in_write_time_verdict(tmp_path):
 def test_missing_triage_retains_optional_write_time_fallback(tmp_path):
     pkg = _package(tmp_path)
 
-    result = judgment_store.record_mode_b(pkg, BGC, CARD)
+    result = judgment_store.record_mode_b(pkg, BGC, CARD, identity_checked_by_caller=True)
 
     assert result["verdict"]["locator"]["status"] == "NO_TRIAGE_ROW"
     assert "error" not in result["verdict"]["claim_safety"]
@@ -63,7 +63,7 @@ def test_missing_triage_retains_optional_write_time_fallback(tmp_path):
 def test_corrupt_triage_compound_loader_blocks_claim_safety_seal_gate(tmp_path):
     pkg = _package(tmp_path)
     (pkg / f"{STRAIN}_4_triage_board.csv").write_bytes(b"\xff\xfe\x00bad")
-    judgment_store.record_mode_b(pkg, BGC, CARD)
+    judgment_store.record_mode_b(pkg, BGC, CARD, identity_checked_by_caller=True)
 
     result = seal_mod.seal_package(pkg, strict=True)
     claim = next(g for g in result["gates"] if g["name"] == "claim_safety")

@@ -52,8 +52,9 @@ can write an empty subset. On normalized records, a genus filter needs
 
 ## Check and keep the result
 
-Provisioning prints source/output hashes, sizes, version, filter and
-included/excluded counts. Compare those counts with the intended filter.
+Provisioning prints the source and output SHA-256 hashes, the source size in bytes
+(`source_bytes`), the version, the filter and the included/excluded counts. It does not
+report the output size; measure it yourself if you need it. Compare those counts with the intended filter.
 Selected records stay in memory, so broad filters need more RAM.
 
 Use `--out-receipt` when you want a saved receipt, creating its parent directory

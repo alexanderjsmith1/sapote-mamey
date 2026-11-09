@@ -14,7 +14,7 @@ Use the installed bundle's [current authoring contract](../../../MODEB_FULL50_CO
 
 # Plain-English authoring guidance — distilled from the May-27 layperson prose
 
-*Source: AS-XXX Laypersons Guide + AS-XXX layperson section (2026-05-26/27). These read well; the goal is to
+*Source: STRAIN_ID Laypersons Guide + STRAIN_ID layperson section (2026-05-26/27). These read well; the goal is to
 port their readability into the current `guide` / `compile-report` layperson slots **without** porting their
 pre-gate overclaiming. Every "makes / produces / kills" below is rewritten to capacity language.*
 
@@ -55,7 +55,7 @@ These are the specific analogies that carried the May-27 prose. They're safe to 
 
 ## 3. Lead with the "so what" (the Top-5 move)
 
-Each of the five findings in AS-XXX follows the same micro-structure, which is worth encoding:
+Each of the five findings in STRAIN_ID follows the same micro-structure, which is worth encoding:
 
 > **<one-line headline> (BGC N).** <what class of chemistry, in plain words> · <nearest known comparator +
 > one-line mechanism + why it matters> · <honest caveat: incompleteness / needs isolation>.
@@ -87,7 +87,7 @@ analogies; rewrite the verbs:
 | "BGC 25 encodes the machinery to **make** X" | "capacity consistent with X" |
 | "BGC 35 **most closely matches** gargantulide… **kills** Candida" | "nearest MIBiG neighbour by protein similarity is gargantulide; capacity consistent with that antifungal class" |
 | "This bacterium **makes** an iron-grabber" | "carries machinery with capacity consistent with a siderophore" |
-| per-BGC activity ("explains AS-XXX's anti-Candida activity") | activity stays **extract-level**; not pinned to a BGC without fractionation |
+| per-BGC activity ("explains STRAIN_ID's anti-Candida activity") | activity stays **extract-level**; not pinned to a BGC without fractionation |
 | "KCB score 25,090 → it **is** maklamicin-class" | KCB is **similarity, not identity**; "nearest neighbour," "capacity consistent with" |
 
 ## 6. Concrete edit to the `guide` skeleton prompts

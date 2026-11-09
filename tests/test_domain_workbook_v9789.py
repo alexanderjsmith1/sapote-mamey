@@ -15,7 +15,7 @@ def _write_domain_tables(d):
         for i, (dom, role) in enumerate([("PKS_KS", "PKS ketosynthase"),
                                           ("AMP-binding", "NRPS A-domain / loading"),
                                           ("LANC_like", "Lanthipeptide maturation")]):
-            w.writerow({"Strain": "AS-901", "Rank": 1, "BGC_ID": "BGC001",
+            w.writerow({"Strain": "STRAINX", "Rank": 1, "BGC_ID": "BGC001",
                         "Assembly_Locator": "NODE_1 region001", "locus_tag": f"c{i}",
                         "cds_start": 100 + i * 100, "cds_end": 200 + i * 100, "strand": 1,
                         "domain_name": dom, "domain_description": "", "evalue": "1e-20",
@@ -24,7 +24,7 @@ def _write_domain_tables(d):
     with open(os.path.join(d, "domain_role_counts_by_bgc.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=_DOMAIN_SHEETS["Domain_Role_Counts_By_BGC"])
         w.writeheader()
-        w.writerow({"Strain": "AS-901", "BGC_ID": "BGC001", "Assembly_Locator": "NODE_1 region001",
+        w.writerow({"Strain": "STRAINX", "BGC_ID": "BGC001", "Assembly_Locator": "NODE_1 region001",
                     "domain_role_category": "PKS ketosynthase", "count": 1})
     with open(os.path.join(d, "domain_complexity_metrics_by_bgc.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=["Strain", "Rank", "BGC_ID", "Assembly_Locator",
@@ -33,7 +33,7 @@ def _write_domain_tables(d):
                                            "Tailoring_domain_count", "Transport_domain_count",
                                            "Regulatory_domain_count"])
         w.writeheader()
-        w.writerow({"Strain": "AS-901", "Rank": 1, "BGC_ID": "BGC001",
+        w.writerow({"Strain": "STRAINX", "Rank": 1, "BGC_ID": "BGC001",
                     "Assembly_Locator": "NODE_1 region001", "Products": "NRPS; PKS",
                     "Domain_total": 3, "Unique_domain_names": 3, "Domain_CDS_count": 3,
                     "Biosynthetic_core_domain_count": 3, "Tailoring_domain_count": 0,
@@ -41,7 +41,7 @@ def _write_domain_tables(d):
     with open(os.path.join(d, "domain_safe_unsafe_claims.csv"), "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=_DOMAIN_SHEETS["Domain_Claim_Safety"])
         w.writeheader()
-        w.writerow({"Strain": "AS-901", "Rank": 1, "BGC_ID": "BGC001",
+        w.writerow({"Strain": "STRAINX", "Rank": 1, "BGC_ID": "BGC001",
                     "Assembly_Locator": "NODE_1 region001",
                     "Safe_domain_claims": "NRPS/PKS assembly-line architecture",
                     "Unsafe_domain_claims": "confirmed product scaffold",
@@ -55,7 +55,7 @@ def test_domain_sheets_created_and_populated(tmp_path):
     wb.active.title = "A1_Dashboard"
     b1 = wb.create_sheet("B1_BGC_Master")
     b1.cell(1, 1).value = "BGC_ID"; b1.cell(1, 2).value = "strain"
-    b1.cell(2, 1).value = "BGC001"; b1.cell(2, 2).value = "AS-901"
+    b1.cell(2, 1).value = "BGC001"; b1.cell(2, 2).value = "STRAINX"
     mp = str(tmp_path / "master.xlsx")
     wb.save(mp)
 

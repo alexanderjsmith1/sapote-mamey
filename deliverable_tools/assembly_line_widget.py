@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """assembly_line_widget.py — self-contained NRPS/PKS assembly-line / domain-architecture
-reader for a Sapote-Mamey strain (graduated into the engine as a first-class deliverable
-tool, v9.7.349x candidate); forked from tools/bgc_widget.py.
+reader for a Sapote-Mamey strain; forked from tools/bgc_widget.py.
 
 For each BGC that carries NRPS/PKS assembly-line content it draws every biosynthetic
 gene as a bar with its ORDERED aSDomains as coloured blocks (KS/AT/KR/DH/ER/ACP for
@@ -413,11 +412,11 @@ def find_pkg(runs_root, strain):
 def run_strain(strain, runs_root, outdir):
     pkg = find_pkg(runs_root, strain)
     if not pkg:
-        emit(f"  [SKIP] {strain}: no antismash_modules.csv found under {runs_root}")
+        emit(f"  [SKIP] {strain}: no antismash_modules.csv found under {runs_root}; nothing written. The package may still exist; check the path and the module table.")
         return None
     payload = build_payload(strain, pkg)
     if not payload["bgcs"]:
-        emit(f"  [SKIP] {strain}: no NRPS/PKS assembly-line domains present")
+        emit(f"  [SKIP] {strain}: the module table has no NRPS/PKS assembly-line domain rows; nothing written. This reports the module table only; inspect it before concluding why.")
         return None
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, f"{strain}_assembly_line.html")

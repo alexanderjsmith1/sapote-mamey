@@ -1,13 +1,16 @@
 # Figure Reproducibility — data + recipe travel with every figure
 
-Companion to `FIGURE_STYLE.md`. That rule says a figure carries data only (interpretation goes in the
+Companion to [FIGURE_STYLE.md](FIGURE_STYLE.md). That rule says a figure carries data only (interpretation goes in the
 caption). This rule says **every figure also ships with the data it was plotted from and a way to
-regenerate it after an edit** — so a figure can be presented alongside its data, and a last-minute change
-(for example, dropping a strain or a BGC) can be a versioned selection/edit plus replot when the chosen renderer provides that path; source binding and denominator policy must be rechecked.
+regenerate it after an edit**, so a figure can be shown alongside its data.
+
+A last-minute change, such as dropping a strain or a BGC, is then an edited copy of that data plus a
+replot, where the renderer has a replot path. After the change, recheck the source binding and the
+denominator.
 
 ## What ships with each figure
-1. **The plotted data** — either a per-figure CSV, or one sheet per figure in `Sapote_Figure_Data.xlsx`.
-   This is the exact data behind the bars/points, in editable form.
+1. **The plotted data** — a per-figure CSV holding the exact data behind the bars or points, in
+   editable form. No bundle tool writes a figure-data workbook.
 2. **A recipe** — what the figure shows and how to regenerate it after adding/removing data
    (e.g. `normalization_recipe.md`).
 3. **The clean PNG** — FIGURE_STYLE-compliant (no overlays/arrows; color + legend carry the signal).
@@ -17,23 +20,35 @@ regenerate it after an edit** — so a figure can be presented alongside its dat
 - It writes an **editable source CSV** (`normalization_per_strain.csv` — one row per strain) plus the
   derived ranking/matrix CSVs and the figures.
 - `--replot` reads the (possibly edited) source CSV and regenerates everything **without** recomputing
-  from the cohort. Delete a strain's row, run `--replot`, and that strain vanishes from every output
-  consistently — the last-minute drop workflow.
-- Drop `--replot` to rebuild from the full cohort instead (picks up newly banked strains).
+  from the cohort. The CSV must have one row per strain; a strain ID on two rows stops the replot.
+  Delete a strain's only row, run `--replot`, and that strain drops out of every derived output —
+  the last-minute drop workflow.
+- Drop `--replot` to rebuild from the bank instead (picks up newly banked strains). The rebuild has one
+  row per strain in the bank's strain roster. BGC rows whose strain ID is not in that roster are not
+  counted; the tool prints their count by strain ID and writes it under "Coverage" in
+  `normalization_recipe.md`.
 
-## Requirement for future figure tools
-For new or revised figure tools, including the already shipped `tools/build_figures.py`, require: the editable source CSV (or a
-sheet in the figure-data workbook), a replot path that respects edits to that CSV, and a recipe entry. No
-figure should be a dead-end PNG whose data can't be recovered or edited.
+## Requirement for new figure tools
+A new or revised figure tool needs an editable source CSV, a replot path that respects edits to that
+CSV, and a recipe entry. No figure should be a dead-end PNG whose data can't be recovered or edited.
 
-## Implemented reference versus delivery requirement
+`tools/build_figures.py` already meets this: it writes `<figure>_data.csv` beside each PNG and
+`figures_recipe.md` in `--out-dir`, and `--replot` redraws from the edited CSVs.
 
-The normalization example is a specific replot implementation, not a guarantee every bundle renderer supports arbitrary CSV edits. `--replot` reads `normalization_per_strain.csv` from `--out-dir` and derives ranking/matrix/figures there, overwriting fixed files. It does not issue source/config/output hash receipts or recertify an altered cohort manifest. A row deletion changes the denominator and any correlations/ranking. Keep the original source CSV, hash the edited selection/version, retain its exclusion rationale and rebuild into a fresh review copy before accepting revised figures.
+## Limits of the normalization replot
 
-The source counts product classes by substring membership, not a globally exclusive taxonomy. Classes with total count below five are omitted from the ranking/matrix. Per-denominator correlation cells are blank when fewer than ten eligible rows or zero variance applies; blank is not zero or demonstrated absence of association. Source contig count zero is coerced to at least one before log transformation, and some upstream missing fields default to zero. Audit that missingness before scientific interpretation. The raw ranking guards class-count variance. When the correlation is NaN or infinite (for example, every strain has the same contig count), the ranking row has a blank correlation and the regime `not measurable`, and the figure draws no bar for that class. A blank is not a measured mild or zero relationship. Correlation/regime labels are descriptive heuristics, not causal fragmentation correction or automatic valid-normalizer selection (`tools/build_normalization_matrix.py`).
+The normalization example is one replot implementation. Other bundle renderers may not accept CSV edits the same way.
 
-Replot directly parses the edited CSV without a dedicated unique-strain, nonnegative/finite-measurement or source-binding admission check. Duplicate strain IDs remain separate observations. Removing a row is a new selection, not automatic scientific validation of the edited cohort. Verify the exact roster, required fields, valid numeric values and denominator before rendering. Derived CSVs are written before plotting and the recipe is written afterward, so a failed plot can leave a mixed partial output set.
-
-Current normalization PNG saves request 160 dpi and have no vector companion; they need a separate publication artwork/delivery check. The tool still calls the bank reader guard before either branch, even `--replot`, so dependency/source-access preconditions are not implied away by that option. A source CSV and recipe are necessary review material but do not alone prove lossless source coverage, exact identity or reproducible library versions. Carry source/renderer/arguments/environment hashes and typed exclusions with the output. [R redraws](R_FIGURE_WORKFLOWS.md) likewise require fresh receipt bindings.
+- `--replot` reads `normalization_per_strain.csv` from `--out-dir` and rewrites fixed file names there. It writes no source, config or output hash receipt.
+- Deleting a row is a new selection. It changes the denominator, the correlations and the ranking. Keep the original CSV, hash the edited one, record why rows were dropped, and rebuild into a fresh review folder.
+- Replot refuses a strain ID on more than one row. It does not check that values are finite or nonnegative, or bind rows to a source.
+- Classes are counted by substring match, not by an exclusive taxonomy. Classes with a total count below five are left out. If none reaches five, the ranking and matrix CSVs have headers only, no figure is drawn, `normalization_recipe.md` records `NO_CLASS_MET_THRESHOLD`, and a PNG from an earlier run is not removed.
+- A correlation cell is blank with fewer than ten eligible rows or zero variance. A NaN or infinite correlation gives a blank cell, the regime `not measurable` and no bar. Blank is not zero and not a measured lack of association.
+- A contig count of zero is raised to one before the log transform, and some upstream missing fields default to zero. Check missingness before you interpret a result.
+- Correlation and regime labels are descriptive. They do not correct for fragmentation or pick a valid normalizer.
+- Derived CSVs are written before plotting and the recipe after, so a failed plot can leave a mixed set of old and new files.
+- PNGs are saved at 160 dpi with no vector copy, so publication artwork needs its own check.
+- The bank reader guard runs in both branches, `--replot` included.
+- A source CSV and recipe do not show complete source coverage, exact identity or library versions. Keep source, renderer, argument and environment hashes and the exclusions with the output. [R redraws](R_FIGURE_WORKFLOWS.md) need their own receipt bindings too.
 
 Source owner: `tools/build_normalization_matrix.py`.

@@ -1,5 +1,5 @@
 # Claude ↔ ChatGPT Handoff Protocol
-**Version:** 1.1 · Mamey v1.9.179 / Sapote v9.7.463  
+**Version:** 1.1 · Mamey v1.9.180 / Sapote v9.7.464  
 **File location:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`
 
 ---
@@ -33,7 +33,7 @@ User uploads batch zip
         ↓
 Claude merges → produces filled_N+1.xlsx
         ↓
-Claude evaluates trigger conditions (see §2)
+Claude evaluates trigger conditions (see §1)
         ↓
  [any fire?] ──Yes──→ Claude produces CHATGPT_TASK_BRIEF_batchN.md
         ↓                       ↓
@@ -90,7 +90,7 @@ Streptomyces_benchmark_batchN_summary_vN.csv
 [per-strain package zips — optional]
 ```
 
-The master xlsx must have all existing strains intact plus new strains appended. The receiver compares exact source/output identities and checks the selected schema before an authorized merge.
+The master xlsx must have all existing strains intact plus new strains appended. The receiver compares exact source/output identities and checks the selected schema before an authorized merge. A large workbook needs `--full` for the strain-set check (§5).
 
 ---
 
@@ -119,7 +119,7 @@ Before any platform hands off the workbook, run:
 python mamey/workbook_schema_check.py path/to/workbook.xlsx
 ```
 
-A `PASS` result establishes the checker’s implemented coded-sheet/header/dimension/consistency scope, not independent correctness of every value, locus identity or scientific claim. Keep its warnings and input hash. Known gaps (e.g. empty B4 scan columns for benchmark strains) are acceptable if documented in H2_Gap_Queue.
+By default (auto mode) a workbook whose `A2_Strain_Registry` has 26 or more non-blank strain cells gets the fast structural path. That path skips the A2-to-B1 strain-set check, tier recomputation and Activity_Ref membership, and it says so in a warning. Use `--full` when the strain roster must be checked, and reconcile the strain and locus rosters yourself. A `PASS` result establishes the checker’s implemented coded-sheet/header/dimension/consistency scope, not independent correctness of every value, locus identity or scientific claim. Keep its warnings and input hash. Known gaps (e.g. empty B4 scan columns for benchmark strains) are acceptable if documented in H2_Gap_Queue.
 
 ---
 

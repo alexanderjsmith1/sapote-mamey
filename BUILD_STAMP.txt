@@ -1,5 +1,5 @@
-version=9.7.463
-build=20261104v97463a
-engine=1.9.179
-patch=KCB similarity band.; Split detector.; Tab-reconcile ledger.; Identity holds.; BiG-SCAPE.; Trees and placement.; antiSMASH shapes.; clinker.
+version=9.7.464
+build=20261108v97464a
+engine=1.9.180
+patch=KCB reads the percent.; Identity.; Missing values.; Habitat and leads.; Refusals instead of overwrites.; Exit codes and gates.; BiG-SCAPE, trees and figures.; Figures and BLASTp lanes.
 tier=code

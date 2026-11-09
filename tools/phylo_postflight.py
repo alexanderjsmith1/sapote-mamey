@@ -84,6 +84,46 @@ class Rep:
     def fails(self): return [i for i in self.items if i["status"]=="FAIL"]
     def warns(self): return [i for i in self.items if i["status"]=="WARN"]
 
+def _refuse_json_output(json_path, inputs, *, directories=()):
+    """Refuse --json before any work when it is an input, aliases one, or already exists.
+
+    Runs the shared output check (`preflight_output_roster`) with every named input file, and
+    every file directly inside each input directory, protected. Exits 2 with OUTPUT_REFUSED.
+    """
+    if not json_path:
+        return []
+    protected = [p for p in inputs if p]
+    for d in directories:
+        if d and os.path.isdir(d):
+            protected.append(d)
+            protected += [os.path.join(d, n) for n in sorted(os.listdir(d))]
+    try:
+        try:
+            _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if _root not in sys.path:
+                sys.path.append(_root)
+            from mamey.output_transaction import preflight_output_roster
+        except ImportError:
+            # A minimal tools-only copy without the package: the shared writer applies the same
+            # alias and existing-file refusals.
+            from _wbio import AtomicWriteRefused, _check_destination
+
+            def preflight_output_roster(paths, protected_paths=()):
+                try:
+                    _check_destination(paths[0], protected_paths, refuse_existing=True)
+                except AtomicWriteRefused as exc:
+                    raise ValueError(("output aliases protected input" if "protected" in str(exc)
+                                      else "catalog outputs must be fresh")) from None
+        preflight_output_roster([json_path], protected_paths=protected)
+    except ValueError as exc:
+        reason = ("it is one of the inputs" if "protected" in str(exc)
+                  else "it already exists" if os.path.lexists(json_path) else str(exc))
+        sys.stderr.write(f"OUTPUT_REFUSED: --json {json_path!r} was not written because {reason}; "
+                         "choose a fresh path outside the inputs\n")
+        sys.exit(2)
+    return protected
+
+
 def main():
     ap = argparse.ArgumentParser(allow_abbrev=False)  # v9.7.412: no silent prefix matching
     ap.add_argument("treefile"); ap.add_argument("--outgroup", default="OUTGROUP")
@@ -95,6 +135,8 @@ def main():
     a = ap.parse_args()
     if not os.path.isfile(a.treefile):  # v9.7.412: typed refusal, not FileNotFoundError
         sys.stderr.write(f"INPUT_NOT_FOUND: treefile {a.treefile!r} is not a readable file\n"); sys.exit(2)
+    # The report must never replace the tree or any other input (a tree passed as --json was replaced).
+    a.json_protected = _refuse_json_output(a.json, [a.treefile], directories=[a.genomes_dir])
     nwk = open(a.treefile).read().strip()
     _tdir = os.path.dirname(os.path.abspath(a.treefile)) or "."
     try:
@@ -227,7 +269,8 @@ def _emit(rep,a):
     print(f"--- {len(rep.items)-nf-nw} pass / {nw} warn / {nf} FAIL ---")
     if nf: print("    DO NOT PUBLISH this figure until FAILs are resolved.")
     if a.json:
-        _atomic_write_json(rep.items, a.json, owner_dir=os.path.dirname(os.path.abspath(a.json)), indent=1)
+        _atomic_write_json(rep.items, a.json, owner_dir=os.path.dirname(os.path.abspath(a.json)), indent=1,
+                           protected=getattr(a, "json_protected", []), refuse_existing=True)
 
 if __name__ == "__main__":
     main()

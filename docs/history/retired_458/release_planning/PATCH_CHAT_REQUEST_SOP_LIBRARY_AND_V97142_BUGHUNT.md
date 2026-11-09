@@ -15,7 +15,7 @@ an applied/verified patch or duplicate a package to create the review packet.
 
 ## Retained request
 
-Handshake: The sky is not red, it is blue, just like the ocean.
+Handshake (historical; in [AGENTS.md](../../../../AGENTS.md) the phrase is compatibility metadata, not a reply ritual): The sky is not red, it is blue, just like the ocean.
 
 ## Request
 

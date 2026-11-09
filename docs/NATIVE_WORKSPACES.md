@@ -1,5 +1,9 @@
 # Bounded native workspaces
 
+This page covers two tools that run native programs from a safe scratch folder: protein PCoA clustering with DIAMOND, and the MLSA build. To run MLSA when an input or output path contains spaces, use the command in [MLSA](#mlsa). Its defaults are 3.8 GB RSS, 2 GB free disk, 900 seconds, 4 threads and a 536,870,912-byte copy ceiling (`tools/_mlsa_resources.py:25-28,313-317`). Protein PCoA needs no extra option; see [DIAMOND clustering](#diamond-clustering).
+
+## How the workspace works
+
 Some native programs re-expand relative data paths against their working directory.
 Relative filenames therefore do not make a working directory with spaces safe. The
 shared `mamey.native_workspace` owner supplies a fresh disposable directory under an
@@ -65,8 +69,13 @@ BLAST database copies and output closure have finite byte/count ceilings as well
 The six one-thread library environment controls are pinned for the worker, while
 explicit existing native thread arguments are preserved.
 
-`RESOURCE_ATTEMPT/<fresh-id>/` contains the frozen request, child log, resource
-receipt, worker completion and terminal `SUCCEEDED.json` or `FAILED.json`. Resource
+`RESOURCE_ATTEMPT/<fresh-id>/` fills in stages. A successful attempt holds the frozen
+request (`REQUEST.json`), the child log (`worker.log`), the resource receipt (`RESOURCE.json`),
+the worker completion (`WORKER_COMPLETION.json`) and `SUCCEEDED.json`. A failed attempt holds
+`FAILED.json` and only the files written before the failure. A failure while the scratch folder
+is created or checked comes before the request, so `FAILED.json` then has null request and
+resource bindings and there is no worker log. Read `FAILED.json` for the stage and the error.
+A missing file means that stage was not reached; it is not evidence that the worker ran. Resource
 evidence is frozen before terminal success; hashes have no circular dependency.
 Only validated outputs are copied into exclusive final names, retaining the worker
 bytes and rechecking the output disk floor. Mechanical `run_status.json` becomes visible

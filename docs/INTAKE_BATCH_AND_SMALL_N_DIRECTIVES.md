@@ -1,8 +1,9 @@
 # Run a batch of antiSMASH ZIPs
 
 Extract one or more genomes and record their package paths, runtime and completion
-status. You need the installed program and antiSMASH result ZIPs. For one interactive
-extraction with a brief and locus maps, use [Your first run](reader/01_FIRST_RUN.md).
+status. You need the installed program and antiSMASH result ZIPs. For a single strain, use
+[Your first run](reader/01_FIRST_RUN.md). The batch run differs from it in two ways. It does not pass
+`--capped-session`, and it keeps bounded antiSMASH JSON evidence on. Like the first run, it writes no brief.
 
 Check the input filenames, strain names, taxonomy, source and release settings
 before starting. Put only the selected ZIPs in `inputs/EXAMPLE-batch`.
@@ -14,6 +15,10 @@ python tools/intake_harness.py --inputs inputs/EXAMPLE-batch \
 ```
 
 `--inputs` accepts files or folders; folders include only ZIPs directly inside them.
+To set the taxonomy per strain, add `--taxonomy-map taxonomy.json`. The file is a flat
+JSON object of strain name to taxonomy, for example
+`{"EXAMPLE-1": "Streptomyces sp.", "EXAMPLE-2": "not verified"}`. A blank value or a
+bare `sp.` stops the harness.
 The other three options choose the output root and the two CSV records.
 Defaults are gold mode, PRIVATE release and source `not verified`. For reviewed
 public inputs, choose `--release PUBLIC` and provide the verified `--source`.
@@ -24,10 +29,22 @@ The release label does not redact files.
 Each genome goes under `runs/EXAMPLE-batch/<name>/package/`, with an
 `intake_completion_receipt.json` beside it. Names come from ZIP filenames, with collisions resolved. Check the registry's assigned names.
 
-The harness uses bounded JSON evidence and omits the brief; it does not pass
-`--capped-session`. This output differs from the interactive first-run recipe.
+When the harness finishes, its last lines are `[intake] attempted N: OK a, RUN_FAILED b,
+NEEDS_ANTISMASH c`. It exits 1 if any input failed (`BATCH_INCOMPLETE`) and 0 otherwise.
 Read the registry, metrics and completion receipts: exit zero can still include
 `NEEDS_ANTISMASH`, which means no extraction was completed for that input.
+
+`engine_peak_mb` in the metrics is in MB of 10^6 bytes. The start line
+`mem-monitor=` and the report's Performance section name the method:
+- `psutil`: the engine child's and its descendants' resident size, sampled while it
+  runs. Sampling can miss a short peak.
+- `ru_maxrss` (psutil not installed): the largest resident size of any finished child
+  of the harness so far, converted per platform (bytes on macOS, KiB on Linux). It is
+  not this input's own peak, and a later input can repeat an earlier, larger value.
+
+Neither is an exact peak. Use them as a rough guide, not as a resource limit.
+Batches run before this conversion was fixed stored macOS fallback values about
+1,000 times too large; do not reuse those numbers.
 
 ## Resume the same batch
 

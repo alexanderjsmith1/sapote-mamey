@@ -2,9 +2,11 @@
 
 Status: candidate interface contract. This document does not authorize or build a tree.
 
+A domain tree is built only with explicit approval for the compute. For the size check and approval steps, see [the phylo autopilot workflow](PHYLO_AUTOPILOT_WORKFLOW.md).
+
 ## Scope separation
 
-A domain tree asks about relatedness among homologous biosynthetic machinery domains. It is not an organismal tree, BGC tree, product-identification method, pathway-completeness test, or physical-linkage proof. The organismal 138-SCG phylogeny remains a separate channel. PKS KS pools and RiPP enzyme/precursor pools remain family- and architecture-specific; they are not combined by default.
+A domain tree asks about relatedness among homologous biosynthetic machinery domains. It is not an organismal tree, BGC tree, product-identification method, pathway-completeness test, or physical-linkage proof. The organismal phylogeny, built from 138 single-copy genes (SCGs, see [phylogenomics](phylogenomics.md)), remains a separate channel. PKS KS pools and RiPP enzyme/precursor pools remain family- and architecture-specific; they are not combined by default.
 
 ## Extractor interface
 
@@ -20,6 +22,28 @@ A domain tree asks about relatedness among homologous biosynthetic machinery dom
 | alignment admission | complete `strain / full node-or-contig / region / BGC alias`, locus tag, domain ID, subtype/family, sequence SHA-256, source locator/hash | raw extractor rows lack the BGC alias and therefore require an exact inventory/module join before alignment |
 
 The raw GBK extractor also shortens filename node names to `NODE_<digits>` and defaults a missing region token to `region001`. These fields are parsing outputs, not verified full locus identity; recover and verify the complete node/contig and region from bound source records before admitting a tip.
+
+## What to run now
+
+Write a spec file, then run the builder. The spec is JSON. Five keys are required and must be non-empty strings: `domain_class`, `gbk_dir`, `outdir`, `title` and `approved_by`. `gbk_dir` is a folder holding one strain's region `.gbk` files directly inside it, not in subfolders. An empty folder, a folder with only subfolders, or one that mixes strains stops with a `ValueError` traceback (exit 1), not a `REFUSED:` line. `outdir` is created if it does not exist. Optional keys are `min_tips` (default 4), `outgroup`, and `allow_no_outgroup` (default false). A spec that names no `outgroup` must set `allow_no_outgroup` to `true`; otherwise it is refused at load. With `allow_no_outgroup` true, the tree is a within-class panel with no outgroup. Module-core classes are `PKS_KS`, `PKS_AT`, `Condensation`, `AMP-binding`, `PKS_KR` and `PKS_DH`.
+
+```bash
+python tools/build_domain_tree.py DOMAIN_TREE_SPEC.json --inventory PACKAGE_inventory.csv --skip-inference
+```
+
+`--inventory` names the strain's package BGC inventory CSV, with `BGC_ID`, `Contig`, `antiSMASH_Region` and `Source_GBK` columns. Each extracted tip is joined to it through its source region GBK: the one file in `gbk_dir` whose name gives the tip's node and region. That file's name, or the name without the leading `<strain>_`, must equal `Source_GBK`. The row's `Contig` must be the tip's `NODE_<n>` or start with `NODE_<n>_`, and its region number must match. A joined tip gets its BGC alias and full contig. Any other tip is held and left out of the FASTA. Its `<class>_provenance.tsv` row reads `IDENTITY_HELD` with one of these reasons in `identity_hold`:
+
+- `SOURCE_GBK_NOT_UNIQUE`: no file, or more than one, in `gbk_dir` gives that node and region;
+- `NO_INVENTORY_ROW`: no `Source_GBK` row names the file;
+- `DUPLICATE_INVENTORY_KEY`: two rows name the file with different alias, contig or region;
+- `INCOMPLETE_INVENTORY_ROW`: the row lacks `BGC_ID`, `Contig` or `antiSMASH_Region`;
+- `CONTIG_MISMATCH` or `REGION_MISMATCH`: the row disagrees with the file name.
+
+The provenance table's `identity_state` column reads `VERIFIED`, `HELD` or `UNVERIFIED_NO_INVENTORY`. A missing inventory file prints `REFUSED: INVENTORY_MISSING` and exits 2.
+
+Without `--inventory`, staging works as before, but every tip is `UNVERIFIED_NO_INVENTORY`, and the runner says so on stderr. After a gated tree, the summary is then written as `<class>_domain_tree_summary.UNVERIFIED.tsv`. Mode B reads only `*_domain_tree_summary.tsv`, so an unverified tree is never shown in a card. Pass `--inventory` for any tree whose tips will be displayed.
+
+With `--skip-inference` the runner validates the spec, extracts domains and stages the FASTA, then stops. It exits 0 and prints a `[stage]` line with the staged, duplicate, short, long and identity-held counts. A bad spec or a staging refusal prints `REFUSED:` and exits 2. Drop the flag, and add `--threads N` (default 4), only after the compute is approved.
 
 ## Current retry and output boundaries
 
@@ -38,9 +62,12 @@ output-set transaction or checkpoint resume. After a refusal or interruption,
 existing files alone do not identify which outputs belong to that attempt.
 
 A full runner success means the tree passed its sanity gate and a summary was
-written. The summary currently uses raw extracted rows, including rows excluded
-from staging, and leaves tip, BGC alias, clade and reference measurements blank.
-It is not an admitted-tip crosswalk or a completed placement table. This runner
+written. With `--inventory`, the summary holds the verified tips only, with
+`bgc_id`, `full_contig`, `region` and `identity_state`. Without it, the summary
+holds every extracted row and goes to the `.UNVERIFIED.tsv` name. In both cases
+the summary includes rows the length and duplicate filters left out of the FASTA,
+and it leaves tip, clade and reference measurements blank. It is not a completed
+placement table. This runner
 does not write the clade table or render a figure. Preserve the input roster,
 staging decisions, native logs and hashes, and verify the current tree and exact
 tip crosswalk before using downstream outputs.
@@ -54,6 +81,8 @@ an empty successful export and a failed attempt must remain distinct.
 
 ## Required workflow receipts
 
+These are acceptance requirements. The runner does not write all of them. Keep the missing ones yourself.
+
 1. Extraction receipt: source GBK/module hashes, strain-internal check, retained/excluded counts, exact domain roster, and sequence hashes.
 2. Pool-design receipt: one declared KS subtype or one homologous RiPP family, inclusion/exclusion reasons, duplicate-copy policy, reference provenance, and outgroup/rooting plan.
 3. Alignment receipt: tool/version/command, input roster hash, alignment hash, retained columns, and invalid/short-sequence holds.
@@ -64,9 +93,9 @@ an empty successful export and a failed attempt must remain distinct.
 
 - Iterative-module guard: KS count is not module count or chain length; low KS count is not fragmentation evidence.
 - Housekeeping convergence guard: FAS/FabB/FabF/FabH/hglE-like domains cannot anchor a rescue.
-- Two-proof guard: domain co-clustering without RG-GMCI complementarity is `DOMAIN_ONLY_HINT`, never a rescue.
+- Two-proof guard: domain co-clustering without RG-GMCI complementarity is `DOMAIN_ONLY_HINT`, never a rescue. RG-GMCI is defined in [the glossary](GLOSSARY.md).
 - Tree-source separation: rendering consumes a completed, bound tree and never builds, re-roots, or relabels it.
-- Exact-locus gate: any BGC-specific tip must display `strain / full node-or-contig / region / BGC alias`; incomplete identity fails closed.
+- Exact-locus gate: any BGC-specific tip must display `strain / full node-or-contig / region / BGC alias`. `build_domain_tree.py --inventory` enforces it. Each tip is joined to the package inventory through its source region GBK, and a tip that cannot be joined is held with a reason (see [What to run now](#what-to-run-now)). Without `--inventory`, every tip is `UNVERIFIED_NO_INVENTORY`, and the summary is kept off the Mode B display path. `stage_domains` also stops with `STAGE_INCOMPLETE_IDENTITY` when `strain`, `node`, `region` or `locus_tag` is blank or a header holds a `?` placeholder. The FASTA header keeps the short `strain__node__region__locus_tag` form, so take the full contig and alias from the provenance table, not from the header.
 - Duplicate gate: exact copies remain enumerated; no silent one-tip-per-strain collapse.
 
 

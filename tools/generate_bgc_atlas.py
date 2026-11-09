@@ -61,8 +61,9 @@ def corrected_count(bgcs):
     return round(n,2)
 
 def tier_of(b, verdict):
-    anchor=(b.get('closest_kcb_product') or '').strip()
-    dark = (not anchor) or anchor.upper()=='UNRESOLVED'
+    # A placeholder anchor (blank, NA, -, none, n/a, UNRESOLVED ...) names no comparator.
+    from build_priority_leads import kcb_anchor_named
+    dark = not kcb_anchor_named(b.get('closest_kcb_product'))
     if verdict in ('CONFIRM',): return 'Confirmed'
     if dark: return 'Candidate-novel'
     # intact-ish + resistance signal → predicted-functional, else just anchored

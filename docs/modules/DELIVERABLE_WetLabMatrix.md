@@ -1,165 +1,94 @@
-# DELIVERABLE — Wet-Lab Decision Matrix (WLDM)
+# Wet-lab decision matrix
 
-> **Filing.** `docs/modules/DELIVERABLE_WetLabMatrix.md`.
-> **Extends / references:** `SAPOTE_SLIM_JUDGMENT_KERNEL.md` MODULE 4 (§33 WL score), `DAPR_CLASS_FRAMEWORK.md` (AB/AF routing, kernel MODULE 17), `DELIVERABLE_CONTRACT.md` (Offer Protocol, Contig-ID Mandate, Next-Paths). Architecture grades come from kernel MODULE 3 (§31); LMPKS rescue grades from `prompts/reuse/SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md`. **Do not restate those rules — point to them.**
-> **Precedence.** The current user task and [assistant governance](../ASSISTANT_GOVERNANCE.md) govern actions. `score_bgc()` owns this standalone helper's emitted score; it is separate from core extraction priors. The inherited criteria below are historical/proposed policy, not an exact copy of the current helper. Do not add missing terms or alter scores from this table without a separately governed source change.
-> **Status:** `SCHEMA_BACKED` — `tools/build_wetlab_matrix.py` emits `<strain>_WetLab_Decision_Matrix.csv` + the `WetLab_Decision_Matrix` sheet; `score_bgc()` in that tool is the single source of truth and this doc is its portable spec. (Sapote may still compute by hand from §3a when no package is present.)
-> **One-line purpose.** Convert each BGC's evidence into four independent, actionable wet-lab priorities (sequence / activate / isolate / dereplicate) plus a single decision category, in the full matrix format that v7.5.2 §33 carried and the slim kernel compressed to a bare score.
+`tools/build_wetlab_matrix.py` scores each biosynthetic gene cluster (BGC) in a package and ranks it for wet-lab follow-up. It writes one CSV and one XLSX. It reads only `manifest.json` from the package. The scores are a sorting aid. They do not say what a cluster makes.
 
----
+For terms such as BGC, package and KCB, see the [glossary](../GLOSSARY.md). The class framework behind the Arch A to C grades is in the [judgment kernel](../SAPOTE_SLIM_JUDGMENT_KERNEL.md) and the [class framework](../DAPR_CLASS_FRAMEWORK.md).
 
-## 1. When it is offered (Deliverable Offer Protocol)
+## Run it
 
-Per `DELIVERABLE_CONTRACT.md`, the user must never need to know this exists to receive it.
+You need a package that passed `validate`. See the [first-run recipe](../reader/01_FIRST_RUN.md). From the bundle root:
 
-- **Assistant workflow recommendation**, not an automatic engine call: build when authorized and selected whenever a Mode B run (Full-Run Profile) or a Deep Dive Synopsis is produced: the top-10 wet-lab target table is part of the synopsis, and the `WetLab_Decision_Matrix` workbook sheet is part of the Excel deliverable.
-- **Offer as first next-path** when a sealed `MAMEY_COMPLETE` package exists but only a triage board has been produced (no wet-lab routing yet).
-- **Incomplete delivery** = producing a WL *score* (kernel M4) without the four action scores (§33.5), the decision-category mapping (§33.4), and the top-10 target table. A lone score is not this deliverable.
-
----
-
-## 2. Inputs required
-
-| File / field (Mamey package) | Feeds | Required for |
-|---|---|---|
-| `manifest.json → bgc_counts.assembly_tier`, `assembly.quality` | POOR/edge penalties; sequencing-priority flag | Decision category; Action score 1 |
-| `manifest.json → bgcs[].edge_status`, `architecture_confidence` | +Interior / Arch A–C terms; truncation penalties | Base score |
-| `_4_triage_board.csv → KCB_score, Novelty_auto (RiQ), CCTT_triggers` | KCB & RiQ bonuses; cryptic-class handles | Base score; Action score 4 |
-| `_4A_RGGMCI_ranked_pairs.csv` | split-pathway anchor rule; "split arm without TE" penalty | Base score; Action score 1 |
-| `manifest.json → bioactivity` | "strain bioactivity matches class" +2 (extract-level only) | Base score |
-| LMPKS rescue result (if run) | post-score LMPKS adjustment (§33.3 LMPKS table) | Base score |
-
-**Missing inputs.** The writer does not treat every missing value the same way.
-- A missing RiQ score is noted as "RiQ: not computed", and its term is left out.
-- A missing, blank or non-numeric `kcb_cumulative` is scored as 0. A 0 takes the "No KCB" branch, so the row reads as "no KCB hit". That 0 means the value is missing. It is not a tested negative.
-- A missing architecture or edge field drops the terms that need it.
-- Induction is always recorded as not per-BGC, and LMPKS as not run.
-
-These are helper defaults, not negative evidence. Check missing inputs against the bound package before you read a score or an action category.
-
----
-
-## 3. Pipeline
-
-The standalone deterministic writer is implemented. The inherited §33.3 table below is historical/proposed policy, not an exact copy of `score_bgc()` or permission to add terms to its output by hand. The current writer leaves metadata activity out of deterministic prioritization, records induction as not per-BGC, and records LMPKS as not run; it does not consume a rescue result to apply the listed adjustment table. Inspect `score_breakdown` and `skip_notes` for the selected output. Bind full strain / full node-or-contig / region / BGC alias separately from the abbreviated display locator.
-
-The deterministic writer already exists. It emits a CSV and a separate XLSX, not a sheet added to the package/master workbook:
 ```bash
-python tools/build_wetlab_matrix.py --package-dir <pkg> --out-dir <dir>
-# emits: <strain>_WetLab_Decision_Matrix.csv  +  workbook sheet WetLab_Decision_Matrix
-# single source of truth for the score = score_bgc() in that tool; this doc then becomes its portable spec.
+python tools/build_wetlab_matrix.py --package-dir runs/EXAMPLE/package --out-dir reviews/EXAMPLE-wetlab
 ```
-The CSV and XLSX are separate outputs; XLSX exceptions are caught and reported as skipped without making the process fail. Existing destinations can be replaced, with no atomic commit of both files. Use a fresh output directory and inspect each requested artifact and its source bindings. The writer emits no input/output hash receipt; retain one separately. Its synopsis/fermentation-card integration rows below describe workflow requirements, not additional artifacts emitted by this CLI.
 
----
+The command makes the output folder if it is missing. It overwrites files of the same name, so use a fresh folder.
 
-## 3a. Scoring criteria — PORTABLE COPY (authority: monolith §33 / scoring code)
+You should see three lines:
 
-Base score (sum all that apply; bonuses are orthogonal unless noted):
+```text
+EXAMPLE: 12 BGCs scored -> reviews/EXAMPLE-wetlab/EXAMPLE_WetLab_Decision_Matrix.csv
+  categories: {'Strong follow-up': 2, ...}
+  xlsx: reviews/EXAMPLE-wetlab/EXAMPLE_WetLab_Decision_Matrix.xlsx
+```
 
-| Criterion | Score |
-|---|---:|
-| Interior BGC | +3 |
-| Architecture Confidence A | +3 |
-| Architecture Confidence B | +2 |
-| Architecture Confidence C (pathway unit) | +1, plus sequencing priority |
-| Strong KCB >5,000 with divergent tailoring | +3 |
-| No KCB + strong diagnostic domains (Arch A) | +4 |
-| No KCB + moderate evidence (Arch B) | +2 |
-| RiQ <0.50 with coherent domains | +3 |
-| RiQ 0.50–0.85 with unusual tailoring | +2 |
-| TFBS gives clear induction condition | +2 |
-| T3/T4 bldA gating suggests hidden expression | +2 |
-| Strain-level bioactivity matches BGC class (extract-level) | +2 |
-| Predicted LC-MS/UV detection handle available | +2 |
-| Full-contig / edge truncation | −2 |
-| Tiny unanchored fragment | −3 |
-| Likely split-cluster arm without TE/release | −2 |
-| Likely housekeeping / conserved cluster | −3 |
-| No chemical/expression evidence | −1 caveat at discovery stage, **not** a penalty |
+The count and categories are your own. If the third line starts with `(xlsx skipped:`, the CSV is still good; the XLSX needs `openpyxl`. If the tool exits with `manifest.json not found in package dir`, check `--package-dir`.
 
-**Stacking rule.** "No KCB + strong diagnostic domains" and "RiQ <0.50 with coherent domains" are orthogonal — claim both. **Split-pathway rule:** for a split-pathway *anchor*, score the pathway unit; do **not** apply the Arch C penalty to the anchor (consistent with kernel MODULE 3 two-level rule).
+The XLSX is a separate file with one sheet named `WetLab_Decision_Matrix`. The package workbook has a sheet with the same name. That sheet is a simpler view (primary axis, priority score, lead tier) and is not this matrix.
 
-**LMPKS post-score adjustment** (apply highest applicable only; stacks with RiQ and zero-KCB bonuses, not with each other):
+## What the tool reads
 
-| LMPKS rescue result | WL adjustment |
-|---|---:|
-| LMPKS-A (≥3 complete modules, TE, classifiable) | +2 |
-| trans-AT PKS confirmed | +2 |
-| Polyene rescue (≥5 DH, no ER run) | +2 |
-| LMPKS-B (≥2 modules + docking domains) | +1 |
-| LMPKS-C (fragment accumulation ≥4 mod_KS) | +1 sequencing priority only |
-| Linear PKS (no TE, ≥3 modules) | +1 |
+All inputs come from `manifest.json`:
 
-**Decision categories:**
-
-| Score | Category | Recommended action |
-|---:|---|---|
-| ≥10 | Immediate follow-up | Culture induction + LC-MS + bioassay-guided fractionation |
-| 7–9 | Strong follow-up | Targeted culture/HRMS or sequencing clarification first |
-| 4–6 | Conditional follow-up | Retain; revisit after long-read assembly or metabolomics |
-| 1–3 | Inventory only | Do not prioritize unless cross-strain evidence emerges |
-| ≤0 | Deprioritized | Keep for completeness; no immediate wet-lab action |
-
----
-
-## 3b. The four independent action scores (this is what the slim kernel dropped)
-
-For **every** BGC, output four HIGH/MED/LOW priorities — they are independent, not derived from the single score:
-
-1. **Sequencing priority** — long-read need. HIGH if Edge / FC / split-pathway / Arch C.
-2. **Activation priority** — special culture conditions matter. HIGH if TFBS clear induction or T3/T4 bldA.
-3. **Isolation priority** — purification/fractionation suitability. HIGH if decision score ≥10.
-4. **Dereplication priority** — HRMS/reference comparison need before isolation. HIGH if KCB >1,000 or RiQ >0.50.
-
-A BGC can be (e.g.) sequencing-HIGH + isolation-LOW simultaneously — that is the point: a fragment worth fixing but not yet worth isolating.
-
----
-
-## 4. Outputs & the contract surface
-
-| Artifact | Stable id | Where |
-|---|---|---|
-| Top-10 wet-lab target table | `WLDM_top10` | Deep Dive Synopsis |
-| Per-BGC matrix (score + category + 4 action scores) | `WLDM_full` | `WetLab_Decision_Matrix` workbook sheet (Schema v1.0) |
-| Top 3–5 action targets | `WLDM_fermcard` | Fermentation Card A5 |
-| Memory line (top targets + categories) | `WLDM_memory` | Project Memory Snapshot |
-
-Registration into the workbook schema (not hand-editing) is the single source of truth when the requested workbook integration is actually implemented and checked.
-
----
-
-## 5. Acceptance checklist ("done" = all)
-
-- [ ] Every BGC has a base score **and** all four action scores (§3b) — not just a score.
-- [ ] Each score term cites the Mamey field it came from; no asserted numbers.
-- [ ] Split-pathway anchors scored as pathway units (no Arch C penalty on anchor).
-- [ ] LMPKS adjustment applied only where a rescue result exists; highest-only.
-- [ ] Decision category present for every BGC; top-10 table sorted by score.
-- [ ] Contig-ID locator on every BGC (`BGC_ID (contig · regionXXX)`) — never a bare `BGC###`.
-- [ ] Bioactivity terms held at **extract level**; no BGC→activity causal claim.
-- [ ] No retired codenames; affiliation = .
-- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
-
----
-
-## 6. Tool / knowledge inventory
-
-| Piece | Owner (source of truth) |
+| Field | Used for |
 |---|---|
-| Score criteria & categories | monolith §33 / `tools/build_wetlab_matrix.py` (existing writer); this doc = portable copy |
-| Architecture grades (A–E) | kernel MODULE 3 (§31) |
-| AB/AF routing context | `DAPR_CLASS_FRAMEWORK.md` / kernel MODULE 17 |
-| LMPKS grades | `prompts/reuse/SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md` |
-| Workbook sheet schema | Workbook Schema v1.0 / `mamey/workbook_schema_check.py` |
+| `bgcs[].edge_status` | Interior bonus, truncation penalty, sequencing priority |
+| `bgcs[].architecture_confidence` | Arch A, B or C terms |
+| `bgcs[].kcb_similarity_pct`, `bgcs[].kcb_evidence_state` | KCB terms and the dereplication priority |
+| `bgcs[].riq_score` | RiQ terms, when present |
+| `bgcs[].length_kb` (or `start` and `end`) | Tiny-fragment penalty |
+| `source_scans.blda_tta.per_bgc[].bldA_tier` | bldA gating term and activation priority |
 
----
+The tool does not read `manifest.json → bgc_counts.assembly_tier`, the triage board or the RG-GMCI pair table. It also ignores strain bioactivity.
 
-## 7. Worked next-paths closer (example — SID-XXX, *Amycolatopsis rubida*)
+## How the score is built
 
-> Wet-Lab Decision Matrix complete: 12 BGCs scored, 2 in **Immediate**, 3 in **Strong**. Top sequencing target: the 017/035/072 NRPS megaset (all sequencing-HIGH). Next paths:
-> 1. Build the Fermentation Card A5 for the two Immediate targets (BGC047 enediyne, BGC063 phosphonate).
-> 2. Run the LMPKS rescue on the 017/035/072 set to resolve their +1/+2 adjustment.
-> 3. Inspect the existing writer’s output schema and requested workbook integration.
-> 4. Generate the Metabolomics Readiness deliverable for the dereplication-HIGH BGCs.
-> 5. Bank a second *Amycolatopsis* strain to test whether the phosphonate/enediyne pairing recurs.
+KCB means KnownClusterBlast, the antiSMASH comparison to known MIBiG clusters. RiQ is a novelty score from the engine. bldA is a regulator whose rare TTA codons can gate gene expression.
+
+| Term | Points |
+|---|---:|
+| Interior cluster | +3 |
+| Architecture A / B / C | +3 / +2 / +1 |
+| KCB similarity in the high band (70% or more) | +3 |
+| No KCB anchor observed, with Arch A | +4 |
+| No KCB anchor observed, with Arch B | +2 |
+| RiQ below 0.50 | +3 |
+| RiQ 0.50 to 0.85 | +2 |
+| bldA tier T3 or T4 | +2 |
+| Edge or full-contig truncation | -2 |
+| Under 5 kb, not interior, no KCB anchor observed | -3 |
+
+Each row of the CSV lists the terms that applied and the field each came from, in `score_breakdown`. Anything the tool could not compute is named in `skip_notes`: `RiQ: not computed`, `induction: not per-BGC`, `LMPKS: not run`. LMPKS is a rescue grading for fragmented polyketide clusters. The tool never applies it.
+
+The KCB terms read antiSMASH's KnownClusterBlast percent similarity through the engine's bands in `mamey/precision.py` (high from `KCB_PCT_HIGH` = 70, moderate from `KCB_PCT_MODERATE` = 40). They do not read the cumulative BLAST score, which grows with cluster size.
+
+"No KCB anchor observed" means `kcb_evidence_state` is `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` or the percent is 0. That state means the region's KnownClusterBlast text file was recognized as a no-hit report ("no hits" text, or empty "Significant hits:" and "Details:" sections) and no hit row was parsed; the text is not checked against the JSON. A missing or unreadable KCB file is not this state. That state is not evidence of novelty. A blank, non-numeric or out-of-range percent, or the state `UNKNOWN_KCB`, is missing: no KCB term fires, in either direction, and `skip_notes` says `KCB percent: missing`.
+
+## Decision categories
+
+| Score | Category |
+|---:|---|
+| 10 or more | Immediate follow-up |
+| 7 to 9 | Strong follow-up |
+| 4 to 6 | Conditional follow-up |
+| 1 to 3 | Inventory only |
+| 0 or less | Deprioritized |
+
+## Four action priorities
+
+Each row also gets four priorities. They do not come from the single score, except isolation.
+
+| Column | HIGH when |
+|---|---|
+| `seq_priority` | Edge or full-contig, or Arch C. Otherwise LOW |
+| `activation_priority` | bldA tier T3 or T4. Otherwise LOW |
+| `isolation_priority` | Score 10 or more. MED at 7 to 9. Otherwise LOW |
+| `dereplication_priority` | KCB similarity in the moderate band or higher (40% or more), or RiQ above 0.50. Otherwise LOW |
+
+A cluster can be sequencing HIGH and isolation LOW: a fragment worth fixing before it is worth isolating.
+
+## Read the output
+
+`locator` shows `BGC_ID (contig · regionN)` for each row. For the full strain / full node-or-contig / region / BGC alias identity, take the contig from the package inventory. The CSV is sorted by score, highest first.
+
+Treat the result as a sort order for a person to review. A high score means more assembly and similarity support. It does not mean a compound, an activity or a product.

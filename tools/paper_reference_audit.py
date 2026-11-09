@@ -230,11 +230,14 @@ def citations(text, style, known_authors):
     for match in re.finditer(r'\(([^()]*)\)', text):
         inner = match.group(1)
         if not YEAR_RE.search(inner):
+            # A year joined to a name, as in '(王2020)', has no word boundary; hold it, never skip it.
+            if re.search(r'[^\W\d_](?:18|19|20)\d{2}(?!\d)', inner):
+                holds.append(('UNSUPPORTED_CITATION', match.group(0), 'Year joined to a name; manual review required.'))
             continue
         if re.fullmatch(YEAR + r'(?:\s*,\s*' + YEAR + r')*', inner):
             continue  # narrative handled below
-        if not re.search(r'[A-Za-z]', inner):
-            continue  # measurements/years are not author keys
+        if not any(c.isalpha() for c in inner):
+            continue  # measurements/years are not author keys; any Unicode letter can start one
         occupied.append(match.span())
         for group in inner.split(';'):
             years = list(YEAR_RE.finditer(group))

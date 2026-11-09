@@ -136,6 +136,21 @@ def _length_audit_supplements(out, admission, caller_paths):
         "scope": "Figure replay and numerical evidence; original alignments are not included; full native readmission requires them."})
     return paths + [index_path]
 
+def _query_tip_set(path, newick):
+    """--query-tips: exact query tip names, one per line, each a tip of the admitted tree."""
+    from Bio import Phylo
+    names = [line.rstrip("\r\n") for line in open(path, encoding="utf-8")]
+    names = [name for name in names if name.strip()]
+    if not names:
+        raise ValueError("QUERY_TIPS_EMPTY")
+    if len(names) != len(set(names)):
+        raise ValueError("QUERY_TIPS_DUPLICATE")
+    tips = {tip.name for tip in Phylo.read(str(newick), "newick").get_terminals()}
+    if set(names) - tips:
+        raise ValueError("QUERY_TIPS_NOT_IN_TREE")
+    return frozenset(names)
+
+
 def refused_reference_tips(newick, builder):
     """Validate all reference accessions. No automatic exclusion is supported."""
     from Bio import Phylo
@@ -766,6 +781,9 @@ def main(argv=None):
     parser.add_argument("--genus-roster", default="", help="Explicit TSV: strain and genus (or tophit_genus)")
     parser.add_argument("--aux-table", action="append", default=[])
     parser.add_argument("--outgroup-substr", default="outgroup")
+    parser.add_argument("--query-tips", default="",
+                        help="file of exact query tip names, one per line; passed to the builder and used "
+                             "instead of the AS/SID name-prefix rule. Every name must be a tip of the admitted tree.")
     parser.add_argument("--outgroup-registry", default="",
                         help=".452: outgroup registry TSV. When it LOCKS an outgroup for --group (genus level), the strict "
                              "gate exempts the ingroup half of the root edge to that outgroup (long_root=true) and the "
@@ -821,6 +839,12 @@ def main(argv=None):
             measured_activity, activity_strips = activity.load(args.bioassay_table, args.bioassay_material, pool=pool_candida, states=args.activity_states)
         builder = _load("build_placement_ggtree_inputs")
         inputs = [src, refs, queries, Path(args.host_table), Path(args.ref_source_db)] + [Path(p) for p in args.aux_table]
+        query_tips_path = None
+        if args.query_tips:
+            # Exact query roles for this display and for the builder it calls (no name-prefix rule).
+            query_tips_path = Path(args.query_tips).resolve(strict=True)
+            builder._QUERY_TIPS = _query_tip_set(query_tips_path, src)
+            inputs.append(query_tips_path)
         if args.layout:
             inputs.append(Path(args.layout_config) if args.layout_config else HERE.parent/'mamey/data/bioassay_layouts.json')
         if args.required_reference_table:
@@ -878,6 +902,8 @@ def main(argv=None):
                    "--out-prefix", str(prefix)]
         if args.required_reference_table:
             command += ["--required-reference-table", args.required_reference_table]
+        if query_tips_path is not None:
+            command += ["--query-tips", str(query_tips_path)]
         command += (["--keep-all-refs"] if args.keep_all_references
                     else ["--neighbors", str(args.neighbors_per_query)])
         if args.family_level:

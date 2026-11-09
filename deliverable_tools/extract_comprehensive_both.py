@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """extract_comprehensive_both.py — parse KnownClusterBlast (MIBiG) the SAME way for BOTH
-cohorts from their completed antiSMASH JSONs, so AS vs SID is apples-to-apples. Read-only.
+cohorts from their completed antiSMASH JSONs, so project isolates and public reference
+genomes are compared the same way. Read-only.
 Emits per-(cohort,strain,compound) median/max %id + reference genus of the hit."""
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))

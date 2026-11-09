@@ -296,7 +296,7 @@ def _bgc_context_from_package(package: str | None, bgc: str | None, _cross: bool
             # v9.7.373b (Codex roster-membership correction): a boundary CDS can legitimately
             # belong to TWO adjacent/overlapping BGC region records that share it. The prior
             # last-write dict `home[lt] = bg` silently dropped such a gene from the earlier BGC's
-            # roster (Codex census: 8 per-BGC undercounts across 6 packages, e.g. AS-XXX/BGC031
+            # roster (Codex census: 8 per-BGC undercounts across 6 packages, e.g. ABC-12/BGC031
             # loses ctg37_25). Preserve membership as a one-to-many relation instead.
             membership: dict[str, set[str]] = {}   # bgc_id -> set[locus_tag] (authoritative)
             homes: dict[str, set[str]] = {}         # locus_tag -> set[bgc_id] (for the mismatch guard)
@@ -651,7 +651,15 @@ def verify_modeb_command(args) -> int:
     _v2_rescue_admitted: set = set()
     if _v2_contract is not None:
         from .modeb_current50_v2 import rescue_context_loci as _v2_rescue
-        _v2_rescue_admitted, _v2_rescue_notes = _v2_rescue(md, getattr(args, "rescue_tsv", None) or ())
+        _rescue_tables = list(getattr(args, "rescue_tsv", None) or ())
+        _recorded_notes: list = []
+        if not _rescue_tables:
+            # A card emitted from a rescue run names its gap_rescue.tsv and hash in §26; an explicit
+            # --rescue-tsv still takes precedence.
+            from .modeb_current50_v2 import recorded_rescue_tables as _v2_recorded
+            _rescue_tables, _recorded_notes = _v2_recorded(md)
+        _v2_rescue_admitted, _v2_rescue_notes = _v2_rescue(md, _rescue_tables)
+        _v2_rescue_notes = _recorded_notes + _v2_rescue_notes
         from .modeb_locus_scope import context_loci as _v2_scope_loci
         _scope_loci = _v2_scope_loci(raw_md, getattr(args, "package", None), getattr(args, "bgc", None))
         _v2_rescue_admitted |= _scope_loci
@@ -659,6 +667,14 @@ def verify_modeb_command(args) -> int:
             from .modeb_locus_scope import MARKER as _scope_marker
             _scope = json.loads(_scope_marker.findall(raw_md)[0])
             ctx["modeb_matrix_locus_tags"] = [g["locus_tag"] for g in _scope["genes"]]
+        elif ctx is not None and ctx.get("known_locus_tags") and not ctx.get("modeb_matrix_locus_tags"):
+            # v2 keeps the complete named-match matrix in §50. Without this roster the core-grid check
+            # reads the engine's ● gene table instead, which never carries identity or a verdict, so
+            # every card failed it however complete its matrix was. A card that declares an expanded
+            # locus scope keeps that scope's own binding: an invalid declaration binds nothing.
+            from .modeb_locus_scope import MARKER as _scope_marker
+            if not _scope_marker.findall(raw_md):
+                ctx["modeb_matrix_locus_tags"] = list(ctx["known_locus_tags"])
         if _v2_rescue_admitted and ctx is not None and ctx.get("known_loci"):
             _v2_rescue_admitted = _v2_rescue_admitted - set(ctx["known_loci"])
             ctx["known_loci"] = set(ctx["known_loci"]) | _v2_rescue_admitted

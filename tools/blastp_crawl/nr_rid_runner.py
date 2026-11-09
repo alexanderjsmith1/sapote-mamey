@@ -578,6 +578,23 @@ def all_query_files() -> list[Path]:
 def relkey(faa: Path) -> str: return str(faa.relative_to(QUERIES))
 
 
+def requeue_unknown(led: dict, key: str, faa: Path, todo: list, requeued: set) -> bool:
+    """Mark a RID that NCBI no longer knows as expired and resend it in this run, once per key.
+
+    A RID stranded across a stop (sleep, disk stop, restart) is often gone by the time the lane
+    polls it again. Before this, the row sat as expired until the lane was next restarted. A second
+    UNKNOWN for the same key in one run waits for a later run, so a query NCBI keeps losing cannot
+    loop. Returns True when the file was requeued.
+    """
+    led[key]["status"] = "expired"
+    if key in requeued:
+        led[key]["note"] = "RID UNKNOWN"
+        return False
+    requeued.add(key); todo.append(faa)
+    led[key]["note"] = "RID UNKNOWN, requeued"
+    return True
+
+
 def record_response(rid, xml, ledger_row):
     """Preserve every returned body before result admission, including HTTP-error bodies."""
     if not re.fullmatch(r"[A-Za-z0-9_-]+", rid): raise RetrievalUnverified("unsafe RID filename identity")
@@ -720,6 +737,7 @@ def _run_lane(args):
     deadline = time.time() + args.hours*3600
     inflight = {}          # rid -> [faa, last_poll, submit_epoch]
     poll_errs = {}         # rid -> consecutive status-poll error count (reset on any success)
+    unknown_requeued = set()  # keys already resent once in this run after RID UNKNOWN
     requests = []          # epoch of every submit and status check, for the hourly rate line
     last_rate_log = time.time()
     # Failed retrieval retries the same RID; only a bound complete XML roster is admitted.
@@ -918,10 +936,11 @@ def _run_lane(args):
                         log(f"  HELD   {key} RID {rid}: result unreadable after {tries} downloads; "
                             f"left for the operator")
             elif st in ("UNKNOWN",):
-                # expired or failed RID; mark for resubmit next run
-                led[key]["status"] = "expired"; led[key]["note"] = "RID UNKNOWN"; save_ledger(led)
+                # NCBI no longer knows the RID (expired or failed). Resend it in this run, once.
+                again = requeue_unknown(led, key, faa, todo, unknown_requeued); save_ledger(led)
                 del inflight[rid]; failed += 1
-                log(f"  UNKNOWN {key} RID {rid} — will retry on a later run")
+                log(f"  UNKNOWN {key} RID {rid} — " + ("requeued for a fresh submit"
+                                                       if again else "will retry on a later run"))
             # else WAITING: leave in flight
         # ── manifest heartbeat (throttled to once per _HEARTBEAT_INTERVAL) ────────
         if _cm_heartbeat and time.time() - _LAST_HEARTBEAT >= _HEARTBEAT_INTERVAL:

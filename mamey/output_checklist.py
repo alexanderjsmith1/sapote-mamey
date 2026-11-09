@@ -142,7 +142,7 @@ def write_output_checklist(run: Any, package_dir: str | Path) -> tuple[Path, Pat
             _judged = bool(_man.get('top_bgc_targets')) or bool(_man.get('wet_lab_priorities'))
             rows.append({
                 'Phase': 'Judgment',
-                'Output_or_task': 'Full Sapote Mode B (\u00a71\u2013\u00a78) judgment',
+                'Output_or_task': 'Full Sapote Mode B judgment (authored cards)',
                 'Expected_artifact_or_evidence': f'{strain}_ANALYSIS_FORWARD.md',
                 'Status': 'COMPLETE' if _judged else 'PENDING',
                 'Progress': f'{_n}/{_n}' if _judged else f'0/{_n} BGCs',

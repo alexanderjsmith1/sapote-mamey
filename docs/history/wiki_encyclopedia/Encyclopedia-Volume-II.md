@@ -44,10 +44,9 @@ deliberately rather than automatically. <span class="tag t-engine">\[engine\]</s
 pipeline under whatever identifier it was deposited or isolated with, and that identifier is not always its cohort.
 The two failure modes both surfaced in the v9.7.43 shake-down. First, a public *Streptomyces* from the project's SID
 collection is frequently deposited in GenBank under a **WGS accession** (e.g. run as `--strain WWGG00000000`, organism
-string `Streptomyces sp. SID-XXX`); a classifier keyed on the bare ID prefix sees `WW…`, not `SID…`, and mis-files it
+string `Streptomyces sp. <strain>`); a classifier keyed on the bare ID prefix sees `WW…`, not `SID…`, and mis-files it
 as a generic reference. The `cohort_resolver` (v9.7.44, B-1) resolves cohort from the **embedded SID in the organism
-string**, not the accession, so the five WGS-deposited strains in the worked cohort (`WWGG/WWJO/WWKA/WWKH/JAAGLM`)
-correctly resolve to **SID**, matching `SID-XXX`/`SID-XXX`. Second, an archive can simply not be an actinomycete at
+string**, not the accession, so WGS-deposited strains of that kind (the worked cohort's accession prefixes are omitted here) were correctly resolved to the project's public cohort label, not a generic reference label. Second, an archive can simply not be an actinomycete at
 all: in the shake-down, `WWJQ00000000` parsed as ***Bacillus thuringiensis***. The resolver flags this and the run
 emits a loud end-of-run `*** NON-ACTINOMYCETE` warning, because the whole standing-rule and detection apparatus is
 calibrated on actinomycete biology — a *Bacillus* should be **excluded from the cohort**, not scored as one. <span class="tag t-engine">\[engine\]</span>

@@ -1,25 +1,87 @@
 # Bioassay context adapter workflow
 
-`tools/bioassay_to_activity_channel.py` translates a previously governed screening-evidence CSV into optional, strain-level `bioactivity_metadata_v1` context. It does not read raw plate data, reconstruct assays, validate physical replication, calculate new inhibition values, or attribute an extract phenotype to a BGC. The source evidence stays authoritative.
+This adapter is optional and narrow. It works for **one assay layout only**: a 48-hour fraction
+screen at 120, 60, 30 and 15 ug/mL (the assay label is fixed as `fraction_screen_multidose_48h`).
+Do not use it for another time point, platform or dose layout. The adapter does not check that
+your data came from that layout. It stamps the label and the dose list from its own template on every
+assay, and records that in the output: `assay_label_basis` and `doses_ugml_basis` are
+`ADAPTER_TEMPLATE_NOT_READ_FROM_INPUT`, and `template_dose_columns_state` says whether the input
+header has the four columns `inhibition_120ug_ml`, `inhibition_60ug_ml`, `inhibition_30ug_ml` and
+`inhibition_15ug_ml` (`ALL_TEMPLATE_DOSE_COLUMNS_PRESENT`, `TEMPLATE_DOSE_COLUMNS_PARTIAL` or
+`TEMPLATE_DOSE_COLUMNS_ABSENT`). Every object also carries a `LAYOUT_TEMPLATE_NOT_VERIFIED` warning. For general bioassay figures, use
+[the bioassay figure factory](BIOASSAY_FIGURE_FACTORY.md), which is the front door.
+
+`tools/bioassay_to_activity_channel.py` reads a screening summary CSV you already have and writes
+strain-level `bioactivity_metadata_v1` context files. It does not read raw plate data, compute
+inhibition, or tie an extract result to a BGC. The CSV stays the evidence.
+
+## Run it
 
 ```bash
-python tools/bioassay_to_activity_channel.py --recon <evidence.csv> --out <fresh-dir> [--strain AS-XXX] [--min-hit 50] [--validate <bundle-root>] [--af-dossier-csv <file>]
+python tools/bioassay_to_activity_channel.py --recon inputs/EXAMPLE_screening.csv \
+  --out reviews/EXAMPLE/activity_context --strain EXAMPLE
 ```
 
-## Input admission and missingness
+Options:
 
-The CSV requires `strain_id`, `organism`, `screening_pattern`, and `max_inhibition_raw`; blank strain/organism and unnamed extra columns are refused. An optional strain filter may select no rows. Numeric adjudication is conservative: a finite value in a credible tier can be positive at or above the chosen threshold or negative below it; a `NO_50PCT_OBSERVATION` row below threshold can be negative; other evidence remains unknown. Any positive row wins a target's state; a negative state requires all its rows negative. Missing, unsupported or malformed values are not measured negatives.
+- `--out` is a new folder.
+- `--strain` keeps one strain. It is optional, and a value that matches no rows is not an error.
+- `--min-hit` is the percent-inhibition cut-off between positive and negative. The default is 50.
+- `--validate <bundle-root>` checks each output against that tree's metadata validator. Use a
+  tree you trust.
+- `--af-dossier-csv <file>` writes an extra antifungal dossier table.
+- `--declare-layout fraction_screen_multidose_48h` records that you checked the input comes from
+  that screen. Each assay and the manifest then carry `layout_declaration_state` =
+  `OPERATOR_DECLARED_NOT_SOFTWARE_VERIFIED`. Without the flag the state is
+  `UNDECLARED_HOLD_LAYOUT_ASSUMED_FROM_TEMPLATE`. Any other value is refused.
 
-The emitted assay description is hardcoded to `fraction_screen_multidose_48h` and doses `[120,60,30,15]`. These labels must match the admitted source scope. Do not apply the adapter to another time point/platform/dose layout and assume it discovers the correct scope. `--min-hit` changes adjudication but does not rename source fields such as `doses_at_or_above_50pct`. The displayed representative row and the adjudicated state use different selection logic: the state considers all target rows. Retain `source_rows` and reconcile any apparent discrepancy rather than treating the representative value as the complete evidence.
+You should see `wrote 1 per-strain bioactivity_metadata_v1 objects -> reviews/EXAMPLE/activity_context`
+and exit 0. The folder holds `EXAMPLE_bioactivity_metadata.json` and `MANIFEST.json`. A strain
+filter that matches nothing still exits 0 and writes a manifest with zero strains, so check the
+count in that line.
 
-The optional AF dossier groups target names by case-insensitive substring `candida` or `mrsa`. That is not an organism-identity resolver; unrelated or ambiguous target names need review. Host/genus values are retained only where the selected rows agree.
+## The input CSV
 
-## Output, validation and recovery
+No bundled tool writes this CSV. You prepare it from your screening results. It needs these
+columns, and extra unnamed columns are refused:
 
-Output is a new external directory containing per-strain objects and `MANIFEST.json`. The source CSV is hashed before and after reading; a changed input is refused. `receipt_locator` binds a sorted canonical serialization of selected rows, **not the raw CSV bytes**. The manifest records the raw source hash, threshold and output inventory, but lacks output-content hashes and adapter/validator code hashes. Retain those separately. Empty selection can still successfully publish a manifest with zero strains; exit zero does not prove a requested strain was found.
+```text
+strain_id,organism,screening_pattern,max_inhibition_raw
+EXAMPLE,Candida albicans,STRONG_DOSE_CONSISTENT,92.5
+EXAMPLE,MRSA,NO_50PCT_OBSERVATION,12.0
+EXAMPLE,Other target,SINGLE_CONCENTRATION_SPIKE,70.0
+```
 
-`--validate <bundle-root>` loads that root's `mamey/bioactivity_metadata.py`. Use a trusted, hash-recorded source tree. This optional check normalizes the object and enforces the loaded validator's key, state/observation, production-scope, locator and linkage rules, with the limitations in [the metadata contract](BIOACTIVITY_METADATA_CONTRACT.md). It does not validate individual assay entries or verify a locator's evidence; it is not scientific evidence approval. The adapter stages outputs and uses the shared publication helper's normal exception rollback; this is not a crash-atomic package transaction.
+`strain_id` and `organism` cannot be blank. `screening_pattern` is the tier you assigned.
+`max_inhibition_raw` is the highest percent inhibition seen.
 
-Passing an emitted object to a newly authorized `run --bioactivity-json` supplies typed context to that new run. It is not an in-place update of an existing sealed package. Preserve the original package and source evidence; maintain the sidecar context independently unless the owner has authorized a new run. Do not treat the adapter as required to refresh deterministic scoring. Capacity, activity, production and compound linkage remain separate evidence claims.
+## How each row is judged
 
-Source: `tools/bioassay_to_activity_channel.py`; `mamey/bioactivity_metadata.py`.
+| Row | State |
+|---|---|
+| Tier is `STRONG_DOSE_CONSISTENT` or `SUPPORTED_MULTI_CONCENTRATION_HIT`, value at or above `--min-hit` | positive |
+| Same tiers, value below `--min-hit` | negative |
+| Tier is `NO_50PCT_OBSERVATION`, value below `--min-hit` | negative |
+| Any other tier, or a missing or non-numeric value | unknown |
+
+A target is positive if any of its rows is positive. It is negative only if every one of its rows
+is negative. Otherwise it is unknown. An unknown or missing value is never a measured negative.
+In the example above, the three rows give positive, negative and unknown.
+
+The shown "best" row and the target's state use different rules: the state considers every row for
+that target. The `source_rows` field lists all of them, so check it before you quote one number.
+
+The antifungal dossier groups targets by whether the name contains `candida` or `mrsa`. That is a
+text match, not an organism check, so review unusual target names.
+
+## Output and checks
+
+Keep the source CSV and the output folder together. `MANIFEST.json` records the source file hash,
+the cut-off and the list of outputs. It does not hash the outputs or the tool code, so record those
+yourself if you need them.
+
+Pass an output file's contents to a new `run` with `--bioactivity-json`. The flag takes the JSON
+text itself, not a file path, for example `--bioactivity-json "$(cat <output>.json)"`. Text that
+is not valid JSON is refused with `BIOACTIVITY_LEGACY_SHAPE_HOLD` and exit 2. It supplies context to that run. It
+does not change a sealed package. The context is extract-level: it says nothing about which BGC
+made an active fraction. See [the metadata contract](BIOACTIVITY_METADATA_CONTRACT.md).

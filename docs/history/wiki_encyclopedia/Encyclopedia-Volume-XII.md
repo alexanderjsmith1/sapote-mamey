@@ -23,17 +23,15 @@ identity bindings unresolved rather than constructing a cross-run mapping.*
 
 ## *Streptomyces spectabilis* ATCC 27465 — Complete Sapote–Mamey Analysis
 
-**Pipeline:** Sapote–Mamey v9.7.81 · Mamey engine v1.9.84 · antiSMASH 8.0.4
+**Pipeline (historical run versions, not current):** Sapote–Mamey v9.7.81 · Mamey engine v1.9.84 · antiSMASH 8.0.4
 
 **Accession:** GCA_008704795.1 · CP023690.1
 
-**Source:** Soil (type strain, ATCC 27465)
+**Source:** Soil (type strain, ATCC 27465) — as listed in the original; not checked against the deposited BioSample text
 
 **Release class:** PUBLIC
 
 **Run date:** 2026-06-18
-
-**Affiliation:**
 
 ------------------------------------------------------------------------
 
@@ -634,6 +632,8 @@ The overview reports 47 eligible rows. The 15 cards below are a selected subset,
 
 #### BGC057 (CP023690.1 · region057) — Medium tier \| spectinomycin (aminocyclitol) — CALIBRATION GROUND TRUTH
 
+Historical: "ground truth" and "calibration" in this section mean the original authors treated the spectinomycin reference match as a positive control. This analysis shows similarity to a reference cluster, not compound identity.
+
 **Location:** CP023690.1 · region057 · Interior · 108,644 bp · 78 CDS · Arch A
 
 **Products:** NRPS; NRPS-like; PKS; T1PKS; amglyccycl; other
@@ -673,7 +673,7 @@ not establish miscalibration or compound identity.
 | ctg1_7292 | 85,657–88,644 | hyb_KS; PKS_AT; ketoacyl-synt; PP-binding | PKS module |
 | ctg1_7293 | 88,641–89,405 | Thioesterase; Abhydrolase_6 | Thioesterase release |
 
-**Pathway hypothesis:** Established biosynthetic route to spectinomycin (actinospectacin). The SpcFG glycosyltransferase domain (ctg1_7247) is the diagnostic spectinomycin domain. The aminocyclitol scaffold is biosynthesised from myo-inositol via DOIS (2-deoxy-scyllo-inosose-synthase); the spectinomycin sugar arm (actinamine) is installed by SpcFG. This is the only BGC in this analysis with confirmed compound identity (ground truth). Capacity claim language applies throughout; the compound identity is established in the literature, not by this analysis.
+**Pathway hypothesis:** A route consistent with spectinomycin (actinospectacin) biosynthesis; the similarity rests on the reference match and domain annotation. The SpcFG glycosyltransferase domain (ctg1_7247) is the diagnostic spectinomycin domain. The aminocyclitol scaffold is biosynthesised from myo-inositol via DOIS (2-deoxy-scyllo-inosose-synthase); the spectinomycin sugar arm (actinamine) is installed by SpcFG. The original text called this the only BGC in this analysis with confirmed compound identity. Reword: this analysis shows biosynthetic capacity and similarity to a reference cluster, not compound identity; any identity rests on the literature for the type strain, which this page does not check.
 
 ------------------------------------------------------------------------
 
@@ -786,7 +786,7 @@ specialisation relative to a typical *Streptomyces* genome.
 
 4\. **BGC059 (CP023690.1 · region059)** (lanthipeptide-class-iv): Solid ISP2 agar, 28°C, 14 days. ABC transporter self-resistance suggests active production. MALDI-MS.
 
-5\. **BGC057 (CP023690.1 · region057)** (spectinomycin) — GROUND TRUTH: already characterised; use as positive control for extraction protocol validation.
+5\. **BGC057 (CP023690.1 · region057)** (spectinomycin) — reference-matched positive control (original label: "ground truth"; similarity, not shown identity); use as positive control for extraction protocol validation.
 
 **Priority 2 — Secondary leads:**
 
@@ -816,7 +816,7 @@ specialisation relative to a typical *Streptomyces* genome.
 
 **BGC065 (CP023690.1 · region065) (High priority):** A class-ii lanthipeptide. Clean, compact cluster with a single LanM enzyme (the class-defining enzyme), a precursor peptide, and a pathway regulator. Resembles akaeolide, a known antibacterial lanthipeptide.
 
-**BGC057 (CP023690.1 · region057) (Medium — ground truth):** This is spectinomycin — the antibiotic that gives *S. spectabilis* its name. It's used clinically against gonorrhoea. This cluster is confirmed and serves as the positive control for the whole analysis.
+**BGC057 (CP023690.1 · region057) (Medium — reference-matched):** This cluster matches a spectinomycin reference, the antibiotic that gives *S. spectabilis* its name. Similarity to a reference cluster is not compound identity. The original text called it confirmed and the positive control for the whole analysis; that confirmation is not shown here.
 
 **BGC054 (CP023690.1 · region054) (Medium):** Resembles streptovaricin, an ansamycin antibiotic that works by blocking the bacterial enzyme that reads DNA to make messenger RNA. This is a large cluster with five oxidation enzymes — the final compound likely has multiple chemical modifications.
 

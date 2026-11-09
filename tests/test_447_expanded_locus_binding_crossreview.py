@@ -104,7 +104,7 @@ def test_export_cannot_overwrite_input_through_hardlink(tmp_path,target):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     victim=Path(data['assembly_source']['path']) if target=='assembly' else package/'PUBLIC-1_cds_table.csv'
     original=victim.read_bytes();out=tmp_path/'aliased.json';os.link(victim,out)
-    with pytest.raises(ValueError,match='inode alias'): module.export(data['assembly_source']['path'],None,package,'PUBLIC-1',out)
+    with pytest.raises(ValueError,match="aliases protected input"): module.export(data['assembly_source']['path'],None,package,'PUBLIC-1',out)
     assert victim.read_bytes()==out.read_bytes()==original
 
 
@@ -132,7 +132,7 @@ def test_full50_expanded_wrapper_selects_native_contract_without_remapping(tmp_p
     text,receipt=module.build(Path(__file__).parents[1],'python',tmp_path,'BGC001',flags)
     assert seen[0][seen[0].index('--contract')+1]=='current50_v2'
     assert text==native and receipt['migration_actions']==[] and receipt['profile']=='CURRENT50_V2_NATIVE'
-    assert receipt['contract_sha256']=='8bb29690fbf3bf8cac049561fa800cbc229334a800e113cb797434d20fcfc5ab'
+    assert receipt['contract_sha256']=='b6ba05abf16b4ec048fbba0a83e1142e92726b82ab2c85fef62c674514f9f223'
     assert receipt['contract_json'].endswith('modeb_current50_v2_contract.json')
     seen.clear();module.emit_engine_template(tmp_path,'python',tmp_path,'BGC001',[])
     assert '--contract' not in seen[0]

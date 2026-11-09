@@ -47,7 +47,7 @@ Detects C-P-bond (phosphonate) biosynthesis and self-protection: phosphonate wor
 
 *Positive:* High-value antibacterial/antimetabolite hypothesis when PepM-like biosynthesis and FomA/FomB-like self-resistance are concordant in the same neighbourhood; KCB similarity to rhizocticin/fosfomycin is corroborating, not identity.
 *Negative:* Absence in a source-derived scan is not a true null unless the full proteome was in scope; PepM can sit off the antiSMASH region. A bare 'phosphonate' token without PepM may reflect transport/utilization, not biosynthesis.
-*Claim-safety:* Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The regex already vetoes C-P lyase / phn transporter / utilization false-positives; confirm by HMM/BLAST, ³¹P-NMR, and fractionation.
+*Claim-safety:* Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The phosphonate alternative of the regex skips an annotation only when transporter, utilization, C-P lyase or a phnG-phnM name comes after the word phosphonate; the same words before it, and the PEP-mutase and fom alternatives, are not screened. A match is an annotation-level candidate, not a screened call: review its context and confirm by HMM/BLAST, ³¹P-NMR, and fractionation.
 
 ## nucleoside  (MMC-005 — Nucleoside cassette)
 *Tier:* TIER_1_DIAGNOSTIC

@@ -20,6 +20,9 @@ import sys as _sys
 # import, tools/ not on sys.path), so the sibling import needs its own directory on the path.
 _sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _wbio import atomic_dump_json, atomic_write_text  # noqa: E402
+if str(Path(__file__).resolve().parents[1]) not in _sys.path:
+    _sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
+from mamey.output_transaction import preflight_output_roster  # noqa: E402
 
 try:
     from mamey.render_safe import has_forbidden_render_string
@@ -124,6 +127,41 @@ def _publish_new_appendix(path: Path, text: str) -> None:
             temporary.unlink(missing_ok=True)
 
 
+def _check_output_roster(source: Path, outputs: list[Path], *, replace: bool,
+                         always_fresh: tuple[Path, ...] = ()) -> str | None:
+    """Return a refusal message, or None when every destination may be written.
+
+    Every destination must differ from the input and from every other destination
+    (after resolving symlinks, ignoring case). A destination that already exists is
+    refused unless ``--replace`` was given; even then it must be a regular file and
+    never the input. The automatic appendix is always required to be fresh.
+    """
+    keys: list[tuple[str, ...]] = []
+    for path in outputs:
+        key = tuple(part.casefold() for part in path.resolve().parts)
+        if key in keys:
+            return f"output destinations collide: {path}"
+        keys.append(key)
+    fresh, existing = [], []
+    for path in outputs:
+        (existing if (path.exists() or path.is_symlink()) else fresh).append(path)
+    for path in existing:
+        if _same_path(path, source):
+            return f"output aliases the input Markdown: {path}"
+        if path in always_fresh or not replace:
+            return (f"output already exists: {path}; choose a new path"
+                    + ("" if path in always_fresh else " or pass --replace"))
+        if path.is_symlink() or not path.is_file():
+            return f"--replace only replaces a regular file: {path}"
+    try:
+        # Leaf symlinks were refused above; ancestor links (for example /var -> /private/var)
+        # are resolved so a temporary or synced folder is still admitted.
+        preflight_output_roster([p.parent.resolve() / p.name for p in fresh], protected_paths=(source,))
+    except ValueError as exc:
+        return f"{exc}: {', '.join(str(p) for p in fresh)}"
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("input_md")
@@ -133,13 +171,31 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--qa-json", default=None)
     ap.add_argument("--max-cols", type=int, default=6)
     ap.add_argument("--max-line", type=int, default=118)
+    ap.add_argument("--replace", action="store_true",
+                    help="allow replacing an existing output, --appendix-md or --qa-json regular file; "
+                         "the input and the automatic appendix are never replaced")
     ns = ap.parse_args(argv)
-    src = Path(ns.input_md).read_text(encoding="utf-8")
+    source = Path(ns.input_md)
+    src = source.read_text(encoding="utf-8")
     text, appendix, findings = preflight_markdown(src, profile=ns.profile, max_cols=ns.max_cols, max_line=ns.max_line)
     forbidden = any(f["type"] == "forbidden_render_string" for f in findings)
     routed = any(f["type"] == "wide_table_routed" for f in findings)
     appendix_path = ns.appendix_md
     automatic = routed and not appendix_path
+    out_path = Path(ns.output_md)
+    auto_destination = out_path.with_name(out_path.stem + ".appendix.md") if automatic else None
+    roster = [out_path]
+    if appendix_path:
+        roster.append(Path(appendix_path))
+    if auto_destination is not None:
+        roster.append(auto_destination)
+    if ns.qa_json:
+        roster.append(Path(ns.qa_json))
+    refusal = _check_output_roster(source, roster, replace=ns.replace,
+                                   always_fresh=(auto_destination,) if auto_destination else ())
+    if refusal:
+        _sys.stderr.write(f"REFUSED: {refusal}\n")
+        return 2
     if automatic:
         out = Path(ns.output_md)
         destination = out.with_name(out.stem + ".appendix.md")

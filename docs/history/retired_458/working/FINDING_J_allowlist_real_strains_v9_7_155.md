@@ -2,7 +2,7 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 
 ## Current reader scope — dated .155 policy fork
 
-This is the original June finding and its unadopted choices, not a current authorization to relax a guard, modify tests or disclose identifiers. Redacted `AS-XXX` tokens cannot recover the real identifiers or substantiate the original file counts. The current allowlist/source and owner-selected privacy profile must be checked for the actual proposed cut; this note does not establish their present state or whether any strain is public. See [custom privacy guidance](../../../CUSTOM_PRIVACY_TIERS.md) and [tier differences](../../../TIER_DIFFERENCES.md). No allowlist, tests, privacy decision or release machinery is changed here.
+This is the original June finding and its unadopted choices, not a current authorization to relax a guard, modify tests or disclose identifiers. Redacted `<strain>` tokens cannot recover the real identifiers or substantiate the original file counts. The current allowlist/source and owner-selected privacy profile must be checked for the actual proposed cut; this note does not establish their present state or whether any strain is public. See [custom privacy guidance](../../../CUSTOM_PRIVACY_TIERS.md) and [tier differences](../../../TIER_DIFFERENCES.md). No allowlist, tests, privacy decision or release machinery is changed here.
 
 ---
 
@@ -21,35 +21,32 @@ tests/-leak-audit in `make_public_tier.sh` fails a public cut on any `AS-/AJS-/P
 
 Two entries violate that rule:
 
-- **`AS-XXX`** (allowlist line 43) — a **real cohort strain** (*Streptomyces* / bumblebee / Ontario,
-  with completed Mode B work per project history), not a synthetic. The allowlist comment also claims
-  it "appears only in test_directed_pks_study_scaffold.py" — it actually appears in **7** test files
+- **A real cohort strain** (allowlist line 43; its identifier is omitted here). The allowlist comment
+  also claims it "appears only in test_directed_pks_study_scaffold.py"; the finding says it actually appears in **7** test files
   (`test_bunny_hop_fixes`, `test_directed_pks_study_scaffold`, `test_redact_public_tier`,
   `test_macosx_appledouble_intake_v9_7_152`, `test_next_ten_patch_stack`, `test_verify_tier_derivation`,
   `test_modeb_workflow_v97143a`). Both the "synthetic" label and the file-count claim are inaccurate.
-- **`AS-XXX`** (allowlist line 47) — also a real cohort strain, labelled "synthetic strain label."
+- **A second real cohort strain** (allowlist line 47), labelled "synthetic strain label."
 
-(`AS-XXX`, `AS-XXX`, `AS-9xx` are genuinely synthetic / structurally-impossible and are fine.
-`AS-XXX` is 3-digit and in cohort range — worth a Master_Strain_List_v3 check, but not confirmed
-real here.)
+Three other entries are genuinely synthetic or structurally impossible and are fine. One more is
+3-digit and in cohort range; it needed a Master_Strain_List_v3 check, which the original finding did not complete.
 
 ## Why I did NOT auto-fix it (unlike Finding I)
 
-- **Finding I** (`AS-XXX`, `AS-XXX`) were NOT on the allowlist, so the audit **blocked** a public cut —
+- **Finding I** (two real cohort strains used as test fixtures) were NOT on the allowlist, so the audit **blocked** a public cut —
   a live mechanical failure with a policy-mandated fix (scrub the test). I fixed it this round.
 - **Finding J** entries ARE on the allowlist, so the audit **passes** — no mechanical blocker today.
   The issue is integrity: the allowlist contains real strains mislabelled as synthetic, defeating the
   invariant it exists to enforce.
 
-Resolving J properly means scrubbing `AS-XXX`/`AS-XXX` out of 7+ test files to synthetics and removing
-them from the allowlist — a larger, cross-file change. And it intersects your statement that "AS
-strains are now on GenBank with host metadata; disclosures are meaningless for short-term cuts." That
-statement makes the *disclosure* risk nil, which raises a genuine policy question I should not answer
-for you:
+Resolving J properly means scrubbing the two real strains out of 7+ test files to synthetics and removing
+them from the allowlist — a larger, cross-file change. And it intersects a statement recorded in the original discussion, that the private-series strains are now
+on GenBank with host metadata and disclosure is no longer a concern for short-term cuts. This page does not verify that statement. If it holds,
+the *disclosure* risk would be nil, which raises a genuine policy question that the finding left to the owner:
 
 ## The fork
 
-1. **Keep the synthetic-only invariant; clean up J.** Scrub `AS-XXX`→synthetic and `AS-XXX`→synthetic
+1. **Keep the synthetic-only invariant; clean up J.** Scrub the two real strains to synthetic IDs
    across the 7+ test files, remove them from the allowlist, fix the inaccurate comments. Preserves the
    audit's original guarantee. ~Most work.
 2. **Relax the invariant (strains are public now).** If AS IDs are no longer private, the tests/-leak-
@@ -68,9 +65,8 @@ rule.
 
 ## Note on Finding I (already fixed this round)
 
-`AS-XXX` and `AS-XXX` were real strains used as test fixtures and NOT allowlisted, so they would have
+Two real strains were used as test fixtures and were NOT allowlisted, so they would have
 hard-blocked any gated public cut. Per the allowlist's own mandated approach ("scrub the test, never
-allowlist a real strain"), I scrubbed them: `AS-XXX`→`AS-XXX`, `AS-XXX`→`AS-XXX` (both allowlisted
-synthetics) in `test_as188_ingest_patches_v9_7_152.py` and `test_verify_checksums_judgment_register_v97152.py`.
-Both files still pass (8 tests); the tests/-leak-audit now reports the cut unblocked. This was
+allowlist a real strain"), the finding records that they were replaced with allowlisted synthetic IDs in two test files
+(one ingest-patches test and `test_verify_checksums_judgment_register_v97152.py`). The finding reports that both files pass (8 tests) and that the tests/-leak-audit then reported the cut unblocked; those results were not re-run when this page was edited. This was
 unambiguous (mechanical blocker + policy-mandated fix) so it was applied, not forked.

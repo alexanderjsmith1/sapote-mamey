@@ -1,13 +1,13 @@
 # Sapote–Mamey v9.7.22 — build -k (2026-06-14)
 
-Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [v9.7.22 release notes](../../RELEASE_NOTES_v9.7.22.md).
+Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Release manifest](../../../../RELEASE_MANIFEST.md).
 
 Follow-on to -j (which fixed the public-tier strain-ID leak + added piericidin). -k lands the
 audit-derived hardening that closes the leak *class* and pays down named debt. **No engine scoring
 logic changed.**
 
 ## Leak-class closure (audit Awkward #1/#2/#10/#12)
-- `tools/redact_public_tier.py` rewritten: redacts SID **and** AS-### strain IDs, walks the whole
+- `tools/redact_public_tier.py` rewritten: redacts SID **and** private strain IDs, walks the whole
   tree by default (not two hardcoded files), and is tokenize-aware for .py — rewrites only comment
   and string spans, never code identifiers or numeric literals, so a tree-wide scrub is safe by
   construction (closes the `--all-py` foot-gun). AS pattern is hyphen-discriminated + anchor-free:
@@ -15,7 +15,7 @@ logic changed.**
   excludes CAS-/MCAS- cassette stable-IDs. CAS multiset guard retained.
 - `make_public_tier.sh` now (a) emits a per-tier `TIER_MANIFEST.txt` (sorted membership list) so
   "right files in the right tier" is a one-line diff, and (b) runs the fail-closed leak invariant
-  against the staged public tier before zipping (exit 5 on any AS-### token).
+  against the staged public tier before zipping (exit 5 on any private-ID token).
 
 ## Single-strain path (audit 2.1)
 - `build_modeb_deepdive.py` no longer falls back to the built-in SID target list on incomplete
@@ -37,11 +37,11 @@ logic changed.**
 - The fragment-concordance scorer (net-new consumer of the panel).
 
 ## Per-tier verification (in-zip)
-| Tier | pytest | AS-### | TIER_MANIFEST |
+| Tier | pytest | private-ID hits | TIER_MANIFEST |
 |---|---|---|---|
 | CODE | 479 passed / 80 skip | 0 | yes |
 | CODE-analysis-free | 477 passed / 82 skip | 0 | yes |
-| SID-public | 479 passed / 80 skip | 0 | yes |
+| public-ID | 479 passed / 80 skip | 0 | yes |
 | MERGED-PRIVATE-scaffold | 478 passed / 81 skip | retained (expected) | yes |
 
 Checksums regenerated last over the final tree; verified in-zip. Supersedes -j (functional superset).

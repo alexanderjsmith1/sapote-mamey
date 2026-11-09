@@ -10,7 +10,7 @@ import sys
 import pytest
 
 import mamey.layperson_guide as guide
-from mamey.crosswalk import enrich_bgc_crosswalk
+from mamey.crosswalk import enrich_bgc_crosswalk, legacy_short_node_id
 from mamey.figure_theme import CLAIM_SAFETY
 from mamey.models import BGCRecord
 from mamey.sapote_markdown import parse_path, validate_model
@@ -335,6 +335,8 @@ def test_duplicate_native_physical_locus_refuses_without_echoing_alias(tmp_path:
 def test_distinct_full_contigs_sharing_normalized_node_remain_distinct(tmp_path: Path) -> None:
     rows = [_native_row("NODE_1_length_1000_cov_1.5", "BGC001", 1),
             _native_row("NODE_1_length_1000_cov_1.9", "BGC002", 2)]
+    for row in rows:  # ruling 479: a stored legacy package carries the short form
+        row["node_id"] = legacy_short_node_id(row["contig"])
     assert rows[0]["node_id"] == rows[1]["node_id"]
     text = guide.render_markdown(_native_package(tmp_path, rows), top_n=2)
     assert "SYNTHETIC-001 / NODE_1_length_1000_cov_1.5 / region001 / BGC001" in text

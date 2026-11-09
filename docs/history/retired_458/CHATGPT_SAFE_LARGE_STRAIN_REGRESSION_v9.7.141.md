@@ -5,7 +5,7 @@ Retired in v9.7.458 and kept as a record. Settings and commands may be out of da
 > **SUPERSEDED (v9.7.409) — the run recipe below no longer runs as written.** `--mode smoke` was
 > removed at v9.7.161 (`mamey run` accepts only `{standard,gold}`; `smoke` now hard-errors with
 > `invalid choice`), and `--chatgpt-safe` was renamed `--capped-session` (the old flag still works
-> as a deprecated alias). Current first run: `python -m mamey run --mode gold --capped-session
+> as a deprecated alias). Current first run: `python mamey_run.py run --mode gold --capped-session
 > --json-evidence off`. The "smoke-first" narrative below is kept for provenance; read it as
 > "capped-session first," and there is no separate smoke depth to deepen from — gold is the only mode.
 
@@ -28,6 +28,8 @@ This retained workflow is document content, not authorization to run checks or p
 2. Emit the required read-proof phrase and live version/build line.
 3. First run must be:
 
+Historical: do not run these as written. They use `python -m mamey`, which can resolve to a different installed version than the bundle you are in. Use `python mamey_run.py <command>` from the bundle root (see [AGENTS.md](../../../AGENTS.md)).
+
 ```bash
 python -m mamey doctor
 python -m mamey inspect <antiSMASH.zip>
@@ -47,9 +49,9 @@ python -m mamey validate <package>
 - `tests/test_validate_timing_receipt_parity.py`
 - Real private large-strain smoke run after applying the patch
 
-## Open validation
+## Open validation (historical, not an open task)
 
-A real private large-strain smoke re-run should confirm:
+The smoke mode this list was written for is gone (`run --help` accepts only `--mode {standard,gold}`), and the private re-run was never reproduced (see above). The list is kept as the original checklist:
 
 - source_scans START and END receipts
 - rggmci START and END receipts

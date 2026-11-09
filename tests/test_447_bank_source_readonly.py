@@ -50,6 +50,8 @@ def test_cooperating_writer_cannot_create_first_bank_inside_unlocked_source(tmp_
 
 def test_partial_or_unrelated_source_markers_do_not_bypass_bank_lock(tmp_path):
     root=tmp_path/'bank';root.mkdir();(root/'pyproject.toml').write_text('[project]\nname="mamey"\n')
+    # A real (legacy) bank store is present, so the partial markers must not bypass the lock.
+    (root/'bgc_data.json').write_text('{"strains":{},"bgcs":[]}')
     with B.reader(root):pass
     assert (root/'.ingest.lock').exists()
 

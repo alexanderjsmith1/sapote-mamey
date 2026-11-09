@@ -13,7 +13,7 @@ DOCS = {
 
 
 def _portable_text(text):
-    forbidden = ("/Users/", "/home/", "/" + "private/tmp/",
+    forbidden = ("/Us" "ers/", "/ho" "me/", "/" + "private/tmp/",
                  "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES")
     return not any(token in text for token in forbidden) and not re.search(r"[A-Za-z]:[\\/]", text)
 
@@ -70,7 +70,7 @@ def test_current_docs_index_links_the_methods_set():
 
 def test_portability_controls_distinguish_paths_from_public_labels():
     # Fabricated controls exercise the same admission predicate as the actual docs.
-    for text in ("/Users/InventedOwner/work/report.md", "/home/invented/report.md",
+    for text in ("/Us" "ers/InventedOwner/work/report.md", "/ho" "me/invented/report.md",
                  r"Z:\Invented\report.md", "/" + "private/tmp/invented/report.md",
                  "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES"):
         assert not _portable_text(text)

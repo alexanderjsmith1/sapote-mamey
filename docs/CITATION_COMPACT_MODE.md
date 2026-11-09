@@ -1,8 +1,13 @@
 # Make a compact citation report
 
-Add a citation ledger, a compact lead table and literature-search instructions
-to an extraction. You need an antiSMASH result ZIP and the installed program.
-This runs the extraction again; the separate output folder keeps an earlier run intact.
+Make a new run that also writes a citation ledger, a compact lead table and
+literature-search instructions. You need an antiSMASH result ZIP and the installed program.
+
+Use a new `--outdir` for each run. `run` refuses an `--outdir` whose `<strain>/package` folder is
+not empty, or whose `<strain>` folder already holds a `*_Complete_Package.zip`. It prints
+`REFUSED: [outdir] …` and exits 2 before writing anything. There is no override flag, so pick
+another `--outdir` or move the earlier run away.
+For install and exit codes, see [Your first run](reader/01_FIRST_RUN.md).
 
 ```bash
 python mamey_run.py run --strain EXAMPLE --input-zip ~/Downloads/EXAMPLE.zip \
@@ -17,7 +22,7 @@ python mamey_run.py run --strain EXAMPLE --input-zip ~/Downloads/EXAMPLE.zip \
 Open the compact reports and `CITATION_COMPACT_QA.json` under
 `runs/citation/EXAMPLE/package/citation_compact/`. The package root holds
 `Citation_Ledger.csv` and `.json`.
-If the compact folder is absent, check `run_phase_receipts.jsonl` for an error;
+If the compact folder is absent, check `run_phase_receipts.jsonl` for an error ([how to read it](reader/04_RECOVERY_AND_LIMITS.md));
 this optional phase can fail while the extraction continues.
 
 The lead table puts scope, evidence, citations, uncertainty and a proposed next
@@ -40,6 +45,6 @@ Method references describe antiSMASH 8.0 (`10.1093/nar/gkaf334`) and MIBiG 4.0
 
 `interpretation_scope` states the lead's intended reading scope. Keep the common
 genome-mining caveat once across the compact reports. See
-[report readers](CITATION_COMPACT_READERS.md) for the separate package gate and its
-file/schema/checksum checks. Work on a writable copy when revising compact outputs:
+[how to read a compact report](CITATION_COMPACT_READERS.md) for what each file holds and what
+the QA status covers. Work on a writable copy when revising compact outputs:
 the emitter replaces its fixed filenames.

@@ -88,10 +88,13 @@ def save_figure(
     root.mkdir(parents=True, exist_ok=True)
     stem.parent.mkdir(parents=True, exist_ok=True)
 
-    png = stem.with_suffix(".png")
-    svg = stem.with_suffix(".svg")
+    # out_stem is a complete stem: dots within accessions are not suffixes.
+    png = stem.parent / f"{stem.name}.png"
+    svg = stem.parent / f"{stem.name}.svg"
     if png.is_symlink() or svg.is_symlink():
         raise FigureSaveRefusal("FIGURE_SAVE_REFUSED: output path is a symlink")
+    if not _inside(png, root) or not _inside(svg, root):
+        raise FigureSaveRefusal("FIGURE_SAVE_REFUSED: output paths must be contained by package_dir")
     if isinstance(fig, NativeSvgFigure):
         try:
             assert_no_banned_figure_text(svg_visible_text(fig.svg), figure_id=figure_id)
