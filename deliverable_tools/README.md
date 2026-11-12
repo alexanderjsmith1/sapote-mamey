@@ -30,8 +30,7 @@ description says `inspect source before dispatch`. Names that start with `_` are
 helpers, not tools.
 
 `doctor` prints one row per helper program (Python, Pandoc, GToTree, IQ-TREE,
-fastANI, BLASTp, BiG-SCAPE). The status is `PATH`, `PROJECT` or `MISSING`. It only
-checks that the file exists. It does not test that the program works. `MISSING` for a
+fastANI, BLASTp, BiG-SCAPE). The status can be `PATH`, `PROJECT`, `PROJECT*` or `MISSING`. PATH lookup and project-file existence are different checks; neither establishes working execution, and `PROJECT*` is not a passing runtime test. `MISSING` for a
 program you do not use is fine.
 
 `doctor` looks for programs under the folder in `SAPOTE_ROOT` (default
@@ -48,8 +47,11 @@ python deliverable_tools/cohort_tools.py assembly_line_pdf \
 ```
 
 `--runs-root` is a folder that holds the finished package. The tool writes
-`EXAMPLE_assembly_lines.pdf` into `--out`. A line starting `[SKIP]` means it found no
-package and wrote nothing. Open the PDF and check the pages before you share it.
+`EXAMPLE_assembly_lines.pdf` into `--out`. A line starting `[SKIP]` means it wrote no PDF.
+There are two skips. One says no `antismash_modules.csv` was found under `--runs-root`; the
+package may still exist, so check the path and the module table. The other says the module
+table has no NRPS/PKS assembly-line domain rows; it reports the module table only, so inspect
+the table before you conclude why. Open the PDF and check the pages before you share it.
 
 Each tool has its own arguments. Run `python deliverable_tools/<tool>.py -h` first.
 The launcher forwards arguments as they are and adds no dry run. A shell tool
@@ -66,10 +68,23 @@ unchanged ([post-seal write rules](../docs/POSTSEAL_READERS.md)).
 | `backfill_coords_from_antismash` | The antiSMASH JSON inside the input archive | Coordinates and ClusterBlast values added to a roster |
 | `build_strain_dossier` | Roster JSON, novelty board, comparison CSV | A Markdown dossier, and a Word file if Pandoc and python-docx are present. Each file goes to both `strain_data/<strain>/` and `dossiers/` under `SAPOTE_WORKSPACE_ROOT`. A missing converter still exits normally after writing Markdown, so check the formats. |
 
-`enrich_swissprot` and `backfill_coords_from_antismash` match genes by locus tag
-alone. A repeated tag can overwrite an earlier row, and a blank `hit_rank` counts as
-rank 1. Copy the roster folder first, remove repeated tags, and run the tool on the
-copy. If a tool fails partway, compare the copy with your original before you retry.
+`enrich_swissprot` joins on the (BGC, gene) pair. It holds a key that has two rank-1
+Swiss-Prot rows (`DUPLICATE_SWISSPROT_RANK1_KEY`) or that repeats in the roster
+(`DUPLICATE_ROSTER_GENE_KEY`), and lists each under `join_holds.swissprot` in the roster.
+`backfill_coords_from_antismash` joins on the locus tag alone. It holds a tag that appears
+on two CDS features in the antiSMASH JSON and lists it under `join_holds.antismash_coords`
+(`DUPLICATE_ANTISMASH_LOCUS_TAG`). Both print the held count on their console line. A blank
+`hit_rank` counts as rank 1. Keep every roster and source row; resolve a held key with the
+full locus context instead of deleting rows. Both tools still rewrite the roster in place, so
+copy the roster folder first and run the tool on the copy. If a tool fails partway, compare
+the copy with your original before you retry.
+
+Bind the chosen archive to the target run by source path and SHA-256: the first discovered
+qualifying archive is not independently matched to a recorded input digest. Verify the full
+strain / contig / region / BGC alias and gene identities; a unique locus tag alone does not
+prove source binding. Compare the resulting hold list with this run's console count. A clean
+rerun does not clear earlier holds: each tool writes its `join_holds` entry only when it finds
+duplicates, so a list from an earlier run stays in the roster.
 
 `_batch_enrich.sh` and `_build_all.sh` are old batch scripts with fixed paths. Do not
 use them.

@@ -28,9 +28,11 @@ The bundle is MIT-licensed code. The databases have their own licenses, citation
 2. **Release.** A bundled copy would pin one release, while your manuscript cites another.
 3. **Size.** The databases are large and change with each release.
 
-## How the engine finds a dataset
+<a id="how-the-engine-finds-a-dataset"></a>
 
-For each dataset the resolver checks, in order: the dataset's own variable, then `$MAMEY_DATA_ROOT/<folder>`, then the old in-tree path (`mamey/data/mibig`, `mamey/data/literature/_corpus`, `Wheelhouse/hmm`, `OFFICIAL_DATA`). The bundle ships none of these, but files you place there are found. The first folder that contains the probe file wins. The Pfam HMM set is the exception: it follows its own lookup, described under the HMM heading below. A variable that points at a folder without the probe falls through to the next candidate, so check the path `status()` reports (the one-liner below), not the variable. `doctor` prints how many datasets it found (for example `2/6`) and, for each missing one, its variable and download URL. It never prints a path.
+## How the generic presence check finds a dataset
+
+For each dataset the generic presence resolver checks, in order: the dataset's own variable, then `$MAMEY_DATA_ROOT/<folder>`, then the old in-tree path (`mamey/data/mibig`, `mamey/data/literature/_corpus`, `Wheelhouse/hmm`, `OFFICIAL_DATA`). The bundle ships none of these, but files you place there are found. The first folder that contains the probe file wins. The Pfam HMM set is the exception: it follows its own lookup, described under the HMM heading below. A variable that points at a folder without the probe falls through to the next candidate, so check the path `status()` reports (the one-liner below), not the variable. When `doctor` finds at least one dataset, it prints the count (for example `2/6`); for each unresolved probe it reports its variable and upstream reference. When governance resolves, it also prints the selected exclusions-file path. Use `status()` below for the general per-dataset resolved paths.
 
 | Dataset | Variable | Folder under `$MAMEY_DATA_ROOT` | Probe file | Size |
 |---|---|---|---|---|
@@ -123,7 +125,7 @@ The scanner looks in this order:
 
 Steps 4 to 6 apply only to a bundle that carries its own HMM files. This bundle does not.
 
-In a folder, the 148-model file wins. `SM_HMM_DB` is accepted if the path exists, even if it is a folder, so point it at the file itself. The 148 and 35 counts come from the file name, not from reading the file; record the file's hash.
+In a folder, the 148-model file wins. `SM_HMM_DB` must name a regular file. An existing directory is refused without falling through to another source; point it at the file itself. The 148 and 35 counts come from the file name, not from reading the file; record the file's hash.
 
 Full Pfam-A is a different input, used only by BiG-SCAPE through `--pfam`, with its pressed index files. The scanner subset cannot replace it.
 
@@ -174,7 +176,7 @@ A bound or discovered missing, unreadable or malformed pack fails strict checks.
 
 ### BLAST and reference comparisons
 
-Local homology needs BLAST+ and a database. The phylogeny and outgroup tools read `BLAST_BIN` or find BLAST on `PATH`; database paths are set per command. For a local 16S database (`SAPOTE_16S_DB`), see [the local 16S database guide](LOCAL_16S_DATABASE.md). For online protein searches, follow [the online BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md).
+Local homology needs BLAST+ and a database. Executable lookup depends on the tool: `phylo_autopilot.py` invokes `blastn` and `blastdbcmd` through `PATH`, while `outgroup_registry.py` and `phylo_refset.py` try `BLAST_BIN` before `PATH`. Check the selected tool and set database paths per command. For a local 16S database (`SAPOTE_16S_DB`), see [the local 16S database guide](LOCAL_16S_DATABASE.md). For online protein searches, follow [the online BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md).
 
 ### Phylogenomics
 

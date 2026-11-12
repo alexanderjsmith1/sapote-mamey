@@ -68,7 +68,7 @@ The command prints a JSON receipt and writes four files, named from the full ide
 - `..__MODEB_SECTION45_PAYLOAD.md`: text for the card.
 - `..__COHORT_PROTEIN_COMPARISON_RECEIPT.json`: output hashes.
 
-Open the payload first, then the matches table. Use a new `--outdir` each time. The command overwrites same-named files in an existing folder.
+Open the payload first, then the matches table. Use a new `--outdir` for each attempt; existing same-named comparison outputs are refused.
 
 Keep an external record of the database path, its receipt, the package and the gene list. The comparison receipt hashes only its outputs, not its inputs. Open the database from a closed, finished copy.
 

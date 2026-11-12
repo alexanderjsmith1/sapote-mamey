@@ -163,7 +163,7 @@ The canonical case that motivated this mechanism: a cluster labelled only "nucle
 
 After the keyword base, novelty is adjusted by how well-characterized the cluster appears to be:
 
-- Observed KnownClusterBlast evidence with a non-None cumulative score >10,000 lowers novelty by 15 points. An explicit `UNKNOWN_KCB` state suppresses that adjustment even if a stale numeric score remains.
+- Observed KnownClusterBlast evidence with a non-None antiSMASH similarity percentage at or above `KCB_PCT_HIGH` (70) lowers novelty by 15 points. The cumulative score is not that percentage. An explicit `UNKNOWN_KCB` state suppresses that adjustment even if a stale numeric percentage remains.
 - Missing KCB evidence grants **no novelty bonus**; the former +5 adjustment was removed. Missingness is not evidence that no close relative exists.
 - An observed, non-None RiQ value <0.5 raises novelty by 10 points under the implemented rule. Missing RiQ grants no adjustment, and a low comparison value does not by itself prove novelty.
 
@@ -393,7 +393,7 @@ Read the saved rationale alongside the source fields and receipts. For example, 
 | GC dispersion flag | ≥ 5% standard deviation | CONTAMINATION_SUSPECT |
 | Score base values | 25 / 20 / 30 | AB / AF / novelty floor |
 | Diagnostic bonus | 25 points | Corroborated CCTT class trigger |
-| KCB strong novelty adjustment | −15 points | KCB cumulative score > 10,000 |
+| KCB strong novelty adjustment | −15 points | Observed KCB similarity percentage ≥ 70 (`KCB_PCT_HIGH`) |
 | Missing-KCB novelty adjustment | None | Missing comparison evidence grants no novelty credit; explicit UNKNOWN_KCB also suppresses the strong-score penalty |
 | Low-RiQ novelty adjustment | +10 points | RiQ < 0.5 |
 | Rescue bonus | 8 / 4 points | HIGH / MODERATE RG-GMCI split-cluster pair |
@@ -1417,6 +1417,8 @@ This cluster covers how Mamey turns its computed data into figures. The pipeline
 The two standing interpretive rules apply to figures as much as to numbers: scores are routing priors, not biological proof, and KCB is similarity, not identity. Both are enforced in the figures themselves, not just the documentation — every figure carries a claim-safety footer.
 
 ---
+
+> **Current figure-route boundary:** The universal guarantees below are historical design descriptions. Figure families have different renderer, sidecar, failure and receipt behavior. A CSV alone does not establish source binding or reproducibility, and a rendered file does not establish visual acceptance. Check the selected route, actual data and receipt, then inspect the rendered figure.
 
 ### The five shared disciplines
 

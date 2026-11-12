@@ -169,12 +169,21 @@ def normalize_region(value: object) -> str:
     return f"region{int(match.group(1)):03d}" if match and int(match.group(1)) > 0 else ""
 
 
+def _spades_node(text: str) -> str:
+    """A full SPAdes contig name in SPAdes's own spelling, NODE_<n>_length_<n>_cov_<x>, whatever case it arrived in.
+
+    The package and the cards copy the contig with this spelling, so every column that prints it can be copied into a
+    four-part identity. Both sides of each comparison pass through here, so matching is unchanged."""
+    m = re.fullmatch(r"NODE_(\d+)_length_(\d+)_cov_(\d+(?:\.\d+)?)", text, re.I)
+    return f"NODE_{m.group(1)}_length_{m.group(2)}_cov_{m.group(3)}" if m else text
+
+
 def _atomic_node(value: object) -> tuple[str, str, str]:
     text = str(value or "").strip()
     if not text:
         return "", "", ""
     if _FULL_NODE_RE.fullmatch(text):
-        return text.upper(), "", ""
+        return _spades_node(text), "", ""
     if re.fullmatch(r"NODE_\d+", text, re.I):
         return "", text.upper(), ""
     if re.match(r"NODE_\d+(?:_|$)", text, re.I):

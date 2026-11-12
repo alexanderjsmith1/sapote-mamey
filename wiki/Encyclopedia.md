@@ -9,4 +9,4 @@ Volumes: [I](../docs/history/wiki_encyclopedia/Encyclopedia-Volume-I.md) · [II]
 
 For current information, read the [User Manual](User-Manual.md), the [Glossary](Glossary.md), the [Quick Guide](Quick-Guide.md) and the [Concepts Q&A](Concepts-Q-and-A.md).
 
-This pointer page is current to bundle v9.7.464 / engine Mamey 1.9.180.
+This pointer page is current to bundle v9.7.465 / engine Mamey 1.9.181.

@@ -69,13 +69,26 @@ BR   = os.path.join(ROOT, "Blastp RESULTS")
 try:
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey`
     from mamey.exclusions import raw_analysis_excluded, hard_excluded
-    GOVERNED_EXCLUDE = raw_analysis_excluded() | hard_excluded() | {"AS-000_CONSDARK"}
 except Exception:  # pragma: no cover - standalone fallback if mamey package unavailable
     raise RuntimeError(
         "cohort exclusions are governed data and are not shipped in the code tier: "
         "install the mamey package, or set MAMEY_OFFICIAL_DATA to a directory "
         "containing exclusions.json"
     )
+
+
+def __getattr__(name):
+    # Read on first use, not at import: importing this tool reads no workspace data.
+    if name == "GOVERNED_EXCLUDE":
+        return raw_analysis_excluded() | hard_excluded() | {"AS-000_CONSDARK"}
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
+
+
 CORE_ROLES = {"core"}  # the sharp first-wave slice; callers may widen via --roles
 
 def sha_text(s: str) -> str: return hashlib.sha256(s.encode()).hexdigest()
@@ -105,7 +118,7 @@ def cmd_measure(a):
         else: neither += 1
         per_strain[strain][cls] += 1
         per_strain[strain]["total"] += 1
-        if cls == "neither" and strain not in GOVERNED_EXCLUDE:
+        if cls == "neither" and strain not in _bound("GOVERNED_EXCLUDE"):
             role_neither[role or "none"] += 1
             neither_rows.append((strain, bgc, gene, role or "none",
                                  int(bool(hl)), int(bool(he))))

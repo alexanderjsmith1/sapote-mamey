@@ -44,9 +44,12 @@ Choose the check for the file you actually have:
 - **An existing 16S store:** [defect and merge screens](../reference/06_CURRENT_SOURCE_SCOPE.md#16s-store-defect-validation-and-additive-merge-screening).
 
 `sapote_md_preflight.py` processes Markdown into a separate file. If tables are
-routed out of the body, supply an appendix destination so they are saved.
+routed out of the body and you give no `--appendix-md`, it writes them to a new
+`<out>.appendix.md`. It refuses with exit 2, before writing, an output, appendix or QA
+path that is the input or another destination, and an existing destination unless you
+pass `--replace`. The automatic `<out>.appendix.md` must always be new. It can be published before the main output and QA JSON, so later failure can leave partial outputs. After a nonzero exit or interruption, inspect and preserve the named outputs and choose fresh names before retrying; a written file is not a passed preflight.
 `professionalism_linter.py` reports text warnings; confirm that it read every
-requested file, since unreadable files can be skipped. Neither replaces inspection
+requested file. Unreadable inputs are reported to stderr with exit 2, findings give exit 1, and no findings give exit 0. Neither replaces inspection
 of the rendered document.
 
 For software maintenance, `silent_exit_audit.py` scans selected Python source

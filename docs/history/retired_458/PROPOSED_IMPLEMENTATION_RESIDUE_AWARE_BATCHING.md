@@ -8,8 +8,8 @@ The body below is a design proposal and illustrative tests, preserved without ad
 shipped helper; inspect `mamey/wise_fragmented_pks.py` and `mamey/cli.py` and the
 [tools reference](../../user_guides/tools_reference.md). Actual code sorts by rank, flushes
 an existing batch before an oversized record and retains a warning-bearing singleton exception. Its writer
-can emit that exception as ready_to_run with under_100k=false; this remains an explicit implementation hold,
-not proof the universal proposed no-oversize acceptance criterion was met.
+marks that exception `hold_over_web_cap` with `under_100k=false`; the oversized sequence remains
+in the queue as a held singleton, not a web-ready batch.
 
 The proposed snippet does not flush accumulated records before appending its oversized record, and its
 final guard raises for that same oversized singleton. The proposed chooser also indexes batches_85k[0]

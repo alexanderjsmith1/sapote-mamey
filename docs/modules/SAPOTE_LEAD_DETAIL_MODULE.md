@@ -7,19 +7,21 @@
 
 ## 1. The RG-GMCI rescue fix (bug → corrected rule)
 
-**Bug:** the prior rescue interpretation graded a pair on *shared product-class tokens* and discarded pairs whose two fragments carried different product annotations. That systematically **rejected real splits** — a cluster split across contigs has its core on one fragment and its tailoring/sugar/transport genes on another, so the two fragments are *expected* to have different product-class calls. It also leaned on `good_geometry_references` / `avg_min_identity`, which are empty when JSON evidence is `off`.
+**Previous-rule limitation:** comparing shared product-class tokens could reject split-locus candidates when annotations differed. Assess each candidate's bound pair evidence and alternatives independently; differing calls do not themselves prove a real split. The older `good_geometry_references` / `avg_min_identity` fields can be unavailable under selected JSON evidence settings; inspect their actual availability and producer, not a label alone.
 
-**Corrected rule (implemented in `rescue_groups()`):** grade rescue strength on the evidence the engine actually populates —
-- `strong_supporting_references` (reference clusters with strong protein co-membership),
-- `complete_or_chromosome_references` (support from complete genomes),
-- `max_protein_sum` (shared-protein count),
-- `rggmci_score`.
+**Corrected rule (implemented in `rescue_groups()`):** only `strong_supporting_references` (reference clusters with
+strong protein co-membership) decides which pairs count. A pair joins the graph when it has 1 or more. Three other
+fields are copied onto each edge. `max_protein_sum` (shared-protein count) and `rggmci_score` only order the edges,
+after the strong-reference count. `complete_or_chromosome_references` (support from complete genomes) is recorded
+but neither gates nor orders.
 
-Then build a graph from pairs with `strong_supporting_references ≥ 1` and report **connected components (rescue groups)**, not individual pairs:
+The helper then reports **connected components (rescue groups)**, not individual pairs:
 - **CLEAN_SPLIT** — a 2-fragment group. The label comes from component size alone: two loci joined by reference-derived pair support. It does not show physical linkage, a single pathway or higher biological confidence; keep both full endpoint identities and treat the join as unresolved until checked.
-- **HUB_COMPONENT_NEEDS_SUBRESOLUTION** — any component with three or more fragments, whether or not it has a high-degree hub → likely a *small* number of large fragmented pathways, **not** one cluster and not N clusters. Resolve by the shared-protein edges, not by merging the whole component.
+- **HUB_COMPONENT_NEEDS_SUBRESOLUTION** — a component with three or more fragments. This label follows graph size, not the number of pathways or physical joins. Inspect each shared-reference edge and full endpoint identity separately, retaining alternatives.
 
-**Worked result (AS-XXX; each alias stands for `AS-XXX / <contig> / region<NNN> / BGCnnn`):** 5 groups. They are one 19-fragment hub component (hubs BGC004 deg 11, BGC014 deg 8; top edge BGC004+BGC014 at 48 shared proteins) and four clean 2-fragment splits (BGC021+BGC032 siderophore; BGC024+BGC027 terpene; BGC006+BGC026 NRPS/lanthipeptide; BGC015+BGC060). The top lead BGC038 correctly returns `NO_STRONG_RESCUE` — it is a complete interior cluster.
+Before interpreting rescue status, independently verify the exact selected RG-GMCI file, full endpoint identities, source/run binding and completion state. The helper selects the first matching `*RGGMCI_full.json` and otherwise uses an empty pair list; absent or ambiguous selection is unavailable evidence, not a negative assessment.
+
+No public worked result is bundled. When you report one, write each alias as `<strain> / <contig> / region<NNN> / BGCnnn`, copied from the package.
 
 > **Claim ceiling for rescue:** RG-GMCI nominates homology-guided shared-reference linkage; it is **not** nucleotide-level joining. A rescue group is a *reconstruction hypothesis to confirm by long-read/contig-overlap*, never an asserted merge.
 
@@ -27,24 +29,19 @@ Then build a graph from pairs with `strong_supporting_references ≥ 1` and repo
 
 ## 2. Lead-detail iterative thinking step
 
-For each nominated antifungal/antibacterial lead, Sapote reasons in three passes over the
-`tools/build_lead_detail.py` output. Passes 2–3 are written by the judgment layer.
+For each nominated antifungal/antibacterial lead, work in three passes over the
+`tools/build_lead_detail.py` output. The tool does Pass 1. You write Passes 2 and 3.
 
 **Pass 1 — gene inventory (deterministic; the tool).**
-Per lead: biosynthetic genes with their domains, tailoring enzymes, **resistance genes in-cluster**, transporter count, regulators, rescue-group membership.
+The helper reports parsed CDS and heuristic annotation candidates from a resolved region GBK. Verify exact source, full locus identity, parse coverage and annotations independently. Missing or unresolved GBK input holds the inventory; empty lists or zero counts are not biological absence. Rescue membership reflects the selected pair graph, not independently validated linkage.
 
-**Pass 2 — module / role assignment (Sapote).**
+**Pass 2 — module / role assignment (you).**
 Walk the biosynthetic genes in order and assign each a role: loading/extension module (KS-AT-KR…), NRPS module (C-A-PCP), tailoring (P450, MT, halogenase, glycosyltransferase, deoxysugar), resistance/self-protection, export. State what the *captured* module set can and cannot make, and where truncation cuts the assembly line.
 
-**Pass 3 — mechanism hypothesis + literature questions (Sapote).**
+**Pass 3 — mechanism hypothesis + literature questions (you).**
 From the module roles + KCB anchor, state a claim-safe mechanism hypothesis ("capacity consistent with…"), the single most diagnostic gene/domain to confirm it, and the **literature questions** that would resolve identity/novelty. These questions become the punch-card (§3).
 
-**Iteration trigger:** if Pass 2 reveals a diagnostic gene the KCB anchor does not explain (e.g. `nikJ` in a "nucleoside" region → nikkomycin/chitin-synthase-inhibitor, not the generic anchor), loop back: re-query the lead with that gene as the seed before writing Pass 3.
-
-**Worked examples (AS-XXX; each alias stands for `AS-XXX / <contig> / region<NNN> / BGCnnn`):**
-- **BGC008 (nucleoside, antifungal):** Pass 1 surfaces `nikJ` (nikkomycin pathway) + `truD` + aminotransferases + a drug-efflux transporter. Pass 2: the nikJ hit reframes the generic "nucleoside" call as a **chitin-synthase-inhibitor** candidate (peptidyl-nucleoside). Pass 3: confirm nikJ identity; lit question on nikkomycin/polyoxin cluster homology.
-- **BGC002 (polyene, antifungal):** Pass 1: KS-AT-KR PKS module + NRPS C-A-PCP module + `azdH`/Acyl-CoA-dh + **four efflux transporters**. Pass 2: a PKS-NRPS hybrid with strong export — consistent with a secreted polyene/hybrid antifungal. Pass 3: the four-transporter export cassette is the self-protection story to confirm.
-- **BGC038 (saccharide, antibacterial; top lead):** Pass 1: `APH` resistance gene **in-cluster** beside `RmlD` (dTDP-deoxysugar), `MGT`/`Glycos_transf` glycosyltransferases, `PKS_KR`. Pass 2: a glycosylated/aminoglycoside-adjacent antibacterial with co-encoded aminoglycoside self-resistance. Pass 3: the in-cluster APH is the diagnostic; lit question on the *Dactylosporangium* anchor product.
+**Iteration trigger:** a reference-associated gene annotation can motivate a source-bound query and literature question. Confirm identity, gene context and alternatives before naming a pathway, compound or mechanism. Any new query or external submission remains subject to the selected task's authorization.
 
 ---
 
@@ -64,12 +61,8 @@ The deterministic helper writes the selected lead-detail JSON; it does not emit 
 
 ## 4. Wiring
 
+```bash
+python tools/build_lead_detail.py --package path/to/package --gbk-dir path/to/region_gbks --leads BGC001,BGC002 --out path/to/fresh-output/lead_detail.json
 ```
-python mamey_run.py run …         # strain inventory + triage + RGGMCI (unchanged)
-python tools/build_lead_detail.py --package <pkg> --gbk-dir <gbks> \
-       --leads <nominated leads> --out <fresh-folder>/lead_detail.json
-       # Pass 1 + corrected rescue groups. Without --out it writes <pkg>/lead_detail.json.
-       # An existing output, or an output that is one of the inputs, is refused (exit 2).
-# Sapote: Pass 2 + Pass 3 over lead_detail.json → Mode B lead cards + punch card
-# human relays punch card to web session → results → Sapote dereplication verdicts
-```
+
+These paths and aliases are illustrative, not evidence for biological loci. Substitute bound inputs and an existing fresh authorized output directory; quote spaces. The parser takes comma-separated BGC IDs, not full-locus selectors. Recover complete identities from the bound manifest before interpretation. An occupied output or an output aliasing a retained input is refused. Without `--out`, the helper targets `lead_detail.json` in the package. Passes 2 and 3 and any literature punch card are separately authored; preparing them does not authorize sending them.

@@ -5,34 +5,42 @@ This page is for operators and readers interpreting run outputs.
 
 **Motto: deterministic extraction, judgment deferred.** Tier 1 (Mamey, Python) extracts and
 organizes evidence; Sapote, the judgment workflow, interprets it. Nothing in this
-pipeline makes a structural or bioactivity claim — outputs are class-level hypotheses routed for
-later judgment.
+pipeline establishes a measured product structure or bioactivity. It emits
+source-derived records and structural/capacity heuristics for later review.
 
 Entry point is `mamey_run.py` (not an installed `python -m mamey` copy — the runner forces the local
-package onto `sys.path` to avoid version-shadowing). `cli.py::run_one_strain()` orchestrates six
-deterministic stages; data flows as typed objects from `models.py` (`RunContext` →
+package onto `sys.path` to avoid version-shadowing). `cli.py::run_one_strain()` coordinates the following six-part overview, not an exhaustive phase-receipt list; data flows as typed objects from `models.py` (`RunContext` →
 `AssemblyMetrics` + `list[BGCRecord]` → `SourceScanBundle` → `list[TriageRecord]`, bundled in a
 `MameyRun`).
 
 ## The six stages
 
 1. **Intake / parse** (`parsers.py`, `antismash_evidence.py`) — the antiSMASH output ZIP is parsed;
-   each region becomes one `BGCRecord` with a parse-time `bgc_id`. A claim about an individual
+   admitted parsed records yield `BGCRecord` objects with local aliases. Preview
+   counts do not establish that every source region was admitted or scored. A claim about an individual
    locus also needs its bound `strain / full node-or-contig / region / BGC alias` identity; the alias
    alone is not a physical identity. KnownClusterBlast / RiPP / Pfam / TIGRFAM
-   evidence status is read. JSON handling defaults to `--json-evidence bounded` (streamed via the
-   vendored ijson, wall-clock capped) with TXT-only fallback; `full` mode refuses JSON files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`).
-2. **Ten source-derived scans** (`source_scans.py`) — class triggers (CCTT), chitinase context
+   evidence states are recorded. `run --json-evidence` defaults to `bounded`;
+   `--capped-session` forces the main walker to `off`. The CLI applies a bounded-parser
+   budget, not a whole-run time guarantee; fallback/record work can occur outside it.
+   On a bounded-parser timeout or unavailable ijson, the main walker falls back to off.
+   KnownClusterBlast TXT files can be read when available, and a separate record pass
+   can still read JSON for the KCB percent and TIGRFAM hits. Inspect their statuses;
+   off does not necessarily make the result TXT-only. `full` mode refuses JSON files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`).
+   [JSON evidence modes](../docs/reader/04_RECOVERY_AND_LIMITS.md#json-evidence-modes) has the details.
+2. **Source-derived annotation and context scans** (`source_scans.py`) — class triggers (CCTT), chitinase context
    (CGAD), resistance tiers, TFBS, RiPP maturation (UMED), bldA/TTA codon usage, cassettes, and
    more, producing a `SourceScanBundle`. `rggmci.py` adds RG-GMCI: homology-guided candidate links between
    fragments on different contigs. A link is not a contig join; HIGH is a computational category,
-   not proof of physical linkage. Scan marker definitions increasingly come from a central registry
-   (`registry_detector.py` / `registry_schema.py`) instead of hardcoded patterns.
-3. **Scoring / triage** (`scoring.py::triage_bgcs`) — auto-floor AB/AF/novelty **routing priors**
-   (explicitly NOT final scores), CCTT diagnostic bonuses, standing-rule downgrades from
-   `mamey/data/rules_registry.json` (e.g. SACCHARIDE → Inventory tier, with false-positive-guard
-   contexts), RG-GMCI bonuses, and mis-anchor / mobile-element / primary-metabolism guards that
-   prevent false high-confidence calls.
+   not proof of physical linkage. Pattern and registry roles are producer-specific; inspect the selected scan
+   and marker source rather than assuming one universal detection implementation.
+3. **Scoring / triage** (`scoring.py::triage_bgcs`) — computes numeric AB/AF/novelty
+   **routing scores (priors)** from eligible evidence. It applies diagnostic bonuses,
+   standing-rule handling from `mamey/data/rules_registry.json` with a class-dependent
+   bottom tier (Low or Inventory), RG-GMCI bonuses,
+   and mis-anchor / mobile-element / primary-metabolism guards that limit selected
+   credit and flag interpretation risks. A guard is not proof that false positives
+   were eliminated.
 4. **Workbooks** (`workbook.py`, `master_workbook.py`) — the per-strain `_5_workbook.xlsx`, plus
    accumulation into a persistent cross-strain `--master` workbook (Strain_Registry, BGC_Master,
    class matrix, DAPR boards).
@@ -44,8 +52,8 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
    The profile token is `strict`, `relaxed`, `loose` or `unknown`; use the emitted filename
    and manifest rather than reconstructing it.
 6. **Validate** (`validate.py::validate_package`) — file presence plus **gates** (e.g. RGGMCI_GATE:
-   HIGH-confidence pairs must be listed; DEPTH_FLOOR for gold mode) → `gate_validation.json` with
-   PASS / PASS_WITH_ISSUES / MAMEY_COMPLETE.
+   HIGH-confidence pairs must be listed; DEPTH_FLOOR for gold mode) → `gate_validation.json`. The
+   [status values](../docs/reader/04_RECOVERY_AND_LIMITS.md#status-values) table lists what each result means.
 
 Post-seal subcommands (`render-figures`, `cohort-figures`, `mode-b`, `domain-level`,
 `ingest-receipts`) consume an already-sealed package after extraction. A post-seal command can fail or skip its
@@ -65,7 +73,8 @@ separately from the mode label; see [artifact scope](../docs/PER_MODE_ARTIFACT_S
 
 Scoring behavior is data-driven (rules registry, marker registry, gate registry TSVs). Every scan
 or scorer change is expected to have a paired `tests/test_*_gate.py` / `test_*_guard.py` asserting
-the invariant — the gates are the contract, the tests are the proof it held.
+the invariant — the named checks and their tested scope matter. A passing test supports its
+exercised cases, not every input or scientific claim.
 
 *Claim-safety: triage priors route attention; they are not conclusions. Judgment is deferred to the
 Sapote tiers, and even those emit class-level hypotheses only.*

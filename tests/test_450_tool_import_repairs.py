@@ -29,7 +29,7 @@ EXPORT = ROOT / "tools" / "cohort_tailoring" / "export_evidence_index.py"
 WORKBOOK_AST = 'eaa8d5c53baf5cd26c00291c0907588fd39700aee4cd5818744e1fc63b6b0cf7'
 HELPERS_AST = 'df97659038375d67f475b0c0f5c55b8ebacd36de052367fc2f05d88b872eac02'
 CLI_AST = '10159d88ecc66244ddcdd1ae5198f9f98d032a7a57107922cf16854a3b0c36ff'
-PLOT_AST = '8f897e318fa2124ad758284b56580301df75dc77a38c64c7ccd00f39bacf66b1'  # 464r3 engine_other card: fresh outputs + unrecorded-isolate mask
+PLOT_AST = '8438399a8e1503493b8de8d3e7dc7229053d0a095734f2472ae1ec0f69821625'  # Missing strain/class combinations are masked; see test_465_plot_examples_unreported.py.
 EXPORT_AST = '5e0312ac13dc2bcc066cf040b28901e27ebe8f8b4fe233f9a73985485fc52d30'
 
 
@@ -194,7 +194,7 @@ def test_workbook_success_wrapper_restores_cwd_and_uses_caller_relative_output(t
 
 def test_original_plot_body_and_export_function_are_mechanically_preserved():
     tree, main = _tree_and_main(PLOT)
-    assert [type(node).__name__ for node in tree.body] == ["Expr", "FunctionDef", "If"]
+    assert [type(node).__name__ for node in tree.body] == ["Expr", "FunctionDef", "FunctionDef", "If"]
     load_index = next(i for i, node in enumerate(main.body) if isinstance(node, ast.FunctionDef) and node.name == "load")
     assert _digest(main.body[load_index:-1]) == PLOT_AST
     assert isinstance(main.body[-1], ast.Return) and main.body[-1].value.value == 0

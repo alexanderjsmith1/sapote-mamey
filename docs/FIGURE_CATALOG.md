@@ -9,7 +9,7 @@ between related panels.
 
 Panel names here may differ a little from the files a run writes. Match the entry to the real
 file name, its sidecar data and its receipt. A panel with a HOLD (F11 and F13 below) writes a
-HOLD JSON file instead of artwork. `GOLD_FIGURES_SKIPPED.md` is written only when the whole gold-figure step fails with an error; it holds that error, not a list of panels.
+HOLD JSON file instead of artwork. The error handler attempts to write `GOLD_FIGURES_SKIPPED.md` when the whole gold-figure step raises an error. If written, it holds that error, not a list of panels; the note itself can fail to write.
 Terms such as KCB, CCTT, TTA and A-domain are defined in the [glossary](GLOSSARY.md).
 
 For domain-level definitions, see [cohort figure captions](COHORT_FIGURE_CAPTIONS.md).
@@ -24,8 +24,7 @@ extended fig8 show that context.
 A gold run (the full analysis mode) tries these figures and writes them to `package/gold_figures/`.
 The number of panels depends on which input fields the run admitted. To see what was made,
 compare the files in `gold_figures/` with this catalog, and read the run's console line
-`Gold figures: N figure(s)`. If the step failed,
-`gold_figures/GOLD_FIGURES_SKIPPED.md` holds the error. Locus maps are made for the top-ranked loci, not for
+`Gold figures: N figure(s)`. If the step raised an error, inspect `gold_figures/GOLD_FIGURES_SKIPPED.md` when present, the phase receipt and logs. The note can be absent if its write fails or if the step returns zero figures without raising. Locus maps are made for the top-ranked loci, not for
 every BGC.
 
 ### D-series — dashboards / scatter (per-BGC relationships)
@@ -40,7 +39,7 @@ every BGC.
 - **D08 bubble_tailoring** — tailoring-enzyme load per BGC (decoration potential).
 - **D09 bubble_regulators** — regulatory-gene load per BGC.
 - **D10 scatter_bgc_by_class** — BGCs distributed by biosynthetic class.
-- **D11 scatter_tta_vs_modularity** — TTA/bldA dependency vs megasynthase modularity.
+- **D11 scatter_tta_vs_modularity** — TTA codon burden vs megasynthase modularity; a count does not establish bldA dependence.
 
 ### F-series — per-BGC / per-gene heatmaps
 - **F01 perBGC_domain_heatmap** — per-BGC counts of eight catalytic domain classes (PKS_KS, PKS_AT, PKS_KR, PKS_DH, NRPS_C, NRPS_A, NRPS_T_PCP, TE_release), shown on a log color scale labeled `domain count`. It draws at most 40 BGCs, those with the most of these domains, so it is not the whole inventory. A zero count is an empty cell. The plotted values are in the `..._<strain>_perBGC_domain_heatmap_data.csv` sidecar beside the image.
@@ -50,7 +49,7 @@ every BGC.
 ### G-series — complementary summaries
 - **G01 rare_chemistry_triggers**, **G02 rare_product_classes**, **G03 kcb_similarity_strength**,
   **G04 bgc_boundary_status**, **G05 bgc_size_distribution**, **G06 domain_richness**,
-  **G07 tta_bldA_dependency**, **G08 megasynthase_modularity** — one-metric distributions/summaries that
+  **G07 tta_bldA_dependency** (TTA burden; dependence unverified), **G08 megasynthase_modularity** — one-metric distributions/summaries that
   back the D/F panels.
 
 ### Locus maps (`locus_maps/BGCxxx_*_locus.png`)
@@ -146,7 +145,7 @@ The bundle ships [strain-centric GCF and clinker consumers](BIGSCAPE_FIGURES.md)
 Single-strain gold figures are made on a best-effort basis. A skipped figure does not stop the
 package from being sealed or validated. Look in the run folder:
 
-- `gold_figures/GOLD_FIGURES_SKIPPED.md` exists only if the gold-figure step failed, and holds the error.
+- `gold_figures/GOLD_FIGURES_SKIPPED.md` is attempted when the gold-figure step raises an error; if present, it holds that error. Its absence does not prove that figures were produced.
 - The files present in `gold_figures/` show which panels were written; a panel without input data is simply absent.
 - `RUNS_DIR_NOTE.md` and the logs list other notes and errors.
 - The sidecar CSV beside each PNG holds the plotted values.

@@ -13,10 +13,10 @@ Figure commands refresh checksums inside the package they are given, and `locus-
 inside it. Copy the package once and run the figure examples below on the copy:
 
 ```bash
-cp -R runs/EXAMPLE/package runs/EXAMPLE/package_work
+mkdir runs/EXAMPLE/package_work && cp -R runs/EXAMPLE/package/. runs/EXAMPLE/package_work/
 ```
 
-The examples use `runs/EXAMPLE/package_work`. Your original stays unchanged. `cohort-figures` and the profile check below read the original.
+Use a fresh destination: `mkdir` refuses an existing folder. If copying fails, stop and inspect the partial folder before retrying elsewhere. The examples use `runs/EXAMPLE/package_work`. Your original stays unchanged. `cohort-figures` and the profile check below read the original.
 
 ## Terms
 
@@ -27,9 +27,11 @@ The examples use `runs/EXAMPLE/package_work`. Your original stays unchanged. `co
 - **Triage board**: `*_4_triage_board.csv` in the package, the ranked table of BGCs (biosynthetic
   gene clusters). `AB_auto` and `AF_auto` are its antibacterial and antifungal routing priors; the
   lead charts label their axes "Antibacterial routing prior (AB_auto)" and "Antifungal routing
-  prior (AF_auto)". The board keeps every region row, including BGCs excluded from leads: those
-  downgraded by a [standing rule](GLOSSARY.md), or flagged as primary metabolism or a mobile
-  element. Lead outputs, such as the top-lead charts and `manifest_short.json`, leave those out.
+  prior (AF_auto)". Triage rows can include BGCs excluded from leads: those downgraded by a
+  [standing rule](GLOSSARY.md), or flagged as primary metabolism or a mobile element. Lead outputs,
+  such as the top-lead charts and `manifest_short.json`, leave those out. Compare complete locus
+  identities against the inventory and inspect the scoring-coverage receipt before claiming every
+  region is represented; a coverage warning does not establish completeness.
 - **F, G and D series**: three sets of cohort panels. F is heatmaps, G is complementary panels, D is
   dot and bubble plots.
 - **dDDH**: digital DNA-DNA hybridization, a genome similarity score against a type strain.
@@ -92,8 +94,9 @@ python mamey_run.py render-figures --package runs/EXAMPLE/package_work --figure-
 
 Omit `--outdir` to write to `<package>/locus_maps/`. If you set it, give an absolute path inside the
 package. A relative path is refused with "must resolve inside the sealed package", even when it
-points inside the package. A run made with `--capped-session` never draws locus maps (see
-[first run](reader/01_FIRST_RUN.md)), so `locus_maps/` is missing until you run this command.
+points inside the package. A capped run skips locus maps by default; an explicit
+`--locus-maps on` requests them during the run. If the maps are missing, use this command
+to render them from the working package (see [first run](reader/01_FIRST_RUN.md)).
 
 ## Several packages at once
 
@@ -232,4 +235,4 @@ the chosen outputs, use [review decisions](FIGURE_OWNER_REVIEW_WORKFLOW.md). Wri
 <a id="dddh-with-the-closest-type-strain"></a>
 <a id="numeric-completeness-for-the-reference-plot-set"></a>
 
-Sapote–Mamey v9.7.464 · Mamey engine 1.9.180
+Sapote–Mamey v9.7.465 · Mamey engine 1.9.181

@@ -139,6 +139,12 @@ def scan(root: pathlib.Path):
     return out
 
 
+def _in_bundle(reference: str) -> bool:
+    """True for a relative reference that stays inside the bundle root."""
+    ref = pathlib.PurePosixPath(reference)
+    return not ref.is_absolute() and ".." not in ref.parts
+
+
 def _exact_relative_path_exists(root: pathlib.Path, reference: str) -> bool:
     """Resolve in-bundle paths by directory-entry spelling on every filesystem.
 
@@ -190,6 +196,11 @@ def scan_tools(root: pathlib.Path, strict_paths: bool = False):
                 # path-qualified: the exact relative path must exist
                 if not _exact_relative_path_exists(root, raw):
                     out.setdefault(raw, set()).add(rel)
+                continue
+            if "/" in raw and _in_bundle(raw) and _exact_relative_path_exists(root, raw):
+                # A path-qualified reference that resolves exactly inside the bundle is not
+                # dangling, even when its folder (e.g. examples/) is outside SEARCH_DIRS.
+                # Without this, lenient flagged a correct path that strict accepts.
                 continue
             if name in existing:
                 continue

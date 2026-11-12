@@ -8,12 +8,25 @@ Deps: matplotlib (stdlib csv). No seaborn/pandas required.
 """
 
 
+def _heatmap_grid(rows, strains, classes):
+    """Return observed class counts; mask every absent combination as unreported."""
+    import numpy as np
+    observed = {}
+    for row in rows:
+        key = (row["product_class"], row["strain"])
+        if key in observed:
+            raise ValueError(f"duplicate class/strain row: {key}")
+        observed[key] = int(row["n_bgcs"])
+    grid = [[observed.get((c, s), 0) for s in strains] for c in classes]
+    mask = [[(c, s) not in observed for s in strains] for c in classes]
+    return np.ma.masked_array(grid, mask=mask)
+
+
 def main(argv=None):
     import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
     _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
     from _console import emit  # noqa: E402
     import sys, os, csv, math
-    from collections import defaultdict
     # -h/--help only; the positional use is unchanged, and extra words are ignored as before.
     import argparse
     ap = argparse.ArgumentParser(prog='plot_examples.py', description=__doc__,
@@ -79,27 +92,22 @@ def main(argv=None):
     cbs=load('class_by_strain.csv')
     sids=[r['strain'] for r in ss]  # keep strain order from summary (corrected-rank); the exporter keys by 'strain'
     classes=[r['product_class'] for r in sorted(load('class_prevalence.csv'),key=lambda r:-int(r['n_strains']))[:20]]
-    M=defaultdict(dict)
-    for r in cbs: M[r['product_class']][r['strain']]=int(r['n_bgcs'])
-    # class_by_strain.csv lists only nonzero strain x class counts. For a strain that has class rows,
-    # an absent class is a counted zero. A strain with no rows at all was not recorded in this table:
-    # its column is masked (grey), not drawn as zeros.
-    recorded={r['strain'] for r in cbs}
-    import numpy as np
-    grid=np.ma.masked_array([[M.get(c,{}).get(s,0) for s in sids] for c in classes],
-                            mask=[[s not in recorded for s in sids] for c in classes])
-    n_unrecorded=sum(1 for s in sids if s not in recorded)
+    # Sparse rows do not establish that absent strain/class combinations were assessed.
+    grid = _heatmap_grid(cbs, sids, classes)
+    n_unrecorded = int(grid.mask.sum())
+    no_rows = sum(1 for strain in sids if not any(r["strain"] == strain for r in cbs))
     cmap=matplotlib.colormaps['viridis'].copy(); cmap.set_bad('#d9d9d9')
     fig,ax=plt.subplots(figsize=(9,6))
     im=ax.imshow(grid,aspect='auto',cmap=cmap)
     ax.set_xticks(range(len(sids))); ax.set_xticklabels(sids,rotation=90,fontsize=7)
     ax.set_yticks(range(len(classes))); ax.set_yticklabels(classes,fontsize=8)
     ax.set_title('BGCs per product class x isolate (top 20 classes)'
-                 + ('; grey = %d isolate(s) not in class_by_strain.csv' % n_unrecorded if n_unrecorded else ''))
+                 + ('; grey = %d unreported strain/class cell(s)' % n_unrecorded if n_unrecorded else ''))
     fig.colorbar(im,ax=ax,label='n_BGCs',shrink=.7)
     fig.tight_layout(); fig.savefig(targets[2],dpi=300); plt.close(fig)
     emit('wrote fig1_fragmentation_gradient.png, fig2_class_prevalence.png, fig3_class_by_strain_heatmap.png ->', out_dir
-         + (f'\n  heatmap: {n_unrecorded} isolate(s) have no class_by_strain rows; shown grey, not as zero' if n_unrecorded else ''))
+         + (f'\n  heatmap: {n_unrecorded} strain/class cell(s) unreported; shown grey, not as zero' if n_unrecorded else '')
+         + (f'\n  {no_rows} isolate(s) have no class_by_strain rows' if no_rows else ''))
     return 0
 
 

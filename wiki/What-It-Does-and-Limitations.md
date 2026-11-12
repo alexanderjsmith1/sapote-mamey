@@ -3,7 +3,7 @@
 Review the software capabilities and their limits.  
 This page is for readers deciding whether a workflow fits their task.
 
-*Current to bundle v9.7.464 · engine Mamey 1.9.180.*
+*Current to bundle v9.7.465 · engine Mamey 1.9.181.*
 
 What Sapote-Mamey does well, and where its limits are recorded. The retained strengths describe design requirements and selected demonstrated routes, not universal enforcement across every command. Current implementation gaps and source-specific holds remain controlling; this page is not a fresh benchmark or audit receipt. **Strength**
 means a capability or design choice that has produced genuine scientific, interpretive,
@@ -21,17 +21,16 @@ page itself follows.
 ### A. Scientific reasoning and claim calibration
 
 - **Extraction and judgment are explicitly separated.** Mamey performs deterministic extraction
-  while Sapote performs interpretation, so a successful parser or score can never silently become
-  a biological conclusion.
-- **Similarity is not treated as identity.** The distinction between a homologous sequence, an
-  identical protein, an orthologous function, and a chemically equivalent pathway is preserved
-  throughout. Natural-product databases contain many remotely related enzymes whose shared
+  while Sapote guides interpretation. Review the source evidence before drawing a biological
+  conclusion from a parser result or score.
+- **Distinguish similarity from identity.** Keep homologous sequences, identical proteins,
+  orthologous functions and chemically equivalent pathways separate. Natural-product databases contain many remotely related enzymes whose shared
   family names conceal different substrates and reactions.
 - **Capacity is not treated as production.** A coherent cluster supports biosynthetic capacity,
   not proof of expression or metabolite production; culture, expression, chemistry, and
   bioactivity stay outside the genomic claim unless measured evidence is supplied.
-- **Missing evidence is represented as a workflow state.** Missing, blocked, unreturned, unbound,
-  or CPU-terminated searches are never rewritten as biological no-hits.
+- **Keep missing evidence as a workflow state.** Check whether a search was missing, blocked,
+  unreturned, unbound or interrupted before interpreting a no-hit result.
 - **Alternatives and resolving experiments are first-class outputs.** The strongest Mode B
   sections name competing interpretations and the specific experiment that would distinguish
   them, not just a favored model.
@@ -48,18 +47,19 @@ page itself follows.
   translated CDS roster, and neighboring genes are compared directly, which has already caught
   real loose-versus-canonical source conflicts.
 - **Source-local aliases are secondary in the identity contract.** Some consumers still resolve records by alias, and the biosynthetic-tree preparer retains products by `bgc_id` without emitting full contig/region identity. Reconcile the complete bound locus tuple before using those outputs; an alias lookup is not an accepted physical-identity join.
-- **Quarantine is a real evidence state, not a euphemism.** When a source cannot bind the exact
-  physical object, the source and its exclusion reason are retained without contaminating current
-  interpretation.
+- **Quarantine is a real evidence state, not a euphemism.** Where a check binds evidence to the
+  exact physical locus, a source that fails it is kept with its exclusion reason and left out of the
+  interpretation. Not every view checks the full locus. The widget's BLASTp admission can accept a
+  row without contig, region or protein-hash columns, so read the
+  [widget guide](../docs/WIDGET_DELIVERABLES.md) before you trust its "exact-current" label.
 
 ### C. Evidence breadth and channel separation
 
 - **The per-gene BLASTp matrix is unusually informative** — named subjects, residue
   denominators, coverage, identity, positives, E-values, and channel state per protein, not a
   single cluster-level similarity label.
-- **BLASTp channels remain distinct.** ClusteredNR representative-sequence similarity is never
-  presented as full-nr identity, and curated Swiss-Prot evidence is never conflated with NCBI
-  databases.
+- **Keep BLASTp channels distinct.** Report ClusteredNR representative-sequence similarity,
+  full-nr results and curated Swiss-Prot evidence with their own source and database scope.
 - **MIBiG evidence is decomposed to gene level** as family navigation, not automatic product-name
   transfer — per-gene agreement can reveal whether similarity concentrates in housekeeping
   proteins or genuinely diagnostic machinery.

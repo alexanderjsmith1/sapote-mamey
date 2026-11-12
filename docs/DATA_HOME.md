@@ -56,7 +56,9 @@ A staged file is not yet part of the master.
 
 ### 3. Verify
 
-A different person runs this. The checklist is in the [storage reference](reference/STRAIN_MASTER_STORAGE_REFERENCE.md#the-one-way-in): recount the stated counts (item 2), confirm each locus identity comes from one source record (item 3), compare against records and rulings (item 4), and look for claims beyond the evidence or private paths (item 6).
+A different person runs this. The command checks that the verifier label differs from
+the submitter label; it does not authenticate who entered it or establish that the
+review occurred. Keep the reviewer’s actual evidence and decisions. The checklist is in the [storage reference](reference/STRAIN_MASTER_STORAGE_REFERENCE.md#the-one-way-in): recount the stated counts (item 2), confirm each locus identity comes from one source record (item 3), compare against records and rulings (item 4), and look for claims beyond the evidence or private paths (item 6).
 
 ```bash
 python mamey_run.py strain-master verify --master ../EXAMPLE-master \

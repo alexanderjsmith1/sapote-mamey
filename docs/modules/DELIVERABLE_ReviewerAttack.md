@@ -75,7 +75,7 @@ Claim or interpretation:
 "BGC001 shows biosynthetic capacity consistent with an enediyne-type locus."
 
 Likely reviewer criticism:
-1. The cluster sits on a contig edge in a VERY_POOR assembly. The boundaries are unreliable.
+1. The cluster sits on a contig edge, and the boundary-based tier is VERY_POOR. The boundaries need review.
 2. The enediyne call rests on one domain hit, and a domain hit is not a compound.
 3. Not applicable, no bioactivity-to-BGC link drawn.
 4. Not applicable, no ecological claim made.

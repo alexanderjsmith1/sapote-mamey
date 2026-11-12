@@ -154,12 +154,26 @@ def run_external_scan_pack(source_scans: SourceScanBundle,
     else:
         t4_bgcs = [bgc for bgc, v in tta_per_bgc.items()
                    if isinstance(v, dict) and v.get("bldA_tier") == "T4"]
-        blda_state  = "PASS" if tta_per_bgc else "NULL"
-        blda_detail = f"{len(tta_per_bgc)} BGCs assessed; {len(t4_bgcs)} T4"
+        # A NOT_COMPUTED tier means no CDS sequence was read for that BGC (source_scans.scan_blda_tta).
+        not_read = [bgc for bgc, v in tta_per_bgc.items()
+                    if isinstance(v, dict) and v.get("bldA_tier") == "NOT_COMPUTED"]
+        if tta_per_bgc and len(not_read) == len(tta_per_bgc):
+            blda_state  = "FAILED"
+            blda_detail = (f"no CDS sequence was read for any of {len(tta_per_bgc)} BGCs; "
+                           "TTA codons were not counted; not a negative")
+        else:
+            blda_state  = "PASS" if tta_per_bgc else "NULL"
+            blda_detail = f"{len(tta_per_bgc) - len(not_read)} BGCs assessed; {len(t4_bgcs)} T4"
+            if not_read:
+                blda_detail += f"; {len(not_read)} BGCs not computed (no CDS sequence)"
 
     # TFBS
     tfbs_total = ss.tfbs.get("total_hits", 0)
     tfbs_state  = "PASS" if tfbs_total > 0 else "NULL"
+    # scan_tfbs skips a CDS whose contig sequence is missing. When it skipped every CDS, zero hits
+    # is not a search result. An older scan dict without cds_total keeps the earlier reading.
+    _tfbs_missing = ss.tfbs.get("missing_contig_count", 0) or 0
+    _tfbs_cds = ss.tfbs.get("cds_total")
     # v9.7.374 fix: `f"{tfbs_total} motif hits; " + ", ".join(...) or "no hits"` -- the leading
     # f-string is always truthy (even at tfbs_total==0: "0 motif hits; "), so `or "no hits"` was
     # unreachable dead code and a zero-hit genome rendered the malformed trailing "0 motif hits; "
@@ -170,8 +184,14 @@ def run_external_scan_pack(source_scans: SourceScanBundle,
         tfbs_detail = f"{tfbs_total} motif hits; " + ", ".join(
             f"{k}:{v}" for k, v in ss.tfbs.get("counts", {}).items() if v
         )
+    elif _tfbs_cds and _tfbs_missing >= _tfbs_cds:
+        tfbs_state  = "FAILED"
+        tfbs_detail = (f"no contig sequence for any of {_tfbs_cds} CDS; upstream windows were not "
+                       "searched; not a negative")
     else:
         tfbs_detail = "no hits"
+    if tfbs_state != "FAILED" and _tfbs_missing:
+        tfbs_detail += f"; {_tfbs_missing} CDS skipped (no contig sequence)"
 
     # PHO-CLUSTER flag: T43-PHO >= 5 HITS in one genome is a strong phosphonate signal. Whether it is a
     # phosphonate-rich strain or one dedicated locus depends on how many BGCs carry it (bgc_counts), not the

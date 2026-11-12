@@ -1882,21 +1882,29 @@ def build(S, order, OUT):
     for gi,s in enumerate(order):
         xs=[]; ys=[]
         for b in S[s]["deep"]["bgc_profile"]:
-            mod=int(b.get("PKS_KS") or 0)+int(b.get("NRPS_C") or 0); tta=int(b.get("tta_codons") or 0)
+            mod=int(b.get("PKS_KS") or 0)+int(b.get("NRPS_C") or 0)
+            raw_tta=b.get("tta_codons")
+            tta=None if raw_tta is None or raw_tta == "" else int(raw_tta)
+            d11.append([s,b.get("bgc_id"),mod,tta if tta is not None else "",
+                        "MISSING" if tta is None else "RECORDED"])
+            if tta is None:
+                continue
             xs.append(mod+rng.uniform(-0.2,0.2)); ys.append(tta+rng.uniform(-0.2,0.2))
-            d11.append([s,b.get("bgc_id"),mod,tta])   # the values before display jitter
         priv=is_private(s, S)
         ax.scatter(xs,ys,s=55 if priv else 20,marker="D" if priv else "o",color=pal[gi],alpha=0.7,
                    edgecolor="#222",linewidth=0.6 if priv else 0.2,label=f"{s}"+(" (PRIV)" if priv else ""))
-    ax.set_xlabel("megasynthase modules per BGC (PKS-KS + NRPS-C)"); ax.set_ylabel("TTA codons per BGC (bldA-dependency)")
+    ax.set_xlabel("megasynthase modules per BGC (PKS-KS + NRPS-C)"); ax.set_ylabel("TTA codons per BGC")
     from matplotlib.ticker import MaxNLocator
     ax.xaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
     ax.yaxis.set_major_locator(MaxNLocator(integer=True, min_n_ticks=1))
-    ax.set_title("bldA-dependency vs megasynthase modularity, per BGC\n"
+    ax.set_title("TTA codon count vs megasynthase modularity, per BGC\n"
                  "Counts are integers; dots are offset by up to 0.2 per axis.",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
-    fn=stamp_d(fig,"scatter_tta_vs_modularity"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
-    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","megasynthase_modules","tta_codons"],d11)
+    fn=stamp_d(fig,"scatter_tta_vs_modularity")
+    if any(row[-1] == "RECORDED" for row in d11):
+        _save_pair(fig,f"{OUT}/{fn}.png")
+    plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","megasynthase_modules","tta_codons","tta_count_state"],d11)
 
 
 def _run_all_d(S, order, out):
@@ -1916,7 +1924,9 @@ era; the actual file is `mamey/cohort_figures_g.py`.)
 
 GNUM=[0]
 def stamp_g(fig, fid):
-    GNUM[0]+=1; tag=f"G{GNUM[0]:02d} · {fid}"
+    GNUM[0]+=1
+    display_fid = "tta_codon_count" if fid == "tta_bldA_dependency" else fid
+    tag=f"G{GNUM[0]:02d} · {display_fid}"
     fig.supxlabel(tag,fontsize=6,color="#9a9a9a")  # v9.7.162: below x-tick labels
     return f"G{GNUM[0]:02d}_{fid}"
 
@@ -2099,9 +2109,12 @@ def batch2(S, order, OUT):
         rows=[[0]*len(order) for _ in labels]
         for j,s in enumerate(order):
             for v in per_strain_vals[s]:
-                bi=len(edges)
-                for i,e in enumerate(edges):
-                    if v<e: bi=i; break
+                if v is None:
+                    bi=len(labels)-1
+                else:
+                    bi=len(edges)
+                    for i,e in enumerate(edges):
+                        if v<e: bi=i; break
                 rows[bi][j]+=1
         hmap(rows,labels,order,title,fid,OUT,cbar=cbar,cmap=cmap,row_raw=labels)
 
@@ -2116,9 +2129,9 @@ def batch2(S, order, OUT):
              "Per-BGC domain richness per strain (total domains/BGC)","domain_richness","BGC count",cmap="mako_r" if "mako_r" in plt.colormaps() else "viridis")
 
     # G07 TTA / bldA-dependency (tta_codons per BGC)
-    tt={s:[int(b.get("tta_codons") or 0) for b in S[s]["deep"]["bgc_profile"]] for s in order}
-    bin_heat(tt,[1,2,4,8],["0 (TTA-free)","1","2\u20133","4\u20137","\u2265 8"],
-             "TTA-codon load per BGC per strain (bldA-dependent regulation signal)","tta_bldA_dependency","BGC count",cmap="rocket_r" if "rocket_r" in plt.colormaps() else "magma_r")
+    tt={s:[None if b.get("tta_codons") is None or b.get("tta_codons") == "" else int(b["tta_codons"]) for b in S[s]["deep"]["bgc_profile"]] for s in order}
+    bin_heat(tt,[1,2,4,8],["0 counted","1","2\u20133","4\u20137","\u2265 8","unknown / missing"],
+             "TTA codon count per BGC per strain","tta_bldA_dependency","BGC count",cmap="rocket_r" if "rocket_r" in plt.colormaps() else "magma_r")
 
     # G08 megasynthase modularity (modules ~ PKS_KS + NRPS_C per BGC)
     md={s:[int(b.get("PKS_KS") or 0)+int(b.get("NRPS_C") or 0) for b in S[s]["deep"]["bgc_profile"]] for s in order}
@@ -2381,11 +2394,11 @@ CAPTIONS = {
     # ---- G-series (complementary) ----
     "rare_chemistry_triggers": "Rare diagnostic-chemistry triggers per strain with the two ubiquitous triggers (halogenase, lanthipeptide) removed, so uncommon capacity (diketopiperazine/CDPS, indolocarbazole, lassopeptide, nucleoside, n-n-bond) stands out.",
     "rare_product_classes": "BGC counts by product class and strain. Includes classes recorded in at most four strains; the title gives the number of strains shown.",
-    "kcb_similarity_strength": "Per-strain distribution of BGCs by KnownClusterBlast reference-similarity strength, including a 'no-hit' (novelty-leaning) bin. KCB is similarity, not identity; the no-hit bin partly conflates true novelty with truncation of fragmented BGCs.",
+    "kcb_similarity_strength": "Per-strain BGC counts by KnownClusterBlast cumulative-BLAST-score band. The bands are thirds of this cohort's own scores, not similarity thresholds, and the score grows with cluster size, so a band does not compare BGCs of different size. KCB is similarity, not identity. A BGC in the 'no KCB hit' row has no KnownClusterBlast hit in this assembly: there may be no close reference, or the BGC may be cut short at a contig edge.",
     "bgc_boundary_status": "BGC boundary status per strain (Interior / Edge / Full-contig) — the components of the corrected BGC count (Interior + 1/2*Edge + 1/4*Full-contig), making assembly fragmentation explicit.",
     "bgc_size_distribution": "Per-strain BGC counts binned by region length (kb). Larger regions tend to host modular megasynthases; many small regions indicate fragmentation.",
     "domain_richness": "Per-strain BGC counts binned by total domains per BGC, separating domain-poor fragments from domain-rich modular clusters.",
-    "tta_bldA_dependency": "Per-strain BGC counts binned by TTA-codon load. TTA codons require the bldA-encoded tRNA for translation, so TTA-rich BGCs are candidate bldA-dependent (developmentally regulated) clusters in actinomycetes.",
+    "tta_bldA_dependency": "Per-strain BGC counts binned by TTA codon count, with missing values shown separately. Counts do not establish bldA dependence or regulation.",
     "megasynthase_modularity": "Per-strain BGC counts binned by module number (PKS-KS + NRPS-C domains per BGC), a proxy for assembly-line length and product complexity.",
     "strain_similarity_matrix": "Strain x strain similarity (Pearson correlation on relative top-40 domain composition). Relative composition is used because raw cosine saturates on shared housekeeping domains.",
     "product_class_cooccurrence": "Product-class co-occurrence across strains (cell = number of strains carrying both classes), showing which chemistries tend to travel together in the cohort.",
@@ -2406,7 +2419,7 @@ CAPTIONS = {
     "bubble_tailoring": "Tailoring enzyme x strain bubble matrix (dot area = domain count): halogenases, chitinase, P450, glycosyl-/methyltransferases, radical SAM, siderophore synthetase, prenyltransferase.",
     "bubble_regulators": "Regulator family x strain bubble matrix (dot area = domain count). TetR: efflux/antibiotic-responsive repressors; GntR: metabolic repressors; LysR: dual activator/repressors; MarR: multidrug-resistance regulators; sigma-70: alternative sigma factors; HTH: generic DNA-binding regulators.",
     "scatter_bgc_by_class": "Per-BGC length vs domain count, colored by dominant product class — the chemical-architecture landscape, showing how class relates to size/complexity.",
-    "scatter_tta_vs_modularity": "Per-BGC bldA-dependency (TTA codons) vs megasynthase modularity (PKS-KS + NRPS-C), colored by strain. Tests whether large modular clusters are preferentially bldA-regulated.",
+    "scatter_tta_vs_modularity": "Per-BGC TTA codon count vs megasynthase modularity (PKS-KS + NRPS-C), colored by strain. Rows with missing TTA counts are excluded from the scatter and retained as missing in its data table. The count does not establish bldA dependence or regulation.",
 }
 
 GLOSSARY = {
@@ -2434,7 +2447,7 @@ GLOSSARY = {
     "Key terms": [
         "KCB (KnownClusterBlast): similarity to characterised reference clusters — similarity, NOT identity or proof of product.",
         "CCTT triggers: diagnostic chemistry signatures flagging biosynthetic capacity consistent with a chemotype.",
-        "TTA / bldA: TTA codons depend on the bldA tRNA; TTA-rich BGCs are candidate developmentally regulated clusters in actinomycetes.",
+        "TTA / bldA: recorded TTA counts do not establish expression or bldA dependence.",
         "Boundary (Interior/Edge/Full-contig) and corrected count = Interior + 1/2*Edge + 1/4*Full-contig: discounts BGCs truncated by assembly fragmentation.",
         "Assembly tiers: GOOD >=70% / MODERATE >=45% / POOR >=20% / VERY_POOR <20% interior BGCs.",
         "PUBLIC admission requires recorded release authority or an exact bound profile assignment; folder names and identifier prefixes are not authority.",

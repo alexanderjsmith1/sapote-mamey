@@ -5,10 +5,11 @@ The engine already carries several *independent* novelty signals but no single v
 intersects them. This tool composites them into one ranked candidate table, read entirely
 from sealed Mamey package(s):
 
-  (a) KCB-dark            — inventory KCB_top is empty (no KnownClusterBlast/MIBiG anchor)
-  (b) low recognizability — best per-gene MIBiG recognizable_gene_share is low (or no
-                            convergence row at all): the locus is dark *per gene*, not just
-                            at the whole-cluster level
+  (a) KCB-dark            — KnownClusterBlast ran and reported no hit (inventory
+                            KCB_evidence_state); an unknown state scores nothing
+  (b) low recognizability — best per-gene MIBiG recognizable_gene_share is low (or the
+                            convergence table has no row for the BGC): the locus is dark
+                            *per gene*. With no convergence table, nothing is scored.
   (c) RG-GMCI linkage     — the region participates in an RG-GMCI split-pathway pair
                             (surfaced as a distinctiveness signal, never used to merge here)
   (d) cohort-unique domain— (multi-package runs) carries a biosynthetic domain seen in only
@@ -54,6 +55,22 @@ from mamey.domain_reference import BIOSYNTHETIC_CATEGORIES, categorize
 FRAGMENT_KB = 10.0
 LOW_RECOG = 0.25  # best recognizable_gene_share below this = per-gene dark
 
+# KCB_evidence_state values (mamey/antismash_evidence.py) that say KnownClusterBlast ran and
+# reported no hit for the region. Every other state, UNKNOWN_KCB included, is not a no-hit result.
+KCB_NO_HIT_STATES = frozenset({"KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED"})
+# An inventory written before KCB_evidence_state existed has no such column. Its blank KCB_top
+# is scored as before and the row says so.
+KCB_STATE_NOT_RECORDED = "NOT_RECORDED_IN_INVENTORY"
+
+
+def _kcb_dark(inventory_row: dict) -> tuple[bool, str]:
+    """(scores as KCB-dark, KCB state shown). A named top hit is never dark."""
+    has_top = bool((inventory_row.get("KCB_top") or "").strip())
+    if "KCB_evidence_state" not in inventory_row:
+        return (not has_top), KCB_STATE_NOT_RECORDED
+    state = (inventory_row.get("KCB_evidence_state") or "").strip().upper() or "UNKNOWN_KCB"
+    return (not has_top and state in KCB_NO_HIT_STATES), state
+
 
 def _find_one(package_dir: str, suffix: str) -> str | None:
     hits = sorted(glob.glob(os.path.join(package_dir, f"*{suffix}")))
@@ -93,11 +110,12 @@ def _triage(package_dir: str) -> dict[str, dict]:
     return out
 
 
-def _best_recognizability(package_dir: str) -> dict[str, float]:
+def _best_recognizability(package_dir: str) -> dict[str, float] | None:
+    """BGC_ID -> best recognizable_gene_share; None when the package has no convergence table."""
     c = _find_one(package_dir, "_3_mibig_convergence.csv")
     best: dict[str, float] = {}
     if not c:
-        return best
+        return None
     with open(c, encoding="utf-8", newline="") as fh:
         for r in csv.DictReader(fh):
             bid = (r.get("bgc_id") or "").strip()
@@ -150,9 +168,13 @@ def build(package_dirs: list[str]) -> list[dict]:
         bd = pkg_domains[pkg]
         for bid, ir in inv.items():
             tr = tri.get(bid, {})
-            no_kcb = not (ir.get("KCB_top") or "").strip()
-            best_recog = recog.get(bid)
-            low_recog = (best_recog is None) or (best_recog < LOW_RECOG)
+            no_kcb, kcb_state = _kcb_dark(ir)
+            if recog is None:
+                best_recog, low_recog, recog_source = None, False, "NO_CONVERGENCE_TABLE"
+            else:
+                best_recog = recog.get(bid)
+                low_recog = (best_recog is None) or (best_recog < LOW_RECOG)
+                recog_source = "NO_ROW_FOR_BGC" if best_recog is None else "CONVERGENCE_ROW"
             rggmci = bool((tr.get("RGGMCI_support") or "").strip())
             rare = sorted(d for d in bd.get(bid, set()) if d in unique_domains)
             try:
@@ -178,6 +200,8 @@ def build(package_dirs: list[str]) -> list[dict]:
                 "cohort_unique_domains": ";".join(rare)[:100],
                 "fragment_surfaced": int(fragment),
                 "novelty_score": round(score, 2),
+                "kcb_evidence_state": kcb_state,
+                "recognizability_source": recog_source,
             })
     rows.sort(key=lambda r: -r["novelty_score"])
     return rows
@@ -185,7 +209,21 @@ def build(package_dirs: list[str]) -> list[dict]:
 
 FIELDS = ["rank", "strain", "bgc_id", "products", "length_kb", "novelty_prior", "lead_tier",
           "kcb_dark", "best_recognizable_gene_share", "low_recognizability", "rggmci_linked",
-          "n_cohort_unique_domains", "cohort_unique_domains", "fragment_surfaced", "novelty_score"]
+          "n_cohort_unique_domains", "cohort_unique_domains", "fragment_surfaced", "novelty_score",
+          "kcb_evidence_state", "recognizability_source"]
+
+
+def _kcb_cell(r: dict) -> str:
+    if r["kcb_dark"]:
+        return "✓"
+    state = r.get("kcb_evidence_state", "")
+    return "?" if state not in KCB_NO_HIT_STATES and state not in ("KNOWNCLUSTERBLAST_OBSERVED", KCB_STATE_NOT_RECORDED) else ""
+
+
+def _recog_cell(r: dict) -> str:
+    if r["low_recognizability"]:
+        return "✓"
+    return "?" if r.get("recognizability_source") == "NO_CONVERGENCE_TABLE" else ""
 
 
 def _reader_out_dir(out, package_dir, suffix):
@@ -230,13 +268,15 @@ def main(argv=None) -> int:
         fh.write("Ranked by a composite of independent novelty **priors**: KCB/MIBiG-dark, low "
                  "per-gene recognizability, RG-GMCI split-pathway linkage, cohort-unique "
                  "biosynthetic domains (fragments <10 kb surfaced but down-weighted). "
-                 "**All signals are priors, not proof of new chemistry or any activity.**\n\n")
+                 "**All signals are priors, not proof of new chemistry or any activity.** "
+                 "A `?` means the package does not show whether that signal applies, so it "
+                 "added nothing to the score.\n\n")
         fh.write("| # | strain · BGC | class | kb | score | KCB-dark | low-recog | RG-GMCI | frag |\n")
         fh.write("|---:|---|---|---:|---:|:---:|:---:|:---:|:---:|\n")
         for r in rows[:a.top]:
             fh.write(f"| {r['rank']} | {r['strain']} · {r['bgc_id']} | "
                      f"{(r['products'] or '—')[:22]} | {r['length_kb']} | {r['novelty_score']} | "
-                     f"{'✓' if r['kcb_dark'] else ''} | {'✓' if r['low_recognizability'] else ''} | "
+                     f"{_kcb_cell(r)} | {_recog_cell(r)} | "
                      f"{'✓' if r['rggmci_linked'] else ''} | {'✓' if r['fragment_surfaced'] else ''} |\n")
     top = rows[0] if rows else None
     emit(f"{len(rows)} BGCs scored -> {csv_path}"

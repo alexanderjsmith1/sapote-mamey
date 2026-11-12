@@ -62,7 +62,7 @@ Four axes remain separate:
 3. Per-protein partialness.
 4. Detector-window relationship to the region.
 
-The interpreter consumes the canonical result owned by `mamey.fragment_ceiling`; it does not reimplement that policy. A fragmented assembly does not make every locus partial, and an interior locus does not make an assembly contiguous.
+The interpreter reads the caller-supplied fragment-ceiling state, reason and `mamey.fragment_ceiling` owner label from the staged context. It checks their permitted form but does not invoke the module, recompute its result or verify that the declaration came from it. Bind the actual producer output and evidence separately. A fragmented assembly does not make every locus partial, and an interior locus does not make an assembly contiguous.
 
 ## Ranked important-gene review
 

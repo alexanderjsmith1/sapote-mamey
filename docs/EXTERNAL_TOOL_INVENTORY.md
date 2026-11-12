@@ -1,6 +1,6 @@
 # External tool & database inventory
 
-**Bundle v9.7.464 · engine Mamey 1.9.180 · compiled 2026-11-08**
+**Bundle v9.7.465 · engine Mamey 1.9.181 · compiled 2026-11-10**
 
 This page lists the external bioinformatics tools and reference databases the workflow depends on. Each row gives a version, the run-defining parameters and a citation. For the helper scripts shipped in `tools/`, see [the generated tools inventory](TOOLS_INVENTORY.generated.md), a different document.
 
@@ -86,7 +86,7 @@ See also [Prerequisites](PREREQUISITES.md), [the placement recipe](PHYLO_PLACEME
 
 ## Recording what you ran
 
-- **antiSMASH.** Read the version from each input's result JSON and package receipt. The JSON holds the version, taxon, schema and analyses. It does not hold the command line; Mamey's `antismash_profile` field records the detection strictness (`loose`).
+- **antiSMASH.** Read the version from each input's result JSON and package receipt. The JSON can hold version, taxon, schema, analyses and recorded command-line evidence. Availability varies: inspect the archive and run records rather than assuming a complete command. Mamey's `antismash_profile` records the selected strictness; compare it with `antismash_profile_record` and archive evidence.
 - **Pfam.** The 38.2 label comes from a family count, which is not a unique release identity. Keep the upstream release or archive hash and the model file you used.
 - **SPAdes.** Read the version from each assembly's Galaxy history; Galaxy wrappers change over time.
 - **pyhmmer and BiG-SCAPE.** The versions above are from one environment. Confirm against the run's `run.log`.

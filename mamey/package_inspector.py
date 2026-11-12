@@ -367,7 +367,7 @@ def inspect_command(args) -> int:
         report_lines.extend([f"  Public accession  : {input_shape.get('accession')}"])
 
     if input_shape.get("shape") == "single_region_antismash_accession":
-        report_lines.extend(['\n  Single-region accession note:', '    This looks like a raw antiSMASH run on one public GenBank/INSDC sequence, not a full genome and not a sealed Mamey package.', '    It is still a valid Mamey intake target if inspect passes.', '    Assembly completeness warnings such as VERY_POOR / 0% interior BGCs can be expected for this input shape.', '    Treat this as reference/control evidence unless the user says it is a discovery strain.'])
+        report_lines.extend(['\n  Single-region accession note:', '    This ZIP holds one antiSMASH region file, the usual shape of a run on one public GenBank/INSDC sequence record.', '    One region file does not show how much of the source genome was submitted; check the source record. It is a raw antiSMASH result, not a sealed Mamey package.', '    It is still a valid Mamey intake target if inspect passes.', '    Assembly completeness warnings such as VERY_POOR / 0% interior BGCs can be expected for this input shape.', '    Treat this as reference/control evidence unless the user says it is a discovery strain.'])
 
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
     strain_guess, strain_note = _inspect_strain_name(zip_path)
@@ -451,6 +451,34 @@ def _emit_shared_2(pkg) -> None:
     emit(f'ERROR: not a directory: {pkg}', file=sys.stderr)
 
 
+def _read_json_or_warn(path: Path) -> dict:
+    """The JSON object in `path`, or {} with a warning when it is present but unreadable."""
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001 - reported; the caller falls back to the next source
+        emit(f"[WARN] could not read {path.name}: {e}", file=sys.stderr)
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _final_package_status(pkg: Path, man: dict, ms: dict) -> tuple[str, str]:
+    """(status to show, pre-seal status when it disagrees, else "").
+
+    manifest_short.json is checksummed, so its status is the one written before the final
+    re-validation and can never be updated. package_status.json and manifest.json are refreshed
+    with the final terminal status, so they are read first.
+    """
+    final = str(_read_json_or_warn(pkg / "package_status.json").get("terminal_status") or "")
+    if not final:
+        final = str(man.get("terminal_status") or "")
+    early = str(ms.get("status") or "")
+    if not final:
+        return (early or "unknown"), ""
+    return final, (early if early and early != final else "")
+
+
 def explain_command(args) -> int:
     """Print a plain-language summary of an existing Mamey result package.
 
@@ -468,16 +496,8 @@ def explain_command(args) -> int:
     ms:  dict = {}
     man: dict = {}
 
-    if ms_path.exists():
-        try:
-            ms = json.loads(ms_path.read_text(encoding="utf-8"))
-        except Exception as e:
-            emit(f"[WARN] could not read manifest_short.json: {e}", file=sys.stderr)
-    if man_path.exists():
-        try:
-            man = json.loads(man_path.read_text(encoding="utf-8"))
-        except Exception as e:
-            emit(f"[WARN] could not read manifest.json: {e}", file=sys.stderr)
+    ms = _read_json_or_warn(ms_path)
+    man = _read_json_or_warn(man_path)
 
     if not ms and not man:
         emit(f"ERROR: no manifest.json or manifest_short.json found in {pkg}", file=sys.stderr)
@@ -485,7 +505,7 @@ def explain_command(args) -> int:
 
     strain_id  = ms.get("strain_id") or man.get("strain_id") or pkg.parent.name
     mamey_ver  = ms.get("mamey_version") or man.get("version") or "?"
-    status     = ms.get("status") or "unknown"
+    status, early_status = _final_package_status(pkg, man, ms)
     asm_tier   = read_manifest_field("assembly_tier", manifest=man, manifest_short=ms, default="unknown")
     raw_bgcs   = read_manifest_field("raw_bgcs", manifest=man, manifest_short=ms, default="?")
     corrected  = read_manifest_field("corrected_bgcs", manifest=man, manifest_short=ms, default="?")
@@ -515,7 +535,7 @@ def explain_command(args) -> int:
                   if line.strip().startswith("-") and "No blocking" not in line]
 
     report_lines = []
-    report_lines.extend([f'\nMamey explain — {strain_id}', f"{'─' * 55}", f'  Status        : {status}', f'  Taxonomy      : {tax}', f'  Source        : {source}', f'  Mode          : {mode}   Mamey v{mamey_ver}', f'  Assembly tier : {asm_tier}' + (f'  ({int_pct}% interior)' if int_pct is not None else ''), f'  Raw BGCs      : {raw_bgcs}', f'  Corrected BGCs: {corrected}'])
+    report_lines.extend([f'\nMamey explain — {strain_id}', f"{'─' * 55}", f'  Status        : {status}', *([f'  Pre-seal status: {early_status} (manifest_short.json, before the final check; superseded)'] if early_status else []), f'  Taxonomy      : {tax}', f'  Source        : {source}', f'  Mode          : {mode}   Mamey v{mamey_ver}', f'  Assembly tier : {asm_tier}' + (f'  ({int_pct}% interior)' if int_pct is not None else ''), f'  Raw BGCs      : {raw_bgcs}', f'  Corrected BGCs: {corrected}'])
 
     from .rrefinder_status import read_package_state, describe_state
     report_lines.append("  " + describe_state(read_package_state(pkg, strain_id)))

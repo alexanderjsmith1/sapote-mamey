@@ -88,25 +88,25 @@ def test_gold_figure_trigger_is_nonblocking():
 # ── PATCH-COMPILED-OUTPUT ─────────────────────────────────────────────────────
 
 def test_rc1_no_figures_rendered_detection():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "NO_FIGURES_RENDERED.md" in exe
     assert "render-figures" in exe
 
 
 def test_judgment_pending_banner():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "JUDGMENT PENDING" in exe
     assert "EXTRACTION COMPLETE" in exe
 
 
 def test_gold_figures_in_handback():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "gold_figures/" in exe
     assert "cohort_figures_gold/" in exe
 
 
 def test_compiled_report_required():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "Analysis_Report" in exe
     assert "required deliverable" in exe
     assert "Executive summary" in exe
@@ -115,7 +115,7 @@ def test_compiled_report_required():
 
 
 def test_section_16_blastp_emission_rule():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "modeb-blastp" in exe
     assert "§16" in exe
     assert "FASTA files" in exe or "FASTA" in exe
@@ -124,7 +124,7 @@ def test_section_16_blastp_emission_rule():
 # ── PATCH-MYCO-DISAMBIGUATION ─────────────────────────────────────────────────
 
 def test_mycofactocin_disambiguation_rule():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "mycofactocin" in exe.lower()
     assert "TIGR03996" in exe
     assert "TIGR03997" in exe
@@ -134,13 +134,13 @@ def test_mycofactocin_disambiguation_rule():
 
 
 def test_mycofactocin_overrides_spasm():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "TIGR04085" in exe
     assert "regardless of whether TIGR04085" in exe or "SPASM" in exe
 
 
 def test_mycofactocin_excluded_from_leads():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "cofactor" in exe
     assert "not an antibiotic" in exe or "Inventory / cofactor" in exe
 
@@ -148,7 +148,7 @@ def test_mycofactocin_excluded_from_leads():
 # ── PATCH-NODE-CITATION-ENFORCEMENT ──────────────────────────────────────────
 
 def test_node_citation_rule_in_execution_slice():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "## 15" in exe
     assert "node/contig citation" in exe.lower() or "node citation" in exe.lower()
     assert "NODE_" in exe
@@ -156,7 +156,7 @@ def test_node_citation_rule_in_execution_slice():
 
 
 def test_node_citation_format_specified():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     # Required format must be present
     assert "NODE_1 · r001" in exe or "NODE_" in exe
     assert "first mention" in exe
@@ -178,7 +178,7 @@ def test_node_citation_map_emitter_in_cli():
 
 
 def test_bare_bgc_patterns_called_out():
-    exe = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    exe = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     # The rule must show examples of what's NOT acceptable
     assert "never acceptable" in exe or "NEVER acceptable" in exe
     assert "bare" in exe
@@ -243,3 +243,20 @@ def test_new_mamey_modules_have_companion_tests():
         "These modules shipped without companion test files:\n" +
         "\n".join(missing_tests)
     )
+
+
+# Current-surface coverage is separate from the historical assertions above.
+def test_retired_execution_slice_redirects_to_current_contract():
+    pointer = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    assert len(pointer.splitlines()) < 30
+    assert "not a current instruction" in pointer
+    assert "](history/CHATGPT_EXECUTION_SLICE_v97147.md)" in pointer
+    assert "](../AGENTS.md)" in pointer
+    assert "](MODE_B_USER_WALKTHROUGH.md)" in pointer
+    assert "full48" in pointer and "current50_v2" in pointer
+
+
+def test_readme_quickstart_does_not_offer_literal_run_ellipsis():
+    quickstart = text("README.md").split("## Quickstart", 1)[1].split("\n## ", 1)[0]
+    assert "python mamey_run.py run ..." not in quickstart
+    assert "](docs/reader/01_FIRST_RUN.md)" in quickstart

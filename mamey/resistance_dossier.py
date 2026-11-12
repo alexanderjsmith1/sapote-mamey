@@ -229,7 +229,8 @@ def build_dossier(bgc: str, inv_row: dict, tier: str, gene_domains: dict,
     """Return (markdown, has_resistance).
 
     Resistance loci are strict: a gene whose ``domain_reference`` category is ``resistance``
-    (beta-lactamase / Van / efflux-labelled / aminoglycoside-modifying). This is deliberately
+    (beta-lactamase / Van / a transporter named for resistance / aminoglycoside-modifying; a plain efflux protein
+    such as LysE, MATE or cation efflux is transport, not resistance). This is deliberately
     narrower than the §27 "efflux|target-modification" heuristic, which also counts co-located
     transporters. With ``immunity_transporters=True`` a transporter gene in a resistance-tier
     BGC is additionally flagged ``[IMM]`` (candidate producer-immunity export), matching the

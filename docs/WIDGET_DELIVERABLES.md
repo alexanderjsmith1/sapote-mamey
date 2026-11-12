@@ -58,7 +58,7 @@ agrees with the current locus: strain, BGC, gene, length, contig, node, region a
 protein hash. Location text the reader cannot parse holds the row. Rows that carry
 no location columns are admitted but counted apart, as
 `rows_admitted_without_physical_columns` (`mamey/widget_deliverable.py:515-545,735-781`).
-Read `gene_evidence_receipt`; `counts.gene_rows` counts this page only.
+Read `gene_evidence_receipt`; `counts.gene_rows` counts this page only. The generated page and caption call the view “exact-current,” but rows admitted without physical columns have not established the complete physical locus and protein binding. Independently bind those rows before using them as gene-level evidence.
 
 `gene.html` combines the inventory, locus-map data and channel stores. It can
 include channel-only genes and does not apply those same strain/length checks.

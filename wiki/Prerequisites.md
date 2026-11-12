@@ -56,16 +56,19 @@ Check what is installed first:
 Rscript bundle_support/install_r_figure_packages.R --check
 ```
 
-`--check` reports missing packages without installing them. The core group is
-required; other groups support trees, bioassay panels and extra chart styles.
-The report names missing packages and the figures they affect.
+`--check` installs nothing. It prints one line per package: its group, its name, then
+the installed version, `MISSING` for a required group or `not installed (optional)` for
+the others. With the shown command, it exits 2 when `core` is incomplete, and 0 otherwise;
+`--require` can add required groups.
+It does not name figures; use the group table below to see which renderers a group
+affects.
 
 <details>
 <summary>Packages by figure group</summary>
 
 | Group | Packages | What it adds | Required? |
 |---|---|---|---|
-| `core` | `ggplot2`, `ggtext`, `jsonlite`, `scales`, `dplyr`, `patchwork`, `ggrepel`, `svglite`, `systemfonts`, `xml2` | Every R figure. The shared minimum-text check uses `svglite`, `systemfonts` and `xml2`. | Yes |
+| `core` | `ggplot2`, `ggtext`, `jsonlite`, `scales`, `dplyr`, `patchwork`, `ggrepel`, `svglite`, `systemfonts`, `xml2` | Default required group for the R figure stack. Some renderers use the shared minimum-text check (`svglite`, `systemfonts`, `xml2`); inspect the selected renderer's requirements and output. | Yes |
 | `trees` | `ape`, `ggtree`, `treeio`, `aplot`, `phangorn` | Phylogenetic tree figures (`phangorn`: midpoint rooting in the genome-tree renderer). `ggtree` and `treeio` come from Bioconductor and need system libraries (cairo, libuv), so this is the slowest group to install. | No |
 | `bioassay` | `tidyr`, `png` | Bioassay panels. | No |
 | `extras` | `ragg`, `ggchicklet`, `readxl` | PNG output for the genus-composition figures (`ragg`), and rounded bars in the BGC class-group chart (`ggchicklet`), and the readxl-based non-Streptomyces count figure (`readxl`). Without `ggchicklet`, that chart draws plain square bars with the same data, labels and colors. | No |

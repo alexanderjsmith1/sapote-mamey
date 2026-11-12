@@ -79,8 +79,10 @@ indexes. The scanner subset cannot replace it. For reference anchoring, supply
 selected antiSMASH-processed MIBiG GBKs with `--mibig-dir`; see the
 [cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md).
 
-Local homology work needs BLAST+ and the chosen database. Phylogeny/outgroup
-tools read `BLAST_BIN` or PATH; database options depend on the command.
+Local homology work needs BLAST+ and the chosen database. `phylo_autopilot.py`
+invokes `blastn` and `blastdbcmd` through `PATH`. `outgroup_registry.py` and
+`phylo_refset.py` try `BLAST_BIN` before `PATH`; check the selected tool.
+Database options depend on the command.
 The [local 16S guide](LOCAL_16S_DATABASE.md) covers `SAPOTE_16S_DB`.
 Keep MIBiG index data, neighborhood partitions and reference GBKs with their
 release details: they serve different readers. Use the
@@ -108,7 +110,7 @@ Unavailable enrichment stays NOT MEASURED.
 
 ## Exclusions and other references
 
-The exclusions list is read from `MAMEY_OFFICIAL_DATA` if set, else from `OFFICIAL_DATA/` under `MAMEY_DATA_ROOT`. In a non-strict run a missing list can fall back to an empty one, so check that the file was found. A cohort run can supply its own; see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). A single-strain run does not need this.
+A bound source context supplies its own exclusions. Otherwise, `MAMEY_OFFICIAL_DATA` selects its folder exclusively; if unset, `MAMEY_DATA_ROOT` selects its `OFFICIAL_DATA/` subfolder exclusively. With neither set, the loader can search parent folders. A missing selected list can fall back to empty in non-strict reads or be refused in strict reads. Check the actual source and hash; see [cohort-pack binding](COHORT_PACK_INTERFACE.md#binding). A single-strain run does not need a cohort pack.
 
 For phylogenomics, use the selected reference genomes and metadata from the
 [workflow](PHYLO_AUTOPILOT_WORKFLOW.md). Binary lookup can use `MAMEY_PHYLO_BIN`,

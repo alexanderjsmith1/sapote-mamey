@@ -4,7 +4,7 @@
 `KNOWLEDGE_<Name>.md`, and fill every `<…>`. Delete the sections that don't apply (a KNOWLEDGE module usually
 drops §3 Pipeline and §5 Acceptance; a DELIVERABLE module keeps all of them).
 
-A module page should let a reader produce the output from the package alone. Point to existing rules instead of
+A module page should identify the package, external inputs, tools, permissions and evidence needed for the selected output. State unavailable prerequisites as holds and explain which outputs can be made from the inputs actually supplied. Point to existing rules instead of
 restating them, and say which document wins in a conflict.
 
 ---
@@ -34,12 +34,14 @@ a documented recommendation from an implemented automatic invocation.>`
 |---|---|---|
 | `<input>` | `<which output>` | `<which sub-deliverable>` |
 
-State the **skip-not-fake** rule: a sub-output whose inputs are absent is omitted and labeled, never fabricated.
+For each input, trace what the owner code does when it is missing (blank, a typed hold, a 0, a skip or a crash) and state that. Do not assume a sub-output is omitted and labeled. State any safeguard the code does not implement as a requirement or a hold.
 
 ---
 
 ## 3. Pipeline (exact, ordered commands)  *(DELIVERABLE only)*
-```bash
+Schematic authoring template, not an executable command:
+
+```text
 python tools/<tool>.py --banked-dir <dir> --out-dir <dir> <flags>
 …
 ```
@@ -57,9 +59,9 @@ state that registration — not hand-editing — is the single source of truth.>
 
 ## 5. Acceptance checklist ("done" means all of these)  *(DELIVERABLE only)*
 - [ ] Inherited rules satisfied (name them: FIGURE_STYLE / FIGURE_REPRODUCIBILITY / schema validator / …).
-- [ ] Public/private boundary respected if any unpublished (AS) data could be involved — with an explicit leak
+- [ ] Public/private boundary respected if any unpublished strain data could be involved — with an explicit leak
       audit for any public artifact.
-- [ ] Canonical numbers match the knowledge modules; no retired figures.
+- [ ] Computed values are reconciled to the selected producer, exact input/version and receipt; document discrepancies with knowledge modules and keep unresolved results held. Check figure currency separately.
 - [ ] Complete locus identity on each operational BGC reference: strain, full contig/node, region and alias.
 - [ ] Hand back the result, its evidence and open holds.
 
@@ -70,13 +72,13 @@ state that registration — not hand-editing — is the single source of truth.>
 
 ---
 
-## 7. Next-paths closer
+## 7. Hand-back
 `<Hand back the result, its evidence and open holds. Add a next step only when one is useful.>`
 
 ---
 
 ### Authoring notes (delete before filing)
-- Keep it **paste-ready**: a reader with only this file and the package should get the output right.
+- Make prerequisites explicit: identify the package, external inputs, tools, permissions and evidence needed for the selected output. State unavailable prerequisites as holds.
 - **Reference, don't restate** — restating a rule is how two copies drift. Point to the canonical doc.
 - **State precedence** explicitly so a runner knows what wins in a conflict.
 - Put every computed number behind "the code is the source of truth"; modules carry the *portable copy*, not the

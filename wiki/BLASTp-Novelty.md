@@ -1,4 +1,4 @@
-# BLASTp → novelty workflow — four unmixed channels and one honest rank
+# BLASTp → novelty workflow — five unmixed channels and one honest rank
 
 Review how the BLASTp workflow separates evidence channels and ranking.  
 This page is for researchers interpreting protein comparisons.
@@ -10,10 +10,10 @@ and work on a package copy when original bytes must remain fixed.*
 
 ## The claim ceiling (read before quoting any number)
 
-Everything this workflow produces is a **class-level capacity hypothesis**: similarity ≠ identity;
-a per-gene reference hit ≠ product identity; **high nr %id ≠ "known"** (nr is dominated by
-taxonomy genomes never assayed for natural products — closeness means a close *sequence* exists,
-not that the product is characterized); nr divergence is scoped to the search and does not establish taxonomic or chemical novelty.
+The workflow records comparisons and supports **class-level capacity hypotheses**.
+Similarity is not identity; a per-gene hit does not identify a product. High nr
+identity establishes a close sequence under the declared search, not a characterized
+compound. Scoped nr divergence does not establish taxonomic or chemical novelty.
 
 ## Keep homology channels and questions separate
 
@@ -23,10 +23,14 @@ not that the product is characterized); nr divergence is scoped to the search an
 | **KnownClusterBlast / MIBiG** | antiSMASH known-cluster results (in the bound package) | resemblance to a characterized reference family, under its recorded comparison scope |
 | **ClusterBlast** | antiSMASH cluster comparison results (in the bound package) | similarity to deposited genome clusters; this is not the characterized MIBiG reference channel |
 | **Swiss-Prot** | local curated BLAST DB | curated per-gene function sanity — a reviewed, named homolog (corroborating channel, sparse for BGC genes) |
-| **ClusteredNR** | NCBI nr_cluster_seq (remote, own ledger) | deep representative channel where nr is saturated — **ClusteredNR is NOT nr**; its numbers are never merged with nr's |
+| **ClusteredNR** | NCBI nr_cluster_seq (remote; shared NCBI search budget) | deep representative channel where nr is saturated — **ClusteredNR is NOT nr**; its numbers are never merged with nr's |
 
-Hard rule: each channel keeps its own store, folder, and `subject_db` tag; `pct_identity` and
-`pct_positives` stay separate columns; a hit is never relabeled across channels.
+Keep each channel’s results and provenance separate; do not relabel hits across channels. Output
+columns depend on the producer: the online CSV uses `channel`, `source_channel` and
+`pct_positive`, while the SQLite hits store uses `subject_db`, `channel` and `pct_positives`.
+Both report `pct_identity` separately from positives. Preserve missing values as missing. Verify
+and retain the actual source/database binding: the manual nr-overlay guard checks
+source-label text and does not independently establish the database.
 
 ## Grading the family anchor (capacity, not identity)
 
@@ -37,10 +41,10 @@ These labels are not the `kcb_frontpage` parser's tiers: that reader uses simila
 and matching-gene thresholds (STRONG at ≥40/≥8, MODERATE at ≥25/≥5). Do not copy
 a label between the two grading systems.
 
-- **STRONG** — ≥4 genes hit one reference family, ≥25% of the BGC's true gene count, ≥55% median id.
+- **STRONG** — ≥4 genes hit one reference family, ≥25% of the admitted BGC gene-roster count, ≥55% median id.
 - **PARTIAL** — ≥2 anchor genes, below the STRONG bar.
 - **promiscuous-only** — hits only to genes recurring across unrelated clusters (scaffold/tailoring):
-  gated OUT of "anchored" — promiscuous genes are capacity noise, not a family call.
+  gated OUT of "anchored" — these hits alone do not meet this heuristic's family-anchor rule.
 - **NO_MIBiG** — use only for the declared, completed and admitted reference search with no qualifying anchor. Unavailable/unrun/unbound results remain distinct; absence of a stored hit is not itself a verified no-match.
 
 Print the honest form `Ng @ X% → <family>`. Never print `= <compound>`.

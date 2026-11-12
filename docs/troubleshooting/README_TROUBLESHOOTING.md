@@ -8,7 +8,7 @@ Every major output field should have one of three things:
 2. a status code explaining why the value is missing or low-confidence; or
 3. a workflow telling the user how to generate the needed evidence.
 
-Historical Release 1 / Release 2 wording describes design stages; it is not a current hosted-service promise. See [the current user task router](../USER_TASK_ROUTER.md) for implemented workflows. The cell-provenance table covers selected fields, not a guaranteed audit of every workbook cell. Generic external-evidence rows are pending placeholders and do not automatically change when a search file exists.
+Generated provenance may retain historical Release 1/2 design-stage labels; check present functionality and receipts rather than treating those labels as a release, service commitment or completion evidence. See [the current user task router](../USER_TASK_ROUTER.md) for implemented workflows. The cell-provenance table covers selected fields, not a guaranteed audit of every workbook cell. Generic external-evidence rows are pending placeholders and do not automatically change when a search file exists.
 
 ## Key files
 
@@ -28,4 +28,4 @@ Package `Troubleshooting/` files are generated from `mamey/cell_provenance.py` l
 
 ## Single-region accession antiSMASH ZIPs
 
-For one-accession / one-region antiSMASH outputs such as `KY089035.1.zip`, see `SINGLE_REGION_ACCESSION_INPUTS.md`. These are raw antiSMASH intake candidates rather than full genomes or sealed Mamey packages. `inspect` previews filenames and markers; reconcile their actual records and identity before extraction instead of treating its success as parse validation.
+For one-accession / one-region antiSMASH outputs, see [single-region accession inputs](SINGLE_REGION_ACCESSION_INPUTS.md). These are raw antiSMASH intake candidates. One region file does not establish the scope or quality of the source genome; distinguish the raw input from a saved Mamey package. `inspect` previews filenames and markers; reconcile their actual records and identity before extraction instead of treating its success as parse validation.

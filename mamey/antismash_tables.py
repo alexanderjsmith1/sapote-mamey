@@ -542,13 +542,33 @@ def build_structured_tables(zip_path, evidence, bgcs):
     for source in evidence.get("ripp_cores", []) or []:
         if not isinstance(source, dict):
             continue
+        motif = source.get("motif") if isinstance(source.get("motif"), dict) else {}
+        group_locus = str(source.get("locus_tag") or "")
+        motif_locus = str(motif.get("locus_tag") or "")
+        # Flat thiopeptide records use <CDS>_<peptide_class>; the extractor
+        # already strips that suffix for joining. Do not replace it with an
+        # identifier that is not the CDS tag.
+        suffix = "_" + str(motif.get("peptide_class") or "")
+        stem = motif_locus[:-len(suffix)] if suffix != "_" and motif_locus.endswith(suffix) else ""
+        record = str(source.get("record_id") or source.get("contig") or "")
+        if stem and (stem == group_locus or (record, stem) in direct):
+            # antiSMASH names a motif <precursor CDS>_<peptide_class>; the CDS tag is the stem,
+            # whether or not it equals the enzyme tag that groups the motif.
+            locus = stem
+        else:
+            locus = motif_locus or group_locus
+        coordinate_row = source
+        if motif_locus and locus != group_locus:
+            # Group-level positions can describe a different enzyme. Use the
+            # precursor's own motif location or an exact precursor CDS instead.
+            coordinate_row = {k: v for k, v in source.items() if k not in {"start", "end", "strand", "location", "domain_id"}}
+            coordinate_row["locus_tag"] = locus
         contig, start, end, strand, coordinate_source = _coordinates_for_json_row(
-            source, direct, loci_by_contig
+            coordinate_row, direct, loci_by_contig
         )
         bgc_id, mapping_status, mapping_method, _ = _map_interval(
             contig, start, end, bgcs
         )
-        motif = source.get("motif") if isinstance(source.get("motif"), dict) else {}
         ripp_motifs.append({
             "bgc_id": bgc_id,
             "mapping_status": mapping_status,
@@ -560,7 +580,7 @@ def build_structured_tables(zip_path, evidence, bgcs):
             "evidence_type": "RIPP_CORE",
             "module": str(source.get("module") or ""),
             "ripp_family": str(source.get("ripp_family") or ""),
-            "locus_tag": str(source.get("locus_tag") or motif.get("locus_tag") or ""),
+            "locus_tag": locus,
             "motif_index": source.get("motif_index", ""),
             "peptide_class": str(source.get("peptide_class") or ""),
             "peptide_subclass": str(source.get("peptide_subclass") or ""),

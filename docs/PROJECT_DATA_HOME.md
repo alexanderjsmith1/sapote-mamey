@@ -25,7 +25,9 @@ register and file is created new; an existing file is never truncated.
 
 If the initializer hits an error it can catch, it removes only the folders and
 files it created in that run. A file someone else added under the new folder
-stays, and so does the folder holding it; the error message lists what stayed.
+stays, and so does the folder holding it. A write that fails before its new file is
+recorded for cleanup can also leave a partial file. The error note lists retained
+tracked paths, which may be parent folders rather than every file; inspect the tree.
 A killed process cleans nothing up and can leave a partial home. Keep a partial
 home for inspection and choose a new location for the retry.
 

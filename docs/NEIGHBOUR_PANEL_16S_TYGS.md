@@ -2,7 +2,8 @@
 
 This page describes how to build one isolate's genome panel for core-genome trees, MLSA and ANI/AAI from three sources: the
 isolate's 16S BLAST hits on complete genomes, NCBI's genome table, and the isolate's TYGS result. The panel holds the genomes the
-isolate is actually near, not every genome in its genus. To build the tree, follow the
+isolate may be near according to the supplied records, not every genome in its genus.
+A candidate panel can omit close genomes when searches, metadata or type-strain resolution are incomplete. To build the tree, follow the
 [phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md). A tree build needs approval first.
 
 The tools are `tools/neighbour_panel_candidates.py` (builds the panel) and `tools/check_tygs_coverage.py` (checks it). Both read local
@@ -13,7 +14,7 @@ files only and make no network call.
 - **Source:** use the 16S gene from the isolate's own assembly. A published 16S accession is often a partial Sanger read.
 - **Record** where the sequence came from: contig and coordinates, or accession.
 - **Fragmented assemblies** often split the rRNA operon across contigs. Use the longest single piece, and do not join pieces from different contigs, because a join can build a chimera.
-- **Short pieces:** a piece shorter than the minimum alignment length (section 5) gives no 16S genome hits. The panel then rests on TYGS.
+- **Short pieces:** a piece shorter than the minimum alignment length (section 5) gives no 16S genome hits. The panel then depends on any TYGS rows that resolve; it can be empty if none do.
 
 ## 2. 16S BLAST (NCBI web BLAST)
 

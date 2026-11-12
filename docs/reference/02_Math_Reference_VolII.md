@@ -2,7 +2,7 @@
 
 ### Engine subsystems: triggers, architecture, KCB/RiQ, compound class, rescue, and enrichment
 
-**Version of record:** Mamey engine v1.9.180 · bundle v9.7.464
+**Version of record:** Mamey engine v1.9.181 · bundle v9.7.465
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volume I: core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI, completeness) and *The Plumbing Reference* (CLI, workbook, figures, packaging).
 **Status:** Methods reference for maintainers and method reviewers. Sections 2.13 and 5 are checked against engine 1.9.180. Other sections describe the engine as compiled earlier; see [current-source scope](06_CURRENT_SOURCE_SCOPE.md) before relying on a threshold. Code identifiers are locators, not proof of current wiring or scientific validity.
 
@@ -90,7 +90,7 @@ for k, v in cds.qualifiers.items():
 return " ".join(vals).lower()
 ```
 
-The cap at 8 qualifier values and the exclusion of translation/sequence fields are performance guards, not knowledge cutoffs. Matching is case-insensitive (`re.I`). Importantly, HMMER/DIAMOND domain profiles are **not** run in this layer; domain evidence comes from antiSMASH's `sec_met_domain` GBK features parsed separately in `antismash_evidence.py`.
+The cap at 8 qualifier values and the exclusion of translation/sequence fields are performance guards and also coverage limits. A match that occurs only in a ninth or later value, or only in a skipped field, is not seen, so a missing hit is not evidence that the annotation is absent. Matching is case-insensitive (`re.I`). Importantly, HMMER/DIAMOND domain profiles are **not** run in this layer; domain evidence comes from antiSMASH's `sec_met_domain` GBK features parsed separately in `antismash_evidence.py`.
 
 ---
 
@@ -98,7 +98,7 @@ The cap at 8 qualifier values and the exclusion of translation/sequence fields a
 
 **Source:** `source_scans.py:_scan_patterns`, `source_scans.py:bgc_coupling`
 
-All pattern groups (CCTT, resistance, chitinase, etc.) go through the same two-step machinery:
+Pattern scans and spatial coupling are separate steps. The following pseudocode is simplified: the actual coupling handles joined features and validated circular spans; inspect those branches and the supplied record scope before interpreting a hit:
 
 ```python
 ## Step 1 — per-CDS match
@@ -131,7 +131,7 @@ Default coupling flank: **10,000 bp** for CCTT and most scans. Cassettes and UME
 
 **Source:** `source_scans.py:CCTT_PATTERNS`
 
-The CCTT ("cryptic-class trigger table") is a dict of 18 named triggers, each a list of annotation-derived regex patterns. A trigger fires when any of its patterns matches in the haystack of any CDS within 10 kb of a BGC. The table below gives each trigger's stable code key, its registry IDs (from `mamey_markers.py:MAMEY_MARKERS` and `mamey/sapote_markers.py:SAPOTE_MARKERS`), and what it is detecting.
+The CCTT ("cryptic-class trigger table") is a dict of 18 named triggers, each a list of annotation-derived regex patterns. Raw matches are recorded across the supplied CDS before spatial coupling and vetoes associate them with BGC keys. PTM can also be added from product/reference-label evidence and the FLBR proxy; distinguish those paths rather than requiring every trigger to originate from a nearby CDS match. The table below gives each trigger's stable code key, its registry IDs (from `mamey_markers.py:MAMEY_MARKERS` and `mamey/sapote_markers.py:SAPOTE_MARKERS`), and what it is detecting.
 
 | Code key | Marker ID | What it detects | Representative patterns |
 |---|---|---|---|
@@ -156,7 +156,7 @@ The CCTT ("cryptic-class trigger table") is a dict of 18 named triggers, each a 
 
 **Pattern design notes:**
 - T43-PHO uses four nested negative lookaheads to avoid firing on phosphonate *transporters*, phosphonate *utilization* regulons, C–P *lyase* operons, and `phnG-M` family genes — all contexts where "phosphonate" appears but is metabolic, not biosynthetic-core.
-- T43-PHO also guards `pep_mutase` against "pep mutase *family*" annotations (the family wording hits generic protein-family databases, not the committed enzyme).
+- The spaced `pep mutase` and `phosphoenolpyruvate mutase` alternatives have the family lookahead. The underscore alternative `\bpep_mutase\b` does not, so `pep_mutase family` can match. Inspect the actual annotation and pattern; a keyword match is not enzyme-function confirmation.
 - T43-HAL uses a negative lookbehind `(?<!de)` to exclude *de*halogenases.
 - T43-ENE's pattern (`enediyne`) is intentionally simple because discrimination (genuine enediyne vs. hglE-KS glycolipid artifact) is handled downstream by `scan_misanchor_guards`, not here.
 - T43-DKP's `\bcdps\b` token requires the copalyl-diphosphate-synthase veto (§A.7) because that terpene enzyme abbreviates identically.
@@ -234,7 +234,7 @@ for _trigs in cctt["per_bgc"].values():
 cctt["trigger_bgc_counts"] = dict(_carry)
 ```
 
-`cctt["counts"]` counts raw annotation hits (gene/motif level). A phosphonate BGC with 8 PEP-mutase-like CDS annotations contributes 8 to `counts["T43-PHO_phosphonate"]` but only 1 to `trigger_bgc_counts["T43-PHO_phosphonate"]`. The latter is the correct measure for asking "how many distinct phosphonate BGCs does this strain carry"; the former inflates on tandem-repeat annotations.
+`cctt["counts"]` counts raw annotation hits (gene/motif level). A phosphonate BGC with 8 PEP-mutase-like CDS annotations contributes 8 to `counts["T43-PHO_phosphonate"]` but only 1 to `trigger_bgc_counts["T43-PHO_phosphonate"]`. The latter counts, per trigger, the BGC keys whose proximity-coupled trigger list contains it, each key once. One hit can couple to more than one nearby record, and ambiguity flags (`context_uncorroborated`) are computed separately. So it is a count of trigger-coupled record keys, not a verified count of distinct loci of the named class. The raw count inflates on tandem-repeat annotations.
 
 ---
 
@@ -326,7 +326,7 @@ These guards collectively distinguish the committed PEP-mutase-based biosynthesi
 
 **Source:** `source_scans.py:FLBR_PATTERNS`, `source_scans.py:scan_flbr`, `source_scans.py:scan_orphan_megasynthase_motifs`
 
-FLBR ("fragment-locus-BGC-rescue") detects whether the genome contains more megasynthase-like sequences than the called BGC set can account for. This is a sign that fragmentation has split large PKS/NRPS loci across multiple BGCs or left pieces as unannotated orphan contigs.
+FLBR ("fragment-locus-BGC-rescue") tallies megasynthase-like annotations in the CDS records it is given and checks for Edge or Full-contig PKS/NRPS/trans-AT BGCs. `LMPKS_FRAGMENT_SET` needs a KS-like count of 4 or more and at least one such BGC; `MEGASYNTHASE_FRAGMENT_SUSPECT` is the weaker signal. These are annotation tallies plus edge context, a candidate for review. They do not show that fragmentation split one physical locus, and the scan's own orphan-linkage text calls cross-contig pairing unresolved. The `genome_wide_*` names are kept for compatibility; the count covers the supplied records, and `run` supplies detected GenBank record scope when available. Inspect emitted `count_scope`; `NOT_BOUND` is the fallback when scope was not supplied.
 
 **Pattern groups:**
 
@@ -359,8 +359,8 @@ else:
 **Rescue-readiness tiers:**
 
 ```python
-## interior_frac = Interior BGCs / total BGCs
-not_good = interior_frac < 0.70   # rescue only meaningful below Good assembly
+## interior_frac = round(Interior BGCs / (len(bgcs) or 1), 3)
+not_good = interior_frac < 0.70   # computational routing threshold, not biological validation
 
 if not_good AND orphan_ks_count >= 3 AND fragmented_count >= 5:  → HIGH
 elif not_good AND (orphan_ks_count >= 1 OR fragmented_count >= 3):  → MODERATE
@@ -379,7 +379,7 @@ _AT_ACTIVE_SITE = re.compile(r"GHS[LIVMFQAW]G")  # alpha/beta-hydrolase nucleoph
 _ORPHAN_FLANK   = 20000                           # bp exclusion around called BGC cores
 ```
 
-Any CDS ≥200 aa, outside every called BGC core ±20 kb, without an existing PKS/NRPS/esterase/hydrolase annotation, is tested for these motifs. KS-bearing orphans (carry `[DE]TACS[TS]`) are Tier-1 evidential signals; AT-only orphans (`GHSxG` but no KS) are listed separately as Tier-2 alpha/beta-hydrolase-ambiguous and explicitly do *not* constitute megasynthase evidence (the `GHSxG` motif is shared with standalone esterases, lipases, and peptidases). A CDS meeting the AT-only criterion and ≤400 aa is flagged `likely_standalone_hydrolase = True`.
+Any CDS ≥200 aa, outside every called BGC core ±20 kb, without an existing PKS/NRPS/esterase/hydrolase annotation, is tested for these motifs. KS-bearing orphan labels come from a short motif proxy, not a confirmed KS domain or missing pathway: AT-only orphans (`GHSxG` but no KS) are listed separately as Tier-2 alpha/beta-hydrolase-ambiguous and explicitly do *not* constitute megasynthase evidence (the `GHSxG` motif is shared with standalone esterases, lipases, and peptidases). A CDS meeting the AT-only criterion and ≤400 aa is flagged `likely_standalone_hydrolase = True`.
 
 ---
 
@@ -428,7 +428,7 @@ A lone flanking IS element (1 mobile family) is *not* dominant. An ICE-like elem
 
 **Source:** `source_scans.py:scan_misanchor_guards`
 
-Three KCB anchor families have known failure modes where sequence similarity is high enough to produce a hit but the biosynthetic context is incompletely matched. The guards are gene-level, annotation-based, and operate on the **KCB anchor** (not the antiSMASH product class):
+Three KCB anchor families have known failure modes where sequence similarity is high enough to produce a hit but the biosynthetic context is incompletely matched. The guards are gene-level, annotation-based, and use selected annotation fields: the aminoglycoside predicate combines anchor and product labels, while other branches use their documented anchor/product conditions. Inspect each branch and missing-input state:
 
 **1. Aminoglycoside / DOIS guard**
 
@@ -438,7 +438,7 @@ aminoglycoside_misanchor = (aminoglycoside anchor found)
 ## _DOIS_GENE = 2-deoxy-scyllo-inosose synthase / BtrC family
 ```
 
-A 2-deoxystreptamine aminoglycoside anchor is only credible when the committed first step of the pathway (DOIS/BtrC) is present in the BGC's own genes. Without it, the KCB hit is spurious for this locus.
+The guard credits a 2-deoxystreptamine aminoglycoside anchor only when the committed first step of the pathway (DOIS/BtrC) is annotated in the BGC's own genes. It reads the supplied annotation only. When the supplied annotation lacks that gene, the flag can trigger the class-specific AB clamp (`min(base_ab, 25)`); it does not itself suppress every axis. Inspect other adjustments separately. A missing gene can also reflect an incomplete assembly or annotation, so the guard does not show that the reference hit is wrong or rule out the class.
 
 **2. Polyene macrolide / KS count guard**
 
@@ -448,7 +448,7 @@ polyene_misanchor = (polyene-macrolide anchor found)
                     AND (ks_domain_count < 4)
 ```
 
-A genuine polyene macrolide backbone requires a large modular PKS (≥4 PKS_KS domains). Fewer than 4 is inconsistent with polyene biosynthesis.
+The rule expects a polyene macrolide backbone to show a large modular PKS (≥4 PKS_KS domains). With fewer than 4 annotated KS domains the anchor credit is withheld. A low count can also come from an incomplete assembly or annotation.
 
 **3. Enediyne discrimination **
 
@@ -460,7 +460,7 @@ elif ene_generic:                       verdict = "E_SIGNAL_UNRESOLVED"  # gener
 else:                                   verdict = ""
 ```
 
-`ene_specific` is a named enediyne natural product (calicheamicin, dynemicin, esperamicin, etc.) in the KCB anchor. `ene_generic` is any "enediyne" or "ene_KS"/"ene-ks" token. `prev001` is the hglE-KS standing-rule flag (rule id `HGLE-KS-PREV-001`): any hglE/hglD/hexacosalactone signal. The combination matrix produces four verdicts; only `GENUINE_E_SIGNAL` (named compound + real ene_KS domain) is treated as actual enediyne evidence. `PREV001_ARTIFACT` is the hglE-KS standing rule: the hglE glycolipid domain cross-reacts with ene_KS signatures and should be treated as a false-positive.
+`ene_specific` is a named enediyne natural product (calicheamicin, dynemicin, esperamicin, etc.) in the KCB anchor. `ene_generic` is any "enediyne" or "ene_KS"/"ene-ks" token. `prev001` is the hglE-KS standing-rule flag (rule id `HGLE-KS-PREV-001`): any hglE/hglD/hexacosalactone signal. The combination matrix produces four verdicts; `GENUINE_E_SIGNAL` is a software label derived from a named anchor and recorded ene_KS count, not proof of genuine pathway function or a product. `PREV001_ARTIFACT` is the hglE-KS standing rule: the hglE glycolipid domain cross-reacts with ene_KS signatures and should be treated as a false-positive.
 
 **4. KCB class-level mismatch (`_KCB_CLASS_COMPAT`)**
 
@@ -536,7 +536,7 @@ relation = "COMPLEMENTARY_OR_SHARED_EVIDENCE"  if score >= 3
            "WEAK_SHARED_EVIDENCE"               if score < 3 (but score > 0)
 ```
 
-Scope: all-vs-all BGC pairs, filtered to pairs where **at least one member is Edge or Full-contig** (Interior–Interior pairs are excluded because two fully interior clusters sharing vocabulary are more likely to be paralogous than split). Output is capped at the top 500 scored pairs. This score is explicitly marked as "preliminary shared-evidence linkage only; not physical contig linkage or Jaccard protein-overlap confirmation."
+The input roster is capped before pairing (default 800 records, configurable through the shared pair-scan cap, with a warning). The loop excludes Interior–Interior pairs; it can retain Unknown–Interior when shared evidence yields a score. Unknown remains unknown, not an observed truncation. The saved `pairing_scope` value is `all_vs_all_excluding_interior_interior_pairs`; a package from an older bundle carries `all_vs_all_filtered_to_at_least_one_edge_or_full_contig` for the same filter. Up to 500 scored pairs are then returned. Neither cap nor this boundary filter establishes a biological split or excludes paralogy. This score is explicitly marked as "preliminary shared-evidence linkage only; not physical contig linkage or Jaccard protein-overlap confirmation."
 
 ---
 
@@ -547,18 +547,19 @@ Scope: all-vs-all BGC pairs, filtered to pairs where **at least one member is Ed
 TTA codon counting for the bldA-dependent translational control system in actinomycetes.
 
 ```python
-## actinomycete-gated
-if not actinomycete:
+## only a classified non_actinomycete is excluded; unknown/blank organisms still count
+if actino_status == "non_actinomycete":
     tier = "NOT_APPLICABLE"   # TTA counts are GC-content noise, not a developmental signal
 
 ## TTA codons within BGC CDS (flank=0)
-if tta_codons == 0:   tier = "T1"   # no bldA sensitivity
+if total_codons == 0: tier = "NOT_COMPUTED"   # no CDS sequence read for this BGC
+elif tta_codons == 0: tier = "T1"   # zero TTA counted in supplied CDS sequences, not demonstrated insensitivity
 elif tta_codons <= 2: tier = "T2"   # low burden
 elif tta_codons <= 5: tier = "T3"   # moderate; bldA-sensitive expression plausible
 else:                 tier = "T4"   # high (>=6); strongly bldA-sensitive lead flag
 ```
 
-Thresholds: T2 ≤ 2, T3 ≤ 5, T4 > 5 TTA codons in the BGC's own CDS set. The NOT_APPLICABLE gate fires when `cohort_resolver.actino_status()` returns `non_actinomycete` for the organism string — this prevents meaningless T4 calls on non-actino genomes where TTA frequency is a GC-composition artifact, not a developmental regulatory signal.
+A BGC whose CDS carry no nucleotide sequence gets `NOT_COMPUTED`, not T1; `cds_without_sequence` counts the CDS that were not read. Verify taxonomy, reading frame and coverage before interpreting any tier; an unknown organism is not a positive actinomycete classification. Thresholds: T2 ≤ 2, T3 ≤ 5, T4 > 5 TTA codons in the BGC's own CDS set. The NOT_APPLICABLE gate fires when `cohort_resolver.actino_status()` returns `non_actinomycete` for the organism string — this prevents meaningless T4 calls on non-actino genomes where TTA frequency is a GC-composition artifact, not a developmental regulatory signal.
 
 ---
 
@@ -578,7 +579,7 @@ else:
     window = reverse_complement(seq[end : end + 300])
 ```
 
-IUPAC ambiguity codes in the motifs (`N` → `[ACGT]`, `W` → `[AT]`, `S` → `[GC]`, `R` → `[AG]`, `Y` → `[CT]`) are expanded before matching. All 12 families are scanned against every upstream window; output is capped at 1,000 hits for space reasons.
+IUPAC ambiguity codes in the motifs (`N` → `[ACGT]`, `W` → `[AT]`, `S` → `[GC]`, `R` → `[AG]`, `Y` → `[CT]`) are expanded before matching. The selected 12 families are scanned against available upstream windows. Missing contigs are skipped, short windows are clipped, and strand 0 takes the forward branch. All-hit counts can exceed the retained list of at most 1,000 hit records. Inspect those coverage and truncation states before treating zero as a completed negative scan.
 
 The claim-safety string is explicit: "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use." These counts are induction-planning evidence, not expression proof.
 
@@ -623,7 +624,7 @@ if "napaa" in product_text or "poly-amino acid" in product_text or "polyamino ac
     napaa_bgc_ids.append(bgc.bgc_id)
 ```
 
-NAPAA flagging is neutral (no downgrade is applied), not a downgrade. QS flagging routes to ecology-only.
+This scan returns NAPAA-neutral and QS ecology-routing metadata. These are requested downstream instructions, not proof that every consumer enforced the same policy; inspect the selected consumer and retained roster.
 
 ---
 
@@ -631,7 +632,7 @@ NAPAA flagging is neutral (no downgrade is applied), not a downgrade. QS flaggin
 
 **Source:** `source_scans.py:scan_glycosylation_arm_candidates`
 
-Saccharide-typed BGCs with KCB hits against glycosylated-compound references are candidates for a glycosylation-arm sub-cluster (an aglycone core residing on a separate BGC/contig).
+Saccharide/product text, reference-label text and a reported protein-hit count can nominate a glycosylation-arm hypothesis. They do not establish an authentic cassette, an aglycone partner or linkage. Independently review reference binding, matched genes, boundaries and alternatives.
 
 ```python
 ## fires when:
@@ -644,7 +645,7 @@ if protein_hits >= 3:  → GLYCOSYLATION_ARM_TRAP_FIRED
 elif protein_hits >= 1:  → INCIDENTAL_OVERLAP (note only)
 ```
 
-The threshold of **≥3 protein hits** distinguishes an authentic sugar-cassette arm from an incidental KCB overlap. 1–2 hits are noted but do not fire the full sub-rule.
+The **≥3 protein hits** threshold routes a candidate for review; 1–2 hits are noted as `INCIDENTAL_OVERLAP` and do not fire the full sub-rule. The rule does not distinguish an authentic sugar-cassette arm or show a physically linked partner. The fired verdict's own text asks for a check of resident deoxysugar/NDP-sugar/GT domains and an EFLS cross-contig check for the aglycone BGC.
 
 ---
 
@@ -684,7 +685,7 @@ if not os.environ.get("MAMEY_DISABLE_REGISTRY_DETECTOR") == "1":
     REGISTRY_DETECTOR_ACTIVE = True
 ```
 
-If the registry is absent or inconsistent, the module falls back silently to the hardcoded literal dicts above. The startup banner reports `registry_detector✓` or `registry_detector—(fallback)`. Parity between registry-derived and hardcoded dicts is asserted by `tests/test_b2_registry_parity.py`.
+If the registry is absent or inconsistent, the module falls back to hardcoded literal dicts and records the activation exception through the degradation channel; inspect that state and startup output. The startup banner reports `registry_detector✓` or `registry_detector—(fallback)`. Parity between registry-derived and hardcoded dicts is asserted by `tests/test_b2_registry_parity.py`.
 
 Default registry detection uses the active regex/motif routes. The selected CLI also
 exposes an optional `--hmm-scan` pass through `registry_detector.run_hmm_scan` and writes
@@ -768,7 +769,7 @@ Input: a list of gene dicts each with `locus_tag`, `aa_length`, `sec_met_domains
 | 6 | **LAP / Ranthipeptide** | YcaO alone → LAP; YcaO + SSF → ranthipeptide |
 | 7 | **Ranthipeptide (YcaO-independent)** | SPASM + TIGR03962 |
 | 8 | **Lassopeptide** | Asn_synthase + (Lasso_RRE or no KS); `Transglut_core3` also counts |
-| 9 | **Mycofactocin** | TIGR02109 |
+| 9 | **PQQ/PqqE capacity hypothesis** | TIGR02109, after higher-priority branches; annotation-based routing, not product/function confirmation |
 | 10 | **DUF692 RiPP** | DUF692 |
 | 11 | **Indolocarbazole** | `indsynth` / StaD / RebC |
 | 12 | **NAPAA** | DUF3516 |
@@ -784,7 +785,7 @@ Input: a list of gene dicts each with `locus_tag`, `aa_length`, `sec_met_domains
 | 22 | **Cis-AT PKS** | KS without AMP |
 | 23 | **UNKNOWN** | Falls through all |
 
-**Boundary adjustment** (`_apply_boundary_adjustment`): Edge or Full-contig → downgrade confidence one tier (HIGH → MEDIUM → LOW). Stored in both `confidence` (adjusted) and `confidence_raw` (pre-adjustment) with a reasoning note.
+**Boundary adjustment** (`_apply_boundary_adjustment`): Edge normally downgrades one tier, but an Edge record on POOR/VERY_POOR assembly skips that downgrade and is flagged a finishing candidate. Full-contig retains the downgrade. These are routing policies, not proof of physical completeness; inspect the supplied boundary and assembly state. Stored in both `confidence` (adjusted) and `confidence_raw` (pre-adjustment) with a reasoning note.
 
 **Module count estimation:**
 - PKS modules: `sum(megasynthase_aa with KS) ÷ 1500`
@@ -793,11 +794,11 @@ Input: a list of gene dicts each with `locus_tag`, `aa_length`, `sec_met_domains
 
 **Known diagnostic markers captured in `ArchitectureReport.diagnostic_markers`:** all hits listed with locus_tag, domain name, and chemotype context.
 
-**31 `PathwayType` enum values:** TRANS_AT_PKS, CIS_AT_PKS, NRPS, PKS_NRPS_HYBRID, TRANS_AT_HYBRID, T2PKS, T3PKS, LANTHIPEPTIDE, LASSOPEPTIDE, LAP, THIOPEPTIDE, RANTHIPEPTIDE, MYCOFACTOCIN, DUF692_RIPP, OTHER_RIPP, TERPENE_CYCLIZED, TERPENE_LINEAR, HOPANOID, CAROTENOID, NI_SIDEROPHORE, NRPS_SIDEROPHORE, BUTYROLACTONE, ECTOINE, NAPAA, NUCLEOSIDE, INDOLOCARBAZOLE, PTM, BETALACTONE, PHOSPHONATE, AMINOGLYCOSIDE, PRIMARY_METABOLISM, UNKNOWN.
+**33 `PathwayType` enum values:** TRANS_AT_PKS, CIS_AT_PKS, NRPS, PKS_NRPS_HYBRID, TRANS_AT_HYBRID, T2PKS, T3PKS, LANTHIPEPTIDE, LASSOPEPTIDE, LAP, THIOPEPTIDE, RANTHIPEPTIDE, MYCOFACTOCIN, PQQ, DUF692_RIPP, OTHER_RIPP, TERPENE_CYCLIZED, TERPENE_LINEAR, HOPANOID, CAROTENOID, NI_SIDEROPHORE, NRPS_SIDEROPHORE, BUTYROLACTONE, ECTOINE, NAPAA, NUCLEOSIDE, INDOLOCARBAZOLE, PTM, BETALACTONE, PHOSPHONATE, AMINOGLYCOSIDE, PRIMARY_METABOLISM, UNKNOWN.
 
 #### 1.3 Step 2: `check_kcb_concordance(arch, kcb_compound, kcb_n_genes, query_n_genes, kcb_mibig_class)`
 
-**Coverage check:** `kcb_coverage_pct = kcb_n_genes / query_n_genes × 100`. If < 30% → `WEAK_SIGNAL` immediately.
+**Coverage check:** for a positive query-gene count, `kcb_coverage_pct = kcb_n_genes / query_n_genes × 100`; nonpositive query count gives `0.0` as a fallback, not a measured zero-coverage search. Below 30% returns WEAK_SIGNAL. Inspect numerator, denominator and source coverage.
 
 **Class lookup order:**
 1. `MIBIG_CLASS_MAP` by `kcb_mibig_class` (structured MIBiG class tag, e.g. "Polyketide:Trans-AT type I") — 15 entries
@@ -837,7 +838,7 @@ Input: a list of gene dicts each with `locus_tag`, `aa_length`, `sec_met_domains
 
 #### 2.1 Score accumulation formula
 
-For each BGC:
+On the usual non-deinflation branch:
 
 ```
 base_ab  = 25 + score_keywords(class_txt, AB_KEYWORDS)
@@ -847,7 +848,9 @@ novelty  = 30 + score_keywords(class_txt, NOVELTY_KEYWORDS)
 
 `class_txt` = `scoring_class_text(bgc)` = own `products` + `mibig_hits` + `closest_candidate_kcb_product` (when resolved). **NOT** the raw `kcb_top` genome-description blob ( `kcb_top` contains the reference organism's entire class vocabulary, which falsely credits those classes to this BGC).
 
-**Compound-class scored consequence**: if the BGC's `compound_class_annotation` carries a `scored_axis` ("af" or "ab"), add `scored_weight` to that axis. Covers polyene_macrolide (AF), ionophore (AB); anthracycline has weight 0 (routing flag only).
+An overmerge-suspect record with multiple distinct protocluster products instead takes each axis's maximum per-protocluster keyword score plus its base; inspect `_deinflate` and its actual inputs.
+
+**Compound-class scored consequence**: if the BGC's `compound_class_annotation` carries a `scored_axis` ("af" or "ab"), add `scored_weight` to that axis. Covers polyene_macrolide (AF), ionophore (AB); anthracycline has weight 0 (routing flag only). A corroborated T43-PYE diagnostic subsumes previously banked polyene chemotype AF credit rather than simply stacking it.
 
 #### 2.2 Keyword weight tables
 
@@ -889,7 +892,7 @@ All guards are applied before final score clamping.
 
 **`WEAK_OVERCALL_CLASSES`:** nrps-like, terpene, terpene-precursor, saccharide, arylpolyene, other, t2pks, t3pks, pks-like, fatty_acid, redox-cofactor, quinone_isoprenoid_chain, ni-siderophore, nrp-metallophore (the last two let the iron-acquisition downgrade fire on pure siderophore or metallophore clusters; a co-present committed backbone still keeps the lead)
 
-**Mobile-element demotion:** if `mobile_dominant` AND no corroborated tier1_diag → suppress AB/AF to floor. A corroborated class signal exempts (genuine clusters with incidental flanking mobile genes).
+**Mobile-element demotion:** if `mobile_dominant` AND no corroborated tier1_diag → suppress AB/AF to floor. A qualifying diagnostic can exempt the record; this routing exemption does not establish a genuine cluster.
 
 **Mis-anchor guards:** there is no blanket Tier-1 exemption. An emitted
 aminoglycoside-misanchor flag clamps base AB at 25. An emitted polyene-misanchor
@@ -918,7 +921,7 @@ These are routing increments, not probabilities or evidence of physical continui
 
 #### 2.6 Edge penalty
 
-`edge_penalty()` returns **0.0** (neutralized). Empirical rationale: mean base AB for Interior 34.7 vs Edge 35.7 vs FC 35.3 — no truncation signature in base scores. Truncation uncertainty is preserved as `architecture_confidence` (Edge/FC → C/D) and `edge_status` in rationale. The function is retained so call sites are intact.
+`edge_penalty()` returns **0.0** (neutralized). An earlier account reported mean base AB values of Interior 34.7, Edge 35.7 and Full-contig 35.3; the cohort is not bound here, so this is an unverified historical observation, not general validation or proof of no truncation effect. Truncation uncertainty is preserved as `architecture_confidence` (Edge/FC → C/D) and `edge_status` in rationale. The function is retained so call sites are intact.
 
 #### 2.7 Final score clamping and tier assignment
 
@@ -947,7 +950,7 @@ Exceptions excluded by `TIER1_FLOOR_EXCLUDED_PREFIXES` (lone halogenase/fluorina
 
 `standing_rule_for(own_products_text, full_text)` reads from `rules_registry.json` (SSOT). Rules with `action=downgrade AND lead_blocking=True`.
 
-- **Committed-class guard:** if the BGC's own products contain a committed backbone class (anything not in `WEAK_OVERCALL_CLASSES`), standing rules do not apply — **except** `_BYPASS_COMMITTED_CLASS_GUARD = {"NAPAA", "HGLE-KS-PREV-001"}` which fire even on committed-class clusters (annotation-domain flags, not label-only).
+- **Committed-class guard:** a selected lead-blocking downgrade rule normally does not apply to a committed-class record unless its ID is in `_BYPASS_COMMITTED_CLASS_GUARD`. The bypass set includes NAPAA and hglE-KS, but neither is selected by the current registry downgrade/lead-blocking filter. The separate conditional hglE own-product fallback is described below.
 - `_OWN_PRODUCTS_ONLY = {"SACCHARIDE", "NI-SIDEROPHORE", "NRP-METALLOPHORE"}` — these rules are checked against the BGC's own products only, not the full product+MIBiG+KCB text.
 
 A lead-blocking standing rule or the conditional hglE own-product fallback routes to `bottom_tier(bgc)` (Inventory for governed housekeeping/unresolved classes, otherwise Low); corrected rank is withheld. NAPAA is registry-neutral and its former direct scorer fallback is removed. The hglE fallback requires no existing rule and no CCTT trigger (`scoring.py`); registry action and that explicit scorer fallback are separate.
@@ -992,7 +995,7 @@ if bgc.riq_score is not None and bgc.riq_score < 0.5:
 
 **Source:** `mamey/data/rules_registry.json` (single source of truth)
 
-Every rule has: `id`, `label`, `status` (active | retired | excluded | gate), `action` (downgrade | drop | flag | exclude), `scope`, `rationale`, `date`, `lead_blocking`, `patterns` (compiled regexes), `false_positive_guard`.
+Every rule has: `id`, `label`, `status` (active | retired | excluded | gate), `action` (downgrade | drop | flag | exclude), `scope`, `rationale`, `date`, `lead_blocking` and `patterns` (compiled regexes). Some rules also carry an optional `false_positive_guard`.
 
 **`lint_text(text)`** scans any text for registry hits — used by the Sapote judgment layer (which authors claim-safe verdicts from a validated Mamey package) to catch retired claims re-entering verdict prose. Returns `Hit` objects with rule_id, status, action, lead_blocking, matched substring, context.
 
@@ -1000,7 +1003,7 @@ Every rule has: `id`, `label`, `status` (active | retired | excluded | gate), `a
 
 CLI: `python3 -m mamey.rules <file>` — exit 1 on blocking hit, else 0.
 
-The `false_positive_guard` (list of longer words) prevents substring false-positives: "saccharide" would not incorrectly trigger on "polysaccharide".
+The `false_positive_guard` (list of longer words) can prevent substring false-positives where a rule sets one. The saccharide rule has no guard list; its pattern `\bsaccharide\b` uses regex word boundaries, so "saccharide" does not trigger on "polysaccharide".
 
 ---
 
@@ -1021,7 +1024,7 @@ interior_pct < 20  → VERY_POOR
 None               → UNKNOWN
 ```
 
-**Assembly sanity check:** non-blocking heuristic for contamination / co-assembly. Flags `CONTAMINATION_SUSPECT` when per-contig GC standard deviation ≥ 5% (clean genomes ~1-2%; contaminated drafts 7-12%). Flags `ASSEMBLY_SANITY` on strong GC or size deviation from taxon prior (if provided). Returns measured stats; extraction is unaffected.
+**Assembly sanity check:** non-blocking heuristic for contamination / co-assembly. GC dispersion is length-weighted across at least two measurable contigs; a ≥5% threshold flags review, not a co-assembly diagnosis. The earlier clean/contaminated ranges are unbound examples. Enabled size floors/ceilings can also emit `PARTIAL_SUBMISSION_SUSPECT` or `INFLATED_ASSEMBLY_SUSPECT` without a taxon prior; inspect actual inputs, overrides and flags. Returns measured stats; extraction is unaffected.
 
 ---
 
@@ -1042,16 +1045,16 @@ thousands, so it must not be binned with these cut-offs. `serialize.py` passes
 `kcb_similarity_pct`, antiSMASH's rank-1 percent from the JSON ranking
 (`knowncluster.results[].ranking[0][1].similarity`). The percent is kept only when the JSON
 rank-1 accession equals the TXT rank-1 MIBiG accession for the same region
-(`kcb_similarity_state = PCT_OBSERVED`); otherwise the band reads `unresolved`.
+(`kcb_similarity_state = PCT_OBSERVED`) on that parser route. Serialization bands the percentage passed by its caller; it does not independently verify accession/state binding. Inspect that binding and preserve unavailable/conflicting states.
 
 The same edges, `KCB_PCT_HIGH = 70` and `KCB_PCT_MODERATE = 40` in `precision.py`, drive
-every KCB cut-off that used to read the cumulative score:
+the indicated numeric comparisons; routes can use these shared thresholds while making different decisions under additional gates:
 
 | Site | Rule |
 |---|---|
-| `scoring.py` novelty | −15 when the percent is ≥ 70 |
+| `scoring.py` novelty | −15 when state is not UNKNOWN_KCB and the percent is present and ≥70 |
 | `parsers.architecture_grade` | "strong KCB support" means a percent ≥ 70 |
-| `chatgpt_commands._claim_ceiling` | product-level needs ≥ 70 plus the coverage gate; family needs ≥ 40; any hit earns "source-derived similarity" |
+| `chatgpt_commands._claim_ceiling` | imports numeric thresholds and percent validation, not the band function; hit-count, class and architecture conditions also apply. Inspect each gate rather than equating a band with a ceiling |
 | `package_addons` terse board | the same band as `verdicts.json` |
 | `master_workbook` depth floor | `cli._depth_floor`, full Mode B for every BGC under gold; no KCB input |
 
@@ -1069,11 +1072,11 @@ Any value outside 0 to 100 (including NaN, infinities, negatives and values abov
 
 **`fragment_claim_ceiling(product_name, edge_status, length_kb, reference_size_kb)`:**
 
-Downgrade condition: (a) `edge_status ∈ {"Edge", "Full-contig", "FC"}` AND (b) `0 < length_kb < 45.0 (BACKBONE_MIN_KB)` AND (c) `product_name` matches `LARGE_BACKBONE_KEYWORDS` (38 keywords: teicoplanin, vancomycin, glycopeptides, lipopeptides, large polyenes, modular PKS macrolides) OR `reference_size_kb ≥ 45.0`.
+TRIPPED requires an admitted fragment boundary, a finite positive measured span below `BACKBONE_MIN_KB` (45 kb), and either a selected large-backbone keyword or a reference size at least 45 kb. Missing relevant metadata can yield UNKNOWN rather than CLEAR; no span or keyword alone proves product identity.
 
 The size-ratio path reads real MIBiG cluster sizes from `mibig_reference_index.bacterial.json` and `.fungal.json`, generalizing beyond the keyword list. `reference_size_kb_for(accession)` looks up the size by MIBiG accession (version-suffix tolerant).
 
-When triggered: ceiling → "class-capacity only (fragment too small for named backbone; do not use product name)".
+When triggered: ceiling → "class-capacity only (fragment too small for named backbone; do not use product name)". The structured guard distinguishes CLEAR/TRIPPED/UNKNOWN; missing or invalid relevant boundary/length can yield UNKNOWN. The Boolean wrapper can return false with `METADATA_UNVERIFIED`, so read its reason rather than interpreting false as a clear result.
 
 ---
 
@@ -1083,7 +1086,7 @@ When triggered: ceiling → "class-capacity only (fragment too small for named b
 
 **`STANDING_EXCLUSIONS`** — derived at module load from `rules_registry.json` so it follows the registry: `{saccharide, fatty_acid}` + any class whose registry entry has `status=="excluded"` or `action=="drop"`. Used by `cohort_class_heatmap.py` and comparative consumers.
 
-**`assert_comparable_with(current_engine)`** gates AB/AF capacity-score pooling by engine version. Class-prevalence baselines are engine-robust; capacity scores are engine-pinned (a boundary bump → re-score before pooling).
+**`assert_comparable_with(current_engine)`** gates AB/AF capacity-score pooling by engine version. Class-prevalence values describe the fixed seven-strain Nocardia reference; they are not established genus-wide or engine-independent biological prevalence. Input classification and scope affect comparability; capacity scores are engine-pinned (a boundary bump → re-score before pooling).
 
 **`genus_core_classes()`** returns classes present in all 7 Nocardia reference strains, excluding the "other" residual bucket (7/7 on "other" reflects "every strain has unclassified loci", not shared biosynthesis).
 
@@ -1093,16 +1096,16 @@ When triggered: ceiling → "class-capacity only (fragment too small for named b
 
 **Source:** `class_architecture.py:classify_architecture`
 
-Classifies a BGC by PKS/NRPS module counts and tailoring constellation into a claim-safe class-capacity label. Complements the CCTT T43 keyword layer (which covers ~30% of antimicrobial classes); architecture classification is annotation-robust because it survives gene-symbol divergence.
+Classifies a BGC by PKS/NRPS module counts and tailoring constellation into a claim-safe class-capacity label. Complements the CCTT T43 keyword layer (which covers ~30% of antimicrobial classes); its robustness is not established merely by using architecture. Review the selected annotations, input coverage and alternatives.
 
 Key capacity calls (selected):
 - ≥6 NRPS-C + halogenase + glycosyltransferase → **glycopeptide** (HIGH)
 - ≥3 PKS_KS + polyene/macrolide products + ≥1 thioesterase → **polyene macrolide** (HIGH)
 - Trans-AT KS + FkbH → **trans-AT PKS** (HIGH)
-- 1 PKS_KS + 1 NRPS adenylation (fused or same operon) → **diketopiperazine/CDPS** (MEDIUM)
+- Product token `cdps` → configured **CDPS** capacity label at HIGH; one KS plus one adenylation domain without that token does not implement this call
 - ≥2 NRPS-C, no PKS_KS, + siderophore product label → **NRP-metallophore** (HIGH)
 
-**Multi-class guard:** ≥3 distinct real biosynthetic product classes (excluding saccharide/other/terpene-precursor) → capacity = "complex hybrid locus; class-capacity unresolvable by single label" (MEDIUM).
+**Multi-class guard:** ≥3 distinct normalized product families under the selected exclusions (not simply three labels); the glycopeptide check runs first. This condition → capacity = "complex hybrid locus; class-capacity unresolvable by single label" (MEDIUM).
 
 `ArchitectureCall.as_capacity_line()` returns: "BGCnnn: biosynthetic capacity consistent with <capacity> [<confidence>] — <evidence>"
 
@@ -1112,7 +1115,7 @@ Key capacity calls (selected):
 
 **Source:** `boundary_audit.py:audit_payloads`
 
-Diffs `<strain>_records.json` (BGCRecord side) against `<strain>_verdicts.json` (TriageRecord side) and reports seven failure classes:
+Diffs `<strain>_records.json` (BGCRecord side) against `<strain>_verdicts.json` (TriageRecord side) and reports selected failure classes, including:
 
 | Check | What it catches |
 |---|---|
@@ -1120,9 +1123,10 @@ Diffs `<strain>_records.json` (BGCRecord side) against `<strain>_verdicts.json` 
 | ORPHAN | Verdict for a bgc_id the extractor never produced |
 | STRAIN | The two payloads describe different strains (copy-paste bus error) |
 | TIER | Verdict lead_tier / claim_confidence outside known vocabulary |
-| DOWNGRADE | Standing-rule / primary-metab verdict that kept a corrected_rank |
+| DOWNGRADE | Standing-rule, primary-metabolism or mobile-element verdict that kept a corrected_rank |
 | EXCLUSION | BGC products trip a lead-blocking excluded rule but verdict shows no downgrade |
 | RETIRED | BGC carrying a retired rule ID |
+| RULES_UNAVAILABLE | Required rule checks could not run; retain the unavailable state |
 
 CLI: `python3 -m mamey.boundary_audit STRAIN_records.json STRAIN_verdicts.json` — exit 1 on any problem.
 
@@ -1132,7 +1136,7 @@ CLI: `python3 -m mamey.boundary_audit STRAIN_records.json STRAIN_verdicts.json` 
 
 ### 10. One KCB band function
 
-`precision.similarity_band` is the only KCB banding function. `serialize.py` (for `verdicts.json`) and the Mode B command (`chatgpt_commands.py`, which imports `KCB_PCT_HIGH` and `KCB_PCT_MODERATE`) use it with the same edges, 70 and 40. A Mode B band and a `verdicts.json` band for the same hit should therefore agree. See Section 5.
+`serialize.py` uses `precision.similarity_band` for the `verdicts.json` band. The Mode B claim-ceiling route imports the same numeric edges and `kcb_pct_value`, but applies separate hit-count, class and architecture gates; it does not call the band function. A band does not by itself determine the claim ceiling. See Section 5.
 
 ---
 
@@ -1224,7 +1228,7 @@ Requested record-level handlers share one JSON pass. `want_tigrfam` selects TIGR
 
 **Source:** `antismash_evidence.py:_parse_txt_evidence`
 
-The TXT clusterblast/knownclusterblast files are the primary KCB source — fast regardless of genome size, no streaming required. The parser processes each BGC's TXT with a block-splitting strategy that avoids two failure modes: (1) treating any line containing "score" as numeric evidence and extracting contig accession tails (e.g. `CP073042.1 → 73042.1`) as cumulative scores; (2) summing protein hits across all reference clusters rather than reading the count from the best single cluster.
+The TXT clusterblast/knownclusterblast files are the primary KCB source — avoids full JSON loading, but members remain subject to byte/ratio holds and read/decode failures; inspect per-member receipts, no streaming required. The parser processes each BGC's TXT with a block-splitting strategy that avoids two failure modes: (1) treating any line containing "score" as numeric evidence and extracting contig accession tails (e.g. `CP073042.1 → 73042.1`) as cumulative scores; (2) summing protein hits across all reference clusters rather than reading the count from the best single cluster.
 
 **Block splitting:**
 
@@ -1304,7 +1308,7 @@ bgc.kcb_cumulative = max(score_vals)      # best across all TXT records for this
 bgc.kcb_protein_hits = max(prot_hits)     # ditto
 ```
 
-Both take separate maxima from selected source records: KnownClusterBlast records are used when present. If KnownClusterBlast ran and reported no hits, no record is used and the fields stay empty. Only when no KnownClusterBlast file exists are the ClusterBlast fallback records used (see the evidence states below). Multiple records can contribute; the score and protein-hit maxima need not identify the same comparator. Retain each source record before interpreting the aggregate scalars.
+Both take separate maxima from selected source records: KnownClusterBlast records are used when present. If a recognized KnownClusterBlast no-hit record is selected, no KCB hit record is used and no new score or hit count is assigned. On a fresh record those fields remain empty; on a reused record earlier values can survive. When neither a parsed KCB hit record nor a recognized no-hit record exists, other parsed records can be used as fallback (see the evidence states below). Multiple records can contribute; the score and protein-hit maxima need not identify the same comparator. Retain each source record before interpreting the aggregate scalars.
 
 **Product provenance hierarchy:**
 
@@ -1319,8 +1323,8 @@ Both take separate maxima from selected source records: KnownClusterBlast record
 | `kcb_evidence_state` | Condition |
 |---|---|
 | `KNOWNCLUSTERBLAST_OBSERVED` | KnownClusterBlast records exist for the region |
-| `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` | KnownClusterBlast ran and reported no hits. KCB fields stay empty and a ClusterBlast genome hit is not substituted. The text is not checked against the JSON, so this is a scoped report, not a verified absence |
-| `CLUSTERBLAST_FALLBACK_OBSERVED` | No KnownClusterBlast file exists; ClusterBlast or SubClusterBlast records are used, with LOW parse confidence and a manual-check flag |
+| `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` | A recognized KnownClusterBlast no-hit report was parsed; a ClusterBlast genome hit is not substituted on this branch. A fresh record has no newly assigned KCB hit values, but old values may survive on a reused record. The text is not checked against the JSON, so this is a scoped report, not a verified absence |
+| `CLUSTERBLAST_FALLBACK_OBSERVED` | No parsed KCB hit or recognized no-hit record is present; other parsed records can supply fallback, with LOW parse confidence and a manual-check flag. Inspect missing, unreadable and unsupported input states |
 | `UNKNOWN_KCB` | The default before evidence is applied (no records for the region) |
 
 The fragment ceiling is applied at both `MIBIG_REFERENCE_LINE` and `KCB_TOP_FIELD` provenance levels (via `_apply_fragment_ceiling`). At LOW provenance, no ceiling is applied because there is no product name to qualify.
@@ -1425,7 +1429,7 @@ _TIER1_DOMAIN_NAMES: frozenset = frozenset({
     "PEP_mutase", "PF05042", "Radical_SAM", "PF04055",
     "LANC_like", "PF05147", "DUF4135", "PF13575",
     "HMGL-like", "PF00682", "AMP-binding", "PF00501",
-    "lant_dehyd_N", "lant_dehyd_C", "DUF4218", "PF13927",
+    "Lant_dehydr_N", "Lant_dehydr_C", "DUF4218", "PF13927",
     "Trp_halogenase", "PF04820",
     # TIGRFAM diagnostics :
     "TIGR01454", "TIGR03604", "TIGR03828", "TIGR04186",
@@ -1442,7 +1446,7 @@ _TIER1_DOMAIN_NAMES: frozenset = frozenset({
 
 **Source:** `antismash_evidence.py:DIAGNOSTIC_SEC_MET_DOMAINS`, `antismash_evidence.py:_SEC_MET_RE`, `antismash_evidence.py:extract_gbk_pfam_hits`
 
-antiSMASH stores its internal HMMER results as `/sec_met_domain` qualifiers in every region GBK.
+For eligible, successfully parsed region members, the extractor reads matching `/sec_met_domain` qualifiers. A parser import failure can yield empty results, and unresolved region keys, parse failures or unrecognized qualifier forms can be skipped; inspect coverage and preserve missing/unreadable states.
 
 ```
 e.g. "YcaO (E-value: 3.2e-64, bitscore: 206.5, seeds: 57, tool: rule-based-clusters)"
@@ -1459,7 +1463,7 @@ _SEC_MET_RE = re.compile(
 
 Extracts domain name, e-value, and bitscore (bitscore is optional; old antiSMASH versions omit it). The domain name is looked up in `DIAGNOSTIC_SEC_MET_DOMAINS` for a human-readable description and Pfam accession. If not in the dict, `pfam_acc` and `description` are None — the hit is still recorded but without annotation.
 
-`DIAGNOSTIC_SEC_MET_DOMAINS` covers 34 named domains including the core assembly-line markers (PKS_KS, AMP-binding, Condensation, Thioesterase, FkbH, Diels_aldr), class-specific markers (LANC_like, DUF4135, YcaO, PEP_mutase, Trp_halogenase), and the carrier domain (PP-binding / PF00550). TIGR02353 (NAPAA ε-poly-L-lysine synthetase) is present in the dict with an explicit housekeeping note.
+`DIAGNOSTIC_SEC_MET_DOMAINS` has 44 dictionary keys (names and accessions, not necessarily 44 unique biological domains) including the core assembly-line markers (PKS_KS, AMP-binding, Condensation, Thioesterase, FkbH, Diels_aldr), class-specific markers (LANC_like, DUF4135, YcaO, PEP_mutase, Trp_halogenase), and the carrier domain (PP-binding / PF00550). TIGR02353 (NAPAA ε-poly-L-lysine synthetase) is present in the dict with an explicit housekeeping note.
 
 ---
 
@@ -1500,11 +1504,13 @@ if cur is None or (h.blast_score or 0) > (cur["blast_score"] or 0):
     best[h.query_gene] = cand
 ```
 
-The full reference block set is parsed; only the best-hit aggregation caps at `top_refs`. The output is sorted by trailing gene number (`_gene_sort_key`) so the per-gene table reads in 5'→3' CDS order.
+The full reference block set is parsed; only the best-hit aggregation caps at `top_refs`. The output is sorted by the trailing integer in each query label (`_gene_sort_key`, for labels like `ctg<contig>_<n>`). That is label order, not a check of coordinates or strand, so it is a CDS-order proxy rather than verified 5'→3' order.
 
 Two deliverables are produced per BGC:
-- `per_gene_best_hit`: for each query CDS, its single best reference-gene hit across the top-5 references
-- `reference_correspondence`: for each of the top-5 references, the complete ordered query→subject gene map
+- `per_gene_best_hit`: best scored hit for each query with an admitted parsed hit in the selected top reference blocks
+- `reference_correspondence`: parsed query→subject hit rows for the selected references, not a complete query-gene roster
+
+Bind an independent query roster and preserve missing, unhit and unparsed states before interpreting absent rows.
 
 ---
 
@@ -1512,11 +1518,12 @@ Two deliverables are produced per BGC:
 
 **Source:** `clusterblast_genes.py:rescue_functional_complementarity`, `clusterblast_genes.py:FRC_ASYMMETRY_MIN`, `clusterblast_genes.py:FRC_ACCESSORY_CEILING`, `clusterblast_genes.py:FRC_CORE_FLOOR`
 
-A contig-rescue pair (two BGC fragments hypothesised to be split from one cluster) is only credible when the two fragments are functionally complementary rather than both carrying the same core genes. The complementarity score uses the relative core fraction rather than a binary has-core test.
+The role-comparison heuristic uses relative core fraction, not a binary has-core test. Its categories are annotation-derived signals, not a universal credibility test: shared core content can also occur in a split modular assembly line. Preserve alternative pair explanations and independent linkage evidence.
 
 ```python
-core_fraction = core_count / (core + tailoring + transport + regulatory)
-## (ignores "other" as uninformative)
+denominator = core + tailoring + transport + regulatory
+core_fraction = core_count / denominator if denominator else 0.0
+## "other" is excluded; zero here is a fallback, not evidence of accessory function
 ```
 
 **Role classification** (`_role_of`): gene_kind qualifier + text blob from gene_functions + sec_met_domains + product.
@@ -1530,23 +1537,23 @@ any(_REGULATORY_HINTS) OR "regulatory" gene_kind   → "regulatory"
 else                                                 → "other"
 ```
 
-**Complementarity decision thresholds (calibrated on a development cohort's HIGH pairs):**
+**Complementarity decision thresholds (engineering policy; earlier calibration account unverified here):**
 
 ```python
 FRC_ASYMMETRY_MIN   = 0.20   # min core-fraction gap to call split complementary
 FRC_ACCESSORY_CEILING = 0.30 # a fragment with core-fraction <= this is accessory-dominated
-FRC_CORE_FLOOR      = 0.35   # both sides above this (and similar) => both carry a real core
+FRC_CORE_FLOOR      = 0.35   # similar fractions above this select BOTH_CORE, not proof of physical cores
 
 gap = hi_core_fraction - lo_core_fraction
 
 if gap >= 0.20 AND lo <= 0.30:           → COMPLEMENTARY  (core fragment + accessory fragment)
 elif fa >= 0.35 AND fb >= 0.35
-     AND gap < 0.20:                     → BOTH_CORE       (paralogous cores, not a split)
-elif hi <= 0.30:                         → ACCESSORY_ONLY  (two tailoring fragments, weak rescue)
+     AND gap < 0.20:                     → BOTH_CORE       (similar core fractions; does not exclude a modular split)
+elif hi <= 0.30:                         → ACCESSORY_ONLY  (can include two all-other/zero-denominator profiles; inspect inputs)
 else:                                    → AMBIGUOUS
 ```
 
-The code comment explicitly notes these thresholds were calibrated on a development cohort's HIGH pairs (genuine paralogs sit at core-fraction ~0.4–0.55 on both sides; real splits show one fragment accessory-dominated). The thresholds are engineering calibration, not literature-derived constants.
+A retained code comment describes a development cohort, but its roster and validation are not bound here. These thresholds are engineering choices, not proof of paralogy or splitting. BOTH_CORE can arise when a modular assembly line is split; inspect separate modular-continuation and subject-tiling evidence. Two nonmissing all-other profiles return zero fractions and can yield ACCESSORY_ONLY; a missing entire profile instead gives UNKNOWN_NO_PROFILE. Verify role counts and coverage before interpretation.
 
 The output `functional_rescue_class` feeds the RG-GMCI ranking (Volume I §7), where COMPLEMENTARY > BOTH_CORE > ACCESSORY_ONLY > AMBIGUOUS in the rescue priority ordering. The `functional_rescue_class` is also the first sort key in the `mamey ingest-receipts` output per the SESSION_START_MANIFEST §0.5 notes.
 
@@ -1556,16 +1563,30 @@ The output `functional_rescue_class` feeds the RG-GMCI ranking (Volume I §7), w
 
 **Source:** `antismash_evidence.py:_ripp_from_rec`, `antismash_evidence.py:_RIPP_MODULES`
 
-RiPP extraction is data-driven: it iterates every `antismash.modules.<family>` key in the modules dict that carries a non-empty `motifs` dict.
+RiPP extraction is data-driven: it inspects eligible `antismash.modules.<family>` dictionary entries with nonempty motifs. The motifs value can be a locus-keyed dictionary or a flat list of motif dictionaries; unsupported/missing shapes are distinct from biological absence.
 
 ```python
 for mod_key, mod_val in modules.items():
-    if not mod_key.startswith("antismash.modules."):
+    if not mod_key.startswith("antismash.modules.") or not isinstance(mod_val, dict):
         continue
     motifs = mod_val.get("motifs", {})
-    if not isinstance(motifs, dict) or not motifs:
+    if isinstance(motifs, dict):
+        groups = [(str(locus), value if isinstance(value, list) else [value])
+                  for locus, value in motifs.items()]
+    elif isinstance(motifs, list):
+        groups = []
+        for motif in motifs:
+            if not isinstance(motif, dict):
+                continue
+            raw = str(motif.get("locus_tag") or "")
+            suffix = "_" + str(motif.get("peptide_class") or "")
+            cds = raw[:-len(suffix)] if suffix != "_" and raw.endswith(suffix) else raw
+            if groups and groups[-1][0] == cds:
+                groups[-1][1].append(motif)
+            else:
+                groups.append((cds, [motif]))
+    else:
         continue
-    # process any family carrying a motifs dict
 ```
 
 Non-RiPP modules (NRPS/PKS, active-site finder, etc.) do not carry a `motifs` dict with a `core` key and are naturally excluded by the `if not core: continue` guard. The old `_RIPP_MODULES` tuple is retained as a documentation reference but is no longer an extraction allowlist.
@@ -1578,7 +1599,7 @@ Core sequence extraction tries two keys for backward compatibility: `motif.get("
 
 **Source:** `antismash_evidence.py:_product_class_from_rec`
 
-The T2PKS and terpene protocluster predictions include `start` and `end` coordinates. The rationale from the code comment: on a closed single-contig genome, the contig key collapses all predictions to one bucket and would mislabel every BGC on that contig with every prediction. Coordinate overlap is the correct granularity for matching a prediction to the BGC it actually falls in. Older antiSMASH output lacks these fields; the caller must handle `None` start/end.
+The T2PKS and terpene protocluster predictions include `start` and `end` coordinates. The rationale from the code comment: on a closed single-contig genome, the contig key collapses all predictions to one bucket and would mislabel every BGC on that contig with every prediction. Coordinates permit a scoped overlap join, but successful binding and correct biological assignment still require independent identity/coverage checks. Older antiSMASH output lacks these fields; the caller must handle `None` start/end.
 
 ---
 
@@ -1605,7 +1626,7 @@ All three modules are annotation and capacity layers, not scoring engines. The d
 
 **Source:** `compound_class.py` module docstring
 
-This module is an **annotation layer**, not a general scoring engine. It records the chemotype the BGC's own evidence is consistent with — polyene macrolide, anthracycline, ionophore, tetracycline, and so on — as structured fields on the BGC record. The majority of chemotypes are **annotate-only** (record the label + evidence trail, zero score change). Only three chemotypes carry a scored consequence, and those are calibrated against 32 MIBiG reference clusters.
+This module is an **annotation layer**, not a general scoring engine. It records the chemotype the BGC's own evidence is consistent with — polyene macrolide, anthracycline, ionophore, tetracycline, and so on — as structured fields on the BGC record. The majority of chemotypes are **annotate-only** (record the label + evidence trail, zero score change). Only three chemotypes carry a scored consequence. A retained calibration account names 32 MIBiG references; verify the actual bound resource, selection and results rather than treating that count as independent validation of a query.
 
 #### D.1.2 Evidence priority
 
@@ -1753,14 +1774,14 @@ This module is post-seal and never blocks the deterministic package. Two input p
 
 ```
 Full source path   — --source-antismash <zip>: full domain detail (name, description, evalue)
-                     via parsers.extract_domain_features. Complete view.
+                     via parsers.extract_domain_features. Fuller view than the fallback.
 
 Limited fallback   — sealed package only: gene_context.jsonl domain NAMES per CDS,
                      no descriptions or evalues. Clearly marked LIMITED in the receipt
                      and in the OPEN_ME_FIRST report.
 ```
 
-On any failure, a named failure receipt (e.g. `DOMAIN_LEVEL_SKIPPED_NO_GBK.md`) is written and the function returns a status dict without raising — the core package remains valid. This is the module's explicit design contract.
+The source archive is used only when its SHA-256 matches the manifest's `input_zip_sha256`. A mismatch writes `DOMAIN_LEVEL_SOURCE_ZIP_MISMATCH.md` and a SKIPPED receipt. A missing digest or a missing archive falls back to the limited path, with `source_binding` `SOURCE_ZIP_DIGEST_UNBOUND` or `SOURCE_ZIP_UNAVAILABLE`. An output folder that already holds any domain-level file is refused (`status: REFUSED`, nothing written). The handled failures (rule files, manifest, no eligible BGCs, no domain context, digest mismatch) write a named card and a receipt and return a status dict. Other errors, such as an unreadable manifest or triage board or a write error, raise, and files already written stay in the folder.
 
 #### D.2.2 Role taxonomy
 
@@ -1790,6 +1811,8 @@ The role for a given domain name is determined by `role_for_domain`, which does 
 - A trailing e-value annotation `(e=2.10E-52)` is stripped before matching.
 - Bare `TIGR####` identifiers (opaque — no substring signal) are routed to `fallback_unknown_repeat` rather than `fallback_other`, distinguishing "unknown repeat element" from "genuinely uncharacterised domain".
 
+Bare TIGR identifiers first pass through explicit taxonomy entries when available; unmatched identifiers use the fallback. An unknown/accessory fallback label is not a demonstrated biological role.
+
 #### D.2.3 Complexity metrics
 
 **Source:** `domain_level.py:build_complexity_metrics`
@@ -1813,7 +1836,7 @@ These are **count-based burden metrics**, not normalized fractions. A BGC with 2
 
 **Source:** `domain_level.py:architecture_for_roles`, `domain_level.py:classify_architecture`
 
-Two functions with the same logic, accessed from two call sites.
+Both functions use template roles but select and default differently, as shown below.
 
 ```python
 def architecture_for_roles(roles_present: set[str], templates: dict) -> str:
@@ -1838,7 +1861,7 @@ def classify_architecture(roles_present: set[str], templates: dict) -> tuple[str
     return templates["fallback_archetype"], "no template matched"
 ```
 
-The two functions differ in their tie-breaking default: `architecture_for_roles` uses `min_required_hits=1` as the fallback minimum (any single required-role hit is sufficient if nothing better scores), while `classify_architecture` uses `min_required_hits=len(req)` (all required roles must match). This means `classify_architecture` is strictly more conservative — it only fires a template when all required roles are satisfied, whereas `architecture_for_roles` can fire on a partial match.
+Both functions use a template's `min_required_hits` when it is set. Only their defaults differ: `architecture_for_roles` defaults to 1 (one required-role hit), and `classify_architecture` defaults to `len(req)` (all required roles). They also pick differently: `architecture_for_roles` takes the template with the most required-role hits, while `classify_architecture` takes the first qualifying template in file order. `classify_architecture` is more conservative only for templates without `min_required_hits`, so compare the actual template and role set.
 
 The actual threshold values come from the template JSON file (`domain_architecture_templates.v1.json`), not from literals in this module. The templates file is loaded at runtime; if it is absent, `architecture_for_roles` returns `""` (empty string) and `classify_architecture` is not called.
 
@@ -1867,7 +1890,7 @@ for rule in claim_rules["rules"]:
 ## fallback to floor if no rule matched
 ```
 
-Rules are evaluated in order; the first matching rule returns. The floor rule is skipped during iteration and used only if no other rule fires. Each rule can require: all of a set of roles (`trigger_roles_all`), any of a set of roles (`trigger_roles_any`), or a minimum biosynthetic-core domain count (`require_min_core`). The specific rule thresholds live in the JSON file and are not hardcoded here; the logic of the matcher is what is documented.
+Rules are evaluated in order; the first matching rule returns. The floor rule is skipped during iteration and used only if no other rule fires. Each rule can require: all of a set of roles (`trigger_roles_all`), any of a set of roles (`trigger_roles_any`), or a minimum count of distinct core role categories present (`require_min_core`), computed as `len(roles_present & _CORE_ROLES)`. Repeated domain rows in one role do not increase this set count. The specific rule thresholds live in the JSON file and are not hardcoded here; the logic of the matcher is what is documented.
 
 Output per BGC: `Safe_domain_claims`, `Unsafe_domain_claims`, `Domain_claim_ceiling`. These feed Mode B §2 (claim-safety review) and the `domain_safe_unsafe_claims.csv` deliverable.
 
@@ -1946,7 +1969,7 @@ Three grades are assigned based on the presence of CDO context and boundary stat
 
 ```
 DKP-A_candidate_dehydro_DKP  — CDO/AlbA-like oxidase present nearby
-                                confidence = HIGH (Interior) or MEDIUM (Edge)
+                                confidence = HIGH for literal Interior, otherwise MEDIUM
 
 DKP-C_boundary_uncertain     — no CDO, BGC is Edge
                                 confidence = MEDIUM
@@ -1956,7 +1979,7 @@ DKP-B_bare_or_saturated_CDP  — no CDO, not Edge
                                              LOW   (if only domain hit, no CDS hit)
 ```
 
-The grade taxonomy reflects chemical interpretation: a CDO-adjacent CDPS (DKP-A) gives rise to a dehydrogenated/oxidized DKP scaffold (an indolyl diketopiperazine or similar), which is a more specific and actionable lead than a bare saturated cyclodipeptide (DKP-B). DKP-C flags boundary uncertainty without making a structural prediction.
+The grade taxonomy reflects chemical interpretation: a CDO-adjacent CDPS (DKP-A) is consistent with a dehydrogenated/oxidized DKP scaffold (an indolyl diketopiperazine or similar), which makes it a more specific lead than a bare saturated cyclodipeptide (DKP-B). The grade comes from annotation and local context. Its claim ceiling stays "candidate DKP-scaffold BGC; specific dipeptide/product requires isolation" (`mamey/dkp_cdps.py`). DKP-C tests only the literal Edge state; Full-contig/Unknown without CDO can fall into B and are not thereby shown complete. The CDO context includes raw substring checks such as `alba`; proximity and annotations do not prove adjacency, enzyme function, chemical oxidation or product identity.
 
 The trigger for a BGC to enter the scanner at all requires at least one of:
 - Product label contains `\bCDPS\b`, `cyclodipeptide`, or `diketopiperazine` (antiSMASH typed it directly)
@@ -2003,7 +2026,7 @@ These three modules operate at different stages and with different inputs:
 
 ### Preamble
 
-Cluster E covers four modules that all operate *after* the main scoring pass. They apply guards, ceilings, and supplementary evidence layers rather than driving the primary AB/AF scores. Three of the four (`diagnostic_rescue.py`, `concordance.py`, `comparative_pairs.py`) are purely advisory — they generate evidence the Sapote judgment layer reasons over, changing no triage scores. One (`fragment_ceiling.py`) does mutate BGCRecord fields, but only downward: it enforces a claim-ceiling that prevents product-level over-calls on physical fragments that cannot encode the named backbone.
+Cluster E covers four modules that all operate *after* the main scoring pass. They apply guards, ceilings, and supplementary evidence layers rather than driving the primary AB/AF scores. Diagnostic-rescue and comparative outputs are supplementary evidence. Concordance also feeds `recall_scores`: DISCORDANT can suppress an otherwise eligible anchor boost in derived AB/AF recall fields. This does not establish a change to the primary AB/AF/novelty scores or lead tier; inspect those fields separately. One (`fragment_ceiling.py`) does mutate BGCRecord fields, but only downward: it enforces a claim-ceiling that prevents product-level over-calls on physical fragments that cannot encode the named backbone.
 
 ---
 
@@ -2051,9 +2074,9 @@ PER_ARM_FLOOR  = 2    # each arm must contribute >= 2 reference genes individual
 TRUNCATED_EDGE = {"Edge", "Full-contig"}
 ```
 
-**Edge gate:** Only truncated (Edge or Full-contig) fragments can be halves of a split pathway. An Interior cluster is complete — an Interior+Interior pair is co-occurrence on a shared reference, not a split. This gate was validated on public GOOD-assembly genomes where Interior+Interior pairs flooded false HIGH leads before the gate was added.
+**Edge gate:** `diagnostic_rescue` considers only pairs whose members are both recorded Edge or Full-contig (`TRUNCATED_EDGE`). This is a rule, not a biological finding: Interior means away from a contig end. It does not show that the pathway is complete or rule out a split, and the rule treats an Interior+Interior pair as co-occurrence on a shared reference. A historical account reports public-genome validation, but its accession roster, inputs, version and results are not bound here; treat that as unverified history.
 
-The `COVERED_FLOOR = 8` and `PER_ARM_FLOOR = 2` values are calibrated from a motivating split-pathway case (8 reference genes, 0 overlap). They apply only when deep tiling data is available (`covered is not None`). When only the shallow RG-GMCI best-sources scaffold is available, floors are not enforced (`meets_floor` is True when `covered is None`).
+The `COVERED_FLOOR = 8` and `PER_ARM_FLOOR = 2` values are calibrated from a motivating split-pathway case (8 reference genes, 0 overlap). They apply only when deep tiling data is available (`covered is not None`). When only the shallow RG-GMCI best-sources scaffold is available, floors are not enforced (`meets_floor` is True when `covered is None`). Shallow best-sources alone supplies no `RECONSTRUCTION_SUPPORTED_COMPLEMENTARY` verdict, so it does not satisfy the HIGH condition. All tiers are computational routing labels, not measured biological confidence.
 
 #### E.1.4 Tier assignment
 
@@ -2166,7 +2189,7 @@ l["mutually_exclusive_best"] = (
 )
 ```
 
-`mutually_exclusive_best = True` means neither the core BGC nor the arm BGC appears in any other HIGH lead — this pair is the only HIGH-tier split hypothesis for both fragments. This is the honest annotation: a fragment has at most one true complement, so multiple HIGH leads sharing a BGC are competing, not independent.
+`mutually_exclusive_best = True` means neither the core BGC nor the arm BGC appears in any other HIGH lead — this pair is the only HIGH-tier split hypothesis for both fragments. This reports competition only within the returned HIGH candidates. It does not test every possible partner or establish that a fragment has at most one biological complement. Independently inspect pair-specific evidence and alternatives.
 
 ---
 
@@ -2176,7 +2199,7 @@ l["mutually_exclusive_best"] = (
 
 **Source:** `concordance.py` module docstring
 
-This module checks how many of a reference compound's expected biosynthetic markers are present in the queried BGC's CCTT/marker set. It also checks whether the locus is the right size. It is **advisory only** — it does not change triage scoring. Its output is evidence the judgment layer reasons over.
+This module checks how many of a reference compound's expected biosynthetic markers are present in the queried BGC's CCTT/marker set. It also checks whether the locus is the right size. It does not change primary triage scores; its verdict can gate an anchor boost in derived recall fields. Its output remains evidence for review.
 
 Five verdicts:
 
@@ -2197,20 +2220,20 @@ CONCORDANT_MARKER_FRAC = 0.5         # >= 50% of expected markers required for C
 SIZE_LO, SIZE_HI = 0.5, 2.0          # locus must be 0.5× to 2.0× reference size for size_ok=True
 ```
 
-Size is not a hard gate — `size_ok = (size_ratio is None) or (0.5 <= size_ratio <= 2.0)`. When no size data is available (`size_ratio is None`), the size check passes permissively. The separate note threshold for extreme sizes:
+The ratio is rounded to two decimals before comparison. Size is not a hard gate — `size_ok = (size_ratio is None) or (0.5 <= size_ratio <= 2.0)`. When no size data is available (`size_ratio is None`), the size check passes permissively. The separate note threshold for extreme sizes:
 
 ```python
 if size_ratio < 0.3 or size_ratio > 3.0:
     res.notes = "locus size far from reference — possible fragment or over-bounded boundary."
 ```
 
-This note fires at 0.3× or 3.0× — substantially wider than the 0.5–2.0× concordance window — flagging genuinely anomalous sizes without failing the verdict on its own.
+This note uses bounds outside 0.3×–3.0× on the rounded ratio and does not fail the verdict by itself. Neither missing size passing permissively nor a matching reference label proves query identity.
 
 #### E.2.3 Anchor field discipline
 
 **Source:** `concordance.py:concordance_for_bgc`
 
-The anchor field is mandated as `closest_candidate_kcb_product` (the MIBiG reference product), not `kcb_top`. For clusters excised from a sequenced reference genome, `kcb_top` can be a genome self-hit; `closest_candidate_kcb_product` is always the MIBiG compound line. The wrapper function `concordance_for_bgc` enforces this — it exists specifically so callers cannot pick the wrong field.
+The anchor field is mandated as `closest_candidate_kcb_product` (the MIBiG reference product), not `kcb_top`. For clusters excised from a sequenced reference genome, `kcb_top` can be a genome self-hit; `closest_candidate_kcb_product` defaults to `UNRESOLVED` and is filled only from a parsed MIBiG reference line. The wrapper function `concordance_for_bgc` enforces this — it exists specifically so callers cannot pick the wrong field.
 
 #### E.2.4 Anchor resolution algorithm
 
@@ -2269,11 +2292,11 @@ if any(kw in name for kw in LARGE_BACKBONE_KEYWORDS) and frag and 0 < kb < BACKB
     → downgrade (keyword path)
 ```
 
-Path 1 is preferred because it is self-maintaining: as MIBiG reference clusters are added to the index, the ceiling automatically extends without requiring keyword updates. Path 2 catches named compounds whose reference size is not in the index.
+Path 1 reads the selected provisioned reference index; it is not an independent update or completeness guarantee. Bind that index and its non-proxy sizes by hash and inspect the cache/resource state. Path 2 applies selected keyword heuristics; missing relevant metadata can yield UNKNOWN.
 
 `LARGE_BACKBONE_KEYWORDS` holds 38 lowercase keywords (compound names plus spelling variants) in three groups: glycopeptides (teicoplanin, vancomycin, balhimycin, UK-68, a47934/a-47934, chloroeremomycin, ristocetin, complestatin, kistamicin), lipo/Ca-dependent lipopeptides (enduracidin, ramoplanin, friulimicin, daptomycin, a54145, CDA1–4, calcium-dependent antibiotic, skyllamycin), and large polyene/modular PKS macrolides (nystatin, amphotericin, candicidin, pimaricin, rapamycin, FK506, niddamycin, nanchangmycin, avermectin, rimocidin, filipin, stambomycin, lydicamycin, notonesomycin, clethramycin, linearmycin, stenothricin).
 
-The check is applied only to fragments (Edge/Full-contig). Interior clusters and small compounds (lanthipeptides, lasso peptides, etc.) never trip regardless of their size.
+The size guard applies to admitted fragments when either the selected reference is at least 45 kb or a large-backbone keyword matches. Interior is a separate clear branch; do not infer a universal small-compound exemption or a confirmed biological inability from this fixed threshold. Inspect boundary, measured span and reason, including UNKNOWN.
 
 #### E.3.3 Mutation behaviour
 
@@ -2299,7 +2322,7 @@ The reference size is loaded lazily from `mibig_reference_index.bacterial.json` 
 
 **Source:** `comparative_pairs.py` module docstring, `comparative_pairs.py:build_comparative_pairs`
 
-This module populates the `E2_Comparative_Pairs` schema sheet. It is a deterministic **similarity** layer, not a sequence-identity layer. Three signals contribute:
+This module populates the `E2_Comparative_Pairs` schema sheet from a selected input roster capped before pairing (default 800 records, configurable through the shared cap with warnings). Preserve the admitted/omitted roster and full strain / full contig / region / BGC alias for both endpoints. Two nonempty gene-context lists can permit domain counting even when their domains are missing; zero does not certify complete domain coverage. It is a deterministic **similarity** layer, not a sequence-identity layer. Three signals contribute:
 
 ```
 shared product classes     — antiSMASH product class tokens shared between the two BGCs
@@ -2382,13 +2405,13 @@ supplies a reference-size comparison.
 
 **Source:** `singleton_filter.py` module docstring
 
-The rarity metric in `enrichment_sections.py` ranks domains by genome-wide frequency; a "genome-unique singleton" (frequency == 1) is a novelty signal. On a fragmented genome, housekeeping genes captured at contig edges are also genome-unique singletons — not because they are biosynthetically distinctive, but because they are single-copy. In a development cohort the over-count was measurable. One region had 10 raw singletons, 4 of which were ribosomal proteins or EF-G. A second had 7 raw singletons, all from the α-glucan/glycogen GlgE pathway (primary metabolism, not a lead). A third had 11 raw singletons, mostly regulatory and MEP-isoprenoid. A fourth had 7 singletons, nearly all genuine RiPP maturation machinery. Without filtering, the third region (mostly noise) ranked above the fourth.
+The rarity metric ranks domain instances in the supplied input roster. A frequency of one is an observed singleton in that scope, not established genome-wide uniqueness, biosynthetic function or chemical novelty. Earlier development anecdotes about filtering and ranking are unverified here; no validation roster or source-bound case is supplied. Assess annotation coverage and the actual selected filter independently.
 
 #### F.1.2 Three-tier token-bounded matching 
 
 **Source:** `singleton_filter.py:_HOUSEKEEPING_PREFIX`, `_HOUSEKEEPING_EXACT`, `_HOUSEKEEPING_WHOLE`
 
-The original module used bare case-insensitive substring matching (`stem in domain`). This is the same substring-containment bug class fixed in other modules. Confirmed false drops under the old rule: `Trans_AT_S1`, `PKS_Docking_S1`, `Peptidase_S1` (all caught by bare `"s1"`), `NADHpyr_redox` (caught by `"nadh"`), `GtrA_like` (caught by `"gtra"`), `ABC1_kinase` (caught by `"abc1"`). All six are biosynthetically meaningful domains that were being silently discarded.
+The original module used bare case-insensitive substring matching (`stem in domain`). This is the same substring-containment bug class fixed in other modules. Confirmed false drops under the old rule: `Trans_AT_S1`, `PKS_Docking_S1`, `Peptidase_S1` (all caught by bare `"s1"`), `NADHpyr_redox` (caught by `"nadh"`), `GtrA_like` (caught by `"gtra"`), `ABC1_kinase` (caught by `"abc1"`). Those are retained historical examples of annotation-filter behavior, not independent verification of each domain's biological role or a current locus.
 
 The fix introduces three matching tiers:
 
@@ -2458,7 +2481,7 @@ _BIOSYNTHETIC_OVERRIDE = frozenset({
 })
 ```
 
-The override check runs first (step 1 in `classify_singleton`), before the blocklist. This means a domain in `_BIOSYNTHETIC_OVERRIDE` can never be dropped, even if a blocklist stem would otherwise match it.
+The override check runs first (step 1 in `classify_singleton`), before the blocklist. The override uses case-insensitive exact-name membership; a selected override is retained by this filter before blocklist checks. It is an annotation-based prioritizer, not evidence that the retained domain is novel or functionally biosynthetic.
 
 #### F.1.5 Decision order in `classify_singleton`
 
@@ -2483,7 +2506,7 @@ The inversion at step 2 (blocklist runs before the antiSMASH tag) is a deliberat
 
 **Source:** `singleton_filter.py:filtered_singleton_count`
 
-The unit of counting is the **gene**, not the domain. A gene contributes 1 to the raw count if it carries any genome-unique domain, and 1 to the filtered count if it retains at least one biosynthetic-relevant singleton after filtering. A gene where all domains are housekeeping contributes to raw but not to filtered.
+This singleton summary counts **genes**, unlike the domain-instance frequency counter. A gene contributes 1 to the raw count if it carries a domain observed once in the supplied frequency scope, and 1 to the filtered count if it retains at least one biosynthetic-relevant singleton after filtering. A gene where all domains are housekeeping contributes to raw but not to filtered.
 
 ```python
 for domains, fn in gene_singletons:
@@ -2634,7 +2657,7 @@ def genome_domain_frequency(all_genes_by_bgc: dict[str, list[Gene]]) -> Counter:
     return freq
 ```
 
-The frequency counter is over individual domain-family instances, not genes. A domain appearing in 5 different genes in 3 different BGCs contributes 5 to its count. The scope is the supplied `all_genes_by_bgc` dictionary. The helper does not prove that every BGC, every genomic gene, every source domain or a whole-genome proteome was supplied. `freq[dm] == 1` means one observed instance in that input, not certified genome-wide uniqueness or external rarity. Preserve the actual admitted roster and coverage.
+The frequency counter is over individual domain-family instances, not genes. A domain appearing in 5 different genes in 3 different BGCs contributes 5 to its count. The scope is the supplied `all_genes_by_bgc` dictionary. The helper does not prove that every BGC, every genomic gene, every source domain or a whole-genome proteome was supplied. `freq[dm] == 1` means one observed instance in that input, not certified genome-wide uniqueness or external rarity. Preserve the actual admitted roster and coverage. `emit_rarest_genes` and `emit_rarest_domains` use `freq.get(domain, 1)` for absent keys, so an incomplete counter can generate an apparent uniqueness statement. Require an explicit complete query/frequency binding before using that wording. A directly supplied empty-domain Gene can fail the gene emitter; normal `parse_genes` excludes such rows.
 
 #### F.3.4 Common machinery exclusion in domain inventory
 
@@ -2657,7 +2680,7 @@ f"Of these, {len(catalytic)} families sit outside the common NRPS/PKS carrier ma
 "and represent the cluster's specific tailoring/structural content."
 ```
 
-This is annotation only — the excluded domains still appear in the top-12 most-represented list (`top = sorted(cnt.items(), key=lambda x: -x[1])[:12]`); only the "distinctive content" count is filtered.
+Non-common-family membership is not automatically evidence of tailoring or specificity. This is annotation only — the excluded domains still appear in the top-12 most-represented list (`top = sorted(cnt.items(), key=lambda x: -x[1])[:12]`); only the "distinctive content" count is filtered.
 
 #### F.3.5 RiPP precursor key guard
 
@@ -2755,7 +2778,7 @@ For `frac > 1.0`:
 (exceeds nominal; reference may be smaller than this cluster) [unconfirmed ref]"
 ```
 
-The `[unconfirmed ref]` suffix is appended whenever `not ref.confirmed` — it is always present for the current single entry.
+The `[unconfirmed ref]` suffix is appended whenever `not ref.confirmed` — it is always present for the current single entry. The length helper can return `0.0` for missing/unusable coordinates and accepts an explicit negative numeric `length_kb`. Require finite positive measurements and source-coordinate/topology checks before comparison. Output zero does not establish a measured span or its missingness cause; the reference yardstick remains unconfirmed.
 
 #### F.4.4 Length calculation
 
@@ -2791,4 +2814,4 @@ This is the raw coordinate span, not the corrected BGC size. For the nominal nor
 See [05_VolII_ClusterG_Figure_System.md](05_VolII_ClusterG_Figure_System.md). The table below
 records the historical assembly status of Clusters A–F; it is not a current-source check of every clause.
 
-*The Mathematics of Sapote-Mamey, Volume II. Every formula is transcribed from engine source. Language is capacity-level. KCB is similarity, not identity.*
+*Source locations are navigation aids. Verify each selected formula against its exact code version, bound inputs and receipt; this reference is not independent verification of every formula or scientific claim. KCB is similarity, not identity.*

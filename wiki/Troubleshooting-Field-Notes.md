@@ -24,10 +24,14 @@ directory by default. Record a missing/deferred capability when execution is not
 
 ## Architecture mismatches on Apple Silicon
 
-Linux/x86_64 wheels and binaries do not install/run on macOS-arm64 (the bundled `biopython`
-cp312/manylinux wheel; BUSCO's metaeuk/augustus conda stack, which fails outright on arm64).
-**Fix:** fetch a platform-matched build, use a pure-Python alternative (compleasm instead of
-BUSCO), or run in the Linux container. Check `file <binary>` says `arm64` before debugging deeper.
+A Linux wheel or binary is not a native macOS-arm64 build. The recorded
+Biopython-wheel and BUSCO-environment failures concern specific artifacts; inspect
+the selected release, platform tags and dependencies rather than generalizing
+that every BUSCO installation fails on arm64.
+**Fix:** fetch a platform-matched build or run in the Linux container. Switching tools, for
+example from BUSCO to compleasm, is a method choice to review, not a repair: compleasm has its own
+executable and lineage-data requirements, and its outputs are not interchangeable with BUSCO's. Check the actual format and architecture with `file /path/to/executable`,
+including universal builds, against the chosen execution environment.
 
 ## A "failed" conda env may still have delivered usable binaries
 
@@ -37,7 +41,9 @@ still provided working `miniprot`, `hmmsearch`, and `diamond`. **Check:** invent
 ## conda itself can break (`env: python: No such file or directory`)
 
 The `conda` entry script's `#!/usr/bin/env python` shebang fails when no bare `python` is on PATH.
-**Fix:** invoke it explicitly: `miniconda3/bin/python miniconda3/bin/conda <subcommand> ...`.
+If the selected conda entry point is a Python script, inspect its shebang and
+use the matching existing interpreter with that script and real arguments. Do not
+assume a particular installation prefix or adopt a damaged environment blindly.
 
 ## NCBI eutils rate-limiting looks like "no results"
 
@@ -51,15 +57,17 @@ current quota, and another client is not an automatic exemption from service lim
 
 Database readiness is separate from executable installation and varies with the selected release. The old Barrnap ≥1.10 database/download observations were recorded for a particular environment, not verified for every installation. Inspect the installed version/help and database inventory before any separately authorized download. Avoid copying a whole database or source tree as a default repair; keep original evidence in place and isolate only changed files. See [Barrnap version and integration scope](../docs/BARRNAP.md).
 
-## Skipped tests are gates, not breakage
+## Skipped tests are unevaluated cases
 
-A block of `*_live` / reference-panel tests SKIP by design — they need local antiSMASH ZIPs that
-are not shipped. **Skips mean "gated," not "broken."** Do not chase them; do not delete them.
+Some live/reference tests skip when their declared prerequisites are absent.
+Read and retain the skip reason, then determine whether the intended task requires
+that case to run. A skip is neither a pass nor proof of a defect. Preserve the test
+and its unresolved coverage rather than silently waiving it.
 
 ## Version drift survives sealing
 
 Doc headers and version literals that are not machine-owned drift silently across cuts (see
-[Versioning](Versioning.md) for the three documented freezes of `CURRENT_DOCS_INDEX.md`).
+[Versioning](Versioning.md) for a retained comment about earlier index freezes).
 **Fix:** `tools/sync_version.py` owns a declared set of current version surfaces, not every version literal. Inspect its exact anchors and use the corresponding checks during an authorized bump. Preserve producing versions and dated review/run stamps; synchronization does not revalidate their historical content.
 
 ## One bad reference record can fail a whole tree
@@ -68,8 +76,11 @@ A mis-deposited reference record can cause a tree sanity gate to fail. **Check:*
 
 ## IQ-TREE outgroup crash
 
-`iqtree -o <outgroup>` combined with partition models can abort (SIGABRT in setRootNode). **Fix:** build unrooted, then root afterwards (Bio.Phylo `root_with_outgroup`) before
-rendering.
+A recorded IQ-TREE/outgroup/partition combination aborted in `setRootNode`.
+Check the selected version, input and failure log before assuming the same cause.
+An unrooted analysis followed by explicit rooting is a method change requiring
+review of the model, outgroup and resulting tree; it is not an automatic repair
+or permission to bypass the shared gate.
 
 *General habit behind all of these: verify before asserting — check the actual binary, env, file,
 or record before concluding a tool "doesn't work" or data "doesn't exist."*

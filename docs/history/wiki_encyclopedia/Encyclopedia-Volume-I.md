@@ -139,6 +139,8 @@ also carries **applied weight beyond the clinic** — for agriculture and for be
 managed/beekeeper-associated and native-bee systems, where the microbial communities that defend pollinators and
 their stores bear on pollinator health and, through it, on food systems. <span class="tag t-science">\[science\]</span>
 
+> **Ecological evidence hold:** The comparisons and reference facts in this historical section are hypotheses or literature leads, not validated properties of every host, isolate or habitat. An association or a shared sequence-based capacity does not establish vertical transmission, defensive function, habitat specificity, or a causal ecological mechanism. Check the specific organisms, study designs and source literature before using these generalizations.
+
 **Three habitats, three defensive-symbiosis logics.** The pipeline's comparative core is a contrast between three
 host systems, each a different way of using bacterial chemistry for defense, and reading them side by side is what
 gives an isolate's repertoire ecological meaning. <span class="tag t-cand">\[science: candidate — Pass-2 pending\]</span>

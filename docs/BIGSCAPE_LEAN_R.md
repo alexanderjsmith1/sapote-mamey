@@ -59,6 +59,13 @@ the same receipt's history, without copying images or making a new directory.
 Unreceipted, modified or incomplete prior outputs refuse. This explicit option
 is intended for development figure edits; it does not rewrite a released packet.
 
+`--refresh` works in place and is not transactional. It replaces the tables, caption and plot
+configuration before R runs, writes a `RUNNING` receipt, then adds the prior-render history in a
+second write. If R fails, the receipt reads `FAILED` and some files are already replaced. An
+interruption between the two receipt writes can lose that history. The prior hashes in the receipt
+are not a copy of the prior files. Copy the folder first if you need the earlier render, and read
+the new receipt and `R.log` after a failure (`tools/bigscape_locus_r.py`).
+
 The R renderer reuses `sapote_figure_theme.R` and the six role colors from
 `sapote_locus_map.R`. It adds paired tracks, supplied protein ribbons, and the
 stored LCS/final comparable CDS spans. Reversed record-B indices are mapped back

@@ -4,11 +4,11 @@ Use [the intake SOP](../SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md) to c
 
 ## What the run command consumes
 
-`python mamey_run.py inspect <antiSMASH.zip>` previews an existing antiSMASH ZIP. A good preview lists the regions and shows no failure. The full recipe is [First run](../reader/01_FIRST_RUN.md). `run --input-zip <antiSMASH.zip>` runs the extraction.
+`python mamey_run.py inspect path/to/EXAMPLE.zip` previews an existing antiSMASH ZIP. Review its reported region-file or admitted-record counts, input shape and warnings; compare them with the archive and verify the resulting inventory after a run. Replace the example path with your bound ZIP path and quote paths containing spaces. The full extraction command and metadata options are in [First run](../reader/01_FIRST_RUN.md); use `--input-zip path/to/EXAMPLE.zip` there. An inspection pass is not permission to analyze or a guarantee that all evidence will parse.
 
 A nucleotide genome FASTA alone is not an antiSMASH ZIP and cannot replace it. Getting antiSMASH results is a separate workflow; see [the antiSMASH web submission SOP](../ANTISMASH_WEB_SUBMISSION_SOP.md). `run --accession` is only a placeholder: it does not download or preprocess accessions. Without `--input-zip` it exits with `UNSUPPORTED_ACCESSION_MODE`.
 
-A useful archive holds region GenBank records, the source sequence and metadata, and any JSON, KnownClusterBlast, ClusterBlast and report files that antiSMASH wrote. Missing comparator evidence stays unavailable. An empty KnownClusterBlast file reads `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`, which is not a validated negative search. Do not infer it from a class label. A single-region accession ZIP is valid, but it covers only that one region's sequence.
+A useful archive holds region GenBank records, the source sequence and metadata, and any JSON, KnownClusterBlast, ClusterBlast and report files that antiSMASH wrote. Missing comparator evidence stays unavailable. `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` means the region's KnownClusterBlast text file was recognized as a no-hit report ("no hits" text, or empty "Significant hits:" and "Details:" sections) and no hit rows were parsed. The text is not checked against the JSON, so it is not a validated negative search. A missing or unreadable KnownClusterBlast file is not this state. Do not infer it from a class label. A one-region filename pattern alone does not establish intake validity, assembly scope or reference identity; verify the supplied records and source binding.
 
 ## Optional evidence
 

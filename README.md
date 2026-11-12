@@ -70,12 +70,8 @@ available. The deterministic Mamey engine, external phylogeny programs, large da
 runs may still require a local Claude Code or Codex session, or a terminal environment. Download
 the generated reports and receipts; a chat response alone is not a validated or sealed Mamey package (see [sealed package](docs/GLOSSARY.md#evidence-identity-portability-and-authority-vocabulary)).
 
-**Start with the file you have:**
-
-- An **antiSMASH result ZIP** → [Your first extraction](docs/reader/01_FIRST_RUN.md). To have an assistant run it, use [the walkthrough request](docs/MASTER_WALKTHROUGH.md#route-a-ask-your-assistant-to-run-it).
-- A **Complete_Package ZIP** from an earlier run → [Read one saved package](docs/reader/03_READ_RESULTS.md).
-- A **code ZIP** → [Install](#install) below.
-- No antiSMASH ZIP yet → download one from the [public antiSMASH datasets](docs/PUBLIC_DATASETS.md) on Zenodo: 1,258 public genomes run with antiSMASH 8.0.4 at loose strictness.
+**Start with the file you have:** [Start with your file](docs/READER_START_HERE.md) routes
+antiSMASH ZIPs, saved packages, genome FASTAs and setup questions. To have an assistant run it, use [the walkthrough request](docs/MASTER_WALKTHROUGH.md#route-a-ask-your-assistant-to-run-it).
 
 ## What you can do
 
@@ -92,7 +88,8 @@ the generated reports and receipts; a chat response alone is not a validated or 
 
 ## Beyond extraction
 
-Each of these is optional and runs after a first run. Each guide gives the inputs, the commands and how to check the result.
+These routes are optional; some consume saved packages, while RG-GMCI runs inside
+extraction. Check the selected guide for inputs, commands and result checks.
 
 | You want to | Command | Guide |
 |---|---|---|
@@ -121,10 +118,9 @@ a similarity, and a family is membership in one run at one cutoff.
 ### Python and dependencies
 
 You need **Python 3.12 or newer**. Run these from the extracted directory that contains
-`pyproject.toml` and `mamey_run.py`. Use a writable working installation. Before
-running `doctor`, read its [write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
-If `runs/_doctor_probe` already exists, leave it where it is. Doctor does not touch it and
-reports a failed write check. Use another working installation instead. Then run:
+`pyproject.toml` and `mamey_run.py`, in a folder you can write to. `doctor` briefly creates
+`runs/_doctor_probe/`. If that folder already exists, leave it alone and read the
+[write-probe note](docs/INSTALL.md#doctor-scope-and-write-probe). Then run:
 
 ```bash
 python3 -m venv .venv
@@ -153,28 +149,17 @@ databases, system tools, or the curated Pfam HMM.
 
 ## Quickstart
 
-[Your first run](docs/reader/01_FIRST_RUN.md) is the full recipe. In short, from the
-program folder:
+From the program folder:
 
 ```bash
 python mamey_run.py doctor
 python mamey_run.py inspect path/to/EXAMPLE.zip
 ```
 
-`inspect` prints a capped `run` command for that ZIP, which is a shorter run with no PDF
-brief and no gene maps. The strain name comes from the file name, here `EXAMPLE`. Edit the
-command's `--taxonomy` and `--source` lines to match your records, or delete them. `run`
-refuses the text in angle brackets. Run the command, then check the package:
-
-```bash
-python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
-```
-
-`run` exits `0` when the package is complete. It exits `1` on a `[BLOCKING]` issue,
-and `2` when it refuses a bad command line before starting, such as an unsafe strain name.
-Unedited `<Genus species>` or `<isolation source>` text is refused with exit `1`. Open
-`runs/EXAMPLE/package/OPEN_ME_FIRST.html` to see the results. A passing package means
-the steps completed. It does not show that any cluster makes a compound.
+Use the actual run command that `inspect` prints, with metadata edited from your
+records. [Your first run](docs/reader/01_FIRST_RUN.md) explains those edits, validation
+and exit codes. A passing check means the software checks passed. It does not show that
+every BGC was found or that any biological reading is right.
 
 The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review and cohort work, and the
 [Mode B walkthrough](docs/MODE_B_USER_WALKTHROUGH.md) covers writing a card. `python mamey_run.py --help` lists every command.
@@ -271,7 +256,7 @@ Python libraries the optional workflows import, and the extra that installs each
 | `slides` | python-pptx, matplotlib, numpy, Pillow |
 | `render` | CairoSVG, with its tinycss2 dependency (the PDF preparer also uses tinycss2 to check CSS `url()` references in SVG figures; without it, an SVG with CSS urls is refused with `PDF_SVG_CSS_PARSER_UNAVAILABLE`) |
 | `addons` | pyrodigal, pyfastani, pyswrd, pyhmmer, pyskani and the other `pyproject.toml` add-ons |
-| `test` | pytest, build, pdfplumber, psutil |
+| `test` | pytest, build, pdfplumber, psutil, tinycss2 (for the SVG CSS guard tests) |
 | not in any extra; install only if wanted | pypdfium2 (PDF page images for interactive-figure bridges), certifi (extra TLS certificates for reference-metadata lookups in `tools/resolve_reference_metadata.py`), diamond4py (in-process DIAMOND alignment), RDKit (structure drawing, above) |
 
 Core Python dependencies install with `python -m pip install -e .`:
@@ -345,7 +330,7 @@ Sapote-Mamey uses citation-compact outputs to separate runtime evidence structur
 
 - **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
 - **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
-- **`PASS_STRUCTURE`** means the producing check reported structural success. Citation-compact QA checks its encoded citation-coverage and caveat rules; it does not validate every package artifact or verify primary literature. Read the named producer’s receipt and run package validation separately.
+- **`PASS_STRUCTURE`** is a structural label from the check that printed it. In citation-compact QA it means the citation-coverage and caveat rules passed. It does not check other package files or the literature itself; run package validation for the package.
 - **`operator_supplied`** means the citation/provenance row came from runtime evidence or comparator fields already present in the package.
 - **`citation_needed`** means literature support is missing and should be filled by a separate literature-search pass.
 - **`Literature_Search_WorkOrder.md/json`** is a safe handoff for another literature session — a search instruction, not a verified fact.
@@ -355,13 +340,17 @@ Current compact lead tables use `interpretation_scope` for reader-facing scope.
 ## Data availability
 
 Before you share data, check the exact tier's inventory, the release manifest and the disclosure
-decisions. A CODE candidate's filename, a strain prefix, or a local test pass does not establish
-public-release authority. Keep private or unpublished material out of public artifacts and
-preserve source attribution.
+decisions. Releasing data publicly is a separate decision: a file name, a strain prefix or a
+passing test does not make data public. Keep private or unpublished material out of public
+artifacts, and keep source attribution.
 
 ## Scientific integrity
 
-Report the exact metric and evidence scope: sequence identity is an alignment measurement, while KnownClusterBlast (KCB) scores and reference matches do not establish compound identity. A BGC prediction alone does not demonstrate production or activity; stronger attribution requires experimental evidence specifically linked to that locus. The linter, package claim-safety gate and Mode B structure gate provide scoped heuristic checks, not universal enforcement or scientific certification. Retain findings and source review for each claim.
+- Report the exact metric and its scope. Sequence identity is an alignment measurement.
+- KnownClusterBlast (KCB) scores and reference matches show similarity, not compound identity.
+- A BGC prediction does not show production or activity. Linking a compound to a locus needs experimental evidence for that locus.
+- The linter, the package claim-safety gate and the Mode B structure gate are heuristic checks with a stated scope. They do not certify the science.
+- Keep the findings and the source review for each claim.
 
 ## Citation
 
@@ -369,7 +358,7 @@ If you use Sapote-Mamey, please cite it (see `CITATION.cff`) and antiSMASH 8.0 (
 
 ## License
 
-Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. Documentation is covered by `LICENSE-DOCS.txt`. Bundled third-party code and its licenses are listed in `docs/THIRD_PARTY_LICENSES.md`.
+Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. `LICENSE-DOCS.txt` lists the documentation paths its terms cover. Do not assume it covers a page it does not list; check that page's own notice. Bundled third-party code and its licenses are listed in `docs/THIRD_PARTY_LICENSES.md`.
 
 ## Practical help
 
@@ -382,4 +371,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 Use [Choose a task](docs/USER_TASK_ROUTER.md) to turn your request into a named workflow, required inputs, owning guide and reviewable outputs. Assistants can use its [JSON routes](docs/USER_TASK_ROUTER.json), under the scope and source rules in [AGENTS.md](AGENTS.md).
 
 ---
-*Current bundle: sapote-mamey-v9.7.464 / engine 1.9.180 · build 20261108v97464a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.465 / engine 1.9.181 · build 20261110v97465a · release profile: CODE (see RELEASE_MANIFEST.md)*

@@ -55,7 +55,7 @@ This template records the selected full-run authoring suite, not extraction succ
 - gold_completeness: [COMPLETE | JUDGMENT_PENDING]  ← must be COMPLETE for the gold **suite check** (`check_deliverable_suite.py --mode gold`) to pass; a gold extraction can still validate with JUDGMENT_PENDING
 - Mode B cards written: [n] / [raw BGC count]
 - BSL-2 / enediyne flags surfaced: [list BGCs or NONE]
-- NAPAA exclusions applied: [list BGCs or NONE]
+- NAPAA treatment: neutral under the standing registry; record any separately selected workflow exclusions and their basis: [details or NONE]
 - Standing-constraint check (claim-safety, typed bioactivity state with no named default, affiliation): [PASS|FAIL]
 
 ## What the suite checker proves

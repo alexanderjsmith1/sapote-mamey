@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This SOP lets multiple ChatGPT/Claude chats work on Sapote/Mamey without losing state or accidentally overwriting each other.
+Use this SOP to prepare or review a patch packet when several people or assistants work on the same tree. Record source bindings, dependencies and conflicts so reviewers can detect lost state or overwrites; the SOP does not itself prevent them.
 
 ## Source and scope binding
 
@@ -19,15 +19,21 @@ Every patch packet should contain:
 - apply order,
 - diffs,
 - a modified-file manifest; any staged before/after files are review evidence, not file-drop payloads,
-- relevant tests or a stated reason runtime tests are not needed/authorized,
+- relevant tests or a stated reason runtime tests are not needed/authorized (see the note below on lanes),
 - validation logs,
 - manifest,
 - checksums,
 - known issues.
 
+A packet with a stated reason in place of tests can still be a complete review packet. It is not a
+cut-selectable lane. A [lane](../PATCH_WORKSPACE_LAYOUT.md#what-a-lane-is-the-hard-rule) needs one
+`*.patch`, a `PATCH_CARD.md` and at least one test carried in the patch, and `tools/check_patch_lane.py`
+reports a folder without a test as not a lane. Assess the packet and the lane separately before cut
+selection. The checker is a structural screen: it does not enforce the one-patch count or prove meaningful test content, execution or correctness. Check those separately. Record any proposed exception for the cut owner.
+
 ## Response requirements
 
-A reviewing chat should say:
+A reviewer should say:
 
 1. what packet was reviewed,
 2. whether patches are included,
@@ -46,7 +52,7 @@ outputs from the final admitted owners. The following is a historical task-speci
 example, not a universal dispatcher for new work:
 
 1. BGC BLASTP/intake patches.
-2. C5/C7 deliverable patches.
+2. Deliverable and public-workbook patches.
 3. SOP/docs.
 4. Release wrapper and final candidate packaging.
 

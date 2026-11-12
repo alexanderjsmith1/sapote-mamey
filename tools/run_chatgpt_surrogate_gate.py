@@ -22,6 +22,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import json
+import re
 import os
 from pathlib import Path
 import subprocess
@@ -105,6 +106,32 @@ def _existing(paths: Iterable[str], root: Path) -> list[str]:
     return [p for p in paths if (root / p).exists()]
 
 
+def _optional_missing_only(output: str, optional_modules: set[str]) -> bool:
+    """Classify only an isolated diagnostic for an explicitly declared import."""
+    text = output.strip()
+    diagnostic = re.compile(r"(?:ModuleNotFoundError: )?No module named ['\"]?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)['\"]?")
+    # Python -m produces a direct diagnostic; accept the executable prefix.
+    direct = re.fullmatch(r"(?:[^\s:]*python(?:3(?:\.\d+)?)?: )?No module named ['\"]?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)['\"]?", text)
+    if direct:
+        return direct.group(1) in optional_modules
+    lines = text.splitlines()
+    if len(lines) < 3 or lines[0] != "Traceback (most recent call last):":
+        return False
+    match = diagnostic.fullmatch(lines[-1])
+    if not match or not lines[-1].startswith("ModuleNotFoundError: "):
+        return False
+    # Only ordinary frame lines and their indented source lines are accepted.
+    # A second traceback, pytest summary, chained exception or extra diagnostic fails closed.
+    frames = lines[1:-1]
+    if not any(re.match(r'^  File ".+", line \d+', line) for line in frames):
+        return False
+    if any(not (re.match(r'^  File ".+", line \d+', line) or re.match(r'^    \S', line)) for line in frames):
+        return False
+    if any(re.search(r"(?:No module named|Traceback|(?:Error|Exception):|FAILED|ERROR )", line) for line in frames):
+        return False
+    return match.group(1) in optional_modules
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the fast ChatGPT surrogate release gate.")
     parser.add_argument("--root", default=".", help="Sapote--Mamey CODE tier root")
@@ -113,7 +140,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--doctor-timeout", type=float, default=45.0, help="doctor timeout seconds")
     parser.add_argument("--skip-doctor", action="store_true", help="skip python -m mamey doctor")
     parser.add_argument("--json", action="store_true", help="print JSON summary to stdout")
+    parser.add_argument("--optional-module", action="append", default=[], metavar="IMPORT_NAME",
+                        help="declare a missing import optional for this gate; repeat as needed")
     args = parser.parse_args(argv)
+    if any(not re.fullmatch(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*", name) for name in args.optional_module):
+        parser.error("--optional-module requires a Python import name")
 
     root = Path(args.root).resolve()
     out = (root / args.out).resolve()
@@ -125,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         rc, elapsed, output = _run(cmd, root, timeout)
         _write_text(out / log_name, output)
         _out_l = output if isinstance(output, str) else ""
-        _env_missing = rc != 0 and "No module named" in _out_l
+        _env_missing = rc != 0 and _optional_missing_only(_out_l, set(args.optional_module))
         steps.append({
             "name": name,
             "command": " ".join(cmd),
@@ -155,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         record("pytest_surrogate", [sys.executable, "-m", "pytest", "-q", *tests], args.pytest_timeout, "pytest_surrogate.log")
 
-    # env-missing (e.g. pytest not installed) is ENV-SKIP, not FAIL — doctor treats these as optional deps.
+    # Only isolated diagnostics for explicitly declared optional imports may be ENV-SKIP.
     # v9.7.374 (audit lane): a step that TIMED OUT never finished, so it was never actually
     # verified — its real pass/fail is unknown, not "clean." Pre-fix this fell through the FAIL-only
     # check and the gate reported overall PASS/exit-0 even when e.g. the entire pytest_surrogate
@@ -170,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
         "status": status,
         "root": str(root),
         "total_elapsed_seconds_sum": total_elapsed,
+        "optional_modules": sorted(set(args.optional_module)),
         "pytest_file_count": len(tests),
         "pytest_files": tests,
         "steps": steps,

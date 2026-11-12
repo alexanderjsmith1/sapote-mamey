@@ -1,6 +1,6 @@
 # Checkpoint status
 
-`tools/checkpoint_status.py` writes a readable status page from a pinned list of source files. It sits beside `session_checklist.py`, `workflow_status.py`, `cohort_next_evidence_actions.py` and the Strain Master route. The earlier TB04 adapter owns Inbox snapshots. It checks an explicit pinned source roster, presents a fresh Inbox snapshot only when its source ledger still matches and the system clock is in use, and keeps a persistent goal separate from completed milestone receipts. It never manages the goal itself.
+`tools/checkpoint_status.py` writes a readable status page from a pinned list of source files. It sits beside `session_checklist.py`, `workflow_status.py`, `cohort_next_evidence_actions.py` and the Strain Master route. The earlier TB04 adapter owns Inbox snapshots. It checks an explicit pinned source roster, can present a fresh Inbox snapshot when the source ledger matches and the effective clock is the system clock or a supplied clock within its five-minute tolerance, and keeps a persistent goal separate from completed milestone receipts. It never manages the goal itself.
 
 Input schema sapote.checkpoint.v1 contains sources with id, kind, path and sha256. Kinds are goal, inbox, allocation, deliverable, patch, receipt, ledger and memory. Goal, Inbox and allocation are singleton kinds. The goal input is a supplied policy or API snapshot, not live API access. Missing, unpinned, changed, malformed or over-budget sources are held. No file scan, source copy or automatic discovery is performed.
 

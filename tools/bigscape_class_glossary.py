@@ -19,7 +19,7 @@ def render(vocabulary_path=DEFAULT_VOCABULARY):
         "",
         "## How to read a network",
         "",
-        "1. Start with the GCF number, the cutoff and the BiG-SCAPE run ID. Only the three together identify one family; the same number and cutoff in another run or database is a different family, and none of them is a universal biological name. The widget heading shows the number and cutoff; the run ID is in `BIGSCAPE_COHORT_REPORT_RECEIPT.json`.",
+        "1. Start with the GCF number, the cutoff and the BiG-SCAPE run ID. Within a bound source database, use the three together to identify a family. Retain the database path and hash with them: different databases can reuse the same run ID, cutoff and family number, and none is a universal biological name. The widget heading shows the number and cutoff; the run ID is in `BIGSCAPE_COHORT_REPORT_RECEIPT.json`.",
         "2. Expand the class code with the table below. Treat it as a broad routing label from source antiSMASH annotations.",
         "3. Hover or click a node and record the complete strain, node or contig, region, and BGC alias identity.",
         "4. Read the boundary state. CONTIG_EDGE is a caution that the called region touches a contig boundary.",

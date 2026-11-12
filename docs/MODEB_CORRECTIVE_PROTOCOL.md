@@ -78,6 +78,8 @@ This prevents the report from becoming a 200-row table.
 
 ### Step 4 — Write the gene-by-gene section as narrative
 
+The following historical example illustrates prose form, not a reusable inference: adjacency alone does not establish maturation, export, separate pathways or physical linkage. Check each relationship against the selected locus and its evidence before making a similar claim.
+
 The gene-by-gene section should read like this:
 
 > The first block is dominated by a large modular PKS/NRPS gene. Its length and domain composition indicate that it is not a small accessory enzyme. The adjacent oxidoreductase and transporter genes define the likely maturation/export context. The following region shifts into a separate RiPP-like block, so this cluster is better interpreted as a biosynthetic island than as one clean linear pathway.

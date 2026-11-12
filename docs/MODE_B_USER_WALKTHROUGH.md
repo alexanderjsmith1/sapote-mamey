@@ -13,13 +13,20 @@ The examples use `EXAMPLE`. For other terms, see the [glossary](GLOSSARY.md).
 
 Work on a copy of the package, so the original stays untouched. Keep it outside
 the bundle. The [BLASTp protocol](ONLINE_BLASTP_PROTOCOL.md) uses the same
-folder, so hits you ingest there reach your cards. Skip this if you already
-made it:
+folder, so hits you ingest there reach your cards. Choose a new run-specific folder;
+do not reuse an existing folder without first confirming its package identity.
+For a new example folder:
 
 ```bash
-mkdir -p $HOME/mamey-work/EXAMPLE
-cp -R runs/EXAMPLE/package $HOME/mamey-work/EXAMPLE/package
+mkdir -p "$HOME/mamey-work"
+mkdir "$HOME/mamey-work/EXAMPLE" && cp -R runs/EXAMPLE/package "$HOME/mamey-work/EXAMPLE/package"
 ```
+
+If the second command fails, stop and inspect the existing or partially copied folder;
+choose a fresh name after review. Verify the copied manifest and source package before
+using it. `cp -R` into an existing `package` directory would nest the new copy and leave
+later commands pointing at the older package. If you deliberately reuse a working copy,
+verify its identity and its already-ingested evidence first.
 
 Every command below uses `$HOME/mamey-work/EXAMPLE/package`. If a BLASTp load is pending, do it
 first; `emit-modeb-template` refuses otherwise.

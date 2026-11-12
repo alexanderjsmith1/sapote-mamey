@@ -147,6 +147,8 @@ def main(argv=None) -> int:
         unique = sum(1 for product in classes if prevalence[product] == 1)
         zero_kcb = sum(1 for row in bgcs if row["sid"] == strain and not _has_kcb_hit_recorded(row))
         diagnostics = list(tigrfam.get(strain, {}).get("present", {}))
+        # A strain with no tigrfam.json entry was not scanned; "none" would read as a scanned negative.
+        diagnostics_text = (",".join(sorted(diagnostics)) if diagnostics else "none") if strain in tigrfam else "not scanned"
         context[strain] = {
             "rank": rank[strain],
             "tier": tier(strain),
@@ -158,13 +160,19 @@ def main(argv=None) -> int:
             "zk_share": f"{zero_kcb} of {zero_kcb_total}",
             # Bank rows do not establish not-searched versus searched-no-hit.
             "kcb_missing_hit_search_state": "UNKNOWN",
-            "diagnostics": ",".join(sorted(diagnostics)) if diagnostics else "none",
+            "diagnostics": diagnostics_text,
         }
 
     diagnostic_strains = defaultdict(list)
     for strain in strain_order:
         for accession in tigrfam.get(strain, {}).get("present", {}):
             diagnostic_strains[accession].append(strain)
+
+    # The diagnostic rows count strains with a TIGRFAM scan; unscanned strains are named, not counted as absent.
+    tigrfam_scanned = sum(1 for strain in strain_order if strain in tigrfam)
+    tigrfam_unscanned = len(strain_order) - tigrfam_scanned
+    tigrfam_note = (f"; {tigrfam_unscanned} strain(s) without a TIGRFAM scan are not counted"
+                    if tigrfam_unscanned else "")
 
     enediyne_leads = []
     for strain in diagnostic_strains.get("TIGR03828", []):
@@ -225,9 +233,9 @@ def main(argv=None) -> int:
         (6, "NAPAA family/deck scope", "strains with NAPAA (this set)", f"{napaa_count}/{denominator}", "SCOPED POLICY", "NAPAA is excluded from family analyses and strain decks; neutral elsewhere. This label does not apply an engine exclusion."),
         (7, "No KnownClusterBlast hit recorded", "regions without a top-hit label", f"{zero_kcb_total}/{len(bgcs)} ({zero_kcb_pct}%)", "FIELD SUMMARY", "Search state UNKNOWN: these bank fields do not establish not searched versus searched with no hit. Missing values are not novelty results."),
         (8, "KCB field caveat", "kcb_cumulative", "cumulative SCORE, not % identity", "METHOD CAVEAT", "do not label KCB score as percent identity or product identity"),
-        (9, "Thiopeptide diagnostic", "TIGR03604 strains", f"{len(diagnostic_strains.get('TIGR03604', []))}/{denominator}", "GROUNDED", "diagnostic panel presence only; validate exact regions before product claims"),
-        (10, "Enediyne diagnostic", "TIGR03828 strains", f"{len(diagnostic_strains.get('TIGR03828', []))}/{denominator}", "PRIORITY/VERIFY", "warhead-scaffold candidates require exact-region and accessory-gene review before assertion"),
-        (11, "Ansamycin diagnostic", "TIGR01454 strains", f"{len(diagnostic_strains.get('TIGR01454', []))}/{denominator}", "GROUNDED", "diagnostic panel presence only"),
+        (9, "Thiopeptide diagnostic", "TIGR03604 strains", f"{len(diagnostic_strains.get('TIGR03604', []))}/{tigrfam_scanned}", "GROUNDED", "diagnostic panel presence only; validate exact regions before product claims" + tigrfam_note),
+        (10, "Enediyne diagnostic", "TIGR03828 strains", f"{len(diagnostic_strains.get('TIGR03828', []))}/{tigrfam_scanned}", "PRIORITY/VERIFY", "warhead-scaffold candidates require exact-region and accessory-gene review before assertion" + tigrfam_note),
+        (11, "Ansamycin diagnostic", "TIGR01454 strains", f"{len(diagnostic_strains.get('TIGR01454', []))}/{tigrfam_scanned}", "GROUNDED", "diagnostic panel presence only" + tigrfam_note),
         (12, "RG-GMCI HIGH caveat", "HIGH-pair count", "not a monotonic fragmentation metric", "METHOD CAVEAT", "reflects reference-anchored homologous-pair richness and BGC content, not physical contig joining"),
     ]
     for row in findings:

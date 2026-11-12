@@ -162,14 +162,18 @@ def render_menu(registry: dict[str, Any] | None = None) -> str:
         "# Choose an output", "",
         "Find the result you need below. Each entry lists its inputs and whether it "
         "needs extra tools, an external service or a written interpretation.", "",
-        "For the complete requirements and command names of the first entry, run "
+        "For a requirements summary and command names for the first entry, run "
         "from the bundle directory:", "", "```bash",
         "python mamey_run.py deliverables explain '#1'", "```", "",
         "Replace the example path with your antiSMASH ZIP, then check it for that entry:", "", "```bash",
         "python mamey_run.py deliverables availability '#1' --input-zip ~/Downloads/EXAMPLE.zip",
         "```", "",
         "Availability checks local files and tools; each output still needs its own "
-        "input checks. Use another entry's label to inspect its requirements.", "",
+        "input checks. For entry #1, READY means the supplied path is a regular file; "
+        "it does not validate the ZIP or confirm that setup is complete. See "
+        "[installation](INSTALL.md) and [your first run](reader/01_FIRST_RUN.md) "
+        "for setup, inspection and package validation. Use another entry's label "
+        "to inspect its requirements.", "",
         "For a single locus, supply its complete identity: "
         f"`{registry['identity_contract']}`.", "",
     ]

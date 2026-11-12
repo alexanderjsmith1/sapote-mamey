@@ -5,14 +5,17 @@ This page is for operators with an already reviewed evidence table.
 
 `tools/bioassay_to_activity_channel.py` converts an already reviewed screening evidence CSV into
 per-strain `bioactivity_metadata_v1` objects. Read the
-[metadata contract](../docs/BIOACTIVITY_METADATA_CONTRACT.md). This is measured screening context
-at the strain/extract level, with compound and locus linkage explicitly unestablished.
+[metadata contract](../docs/BIOACTIVITY_METADATA_CONTRACT.md). This formats supplied screening context
+at the strain/extract level; it does not validate the upstream measurements.
+Compound and locus linkage remain explicitly unestablished.
 
 ## Required inputs and command
 
 The CSV requires `strain_id`, `organism`, `screening_pattern` and `max_inhibition_raw`.
-Keep missing/unparseable evidence unknown. Optional dose/source columns are carried only when
-present; do not substitute measurements. Bind the source checksum and interpretation scope.
+Keep missing/unparseable evidence unknown. The assay label and the 120/60/30/15 µg/mL dose list
+come from the adapter's template, not from the input, on every assay; the output marks them
+`ADAPTER_TEMPLATE_NOT_READ_FROM_INPUT`. `layout_declaration_state` says whether you declared the
+layout with `--declare-layout`. Do not read the template values as measured conditions. Bind the source checksum and interpretation scope.
 
 ```bash
 python3 tools/bioassay_to_activity_channel.py \
@@ -49,9 +52,12 @@ two must not be rewritten as negative. This is a ruling over supplied target row
 all relevant organisms were tested or that the strain lacks activity.
 
 The emitted `usage_scope=PRODUCTION` is schema metadata; it does not establish production of an
-identified compound. Each object carries the preliminary single-replicate 384-well screen warning
-and `compound_linkage=NOT_ESTABLISHED`. No biological replication or assay validation is inferred.
-The converter's neutral-context role does not mean a subsequent extraction has no output changes.
+identified compound. Each object carries fixed screening-context warnings about a preliminary
+single-replicate 384-well fraction screen and `compound_linkage=NOT_ESTABLISHED`.
+The adapter does not establish plate format, replicate count or mixture composition
+from the input. Verify those against the actual assay record before reusing them.
+No biological replication, assay validation or locus attribution is inferred.
+Adding this object to a later run can change that run's outputs.
 Keep assay observations, class-level genomic hypotheses and locus attribution separate.
 
 ## Related pages

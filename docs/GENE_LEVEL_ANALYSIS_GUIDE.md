@@ -18,7 +18,7 @@ Name every locus with four parts, copied from one source row: `strain / full nod
 python mamey_run.py list-bgcs runs/EXAMPLE/package --top 10
 ```
 
-You see a table of BGCs in triage order. Add `--json` for a machine-readable list, or `--include-dropped` to see BGCs removed as primary metabolism. Pick one BGC. Write down its strain, contig, region and alias.
+You see up to ten eligible BGCs in triage order. Add `--json` for a machine-readable list. Add `--include-dropped` to include rows excluded by standing rules, primary-metabolism or mobile-element flags; `--top 10` still limits the result. Omit `--top 10` to list all available board rows, then compare complete locus identities against the package inventory before claiming full coverage. Pick one BGC. Write down its strain, contig, region and alias.
 
 The command needs a sealed package. If it fails, validate the package first (see [read results](reader/03_READ_RESULTS.md)).
 
@@ -66,7 +66,7 @@ A KCB-dark or fragmented region may still pair with another region that supplies
 2. Run the second check on the package:
 
    ```bash
-   python mamey_run.py two-proof-rescue runs/EXAMPLE/package --input-zip inputs/EXAMPLE.zip
+   python mamey_run.py two-proof-rescue --package runs/EXAMPLE/package --input-zip inputs/EXAMPLE.zip
    ```
 
    The default policy needs the antiSMASH ZIP the package was built from. Run `two-proof-rescue --help` for the other policies.

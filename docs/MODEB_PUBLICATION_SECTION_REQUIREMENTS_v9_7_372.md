@@ -6,8 +6,10 @@ Pass `--contract current50_v2` to both `emit-modeb-template` and `verify-modeb`,
 48-section profile. The section map here is the earlier proposal. The implemented profile,
 `mamey/data/mode_b/modeb_current50_v2_contract.json`, differs: its §22 is GECCO evidence and its §26 is
 the contigs rescued into the BGC, while the table below puts the RiPP search in §22 and OSMAC in §26.
-Use the emitted template's titles and the [current50 guide](MODEB_CURRENT50_V2_CONTRACT.md) for section
-numbers. Mamey performs deterministic extraction; Sapote,
+The differences extend beyond those two rows: the implemented §21 and §23 merge earlier requirements,
+and §§8, 12, 40, 43 and 44 include additions or changed scope. Do not use the historical table as a
+complete checklist for the implemented profile. Use the contract JSON, emitted template and
+[current50 guide](MODEB_CURRENT50_V2_CONTRACT.md) for the current requirements and section numbers. Mamey performs deterministic extraction; Sapote,
 or the person authoring the card, interprets. Passing the deterministic scaffold means
 only that the evidence is presented for scientific review. It does not establish product identity,
 production, activity, novelty, owner acceptance, integration, rendering approval, release, or

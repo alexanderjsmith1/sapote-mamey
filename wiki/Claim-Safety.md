@@ -17,11 +17,14 @@ selected output and its source evidence before making a claim; use these framing
    resistance marker says the machinery *could* be present; it does not name a product.
 3. **Bioactivity is strain/extract-level context.** Even measured activity from the same strain does not establish locus-specific causality; a BGC claim needs separately governed linkage evidence.
    Literature bioactivity of a compound family never transfers to an uncharacterized cluster.
-4. **Expression is "unknown" without culture data.** Presence of a BGC says nothing about whether
-   it is transcribed, translated, or productive under any condition.
-5. **rDNA / 16S / ITS identity is a neighborhood, not a species call.** Marker identity anchors a
-   strain to a clade; species delimitation needs genome-scale evidence (ANI / genome trees), and
-   calls within ~1% of the 95% ANI boundary are *boundary/indeterminate*, not confident.
+4. **Expression needs direct evidence for the recorded condition.** A BGC annotation
+   alone does not establish transcription, translation or product formation. Keep
+   those measurements and their conditions separate.
+5. **rDNA / 16S / ITS identity is a neighborhood, not a species call.** Marker similarity supports a
+   placement hypothesis under a reference scope, not automatic species assignment.
+   For bacterial ANI comparisons, retain the selected method, aligned fraction,
+   reference identity and decision rule. A value near a chosen threshold needs
+   review; neither a universal 95% rule nor a fixed ±1% band establishes a species call.
 6. **Missing evidence is not absence.** Missing, unrun, failed or truncated evidence remains
    unavailable or incomplete. Only a completed, scoped search with a recorded no-hit result supports
    "not detected under these parameters"; it never establishes "the strain lacks X."
@@ -32,29 +35,34 @@ selected output and its source evidence before making a claim; use these framing
 
 ## Where it is enforced
 
-- **Triage priors are routing, not scores** — `scoring.py` computes attention-routing floors; the
-  judgment tiers (Sapote-slim / Sapote full, Markdown protocols) make the interpretive calls, and
-  even those emit class-level language.
-- **Gates before figures** — `tree_sanity_check` and the 8-item analysis sign-off must PASS before
-  a phylogenetic figure is shown; a gate FAIL is an engineering/quality finding needing diagnosis. Long branches can reflect alignment, reference, model or biological factors; the failure does not prove novelty. Inspect the sign-off report because its advisory CLI exits 0 even when issues remain.
+- **Triage scores are routing scores (priors)** — `scoring.py` stores numeric AB, AF and novelty
+  scores and uses them to route attention. They are not measured activity, calibrated probabilities
+  or biological proof. The interpretive calls are made later, in written Mode B cards and reports
+  ([Mode B](Mode-B.md)), and those use class-level language.
+- **Gates before figures** — `tree_sanity_check` must PASS before a phylogenetic figure is shown,
+  and `tools/signoff_check.py` attempts six advisory check categories; an empty
+  or unparseable tree can return before those checks complete. Its usage errors
+  return 2, while inspection remains advisory; a gate FAIL is an engineering/quality finding needing diagnosis. Long branches can reflect alignment, reference, model or biological factors; the failure does not prove novelty. Inspect the sign-off report because its advisory CLI exits 0 even when issues remain.
 - **Release and disclosure checks** — omitted public authority defaults to PRIVATE, regardless
   of identifier prefix. Exact profile assignments or an admitted explicit PUBLIC request can
   select a run label, subject to private guards. Review the actual release decision and the
   [privacy/evidence contract](../docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) before sharing.
   Identifier tests and release audits have bounded scopes; a PUBLIC label or passing test is not
   proof that every private field was removed or permission to publish.
-- **Mandatory phrasing in packages** — compound names from reference hits are labeled as
-  class-level hypotheses; bioactivity fields carry the strain-level-context caveat; expression
-  fields default to "unknown."
+- **Selected output wording** — some writers add reference-similarity and
+  strain-level-context caveats or unknown expression defaults. Inspect the actual
+  artifact and its producer; these are not universal coverage guarantees.
 
 ## Templates you can lift
 
-> "<strain> / <full node-or-contig> / <region> / <BGC alias> resembles the <family> reference cluster (<n>/<m> genes, KCB) — a class-level
-> hypothesis of <family>-like biosynthetic capacity. No structural or bioactivity claim is made;
-> expression is unknown without culture data."
+> "`<strain> / <full node-or-contig> / <region> / <BGC alias>` resembles the
+> `<family>` reference (`<n>/<m>` genes under the stated KCB scope), supporting
+> a family-like capacity hypothesis. Product identity and activity remain unestablished;
+> expression requires direct evidence under the recorded conditions."
 
-> "On the <marker> tree (gate PASSED, <support>), strain X places in the neighborhood of <clade> —
-> an anchor, not a species call; species-level placement awaits genome/ANI evidence."
+> "On the `<marker>` tree (named gate passed, `<support>`), `<exact tip label>`
+> places near `<clade>` under the stated alignment, reference and model scope.
+> This is not automatic species assignment; further evidence depends on the lineage and question."
 
 *The point of the contract: the pipeline's credibility rests on never claiming more than the
 evidence supports — the interesting result survives review precisely because it was stated

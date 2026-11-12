@@ -110,6 +110,17 @@ def test_layer_reports_shared_organisms_and_keeps_confidence(tmp_path, zip_and_r
     assert "NO_HITS_AFTER_EXCLUSION" in {r["blastp_status"] for r in ex["proteins"]}
 
 
+def test_one_side_outside_the_xml2_gives_no_shared_count(tmp_path, zip_and_result):
+    mpath, m = _manifest(tmp_path, zip_and_result)
+    q = [p["query_header"] for p in m["proteins"]]
+    a = [h for h, p in zip(q, m["proteins"]) if p["bgc_id"] == "BGC001"]
+    x = tmp_path / "r.xml"   # side a only; no BGC002 protein is in this XML2
+    x.write_text(_xml([(a[0], 190, [("WP_1", "Streptomyces sp. A", 300)])]))
+    pr = blastp_layer(mpath, xml2s=[x])["pairs"][0]
+    assert pr["organisms_with_homologs_of_both"] == ""          # not 0: side b's organisms are unknown
+    assert pr["shared_organisms"] == "needs XML2 for side b"
+
+
 def test_hit_table_alone_cannot_tell_no_hits_from_not_run(tmp_path, zip_and_result):
     mpath, m = _manifest(tmp_path, zip_and_result)
     first = m["proteins"][0]["query_header"]

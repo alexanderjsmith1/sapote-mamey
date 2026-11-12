@@ -45,7 +45,7 @@ Identity rules, in short:
 - A bare `NODE_7` is partial. It is not a complete identity.
 - Accessions keep their version. `CP103060.1` and `CP103060.2` are different contigs.
 - If two fields in one row disagree, the row is an error or stays unbound. The tool never picks one.
-- The tool upper-cases SPAdes `NODE_` contig names in its outputs. Compare against the inventory by eye if you search them.
+- The tool writes a full SPAdes contig name in SPAdes spelling (`NODE_<n>_length_<n>_cov_<x>`), whatever case it was given, so the `full_node` and `exact_locus` columns can be copied into a four-part identity.
 
 ## 3. How evidence is matched
 

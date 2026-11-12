@@ -32,7 +32,7 @@ Run a tool with `python deliverable_tools/cohort_tools.py <tool> [args]`; add `-
 | `bigscape_clinker_widget` | self-contained, theme-aware, clinker-style within-GCF gene-alignment widget for the Sapote-Mamey BiG-SCAPE cohort deliverable. |
 | `bigscape_matrix_widget` | self-contained, theme-aware strain x GCF-family sharing matrix for the Sapote-Mamey BiG-SCAPE cohort deliverable. |
 | `bigscape_network_widget` | Render exact-identity BiG-SCAPE widgets and integrate them into HTML reports. |
-| `overmerge_widget` | self-contained over-merge inspector widget set for antiSMASH regions that fuse several chemically distinct protoclusters into one region. |
+| `overmerge_widget` | self-contained over-merge inspector widget set for antiSMASH regions flagged for a possible over-merge of protoclusters. |
 | `rggmci_widget` | self-contained interactive RG-GMCI split-pathway widget. |
 
 ## Other

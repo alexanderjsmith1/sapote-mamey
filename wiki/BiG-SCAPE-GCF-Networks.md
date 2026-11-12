@@ -15,10 +15,13 @@ input set, and the version.
 
 ## Input contract (provenance-first)
 
-- Region GBKs only — not whole-genome FASTA, not Mamey CSV rows; read them directly from the
-  antiSMASH ZIP.
-- Every staged member records: source ZIP path + SHA-256, member path + bytes + SHA-256, strain,
-  BGC ID, `contig·region` locator, antiSMASH version when recoverable, cohort-vs-reference flag.
+- Stage region GBKs from an antiSMASH ZIP or an existing folder of region GBKs,
+  following the preparer's input rules. Do not substitute whole-genome FASTA or
+  Mamey CSV rows. Bind folder inputs to their source provenance separately.
+- `tools/bigscape_prep.py` writes `STAGED_MEMBERS.tsv` with strain, source, source SHA-256 (blank
+  for folder inputs), member path, bytes, SHA-256, record id, region and staged file. It has no BGC
+  ID, antiSMASH version or cohort-vs-reference flag. Bind those through a separate checked crosswalk,
+  and hold any member the crosswalk cannot bind.
 - Skip macOS AppleDouble members (`__MACOSX/`, `._*`); quarantine malformed/colliding locators.
 
 ## Run-type declaration (decides what language you may use)
@@ -37,13 +40,17 @@ licenses no novelty claim at all — "not in this run's families" is not "novel.
 `bigscape cluster` with the Pfam-A path, `--record-type region`, `--classify category`,
 `--gcf-cutoffs 0.3,0.5,0.7`, `--include-singletons` — but the locally verified `--help` is
 authoritative over any template: capture the exact command in `COMMAND.sh` and the version in
-`RUN_MANIFEST.json`. Preflight checks Pfam-A and its pressed companions match, and that
+`RUN_MANIFEST.json`. The bundled launcher checks that Pfam-A.hmm and its four pressed companions
+(`.h3f`, `.h3i`, `.h3m`, `.h3p`) exist. That presence check does not establish that
+they came from the same press; verify their shared provenance before use. Check that
 `fasttree`/`FastTree` naming resolves (2.0.3 may call the lowercase name; a run-local symlink is an
 acceptable, *recorded* recovery).
 
-**Alignment mode stays `auto`** for fragmented assemblies (global for complete pairs, glocal when
-one is fragmented, local for divergent domain-subset pairs). Never force `global` on a cohort with
-contig breaks — fragmented assemblies + global alignment inflate distances and split families.
+**Retain the selected workflow's alignment policy.** This workflow recommends
+`auto` for fragmented inputs, but inspect the installed version's help, defaults
+and actual command rather than inferring every pair's behavior from that label.
+Changing alignment policy is a method choice; review its effect on the comparison
+and preserve the original run instead of silently substituting `global`.
 
 ## Reading the output honestly
 

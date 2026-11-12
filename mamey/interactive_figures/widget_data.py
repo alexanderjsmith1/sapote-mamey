@@ -82,7 +82,19 @@ _BOUNDARY_MAP = {"Edge": "edge", "Full-contig": "full", "Interior": "interior"}
 # not shipped in the code tier; loaded from OFFICIAL_DATA/attine_ant_cohort.json when
 # present, else an empty set (no strain is flagged attine in a data-free code tier).
 from ..exclusions import official_data_json as _official_data_json
-ATTINE_ANT_STRAINS = set(_official_data_json("attine_ant_cohort.json", {}).get("strains", []))
+def __getattr__(name):
+    # The attine-ant roster is cohort data. Read on first use, not at import: importing this module reads no workspace data.
+    if name == "GOVERNANCE_OVERRIDES":
+        return {**{s: "EXCLUSION_ONLY" for s in _hard_excluded()},
+                **{s: "AUDIT_ONLY_QUARANTINED" for s in _raw_assembly_void()}}
+    if name == "ATTINE_ANT_STRAINS":
+        return set(_official_data_json("attine_ant_cohort.json", {}).get("strains", []))
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 # Governance status per strain, SOURCED from the exclusions SSOT so the excluded
 # strain set is single-sourced (see OFFICIAL_DATA/EXCLUSIONS.md). The distinct
@@ -98,10 +110,6 @@ except ImportError:  # standalone `python widget_data.py`
     from mamey.exclusions import hard_excluded as _hard_excluded  # type: ignore
     from mamey.exclusions import raw_assembly_void as _raw_assembly_void  # type: ignore
 
-GOVERNANCE_OVERRIDES = {
-    **{s: "EXCLUSION_ONLY" for s in _hard_excluded()},
-    **{s: "AUDIT_ONLY_QUARANTINED" for s in _raw_assembly_void()},
-}
 
 # Default crosswalk locations (absolute; overridable via build_widget_data args).
 DEFAULT_MEASURED_ACTIVITY = Path(
@@ -282,7 +290,7 @@ def host_context(strain: str, crosswalk: dict[str, dict[str, str]]) -> dict[str,
     membership is read from the crosswalk host field. Anything without support
     stays UNRESOLVED; no host is inferred from an identifier or ecology label.
     """
-    if strain in ATTINE_ANT_STRAINS:
+    if strain in _bound("ATTINE_ANT_STRAINS"):
         group = "ATTINE_ANT"
         return {
             "group": group,
@@ -388,7 +396,7 @@ def build_strain_record(
         machinery.setdefault(role, []).append(aa)
     machinery_genes = sum(len(v) for v in machinery.values())
 
-    governance = GOVERNANCE_OVERRIDES.get(strain, "GOVERNED")
+    governance = _bound("GOVERNANCE_OVERRIDES").get(strain, "GOVERNED")
     engine_ver = _engine_version(pkg, strain)
 
     return {
@@ -510,7 +518,7 @@ def build_widget_data(
             "beeHostMetadata": "strain_data/cohort_master/measured_activity_table.csv",
             "attineAssignment": (
                 "Figure Factory attine cohort: "
-                + ", ".join(sorted(ATTINE_ANT_STRAINS))
+                + ", ".join(sorted(_bound("ATTINE_ANT_STRAINS")))
             ),
         },
         "cohorts": _build_cohorts(records),

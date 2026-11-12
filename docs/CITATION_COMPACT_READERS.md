@@ -35,7 +35,7 @@ Before you quote a lead, copy the full **strain / full node-or-contig / region /
 
 ## The QA status
 
-`CITATION_COMPACT_QA.json` has `status` set to `PASS_STRUCTURE` or `WARN`. `PASS_STRUCTURE` means two structural checks found no error: every priority lead has well-formed citation fields, and the global caveat text appears at most once across the reports. It does not check that a DOI is correct, that a citation supports a lead, that the locus identity is complete, or that an assay suits the strain. A literature review and your own sign-off are separate steps.
+`CITATION_COMPACT_QA.json` has `status` set to `PASS_STRUCTURE` or `WARN`. `PASS_STRUCTURE` means two checks found no error: each HIGH or EXCEPTIONAL lead has a nonempty citation basis whose retained mapping records have a truthy `citation_id` and an accepted source-status value, and the global caveat text appears at most once across the generated Markdown outputs. The check accepts zero caveats and does not establish that other citation fields are present or correct. It does not check that a DOI is correct, that a citation supports a lead, that the locus identity is complete, or that an assay suits the strain. A literature review and your own sign-off are separate steps.
 
 `status` is `WARN` when either check found a problem. The package validator accepts `WARN`. Read `coverage_errors` and `caveat_errors` in the QA file.
 

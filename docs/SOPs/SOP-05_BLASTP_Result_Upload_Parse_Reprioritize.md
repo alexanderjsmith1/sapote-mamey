@@ -19,10 +19,10 @@ Accepted inputs:
 ## Standard command
 
 ```bash
-python mamey_run.py blastp-followup --hit-table <HitTable.csv> --xml2 <Alignment.xml> --outdir <outdir>
+python mamey_run.py blastp-followup --hit-table path/to/HitTable.csv --xml2 path/to/Alignment.xml --outdir reviews/new-blastp-review
 ```
 
-XML2 is optional. Omit `--xml2` when no XML2 file exists; do not pass a fabricated placeholder path. Hit Table CSV can provide triage while unknown query lengths/coverage remain unknown.
+Replace example paths with the bound files and a fresh output directory; quote paths containing spaces. XML2 is optional. Omit `--xml2` when no XML2 file exists; do not pass a fabricated placeholder path. Hit Table CSV can provide triage while unknown query lengths/coverage remain unknown.
 
 | Flag | Meaning | Default |
 |---|---|---|

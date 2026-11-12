@@ -131,7 +131,7 @@ This selects one figure set and supplies an external image destination. The .447
 
 ### Registry-ID duplicate screen
 
-Request `tools/check_registry_ids_unique.py` for exact extracted duplicates within selected JSON/CSV files. Read [input admission, per-file scope and recovery](../REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md#registry-id-checker-scope): “unique (0 IDs)” can omit invalid/missing entries, and separately clean files do not prove population or field parity. Keep original registry evidence and bind the actual inputs/result before using the count.
+Request `tools/check_registry_ids_unique.py` for exact extracted duplicates within selected JSON/CSV files. Read [input admission, per-file scope and recovery](REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md#registry-id-checker-scope): “unique (0 IDs)” can omit invalid/missing entries, and separately clean files do not prove population or field parity. Keep original registry evidence and bind the actual inputs/result before using the count.
 
 ### Input manifest and release ZIP preflight
 
@@ -281,7 +281,7 @@ The test guard checks filename/target presence for `PARKED`/`DRIFTED` engine-cod
 
 ### Onboarding entry-point check
 
-Request `tools/check_onboarding_funnel.py` for the selected bundle's static root-door/twin check. Read [literal admission and optional runtime scope](../DOCUMENTATION_MAP.md#onboarding-funnel-maintenance-check) before treating PASS as a usable route or selecting `--run-start`. Preserve the intended entry-point roster and actual results.
+Request `tools/check_onboarding_funnel.py` for the selected bundle's static root-door/twin check. Read [current static-check scope](../DOCUMENTATION_MAP.md#entry-points) before treating PASS as a usable route or selecting `--run-start`. Preserve the intended entry-point roster and actual results.
 
 ### Module-inventory gate
 

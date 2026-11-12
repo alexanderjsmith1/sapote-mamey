@@ -396,7 +396,7 @@ def _resolving_experiment(g: GoodGuess) -> str:
         return ("Antifungal bioassay-guided fractionation against Candida spp. + LC-MS/MS "
                 "dereplication of the active fraction (strain-level activity \u2192 which locus is "
                 "untested until fractionation links them).")
-    if "thioamide" in hay or "tha_" in hay:
+    if ("thioamide" in hay or "tha_" in hay) and not ("thioamide-nrp" in hay and "tfua" not in hay and "thioamitide" not in hay):
         return ("Thioamide confirmation: high-res MS for the +S/\u2212O mass shift on candidate "
                 "peptides + targeted ycaO/tfuA thioamide-synthase expression.")
     if any(t in hay for t in ("ripp", "lanthipeptide", "lan_", "sactipeptide", "lasso")):

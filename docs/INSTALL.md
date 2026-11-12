@@ -56,8 +56,8 @@ The last line tells you whether the install is ready:
 
 | Last line starts with | Meaning |
 |---|---|
-| `DOCTOR: ALL CLEAR` | Ready. |
-| `DOCTOR: PASS with N warning(s) — optional items only` | Ready. The warnings name optional tools for later workflows. |
+| `DOCTOR: ALL CLEAR` | The checked environment passed; this is not a successful analysis or proof that a selected workflow is ready. |
+| `DOCTOR: PASS with N warning(s) — optional items only` | Review each warning: it can concern a tool, dataset, input, bundle file or platform limitation. An optional-only summary is not proof that the selected workflow or inputs are ready. |
 | `DOCTOR: PASS with N warning(s) — missing core dependency` | Install the named package, then run `doctor` again. |
 | `DOCTOR: N blocking issue(s)` | Not ready, and doctor exits `1`. Fix each line marked ❌. |
 
@@ -76,16 +76,28 @@ use `python mamey_run.py start --no-doctor`.
 ### Bytecode refusal
 
 Tests and `tools/` scripts can leave a `mamey/__pycache__` the launcher cannot trust.
-The launcher stamps the cache with the cut that built it, and with a hash of the `mamey/` source.
+When a nonempty build stamp is readable, the launcher checks the cut and a hash
+of the `mamey/` source. That foreign-cut/source-digest check returns early if
+`BUILD_STAMP.txt` is missing, unreadable or empty; do not infer cache binding in
+that state. Other bytecode and import guards remain.
 
 - **No stamp, or the same stamp with changed source.** The cache is untrusted. A normal launch
   clears it, recompiles and stamps it again. It prints `UNBOUND_BYTECODE_CLEARED`. If the clear
   does not take, it stops with `UNBOUND_BYTECODE_REFUSED` and names the folders to remove.
 - **Stamp from a different cut.** The launcher stops with `FOREIGN_BYTECODE_REFUSED`. It clears
   nothing. Re-run with `--purge-bytecode`, or remove the `__pycache__` folders yourself.
-- **`python -B` or `PYTHONDONTWRITEBYTECODE=1` with an untrusted cache.** The launcher leaves the
-  tree alone and stops with `BYTECODE_WRITES_DISABLED`. Run the command once without `-B`, or add
-  `--purge-bytecode` to clear the cache first.
+- **`python -B` or `PYTHONDONTWRITEBYTECODE=1` with an unstamped or same-cut changed cache.** The
+  launcher leaves the tree alone and stops with `BYTECODE_WRITES_DISABLED`. Run the command once
+  without `-B`, or add `--purge-bytecode` to clear the cache first. A cache from a different cut
+  still gives `FOREIGN_BYTECODE_REFUSED`.
+
+`--purge-bytecode` walks the named engine-source trees recursively, including
+non-excluded folders added inside them, and the bundle root's own cache. Top-level
+`runs/`, a bundle-local `.venv`, other top-level folders outside that list, symlinked
+folders and recognized virtual environments are excluded. Inspect the working copy
+before purging. Within a cache it attempts to remove `.pyc`, numbered `.pyc`
+temporary files, its cut marker and `.DS_Store`; other entries are retained and
+reported. Inspect any incomplete-purge warning.
 
 Do not clear a cache inside a sealed release folder. Use a fresh extraction instead.
 

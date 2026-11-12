@@ -4,9 +4,50 @@ Open the reference for the question you are answering, then check the matching c
 Use the [first-analysis walkthrough](../MASTER_WALKTHROUGH.md) for a new run and
 [Read your results](../READING_YOUR_RESULTS.md) for a saved package.
 
+Common starting points:
+
 - For an old command or input hierarchy, read [commands and tools](#commands-optional-tools-and-privacy) and [input/JSON modes](#input-precedence-and-json-modes).
 - For an old card layout or completion label, read [profiles and identity](#profiles-metrics-and-identity) and [editorial depth](#editorial-depth-versus-current-cli-profiles).
 - For a source or literature claim, read [literature intake](#literature-intake-local-retrieval-and-verified-synthesis) and retain its access and verification limits.
+
+Every note on this page, in page order:
+
+- [Profiles, metrics and identity](#profiles-metrics-and-identity)
+- [Commands, optional tools and privacy](#commands-optional-tools-and-privacy)
+- [Workbook re-ingest and validator scope](#workbook-re-ingest-and-validator-scope)
+- [Output packages and conservation checks](#output-packages-and-conservation-checks)
+- [What currency checks cover](#what-currency-checks-cover)
+- [Interruption, continuation and observed completion](#interruption-continuation-and-observed-completion)
+- [Named layouts and producing commands](#named-layouts-and-producing-commands)
+- [Input precedence and JSON modes](#input-precedence-and-json-modes)
+- [Memory snapshots and durable authored judgment](#memory-snapshots-and-durable-authored-judgment)
+- [Missingness records and evidence-state limits](#missingness-records-and-evidence-state-limits)
+- [Cross-strain normalization and summary limits](#cross-strain-normalization-and-summary-limits)
+- [Front-page imagery and full locator display](#front-page-imagery-and-full-locator-display)
+- [Literature intake, local retrieval and verified synthesis](#literature-intake-local-retrieval-and-verified-synthesis)
+- [Literature input limitations](#literature-input-limitations)
+- [Evidence required before reuse](#evidence-required-before-reuse)
+- [File naming and artifact selection](#file-naming-and-artifact-selection)
+- [Visual-load reduction and retained data](#visual-load-reduction-and-retained-data)
+- [Landscape rendering source limits](#landscape-rendering-source-limits)
+- [Figure checks before reuse](#figure-checks-before-reuse)
+- [Editorial depth versus current CLI profiles](#editorial-depth-versus-current-cli-profiles)
+- [Metadata conflicts and clarification boundaries](#metadata-conflicts-and-clarification-boundaries)
+- [Reader layers and the current layperson guide](#reader-layers-and-the-current-layperson-guide)
+- [Manuscript updates, statistics and text-audit limits](#manuscript-updates-statistics-and-text-audit-limits)
+- [Triage boards and admitted decisions](#triage-boards-and-admitted-decisions)
+- [Traceability blocks and evidence-ledger construction](#traceability-blocks-and-evidence-ledger-construction)
+- [Output audit log versus terminal and diagnostic output](#output-audit-log-versus-terminal-and-diagnostic-output)
+- [Accession flags and supported inputs](#accession-flags-and-supported-inputs)
+- [Claim-separation cards versus text lint and supplied flags](#claim-separation-cards-versus-text-lint-and-supplied-flags)
+- [Release labels, local receipts and validation scope](#release-labels-local-receipts-and-validation-scope)
+- [Deferred work and portable handoff coverage](#deferred-work-and-portable-handoff-coverage)
+- [Authored BGC-session plans and native multi-strain batches](#authored-bgc-session-plans-and-native-multi-strain-batches)
+- [Compiled PDF roster, renderer and visual verification](#compiled-pdf-roster-renderer-and-visual-verification)
+- [Session-close checklist and next-action scope](#session-close-checklist-and-next-action-scope)
+- [Workbook tabs, preview limits and judgment state](#workbook-tabs-preview-limits-and-judgment-state)
+- [Scoping literature versus citation work orders](#scoping-literature-versus-citation-work-orders)
+- [Family seeds versus cross-strain GCF tables](#family-seeds-versus-cross-strain-gcf-tables)
 
 Assistants also use [governance](../ASSISTANT_GOVERNANCE.md) and the current task. Reference
 instructions do not authorize biological jobs, installation, submissions, dispatch or release.
@@ -36,7 +77,7 @@ result. Domain/class labels and a source file's existence do not prove productio
 or an ecological role. Historical MRSA/Candida assumptions are not assay measurements.
 
 Actual `mamey/data/rules_registry.json` makes NAPAA neutral/nonblocking and hglE-KS informational/nonblocking;
-saccharide has a lead-prioritization rule. Older blanket comparative exclusions in slim/encyclopedia and
+saccharide has a lead-prioritization rule. This registry setting is not the whole scoring path: an own-product hglE fallback can set a standing flag and cap the tier when no prior rule or raw CCTT trigger is present. Inspect actual score rationale/state; an hglE token is not biological proof. Older blanket comparative exclusions in slim/encyclopedia and
 “Novel” labels in monolith layperson recipes do not override those current source-bound distinctions.
 Historical scientific examples/citations and complete monolith/HTML content have not been adjudicated here.
 
@@ -84,8 +125,8 @@ from the newer full/spot anchor and scans a limited retired-doctrine regex set w
 A clean currency result would not verify all citations, optional tools, identity bindings, metrics, claims,
 implementation mapping or dangling references. Follow the monolith's explicit unresolved-source holds.
 
-This companion records a bounded entry/routing audit, not a complete 6642-line monolith or 8017-line HTML
-review. Large sources were not copied or regenerated. Deeper section-specific review should name exact
+This companion records a bounded entry/routing audit, not a complete review of the monolith or the HTML
+encyclopedia. Large sources were not copied or regenerated. Deeper section-specific review should name exact
 ranges, source owners, input/contract versions and unresolved scientific/history scope before expanding a claim.
 
 ### Interruption, continuation and observed completion
@@ -112,7 +153,7 @@ Monolith §3 says JSON is the primary data source and GBK a fallback. Current `p
 
 The run CLI defaults to `--json-evidence bounded`; profile overrides can change this. Its requested mode, effective mode and separate record-level requests must be read together. `off` disables the main JSON walker; it does not promise that no JSON is opened. The CLI status parser requests TIGRFAM through the separate record path, and structured overrides can also request JSON record evidence. If bounded mode lacks ijson, the main walker falls back to off while requested record evidence remains separately scoped. A bounded time-budget fallback also retries the off status path outside the expired budget. “Bounded” is not a universal process-time/RAM cap or a guarantee that every source record/evidence category was parsed.
 
-Current main-walker limits include file-byte and selected matched-leaf limits; despite historical variable names, its selected-leaf cap is not a count of all biological records. `full` is a legacy selective flatten of KCB/cluster-comparison/RiQ/MIBiG-related values, with an 80,000,000-byte uncompressed JSON input cap; it is not a full-source retention mode or RAM limit. Separate record extraction has its own streaming/fallback/size behavior. Read `AntiSMASH_Evidence_Parse.json` fields such as json_mode_requested, json_mode, json_parse_budget, json_skipped, json_errors, json_bounded_truncated, schema_warnings and mapped/unmapped evidence counts before inferring coverage. A mode label or JSON filename alone does not establish complete interpretation.
+Current main-walker limits include file-byte and selected matched-leaf limits; despite historical variable names, its selected-leaf cap is not a count of all biological records. `full` is a legacy selective flatten of KCB/cluster-comparison/RiQ/MIBiG-related values, with an 80,000,000-byte uncompressed JSON input cap; it is not a full-source retention mode or RAM limit. Separate record extraction has its own streaming/fallback/size behavior. Read `AntiSMASH_Evidence_Parse.json` fields such as json_mode_requested, json_mode, json_parse_budget, json_skipped, json_errors, json_bounded_truncated, schema_warnings and mapped/unmapped evidence counts before inferring coverage. Preserve the actual original CLI invocation as well: capped-session overrides the parser input before its requested mode is recorded. `run --json-evidence` defaults to bounded; capped-session forces the main walker off, while the separate record pass still reads eligible/readable JSON for KCB percent with its own holds. A mode label or JSON filename alone does not establish complete interpretation.
 
 Region-only archives can support region inventory while leaving original-contig/whole-assembly context unavailable. Do not treat clipped region length as source-contig length or absent record JSON as absence of a diagnostic pathway. Partial archives, skipped input, unknown schemas, extraction errors and unbound evidence are workflow/coverage states; keep them distinct from a source-supported negative. The monolith's per-BGC requested fields include judgment, context and optional evidence, so their listing does not establish that each current deterministic row supplies them. Full locus identity remains strain / full node-or-contig / region / BGC alias; aliases or flattened values alone do not prove source binding.
 
@@ -122,7 +163,7 @@ The monolith's §40 dated JSON/Markdown snapshot pair is an editorial design tem
 
 An extraction manifest/snapshot is not the durable store of later authored Mode B work. The manifest producer leaves several judgment-facing fields empty for subsequent authoring; their emptiness is not evidence that no such work exists. Persist explicitly authorized authored cards through the current receipt/store route and retain actual card files, judgment-register state, quality/identity findings, skipped rows and persistence warnings. `ingest-receipts` validates supplied receipt/card context and reports accepted, overridden and skipped states; an optional `--master` also mutates the supplied cohort workbook. A receipt, a register count, a template or text existing only in chat does not establish a finished current-profile judgment or scientific acceptance. Verify the chosen profile and strain / full node-or-contig / region / BGC alias separately.
 
-Re-ingest is replacement persistence, not an immutable history archive. The store overwrites a per-BGC card path, updates its register entry and appends optional layperson/fermentation prose. A unique temporary file makes an individual replacement atomic; these several writes are not one all-or-nothing transaction, and the register read/modify/write path has no transaction-wide lock. A later failure can leave some outputs written; record the actual stage and observed durable files instead of promising rollback. Preserve a separately named/hash-bound prior authored artifact when a replacement is authorized. Last-good register recovery is a recovery aid, not a copy of every prior card or proof of identity continuity after re-extraction. Inspect CORRUPT/recovery status and warnings before relying on completion.
+Re-ingest is replacement persistence, not an immutable history archive. The store overwrites a per-BGC card path, updates its register entry and upserts optional layperson/fermentation sections by BGC heading, replacing that heading's earlier content and consolidating duplicates. A unique temporary file makes an individual replacement atomic; these several writes are not one all-or-nothing transaction, and the register read/modify/write path has no transaction-wide lock. A later failure can leave some outputs written; record the actual stage and observed durable files instead of promising rollback. Preserve a separately named/hash-bound prior authored artifact when a replacement is authorized. Last-good register recovery is a recovery aid, not a copy of every prior card or proof of identity continuity after re-extraction. Inspect CORRUPT/recovery status and warnings before relying on completion.
 
 ### Missingness records and evidence-state limits
 
@@ -374,4 +415,4 @@ Optional parking filters apply to `dominant_product` and write a separate parked
 
 References: `tools/bigscape_cross_strain.py`, `mamey/bigscape_namespace.py`, monolith §35 and the current workbook-contract guidance.
 
-Before using `--db`, confirm it points to an existing readable database with the expected schema. The current helper opens SQLite in ordinary create/write mode: a missing path can create an empty database and then fail its query. Preserve the source database and bind its hash externally. Use a new output filename; each TSV/sidecar is replaced atomically on its own, but the output set is not one transaction. A failed later write can leave a partial set, and old filter sidecars can remain when a later invocation has no filter. Keep current outputs and prior artifacts distinguishable.
+Before using `--db`, confirm it points to an existing readable database with the expected schema. This selected helper refuses a missing database and opens an existing one read-only. Independently bind exact database/run by path and hash, inspect schema/results and review output behavior; this does not characterize every SQLite reader. Preserve the source database and bind its hash externally. Use a new output filename; each TSV/sidecar is replaced atomically on its own, but the output set is not one transaction. A failed later write can leave a partial set, and old filter sidecars can remain when a later invocation has no filter. Keep current outputs and prior artifacts distinguishable.

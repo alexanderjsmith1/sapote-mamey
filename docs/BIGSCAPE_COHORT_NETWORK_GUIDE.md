@@ -48,7 +48,7 @@ If the database has no `distance` or `edge_params` table, `BIGSCAPE_DIRECT_EDGES
 
 ### Checks before export
 
-The tool refuses to export when the run cannot be trusted. It exits 2 with `RUN_SCOPE_GATE` in these cases:
+The tool checks run scope before export. Some states refuse export with `RUN_SCOPE_GATE`; others permit an empty or unverified result. Read the receipt:
 
 | Message or state | Meaning | What to do |
 |---|---|---|
@@ -158,7 +158,7 @@ An antiSMASH region can merge more than one biological neighborhood. Keep the wh
 
 Example: 25 of 47 CDS match, so `25 / 47` is the whole-region result. If 24 matches fill genes 1 to 26 and one match is an outlier, the component view is `24 / 26 (92.3%)`, genes 1 to 26, plus one outlier. The higher local percentage does not replace `25 / 47`. It gives pathway-family context while a hold such as `OVERMERGED_REGION_COMPONENT_BOUNDARIES_REQUIRE_REVIEW` stays open. The component tool writes that hold in the `segmentation_hold` column when the block is smaller than the region or a match lies outside it. Otherwise it writes `NO_SEGMENTATION_HOLD`. Report core markers elsewhere in the region separately. The `core_completeness_status` column checks type II PKS markers only (KS, CLF, ACP). Ignore it for other classes. Their presence does not prove the product or a complete pathway.
 
-Build a component row from a per-gene evidence table. `functional_evidence.tsv` below is `ALL_GENE_FUNCTIONAL_EVIDENCE.tsv` from the functional workup ([BGC_FUNCTIONAL_LOGIC_WORKUP.md](BGC_FUNCTIONAL_LOGIC_WORKUP.md)). The tool needs its columns `complete_identity`, `gene_order`, `dominant_reference_gene_match` and `dominant_mibig_accession`. It writes the one-locus extract to `--evidence-extract` and the result row to `--out`. Both must be new files, different from each other and from `--evidence-tsv`. The tool checks the identity, gene order and comparator match before it writes, so a refused run leaves neither file. `evidence_sha256` is the hash of the extract as written.
+Build a component row from a per-gene evidence table. `functional_evidence.tsv` below is `ALL_GENE_FUNCTIONAL_EVIDENCE.tsv` from the functional workup ([BGC_FUNCTIONAL_LOGIC_WORKUP.md](BGC_FUNCTIONAL_LOGIC_WORKUP.md)). The tool needs its columns `complete_identity`, `gene_order`, `dominant_reference_gene_match` and `dominant_mibig_accession`. It writes the one-locus extract to `--evidence-extract` and the result row to `--out`. Both must be new files, different from each other and from `--evidence-tsv`. The tool checks the identity, gene order and comparator match before it writes, so a validation refusal at that stage leaves neither file. The extract and result are then written sequentially, not as a pair transaction: a later write failure can leave the extract alone. Keep partial outputs and retry with new paths. `evidence_sha256` is the hash of the extract as written.
 
 ```bash
 python deliverable_tools/mibig_component_context.py \

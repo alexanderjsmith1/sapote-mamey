@@ -30,7 +30,7 @@ Seven older cards show how to reason from genes to prose for one compound class.
 
 No example exists yet for type III PKS, saccharide or oligosaccharide, or other and mixed classes.
 
-Two sketches have an unresolved conflict between their own sections. The RiPP sketch's §15 disagrees with its §§4, 16 and 28 about the precursor and LanKC results. The siderophore introduction disagrees with its §§4, 16 and 28 about whether a BLASTp panel ran. Treat these as unresolved source states, not as no-hit results.
+At least four sketches have unresolved differences between their own sections. The RiPP sketch's §15 disagrees with its §§4, 16 and 28 about the precursor and LanKC results. The siderophore introduction disagrees with its §§4, 16 and 28 about whether a BLASTp panel ran. The NRPS sketch treats the inventory as complete in §3 without a verified source basis, while §10 qualifies the boundary evidence, and presents a second system as possible in §9 but genuine in §11. The hybrid sketch states that a lasso system is present in §§1–2 but leaves its defining precursor and cyclase to be identified in §§15 and 21. Treat these as unresolved source states, not as no-hit results.
 
 ## How to reuse an example
 

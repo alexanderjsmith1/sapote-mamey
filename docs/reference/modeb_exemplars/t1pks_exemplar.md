@@ -4,6 +4,8 @@ This preserved legacy class-calibration sketch is not a current50_v2 finished-ca
 
 Reuse structure and bounded register only. Do not transfer these genes, homology results, comparators, numerical scores, inferred mechanisms, activity language or proposed experiments into another locus. Provenance statements in §28 are assertions to trace to the original source files and receipts; verify the underlying search outputs and biological interpretation independently before reuse. Similarity and boundary labels alone do not establish product identity, pathway completeness, production, activity, novelty or physical linkage. Report missing independent evidence as a typed, reasoned limitation rather than filling it with teaching text.
 
+**Interpretation warning:** The preserved body repeatedly calls this region over-merged and treats its protoclusters as separate systems, but §3 explains that the reported chemical-hybrid label and count do not establish separate pathways or products. Recheck the source candidate-cluster kinds, spans and gene partition before using that interpretation. Similarity-hit groupings alone cannot establish separate products, and an extract-level activity assay alone cannot attribute activity to a locus.
+
 [Collection reader guide](README.md) describes the profile and historical-status boundaries.
 
 ---

@@ -25,7 +25,7 @@ The alias is secondary. Two rows that share `BGC007` are not the same locus unle
 
 ## Evidence channels
 
-The canonical gene roster defines the admitted slice. Evidence rows may describe domains, gene roles, or reference-comparator observations, but each row must bind to the complete identity and a canonical gene. If the locus record supplies a protein SHA-256, the evidence row must carry the same hash.
+The canonical gene roster defines the admitted slice. Evidence rows may describe domains, gene roles, or reference-comparator observations, but each row must bind to the complete identity and a canonical gene. If the locus record supplies a protein hash value, the evidence row must carry the same text. The builder does not check digest format or recompute a SHA-256 from sequence; independently verify the hash against the protein and its evidence before using it as sequence binding.
 
 Keep channel meanings separate. A domain supports a possible biochemical role. A reference match helps navigate family-level hypotheses. A chemical feature is a measured signal. An activity assay is phenotype evidence. None substitutes for the others, and a missing channel is a workflow gap rather than a verified absence.
 

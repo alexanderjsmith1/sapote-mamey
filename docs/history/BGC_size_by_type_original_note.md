@@ -2,7 +2,7 @@
 
 > Historical. The current page is [BGC size-by-type](../BGC_size_by_type.md). The bracketing claim in this note was withdrawn.
 
-The following is a redacted transcription of an original note: strain labels were replaced with placeholders and the prose is otherwise as it was. The transformation is not documented in more detail, no hash of the original is bundled, and byte identity with the original is not established. It contains point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current guidance is on [BGC size-by-type](../BGC_size_by_type.md).
+The following is a redacted transcription of an original note: strain labels were replaced with placeholders, and the lines beginning “Historical:” are later annotations. The transformation is not documented in more detail, no hash of the original is bundled, and byte identity with the original is not established. It contains point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current guidance is on [BGC size-by-type](../BGC_size_by_type.md).
 
 ````text
 # BGC size-by-type — a fragmentation-robust alternative to BGC count

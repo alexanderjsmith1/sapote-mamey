@@ -508,8 +508,9 @@ def apply_adjudication(rows, folder: Path):
 def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None,
            gene_names=None, context_rows=False, other_maps=False, print_width="double", row_label=None,
            trim_kb=None, panel=False, key=True, named_contigs=None, genome_zip=None,
-           genome_zip_parse_sha256=None, gecco=None, scale_bar_up=False, mibig_gecco_dir=None) -> dict:
-    """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map."""
+           genome_zip_parse_sha256=None, gecco=None, scale_bar_up=False, mibig_gecco_dir=None, reference=None) -> dict:
+    """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map.
+    The reference GenBank is found by resolve_reference (reference, the receipt's path, mibig_dir, references/)."""
     import csv
     named_inputs = []
     named_sources = []
@@ -528,6 +529,7 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         if genome_zip_parse_sha256 is not None and named_inputs[0]["sha256"] != genome_zip_parse_sha256:
             raise ValueError("NAMED_CONTIG_INPUT_CHANGED: genome ZIP differs from the parsed input")
     receipt = json.loads((folder / "gap_rescue_receipt.json").read_text())
+    ref_path = resolve_reference(folder, receipt, mibig_dir, reference)
     core = next((r for r in regions if r["identity"] == receipt["core"]), None)
     if core is None:
         raise SystemExit(f"{receipt['core']} is not a region of this zip; check --zip and --label")
@@ -569,10 +571,10 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         if not rg.is_file():
             raise SystemExit(f"--mibig-gecco-dir has no GECCO table for {stem} ({rg})")
         rc = rg.with_name(f"{stem}.clusters.tsv")
-        ref_gecco = load_reference_gecco(rg, rc if rc.is_file() else None, reference_genes(Path(mibig_dir) / receipt["reference"])[0])
+        ref_gecco = load_reference_gecco(rg, rc if rc.is_file() else None, reference_genes(ref_path)[0])
         ref_gecco["binding"].update(reference=stem, genes_tsv=str(rg.resolve()),
                                     genes_sha256=hashlib.sha256(rg.read_bytes()).hexdigest())
-    drawn = draw_locus_map(Path(mibig_dir) / receipt["reference"], rows, splits, prots, regions, core, label,
+    drawn = draw_locus_map(ref_path, rows, splits, prots, regions, core, label,
                           receipt.get("reference_name", ""), out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor,
                           context_partners=context_rows, gene_names=gene_names,
                           other_refs=load_other_references(folder, core["identity"]) if other_maps else None,
@@ -606,6 +608,61 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
                   "source_bindings": named_sources}
         (out / "named_contig_review.json").write_text(json.dumps(review, indent=2) + "\n")
     return drawn
+
+
+def resolve_reference(folder, receipt: dict, mibig_dir=None, given=None) -> Path:
+    """The reference GenBank an earlier run used, for --redraw. Looked for, in order: `given` (--reference); the
+    path the receipt recorded (inputs.reference_path); --mibig-dir; a references/ folder beside the run folder.
+    A given --reference is used or refused, never passed over. When the receipt recorded the reference's SHA-256,
+    only a file with that checksum is taken. When it did not (receipts written before inputs were recorded), the
+    files found must all hold the same bytes; same-named files that differ are refused as ambiguous."""
+    inputs = receipt.get("inputs") if isinstance(receipt.get("inputs"), dict) else {}
+    name, want = receipt["reference"], inputs.get("reference_sha256") or ""
+
+    def sha(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    if given:
+        g = Path(given)
+        if not g.is_file():
+            raise SystemExit(f"REFERENCE_NOT_FOUND: --reference {g} is not a file")
+        if want and sha(g) != want:
+            raise SystemExit(f"REFERENCE_NOT_FOUND: --reference {g} has a different checksum from the run's "
+                             f"reference ({want[:16]}…); give the file the run used")
+        return g
+    cands = [Path(inputs["reference_path"])] if inputs.get("reference_path") else []
+    if mibig_dir:
+        cands.append(Path(mibig_dir) / name)
+    cands.append(Path(folder).parent / "references" / name)
+    tried, found = [], []
+    for c in cands:
+        if not c.is_file():
+            tried.append(f"{c} (missing)")
+        elif want and sha(c) != want:
+            tried.append(f"{c} (a different checksum from the run's reference)")
+        else:
+            found.append(c)
+    if not found:
+        raise SystemExit(f"REFERENCE_NOT_FOUND: {name} for {folder}; tried " + "; ".join(tried) + "; give --reference")
+    if not want and len({sha(c) for c in found}) > 1:
+        raise SystemExit(f"REFERENCE_AMBIGUOUS: the receipt for {folder} records no checksum, and files named {name} "
+                         "differ: " + "; ".join(str(c) for c in found) + "; give --reference")
+    return found[0]
+
+
+def record_inputs(out, receipt: dict, zip_path, reference, zip_sha256: str | None = None) -> dict:
+    """Add the genome and reference bytes a finished run read to its receipt, and rewrite gap_rescue_receipt.json.
+    Runs of one locus against different references are joined only when they read the same genome
+    (tools/gap_rescue_join_runs.py). zip_sha256 may be passed when one genome serves many runs."""
+    def digest(path):
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest() if Path(path).is_file() else ""
+
+    receipt["inputs"] = {"zip": Path(zip_path).name, "zip_sha256": zip_sha256 or digest(zip_path),
+                         "reference": Path(reference).name, "reference_sha256": digest(reference),
+                         "reference_path": str(Path(reference).resolve())}
+    if Path(out).is_dir():     # a blank checksum reads as "not recorded" in the join; it never stops a run
+        (Path(out) / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    return receipt
 
 
 def summary_line(receipt: dict, out) -> str:
@@ -741,7 +798,7 @@ def main(argv=None) -> int:
                    **({"named_contigs": a.named_contig, "genome_zip": a.zip,
                        "genome_zip_parse_sha256": parsed_zip_sha256} if a.named_contig else {}),
                    gecco=load_gecco(a.gecco_genes, a.gecco_clusters, prots, a.label) if a.gecco_genes else None,
-                   scale_bar_up=a.scale_bar_up, mibig_gecco_dir=a.mibig_gecco_dir)
+                   scale_bar_up=a.scale_bar_up, mibig_gecco_dir=a.mibig_gecco_dir, reference=a.reference)
         except ValueError as exc:
             if a.named_contig and str(exc).startswith("NAMED_CONTIG_"):
                 _say(f"[gap_directed_rescue] HOLD: {exc}")
@@ -771,6 +828,7 @@ def main(argv=None) -> int:
                              not a.no_figure, anchor=a.anchor, gene_table=not a.no_gene_table, compounds=names,
                              print_width=None if a.print_width == "none" else a.print_width, row_label=a.row_label,
                              render_gene_table=not a.no_gene_table_figure)
+    record_inputs(a.out, receipt, a.zip, reference)
     _say(summary_line(receipt, a.out))
     return 0
 

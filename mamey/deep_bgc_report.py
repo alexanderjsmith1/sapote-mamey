@@ -5,6 +5,7 @@ import csv
 import hashlib
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ def _cell(value: object) -> str:
 
 
 IDENTITY_KEYS = ("strain", "full_node_or_contig", "region", "bgc_alias")
+_SHA256_HEX = re.compile(r"[0-9a-fA-F]{64}")
 
 
 def _identity(record: dict[str, Any]) -> tuple[dict[str, str], str]:
@@ -77,19 +79,24 @@ def load_and_validate_locus(path: Path) -> tuple[dict[str, Any], dict[str, str],
     return record, identity, display
 
 
-def _load_evidence(path: Path | None, identity: dict[str, str], genes: dict[str, dict[str, Any]]) -> tuple[list[dict[str, str]], int, int]:
+def _load_evidence(path: Path | None, identity: dict[str, str], genes: dict[str, dict[str, Any]]) -> tuple[list[dict[str, str]], int, int, int]:
     """Return the admitted rows and how many had their protein hash actually compared.
 
     Protein hashes are compared only when the locus record supplies one, which is
     the documented contract. The caller records the resulting binding state on the
     receipt so a reader can tell a hash-bound report from an identity-bound one.
+
+    A row counts as compared only when the locus digest is 64 hexadecimal characters.
+    Equal text that is not a SHA-256 digest is admitted as before and counted as malformed,
+    so it cannot make the report read PROTEIN_HASH_BOUND.
     """
     if path is None:
-        return [], 0, 0
+        return [], 0, 0, 0
     with path.open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle, delimiter="\t"))
     hash_checked = 0
     hash_unverifiable = 0
+    hash_malformed = 0
     for row in rows:
         supplied = {key: str(row.get(key, "")).strip() for key in IDENTITY_KEYS}
         if supplied != identity:
@@ -101,14 +108,16 @@ def _load_evidence(path: Path | None, identity: dict[str, str], genes: dict[str,
         observed = str(row.get("protein_sha256", "")).strip()
         if expected and observed != expected:
             raise DeepBGCReportError(f"protein hash mismatch for {gene_id}")
-        if expected:
+        if expected and _SHA256_HEX.fullmatch(expected):
             hash_checked += 1
+        elif expected:
+            hash_malformed += 1
         elif observed:
             # Evidence supplied a protein hash but the canonical gene carries none to
             # check it against. Admission is unchanged (documented optional-hash contract),
             # but the claimed hash could not be verified, so surface it on the receipt.
             hash_unverifiable += 1
-    return rows, hash_checked, hash_unverifiable
+    return rows, hash_checked, hash_unverifiable, hash_malformed
 
 
 def _locus_svg(record: dict[str, Any], display: str) -> str:
@@ -136,7 +145,7 @@ def _locus_svg(record: dict[str, Any], display: str) -> str:
     return "\n".join(parts) + "\n"
 
 
-def _binding_state(genes: dict[str, dict[str, Any]], evidence: list[dict[str, str]], hash_checked: int, hash_unverifiable: int) -> dict[str, Any]:
+def _binding_state(genes: dict[str, dict[str, Any]], evidence: list[dict[str, str]], hash_checked: int, hash_unverifiable: int, hash_malformed: int = 0) -> dict[str, Any]:
     """Describe how strongly the admitted evidence is bound to the canonical slice.
 
     Admission is unchanged: hashes are compared only when the locus record supplies
@@ -159,13 +168,16 @@ def _binding_state(genes: dict[str, dict[str, Any]], evidence: list[dict[str, st
         "evidence_rows_total": len(evidence),
         "evidence_rows_hash_compared": hash_checked,
         "evidence_rows_hash_unverifiable": hash_unverifiable,
+        "evidence_rows_hash_malformed": hash_malformed,
+        # The digests are the ones the two input files supply. Nothing here reads a protein sequence.
+        "comparison": "TEXT_EQUALITY_OF_SUPPLIED_SHA256_NOT_RECOMPUTED_FROM_SEQUENCE",
     }
 
 
 def build_deep_report(locus_json: Path, output_dir: Path, evidence_tsv: Path | None = None) -> dict[str, Any]:
     record, identity, display = load_and_validate_locus(locus_json)
     genes = {str(g["gene_id"]): g for g in record["genes"]}
-    evidence, evidence_hash_checked, evidence_hash_unverifiable = _load_evidence(evidence_tsv, identity, genes)
+    evidence, evidence_hash_checked, evidence_hash_unverifiable, evidence_hash_malformed = _load_evidence(evidence_tsv, identity, genes)
     output_dir.mkdir(parents=True, exist_ok=True)
     roster = output_dir / "GENE_ROSTER.tsv"
     fields = ["strain", "full_node_or_contig", "region", "bgc_alias", "gene_id", "start", "end", "strand", "role", "product", "domains", "protein_sha256"]
@@ -203,7 +215,7 @@ def build_deep_report(locus_json: Path, output_dir: Path, evidence_tsv: Path | N
         "schema": "sapote.deep_bgc_report.receipt.v1", "exact_locus": display,
         "identity": identity, "canonical_gene_count": len(genes), "evidence_row_count": len(evidence),
         "boundary_status": boundary["status"], "inputs": {"locus_json": {"name": locus_json.name, "sha256": _sha256(locus_json)}},
-        "protein_hash_binding": _binding_state(genes, evidence, evidence_hash_checked, evidence_hash_unverifiable),
+        "protein_hash_binding": _binding_state(genes, evidence, evidence_hash_checked, evidence_hash_unverifiable, evidence_hash_malformed),
         "outputs": {}
     }
     if evidence_tsv:

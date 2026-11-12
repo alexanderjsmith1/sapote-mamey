@@ -5,55 +5,25 @@ Run the commands below from the bundle root, the folder that holds `mamey_run.py
 
 ## Purpose
 
-This SOP defines how Sapote/Mamey should handle single-region antiSMASH ZIPs from public GenBank accessions.
+This SOP covers antiSMASH ZIPs made from one public GenBank sequence with one BGC region.
 
 ## Example
 
-`KY089035.1.zip` is the single-region public-accession example, rather than a full-genome export or sealed Mamey package. `inspect` only previews file names. Check the source record and its identity before you run it.
+The bundle does not ship an example ZIP. `<accession>.zip` stands for a raw antiSMASH run on one public accession, not a full-genome export or a sealed Mamey package. Check the source record and its identity before you run it.
 
-## Recognition pattern
+## Recognize the input
 
-Typical contents:
-
-- `index.html`
-- `regions.js`
-- `<accession>.json`
-- `<accession>.gbk`
-- `<accession>.region001.gbk`
-- `clusterblast/`
-- `knownclusterblast/`
-- `subclusterblast/`
-
-## Required behavior
-
-`inspect` classifies this as:
-
-```text
-raw antiSMASH single-region accession run
-```
-
-and explain:
-
-- this is not a full genome,
-- this is not a sealed Mamey package,
-- it can still be parsed,
-- assembly completeness warnings may be expected,
-- use it as reference/control evidence unless the user says otherwise.
-
-## Correct first command
+Run `inspect` first:
 
 ```bash
-python mamey_run.py inspect <accession_zip>
+python mamey_run.py inspect path/to/EXAMPLE.zip
 ```
 
-If `inspect` passes, run gold directly:
+Replace the example with the actual accession ZIP path, quoting paths containing spaces. `inspect` classifies the input shape from file names. It reports `raw antiSMASH single-region accession run` and prints a single-region note only when the ZIP has exactly one region GenBank file plus `index.html` or `index.htm`, `regions.js`, at least one JSON file and a name containing `clusterblast` (including KnownClusterBlast or SubClusterBlast names). A one-region ZIP without all of those is reported as `raw antiSMASH region run`, with no note. The emitted note calls it a non-full-genome reference/control unless you say it is a discovery strain; that is canned guidance, not verification of assembly completeness, reference status or the role of a deposited sequence. One region file is an input-shape observation. Check the source assembly before you treat it as a reference or test input.
 
-```bash
-python mamey_run.py run --strain auto --input-zip <accession_zip> \
-  --outdir <fresh-run-root> --mode gold --capped-session --reference-completion off
-```
+## Run it
 
-`--strain auto` resolves the organism identity from the archive when available. If keeping the accession as the output label is intentional, use `--strain <accession> --allow-accession-strain-id` instead and record that decision. Public accession origin does not grant disclosure/release permission or determine every local privacy tag.
+`inspect` also prints a suggested run command. Review that command, including its strain label, and bind `--taxonomy` and `--source` to verified records; retain an explicit unknown where the deposition does not establish a value. The full recipe, with its one strain-ID rule, is in [single-region accession inputs](../troubleshooting/SINGLE_REGION_ACCESSION_INPUTS.md#recommended-first-run-command). Public accession origin does not grant disclosure or release permission, or set every local privacy tag.
 
 ## Warning interpretation
 
@@ -64,12 +34,4 @@ A single-region accession may produce:
 - VERY_POOR assembly architecture,
 - edge-like status.
 
-These warnings should not be framed as a failed full-genome run.
-
-## Bug-hunt checks
-
-1. Single-region accession is recognized.
-2. Status language does not panic the user.
-3. Public accession is not treated as private AS/SID strain.
-4. KnownClusterBlast evidence is reported if available.
-5. BLASTP panel export should be optional, not recommended by default for known redundant controls.
+Treat these as signals about the supplied record and boundary scope. Check the actual source assembly and run status: an input-shape warning alone neither establishes assembly quality nor proves that extraction failed or succeeded.

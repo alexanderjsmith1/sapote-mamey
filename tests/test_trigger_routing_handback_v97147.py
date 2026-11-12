@@ -44,7 +44,7 @@ def test_post_mamey_complete_handback_surface_contract():
         "issue_log.md",
     ]
     docs = [
-        text("docs/CHATGPT_EXECUTION_SLICE_v97147.md"),
+        text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md"),
         text("docs/BUNDLE_CAPABILITIES.md"),
         text("docs/TRIGGER_ROUTING.md"),
     ]
@@ -53,7 +53,7 @@ def test_post_mamey_complete_handback_surface_contract():
 
 
 def test_prompt_backed_deliverables_are_offered_after_complete():
-    execution = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    execution = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     contract = text("docs/DELIVERABLE_CONTRACT.md")
     for name in [
         "Layperson-Ranked BGC Guide",
@@ -69,7 +69,7 @@ def test_prompt_backed_deliverables_are_offered_after_complete():
 
 
 def test_modeb_extensions_require_evidence_ledger_and_decision_tree():
-    execution = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    execution = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "§28 — Evidence provenance ledger" in execution
     assert "§30 — Experimental decision tree" in execution
     assert "§28 and §30 are required for every completed Mode B card" in execution

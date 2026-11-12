@@ -85,6 +85,8 @@ rescues a real lead, while five promiscuous tailoring-enzyme hits stay catalogue
 inflating the board. (Note BGC027's `hglE-KS` label — a standing-rule PREV-001 domain, → §I.6 — independently
 keeps that region out of the lead rank.)
 
+> **Marker interpretation boundary:** The table and historical prose below describe routing signatures and hypotheses, not a test that establishes enzyme function, product class or antibacterial/antifungal activity. A keyword or compatible annotation can fire without an independently verified pathway. Confirm the underlying genes, source scope and suitable independent evidence before interpreting a candidate.
+
 ## §IV.3 · The eighteen CCTT trigger families
 
 The engine's `CCTT_PATTERNS` carries exactly **eighteen** gene-signature trigger families (`source_scans.py`). Each

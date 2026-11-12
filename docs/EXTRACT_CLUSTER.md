@@ -25,11 +25,13 @@ was admitted by this procedure, not biological absence.
 
 The marker count is the largest number of markers that can each be assigned a
 different predicted gene in the window. Two marker names that both match one protein
-count once. `LABEL_extract.json` reports `n_markers_found` on that basis, together
+count once. When a marker window is found, `LABEL_extract.json` reports `n_markers_found` on that basis, together
 with `n_marker_names_matched` (distinct marker names with any hit),
 `n_distinct_target_genes`, and `shared_target_genes` (each gene hit by more than one
 marker, with the marker names). A shared hit is ambiguous evidence; review it before
-you describe the window as several co-occurring genes.
+you describe the window as several co-occurring genes. If no marker window is found,
+these count and shared-hit fields are omitted; use `present` and the other fields
+to interpret the result rather than assuming the fields contain zero.
 
 Outputs are `LABEL_cluster.gbk` when admitted and `LABEL_extract.json`. Names must
 be safe basenames; every output destination must be fresh and contained, including

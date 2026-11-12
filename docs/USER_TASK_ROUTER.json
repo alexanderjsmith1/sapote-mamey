@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "baseline": {
-    "bundle": "9.7.464",
-    "engine": "1.9.180",
-    "build": "20261108v97464a"
+    "bundle": "9.7.465",
+    "engine": "1.9.181",
+    "build": "20261110v97465a"
   },
   "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority. Baseline identifies the selected source anchors, not execution or semantic certification of every route.",
   "routes": [

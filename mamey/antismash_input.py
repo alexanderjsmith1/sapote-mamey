@@ -330,7 +330,8 @@ def _suggest_strain_id(organism: Optional[str], path: str) -> Optional[str]:
         core = re.sub(r"^(NZ_|GC[AF]_)", "", token, flags=re.IGNORECASE).lower()
         if token.lower() not in have and core not in have:
             text = f"{text}_{token}"
-    return re.sub(r"_+", "_", text)[:70].strip("_") or None
+    # 64 is validate_strain_id's limit, so the name `--strain auto` resolves to is one `run` accepts.
+    return re.sub(r"_+", "_", text)[:64].strip("_") or None
 
 
 def is_antismash_archive(path: str) -> bool:

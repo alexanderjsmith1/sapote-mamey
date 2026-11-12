@@ -6,7 +6,7 @@ Use this page when an antiSMASH product label leaves the class of a cluster uncl
 
 The engine reads domains from the antiSMASH region GBKs and from antiSMASH's TIGRFAM results. It saves them in `<strain>_AntiSMASH_Evidence_Parse.json`, under `gbk_pfam_hits`. That object is keyed by region. Each row has `domain_name`, `pfam_acc`, `bitscore`, `evalue`, `locus_tag` and `tier1_diagnostic`.
 
-Two things limit the table.
+Three things limit the table.
 - `TIGR02353` is recorded for combination checks only. It is not a tier-1 diagnostic.
 - TIGRFAM rows (`TIGR#####`) are recorded for the accessions in `DIAGNOSTIC_TIGRFAM` in `mamey/antismash_evidence.py`. Pfam rows appear only if antiSMASH wrote them as `sec_met_domain` text in the GBK.
 - No code scans for sequence motifs. A row that names a motif needs a manual check of the protein.

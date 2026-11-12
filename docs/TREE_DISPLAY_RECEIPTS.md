@@ -91,7 +91,7 @@ python tools/export_tree_figure_source_package.py inputs/rendered_panel \
   --out outputs/editable_panel_new
 ```
 
-- Use a new `--out` folder. If an export fails, delete the partial folder and run it again.
+- Use a new `--out` folder. If an export fails, keep the partial folder for diagnosis and retry with a fresh name after review.
 - The source folder must be the output folder of `tools/placement_display.py` (see [the placement metadata figures page](PLACEMENT_METADATA_FIGURES.md) and [the placement workflow](EPA_NG_PLACEMENT_WORKFLOW.md)). Steps 1 to 4 above do not make it: step 4 names its output `figures/reference_panel`, not `*_rect02`. The folder needs one `*_display.nwk`, one matching `*_rect02` PNG and PDF pair, one `*_rect02.methods.txt`, `display_input.tsv`, `display_input.fasta`, `METHODS.md`, and one `*_display_receipt.json`. `--caption FILE` picks another caption file. `--supplement FILE` adds a file, and you can repeat it. Give each supplement a different file name.
 - Run the gate on the original first. The export does not check the receipt.
 - The rerender script `<stem>_rerender_captioned.sh` uses the original tree and metadata named in the receipt. Editing the `_tree.nwk` or `_metadata.tsv` copies has no effect on it.

@@ -402,7 +402,15 @@ def export_card_pdf(md_path: Path, out_pdf: Path, theme: str = "evidence_dossier
     for attr, key in (("INDIGO", "navy"), ("TEAL", "teal"), ("PERI", "cream"), ("TEALTINT", "pale_teal"), ("INK", "ink"), ("GREY", "muted")):
         if key in palette:
             setattr(r, attr, colors.HexColor("#" + palette[key]))
-    flow = [Spacer(1, 3.2 * inch)] + r.parse(md, str(md_path.resolve().parent))
+    try:
+        flow = [Spacer(1, 3.2 * inch)] + r.parse(md, str(md_path.resolve().parent))
+    except ValueError as exc:
+        # One figure the PDF renderer cannot read (an SVG, a missing file) fails this card only.
+        if not str(exc).startswith("PDF_IMAGE_UNAVAILABLE"):
+            raise
+        return {"status": "FAILED_IMAGE_UNAVAILABLE", "path": None, "theme": theme,
+                "detail": f"{exc}; no PDF was written for this card (the PDF renderer reads raster "
+                          "images only; link a PNG version of the figure)"}
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     # Atomic write (.tmp sibling + Path.replace): SimpleDocTemplate opens its target file for
     # writing immediately, truncating it — a process killed mid-build (SIGKILL/OOM/power loss)
@@ -493,6 +501,31 @@ def export_dir(mode_b_dir, outdir=None, formats=("docx", "pdf"), theme: str = "e
     return [export_card(c, outdir=outdir, formats=formats, theme=theme, force=force) for c in cards]
 
 
+def _sealed_package_root(path: Path) -> Path | None:
+    """The nearest folder at or above `path` that holds checksums_sha256.txt (a sealed package)."""
+    p = Path(path).resolve()
+    for candidate in (p, *p.parents):
+        if (candidate / "checksums_sha256.txt").is_file():
+            return candidate
+    return None
+
+
+def _refuse_sealed_target(inp: Path, outdir) -> str | None:
+    """Error text when the export would write inside a sealed package, else None.
+
+    Writing an untracked .docx/.pdf into a sealed package makes `mamey validate` fail
+    checksum_integrity, so an export into one is refused before any file is written.
+    """
+    source = inp if inp.is_dir() else inp.parent
+    target = Path(outdir) if outdir else source
+    sealed = _sealed_package_root(target)
+    if sealed is None:
+        return None
+    where = "--outdir" if outdir else "the default output folder (next to the card)"
+    return (f"ERROR: {where} {target} is inside the sealed package {sealed}. Writing there breaks its "
+            f"checksums. Pass --outdir <a folder outside the package>. Nothing was written.")
+
+
 def _print_result(res: dict, require_both: bool = False) -> int:
     rc = 0
     emit(f"card: {res['md']}")
@@ -523,7 +556,9 @@ def main(argv=None) -> int:
         description="Export authored Mode B card markdown → Word (.docx) and PDF.",
     )
     ap.add_argument("input", help="A Mode B card .md OR a package mode_b/ directory (batch)")
-    ap.add_argument("--outdir", default=None, help="Output dir (default: alongside the source .md)")
+    ap.add_argument("--outdir", default=None,
+                    help="Output dir (default: alongside the source .md; required, and outside the package, "
+                         "when the card is inside a sealed package)")
     ap.add_argument("--format", choices=["docx", "pdf", "both"], default="both")
     ap.add_argument("--theme", choices=THEME_CHOICES, default="evidence_dossier")
     ap.add_argument("--force", action="store_true", default=False,
@@ -532,15 +567,20 @@ def main(argv=None) -> int:
 
     formats = ("docx", "pdf") if args.format == "both" else (args.format,)
     inp = Path(args.input)
-    if inp.is_dir():
-        results = export_dir(inp, outdir=args.outdir, formats=formats, theme=args.theme, force=args.force)
-        if not results:
-            emit(f"no Mode B card *.md found under {inp}", file=sys.stderr)
-            return 1
-        return max(_print_result(r, require_both=args.format == "both") for r in results)
+    error, code = None, 0
     if not inp.exists():
-        emit(f"ERROR: no such file: {inp}", file=sys.stderr)
-        return 2
+        error, code = f"ERROR: no such file: {inp}", 2
+    else:
+        error = _refuse_sealed_target(inp, args.outdir)
+        code = 2 if error else 0
+    if not error and inp.is_dir():
+        results = export_dir(inp, outdir=args.outdir, formats=formats, theme=args.theme, force=args.force)
+        if results:
+            return max(_print_result(r, require_both=args.format == "both") for r in results)
+        error, code = f"no Mode B card *.md found under {inp}", 1
+    if error:
+        emit(error, file=sys.stderr)
+        return code
     return _print_result(export_card(inp, outdir=args.outdir, formats=formats, theme=args.theme, force=args.force), require_both=args.format == "both")
 
 

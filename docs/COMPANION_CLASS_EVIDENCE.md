@@ -38,9 +38,10 @@ gecco --version
 python mamey_run.py doctor --companions
 ```
 
-`gecco --version` must print a 0.11 version. `doctor --companions` lists GECCO as
-present or `MISSING_EXECUTABLE`. A missing tool does not fail `doctor`. The
-command repeats the version check before it starts. Then run:
+`gecco --version` must print a 0.11 version. `doctor --companions` reports the
+local probe state; a missing executable or failed probe does not fail `doctor`.
+Read the state and install hint as described in the [companion tool guide](COMPANION_TOOL_GUIDE.md).
+The command repeats the version check before it starts. Then run:
 
 ```bash
 python mamey_run.py gecco-crosscheck --package runs/EXAMPLE/package \

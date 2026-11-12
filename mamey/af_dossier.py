@@ -140,6 +140,20 @@ def _genus_of(taxonomy: str) -> str:
     return first if first[:1].isupper() else ""
 
 
+def _reference_dark(kcb: str, kcb_states: dict | None, bgc_id: str) -> str:
+    """"no" with a named KCB anchor; "yes" only when KnownClusterBlast reported no hit; else "unknown".
+
+    A blank anchor used to read "yes" whatever the cause, so a BGC whose KCB result is not in
+    the package looked reference-dark.
+    """
+    from .missing_values import KCB_NO_HIT_STATES
+    if kcb:
+        return "no"
+    if kcb_states is not None and kcb_states.get(str(bgc_id).strip(), "") in KCB_NO_HIT_STATES:
+        return "yes"
+    return "unknown"
+
+
 def _novelty_and_kcb_map(pkg_dir: Path) -> dict[str, dict]:
     """From the triage board, per BGC_ID -> {novelty, kcb, af_auto, lead_tier_auto}.
 
@@ -305,6 +319,8 @@ def _scan_package(pkg_dir: Path, crosswalk: dict[str, dict]) -> list[dict]:
 
     leads = _read_af_leads(pkg_dir)
     nov_map = _novelty_and_kcb_map(pkg_dir)
+    from .missing_values import kcb_evidence_states
+    kcb_states = kcb_evidence_states(pkg_dir)
 
     candida_pos = measured_candida.startswith("positive")
     has_high_lead = any(_is_high_lead(ld["lead_tier"]) for ld in leads)
@@ -324,7 +340,7 @@ def _scan_package(pkg_dir: Path, crosswalk: dict[str, dict]) -> list[dict]:
     for ld in leads:
         nk = nov_map.get(ld["bgc_id"], {})
         kcb = _clean_kcb(ld["kcb"], nk.get("kcb", ""))
-        reference_dark = "yes" if not kcb else "no"
+        reference_dark = _reference_dark(kcb, kcb_states, ld["bgc_id"])
         rows.append({
             # --- identity ---
             "strain": strain,

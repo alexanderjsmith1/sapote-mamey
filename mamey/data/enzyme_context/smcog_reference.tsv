@@ -1,0 +1,273 @@
+smcog_id	smcog_name_as_seen	ec_class	reaction_or_function	usual_role	citation_status
+SMCOG1000	ABC transporter ATP-binding protein		ATP-binding (ATPase) subunit of an ABC transporter; hydrolyzes ATP to drive import or export across the membrane.	Transport; in BGCs often export of the product or self-resistance.	citation_needed
+SMCOG1001	short-chain dehydrogenase/reductase SDR	EC 1.1.1.-	Short-chain dehydrogenase/reductase (SDR): NAD(P)H-dependent reduction of ketones to alcohols, or the reverse oxidation.	Ketoreduction in PKS (KR domains) and tailoring; also primary metabolism.	citation_needed
+SMCOG1002	AMP-dependent synthetase and ligase	EC 6.2.1.-	Adenylate-forming enzyme: activates a carboxylic acid or amino acid as an acyl-AMP, then transfers it to a thiol (CoA or a carrier protein).	NRPS adenylation (A) domains, starter-unit loading, acyl-CoA ligases.	citation_needed
+SMCOG1003	sensor histidine kinase	EC 2.7.13.3	Sensor histidine kinase: autophosphorylates on histidine in response to a signal and passes the phosphate to a response regulator.	Two-component regulation.	citation_needed
+SMCOG1004	thioesterase	EC 3.1.2.-	Thioesterase: hydrolyzes a thioester, releasing a chain from a carrier protein, by hydrolysis or macrocyclization.	Chain release in PKS/NRPS (type I TE) or editing of stalled carriers (type II TE).	citation_needed
+SMCOG1005	Drug resistance transporter, EmrB/QacA		Major facilitator superfamily drug/H+ antiporter (EmrB/QacA type).	Efflux; in BGCs often export or self-resistance.	citation_needed
+SMCOG1006	acyl-CoA dehydrogenase	EC 1.3.8.-	Acyl-CoA dehydrogenase: FAD-dependent α,β-desaturation of an acyl-CoA.	Fatty-acid/β-oxidation; sometimes desaturation of acyl precursors.	citation_needed
+SMCOG1007	cytochrome P450	EC 1.14.-.-	Cytochrome P450 monooxygenase: heme-dependent insertion of one oxygen atom (hydroxylation, epoxidation, C–C/C–O coupling).	Tailoring oxidation of polyketides, peptides and terpenes.	citation_needed
+SMCOG1008	response regulator		Response regulator receiver protein of a two-component system.	Regulation.	citation_needed
+SMCOG1009	mbtH-like protein		MbtH-like protein: small chaperone that binds and stimulates NRPS adenylation domains.	NRPS accessory protein.	citation_needed
+SMCOG1010	NAD-dependent epimerase/dehydratase	EC 5.1.3.- / 4.2.1.-	NAD-dependent epimerase/dehydratase (SDR family): sugar epimerization or nucleotide-sugar dehydration.	Deoxysugar biosynthesis; also cell-wall sugars.	citation_needed
+SMCOG1011	transport system permease protein		Permease (FecCD family) of an ABC transporter for iron compounds.	Iron/siderophore uptake.	citation_needed
+SMCOG1012	4'-phosphopantetheinyl transferase	EC 2.7.8.7	4'-Phosphopantetheinyl transferase (ACPS type): attaches the phosphopantetheine arm to carrier proteins.	Activation of ACP/PCP domains.	citation_needed
+SMCOG1013	aminotransferase class-III	EC 2.6.1.-	PLP-dependent aminotransferase, class III: transfers an amino group between an amino acid and a keto acid.	Amino-acid and amino-sugar metabolism; non-proteinogenic amino-acid precursors.	citation_needed
+SMCOG1014	LysR family transcriptional regulator		LysR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1015	AraC family transcriptional regulator		AraC-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1016	LuxR family DNA-binding response regulator		LuxR-family DNA-binding response regulator.	Regulation, including pathway-specific activators.	citation_needed
+SMCOG1017	aldehyde dehydrogenase	EC 1.2.1.-	Aldehyde dehydrogenase: NAD(P)+-dependent oxidation of an aldehyde to a carboxylic acid.	Primary metabolism; occasional tailoring oxidation.	citation_needed
+SMCOG1018	isochorismate synthase	EC 5.4.4.2	Isochorismate synthase: converts chorismate to isochorismate.	Salicylate/2,3-dihydroxybenzoate supply for siderophores; menaquinone.	citation_needed
+SMCOG1019	aminotransferase	EC 2.6.1.-	PLP-dependent aminotransferase (class I/II).	Amino-acid metabolism; amino-group installation.	citation_needed
+SMCOG1020	major facilitator transporter		Major facilitator superfamily transporter.	Transport/efflux.	citation_needed
+SMCOG1021	malonyl CoA-acyl carrier protein transacylase	EC 2.3.1.39	Malonyl-CoA:ACP transacylase (acyltransferase, AT): loads malonyl or methylmalonyl extender units onto a carrier protein.	PKS AT domains and fatty-acid synthesis.	citation_needed
+SMCOG1022	Beta-ketoacyl synthase	EC 2.3.1.-	β-Ketoacyl synthase (KS): Claisen condensation that extends an acyl chain by two carbons.	PKS chain extension (modular, iterative, type II) and fatty-acid synthesis.	citation_needed
+SMCOG1023	enoyl-CoA hydratase	EC 4.2.1.17	Enoyl-CoA hydratase/isomerase (crotonase family).	β-Oxidation; β-branching or chain modification in some polyketides.	citation_needed
+SMCOG1024	chalcone and stilbene synthase domain protein	EC 2.3.1.-	Chalcone/stilbene synthase-like type III PKS: iterative condensation of malonyl-CoA on a CoA-bound starter, with cyclization.	Type III polyketides (aromatic phenolics, pyrones, alkylresorcinols).	citation_needed
+SMCOG1025	diguanylate cyclase	EC 2.7.7.65	Diguanylate cyclase (GGDEF): makes cyclic di-GMP from two GTP.	Second-messenger signalling.	citation_needed
+SMCOG1026	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1027	isochorismatase	EC 3.3.2.1	Isochorismatase-like hydrolase: hydrolyzes isochorismate to 2,3-dihydro-2,3-dihydroxybenzoate (some members carry a carrier domain).	Catechol siderophore precursor supply.	citation_needed
+SMCOG1028	crotonyl-CoA reductase / alcohol dehydrogenase	EC 1.3.1.-	Crotonyl-CoA reductase / zinc alcohol dehydrogenase family; includes crotonyl-CoA carboxylase/reductase (CCR) and PKS enoylreductases.	Extender-unit supply (ethylmalonyl-CoA and others) and enoyl reduction.	citation_needed
+SMCOG1030	serine/threonine protein kinase	EC 2.7.11.1	Serine/threonine protein kinase (Hanks type).	Signalling and development.	citation_needed
+SMCOG1031	LysR family transcriptional regulator		LysR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1032	RNA polymerase, sigma-24 subunit, ECF subfamily		ECF sigma factor (σ24 subfamily).	Stress and envelope regulation.	citation_needed
+SMCOG1033	iron compound ABC transporter, periplasmic		Periplasmic binding protein of an iron-compound ABC transporter.	Siderophore/iron uptake.	citation_needed
+SMCOG1034	cytochrome P450	EC 1.14.-.-	Cytochrome P450 monooxygenase (second smCOG group).	Tailoring oxidation.	citation_needed
+SMCOG1035	MMPL domain-containing transport protein		MMPL-family membrane transporter (RND superfamily).	Export of lipids or lipophilic products.	citation_needed
+SMCOG1036	alpha/beta hydrolase fold protein	EC 3.-.-.-	α/β-Hydrolase fold protein: esterase, lipase, thioesterase or dehalogenase chemistry.	Tailoring hydrolysis, chain release, or primary metabolism.	citation_needed
+SMCOG1037	heavy metal translocating P-type ATPase	EC 7.2.2.-	Heavy-metal-translocating P-type ATPase.	Metal efflux/homeostasis.	citation_needed
+SMCOG1038	phenylalanine-specific permease		Amino-acid permease (phenylalanine-specific group).	Amino-acid uptake.	citation_needed
+SMCOG1039	aldo/keto reductase family oxidoreductase	EC 1.1.1.-	Aldo/keto reductase: NADPH-dependent reduction of aldehydes and ketones.	Tailoring reduction; sugar and general metabolism.	citation_needed
+SMCOG1040	alcohol dehydrogenase	EC 1.1.1.-	Zinc-dependent alcohol dehydrogenase.	Oxidation/reduction of alcohols; enoylreduction in some PKS.	citation_needed
+SMCOG1041	transcriptional regulator, SARP family		SARP-family transcriptional regulator (Streptomyces antibiotic regulatory protein).	Pathway-specific activator of specialized-metabolite genes.	citation_needed
+SMCOG1042	O-methyltransferase	EC 2.1.1.-	SAM-dependent O-methyltransferase.	Tailoring methylation of hydroxyl groups.	citation_needed
+SMCOG1043	hydroxymethylglutaryl-CoA synthase	EC 2.3.3.10	HMG-CoA synthase-like: condenses acetyl-CoA (or an ACP-bound acetyl) with a β-ketoacyl thioester.	Mevalonate pathway; β-branching cassettes in trans-AT and other PKS.	citation_needed
+SMCOG1044	ABC transporter, permease protein		ABC transporter permease.	Transport.	citation_needed
+SMCOG1045	glycosyl transferase group 1	EC 2.4.1.-	Glycosyltransferase, group 1 (GT4 family): transfers a sugar from a nucleotide sugar, retaining configuration.	Glycosylation of products, cell-wall and glycolipid synthesis.	citation_needed
+SMCOG1046	Dioxygenase TauD/TfdA	EC 1.14.11.-	TauD/TfdA-type Fe(II)/2-oxoglutarate-dependent dioxygenase: hydroxylation and related oxidations.	Tailoring oxidation; amino-acid hydroxylation.	citation_needed
+SMCOG1047	phosphopantetheine-binding domain-containing protein		Phosphopantetheine-binding (carrier) domain protein.	Carrier for PKS/NRPS intermediates.	citation_needed
+SMCOG1048	sensor histidine kinase	EC 2.7.13.3	Sensor histidine kinase (HisKA_3 type).	Two-component regulation.	citation_needed
+SMCOG1050	monooxygenase FAD-binding	EC 1.14.13.-	FAD-binding monooxygenase: flavin-dependent hydroxylation or epoxidation.	Tailoring oxidation (aromatic hydroxylation, ring oxidation).	citation_needed
+SMCOG1052	Terpene synthase/cyclase metal-binding domain protein	EC 4.2.3.-	Terpene synthase/cyclase (class I, metal-binding): cyclizes an isoprenyl diphosphate.	Terpene core formation.	citation_needed
+SMCOG1053	beta-lactamase	EC 3.5.2.6	β-Lactamase / penicillin-binding-like serine hydrolase.	Resistance or hydrolysis; some act in biosynthesis.	citation_needed
+SMCOG1054	hypothetical protein		Protein with SpoIIE/GAF/HATPase domains (sigma-factor regulation module).	Regulation.	citation_needed
+SMCOG1055	pyruvate oxidase/decarboxylase	EC 4.1.1.- / 1.2.-.-	Thiamine-diphosphate enzyme (pyruvate oxidase/decarboxylase family): decarboxylation of 2-oxo acids.	Primary metabolism; some C–C bond-forming steps in biosynthesis.	citation_needed
+SMCOG1056	DegT/DnrJ/EryC1/StrS aminotransferase	EC 2.6.1.-	DegT/DnrJ/EryC1/StrS aminotransferase: PLP-dependent transamination of keto sugars.	Amino-deoxysugar biosynthesis.	citation_needed
+SMCOG1057	TetR family transcriptional regulator		TetR-family transcriptional regulator.	Regulation, often of efflux or pathway genes.	citation_needed
+SMCOG1058	ArsR family transcriptional regulator		ArsR-family transcriptional regulator.	Regulation (metal response).	citation_needed
+SMCOG1059	acetyl-CoA carboxylase, carboxyl transferase,	EC 2.1.3.15 / 6.4.1.-	Acyl-CoA carboxylase carboxyltransferase subunit.	Malonyl-/methylmalonyl-CoA supply for PKS and fatty acids.	citation_needed
+SMCOG1060	4'-phosphopantetheinyl transferase	EC 2.7.8.-	4'-Phosphopantetheinyl transferase (Sfp type).	Activation of carrier proteins.	citation_needed
+SMCOG1062	glycosyltransferase, MGT family	EC 2.4.1.-	Macrolide glycosyltransferase (MGT/GT1 family): UDP-sugar-dependent glycosylation of small molecules; can also inactivate antibiotics.	Glycosylation or self-resistance.	citation_needed
+SMCOG1063	argininosuccinate lyase/adenylosuccinate lyase	EC 4.3.2.-	Argininosuccinate/adenylosuccinate lyase family (some members ATP-grasp ligases).	Primary metabolism; ligation in some peptide pathways.	citation_needed
+SMCOG1064	glucose-1-phosphate adenylyl/thymidylyltransferase	EC 2.7.7.24	Glucose-1-phosphate nucleotidyltransferase: makes dTDP- or ADP-glucose.	First step of deoxysugar biosynthesis.	citation_needed
+SMCOG1065	ABC-2 type transporter		ABC-2-type transporter permease.	Export (often antibiotic or polysaccharide).	citation_needed
+SMCOG1066	alpha/beta hydrolase domain-containing protein	EC 3.1.1.-	α/β-Hydrolase (esterase/lipase type).	Ester hydrolysis.	citation_needed
+SMCOG1067	putative ABC transporter permease protein		ABC transporter permease.	Transport.	citation_needed
+SMCOG1068	extracellular solute-binding protein family 5		Extracellular solute-binding protein, family 5 (oligopeptide/dipeptide binding).	Peptide uptake.	citation_needed
+SMCOG1069	putative ABC transporter permease protein		ABC transporter permease.	Transport.	citation_needed
+SMCOG1070	lanthionine synthetase C family protein	EC 4.-.-.-	Lanthionine synthetase C-like cyclase (LanC): forms thioether rings in lanthipeptides.	Class I lanthipeptide maturation.	citation_needed
+SMCOG1071	GntR family transcriptional regulator		GntR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1072	dehydrogenase 2-Hacid_dh_C	EC 1.1.1.-	D-2-hydroxyacid dehydrogenase (NAD-binding).	Hydroxyacid oxidation/reduction; some precursor supply.	citation_needed
+SMCOG1074	major facilitator family transporter		Major facilitator family transporter (sugar transporter type).	Transport.	citation_needed
+SMCOG1075	alkaline serine protease, subtilase family Peptidase_S8	EC 3.4.21.-	Subtilisin-like serine protease.	Protease; leader removal for some RiPPs.	citation_needed
+SMCOG1077	phage integrase family protein		Phage integrase / tyrosine recombinase.	Mobile element.	citation_needed
+SMCOG1078	LacI family transcription regulator		LacI-family transcriptional regulator.	Regulation (sugar response).	citation_needed
+SMCOG1079	oxidoreductase	EC 1.1.1.-	GFO/IDH/MocA-family oxidoreductase: NAD(P)-dependent oxidation, often of sugars.	Sugar modification.	citation_needed
+SMCOG1080	lysine/ornithine N-monooxygenase	EC 1.14.13.-	Lysine/ornithine N-monooxygenase: flavin-dependent N-hydroxylation of an amine.	Hydroxamate siderophore biosynthesis.	citation_needed
+SMCOG1081	cysteine synthase	EC 2.5.1.47	Cysteine synthase (PLP-dependent β-replacement).	Cysteine supply; some build non-proteinogenic amino acids.	citation_needed
+SMCOG1083	oxidoreductase	EC 1.14.14.-	Luciferase-like monooxygenase (flavin-dependent, TIM barrel).	Oxidation; F420- or FMN-dependent reactions.	citation_needed
+SMCOG1084	3-oxoacyl-(acyl carrier protein) synthase III	EC 2.3.1.180	3-Oxoacyl-ACP synthase III (KAS III / FabH-like): first condensation, priming a chain with a starter unit.	Starter-unit selection for type II PKS and fatty acids.	citation_needed
+SMCOG1085	binding-protein-dependent transport systems		Oligopeptide ABC transporter permease.	Transport.	citation_needed
+SMCOG1086	MATE efflux family protein		MATE-family multidrug efflux protein.	Efflux/self-resistance.	citation_needed
+SMCOG1087	hypothetical protein		FAD-binding protein (smCOG named hypothetical).	Flavin-dependent oxidation.	citation_needed
+SMCOG1088	acyltransferase 3	EC 2.3.1.-	Acyltransferase family 3 membrane protein: O-acylation of sugars or other substrates.	Acylation of products or cell-surface glycans.	citation_needed
+SMCOG1089	methyltransferase	EC 2.1.1.-	SAM-dependent methyltransferase.	Tailoring C-, N- or O-methylation.	citation_needed
+SMCOG1090	acetyl-CoA carboxylase biotin carboxylase	EC 6.3.4.14	Biotin carboxylase subunit of acyl-CoA carboxylase.	Extender-unit supply.	citation_needed
+SMCOG1091	glutamine-binding lipoprotein glnH		Glutamine-binding lipoprotein of an ABC transporter.	Amino-acid uptake.	citation_needed
+SMCOG1092	hypothetical protein	EC 1.14.13.-	Flavin-containing monooxygenase (FMO-like).	N- or S-oxygenation and other tailoring oxidations.	citation_needed
+SMCOG1093	Beta-ketoacyl synthase	EC 2.3.1.-	β-Ketoacyl synthase (second smCOG group).	PKS or fatty-acid chain extension.	citation_needed
+SMCOG1094	ferredoxin		Ferredoxin / ferredoxin reductase (electron transfer).	Electron supply to P450s and other oxidases.	citation_needed
+SMCOG1095	3-hydroxybutyryl-CoA dehydrogenase	EC 1.1.1.157	3-Hydroxyacyl-CoA dehydrogenase.	β-Oxidation; occasional chain modification.	citation_needed
+SMCOG1096	polar amino acid ABC transporter, inner membrane		Polar amino-acid ABC transporter permease.	Transport.	citation_needed
+SMCOG1097	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1098	enterobactin/ferric enterobactin esterase	EC 3.1.1.-	Enterobactin/ferric enterobactin esterase: hydrolyzes siderophore ester bonds to release iron.	Siderophore utilization.	citation_needed
+SMCOG1099	hypothetical protein GFO_IDH_MocA	EC 1.1.1.-	GFO/IDH/MocA-family oxidoreductase.	Sugar modification.	citation_needed
+SMCOG1100	3-hydroxyisobutyrate dehydrogenase	EC 1.1.1.-	3-Hydroxyisobutyrate dehydrogenase-family NAD-binding enzyme.	Primary metabolism.	citation_needed
+SMCOG1101	phosphoglycerate mutase	EC 5.4.2.-	Phosphoglycerate mutase-family phosphatase/mutase.	Primary metabolism.	citation_needed
+SMCOG1102	glycosyltransferase	EC 2.4.1.-	Glycosyltransferase.	Glycosylation.	citation_needed
+SMCOG1103	FAD dependent oxidoreductase DAO	EC 1.4.3.-	FAD-dependent D-amino-acid oxidase family.	Amine oxidation.	citation_needed
+SMCOG1104	putative esterase	EC 3.1.1.-	Putative esterase.	Ester hydrolysis.	citation_needed
+SMCOG1105	amidase	EC 3.5.1.-	Amidase signature enzyme: hydrolyzes amide bonds.	Amide hydrolysis.	citation_needed
+SMCOG1106	major facilitator transporter		Major facilitator transporter.	Transport/efflux.	citation_needed
+SMCOG1108	ROK family protein		ROK-family protein (sugar kinase or repressor).	Sugar metabolism/regulation.	citation_needed
+SMCOG1109	8-amino-7-oxononanoate synthase	EC 2.3.1.47	8-Amino-7-oxononanoate synthase family (α-oxoamine synthase): PLP-dependent condensation of an acyl thioester with an amino acid.	Biotin; aminoketone formation in some pathways.	citation_needed
+SMCOG1110	1-deoxy-D-xylulose-5-phosphate synthase	EC 2.2.1.7	1-Deoxy-D-xylulose-5-phosphate synthase.	MEP pathway for isoprenoid precursors.	citation_needed
+SMCOG1111	GCN5-related N-acetyltransferase	EC 2.3.1.-	GCN5-related N-acetyltransferase.	Acetylation; some confer resistance.	citation_needed
+SMCOG1112	sigma-54 dependent trancsriptional regulator		Sigma-54-dependent transcriptional regulator.	Regulation.	citation_needed
+SMCOG1113	inner-membrane translocator		Inner-membrane translocator (ABC permease).	Transport.	citation_needed
+SMCOG1114	ornithine carbamoyltransferase	EC 2.1.3.3	Ornithine carbamoyltransferase.	Arginine metabolism.	citation_needed
+SMCOG1115	HAD-superfamily hydrolase, subfamily IA, variant HAD_2	EC 3.1.3.-	HAD-superfamily hydrolase (phosphatase).	Phosphate-ester hydrolysis.	citation_needed
+SMCOG1116	Homoserine/threonine efflux protein		Homoserine/threonine efflux protein (LysE family).	Amino-acid export.	citation_needed
+SMCOG1117	sodium/hydrogen exchanger		Sodium/hydrogen exchanger.	Ion homeostasis.	citation_needed
+SMCOG1118	binding-protein-dependent transport systems		Binding-protein-dependent transport permease.	Transport.	citation_needed
+SMCOG1119	halogenase	EC 1.14.19.-	Flavin-dependent halogenase: FADH2- and O2-dependent chlorination or bromination of electron-rich carbons.	Halogenation tailoring.	citation_needed
+SMCOG1120	AsnC family transcriptional regulator		AsnC/Lrp-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1121	dioxygenase, TauD/TfdA TauD	EC 1.14.11.-	TauD/TfdA-type Fe(II)/2-oxoglutarate-dependent dioxygenase.	Tailoring oxidation.	citation_needed
+SMCOG1122	ATP-dependent RNA helicase	EC 3.6.4.13	ATP-dependent RNA helicase.	Housekeeping.	citation_needed
+SMCOG1123	polyprenol-monophosphomannose synthase ppm1	EC 2.4.1.-	Polyprenol-monophosphomannose synthase-like glycosyltransferase (GT2).	Glycolipid and cell-envelope synthesis.	citation_needed
+SMCOG1124	acetyl-CoA acetyltransferase	EC 2.3.1.9	Acetyl-CoA acetyltransferase (thiolase).	Thiolase condensation; β-oxidation, mevalonate pathway.	citation_needed
+SMCOG1125	LysR family transcriptional regulator		LysR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1126	extracytoplasmic-function sigma-70 factor		ECF sigma-70 factor.	Regulation.	citation_needed
+SMCOG1127	condensation domain-containing protein		Condensation (C) domain protein: forms the amide bond between carrier-bound residues; some variants epimerize, cyclize or do ester bonds.	NRPS chain elongation.	citation_needed
+SMCOG1128	cyclase/dehydrase	EC 4.2.1.-	Polyketide cyclase/dehydrase (SRPBCC/START family).	Cyclization/aromatization in type II PKS.	citation_needed
+SMCOG1129	acyl carrier protein		Acyl carrier protein.	Carrier for polyketide or fatty-acyl intermediates.	citation_needed
+SMCOG1130	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1132	DNA-binding protein HU 1		DNA-binding protein HU.	Housekeeping.	citation_needed
+SMCOG1133	Transcription regulator, crp		CRP-family (cAMP receptor) transcriptional regulator.	Regulation.	citation_needed
+SMCOG1134	flavodoxin		Molybdopterin oxidoreductase (smCOG named flavodoxin).	Electron transfer/oxidoreduction.	citation_needed
+SMCOG1135	MarR family transcriptional regulator		MarR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1136	GntR family transcriptional regulator		GntR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1137	Major facilitator superfamily MFS 1		Major facilitator superfamily transporter.	Transport.	citation_needed
+SMCOG1138	FAD linked oxidase domain protein	EC 1.1.3.- / 1.21.-.-	FAD-linked oxidase (berberine-bridge-enzyme / VAO family): flavin-dependent oxidations, including oxidative cyclizations.	Tailoring oxidation.	citation_needed
+SMCOG1139	aminotransferase class V	EC 2.8.1.7 / 2.6.1.-	PLP-dependent aminotransferase class V (cysteine desulfurase type).	Sulfur mobilization; amino-acid metabolism.	citation_needed
+SMCOG1140	Lanthionine synthetase C family protein LANC_like	EC 4.-.-.-	Lanthionine synthetase C-like cyclase (LANC_like).	Lanthipeptide thioether ring formation.	citation_needed
+SMCOG1141	acyltransferase	EC 2.3.1.-	Acyltransferase (lysophospholipid acyltransferase family).	Lipid acylation.	citation_needed
+SMCOG1143	sugar-binding lipoprotein		Sugar-binding lipoprotein of an ABC transporter.	Sugar uptake.	citation_needed
+SMCOG1144	thioesterase superfamily protein	EC 3.1.2.-	Thioesterase superfamily (hotdog fold, 4HBT).	Acyl-CoA/ACP thioester hydrolysis.	citation_needed
+SMCOG1145	Glucose-specific phosphotransferase enzyme IIA	EC 2.7.1.-	Phosphotransferase system component (glucose-specific).	Sugar uptake.	citation_needed
+SMCOG1146	sugar transferase Bac_transf	EC 2.7.8.-	Bacterial sugar transferase: transfers a sugar-1-phosphate to a polyprenyl phosphate carrier.	Polysaccharide and glycan assembly.	citation_needed
+SMCOG1147	putative acyl carrier protein		Putative acyl carrier protein.	Carrier.	citation_needed
+SMCOG1148	hypothetical protein		Cupin/HTH-domain protein (smCOG named hypothetical).	Regulation or small-molecule binding.	citation_needed
+SMCOG1149	LuxR family transcriptional regulator		LuxR-family transcriptional regulator (LAL type with ATPase domain).	Pathway-specific regulation.	citation_needed
+SMCOG1150	isoprenylcysteine carboxyl methyltransferase	EC 2.1.1.100	Isoprenylcysteine carboxyl methyltransferase.	Methylation of prenylated substrates.	citation_needed
+SMCOG1151	transposase		Transposase helper (IstB).	Mobile element.	citation_needed
+SMCOG1152	nucleotide sugar dehydrogenase	EC 1.1.1.-	Nucleotide-sugar dehydrogenase (UDP-glucose/GDP-mannose 6-dehydrogenase).	Uronic-acid sugar supply.	citation_needed
+SMCOG1153	Amino acid carrier protein		Sodium/alanine symporter.	Amino-acid uptake.	citation_needed
+SMCOG1154	Pseudouridine synthase	EC 5.4.99.-	Pseudouridine synthase.	RNA modification.	citation_needed
+SMCOG1155	Lantibiotic dehydratase domain protein		Lantibiotic dehydratase (LanB): glutamylation then elimination that dehydrates Ser/Thr in a peptide.	Class I lanthipeptide maturation.	citation_needed
+SMCOG1156	Chloramphenicol acetyltransferase	EC 2.3.1.28	Chloramphenicol acetyltransferase / hexapeptide-repeat acetyltransferase.	Acetylation; resistance.	citation_needed
+SMCOG1157	hypothetical protein		ParA/Mrp-family ATPase (smCOG named hypothetical).	Housekeeping.	citation_needed
+SMCOG1158	ornithine cyclodeaminase	EC 4.3.1.12	Ornithine cyclodeaminase: converts ornithine to proline.	Proline or pipecolate precursor supply.	citation_needed
+SMCOG1159	dihydropteridine reductase PF00881	EC 1.5.1.-	Nitroreductase-family flavoprotein.	Flavin-dependent reduction.	citation_needed
+SMCOG1160	flavin reductase domain protein FMN-binding	EC 1.5.1.-	Flavin reductase: supplies reduced flavin to two-component monooxygenases and halogenases.	Partner of flavin-dependent tailoring enzymes.	citation_needed
+SMCOG1161	oxidoreductase	EC 1.-.-.-	FAD-dependent oxidoreductase.	Oxidation.	citation_needed
+SMCOG1162	threonyl-tRNA synthetase	EC 6.1.1.3	Threonyl-tRNA synthetase.	Housekeeping; some act as self-resistance copies.	citation_needed
+SMCOG1163	rhodanese domain-containing protein	EC 2.8.1.-	Rhodanese-domain sulfurtransferase.	Sulfur transfer.	citation_needed
+SMCOG1164	transposase IS3/IS911 family protein		Transposase (IS3/IS911 family).	Mobile element.	citation_needed
+SMCOG1165	carboxylate-amine ligase	EC 6.3.-.-	Carboxylate-amine ligase (ATP-grasp type).	Amide bond formation outside NRPS.	citation_needed
+SMCOG1166	transporter, EamA family		EamA-family transporter.	Transport.	citation_needed
+SMCOG1167	transcriptional regulator		HxlR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1168	O-succinylhomoserine sulfhydrylase	EC 2.5.1.48	O-Succinylhomoserine sulfhydrylase (PLP-dependent, Cys/Met metabolism family).	Methionine metabolism; non-proteinogenic amino-acid building.	citation_needed
+SMCOG1169	sugar transport protein		Sugar transport protein (MFS).	Sugar uptake.	citation_needed
+SMCOG1170	metallo-beta-lactamase family protein	EC 3.-.-.-	Metallo-β-lactamase-fold hydrolase.	Hydrolysis; resistance or tailoring.	citation_needed
+SMCOG1171	transcriptional regulator, MerR family		MerR-family transcriptional regulator.	Regulation (stress or drug response).	citation_needed
+SMCOG1172	methionine aminopeptidase	EC 3.4.11.18	Methionine aminopeptidase.	Housekeeping.	citation_needed
+SMCOG1173	WD-40 repeat-containing protein		WD-40 repeat protein.	Protein interaction.	citation_needed
+SMCOG1174	acetylglutamate kinase	EC 2.7.2.8	Acetylglutamate kinase.	Arginine biosynthesis.	citation_needed
+SMCOG1175	pyridine nucleotide-disulfide oxidoreductase	EC 1.8.1.-	Pyridine nucleotide-disulfide oxidoreductase.	Electron transfer; ferredoxin reductase partner.	citation_needed
+SMCOG1176	alkyl hydroperoxide reductase subunit	EC 1.11.1.-	Alkyl hydroperoxide reductase subunit F.	Oxidative-stress defence.	citation_needed
+SMCOG1177	asparagine synthase (glutamine-hydrolyzing)	EC 6.3.5.4	Asparagine synthase (glutamine-hydrolyzing).	Amide formation; some act on specialized metabolites.	citation_needed
+SMCOG1178	cobalamin synthesis protein/P47K family protein		Cobalamin synthesis protein / P47K GTPase.	Metal insertion.	citation_needed
+SMCOG1179	hydrolase	EC 3.1.3.-	HAD-family hydrolase.	Phosphatase.	citation_needed
+SMCOG1180	Decarboxylase, pyridoxal-dependent	EC 4.1.1.-	PLP-dependent amino-acid decarboxylase.	Amine formation from amino acids.	citation_needed
+SMCOG1181	dehydrogenase Fe-ADH	EC 1.1.1.-	Iron-containing alcohol dehydrogenase.	Alcohol oxidation/reduction.	citation_needed
+SMCOG1182	Polyprenyl synthetase	EC 2.5.1.-	Polyprenyl diphosphate synthase: chain elongation of isoprenyl diphosphates (GPP, FPP, GGPP and longer).	Terpene precursors; quinone side chains.	citation_needed
+SMCOG1183	3-dehydroquinate synthase	EC 4.2.3.4	3-Dehydroquinate synthase (sugar-phosphate cyclase family).	Shikimate pathway; related cyclases make aminocyclitols.	citation_needed
+SMCOG1184	major facilitator transporter		Major facilitator transporter.	Transport.	citation_needed
+SMCOG1185	carbon starvation protein A		Carbon starvation protein A.	Nutrient uptake.	citation_needed
+SMCOG1188	hypothetical protein		SNARE-associated membrane protein (DedA family).	Membrane function.	citation_needed
+SMCOG1189	L-carnitine dehydratase/bile acid-inducible	EC 2.8.3.-	CoA-transferase family III.	CoA transfer between acids.	citation_needed
+SMCOG1190	GTP-binding protein LepA	EC 3.6.5.-	Translation GTPase (LepA/EF-Tu family).	Housekeeping; some act as self-resistance copies.	citation_needed
+SMCOG1191	acyl-CoA dehydrogenase type 2	EC 1.3.8.-	Acyl-CoA dehydrogenase type 2.	Desaturation of acyl-CoAs.	citation_needed
+SMCOG1192	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1194	DNA polymerase III subunit alpha	EC 2.7.7.7	DNA polymerase III α subunit.	Housekeeping.	citation_needed
+SMCOG1195	IclR family transcriptional regulator		IclR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1196	alkyl hydroperoxide reductase/ Thiol specific	EC 1.11.1.-	Peroxiredoxin (AhpC/TSA family).	Oxidative-stress defence.	citation_needed
+SMCOG1197	autoinducer-binding transcriptional regulator,		Autoinducer-binding LuxR-type regulator.	Regulation.	citation_needed
+SMCOG1198	hypothetical protein		YjbR-family protein (smCOG named hypothetical).	Unknown.	citation_needed
+SMCOG1199	NmrA family protein		NmrA-like NAD(P)-binding protein.	Redox sensing or reduction.	citation_needed
+SMCOG1200	vibriobactin utilization protein ViuB	EC 1.16.1.-	Siderophore-interacting protein (ViuB/FAD-binding): reduces Fe(III) bound to a siderophore.	Siderophore iron release.	citation_needed
+SMCOG1202	major facilitator transporter		Major facilitator transporter (proton-dependent oligopeptide type).	Transport.	citation_needed
+SMCOG1203	putative siderophore biosynthesis protein	EC 6.3.2.-	NIS synthetase (IucA/IucC family) and related siderophore enzymes: ATP-dependent ligation of carboxylic acids to amines or alcohols.	NRPS-independent siderophore assembly.	citation_needed
+SMCOG1204	transketolase	EC 2.2.1.1	Transketolase.	Pentose phosphate pathway; some supply sugar precursors.	citation_needed
+SMCOG1205	ABC transporter, carbohydrate uptake		Carbohydrate-uptake ABC transporter component.	Sugar uptake.	citation_needed
+SMCOG1206	transposase		Transposase (ISL3 family).	Mobile element.	citation_needed
+SMCOG1207	inositol monophosphatase	EC 3.1.3.25	Inositol monophosphatase family phosphatase.	Phosphate-ester hydrolysis.	citation_needed
+SMCOG1208	pirin domain-containing protein		Pirin-domain protein (cupin fold).	Possible quercetinase-type dioxygenase or redox sensor.	citation_needed
+SMCOG1209	polyketide synthase associated protein papA3		PapA-like acyltransferase (condensation-domain fold): acylation of trehalose or polyols with polyketide or fatty-acyl chains.	Glycolipid/ester formation.	citation_needed
+SMCOG1210	glycerol kinase	EC 2.7.1.30	Glycerol kinase.	Primary metabolism.	citation_needed
+SMCOG1212	sodium:dicarboxylate symporter		Sodium:dicarboxylate symporter.	Transport.	citation_needed
+SMCOG1213	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1214	binding-protein-dependent transport systems		Binding-protein-dependent transport permease.	Transport.	citation_needed
+SMCOG1215	TetR family transcriptional regulator		TetR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1216	exopolysaccharide biosynthesis domain protein		Exopolysaccharide chain-length determinant (Wzz).	Polysaccharide export.	citation_needed
+SMCOG1217	NADH:flavin oxidoreductase/NADH oxidase	EC 1.6.99.1	NADH:flavin oxidoreductase (Old Yellow Enzyme family): reduction of activated C=C bonds.	Tailoring reduction.	citation_needed
+SMCOG1218	Exonuclease		Exonuclease (SbcC).	DNA repair.	citation_needed
+SMCOG1219	N-acetyl-gamma-glutamyl-phosphate reductase	EC 1.2.1.38	N-Acetyl-γ-glutamyl-phosphate reductase.	Arginine biosynthesis.	citation_needed
+SMCOG1220	bifunctional ornithine	EC 2.3.1.35	Bifunctional ornithine acetyltransferase (ArgJ).	Arginine biosynthesis.	citation_needed
+SMCOG1222	dehydrogenase	EC 1.3.99.-	Dehydrogenase (amine oxidase / phytoene desaturase family): flavin-dependent desaturation.	Carotenoid desaturation and related oxidations.	citation_needed
+SMCOG1223	ATPase		AAA ATPase (Clp family).	Protein quality control.	citation_needed
+SMCOG1224	TetR family transcriptional regulator		TetR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1225	Polyketide synthesis cyclase	EC 4.2.1.-	Polyketide synthesis cyclase.	Ring formation in aromatic polyketides.	citation_needed
+SMCOG1226	hypothetical protein		FGE-sulfatase / DinB-like protein (smCOG named hypothetical).	Unknown; some are sulfatase-modifying.	citation_needed
+SMCOG1227	ribosome biogenesis GTP-binding protein YsxC		Ribosome biogenesis GTPase.	Housekeeping.	citation_needed
+SMCOG1228	methionyl-tRNA formyltransferase	EC 2.1.2.9	Methionyl-tRNA formyltransferase family (formyl transfer).	Housekeeping; some formylate specialized metabolites.	citation_needed
+SMCOG1229	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1230	Nuclease SbcCD, D subunit	EC 3.1.11.-	Nuclease SbcD.	DNA repair.	citation_needed
+SMCOG1231	carboxyvinyl-carboxyphosphonate	EC 5.4.2.9	PEP mutase / isocitrate lyase family: includes phosphoenolpyruvate phosphomutase (C–P bond formation).	Phosphonate biosynthesis (first step) and related chemistry.	citation_needed
+SMCOG1235	polysaccharide deacetylase	EC 3.5.1.-	Polysaccharide deacetylase.	Glycan deacetylation.	citation_needed
+SMCOG1236	integral membrane indolylacetylinositol	EC 2.4.2.-	Integral-membrane arabinosyltransferase.	Cell-wall arabinan synthesis.	citation_needed
+SMCOG1237	transposase		Transposase (IS110 family).	Mobile element.	citation_needed
+SMCOG1238	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1239	TetR family transcriptional regulator		TetR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1240	riboflavin biosynthesis protein RibD	EC 3.5.4.26 / 1.1.1.193	Riboflavin biosynthesis RibD (deaminase/reductase).	Riboflavin supply.	citation_needed
+SMCOG1241	lipoprotein dsbF		Thioredoxin-like lipoprotein (DsbF).	Disulfide redox.	citation_needed
+SMCOG1242	transposase		Transposase.	Mobile element.	citation_needed
+SMCOG1243	ABC transporter, permease component		ABC transporter permease (FtsX/MacB type).	Export.	citation_needed
+SMCOG1244	amidohydrolase	EC 3.5.1.-	M20-family amidohydrolase.	Amide hydrolysis.	citation_needed
+SMCOG1245	ABC transporter protein, integral membrane		ABC transporter membrane protein (metal type).	Metal uptake.	citation_needed
+SMCOG1246	monooxygenase FAD-binding	EC 1.14.13.-	FAD-binding monooxygenase (halogenase-like group).	Flavin-dependent oxidation or halogenation.	citation_needed
+SMCOG1247	acetylornithine deacetylase	EC 3.5.1.16	Acetylornithine deacetylase (M20 peptidase family).	Amino-acid deacetylation.	citation_needed
+SMCOG1248	methyltransferase	EC 2.1.1.-	SAM-dependent methyltransferase.	Tailoring methylation.	citation_needed
+SMCOG1249	carbamoyl phosphate synthase small subunit	EC 6.3.5.5	Carbamoyl-phosphate synthase small subunit (glutamine amidotransferase).	Primary metabolism.	citation_needed
+SMCOG1251	luciferase family protein	EC 1.14.14.-	Luciferase-family flavin-dependent monooxygenase.	Oxidation (F420/FMN-dependent).	citation_needed
+SMCOG1252	cation ABC transporter, periplasmic		Cation ABC transporter periplasmic protein (ZnuA type).	Metal uptake.	citation_needed
+SMCOG1255	cold-shock DNA-binding domain protein		Cold-shock DNA-binding protein.	Stress response.	citation_needed
+SMCOG1256	FkbH like protein		FkbH-like protein: makes glyceryl-ACP (methoxymalonyl or hydroxymalonyl extender precursor) from 1,3-bisphosphoglycerate.	Unusual PKS extender units.	citation_needed
+SMCOG1257	Alpha-glucosidase	EC 3.2.1.-	α-Glucosidase / α-amylase family (glycoside hydrolase 13).	Starch, glycogen and trehalose metabolism.	citation_needed
+SMCOG1258	Antibiotic biosynthesis monooxygenase	EC 1.14.-.-	Antibiotic biosynthesis monooxygenase (ABM domain).	Oxidation in aromatic polyketide tailoring.	citation_needed
+SMCOG1260	AraC family transcriptional regulator		AraC-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1261	hypothetical protein	EC 1.-.-.-	FAD-linked oxidase (VAO family; smCOG named hypothetical).	Oxidation.	citation_needed
+SMCOG1262	haloalkane dehalogenase	EC 3.8.1.5	Haloalkane dehalogenase / α/β-hydrolase.	Dehalogenation or hydrolysis.	citation_needed
+SMCOG1263	cobaltochelatase subunit CobN	EC 6.6.1.2	Cobaltochelatase subunit CobN.	Cobalamin biosynthesis.	citation_needed
+SMCOG1264	diaminopimelate decarboxylase	EC 4.1.1.20	Diaminopimelate decarboxylase family (PLP fold-III decarboxylase).	Lysine synthesis; amine formation.	citation_needed
+SMCOG1265	ferredoxin		4Fe-4S ferredoxin.	Electron transfer.	citation_needed
+SMCOG1266	hydrogen peroxide sensitive repressor		Fur-family regulator (peroxide/metal responsive).	Regulation.	citation_needed
+SMCOG1268	mandelate racemase/muconate lactonizing enzyme	EC 5.1.2.- / 5.5.1.-	Mandelate racemase / muconate lactonizing enzyme (enolase superfamily).	Racemization or lactonization.	citation_needed
+SMCOG1270	UDP-3-O-[3-hydroxymyristoyl] N-acetylglucosamine	EC 4.2.1.59	FabA/FabZ-type β-hydroxyacyl-ACP dehydratase.	Dehydration in fatty-acid and some PKS pathways.	citation_needed
+SMCOG1271	2-isopropylmalate synthase HMGL-like	EC 2.3.3.13	2-Isopropylmalate synthase / HMGL-like aldolase.	Leucine synthesis; C–C bond formation in some pathways.	citation_needed
+SMCOG1272	TPR repeat-containing protein		TPR repeat protein.	Protein interaction.	citation_needed
+SMCOG1273	hypothetical protein		CBS/CNNM-domain membrane protein (smCOG named hypothetical).	Ion transport.	citation_needed
+SMCOG1274	gamma-glutamyltranspeptidase	EC 2.3.2.2	γ-Glutamyltranspeptidase.	Glutathione/peptide metabolism.	citation_needed
+SMCOG1275	peptide deformylase	EC 3.5.1.88	Peptide deformylase.	Housekeeping; some act as self-resistance copies.	citation_needed
+SMCOG1276	PfkB domain protein	EC 2.7.1.-	PfkB-family carbohydrate kinase.	Sugar phosphorylation.	citation_needed
+SMCOG1277	Radical SAM domain protein	EC 2.1.1.- / 4.-.-.-	Radical SAM enzyme (some B12-dependent): radical chemistry including C-methylation, cyclization and crosslinking.	RiPP and other tailoring.	citation_needed
+SMCOG1278	PadR family transcriptional regulator		PadR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1279	pseudouridine synthase	EC 5.4.99.-	Pseudouridine synthase.	RNA modification.	citation_needed
+SMCOG1280	thiamine-phosphate pyrophosphorylase	EC 2.5.1.3	Thiamine-phosphate pyrophosphorylase.	Thiamine synthesis.	citation_needed
+SMCOG1282	extracellular ligand-binding receptor		Extracellular ligand-binding receptor (periplasmic binding protein).	Uptake or sensing.	citation_needed
+SMCOG1283	2`,3`-cyclic-nucleotide 2`-phosphodiesterase	EC 3.1.4.16	2',3'-Cyclic-nucleotide phosphodiesterase / 5'-nucleotidase.	Nucleotide metabolism.	citation_needed
+SMCOG1284	transcriptional regulator, MarR family		MarR-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1285	ferredoxin fdxC Pyr_redox_2		Ferredoxin (FdxC) / pyridine-nucleotide-disulfide reductase.	Electron transfer.	citation_needed
+SMCOG1286	Pentapeptide repeat protein		Pentapeptide-repeat protein.	Some protect targets (e.g. topoisomerase) from antibiotics.	citation_needed
+SMCOG1287	AraC family transcriptional regulator		AraC-family transcriptional regulator.	Regulation.	citation_needed
+SMCOG1288	ABC transporter related protein		ABC transporter with fused permease (some with peptidase C39 domain).	Export; peptidase-containing types process and export bacteriocin-like peptides.	citation_needed
+SMCOG1291	argininosuccinate synthase	EC 6.3.4.5	Argininosuccinate synthase.	Arginine synthesis.	citation_needed
+SMCOG1292	hypothetical protein	EC 2.1.1.-	Methyltransferase (Methyltransf_19 family; smCOG named hypothetical).	Methylation.	citation_needed
+SMCOG1293	aldehyde oxidase and xanthine dehydrogenase	EC 1.17.1.-	Molybdopterin aldehyde oxidase / xanthine dehydrogenase family.	Oxidation.	citation_needed
+SMCOG1294	Nitrilase/cyanide hydratase and apolipoprotein	EC 3.5.5.- / 3.5.1.-	Nitrilase / cyanide hydratase / carbon-nitrogen hydrolase.	Nitrile or amide hydrolysis.	citation_needed
+SMCOG1295	Sel1 domain protein repeat-containing protein		Sel1-repeat protein.	Protein interaction.	citation_needed
+SMCOG1296	tellurium resistance protein, TerD		Tellurium resistance protein TerD.	Stress response.	citation_needed
+SMCOG1297	Pullulanase, type I	EC 3.2.1.41	Pullulanase type I: hydrolyzes α-1,6-glucosidic bonds in pullulan, amylopectin and glycogen (debranching).	Starch and glycogen use (primary carbohydrate metabolism).	citation_needed
+SMCOG1298	putative carboxymuconolactone decarboxylase	EC 4.1.1.44	Carboxymuconolactone decarboxylase family (some are peroxidases).	Aromatic degradation or redox.	citation_needed
+SMCOG1299	chaperonin GroEL		Chaperonin GroEL.	Protein folding.	citation_needed

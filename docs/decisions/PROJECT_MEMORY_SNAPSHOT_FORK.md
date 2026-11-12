@@ -21,7 +21,8 @@ re-dump of `manifest.json`** — on a measured 96-BGC strain each carried a byte
 - `mamey/snapshot_alias.py::load_snapshot` resolves either generation (full pre-.400 file or stub).
 - `mamey/validate.py::REQUIRED_SUFFIXES` still lists the file, so the presence gate and every
   `*Project_Memory_Snapshot.json` glob (`tools/build_deep_data.py`, `tools/build_bgc_markers.py`,
-  `tools/assembly_qc_check.py`, `mamey/deep_data.py`) keep working unchanged.
+  `tools/assembly_qc_check.py`, `mamey/deep_data.py`) still find the named file. Resolution and
+  error handling differ; confirm that each consumer loaded the intended manifest content.
 So the cost that motivated "retire" (duplicate ~20 MB per strain) is already gone. Packages cut
 before v9.7.400 (e.g. the `.381` atlas packages) still carry the full copies; that is history, not a
 live defect.
@@ -37,7 +38,7 @@ buys nothing measurable and breaks unknown external readers. Close the June-25 i
 RESOLVED (v9.7.400) rather than carrying it as "open".
 
 What would change this: evidence that a downstream tool mis-reads the stub as a full snapshot
-(none found — all four in-bundle readers follow `alias_of`).
+(a missing or unreadable manifest can leave an unresolved stub; test each selected consumer).
 
 For a new decision, record the maintainer or designated reviewer, the ruling and its evidence. The owner-ruling field below remains open.
 

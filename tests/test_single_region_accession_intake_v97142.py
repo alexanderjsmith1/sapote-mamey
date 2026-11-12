@@ -49,7 +49,10 @@ def test_inspect_single_region_accession_prints_user_guidance(tmp_path: Path, ca
     assert "Input shape       : raw antiSMASH single-region accession run" in out
     assert "Public accession  : KY089035.1" in out
     assert "Single-region accession note:" in out
-    assert "not a full genome and not a sealed Mamey package" in out
+    assert "not a sealed Mamey package" in out
+    # One region file cannot show genome scope, so the note must not rule on it.
+    assert "not a full genome" not in out
+    assert "does not show how much of the source genome was submitted" in out
     assert "VERY_POOR / 0% interior" in out
     assert "--mode gold" in out
     assert "--capped-session" in out

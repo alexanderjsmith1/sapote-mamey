@@ -63,7 +63,11 @@ _bundle_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _bundle_root not in sys.path:
     sys.path.insert(0, _bundle_root)
 from mamey.outgroup_registry_path import outgroup_registry_path, registry_binding
-REGISTRY = str(outgroup_registry_path())
+def __getattr__(name):
+    # The registry is located on first use, not at import: importing this tool reads no workspace data.
+    if name == "REGISTRY":
+        return str(outgroup_registry_path())
+    raise AttributeError(name)
 
 # Genus -> (family, order). Minimal actinomycete map covering the cohort + common outgroups.
 # Extend as new genera appear; an unknown genus is reported, never silently accepted.
@@ -649,7 +653,7 @@ def verify_registry_accessions(registry, evidence_path=None):
 
 
 def check_registry_accessions(rep, registry=None, evidence_path=None):
-    registry = REGISTRY if registry is None else registry
+    registry = str(outgroup_registry_path()) if registry is None else registry
     try:
         if registry_binding(registry)["authority"] == "BUNDLED_REFERENCE_ONLY":
             rep.add("R1", "WARN", "Registry authority UNBOUND", "Bundled reference snapshot is not a selected project registry")
@@ -716,7 +720,7 @@ def main():
     ap.add_argument("--outgroup", default="OUTGROUP")
     ap.add_argument("--min-ratio", type=float, default=1.0)
     ap.add_argument("--tip-map", default="", help="TSV: tree_tag<TAB>species_name — resolves abbreviated tip names (e.g. 'S sp. AS-XXX')")
-    ap.add_argument("--r1-registry", default=REGISTRY,
+    ap.add_argument("--r1-registry", default=str(outgroup_registry_path()),
                     help="Read-only outgroup registry TSV for R1")
     ap.add_argument("--r1-evidence", default="",
                     help="Read-only manifest of hash-bound exact accession records")

@@ -81,7 +81,7 @@ def display_id(acc):
     """The accession shown in a reference-genome row label. A region file is named '<genome zip stem>__<record>.regionNNN';
     the record part after '__' gives the accession. A stem accession is kept only when it shares that record's letter
     prefix, so a WGS master (FMHI00000000) still labels its contig (FMHI01000018); a stem token with another prefix is a
-    strain designation (HH130630, EC080619, CB00851), not an accession. Card 3918f93e_456_comparison_row_accession."""
+    strain designation (HH130630, EC080619, CB00851), not an accession (v9.7.456 comparison-row accession fix)."""
     head, _, tail = acc.partition("__")
     t = re.search(_INSD, tail) if tail else None
     if not t:

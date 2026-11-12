@@ -21,13 +21,13 @@ Success is two files in the output folder:
 - `<strain>_Metabolomics_Readiness.csv`
 - `<strain>_Metabolomics_Readiness.xlsx`, with one sheet named `Metabolomics_Readiness`
 
-Both outputs must be new: if either file already exists in `--out-dir`, the tool stops with `OUTPUT_REFUSED` before writing anything, so an older spreadsheet can never sit beside a new CSV. If the spreadsheet step fails, the tool prints `(xlsx skipped: ...)` where the path should be, and the exit code is still 0; the CSV is then the only output of this run. The tool does not touch the master workbook. A package with no BGCs gives a header-only CSV.
+Both outputs must be new: if either file already exists in `--out-dir`, the tool stops with `OUTPUT_REFUSED` before writing anything, but the output sequence is not one transaction. Inspect the final output roster and per-file status for later failures or concurrent changes. If the spreadsheet step fails, the tool prints `(xlsx skipped: ...)` where the path should be, and the exit code is still 0; the CSV is then the only output of this run. The tool does not touch the master workbook. A package with no BGCs gives a header-only CSV.
 
 ## Columns
 
 `locator`, `strain`, `full_contig`, `region`, `identity_state`, `bgc_id`, `class`, `MW_range`, `ionization`, `UV_handle`, `polarity`, `extraction_route`, `dereplication_target`, `claim_ceiling`.
 
-`strain`, `full_contig` and `region` are copied from one manifest record (`strain_id`, the BGC's `contig` or `node_id`, and `antismash_region` or a zero-padded `region_number`). A missing part is left blank and `identity_state` reads `IDENTITY_HOLD: missing ...`; otherwise it reads `COMPLETE`. `locator` is a display label only.
+`strain`, `full_contig` and `region` are copied from one manifest record (`strain_id`, the BGC's `contig` or `node_id`, and `antismash_region` or a zero-padded `region_number`). A missing part is left blank and `identity_state` reads `IDENTITY_HOLD: missing ...`; otherwise it reads `COMPLETE`. COMPLETE means those three fields are present, not validated or uniquely bound. Verify strain / full contig / region / BGC alias against the bound input and manifest; hold ambiguous, conflicting or duplicate bindings. `locator` is a display label only.
 
 A locus whose class the tool cannot map gets `class-default: unavailable` in `MW_range` and blanks elsewhere. Nothing is invented.
 
@@ -46,7 +46,7 @@ Standard C18 reversed-phase extraction can lose polar or zwitterionic products, 
 ## Review checklist
 
 - [ ] Every row has a mass range, ionization, UV handle, polarity, extraction route and dereplication target, or says it is unavailable.
-- [ ] No exact mass, formula or structure appears unless a named reference cluster with strong evidence supports it.
+- [ ] No exact mass, formula or structure is attributed to the selected locus or sample. An exact property of a verified reference compound can be cited as that reference's property, with its source. A sample-level compound claim requires appropriate sample-specific analytical evidence; attributing it to a locus additionally requires evidence linking that locus to the product. Keep untested linkage unresolved.
 - [ ] Polar rows carry the C18 caveat.
 - [ ] Bioassay pairing stays at extract level.
 - [ ] Every locus is written as `strain / full contig / region / BGC alias`, from the `strain`, `full_contig`, `region` and `bgc_id` columns; rows with `IDENTITY_HOLD` are held.

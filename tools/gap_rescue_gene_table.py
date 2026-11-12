@@ -453,7 +453,7 @@ def write_gene_table(out, rows, splits, core_identity: str, label: str, referenc
     import os as _o, sys as _s
     _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__)))
     from gap_rescue_locus_map import count_summary, count_sentence
-    counts = count_summary(rows, splits, core_identity, known_tags)
+    counts = count_summary(rows, splits, core_identity, known_tags, edge)
     caption = count_sentence(counts, core_identity or "the core") + "."
     rendered_caption = caption + " Size ratio = local/reference full-protein length; not alignment coverage."
     with open(out / "gene_table_counts.tsv", "w", newline="") as fh:   # one row per pair, for inventories to read

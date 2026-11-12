@@ -32,6 +32,8 @@ A thin wrapper around pyrodigal that extends gene calling to giant viruses and v
 
 ---
 
+> **Historical ANI descriptions:** The thresholds and reliability claims below are not universal taxonomic rules or a validated backend selection for the current task. Report the method, aligned coverage, input quality and unresolved comparisons; interpret species or genus assignments using independently supported current evidence. Do not assume one ANI tool succeeds on every fragmented assembly.
+
 ## Group 2 · Whole-Genome Identity and ANI
 
 ### pyfastani — v0.6.1

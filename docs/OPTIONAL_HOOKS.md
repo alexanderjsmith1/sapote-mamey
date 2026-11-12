@@ -49,6 +49,9 @@ entries. Confirm that the host supports these events and payloads before enablin
 For c10_tool_drift.py, use the same project root and session identifier for both events.
 A new baseline for the same identifier replaces the earlier one, so a resumed session compares
 against its latest SessionStart, not its first.
+When no baseline exists for that identifier, the Stop check compares nothing. It prints an
+"unarmed" warning only when baselines from other sessions are present; with no baselines at all it
+stays silent. So silence is not a clean check.
 For the workflow hook, point SAPOTE_WORKSPACE_ROOT at the bundle root containing the intended
 checker. It does not search neighboring releases or install a workspace-specific gate wrapper.
 Test selected hooks with generic inputs before using them on active work. A hook warning is

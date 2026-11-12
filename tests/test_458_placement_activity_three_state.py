@@ -1,6 +1,6 @@
 """Card 458_placement_activity_three_state: the placement-tree activity strip gets an opt-in three-state mode.
 
-The strip knew two states for a numeric reading: 80% or more was strong and everything else "tested, below 80%" (card f51fc51a_458_activity_legend_ruling_314 renamed them).
+The strip knew two states for a numeric reading: 80% or more was strong and everything else "tested, below 80%" (the v9.7.458 activity-legend ruling renamed them).
 The thesis classes (rulings 314-316) are strong 80% or more, moderate 50-79%, low/weak 25-49%, and "active" means 50%
 or more, so a 50-79% reading is not inactive. `--activity-states three` draws strong / moderate / tested, below 50% /
 not tested (blank). The default stays two-state with the ruling-314 words. Synthetic data only; the readings are 95, 65, 30 and n.t.

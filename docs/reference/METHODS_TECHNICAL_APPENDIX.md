@@ -1,6 +1,6 @@
 # Methods technical appendix
 
-**Version of record:** Mamey engine v1.9.180 · bundle v9.7.464  
+**Version of record:** Mamey engine v1.9.181 · bundle v9.7.465  
 **Scope:** the parameters and limits to report when you describe what the software did. It documents software behavior and claim limits. It is not evidence that a study used every module.
 **Terms:** module acronyms (RG-GMCI, FLBR, EFLS, CCTT, CGAD, UMED, TFBS, RiQ, KCB) are defined in the [glossary](../GLOSSARY.md). For a copyable list of what to report, use the [methods reporting checklist](../METHODS_REPORTING_CHECKLIST.md). The [source map](../development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) shows which module to cite for each topic.
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | antiSMASH admission | default tested major versions | 5-8 | Record version, strictness, schema status, and any override. Out-of-range/unreadable versions trigger a warning; this check alone does not refuse an otherwise recognized input. |
 | GenBank read safety | uncompressed member size / compression ratio | 100,000,000 bytes / 200-fold | `MAMEY_GBK_MAX_BYTES` and `MAMEY_GBK_MAX_RATIO` are read at call time. These are member guards, not total archive or process-RAM limits. Report overrides and rejected members. |
-| JSON evidence | default policy | bounded, wall-clock-capped parsing with visible fallback | Do not translate a timeout or fallback into zero evidence. |
+| JSON evidence | default policy | `run --json-evidence` defaults to `bounded`; `--capped-session` forces the main walker `off` | The separate record pass still reads eligible, readable JSON for KCB percent; inspect its status for absent, held or unreadable input. Do not translate timeout or fallback into zero evidence. |
 | RG-GMCI routing | HIGH / MODERATE score floors | 14 / 9 | Preserve score, component evidence, demotions, and deterministic state. |
 | RG-GMCI geometry | overlap / locus gap / subject span | 0.20 / 30 / 400 | Report release and any changed constants. |
 | RG-GMCI guards | hub degree / terminus margin / small partner | 4 / 500 bp / 25 kb | Report hub and terminus-complexity outcomes. |
@@ -18,7 +18,7 @@
 | source-derived scans | UMED coupling / TFBS upstream window | 5 kb / 300 bp | Record registry/pattern version and sequence availability. |
 | triage routing | tier cutoffs | 85 / 70 / 50 | Scores are routing priors, not biological probabilities. |
 | scoring | diagnostic / RG-GMCI HIGH / MODERATE bonuses | 25 / 8 / 4 | Preserve standing rules, guards, and raw scores. |
-| novelty | KCB reduction boundary | antiSMASH rank-1 percent similarity (`kcb_similarity_pct`) of 70 or more | A cumulative score with no percent does not reduce novelty. Missing KCB evidence must not increase certainty. |
+| novelty | KCB reduction boundary | A non-UNKNOWN KCB state and recorded rank-1 percent (`kcb_similarity_pct`) at least 70 | A missing percent or UNKNOWN state does not trigger the reduction. A cumulative score without percent does not reduce novelty. Missing KCB evidence must not increase certainty. |
 | novelty | RiQ credit boundary | similarity below 0.5 | Record RiQ source and binding state. |
 
 All values above are release-specific. `tools/sync_version.py` owns the version-of-record line, and regression tests require it to match `pyproject.toml` and `mamey.__version__`.
@@ -27,11 +27,11 @@ All values above are release-specific. `tools/sync_version.py` owns the version-
 
 ### Input, inventory, and exact identity
 
-Admission inspects archive members, rejects unsafe/non-regular members as evidence sources, and records schema uncertainty. Coordinate recovery and assembly metrics depend on the files present. Corrected BGC counts are heuristic. Every individual BGC must be displayed as `strain / full node-or-contig / region / BGC alias`; incomplete identities fail closed.
+Admission inspects archive members, rejects unsafe/non-regular members as evidence sources, and records schema uncertainty. Coordinate recovery and assembly metrics depend on the files present. Corrected BGC counts are heuristic. Every individual BGC must be displayed as `strain / full node-or-contig / region / BGC alias`. That is a requirement, and each route checks it differently. The direct card writer (`mamey.judgment_store.record_mode_b`) raises an identity hold before writing, unless its caller has already checked identity. `GCF_Tags.csv` still writes a row with a missing component, marks it `IDENTITY_HOLD` in `identity_status` and leaves the cell blank. Check the route you used.
 
 ### KnownClusterBlast, MIBiG, and RiQ
 
-Parsers normalize source-specific evidence while retaining provenance and source precedence. Reference compound names and similarity measures support class-level hypotheses only. Distinguish `NO_VERIFIED_SEARCH`, `SEARCH_FAILED`, `QUERY_UNBOUND`, `ZERO_ADMITTED_ROWS`, and `VERIFIED_NO_HIT`; they are not interchangeable. A KnownClusterBlast file that is present with no hits reads `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`. That is not a verified no-hit.
+Parsers normalize source-specific evidence while retaining provenance and source precedence. Reference compound names and similarity measures support class-level hypotheses only. Distinguish `NO_VERIFIED_SEARCH`, `SEARCH_FAILED`, `QUERY_UNBOUND`, `ZERO_ADMITTED_ROWS`, and `VERIFIED_NO_HIT`; they are not interchangeable. A recognized KnownClusterBlast no-hit report can produce `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`; an unsupported empty, missing, unreadable or unbound file is not that recognized state. Neither is a verified no-hit.
 
 ### RG-GMCI, FLBR, and EFLS
 
@@ -51,7 +51,7 @@ Cohort comparisons require compatible versions/profiles, declared units and deno
 
 ### Sealing and validation
 
-Manifests, reciprocal checksums, privacy profiles, and seal gates establish reproducibility and policy state. They do not establish biological truth. Hermetic fixtures validate software behavior; biological validation requires independent, task-specific controls.
+Manifests, reciprocal checksums, privacy profiles, and seal gates check selected files and policy state. They do not by themselves show that a workflow can be reproduced: checksum exclusions and varying artifacts limit byte comparison (see below), and a validated replay is a separate test. They do not establish biological truth. Hermetic fixtures validate software behavior; biological validation requires independent, task-specific controls.
 
 ## Failure-state vocabulary
 

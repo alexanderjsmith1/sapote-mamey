@@ -18,8 +18,7 @@ To turn a Markdown report into a PDF or Word file, go to "Convert one report" be
 
 ## Convert one report
 
-You need a reviewed Markdown file and Python 3.12 or newer. The Word route also needs
-Pandoc. From the program folder:
+You need a reviewed Markdown file. The PDF route checks for Python 3.12 or newer; the Word route needs Pandoc. Check the respective toolchain and script prerequisites. From the program folder:
 
 ```bash
 bash tools/md_to_pdf.sh /absolute/path/to/report.md /absolute/path/to/new-report.pdf
@@ -41,7 +40,7 @@ The PDF script uses ReportLab first. If that fails, it tries Pandoc with XeLaTeX
 a fallback tool is missing it prints `PDF_TOOLCHAIN_UNAVAILABLE` and exits `2`. The
 fallback, when it succeeds, also writes three files beside the PDF: `<name>.render_preflight.json`,
 `<name>.wide_tables_appendix.md` and `<name>.resource_bindings.json`. Read the
-preflight file and the appendix when the fallback ran.
+preflight file and the appendix when the fallback ran. A later fallback failure can leave sidecars; preserve and inspect partial outputs before retrying. Fresh-name preflight does not make conversion one transaction.
 
 The PDF must be a new path. Before either route runs, the script checks the PDF and
 all three sidecar names. If any of them already exists, or one of them is the input,
@@ -56,21 +55,27 @@ from a folder of per-strain results (its "bank", read by `--banked-dir` in each
 generator) and a workbook:
 
 ```bash
-bash tools/build_all_deliverables.sh /absolute/path/to/bank /absolute/path/to/working-workbook.xlsx
+bash tools/build_all_deliverables.sh [--replace] /absolute/path/to/bank /absolute/path/to/working-workbook.xlsx
 ```
 
 Use it only in a throwaway copy of the program folder. It writes into this
 `deliverables/` folder, replaces `build_all_deliverables_status.tsv`, and converts
-every `.md` file below `deliverables/` except `README.md`, including the templates.
-It has no dry-run option.
+the `.md` files below `deliverables/`, including the templates. It skips `README.md`,
+`*.wide_tables_appendix.md`, `*.render.md` and hidden paths. It has no dry-run option.
+It runs under the macOS system Bash 3.2.
 
-It needs Bash 4 or newer. The macOS system Bash is 3.2, and the script stops at its
-`mapfile` line after the generators have run. Install a newer Bash (`brew install bash`)
-and run the script with it. Check `bash --version` first.
+A rerun into the same `deliverables/` folder does not replace earlier outputs. For each
+existing PDF (with its sidecars), `.docx` and `analyses/GCF_Tags.csv`, it prints a
+`REFUSED` line naming the file, records `FAIL` in the status file, and exits 1 at the end.
+`--replace`, given as the first argument, replaces all three kinds. Under `--replace`, a
+handled failed step attempts to restore the earlier file. That conditional recovery does not cover every interruption, filesystem error or workbook mutation; preserve a working copy and inspect each command's status and outputs. A symlink or folder at an output name is
+refused even with `--replace`. The workbook argument defaults to
+`deliverables/Sapote-Mamey_Master_Workbook.xlsx`; when that workbook exists, its
+`GCF_Tags` sheet is replaced in place with or without `--replace`, so pass a working copy.
 
-When a step fails, the script records it and carries on. The last exit is nonzero if
-a required step failed. Read each row of the status file, and check that the output
-files are new. A `PASS` row means the command ran, nothing more.
+When a step fails, the script records it and carries on. It exits 1 if any step
+failed. Read each row of the status file, and check that the output files are new.
+A `PASS` row means the command ran, nothing more.
 
 A similarity match, a heuristic class or a missing match does not show that a
 compound exists, that it is active or that it is new. Set the privacy level from the

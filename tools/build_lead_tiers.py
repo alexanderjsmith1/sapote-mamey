@@ -174,6 +174,12 @@ def main():
             'current_tier':current,'proposed_tier':proposed,'PROMOTED_by_selfprotection':'YES' if promoted else '',
             'resistance_tier':rt[:34],'edge':b.get('edge_status'),'kb':b.get('length_kb'),
             'priority_floor':'high' if nucl else ''})
+    # The assembly-QC gate holds FLAG strains only when assembly_qc.json was supplied. Without it no
+    # strain is held, so say on every row whether the gate applied.
+    _qc_recorded = os.path.exists(qcp)
+    for x in rows:
+        x['assembly_qc'] = ('held' if x['current_tier'] == 'HOLD-QC'
+                            else 'not flagged' if _qc_recorded else 'not recorded')
     if a.bioactivity:
         # A substring filter on the assigned label: rows with other labels are removed from this
         # output (no adjacent partition is written). Run without --bioactivity to see them.
@@ -185,7 +191,7 @@ def main():
     # not crash on rows[0].keys(). Fieldnames are fixed by the row schema above.
     _FIELDS = ['sid','bgc','modeb_class','bioactivity_axis','in_cluster_SARP','self_protection_T1',
                'current_tier','proposed_tier','PROMOTED_by_selfprotection','resistance_tier',
-               'edge','kb','priority_floor']
+               'edge','kb','priority_floor','assembly_qc']
     fieldnames = list(rows[0].keys()) if rows else _FIELDS
     _tmp = a.out + '.tmp'
     with open(_tmp,'w',newline='') as f:
@@ -193,7 +199,8 @@ def main():
     os.replace(_tmp, a.out)
     nA=sum(1 for x in rows if x['current_tier']=='A'); nP=sum(1 for x in rows if x['proposed_tier']=='A')
     promo=[x for x in rows if x['PROMOTED_by_selfprotection']=='YES']
-    emit(f"  wrote {a.out} — {len(rows)} CONFIRMs; current Class-A={nA}, proposed Class-A={nP} (+{len(promo)} via self-protection)")
+    emit(f"  wrote {a.out} — {len(rows)} CONFIRMs; current Class-A={nA}, proposed Class-A={nP} (+{len(promo)} via self-protection)"
+         + ("" if _qc_recorded else "; assembly_qc.json not found, so no strain was held by the assembly-QC gate"))
     for x in promo: emit(f"    PROMOTED: {x['sid']}/{x['bgc']} — {x['bioactivity_axis']} ({x['modeb_class']})")
 
 if __name__=='__main__': main()

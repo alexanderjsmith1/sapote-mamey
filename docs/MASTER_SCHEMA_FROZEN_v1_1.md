@@ -131,6 +131,6 @@ Useful category strategy test · claim-safety language test PASSED · score/BGC 
 antiSMASH hmmdetection strictness used for the run (`strict|relaxed|loose|unknown`), so cross-run
 pooling stays comparable (see `docs/ANTISMASH_PROFILE.md` and `tools/check_antismash_profile.py`).
 Default `unknown`. The schema validator auto-derives required columns from the builder, so it now
-requires this column. Workbooks built before -q lack it and will fail validation — rebuild to migrate.
+requires this column. Workbooks built before -q lack it and will fail validation. For an authorized migration, use a separately named candidate copy and reconcile the expected strain roster and retained annotations before adoption.
 
 Before any rebuild, keep a copy of the workbook. Re-ingesting a strain drops that strain's existing rows first (`drop_existing_strain`, `mamey/master_workbook.py:1143-1144`), so hand annotations on those rows are lost unless you reconcile them from the copy.

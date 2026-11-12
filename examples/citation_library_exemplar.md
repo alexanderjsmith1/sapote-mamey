@@ -3,7 +3,7 @@
 **Historical v9.7.96 format example; current task and evidence admission rules apply.** The three-bucket vocabulary retained below is historical. Current digest labels are Verified / Partial / Policy / GenBank, with the definitions in [the citation-review protocol](../docs/BERT_MODE_PROTOCOL.md). Preserve the citation store’s separate binding/adoption states; do not map an illustrative VERIFIED heading to SOURCE_VERIFIED or OWNER_ACCEPTED.
 
 The example's VERIFIED labels are illustrative, not a current verification receipt. Before reuse, confirm each cited statement against its actual source. Replace every historical strain/alias shorthand with `strain / full node-or-contig / region / BGC alias` copied from a bound record. If the node/region binding is unavailable, retain an identity hold rather than reconstructing it.
-**[EXAMPLE: entries below are illustrative of the FORMAT. Check every real entry against PubMed or its DOI before use — see `docs/BERT_MODE_PROTOCOL.md`.]**
+**[EXAMPLE: entries below are illustrative of the FORMAT. Verify bibliographic fields in an authoritative record and each claim against its source passage; record unavailable full text before use — see `docs/BERT_MODE_PROTOCOL.md`.]**
 
 ---
 
@@ -13,8 +13,9 @@ A citation library organizes reviewed reference literature beside the dataset's 
 sections of a Mode B card (§48 and §49 in `current50_v2`) and supplies the "Key references" blocks that bench
 guides cite.
 
-Produced under Bert Mode: every entry is bucketed Verified / Partially verified /
-Unverified, and no identifier is ever emitted without primary-source confirmation.
+This historical example uses Bert Mode's earlier three-bucket vocabulary. Current digest labels are
+Verified / Partial / Policy / GenBank, defined in [the citation-review protocol](../docs/BERT_MODE_PROTOCOL.md).
+Check every identifier against its primary source before you use it.
 
 ---
 
@@ -39,7 +40,7 @@ Category: [mechanism / chemical class — e.g. "Antimetastatic transAT-PKS gluta
 
 Strains in dataset:
   [StrainID BGC-NN] ([sim]% MIBiG, [frag class] — [assembly tier])
-  [additional strains carrying this family, one per line]
+  [additional query loci with reference-similarity evidence: full identity, source, coverage and unresolved interpretation]
 
 Mechanism / biosynthetic logic:
   [2–4 sentences. What the compound does; the BGC architecture (ORF count,
@@ -69,7 +70,9 @@ Dataset context note:
 
 ---
 
-## Worked example (illustrative format — verify before real use)
+## Worked example (fabricated dataset placeholders; literature claims require verification)
+
+The query-locus/assembly context below is fabricated for format illustration, not a measured dataset. For each actual query, bind full locus and comparator identities, alignment metric and coverage, source status and assembly scope. Do not infer a functional family or chemical novelty from this example. The abbreviated citation title below is illustrative; a final bibliography must reproduce the verified complete title.
 
 ### A1. Ranthipeptides (radical non-α thioether peptides) | VERIFIED
 
@@ -105,10 +108,10 @@ PNAS-style formatted citation:
   https://doi.org/10.1021/jacs.9b01519
 
 Dataset context note:
-  Ranthipeptide BGCs appear in multiple strains; the two loci above are both
-  large interior loci on Good assemblies. A low-% MIBiG hit here means the
-  locus is divergent from characterized references; similarity is not
-  structural identity, and novelty is not assessed by this entry.
+  Bind the actual query and comparator identities, alignment metric/coverage,
+  source status and assembly scope. These fabricated placeholders establish
+  neither shared functional family nor chemical novelty. Similarity is not
+  structural identity; literature applicability is a separate review.
 ```
 
 ---

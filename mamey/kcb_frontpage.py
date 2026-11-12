@@ -134,12 +134,20 @@ def frontpage_command(args):
                   f"its NODE·region with `<strain>_2b_bgc_crosswalk.csv` first.", file=_sys.stderr)
             return 2
     if _reg:
+        # Only regions with a KnownClusterBlast hit are listed here, so a --region that matches none of
+        # them is either a region without a hit or an anchor that does not exist. Name the anchors that
+        # do carry hits so the reader can tell a mistyped anchor from a region with nothing to show.
+        _anchors = sorted({str(h.get("region", "")) for h in hits})
         hits = [h for h in hits if _reg.lower() == str(h.get("region", "")).lower()]
     if not hits:
-        emit(f"No KnownClusterBlast hits after filter (region={_reg}).")
+        emit(f"No KnownClusterBlast hit is listed for region={_reg}. Regions with a hit: "
+             f"{', '.join(_anchors)}. A region outside that list has no hit or is not an anchor "
+             f"in this output (anchors look like r1c1).")
         return 1
     emit(f"{'region':9} {'compound':32} {'sim%':>5} {'genes':>6}  tier", "-" * 68, sep="\n")
     for h in hits[: args.top]:
-        emit(f"{h['region']:9} {h['compound'][:32]:32} {h['similarity'] or 0:>5} "
-              f"{h['n_genes'] or 0:>6}  {h['tier']}")
+        # A hit without a similarity value prints a dash; 0 would read as a measured 0%.
+        emit(f"{h['region']:9} {h['compound'][:32]:32} "
+             f"{'—' if h['similarity'] is None else h['similarity']:>5} "
+             f"{h['n_genes'] or 0:>6}  {h['tier']}")
     return 0

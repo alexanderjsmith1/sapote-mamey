@@ -33,17 +33,28 @@ missing, not zero.
    the originals are not changed:
 
    ```bash
-   mkdir package_zips && cp -n runs/*/*.zip runs/*/package/*.zip package_zips/ 2>/dev/null
-   ls package_zips | wc -l
+   python - <<'PYZIP'
+   from pathlib import Path
+   import shutil
+
+   source = sorted(set(Path("runs").glob("*/*.zip")) | set(Path("runs").glob("*/package/*.zip")))
+   if not source or len({p.name for p in source}) != len(source):
+       raise SystemExit("No ZIPs or duplicate ZIP names: inspect the runs before copying")
+   dest = Path("package_zips")
+   dest.mkdir()  # refuses an existing folder
+   for item in source:
+       shutil.copy2(item, dest / item.name)
+   print(f"Copied {len(source)} ZIPs; compare names with the widget data")
+   PYZIP
    python mamey_run.py codex-figure-sources \
      --widget-data reviews/cohort/AS_All_Strains_Widget_Data.json \
      --package-dir package_zips --outdir reviews/cohort/FIGURE_SOURCE_BUNDLE
    ```
 
-   `mkdir` fails if `package_zips` already exists, and the `&&` then skips the copy, so an old
-   folder does not get new ZIPs mixed in. Pick a new folder name in that case. `cp -n` does
-   not overwrite, so two ZIPs with the same name leave only the first; the `ls` count should
-   equal the number of strains. A ZIP the folder lacks reads `MISSING_PACKAGE` for that strain,
+   The copy refuses an existing folder, no ZIPs, or duplicate ZIP names. If it fails after
+   creating the folder, preserve the partial folder and use a fresh name after inspection. Compare
+   the copied names with the widget data; a count alone does not establish a match. A ZIP the
+   folder lacks reads `MISSING_PACKAGE` for that strain,
    and one missing ZIP is enough to make the receipt status `FAIL`, which stops step 3. A
    failed run leaves its output folder, so use a new `--outdir` for the next try. The command
    name is historical; it is the only command that builds this bundle.

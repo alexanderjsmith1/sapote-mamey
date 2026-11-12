@@ -67,7 +67,16 @@ from .exclusions import official_data_json as _official_data_json
 # v9.7.410 (CLAUDE_410 savefig OOM sweep): clamp publication DPI under the Agg pixel
 # ceiling before every raster write. See mamey/render_safe.py::safe_savefig_dpi.
 from .render_safe import safe_savefig_dpi as _safe_dpi
-TIER = dict(_official_data_json("cohort_assembly_tiers.json", {}))
+def __getattr__(name):
+    # Assembly tiers are cohort data. Read on first use, not at import: importing this module reads no workspace data.
+    if name == "TIER":
+        return dict(_official_data_json("cohort_assembly_tiers.json", {}))
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 FUNC_COL = {"core biosynthetic": "#b2182b", "biosynthetic context": "#aebfd4",
             "tailoring / modification": "#2d898b", "chain release / TE": "#6a51a3",
@@ -171,7 +180,8 @@ def fig_census(root, strains, out, census_csv=None):
     ax.set_title("Per-strain gene/domain census\n(cells = raw counts; colour = z-score within metric)",
                  fontweight="bold", fontsize=12)
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04); cb.set_label("z-score (within metric)")
-    cap = "Assembly tier — " + " · ".join(f"{c}: {TIER.get(c, '?')}" for c in cols)
+    tiers = _bound("TIER")
+    cap = "Assembly tier — " + " · ".join(f"{c}: {tiers.get(c, '?')}" for c in cols)
     fig.text(0.5, -0.02, cap, ha="center", fontsize=8.5, style="italic", color="#444")
     _png = os.path.join(out, "fig1_census_notier.png")
     _sidecar_csv(_png, ["metric", "strain", "raw_count", "zscore"],

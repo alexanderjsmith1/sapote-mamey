@@ -1,7 +1,7 @@
 # Sapote-Mamey Knowledge Module — Evidence Axes, Lead Scoring & Class Logic
 
-**Filing.** `docs/modules/KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md`. Reference knowledge for any runner
-that scores leads, assigns confidence classes, or writes lead/figure captions. It is consistent with
+**Filing.** `docs/modules/KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md`. Reference knowledge for anyone
+who scores leads, assigns confidence classes, or writes lead/figure captions. It is consistent with
 `DAPR_CLASS_FRAMEWORK.md` (DasR / regulator framework) and `MODE_B_CARD_CLAIM_SAFETY_AUDIT.md` (claim-safety);
 where this module restates a number, the scoring code (`build_priority_leads.py` / `lead_board.py` /
 `scoring.py`) is the executable source of truth and wins on any drift.
@@ -28,9 +28,7 @@ Each row below describes an input to the composite. The writer checks stored val
 | **KCB** | Stored `KCB_anchor` text | comparator context; check the upstream source and availability separately | "similar to the recorded reference"; missing evidence is not a completed no-hit or novelty result |
 | **Tier-1** | Stored `Tier` value equal to `1` | qualification from the selected lead-board producer; some rows can be KCB-only hypotheses | State the actual marker or qualification; eligibility at an edge does not establish pathway completeness |
 
-**AS verdict caveat.** Mode B verdicts on unpublished **AS** strains are currently tagged `[EG]` (generated
-offline, no live literature). They count for class assignment but must be upgraded to **Verified** (a "Verified
-Literature Deep Dive" pass, not "Rapid") before any AS-based claim goes into a manuscript.
+**Status and provenance.** For this writer, keep `ModeB_Status` as the exact supported status. Record any `[EG]` provenance separately only if the selected input workflow supports it; this page does not define a new field. Verify the actual producer and output. An `[EG]` or Verified label alone does not establish manuscript readiness; review the underlying identity, sources and claims.
 
 **SARP source of truth.** SARP coupling is the per-BGC `tfbs_coupling.json` set containing `SARP` — NOT the
 strain-level `tfbs.SARP_BTAD_like` palindrome count. Tools must read the per-BGC bank (`build_modeb_deepdive.py`
@@ -79,8 +77,7 @@ separate [recall view](KNOWLEDGE_LeadTiers.md) when selecting a question for rev
 
 ## 4. Read historical counts as a cohort receipt
 
-The earlier record reports **247 shortlisted leads: 12 A, 148 B and 87 C, from 1,784 evaluated**,
-with Class A split **6 SID + 6 AS**. Its correction from an earlier estimate of 17 applied the
+The earlier record reports **247 shortlisted leads: 12 A, 148 B and 87 C, from 1,784 evaluated**. Its correction from an earlier estimate of 17 applied the
 CONFIRM-and-SARP rule rather than treating every CONFIRM as Class A. These are historical
 reports, not expected counts for another cohort or independent validation of the named chemistry.
 
@@ -91,7 +88,7 @@ does not establish manuscript readiness.
 
 ---
 
-## 5. Class-B promotion routes (the verification worklist — drives figure 1d and the punch card)
+## 5. Class-B promotion routes (the verification worklist)
 Every Class-B lead is one axis short of A. Split by what it needs:
 
 | Route | Count | Needs | Action |
@@ -102,8 +99,7 @@ Every Class-B lead is one axis short of A. Split by what it needs:
 The route counts above belong to the historical cohort. For a current row, identify the missing
 stored input and the evidence needed to resolve it. A literature review alone does not update the
 workbook or prove SARP coupling. After admitted input fields are updated, the priority writer
-recomputes classes when explicitly run; it writes the workbook/CSV/Markdown outputs, not the
-historical figure set. Figure selection, rendering and review are separate tasks.
+recomputes classes when explicitly run. It replaces the `Priority_Leads` sheet in the supplied workbook and saves that workbook path before writing the CSV/Markdown outputs. Use only an authorized working copy and a fresh output folder; inspect each artifact because a later failure can leave the workbook updated with only some outputs. The generated Markdown's independence wording is not a measured independence result and needs a separate producer correction. It does not regenerate the historical figure set. Figure selection, rendering and review are separate tasks.
 
 ---
 
@@ -114,16 +110,4 @@ historical figure set. Figure selection, rendering and review are separate tasks
 - **Novelty scores are review signals under the recorded inputs and method.** Missing comparator evidence does not establish novelty. A Mode B verdict or score alone does not demonstrate a new compound.
 - **Bioactivity metadata is optional strain-level context.** Omission is `NOT_SUPPLIED` / `NOT_OBSERVED`, with no supplied assay or compound linkage. The metadata contract does not score leads or assign an observation to a locus.
 - **Boundary-weighted count = Interior + ½·Edge + ¼·Full-Contig.** Report it separately from raw regions and the boundary distribution, with comparable input processing. It is a heuristic statistic, not a recovered pathway fraction or a proven lower bound on distinct pathways.
-- **Locked exclusions:** `hglE-KS-PREV-001` (prevalent glycolipid domain; structural novelty stands, but no
-  habitat-exclusive claim); **NAPAA** is neutral under the current rules registry (no blanket comparative/ecological exclusion; the old specific hypothesis remains retired);
-  ubiquitous saccharide machinery is not ecologically informative.
-
----
-
-## 7. Historical figure map for the recorded cohort
-- **Mode B** → 1a, 1c, C3 (and the score in every ranked panel)
-- **SARP** → 1a, 1c, 1d (routes), C3
-- **DasR** → 1a, C3 (ecology axis)
-- **KCB / KCB-dark** → 2g (novelty per class), C1 (KCB-dark %), C4
-- **Tier-1** → 1a, C3
-- **class counts (12/148/87)** → 1c, 2a, C3
+- **Selected standing rules:** inspect the actual producer and applied registry rule. `hglE-KS-PREV-001` is a recorded exclusion policy, not proof of structural novelty or habitat specificity. NAPAA is neutral in the registry, while individual consumers can apply additional filters; preserve their actual roster and denominator. A saccharide label alone does not establish absence of specialist chemistry or ecological relevance.

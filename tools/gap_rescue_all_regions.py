@@ -114,6 +114,8 @@ def run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=Non
 def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=None, edge_only=False,
              sensitivity=gdr.SENSITIVITY_DEFAULT, threads=4, figure=True, discovery_hits=None, attempt=None, gene_table=True, render_gene_table=True) -> list[dict]:
     prots, regions = gdr.load_genome(zip_path, label)
+    zip_sha256 = (hashlib.sha256(Path(zip_path).read_bytes()).hexdigest()   # recorded in every run's receipt
+                  if Path(zip_path).is_file() else "")
     out.mkdir(parents=True, exist_ok=True)
     (out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
     names = names or {}
@@ -153,6 +155,7 @@ def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=No
         rc = gdr.analyse_region(label, prots, regions, core, ref, name, source, folder, None, threads, sensitivity,
                                 mibig_db, pfam, figure, write_proteins=False, compounds=names, gene_table=gene_table,
                                 **({"render_gene_table": False} if not render_gene_table else {}))
+        gdr.record_inputs(folder, rc, zip_path, ref, zip_sha256)
         splits = rc["split_genes"]
         rows.append({"bgc": ident, "contig_edge": core.get("edge"), "check": "run", "reference": Path(ref).stem,
                      "reference_name": name, "reference_source": source, "reference_genes": rc["reference_genes"],

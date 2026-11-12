@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
-"""Export translated CDS from one explicitly selected whole-assembly GenBank.
+"""Export translated CDS from one whole-assembly GenBank.
 
 This is an offline source reader, not a search or a rescue adjudicator.
+
+With --gbk-member, that ZIP member is read. Without it, the tool finds the member itself: the one GenBank member
+that is not a region file (`*.regionNNN.gbk`), not antiSMASH's copy of the submitted input (`input/`), and not a
+macOS resource fork (`__MACOSX/`, `._*`). The member's name varies (`<strain>.gbk`, `<strain>_first.gbk`,
+`<folder>/<strain>_new.gbk`). When there is none, or more than one, it refuses and names the candidates.
 """
 import argparse
 import csv
 import hashlib
 import json
+import re
 import sys
+import zipfile
 from pathlib import Path
 
 
@@ -41,8 +48,30 @@ def _publish_new(out, text):
         os.unlink(tmp)
 
 
+def whole_assembly_members(source) -> list[str]:
+    """The ZIP members that can be the whole-assembly GenBank (see the module docstring)."""
+    with zipfile.ZipFile(source) as archive:
+        names = [i.filename for i in archive.infolist() if not i.is_dir()]
+    return sorted(n for n in names if n.lower().endswith(".gbk") and not n.startswith(("__MACOSX/", "input/"))
+                  and "/input/" not in n and not n.rsplit("/", 1)[-1].startswith("._")
+                  and not re.search(r"\.region\d{3}\.gbk$", n, re.I))
+
+
+def choose_member(source, member):
+    """(member, how it was chosen). A given member is used as given; a ZIP without one must hold exactly one
+    whole-assembly GenBank member, or the run is refused before anything is read or written."""
+    if member or not zipfile.is_zipfile(source):
+        return member, "given" if member else "not a ZIP"
+    found = whole_assembly_members(source)
+    if len(found) != 1:
+        raise ValueError(f"GBK_MEMBER_{'AMBIGUOUS' if found else 'NOT_FOUND'}: {len(found)} whole-assembly GenBank "
+                         f"member(s) in {Path(source).name}: {', '.join(found) or 'none'}; give --gbk-member")
+    return found[0], "the only whole-assembly GenBank member"
+
+
 def export(source, member, package, strain, out):
     source, package, out = Path(source).resolve(), Path(package).resolve(), Path(out).resolve()
+    member, selection = choose_member(source, member)
     table = package / (strain + "_cds_table.csv")
     from mamey.output_transaction import preflight_output_roster
     # Refuse an existing output, or one that aliases an input, before reading anything.
@@ -69,7 +98,7 @@ def export(source, member, package, strain, out):
         raise ValueError("whole-assembly member does not contain every package CDS")
     result = dict(schema="modeb_locus_inventory_v1", strain=strain,
                   assembly_source={"path": str(source), "sha256": sha(source), "gbk_member": member,
-                                   "gbk_sha256": member_hash},
+                                   "gbk_member_selection": selection, "gbk_sha256": member_hash},
                   package_cds_source={"path": str(table), "sha256": sha(table)},
                   # What was checked: every package CDS key is among the member's
                   # translated CDS, with the same coordinates and length. No
@@ -87,7 +116,7 @@ def export(source, member, package, strain, out):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", required=True)
-    p.add_argument("--gbk-member")
+    p.add_argument("--gbk-member", help="the whole-assembly GenBank member of a ZIP; omit to find the only one")
     p.add_argument("--package", required=True)
     p.add_argument("--strain", required=True)
     p.add_argument("--out", required=True)

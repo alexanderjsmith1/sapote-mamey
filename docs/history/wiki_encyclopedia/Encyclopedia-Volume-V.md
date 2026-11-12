@@ -110,6 +110,8 @@ keyword-only values). Had the lanthipeptide trigger fired on a class-incompatibl
 
 ## §V.3 · The corroboration gate
 
+> **Evidence boundary:** The scorer’s corroboration is a software classification and eligibility rule. A label or annotation passing that rule is not independent confirmation of an enzyme, pathway, compound, activity, or resistance mechanism. Inspect the underlying source and independent evidence; the historical examples below have not been revalidated for this release.
+
 The diagnostic bonus and the Tier-1 floor are powerful, so they are fenced by a single gate: a trigger earns its
 credit only if it is **corroborated** — if it fired on a class-*compatible* locus. A class-defining trigger that
 fires on a class-incompatible region (a phosphonate trigger on a type-III PKS) is **uncorroborated**: recorded in

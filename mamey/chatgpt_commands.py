@@ -345,6 +345,43 @@ _CLAIM_CEILINGS = {
 }
 
 
+# Short value and sentence for a BGC with no named KCB top hit, by kcb_evidence_state
+# (mamey/antismash_evidence.py). Only a reported no-hit says no anchor was detected.
+_KCB_ABSENT_TEXT = {
+    "KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED": (
+        "No KCB hit reported",
+        "No KCB anchor was detected for this BGC. KnownClusterBlast reported no hit; "
+        "that is a scoped search report, not proof of a new compound."),
+    "CLUSTERBLAST_FALLBACK_OBSERVED": (
+        "No KCB result (ClusterBlast only)",
+        "The package has no KnownClusterBlast result for this BGC, only ClusterBlast output; "
+        "the KCB comparison is not known."),
+}
+_KCB_NOT_IN_PACKAGE = (
+    "KCB not in package",
+    "The package holds no KnownClusterBlast result for this BGC; the KCB comparison is not known, "
+    "and this is not a no-hit result.")
+
+
+def _kcb_absent_text(state) -> tuple[str, str]:
+    return _KCB_ABSENT_TEXT.get(str(state or "").strip().upper(), _KCB_NOT_IN_PACKAGE)
+
+
+def _mode_b_board_hold(headers: list, rows: list[dict]) -> str:
+    """Reason the triage board cannot name each card's locus, or "" when it can."""
+    if not headers:
+        return "the board is empty (no header row)"
+    missing = [c for c in ("BGC_ID", "Contig") if c not in headers]
+    if missing:
+        return f"missing column(s) {', '.join(missing)}"
+    for ordinal, row in enumerate(rows, 1):
+        if not str(row.get("BGC_ID") or "").strip():
+            return f"row {ordinal} has a blank BGC_ID"
+        if not str(row.get("Contig") or "").strip():
+            return f"row {ordinal} ({row.get('BGC_ID')}) has a blank Contig"
+    return ""
+
+
 def _claim_ceiling(row: dict, bgc: dict, n_genes: int = 0) -> str:
     kcb = 0.0
     try:
@@ -402,7 +439,12 @@ def mode_b_command(args) -> int:
     node_first = getattr(args, "node_first", True)
 
     # Load manifest
-    manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        sys.stderr.write(f"ERROR: manifest.json in {pkg} cannot be read ({type(exc).__name__}: {exc}). "
+                         "No Mode B cards were written.\n")
+        return 1
     if not isinstance(manifest, dict):
         sys.stderr.write(
             "ERROR: manifest.json root must be an object; "
@@ -499,10 +541,19 @@ def mode_b_command(args) -> int:
         return 1
     triage_csv = expected_triage
 
+    # Read and check the board before any output folder is made. Every card names its contig, so
+    # a board with no header, no BGC_ID or Contig column, or a row with a blank one is held.
+    with open(triage_csv, newline="", encoding="utf-8") as fh:
+        _reader = csv.DictReader(fh)
+        _headers = _reader.fieldnames or []
+        triage_rows = list(_reader)
+    _hold = _mode_b_board_hold(_headers, triage_rows)
+    if _hold:
+        emit(f"IDENTITY_HOLD: {triage_csv.name}: {_hold}. No Mode B cards were written.", file=sys.stderr)
+        return 1
+
     outdir = Path(args.outdir) if getattr(args, "outdir", None) else pkg / "mode_b"
     outdir.mkdir(parents=True, exist_ok=True)
-    with open(triage_csv, newline="", encoding="utf-8") as fh:
-        triage_rows = list(csv.DictReader(fh))
 
     def _score(row: dict, col: str) -> float:
         try:
@@ -714,11 +765,12 @@ def mode_b_command(args) -> int:
 
         label = f"{contig} ({bgc_id})" if node_first else bgc_id
         has_kcb = bool(str(kcb_top).strip())
-        kcb_top_str = (str(kcb_top)[:100] + ("…" if len(str(kcb_top)) > 100 else "")) if has_kcb else "No KCB"
+        kcb_state = str(bgc.get("kcb_evidence_state") or "UNKNOWN_KCB")
         if has_kcb:
+            kcb_top_str = str(kcb_top)[:100] + ("…" if len(str(kcb_top)) > 100 else "")
             kcb_sentence = f"KCB similarity: {kcb_top_str} (score {kcb_score}, {kcb_prots} proteins)."
         else:
-            kcb_sentence = "No KCB anchor was detected for this BGC."
+            kcb_top_str, kcb_sentence = _kcb_absent_text(kcb_state)
 
         safe_claim = (
             f"BGC {bgc_id} ({contig}) encodes biosynthetic capacity consistent with "
@@ -741,6 +793,7 @@ def mode_b_command(args) -> int:
             f"| Architecture | {arch} (class confidence: {cls_conf}) |",
             f"| Length | {length_kb} kb |",
             f"| KCB anchor | {kcb_top_str} |",
+            f"| KCB evidence state | {kcb_state} |",
             f"| KCB score / proteins | {kcb_score} / {kcb_prots} |",
             f"| Antibacterial score | {ab} |",
             f"| Antifungal score | {af} |",
@@ -833,7 +886,8 @@ def mode_b_command(args) -> int:
     coverage_path = outdir / "Mode_B_Coverage_Receipt.json"
     _atomic_write_text(coverage_path, json.dumps(coverage_receipt, indent=2))
 
-    emit(f"  Mode B top-{top_n} cards: {md_path}", f"  Mode B CSV: {csv_path}", f"  Mode B coverage receipt: {coverage_path}", f"  Leads covered: {len(csv_rows)}", sep="\n")
+    emit(f"  Mode B top-{top_n} cards: {md_path}",
+         f"  Mode B CSV: {csv_path}" if csv_rows else "  Mode B CSV: not written (no leads on the triage board)", f"  Mode B coverage receipt: {coverage_path}", f"  Leads covered: {len(csv_rows)}", sep="\n")
     if coverage_status == "PARTIAL_NATIVE_MODEB_COVERAGE":
         emit(
             f"  WARNING: Mode B emitted {len(csv_rows)} cards but inventory contains "

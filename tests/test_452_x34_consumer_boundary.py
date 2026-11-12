@@ -25,7 +25,8 @@ def _setup(tmp_path, monkeypatch):
     root.mkdir()
     package, trove, quarantine, original, prior = _native_artifact_fixture(root, False)
     (package / "manifest.json").write_text(json.dumps({"strain_id": STRAIN}), encoding="utf-8")
-    (package / (STRAIN + "_4_triage_board.csv")).write_text("BGC_ID\n", encoding="utf-8")
+    # The single-template door refuses a BGC that is not on the board, so the board names it.
+    (package / (STRAIN + "_4_triage_board.csv")).write_text(f"BGC_ID\n{HELD_ALIAS}\n", encoding="utf-8")
     monkeypatch.setenv("MAMEY_BLASTP_SCAN_ROOT", str(tmp_path))
     inputs = set(prior) | {quarantine} | {p for p in package.rglob("*") if p.is_file()}
     before = {p: p.read_bytes() for p in inputs}

@@ -41,7 +41,17 @@ from mamey.workspace_root import workspace_root
 SUFFIX = "_blastp_top10_local.csv"
 CHANNEL = "local_swissprot"
 SUBJECT_DB = "swissprot"
-EXCLUDE_STRAINS = raw_analysis_excluded() | {"AS-000_CONSDARK"}
+def __getattr__(name):
+    # Excluded strains come from the workspace exclusions file. Read on first use, not at import:
+    # importing this module reads no workspace data.
+    if name == "EXCLUDE_STRAINS":
+        return raw_analysis_excluded() | {"AS-000_CONSDARK"}
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 
 def _num(value, cast=float):
@@ -140,7 +150,7 @@ def main(argv=None) -> int:
             for row in rows:
                 strain = (row.get("strain") or "").strip()
                 gene = (row.get("gene") or "").strip()
-                if not strain or not gene or strain in EXCLUDE_STRAINS:
+                if not strain or not gene or strain in _bound("EXCLUDE_STRAINS"):
                     continue
                 hit_rank = _num(row.get("hit_rank"), int)
                 subject_acc = (row.get("subject_acc") or "").strip()

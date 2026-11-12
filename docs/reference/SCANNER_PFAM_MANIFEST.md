@@ -7,16 +7,16 @@ Every selector below carries a Pfam family version (for example `PF00155.28`). T
 ## Build the HMM file
 
 ```bash
-python tools/build_scanner_hmm.py --source <Pfam-A.hmm> --out <scanner_pfam.hmm> --preset 35
+python tools/build_scanner_hmm.py --source path/to/Pfam-A.hmm --out results/EXAMPLE/scanner_pfam.hmm --preset 35
 ```
 
-Use `--preset 148` for the larger set, or `--accessions <file>` for your own list (exactly one of the three). You need `hmmfetch` and `hmmpress` installed. The builder makes no network request. It refuses to overwrite an existing output file, index file or receipt.
+Substitute the actual source and a fresh authorized destination; quote paths containing spaces. Use `--preset 148` for the larger set, or `--accessions <file>` for your own list (exactly one of the three). You need `hmmfetch` and `hmmpress` installed. The builder makes no network request. It refuses to overwrite an existing output file, index file or receipt.
 
 Success: exit 0, the HMM file with its four index files, and `<out>.build_receipt.json` with status `COMPLETE_NEW_SOURCE_BUILD`. A caught failure exits 2. If the build is interrupted, inspect the output folder before you rerun.
 
-To use the file, set `SM_HMM_DB=<scanner_pfam.hmm>`. The scanner checks that variable first, then its configured folders. A path that exists is not proof of a valid model file or of a completed scan. See [external data](../EXTERNAL_DATA.md), [database inspection](../TOOL_DATABASE_INSPECTION.md) and [public data provisioning](../PUBLIC_RELEASE_DATA.md).
+To use the file, export the variable in the shell session, for example `export SM_HMM_DB="/actual/path/scanner_pfam.hmm"`, substituting the real bound model path. The scanner checks that variable first, then its configured folders. A path that exists is not proof of a valid model file or of a completed scan. See [external data](../EXTERNAL_DATA.md), [database inspection](../TOOL_DATABASE_INSPECTION.md) and [public data provisioning](../PUBLIC_RELEASE_DATA.md).
 
-The receipt records the hash of the Pfam file you supplied. A new build is not a byte copy of any earlier HMM file. Record your Pfam release with the receipt.
+The receipt records the hash of the Pfam file you supplied. The builder does not compare the result with any earlier HMM file, so the same source bytes can give an identical model. Record your Pfam release with the receipt.
 
 ## The 35 selectors
 
@@ -60,4 +60,4 @@ The receipt records the hash of the Pfam file you supplied. A new build is not a
 | PF14028.12 | Lant_dehydr_C | lanthipeptide dehydratase, C-terminal |
 | PF04738.19 | Lant_dehydr_N | lanthipeptide dehydratase, N-terminal |
 
-A domain hit shows a protein family is present. It does not show that the strain makes a compound.
+A significant profile match is evidence consistent with a family assignment. Inspect the alignment, thresholds, context and alternatives; a match does not demonstrate gene function, a product or activity.

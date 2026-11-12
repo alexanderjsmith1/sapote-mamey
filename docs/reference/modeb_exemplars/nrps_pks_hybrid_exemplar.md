@@ -4,6 +4,8 @@ This preserved legacy class-calibration sketch is not a current50_v2 finished-ca
 
 Reuse structure and bounded register only. Do not transfer these genes, homology results, comparators, numerical scores, inferred mechanisms, activity language or proposed experiments into another locus. Provenance statements in §28 are assertions to trace to the original source files and receipts; verify the underlying search outputs and biological interpretation independently before reuse. Similarity and boundary labels alone do not establish product identity, pathway completeness, production, activity, novelty or physical linkage. Report missing independent evidence as a typed, reasoned limitation rather than filling it with teaching text.
 
+**Unresolved internal differences:** §§1–2 describe a lasso system as present, while §§15 and 21 say its precursor and cyclase still need identification. Treat that system assignment as unresolved until the exact source records and evidence are checked.
+
 [Collection reader guide](README.md) describes the profile and historical-status boundaries.
 
 ---

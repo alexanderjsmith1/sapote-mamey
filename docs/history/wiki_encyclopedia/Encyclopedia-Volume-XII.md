@@ -6,6 +6,8 @@
 
 *Edition: bundle v9.7.81 / engine Mamey 1.9.84 · 2026-06-18 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (eighteen CCTT families, corrected-count formula, assembly tiers, worked examples re-verified against engine 1.9.164; scoring version-pinned to original run engines)*
 
+> **Reading the historical cards:** Gene annotations, KCB scores, resistance hits, motif counts and predicted pathways below do not by themselves establish a product, activity, expression, ecological role or culture response. Their original PASS labels and self-audits do not validate them. Treat those statements and experimental suggestions as unverified historical hypotheses; bind the original locus records and use appropriate independent evidence before reuse. A reported maximum or novelty claim also needs the original comparable search and full roster. The older NAPAA exclusion below describes that historical run, not current policy: the current rules registry treats NAPAA as neutral.
+
 *These are selected historical reference analyses. To read them, start with each
 strain overview, then its selected cards; the card headings and tier tables do
 not establish complete eligible-row coverage. For reuse, bind the exact input

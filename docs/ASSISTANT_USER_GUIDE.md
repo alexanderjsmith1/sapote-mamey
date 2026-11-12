@@ -48,8 +48,10 @@ run the software." [Assistant governance](ASSISTANT_GOVERNANCE.md) sets the perm
 boundaries. If your assistant has a short session limit, see
 [runtime profiles](ASSISTANT_RUNTIME_PROFILES.md). Capped mode (`--capped-session`)
 turns off the written brief and the main antiSMASH JSON walker, and turns automatic gene
-maps off unless you asked for them. KnownClusterBlast text is still read, and a separate record
-pass still reads TIGRFAM hits. Agree to it before the assistant uses it.
+maps off unless you asked for them. Available KnownClusterBlast text can still be read. A separate
+record pass can read JSON for KCB percentages and TIGRFAM hits; absent, held or unreadable input
+can leave that evidence unavailable. Check the saved channel states. Agree to the profile before
+the assistant uses it.
 
 ## What to check in the answer
 

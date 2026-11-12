@@ -324,7 +324,10 @@ FASTA_SUFFIXES = (".fa", ".fasta", ".fna", ".faa", ".fas")
 
 
 def _iter_inputs(indir, skipped=None):
-    for root, _d, files in os.walk(indir):
+    def refuse_traversal(error):
+        raise error
+
+    for root, _d, files in os.walk(indir, onerror=refuse_traversal):
         for f in files:
             if f.lower().endswith(FASTA_SUFFIXES):
                 yield os.path.join(root, f)

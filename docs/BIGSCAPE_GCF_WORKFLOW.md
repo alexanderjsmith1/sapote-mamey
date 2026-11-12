@@ -26,8 +26,10 @@ python mamey_run.py doctor --companions
 Check the installed BiG-SCAPE version and help before choosing its options.
 Pfam requires `Pfam-A.hmm` and matching `.h3f`, `.h3i`, `.h3m` and `.h3p` files.
 The launcher in the walkthrough needs lowercase `fasttree` on `PATH` and exits 2
-without it. If your install names it `FastTree`, create an alias and record it
-with the run.
+without it. If your install names it `FastTree`, provide an executable named
+`fasttree` in the environment's `bin` folder or another directory on `PATH`, such as
+a symlink to the installed executable. Verify it from a new shell and record it with
+the run; a shell alias is not inherited by the launcher.
 
 Read [the companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) for the preflight
 and resource budget. The cohort walkthrough supplies a one-core example.
@@ -60,8 +62,10 @@ failure can leave earlier staged files even when that input's count is zero;
 collisions do not roll back earlier files. The prep tool writes
 `STAGED_MEMBERS.tsv`, one row per staged region file: `strain`, `source`,
 `source_sha256` (blank for a folder input), `member_path`, `member_bytes`,
-`member_sha256`, `record_id`, `region` and `staged_file`. An input that fails is
-rolled back and has no rows. The roster has no BGC alias and no antiSMASH
+`member_sha256`, `record_id`, `region` and `staged_file`. A failed input contributes no roster rows. The tool attempts to remove its
+recorded staged files, but cleanup can fail and a write that fails before the path
+is recorded may leave a partial file. Inspect the output directory and error log;
+use a fresh staging directory for a retry. The roster has no BGC alias and no antiSMASH
 version, so join it to a checked strain / full node-or-contig / region / BGC alias
 crosswalk before you use a staged file as one locus, and hold any member the
 crosswalk cannot bind. Estimate substantial staging space first and keep the

@@ -40,7 +40,17 @@ from typing import Any, Callable
 # whole-strain excludes + claim-ceiling forbidden assertion types (same policy as the reference impl).
 # SSOT: raw-data module -> raw_analysis_excluded() = {AS-XXX, AS-XXX}. See OFFICIAL_DATA/EXCLUSIONS.md.
 from .exclusions import raw_analysis_excluded
-EXCLUDE_STRAINS = raw_analysis_excluded()
+def __getattr__(name):
+    # Excluded strains come from the workspace exclusions file. Read on first use, not at import:
+    # importing this module reads no workspace data.
+    if name == "EXCLUDE_STRAINS":
+        return raw_analysis_excluded()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 FORBIDDEN_ASSERTIONS = {"product_identity", "ani", "organism", "species", "measured_activity"}
 KEY = ("task", "strain", "bgc_id", "locus_tag", "assertion_type")
 
@@ -149,7 +159,7 @@ def _has_denominator(evidence: str) -> bool:
 
 def _auto_rule(k, cl, cx, miscalls: set[tuple[str, str]]) -> str:
     task, strain, bgc_id, locus, atype = k
-    if strain in EXCLUDE_STRAINS:
+    if strain in _bound("EXCLUDE_STRAINS"):
         return "VOID:excluded-strain"
     if atype in FORBIDDEN_ASSERTIONS:
         return "REJECT:claim-ceiling(identity/ANI/organism/activity out of bounds)"

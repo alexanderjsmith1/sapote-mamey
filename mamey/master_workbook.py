@@ -85,6 +85,20 @@ COL_WIDTH       = 22
 
 
 
+def _kcb_sweep_state(run) -> str:
+    """The KCB_sweep state the scan pack recorded for this run (PASS, NULL or FAILED).
+
+    B4 used to write "PASS" for every strain, whether or not a KnownClusterBlast source was read.
+    A run object without a recorded KCB_sweep state gives NOT_RECORDED, not PASS.
+    """
+    status = getattr(run, "scan_status", None)
+    scans = status.get("scans", []) if isinstance(status, dict) else []
+    for entry in scans:
+        if isinstance(entry, (list, tuple)) and len(entry) >= 2 and entry[0] == "KCB_sweep":
+            return str(entry[1] or "NOT_RECORDED")
+    return "NOT_RECORDED"
+
+
 def _kcb_cell(value):
     """A KCB score for a workbook cell: a recorded 0 stays 0; only a missing score is blank."""
     from .missing_values import optional_float
@@ -608,7 +622,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
     _gold = _run_mode == "gold"
     _na = lambda val: val if _gold else "NA"
     _append_row_by_header(wb["B4_Cross_Strain_Scans"], {
-        "strain": strain_id, "run_mode": _run_mode, "KCB_status": "PASS", "RGGMCI_pairs": ss.rggmci.get("pairs_total", 0) if ss else 0,
+        "strain": strain_id, "run_mode": _run_mode, "KCB_status": _kcb_sweep_state(run), "RGGMCI_pairs": ss.rggmci.get("pairs_total", 0) if ss else 0,
         "RGGMCI_HIGH": ss.rggmci.get("high_pairs", 0) if ss else 0, "CCTT_triggers": sum(len(v) for v in cctt_coupling.values()),
         "CCTT_HAL": _cctt_for("HAL"), "CCTT_LAN": _cctt_for("LAN"), "CCTT_LASSO": _cctt_for("LASSO"),
         "CCTT_THA": _cctt_for("THA"), "CCTT_PHO": _cctt_for("PHO"), "CCTT_ENE": _cctt_for("ENE"),

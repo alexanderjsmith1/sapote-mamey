@@ -51,7 +51,7 @@ Keep the actual verifier exit/receipt and named profile separate from those hist
 | RG-GMCI present | Require pair class, core fractions, split flag, interpretation guard, rescue decision | ⚠ test needed |
 | POOR/VERY_POOR assembly + novelty claim | Force rescue discussion before strong claims | ⚠ test needed |
 | POOR/VERY_POOR assembly + edge/FC sort suppression | `POOR_TIER_EDGE_EQUALITY`: rank by score, not boundary; all BGCs visible | ✅ static doc gate v9.7.147 |
-| MAMEY_COMPLETE handback without strain brief/figures/locus-map offer | Fail handback | ✅ static doc gate v9.7.147 |
+| Requested handback output missing or deferred | Report its actual status and any relevant failure; do not require an unrequested brief, figure or offer | Historical static token check; not a runtime handback verifier |
 | BGC ID without node/contig citation at first mention | Fail; `node_notation.py` validator | ⚠ v9.7.145 module ships and is unit-tested, but has zero production call sites (v9.7.374 audit); not mechanically enforced |
 | Figure labels overlap above threshold | Fail figure render acceptance | ⚠ PATCH-100 open |
 | §19 drafted before §5/§9/§11/§12 meet interpretive floor | `INTERPRETIVE_FLOOR_CHECK`: expand thin sections first | ✅ doc gate v9.7.146+ |

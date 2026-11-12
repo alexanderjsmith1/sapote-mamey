@@ -97,9 +97,9 @@ It writes `STARTED`, then `LAUNCHED` (with process ID, process group, stdout log
 
 `--cancel-file ABSOLUTE_PATH` is checked before launch and at every sample. The adapter only checks that it exists. It never creates it. To cancel, create that file yourself.
 
-Limits are checks at poll time. They can overshoot, and they are not operating-system quotas or a network or file sandbox. Detached child processes are not covered. If the supervisor is killed with SIGKILL or the machine dies, a run can end with `STARTED` or `LAUNCHED` and no terminal. That run did not complete.
+Limits are checks at poll time. They can overshoot, and they are not operating-system quotas or a network or file sandbox. Detached child processes are not covered. If the supervisor is killed with SIGKILL or the machine dies, a run can end with `STARTED` or `LAUNCHED` and no terminal. The outcome is unverified; inspect the surviving artifacts.
 
-If a permission denial stops process inspection, the status is `UNAVAILABLE`, not a clean cancel. Unclear cleanup blocks any `NO_HIT` or row admission.
+If permission denial prevents supervision, stub mode reports `UNAVAILABLE` and native mode reports `HOLD`; neither is a clean cancel. Unclear cleanup blocks any `NO_HIT` or row admission.
 
 ## Result and exit codes
 
@@ -119,7 +119,7 @@ The terminal and receipts bind the input hashes, supervisor version, logs and ou
 
 ## Recovery
 
-The terminal is written to `<name>.staging` first, then published as `TERMINAL.json` or `EXECUTION_TERMINAL.json` by an exclusive hard link. A staging file alone is not a result. If there is no canonical terminal, the run did not complete. Keep all files. Do not overwrite or delete them.
+The terminal is written to `<name>.staging` first, then published as `TERMINAL.json` or `EXECUTION_TERMINAL.json` by an exclusive hard link. A staging file alone is not a result. If there is no canonical terminal, the outcome is unverified. Keep all files and investigate. Do not overwrite or delete them.
 
 A first Ctrl-C while the terminal is being written records `INTERRUPTED` through a recovery staging file and keeps the partial bytes. A second interrupt, a write failure, SIGKILL or machine loss can leave no terminal. Output hashes describe the checked bytes at that moment. They do not lock the storage afterward.
 

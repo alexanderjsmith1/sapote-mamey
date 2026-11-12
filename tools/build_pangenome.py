@@ -52,6 +52,19 @@ def _read_json(_path, *, encoding="utf-8"):
 
 # B13 (v9.7.203): core threshold is now cohort-relative (max(2, n_strains//2)) or --core-min; the old CORE_MIN=45 made core empty for every <45-strain cohort (the Nocardia "0 core").
 
+def _rarefaction_line(mean):
+    """Summary text for the rarefaction curve. ``mean[i]`` is the mean family count after i + 1 strains,
+    the value the CSV writes on the row with ``n_strains`` = i + 1."""
+    n = len(mean)
+    if not n:
+        return "No strains, so no rarefaction curve."
+    half = max(1, n // 2)
+    k = min(10, n)
+    base = mean[n - k - 1] if n > k else 0
+    return (f"Families accumulate {mean[0]} -> {mean[half - 1]} -> {mean[-1]} at 1 / {half} / {n}\n"
+            f"strains (+{mean[-1] - base} families over the last {k} strain{'' if k == 1 else 's'}).")
+
+
 def fam(b):
     m=(b.get('closest_mibig') or '').strip()
     return None if (m=='' or m.upper()=='UNRESOLVED') else m
@@ -155,8 +168,7 @@ approximate (a BiG-SCAPE network would refine it).
 {core_lines}
 
 ## Rarefaction
-Families accumulate {mean[0]} -> {mean[len(strains)//2]} -> {mean[-1]} at 1 / {len(strains)//2} / {len(strains)}
-strains (+{mean[-1]-mean[max(0,len(strains)-10)]} families over the last 10 strains).
+{_rarefaction_line(mean)}
 
 ## Most novel strains (by UNRESOLVED fraction; interpret small-genome strains with caution)
 {chr(10).join(f"- {r['strain']}: {r['novel_unresolved']}/{r['total_BGC']} = {r['novel_pct']}% novel, {r['private_families']} private families" for r in [x for x in rows if x['novel_pct']!=''][:6])}

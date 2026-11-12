@@ -87,13 +87,13 @@ sealed package ──▶ triage board (routing priors)
 
 *Claim-safety: a Mode B card is the most interpretive artifact Tier 1 ever hosts, which is why it
 is the most contract-bound — class-level hypotheses with explicit falsifiers, similarity never
-identity, expression unknown without culture data.*
+identity, and expression held without direct evidence for the recorded conditions.*
 
 ---
 
 # Gene-first and full-card manual
 
-*Current to bundle v9.7.464 · engine Mamey 1.9.180.*
+*Current to bundle v9.7.465 · engine Mamey 1.9.181.*
 
 The machine contract and the verifier are the authority; this page explains them.
 
@@ -121,7 +121,7 @@ Gene-first exploration is a bounded inspection step, not a smaller Mode B card. 
 The safe order is:
 
 1. Validate the sealed package and read its manifest and gate receipt.
-2. Inventory evidence with `modeb-availability`; keep exact-locus, alias-bound, strain-only, unbound, and absent-in-scope observations distinct.
+2. Inventory evidence with `modeb-availability`; keep exact-locus, alias-bound, strain-only, unbound, and absent-in-scope observations distinct. In `modeb_bgc_availability.tsv`, `<stream>_state` is the strongest binding found, `<stream>_records` counts records at that state only, and `<stream>_records_by_state` gives per-state counts within the selected alias-specific observations, or the strain-only fallback when no alias-specific observations exist (for example `EXACT_LOCUS=1;UNBOUND=9`; blank when that selection is empty). Read the per-state counts, and open `modeb_evidence_observations.tsv` before reading coverage.
 3. Freeze the canonical gene roster in genomic order, including exact-region and admitted boundary-context genes.
 4. Stage protein and domain evidence offline with query, database, run, and output receipts.
 5. Run `modeb-gene-first` for the one complete locus when focused exploration is needed.

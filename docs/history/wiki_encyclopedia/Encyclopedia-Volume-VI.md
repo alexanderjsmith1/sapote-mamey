@@ -358,6 +358,8 @@ consistency pass, and emits one reader-ready package marked `COMPLETE` — or `P
 
 ## §VI.10 · Special review buckets <span class="tag t-engine">\[engine\]</span>
 
+> **Output-scope hold:** This historical section does not establish that every current run emits all four buckets in every report, table or workbook. Check the selected mode, actual output files and saved phase receipts. An absent bucket or row is not a confirmed biological negative, and annotation-based flags are candidates for review, not verified activity.
+
 Some BGC rows must be surfaced for human review even when they are not top-ranked by the
 composite AB/AF score. The engine maintains four **special review buckets** that operate as
 deterministic surfacing rules — they do not claim product identity, they ensure

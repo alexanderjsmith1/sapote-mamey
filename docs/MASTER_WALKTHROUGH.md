@@ -1,12 +1,9 @@
-# Your first Sapote-Mamey analysis
+# Ask an assistant to run your first analysis
 
-Turn one antiSMASH result ZIP into a package: tables, a workbook and an issue log
-for one strain. You need that ZIP and a working Python installation. A saved
-`Complete_Package.zip` is read by extracting it; see
+This page is for having a coding assistant turn one antiSMASH result ZIP into a
+package for you. To run the commands yourself, follow
+[Your first run](reader/01_FIRST_RUN.md). To read a saved `Complete_Package.zip`, use
 [Read one saved package](reader/03_READ_RESULTS.md). Terms are in the [glossary](GLOSSARY.md).
-
-You are done when `validate runs/EXAMPLE/package --workbook-strict` exits 0 and
-reports `MAMEY_COMPLETE`. Both routes below end there.
 
 ## Route A: ask your assistant to run it
 
@@ -17,49 +14,30 @@ request, replacing `EXAMPLE` with your strain name:
 > package. Show me where to open the workbook and explain any warnings.
 > Keep the original input and use a new output folder.
 
-Check the answer yourself. The assistant should show the `validate` output and its
-exit code `0`. If it cannot run Python or reach the files, use route B on a
-computer that can.
+Check the answer yourself. The assistant should show you three things:
+
+- the `run` exit code and the `status` it printed;
+- the `validate` output, with its exit code;
+- the path of the sealed `_Complete_Package.zip`, if produced, or the failure and
+  missing artifact. Identify the exact extracted package or copy that was validated;
+  do not assume a validation of a different copy proves the ZIP has the same bytes.
+
+[Your first run](reader/01_FIRST_RUN.md#4-check-that-the-run-worked) says what each
+exit code and status means. `validate` updates `package_status.json` inside the
+package, so ask for a copy to be validated if the original bytes must stay unchanged.
+
+If the assistant cannot run Python or reach the files, run the commands yourself
+on a computer that can.
 
 ## Route B: run the commands yourself
 
-You work with three locations:
-
-1. The program folder, which holds `mamey_run.py`.
-2. The input ZIP, which you never edit.
-3. The output folder, `runs/EXAMPLE/` inside the program folder.
-
-Follow [Your first run](reader/01_FIRST_RUN.md). It covers install checks,
-`inspect`, the `run` command, the exit codes and `validate`. Setup is in
-[Install](INSTALL.md). Come back here for the optional commands below.
-
-### Look at the finished package
-
-```bash
-python mamey_run.py explain runs/EXAMPLE/package
-python mamey_run.py list-bgcs runs/EXAMPLE/package
-```
-
-`explain` describes the package. `list-bgcs` prints its ranked regions. It hides
-excluded rows; add `--include-dropped` to see them.
-
-Then open `runs/EXAMPLE/package/OPEN_ME_FIRST.html` and use
-[Read one saved package](reader/03_READ_RESULTS.md) to explore the workbook and warnings.
-Keep the `Complete_Package.zip` beside the original input ZIP.
-
-## If it fails
-
-`run` exits 1 or 2, or `validate` prints `FAIL`. Keep the command and the last
-error, and follow [Recovery and limits](reader/04_RECOVERY_AND_LIMITS.md) before another attempt.
-
-## Move a result
-
-Extract the `Complete_Package.zip` and open `package/OPEN_ME_FIRST.html`. Keep the
-extracted folder together so links work. Reading it on another computer needs no
-Python and no new run. To copy files safely, see [Save and move a result](FILES_STORAGE_AND_HANDOFF.md).
+Follow [Your first run](reader/01_FIRST_RUN.md).
 
 ## What next
 
-Pick a question in [Choose a task](USER_TASK_ROUTER.md): read saved protein
-evidence, make a figure, compare strains, or write a Mode B card (a written
-evidence review of one region). Each guide lists the extra inputs it needs.
+If present, open `runs/EXAMPLE/package/OPEN_ME_FIRST.html`; otherwise inspect the
+issue log and available package files. In either case, use
+[Read one saved package](reader/03_READ_RESULTS.md). If something failed, use
+[Recovery and limits](reader/04_RECOVERY_AND_LIMITS.md). To move a result, see
+[Save and move a result](FILES_STORAGE_AND_HANDOFF.md). For a figure, a comparison or a
+Mode B card, pick a question in [Choose a task](USER_TASK_ROUTER.md).

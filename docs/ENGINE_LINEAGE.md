@@ -2,6 +2,20 @@
 
 What changed in the Mamey engine at each version bump, and whether outputs stay comparable. Newest first. Each bump also has a CHANGELOG entry.
 
+## Engine 1.9.181 — first bundle: v9.7.465
+
+Fields that read a missing measurement as a result now say it was not measured. RG-GMCI scores, ranks and thresholds, KnownClusterBlast values and the engine's novelty scores (`mamey/scoring.py`) are unchanged. Not poolable with 1.9.180 on these fields:
+- bldA tier: `NOT_COMPUTED` where 1.9.180 gave T1, when no CDS in the BGC carries a nucleotide sequence.
+- Scan states: TFBS and bldA read `FAILED` where 1.9.180 read `NULL` or no hits, when no sequence was available for any CDS. A partial gap keeps `NULL` or `PASS` and names how many CDS were skipped.
+- Workbook sheet B4 `KCB_status`: the run's recorded KCB sweep state, where 1.9.180 wrote `PASS` for every strain.
+- Decision matrix: a row with both scores missing is `UNRESOLVED`, where 1.9.180 gave `LOW`. A measured 0 is still `LOW`.
+- Antifungal dossier `reference_dark`: `yes` only on a reported KCB no-hit, `unknown` when the KCB result is absent. 1.9.180 gave `yes` for any blank anchor.
+- Domain categories: dehalogenases are no longer `tailoring-halogenation`. Sugar transporters, efflux pumps and carbohydrate-binding modules are no longer tailoring or resistance, and halogenation is decided by the halogenase domain. This moves counts in tables built from `mamey/domain_reference.py`, including the resistance dossier.
+- Lead pages and good guesses: antiSMASH's `thioamide-NRP` product has its own `thioamide_NRP` class, where 1.9.180 gave it the thioamitide RiPP class and ycaO/tfuA advice.
+- RiPP export: a precursor's `locus_tag` is its motif's own tag, where 1.9.180 could give the tag and coordinates of the enzyme that groups it. Coordinates that cannot be resolved stay blank.
+
+Existing outputs are not rewritten.
+
 ## Engine 1.9.180 — first bundle: v9.7.464
 
 KnownClusterBlast cut-offs now read antiSMASH's rank-1 percent similarity, `kcb_similarity_pct`, never the cumulative BLAST score. The percent is read from the antiSMASH JSON ranking and kept only when its accession equals the TXT rank-1 MIBiG accession for the same region (`kcb_similarity_state = PCT_OBSERVED`). The band edges are 70 and 40 (owner ruling, 5 Nov 2026). Not poolable with 1.9.179 on these fields:

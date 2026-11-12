@@ -13,7 +13,9 @@ metadata  Writes the figure metadata table the renderer reads. Rows come from an
           deposited. Empty, "missing" and "not applicable" values stay empty; no placeholder is written.
           Edits are explicit inputs, each logged in <out>_changes.tsv:
             --overrides TSV   tip, field, value, reason (owner rulings; always applied);
-            --fill-blank TSV  accession, field, value, evidence (fills a cell only when it is empty or "not deposited");
+            --fill-blank TSV  accession, field, value, evidence (fills a cell only when it is empty or "not deposited"; a row
+                              is found by its tip or by "[<accession>]" or an older "(<accession>)" in its label;
+                              an accession that finds no row is logged as unmatched);
             --strip-query-brackets, --strip-text TEXT (tip-label notes such as " [outgroup]");
             --restore TSV (tip, full) then --shorten N (a long source is cut at a word with "..."; <out>_shortened.tsv keeps
             the full text for the caption).
@@ -242,11 +244,16 @@ def build_metadata(args) -> dict:
                 fields.append(x["field"])
             log.append(("override", r["tip"], x["field"], r.get(x["field"], ""), x["value"], x["reason"]))
             r[x["field"]] = x["value"]
+    unmatched = []
     if args.fill_blank:
         for x in read_tsv(args.fill_blank, ["accession", "field", "value", "evidence"]):
             if x["field"] not in {"source_display", "geography_display"}:
                 raise InputError(f"--fill-blank: field {x['field']!r} must be source_display or geography_display")
-            hits = [r for r in rows if r["tip"] == x["accession"] or f"({x['accession']})" in r["label_concise"]]
+            acc = x["accession"]   # labels carry "[acc]" since 9.7.460; tables written before that carry "(acc)"
+            hits = [r for r in rows if r["tip"] == acc or f"[{acc}]" in r["label_concise"] or f"({acc})" in r["label_concise"]]
+            if not hits:
+                log.append(("unmatched", acc, x["field"], "", x["value"], "no row has this accession as its tip or in its label"))
+                unmatched.append(acc)
             for r in hits:
                 if r[x["field"]].strip().lower() in FILLABLE:
                     log.append(("filled", r["tip"], x["field"], r[x["field"]], x["value"], x["evidence"]))
@@ -290,7 +297,8 @@ def build_metadata(args) -> dict:
                         "references_per_query": {k: len(v) for k, v in per_query.items()},
                         "no_deposited_source_or_country": no_meta,
                         "no_source": sum(not r["source_display"].strip() for r in rows),
-                        "no_country": sum(not r["geography_display"].strip() for r in rows)}}
+                        "no_country": sum(not r["geography_display"].strip() for r in rows),
+                        "fill_blank_unmatched": unmatched}}
 
 
 def cmd_metadata(args) -> int:

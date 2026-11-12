@@ -21,7 +21,7 @@ python3 tools/ranked_match_shortlist.py --config /path/to/config.json \
   --json-out /path/to/candidate.json --html-out /path/to/candidate.html
 ```
 
-Python 3.9+ standard library only. No browser, network, search, renderer or source write. The JSON and optional HTML are derived outputs. They cannot overwrite selected source inputs or be symlinks. Existing changed candidates require `--replace-candidate`; identical replay is allowed. Individual replacements are atomic; a two-file pair can be partial after interruption. Exit 0 means the requested preview was produced, not reference adoption or freedom from review holds.
+Python 3.9+ standard library only. No browser, network, search or renderer. The JSON and optional HTML are derived outputs; output paths resolving to selected source inputs and output symlinks are refused. Existing changed destinations require `--replace-candidate`; identical replay is allowed. The flag does not establish that an existing destination was a previously generated candidate, so verify and preserve both destinations before using it. Individual replacements are atomic; a two-file pair can be partial after interruption. Exit 0 means the requested preview was produced, not reference adoption or freedom from review holds.
 
 ## Input contract
 

@@ -240,6 +240,8 @@ Raw genome-wide gene counts and raw BGC counts both inflate with assembly fragme
 
 For the selected BLASTp task, use [the current ingestion/submission protocol](../../../ONLINE_BLASTP_PROTOCOL.md). Reuse bound existing results first; live submission is an optional separately authorized route. The retained recipe and timings below describe older usage, not a requirement to submit every current Mode B card or a service-time guarantee.
 
+> **Taxonomy and missing-hit boundary:** The historical top-hit consensus rule below is not a validated organism-taxonomy method. Check taxonomic identity against independently bound organism and sequence evidence; homologs may be shared across lineages and databases are uneven. A no-hit result at a chosen threshold is a bounded search result, not by itself proof of novelty.
+
 ### Why it exists
 
 Mode B §4/§8 authored only from antiSMASH Pfam calls and KCB scores makes two concrete errors:

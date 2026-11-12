@@ -12,9 +12,9 @@ grouping or search/re-rank assemblies automatically. Default active-files is two
 a task selecting one active file can set `--active-files 1`. Follow-up parameters/owners are separate.
 
 The shipped software's 100000 cap is a declared default, not a newly verified online service limit.
-Single oversized records are retained with warnings and may be marked ready_to_run while under_100k=false
-(`mamey/wise_fragmented_pks.py:83–109,:136–150`). Inspect actual counts/warnings before selecting any authorized
-external route; ready state is not cap compliance. Query preparation remains UNBOUND, not result evidence.
+Single oversized records are retained with warnings and marked `hold_over_web_cap` with `under_100k=false`
+(`mamey/wise_fragmented_pks.py`). Inspect actual counts and warnings before selecting any authorized
+external route; a queue state is not a verified service-limit or submission receipt. Query preparation remains UNBOUND, not result evidence.
 Complete source identity and path/hash bindings govern every actual locus; synteny/domain agreement does
 not itself establish production, exact compound, phenotype or physical contig joining.
 

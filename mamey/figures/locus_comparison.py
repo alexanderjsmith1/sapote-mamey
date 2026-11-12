@@ -55,7 +55,14 @@ def validate(spec):
             raise ValueError('track label and identity required')
         ident = t['identity']
         keys = ('strain', 'contig', 'region', 'bgc') if t.get('kind') == 'bgc' else ('accession', 'description')
-        if t.get('kind') not in ('bgc', 'reference') or any(not str(ident.get(k, '')).strip() for k in keys):
+        def identity_value_valid(key):
+            value = ident.get(key)
+            if isinstance(value, str):
+                return bool(value.strip())
+            # A numeric BGC region is also accepted; bool is not an integer identity.
+            return t.get('kind') == 'bgc' and key == 'region' and type(value) is int
+        if (not isinstance(ident, dict) or t.get('kind') not in ('bgc', 'reference')
+                or any(not identity_value_valid(k) for k in keys)):
             raise ValueError('complete BGC identity or reference accession/description required')
         if type(t.get('orientation')) is not int or t['orientation'] not in (-1, 1):
             raise ValueError('explicit orientation +1 or -1 required')

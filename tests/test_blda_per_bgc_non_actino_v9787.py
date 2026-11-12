@@ -32,8 +32,11 @@ def test_per_bgc_tier_not_applicable_on_non_actino():
 
 
 def test_per_bgc_tier_fires_on_actino():
-    # actino control: tiers still computed (no organism gate)
+    # actino control: tiers still computed (no organism gate). The BGC needs a CDS with a
+    # sequence; with none, the tier is NOT_COMPUTED (tests/test_465_blda_no_sequence_not_t1.py).
+    from mamey.models import CDSFeature
     bgcs = [_BGC("BGC001", 0, 1000)]
-    res = scan_blda_tta([], bgcs, organism="Streptomyces coelicolor")
+    cds = [CDSFeature("C1", 10, 30, 1, "fixture_a", "synthetic", nucleotide_seq="ATGGCCTAA")]
+    res = scan_blda_tta(cds, bgcs, organism="Streptomyces coelicolor")
     assert res["status"] == "SOURCE_DERIVED"
     assert res["per_bgc"]["BGC001"]["bldA_tier"] in ("T1", "T2", "T3", "T4")

@@ -50,7 +50,11 @@ def _registry_default():
     return str(outgroup_registry_path())
 
 
-REGISTRY = _registry_default()
+def __getattr__(name):
+    # The registry is located on first use, not at import: importing this tool reads no workspace data.
+    if name == "REGISTRY":
+        return _registry_default()
+    raise AttributeError(name)
 CACHE = os.environ.get("OUTGROUP_CACHE", f"{ROOT}/OFFICIAL_DATA/outgroup_cache")
 DB16S = None  # resolved per call by the shared lookup (_shared_16s_db); see docs/LOCAL_16S_DATABASE.md
 BLAST_BIN = os.environ.get("BLAST_BIN", f"{ROOT}/miniconda3/envs/blast/bin")
@@ -82,8 +86,9 @@ def _blastdbcmd():
     return p if os.path.exists(p) else (__import__("shutil").which("blastdbcmd") or "")
 
 
-def load_registry(path=REGISTRY):
+def load_registry(path=None):
     """Return list of dict rows (skips comment/blank/header lines)."""
+    path = _registry_default() if path is None else path
     rows = []
     if not os.path.exists(path):
         sys.exit(f"registry not found: {path}")
@@ -99,7 +104,7 @@ def load_registry(path=REGISTRY):
     return rows
 
 
-def find_row(genus, scope="genus", path=REGISTRY):
+def find_row(genus, scope="genus", path=None):
     r"""Match on ingroup_taxon == genus for the requested scope; genus scope falls back to any match.
 
     v9.7.374 fix: the registry format legitimately allows MORE THAN ONE exact-scope row for the
@@ -119,6 +124,7 @@ def find_row(genus, scope="genus", path=REGISTRY):
     prefers a LOCKED row among exact ties, and prints a stderr warning whenever ambiguity had to be
     resolved so it is visible instead of silent.
     """
+    path = _registry_default() if path is None else path
     binding = registry_binding(path)
     if binding["authority"] == "BUNDLED_REFERENCE_ONLY":
         raise RegistryAuthorityError("OUTGROUP_AUTHORITY_UNBOUND: select a governed external registry; bundled rows are reference only")
@@ -264,7 +270,7 @@ def header_admissible(fasta_path):
 def get_16s(genus, scope="genus", out=None, force=False, quiet=False):
     row = find_row(genus, scope)
     if not row:
-        sys.exit(f"no registry row for '{genus}' (scope={scope}); add it to {REGISTRY} first")
+        sys.exit(f"no registry row for '{genus}' (scope={scope}); add it to {_registry_default()} first")
     og_genus = row["outgroup_genus"]
     species_strain, ruled_acc = split_ruled_accession(row["outgroup_species_strain"])
     safe = re.sub(r"[^A-Za-z0-9]+", "_", f"{og_genus}_{species_strain}").strip("_")

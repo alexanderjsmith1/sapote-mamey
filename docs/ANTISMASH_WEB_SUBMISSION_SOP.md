@@ -8,7 +8,7 @@ The local reader recovers strictness and identity evidence; it does not certify 
 
 This page covers how reference genomes reach the public antiSMASH server (`https://antismash.secondarymetabolites.org`) for a Sapote-Mamey project. It is a procedure, not a tool. The bundle ships no code that submits to the public server, and every batch needs the named authorization of the person who runs the project (the project lead).
 
-The server is a shared public resource. The rules below keep this project's use light: it never adds to a queue other people are waiting in.
+The server is a shared public resource. The pacing rules below are intended to reduce this project's load; a status check is a snapshot and cannot guarantee that another queue will not form before or after submission.
 
 ## 1. Who decides what
 This section is for shared projects. If you run the project alone, you are the project lead: name your batch in your job record before you submit it.

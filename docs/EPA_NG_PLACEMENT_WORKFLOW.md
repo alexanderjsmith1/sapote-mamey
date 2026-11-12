@@ -112,7 +112,7 @@ fabricated key derived from `REF_NR_...`.
 3. **No foreign-genus sentinels.** On a per-genus backbone with a registry outgroup, off-genus "sentinel"
    records are stripped before inference (they otherwise dominate the tree and FAIL sanity).
 4. **Gates before render.** `tree_sanity_check` (outgroup-aware) must PASS. `phylo_postflight` P3 is
-   placement-aware (a graft carries no tree-wide UFBoot; confidence = LWR + backbone Felsenstein bootstrap).
+   placement-aware (a graft carries no tree-wide UFBoot). Report query LWR and any available backbone bootstrap support separately; they measure different things and are not a combined confidence score.
 5. **The prune ladder.** `placement_display.py --neighbors-per-query N` or
    `build_placement_ggtree_inputs.py --neighbors N` renders a series: N=1 tight, N=3 medium, and full with
    `placement_display.py --keep-all-references` or `build_placement_ggtree_inputs.py --keep-all-refs`.

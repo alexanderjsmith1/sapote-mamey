@@ -80,7 +80,12 @@ ValueError: private handoff refuses package package: manifest.input_zip contains
 
 The bundle has no command that removes the path. `register` and `verify` work
 on such a package. To send the package itself, use the standard transfer ZIP in
-the [package transfer guide](FILES_STORAGE_AND_HANDOFF.md).
+the [package transfer guide](FILES_STORAGE_AND_HANDOFF.md). That ZIP retains the
+package contents, including absolute paths; review those contents and recipient
+access before sharing. It does not redact paths or create a multi-package private
+export. Verify the source ZIP hash and use a fresh destination: standard handoff
+replaces an existing destination and does not compare the source ZIP hash against
+the manifest.
 
 The export and import commands below work once the package manifest holds no
 absolute path. That means changing `manifest.json`, so the package is no longer

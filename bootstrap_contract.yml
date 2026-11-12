@@ -161,8 +161,12 @@ known_gotchas:
   severity: medium
   applies_to: evidence mode selection
   show_in_initiation: false
-  detail: --capped-session forces --json-evidence off regardless of assistant; omit the capped flag and
-    use --json-evidence bounded with sufficient runtime when JSON evidence is needed.
+  detail: --capped-session forces --json-evidence off regardless of assistant. Off turns off only the
+    main JSON walker. A separate record pass can read JSON for the KCB percent and TIGRFAM hits; inspect
+    its status because missing, held or unreadable input may leave that evidence unavailable. A capped
+    run can therefore include JSON-derived evidence. The uncapped run default is bounded. For the main
+    walker's RiQ and region-to-region evidence, omit the capped flag and use --json-evidence bounded
+    with sufficient runtime.
 - id: manifest_summary_nested
   status: active
   severity: low

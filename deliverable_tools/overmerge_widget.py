@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """overmerge_widget.py — self-contained over-merge inspector widget set for antiSMASH
-regions that fuse several chemically distinct protoclusters into one region.
+regions flagged for a possible over-merge of protoclusters.
 
 antiSMASH groups nearby protoclusters into one *region* (candidate cluster). When the
 neighbours are genomically adjacent but chemically distinct systems, a single *union*

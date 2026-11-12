@@ -792,7 +792,11 @@ def scan_tfbs(contigs: dict[str, str], cds_list: list[CDSFeature], upstream_bp: 
     counts = defaultdict(int)
     for h in hits:
         counts[h["motif"]] += 1
-    return {"status": "MOTIF_SCAN_PRELIMINARY", "upstream_bp": upstream_bp, "counts": dict(counts), "hits": hits[:1000], "total_hits": len(hits), "upstream_window_short_count": len(short_windows), "upstream_window_short_examples": short_windows[:1000], "missing_contig_count": missing_contig_count, "coverage_note": "Short windows are clipped to available sequence; circular topology and other missing context are not resolved.", "claim_safety": "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use."}
+    return {"status": "MOTIF_SCAN_PRELIMINARY", "upstream_bp": upstream_bp, "counts": dict(counts), "hits": hits[:1000], "total_hits": len(hits), "cds_total": len(cds_list), "upstream_window_short_count": len(short_windows), "upstream_window_short_examples": short_windows[:1000], "missing_contig_count": missing_contig_count, "coverage_note": "Short windows are clipped to available sequence; circular topology and other missing context are not resolved.", "claim_safety": "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use."}
+
+# Per-BGC tier when no codon of the BGC's CDS could be read. Not a T1 (zero TTA) result.
+BLDA_TIER_NOT_COMPUTED = "NOT_COMPUTED"
+
 
 def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: str = "", *, _record_key=None) -> dict[str, Any]:
     # v9.7.87 Item A: bldA-dependent translational control is actinomycete-specific. On a
@@ -803,7 +807,8 @@ def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: s
     from .cohort_resolver import actino_status as _actino_status
     _non_actino = _actino_status(organism or "") == "non_actinomycete"
 
-    per_bgc = {_bgc_key(b, _record_key): {"tta_codons": 0, "total_codons": 0, "tta_cds": 0, "total_cds": 0, "tta_loci": []} for b in bgcs}
+    per_bgc = {_bgc_key(b, _record_key): {"tta_codons": 0, "total_codons": 0, "tta_cds": 0, "total_cds": 0,
+                                          "cds_without_sequence": 0, "tta_loci": []} for b in bgcs}
     for cds in cds_list:
         nt = (cds.nucleotide_seq or "").upper()
         codons = [nt[i:i+3] for i in range(0, len(nt) - 2, 3)] if nt else []
@@ -811,6 +816,8 @@ def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: s
         for bgc in bgcs:
             if _bgc_overlap_or_near(cds, bgc, flank=0):
                 per_bgc[_bgc_key(bgc, _record_key)]["total_cds"] += 1
+                if not codons:
+                    per_bgc[_bgc_key(bgc, _record_key)]["cds_without_sequence"] += 1
                 per_bgc[_bgc_key(bgc, _record_key)]["total_codons"] += len(codons)
                 per_bgc[_bgc_key(bgc, _record_key)]["tta_codons"] += tta_count
                 if tta_count:
@@ -824,9 +831,20 @@ def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: s
                                         f"{organism or 'this organism'} is non-actinomycete — "
                                         "TTA counts are GC-content noise, not a developmental signal.")
             continue
-        if d["tta_codons"] == 0:
+        if d["total_codons"] == 0:
+            # No codon was read: the BGC has no CDS, or none of its CDS carries a nucleotide
+            # sequence. Zero TTA here is not a measurement, so no tier is given.
+            d["bldA_tier"] = BLDA_TIER_NOT_COMPUTED
+            d["bldA_interpretation"] = ("Not computed: no CDS nucleotide sequence was available for this BGC, "
+                                        "so TTA codons were not counted.")
+        elif d["tta_codons"] == 0:
             d["bldA_tier"] = "T1"
             d["bldA_interpretation"] = "No TTA codons detected in BGC CDS."
+            if d["cds_without_sequence"]:
+                d["bldA_interpretation"] = (
+                    f"No TTA codons detected in the {d['total_cds'] - d['cds_without_sequence']} of "
+                    f"{d['total_cds']} BGC CDS that carry a nucleotide sequence; "
+                    f"{d['cds_without_sequence']} CDS were not read.")
         elif d["tta_codons"] <= 2:
             d["bldA_tier"] = "T2"
             d["bldA_interpretation"] = "Low TTA burden; possible minor bldA sensitivity."
@@ -876,13 +894,20 @@ def scan_umed(cds_list: list[CDSFeature], bgcs: list[BGCRecord], *, _record_key=
     scan.update({"bgc_coupling": coupling, "per_bgc": per_bgc, "claim_safety": "Source-derived maturation scan; HMMER confirmation still recommended."})
     return scan
 
+# The label names the filter the loop applies. The earlier value,
+# "all_vs_all_filtered_to_at_least_one_edge_or_full_contig", described a narrower filter than
+# the loop ever applied: a pair with an Unknown boundary was, and is, kept.
+EFLS_PAIRING_SCOPE = "all_vs_all_excluding_interior_interior_pairs"
+
+
 def scan_efls(bgcs: list[BGCRecord], cassettes: dict[str, Any], cctt: dict[str, Any], flbr: dict[str, Any]) -> dict[str, Any]:
     """Preliminary shared-evidence linkage scan.
 
-    Pairing scope is all-vs-all, but output is filtered to pairs where at
-    least one member is Edge or Full-contig. This captures Interior+Edge
-    split-pathway scenarios, such as an interior macrolide core with an
-    edge-truncated saccharide/tailoring arm.
+    Pairing scope is all-vs-all with one exclusion: a pair is skipped only
+    when both members are Interior. A pair with an Edge, Full-contig or
+    Unknown member is kept, so Unknown+Interior pairs can be listed. This
+    captures Interior+Edge split-pathway scenarios, such as an interior
+    macrolide core with an edge-truncated saccharide/tailoring arm.
     """
     candidates = []
     cassette_map = cassettes.get("per_bgc", {})
@@ -923,7 +948,7 @@ def scan_efls(bgcs: list[BGCRecord], cassettes: dict[str, Any], cctt: dict[str, 
                 })
     return {
         "status": "SOURCE_DERIVED_PRELIMINARY_LINKAGE",
-        "pairing_scope": "all_vs_all_filtered_to_at_least_one_edge_or_full_contig",
+        "pairing_scope": EFLS_PAIRING_SCOPE,
         "candidate_pairs": sorted(candidates, key=lambda x: x["score"], reverse=True)[:500],
         "candidate_pair_count": len(candidates),
         "claim_safety": "Preliminary shared-evidence linkage only; not physical contig linkage or Jaccard protein-overlap confirmation.",

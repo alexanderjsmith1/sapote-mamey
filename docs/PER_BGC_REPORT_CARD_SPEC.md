@@ -60,7 +60,7 @@ The command writes no hash or receipt. Record the package path, the input hashes
 ## 5. Author within the evidence
 
 - The novelty, activity and tractability badges are routing hints. They do not show chemical novelty, product identity, phenotype or feasibility.
-- A weak KnownClusterBlast (KCB) match is a low similarity score against the references in that database release. Report the score, the reference and the database version as they are. A weak match does not show why the score is low, that the cluster is new, or that the database lacks a relative. KCB similarity is not identity.
+- The report card reads `KCB_score`, a cumulative score, not a percent similarity. Record the score, reference and database release as reported; check the separate similarity percent and its state when available. A low score does not establish why a match is weak, that a cluster is new, or that the database lacks a relative. A KCB match is not cluster identity.
 - Bioactivity priors describe a strain's extract, not one BGC.
 - The mass comes from the supplied SMILES by RDKit (a chemistry library). If the region has no SMILES, the card says `Predicted mass: no SMILES for this region.` If the SMILES contains wildcards, cannot be parsed, or RDKit is missing, the card says `Predicted mass: pending —` and the reason. The mass describes that candidate structure. It does not show that the molecule was detected.
 - Keep the full identity **strain / full node-or-contig / region / BGC alias** in anything you write from this card. The command does not check it for you.

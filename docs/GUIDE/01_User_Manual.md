@@ -1,158 +1,69 @@
 # The Sapote-Mamey User Manual
 
-Use this guide to run one strain, read its evidence and choose a next analysis.
-You need an antiSMASH result ZIP for extraction, or a saved Mamey package for
-review. For installation and the shortest command sequence, follow
-[Your first run](../reader/01_FIRST_RUN.md).
+This manual is a table of contents. Each section says what the step is for and links
+the page that explains it. The facts live on those pages, so they are written once.
 
-*Current to bundle v9.7.464 / engine Mamey 1.9.180*
+*Current to bundle v9.7.465 / engine Mamey 1.9.181*
 
 ## 1 · What Sapote-Mamey is
 
-Mamey reads antiSMASH results and writes tables, workbooks, figures and a portable
-package. Sapote is the interpretation and writing workflow that uses those results.
-
-The region inventory answers what antiSMASH found. The triage board helps choose
-what to inspect next. A Mode B card combines the evidence for one region into a
-written interpretation. [Choose a task](../USER_TASK_ROUTER.md) lists other outputs.
+Mamey reads antiSMASH results and writes a package of tables, a workbook and an issue
+log; Sapote is the interpretation and writing workflow that uses them.
+[What Sapote-Mamey offers](../PRODUCT_MAP.md) maps the parts.
 
 ## 2 · Setup and installation
 
-Use Python 3.12 or newer and the [installation guide](../INSTALL.md).
-Install the core package first; add optional features when you need them.
-The [prerequisites guide](../PREREQUISITES.md) separates Python extras from
-external programs and databases.
-
-Open a terminal in the folder containing `mamey_run.py`. Activate the environment
-you installed there. For results you already have, open `OPEN_ME_FIRST.html`
-without running Python.
+Install Python 3.12 or newer and the core package with the
+[installation guide](../INSTALL.md); the [prerequisites guide](../PREREQUISITES.md)
+separates Python extras from external programs and databases.
 
 ## 3 · Running a strain
 
-Follow the [first-run commands](../reader/01_FIRST_RUN.md), replacing `EXAMPLE`
-with your strain name and the input path with your antiSMASH ZIP.
-Use the whole genome's antiSMASH result from one job.
-
-`inspect` prints a capped run command. Gold is the analysis mode, and the only one in
-use. Capped means faster: the written brief, the JSON evidence and the automatic gene
-maps are skipped. The [Quick Guide](02_Quick_Guide.md#1-inspect-and-run-one-strain)
-says how to turn a capped run into a full one. Output goes to `runs/EXAMPLE/`, and
-`--outdir` chooses another parent folder. Add taxonomy and isolation source only when you
-have records for them.
-
-When the run finishes, check its exit code:
-- `0`: the package is complete. A `MAMEY_COMPLETE_WITH_ISSUES` status means there are
-  warnings. Read them in `issue_log.md`.
-- `1`: the run did not finish, or it has a `[BLOCKING]` issue. Do not use the package.
-- `2`: the command was refused before any work.
-
-[Your first run](../reader/01_FIRST_RUN.md#4-check-that-the-run-worked) shows how to
-read it.
-
-For a folder of input ZIPs, follow the [batch guide](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
-Its resume option skips matching completed inputs. It does not restart every
-partly finished step.
+[Your first run](../reader/01_FIRST_RUN.md) gives the `doctor`, `inspect`, `run` and
+`validate` steps, what the capped command turns off and what each exit code means.
+For a folder of ZIPs, use the [batch guide](../INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md).
 
 ## 4 · Reading the output
 
-Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html`. The
-[saved-result guide](../reader/03_READ_RESULTS.md) walks through the workbook
-and the strict validation check.
-
-### Read the region inventory and triage board
-
-The inventory contains the region coordinates and annotations. The triage board
-adds ranking fields. Match their rows by the same complete identity:
-**strain / full node-or-contig / region / BGC alias**.
-
-- **Rank:** the order for closer inspection.
-- **AB / AF:** antibacterial and antifungal priority scores, rather than measured activity.
-- **Boundary:** Interior, Edge, Full-contig or Unknown describes the region's
-  position on its contig; a truncated assembly can split a pathway across contigs.
-- **KCB:** KnownClusterBlast reference matches. Compare the shared genes and
-  coverage before using the reference's product name in an interpretation.
-- **`Standing_rule`, `Primary_metab_flag`, `Mobile_element_flag`:** why a region was left out of a ranked list. Read the excluded
-  rows as well as the lead rows.
-
-Use [the glossary](../GLOSSARY.md) for field definitions and
-[the detailed result guide](../READING_YOUR_RESULTS.md) for evidence files.
-A missing input, failed analysis and completed search with no hits are different
-states; use their recorded statuses rather than a blank cell alone.
-
-### Ask the package what it contains
-
-From the program folder, with your own strain name:
-
-```bash
-python mamey_run.py explain runs/EXAMPLE/package
-python mamey_run.py list-bgcs runs/EXAMPLE/package --include-dropped
-```
-
-`explain` describes the saved package. `--include-dropped` makes the list include
-excluded rows, which it normally hides.
+[Read one saved package](../reader/03_READ_RESULTS.md) is the short tour of a package,
+and [Reading your results](../READING_YOUR_RESULTS.md) explains selected result files, identity fields and evidence states. Use the
+relevant data dictionary and source tables for other columns.
+The [glossary](../GLOSSARY.md) defines the fields.
 
 ### Read a Mode B card
 
-A card should identify its region, describe the available evidence and explain
-its interpretation. The [profile guide](../MODEB_PROFILE_MATRIX.md) distinguishes
-short candidates from finished cards. The [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md)
-uses the same selected contract for template creation and verification:
-`full48` by default, or `current50_v2` when you choose that profile.
-
-Save the written card as a file. To record it in the package, follow
-[Save and review](../MODE_B_USER_WALKTHROUGH.md#6-save-and-review) in the walkthrough. The
-[deliverable contract](../DELIVERABLE_CONTRACT.md) covers master-workbook updates.
-Keep the original package ZIP when updating a working copy.
+The [profile guide](../MODEB_PROFILE_MATRIX.md) tells short candidates from finished
+cards, and the [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md) covers writing,
+verifying and saving one.
 
 ## 5 · Deepen the evidence
 
-Choose the question before adding a tool:
-
-- **What does a protein resemble?** Read existing [BLASTp evidence](../ONLINE_BLASTP_PROTOCOL.md)
-  before starting a search. A live search uploads the selected sequences.
-- **Could a region be fragmented?** Read its reference coverage and contig
-  boundaries together. [Reference completion](../COMPANION_CLASS_EVIDENCE.md)
-  and [expanded-locus evidence](../MODEB_EXPANDED_LOCUS.md) describe the available checks.
-- **Which regions belong to a family?** Use the [BiG-SCAPE walkthrough](../BIGSCAPE_COHORT_WALKTHROUGH.md)
-  with the chosen regions and comparison set.
-- **Where does the strain fit in a tree?** Use the [phylogeny guide](../PHYLO_AUTOPILOT_WORKFLOW.md)
-  with the sequence and reference inputs it requests.
-
-A reference match supports a similarity statement; identifying a compound or
-assigning activity to a particular region needs evidence for that link.
+Pick the question first, then the guide:
+[BLASTp evidence](../ONLINE_BLASTP_PROTOCOL.md) for what a protein resembles,
+[companion class evidence](../COMPANION_CLASS_EVIDENCE.md) and
+[expanded-locus evidence](../MODEB_EXPANDED_LOCUS.md) for a possibly fragmented region,
+the [BiG-SCAPE walkthrough](../BIGSCAPE_COHORT_WALKTHROUGH.md) for families, and the
+[phylogeny guide](../PHYLO_AUTOPILOT_WORKFLOW.md) for trees.
 
 ## 6 · Make figures
 
-First look at the images already in the package. The brief's plots, gold figures
-and locus maps have separate file lists. Check those lists before regenerating them.
-
-[Make and review Mamey figures](../FIGURES_START_HERE.md) maps each figure to its
-renderer, source tables and checks. Keep a figure with its plotted data and methods.
-For post-run rendering, use a working package copy because some commands update
-its integrity records even when images go to another folder.
-
-Before comparing counts across strains, check that their antiSMASH detection
-settings match. Loose runs can call more regions than default runs.
+[Make and review Mamey figures](../FIGURES_START_HERE.md) maps common figure tasks to their routes
+and checks, and links specialist catalogs and workflows.
 
 ## 7 · Keep and share results
 
-Keep the original antiSMASH ZIP, the Complete_Package ZIP and any written cards
-or reports. The package manifest records the input and producing versions.
-[Files and storage](../FILES_STORAGE_AND_HANDOFF.md) explains how to transfer a
-result while keeping its links and evidence together.
-
-For reporting, use [Evidence to report](../EVIDENCE_TO_REPORT.md).
-[Citation status](../CITATION_COMPACT_MODE.md) explains labels used in compact reports.
+[Files and storage](../FILES_STORAGE_AND_HANDOFF.md) explains how to keep and move a
+result. For reporting, use [Evidence to report](../EVIDENCE_TO_REPORT.md);
+[citation status](../CITATION_COMPACT_MODE.md) explains the labels in compact reports.
 
 ## 8 · Recover a failed step
 
-Keep the output folder, command and last error. Follow
-[Recovery](../reader/04_RECOVERY_AND_LIMITS.md) and use a fresh output folder for a retry.
-If an outer tool times out, check whether the process is still running before
-starting another writer.
+[Recovery and limits](../reader/04_RECOVERY_AND_LIMITS.md) covers failed runs,
+status values, JSON evidence modes and a retry that keeps the first attempt.
 
 ## Reference
 
 The [command catalog](../COMMAND_CATALOG.generated.md) lists the full interface.
-Use the [current documentation index](../../CURRENT_DOCS_INDEX.md) for specialized
-guides. [Engine lineage](../ENGINE_LINEAGE.md) says what changed in each engine version and whether results from different versions can be compared.
+The [current documentation index](../../CURRENT_DOCS_INDEX.md) lists the specialized
+guides. [Engine lineage](../ENGINE_LINEAGE.md) says what changed in each engine version
+and whether results from different versions can be compared.

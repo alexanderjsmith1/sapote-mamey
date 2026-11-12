@@ -15,7 +15,11 @@ import logging
 _LOG = logging.getLogger(__name__)
 import _phylo16s as _p16
 
-DB = _p16.rrna16s_db(os.environ.get("SAPOTE_16S_SQLITE"), must_exist=False)
+def __getattr__(name):
+    # The store is located on first use, not at import: importing a tool reads no workspace data.
+    if name == "DB":
+        return _p16.rrna16s_db(os.environ.get("SAPOTE_16S_SQLITE"), must_exist=False)
+    raise AttributeError(name)
 PDFHITS = os.environ.get("PHYLO_BLAST_PDF_HITS",
                          f"{_p16.root()}/inputs/blast_pdf_hits.tsv")
 

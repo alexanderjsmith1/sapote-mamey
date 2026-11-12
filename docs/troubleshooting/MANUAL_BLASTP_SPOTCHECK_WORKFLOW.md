@@ -1,6 +1,6 @@
 # Manual BLASTp spot-check evidence
 
-A manual BLASTp spot-check is optional. It gives independent homology evidence for one question you have chosen. A pending row on a worklist is not a search result, and it does not give permission to send anything out. Reuse results you already downloaded for the same queries. Any new online search follows [the BLASTp protocol](../ONLINE_BLASTP_PROTOCOL.md) and stays inside the user's request.
+A manual BLASTp spot-check is optional. It gives additional sequence-similarity results for one question you have chosen. Check whether its query, reference database and methods overlap earlier evidence before treating it as independent corroboration. A pending row on a worklist is not a search result, and it does not give permission to send anything out. Reuse results you already downloaded for the same queries. Any new online search follows [the BLASTp protocol](../ONLINE_BLASTP_PROTOCOL.md) and stays inside the user's request.
 
 ## What to keep for each query
 

@@ -99,8 +99,13 @@ def _hallucination(m: dict) -> str:
     out = ["### 2 · Hallucination-Trap / Claim-Calibration",
            "_Every product label is a hypothesis; Lead Priority and Claim Confidence are scored "
            "separately. Active traps:_", ""]
-    if not traps:
-        out.append("_No traps triggered for this strain (no label/evidence conflicts surfaced)._")
+    if "hallucination_traps_triggered" not in m:
+        out.append("_Not recorded: the manifest has no `hallucination_traps_triggered` field, so this "
+                   "scan cannot say whether any trap applies._")
+    elif not traps:
+        # The slot starts empty (mamey/models.py) and stays empty until a review fills it.
+        out.append("_None recorded. The slot is empty until a review fills it, so this does not show "
+                   "that every BGC was checked or that no label/evidence conflict exists._")
     else:
         out.append("| trap | BGC | label | resolution |")
         out.append("|---|---|---|---|")
@@ -166,8 +171,11 @@ def _flbr(ss: dict) -> str:
         lcs = f.get("orphan_linkage_claim_safety")
         if lcs:
             out.append(f"\n_{lcs}_")
-    else:
+    elif "orphan_megasynthase_candidates" in f:
         out.append("\n_Orphan-contig megasynthase candidates (Tier 1, KS-bearing): none._")
+    else:
+        # No orphan list in the package: the scan did not record one, which is not a search that found none.
+        out.append("\n_Orphan-contig megasynthase candidates (Tier 1, KS-bearing): not recorded in this package._")
     at_only = f.get("orphan_at_hydrolase_ambiguous") or []
     if at_only:
         out.append(f"\n_Tier 2 — **AT-only / α-β-hydrolase-ambiguous** ({len(at_only)} CDS). GHSxG is the "
@@ -236,11 +244,14 @@ def _cgad(ss: dict) -> str:
         out.append("|---|---|")
         for k, v in counts.items():
             out.append(f"| {k} | {v} |")
-    gh18 = counts.get("GH18", 0)
-    lpmo = counts.get("AA10_LPMO", 0)
+    # A count is printed only from a key the scan wrote; a package without the scan has no count, not 0.
+    gh18 = counts.get("GH18", "not recorded")
+    lpmo = counts.get("AA10_LPMO", "not recorded")
+    tally = (f"GH18={gh18}, LPMO={lpmo}" if isinstance(ch.get("counts"), dict)
+             else "The chitinase scan is not recorded in this package, so there are no GH18 or LPMO counts")
     out.append(f"\n_Ecology read: secreted chitinases (degrade existing chitin) + any nucleoside "
                f"chitin-synthase-inhibitor BGC (block new synthesis) = a two-pronged anti-chitin strategy. "
-               f"GH18={gh18}, LPMO={lpmo}._")
+               f"{tally}._")
     return "\n".join(out)
 
 
@@ -280,6 +291,9 @@ def _blda(ss: dict) -> str:
     out = ["### 8 · bldA / TTA Codon Scan",
            "_Rare-leucine TTA codons per BGC → bldA accessibility tier. T1 (zero TTA) = constitutive "
            "accessibility; higher tiers are bldA-gated / culture-condition-dependent expression._", ""]
+    if not per:
+        out.append("_No bldA/TTA result in this package, so no BGC has a tier._")
+        return "\n".join(out)
     if tier_dist:
         out.append("_Tier distribution:_ " + ", ".join(
             f"{t}={n}" for t, n in sorted(tier_dist.items())))

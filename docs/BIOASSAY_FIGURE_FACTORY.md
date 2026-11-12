@@ -92,6 +92,12 @@ Its defaults compare the best 96-well reading at any recorded dose with the best
 `--dose-384` for a different selected concentration or `--no-floor` to keep
 negative readings. Missing combinations have no row; they are not measured zeros.
 
+The best table groups by strain, displayed target and material-type label. It does not
+separate material IDs, parent materials, experiments, time points or 96-well doses, so
+a maximum can pool distinct conditions. Reconcile the included source rows and controls
+and establish comparability before interpreting a maximum; retain separate views when
+those conditions should not be combined.
+
 ## Build the figure
 
 Run from the program folder. Save this as `inputs/EXAMPLE-figure.json`. Replace the SHA-256 text with

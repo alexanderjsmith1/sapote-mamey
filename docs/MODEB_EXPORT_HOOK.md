@@ -12,7 +12,7 @@ python mamey_run.py modeb-export reviews/EXAMPLE-mode-b.md --outdir reviews/EXAM
 
 - `--format` is `docx`, `pdf` or `both` (default).
 - `--theme` is `evidence_dossier` (default), `field_notebook`, `dark_lab` or `minimal_clinical`.
-- `--outdir` defaults to the card's own folder. Use a new folder: files with the same name are replaced, and nothing is kept or checked for you.
+- `--outdir` defaults to the card's own folder. Use a new folder: files with the same name are replaced, and nothing is kept or checked for you. For a card inside a sealed package, pass an `--outdir` outside the package; the export refuses to write inside one, because new files there break its checksums.
 - The input can be a folder instead of one file. Then every top-level `*.md` in it is exported, except `PROVENANCE.md`. The command cannot tell a finished card from a template, so point it at a folder that holds only finished cards.
 
 ## What you should see
@@ -29,9 +29,9 @@ The byte counts and engine names will differ. Each written format gets one line 
 |---|---|
 | 0 | Every requested format was written. |
 | 1 | A requested format was skipped or refused, or a folder held no cards. With `--format both`, both files must be written. |
-| 2 | The input file does not exist. |
+| 2 | The input file does not exist, or the output folder is inside a sealed package. Nothing was written. |
 
-A skipped format prints `SKIPPED` and a reason on stderr. A refusal prints `REFUSED_CLAIM_SAFETY`; see below. Other read or render errors can stop the command part-way through a folder, leaving earlier files in place. Check each file exists.
+A skipped format prints `SKIPPED` and a reason on stderr. A refusal prints `REFUSED_CLAIM_SAFETY`; see below. A figure the PDF renderer cannot read, such as an SVG, prints `FAILED_IMAGE_UNAVAILABLE` for that card's PDF; link a PNG version of the figure and export the card again. Other read errors can still stop the command part-way through a folder, leaving earlier files in place. Check each file exists.
 
 ## Setup
 

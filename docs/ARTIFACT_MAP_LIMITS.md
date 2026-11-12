@@ -18,9 +18,9 @@ python mamey_run.py deliverables availability C01 --input-zip EXAMPLE_antismash.
 
 `list` prints every registered item. `explain ITEM` describes one. `availability [ITEM]` checks whether the inputs for an item are present. All three take `--json`. `availability` also takes `--package`, `--runs-dir`, `--input-zip` and `--locus`.
 
-With no input, `availability C01` prints `C01: INPUT_OR_LOCAL_DEPENDENCY_REQUIRED — antismash_zip`. With an existing zip file given, it prints `C01: READY`.
+With no input, `availability C01` prints `C01: INPUT_OR_LOCAL_DEPENDENCY_REQUIRED — antismash_zip`. With an antiSMASH ZIP that passes the shallow member check below, it prints `C01: READY`.
 
-`READY` means the catalog checks found no missing input for that item. Other states name a missing input or dependency, a judgment step, an authorization for external contact, or a human review. The command exits 0 even when an item is not ready. Read the state on each row. It does not build anything, check the bytes of your files, or grant permission for external work.
+`READY` means the catalog checks found no missing input for that item. Other states name a missing input or dependency, a judgment step, an authorization for external contact, or a human review. The command exits 0 even when an item is not ready. Read the state on each row. It does not build anything, comprehensively validate your inputs, or grant permission for external work. The ZIP check reads one member, as described below.
 
 The check is shallow:
 

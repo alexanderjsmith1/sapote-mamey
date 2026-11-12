@@ -31,7 +31,9 @@ Extract the rDNA markers from the assembly and place each one independently:
 
 **Extraction.** ITSx (ITS) and Barrnap with an available model appropriate to the installed version (SSU/LSU; see [version guidance](../docs/BARRNAP.md)) are the dedicated tools. A
 **blastn reference-probe** against the assembly (probe with a near-neighbor operon record, slice the
-assembly by the hit coordinates, bounded by the real 18S-hit end / 28S-hit start) uses BLAST+.
+assembly by the hit coordinates) uses BLAST+. The slice from the 18S-hit end to the 28S-hit start is
+the ITS region only. For a whole operon, take the 18S-hit start to the 28S-hit end. Use the hit strand:
+reverse-complement a minus-strand slice. Check that both hits are full length and on the same contig.
 
 **Reading discordance.** If markers disagree on the nearest genus, that discordance alone does not establish a novel lineage. Check source identity, alignment,
 reference coverage and the stated analysis scope; retain unresolved placement as a hold. A separately
@@ -53,8 +55,11 @@ The bundle’s GToTree presets do not establish a fungal workflow. One separate 
 
 ## Outgroup registry (fungal)
 
-`mamey/data/fungal_outgroup_registry.tsv` mirrors the bacterial registry — root a family-scoped tree on a
-**sister family, one rank out**, never a distant class. Seeded rows:
+`mamey/data/fungal_outgroup_registry.tsv` records project outgroup choices and
+candidates. Its family-scoped examples use sister-family context. For the
+order-wide Chaetothyriales example, it lists *Dothidea* as a sister-class candidate
+with status CONFIRM. Review the relevant outgroup and evidence for each tree;
+these are not universal taxonomic rooting rules. Seeded marker rows:
 
 | scope | outgroup | accession | status |
 |---|---|---|---|
@@ -79,12 +84,14 @@ and source binding remain a separately reviewed input decision.
 - **Family-wide ITS concatenation**: a historical example produced a dominating internal branch despite different trim settings. Review ITS alignment and resolution for the specific taxa and question.
 - **One bad reference record can sink a tree**: diagnose the accession, sequence, alignment and model before a justified, recorded exclusion. Do not automatically drop an inconvenient branch or weaken the gate.
 - **A gate FAIL can be the finding**: a long-branch failure needs source/alignment/model diagnosis and does not establish novelty. Report the numbers and unresolved reason; do not loosen a gate merely to make artwork printable.
-- **rDNA extraction without a dedicated tool is fine** *if* slice boundaries are anchored to real
-  alignment ends of the flanking genes — document the coordinates.
+- **Reference-probe extraction needs its own review**: bind source correspondence,
+  hit boundaries, strand and extracted marker identity; coordinates alone do not
+  guarantee a complete or correctly assigned marker.
 
 ## Tooling
 
-ITSx 1.1.3 (Bengtsson-Palme 2013), barrnap (Seemann), BUSCO 5.x (Manni 2021), **compleasm**
+Illustrative tool references, not a current installation receipt: ITSx 1.1.3
+(Bengtsson-Palme 2013), barrnap (Seemann), BUSCO 5.x (Manni 2021), **compleasm**
 (Huang & Li 2023, *Bioinformatics* 39:btad595), MUSCLE v5, trimAl, IQ-TREE, BLAST+, NCBI `datasets`.
 See [External Tools & Databases](External-Tools-and-Databases.md).
 

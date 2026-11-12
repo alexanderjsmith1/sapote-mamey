@@ -70,3 +70,13 @@ def test_card_block_does_not_call_distance_zero_identical():
     block = tm.render_block(ctx)
     assert "0 identical" not in block
     assert "distance 0 does not show identical sequences" in block
+
+
+def test_nearest_distance_does_not_claim_selected_run_binding():
+    tm = _load("tools/bigscape_ingest_to_mamey.py", "_bim_run_scope")
+    ctx = {"status": "KNOWN", "family_id": None, "mibig": [],
+           "nearest_mibig": ("BGC0000001", "x", 0.25), "cross_strain_members": None}
+    block = tm.render_block(ctx)
+    assert "not filtered by the selected run or cutoff" in block
+    assert "Nearest MIBiG cluster in this run" not in block
+    assert "distance 0 does not show identical sequences" in block

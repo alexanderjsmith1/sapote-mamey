@@ -119,8 +119,11 @@ def read_fasta(path: Path) -> dict[str, str]:
         if line.startswith(">"):
             if name is not None:
                 records[name] = _canonical("".join(parts))
-            name = line[1:].split()[0]
-            if not name or name in records:
+            tokens = line[1:].split()
+            if not tokens:
+                raise ValueError("FASTA_IDENTITY: empty or duplicate header")
+            name = tokens[0]
+            if name in records:
                 raise ValueError("FASTA_IDENTITY: empty or duplicate header")
             parts = []
         else:
@@ -147,6 +150,8 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
     tips, species_types, seq_groups, sample_seq = set(), defaultdict(list), defaultdict(list), defaultdict(list)
     tip_records, omissions = [], []
     for line, row in enumerate(rows, 2):
+        if any(row.get(key) is None for key in REQUIRED):
+            raise ValueError(f"ROSTER_ROW_INCOMPLETE: row {line}")
         tip = row["tip"].strip()
         role = row["role"].strip().lower()
         if not tip or tip in tips:

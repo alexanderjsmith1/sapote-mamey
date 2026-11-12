@@ -38,7 +38,7 @@ Keep cohort-only family assignments separate from reference identity claims.
 ## GECCO
 
 The optional `gecco-crosscheck` command runs a second caller on the original
-archive. It needs GECCO 0.11.x and writes outside the package. Follow
+archive. It needs GECCO 0.11.x on `PATH` and Biopython in the Python environment that runs Mamey (`python -m pip install -e '.[bio]'`). It writes outside the package. Follow
 [companion class evidence](COMPANION_CLASS_EVIDENCE.md#gecco) for the command,
 source binding and outputs. Run it after extraction.
 

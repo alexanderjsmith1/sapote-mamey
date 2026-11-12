@@ -46,6 +46,6 @@ The older check in `mamey/mode_b_quality_gate.py` wants at least 12,000 characte
 ## If a batch breaks
 
 - Keep the card files, the register and its `.last-good` backup.
-- A write of a card, its notes and the register is not one transaction. Repeating a write can add the same reader note twice, so check those files.
+- A write of a card, its notes and the register is not one transaction. A repeated write replaces the reader-note section for the same alias and removes later duplicate matching sections, so preserve earlier notes and check the files.
 - If the register is corrupt, copy it aside and ask before you rebuild it. Do not guess the roster.
 - Resume from your ledger, then run `verify-modeb` on the saved cards.

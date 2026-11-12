@@ -6,8 +6,8 @@ The fields below are a convention for external audit records. Record which instr
 from the user and which came from documents. For each evidence pointer, keep the path, SHA-256 and
 line or member. Log checks that ran separately from planned, skipped or unavailable ones. An exit
 code of zero means different things for different commands, so keep the actual output. The
-"AS-XXX redo" workflow below is a historical example; its locus labels are not full identities.
-For current command behavior, see the [operational reference](../user_guides/operational_reference.md).
+"example strain redo" workflow below is a historical example; its locus labels are not full identities.
+For current command behavior, start with the [task router](../USER_TASK_ROUTER.md) and follow the selected command's guide and help. The older [operational reference](../user_guides/operational_reference.md) is retired.
 
 ## Retained protocol
 
@@ -84,13 +84,13 @@ A row for each interpretive decision:
 - uncertainty
 - what_would_change_the_decision
 
-## Example workflow (historical AS-XXX redo)
+## Example workflow (historical example strain redo)
 
 1. Open and inventory the bundle's start files.
 2. Extract required instructions into `instruction_compliance_matrix.csv`.
 3. Run the environment/bootstrap/doctor steps exactly as instructed.
-4. Run AS-XXX from raw input using the instructed command path.
-5. Validate/seal the package.
+4. Run example strain from raw input using the instructed command path.
+5. Historical step: validate/seal the package. This example is not authorization to validate or seal a current package. Select the requested workflow and an authorized copy; standard validation can write a mutable `package_status.json` receipt.
 6. Run targeted feature checks:
    - inspect antiSMASH version consistency
    - SubCluster_hits NO_HITS behavior

@@ -2,7 +2,7 @@
 
 Find the result you need below. Each entry lists its inputs and whether it needs extra tools, an external service or a written interpretation.
 
-For the complete requirements and command names of the first entry, run from the bundle directory:
+For a requirements summary and command names for the first entry, run from the bundle directory:
 
 ```bash
 python mamey_run.py deliverables explain '#1'
@@ -14,7 +14,7 @@ Replace the example path with your antiSMASH ZIP, then check it for that entry:
 python mamey_run.py deliverables availability '#1' --input-zip ~/Downloads/EXAMPLE.zip
 ```
 
-Availability checks local files and tools; each output still needs its own input checks. Use another entry's label to inspect its requirements.
+Availability checks local files and tools; each output still needs its own input checks. For entry #1, READY means the supplied path is a regular file; it does not validate the ZIP or confirm that setup is complete. See [installation](INSTALL.md) and [your first run](reader/01_FIRST_RUN.md) for setup, inspection and package validation. Use another entry's label to inspect its requirements.
 
 For a single locus, supply its complete identity: `strain / full node-or-contig / region / BGC alias`.
 
@@ -238,4 +238,4 @@ Review a proposed patch for conflicts, missing tests and unsupported conclusions
 
 ---
 
-Sapote-Mamey v9.7.464; engine 1.9.180. Generated from `mamey/data/deliverables_registry.json` by `tools/generate_deliverables_menu.py`.
+Sapote-Mamey v9.7.465; engine 1.9.181. Generated from `mamey/data/deliverables_registry.json` by `tools/generate_deliverables_menu.py`.

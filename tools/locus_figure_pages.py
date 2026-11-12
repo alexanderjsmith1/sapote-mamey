@@ -16,6 +16,8 @@ spec.tsv columns: letter, run, strain, zip; optional mibig_dir, gecco_genes, gec
 --gecco-dir supplies <strain>.genes.tsv and <strain>.clusters.tsv for rows that name none; --mibig-gecco-dir is a folder
 of GECCO runs on the MIBiG GenBank files (<BGC>/<BGC>.genes.tsv), for the reference-row track.
 --width: page6.5 (6.5 in, the thesis text column), double (7.2 in) or landscape (9.0 in, the text width of a landscape page).
+  A map that cannot fit the chosen width (GAP_RESCUE_MAP_PRINT_WIDTH) is redrawn at landscape as panels/<map>__landscape/,
+  and the whole figure is then composed at landscape width; <prefix>_PAGES.json names the maps that fell back.
 --map-height: canvas height of each map in inches (default 6.2); larger values stretch crowded maps vertically.
 
 Writes <out>/panels/<map>/, <out>/logs/, the page files <out>/<prefix>[_page_N].{pdf,png} and <out>/<prefix>_PAGES.json.
@@ -83,12 +85,12 @@ def page_groups(letters, heights_in, limit_in, key_in=0.9):
     return groups
 
 
-def map_command(r, a, dst):
+def map_command(r, a, dst, width=None):
     gecco_genes = r.get("gecco_genes") or (str(Path(a.gecco_dir) / f"{r['strain']}.genes.tsv") if a.gecco_dir else "")
     gecco_clusters = r.get("gecco_clusters") or (str(Path(a.gecco_dir) / f"{r['strain']}.clusters.tsv") if a.gecco_dir else "")
     cmd = [sys.executable, str(TOOLS / "gap_directed_rescue.py"), "--zip", r["zip"], "--label", r["strain"],
            "--mibig-dir", r.get("mibig_dir") or a.mibig_dir, "--redraw", r["run"], "--out", str(dst),
-           "--print-width", "page6.5" if a.width == "page6.5" else a.width, "--trim-kb", str(a.trim_kb),
+           "--print-width", width or a.width, "--trim-kb", str(a.trim_kb),
            "--panel", "--scale-bar-up"] + ([] if a.own_key else ["--no-key"])
     if a.mibig_names:
         cmd += ["--mibig-names", a.mibig_names]
@@ -131,7 +133,7 @@ def main(argv=None):
         return 2
     (out / "panels").mkdir(parents=True, exist_ok=True); (out / "logs").mkdir(exist_ok=True)
     pw, max_h = WIDTHS[a.width]
-    done, status = [], []
+    done, status, fallback = [], [], []
     for r in rows:
         name = Path(r["run"]).name if Path(r["run"]).name.startswith(r["strain"]) else f"{r['strain']}_{Path(r['run']).name}"
         dst = out / "panels" / name
@@ -142,12 +144,27 @@ def main(argv=None):
         with open(out / "logs" / f"{name}.log", "w") as log:
             p = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
         ok = p.returncode == 0 and (dst / "gap_rescue.png").is_file()
+        too_wide = (not ok and a.width != "landscape"
+                    and "GAP_RESCUE_MAP_PRINT_WIDTH" in (out / "logs" / f"{name}.log").read_text(errors="replace"))
         status.append(dict(letter=r["letter"], map=name, exit=p.returncode, drawn=ok, command=cmd))
+        if too_wide:   # this map cannot fit the chosen width: redraw it at landscape, beside the failed attempt
+            dst = out / "panels" / f"{name}__landscape"
+            cmd = map_command(r, a, dst, "landscape")
+            with open(out / "logs" / f"{name}__landscape.log", "w") as log:
+                p = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT)
+            ok = p.returncode == 0 and (dst / "gap_rescue.png").is_file()
+            status.append(dict(letter=r["letter"], map=f"{name}__landscape", exit=p.returncode, drawn=ok,
+                               command=cmd, fallback_from=a.width))
+            if ok:
+                fallback.append(name)
         if ok:
             from PIL import Image
             done.append((r["letter"], dst, Image.open(dst / "gap_rescue.png").size[1] / PNG_DPI))
+    if fallback:   # a landscape map does not fit a narrower page; maps drawn narrower fit a landscape page
+        pw, max_h = WIDTHS["landscape"]
     pages = dict(tool="tools/locus_figure_pages.py", spec=str(Path(a.spec).resolve()), spec_sha256=sha256(a.spec),
-                 width=a.width, page_width_in=pw, map_height_in=a.map_height or 6.2, maps=status)
+                 width=a.width, width_used="landscape" if fallback else a.width, landscape_fallback=fallback,
+                 page_width_in=pw, map_height_in=a.map_height or 6.2, maps=status)
     if not done or len(done) != len(rows):
         (out / f"{a.prefix}_PAGES.json").write_text(json.dumps(pages, indent=1) + "\n")
         _OUT.error(f"refused: {len(rows) - len(done)} of {len(rows)} maps were not drawn; see {out}/logs")
@@ -160,7 +177,8 @@ def main(argv=None):
     else:
         no_letter = len(done) == 1 and done[0][0] == "-"
         letters = "a" if no_letter else "".join(l for l, _, _ in done)
-        groups = page_groups(list(letters), [h for _, _, h in done], a.page_limit)
+        # after a landscape fallback a page is at most the landscape height, so stack to that, not to --page-limit
+        groups = page_groups(list(letters), [h for _, _, h in done], min(a.page_limit, max_h) if fallback else a.page_limit)
         base = [sys.executable, str(TOOLS / "gap_rescue_panel_figure.py"), "--maps", *[str(d) for _, d, _ in done],
                 "--letters", letters, "--print-width", str(pw), "--max-page-height", str(max_h), "--out", str(out / a.prefix)]
         cmd = base + (["--no-letter"] if no_letter else []) + (["--pages", ",".join("".join(g) for g in groups), "--overview"]

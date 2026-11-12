@@ -69,10 +69,12 @@ def test_split_pathway_candidates_matches_rggmci_high(package):
 
 
 def test_blda_per_bgc_tier_populated(manifest):
-    # A3: every bgcs[] record carries a bldA tier
+    # A3: every bgcs[] record carries a bldA tier. The synthetic fixture's region GenBank files
+    # carry no sequence, so its CDS give no codons and the honest tier is NOT_COMPUTED; T1 here
+    # used to mean "zero TTA counted from zero codons" (tests/test_465_blda_no_sequence_not_t1.py).
     assert manifest["bgcs"], "fixture must emit at least one BGC or this test is vacuous"
     for b in manifest["bgcs"]:
-        assert b.get("blda_tier") in ("T1", "T2", "T3", "T4"), b["bgc_id"]
+        assert b.get("blda_tier") in ("T1", "T2", "T3", "T4", "NOT_COMPUTED"), b["bgc_id"]
 
 
 def test_compound_class_annotation_present(manifest):

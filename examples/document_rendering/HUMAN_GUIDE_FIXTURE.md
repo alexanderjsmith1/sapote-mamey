@@ -4,10 +4,13 @@ document_type: human_guide
 title: Sapote-Mamey in Five Minutes
 subtitle: A compact guide to extraction, interpretation, and safe next steps
 audience: New users, collaborators, and reviewers
-authority: User documentation; not a biological result
+authority: Rendering fixture; not current user documentation or a biological result
 render_profile: human_guide
 claim_safety_footer: Software guidance only; biological conclusions require source review and appropriate experiments.
 ---
+
+> [CAUTION] Rendering fixture
+> This example tests document layout. For current installation and first-run instructions, use the guides in `docs/INSTALL.md` and `docs/reader/01_FIRST_RUN.md`.
 
 # What Sapote-Mamey does
 

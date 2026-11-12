@@ -90,9 +90,10 @@ def test_join_measured_candida(tmp_path):
     assert rows["BGC004"]["af_capacity_score"] == 31.5
     assert rows["BGC004"]["af_lead_tier"] == "High"
     assert rows["BGC004"]["novelty_prior"] == "58.5"
-    # reference-dark derives from an empty KCB anchor
+    # reference-dark: a named anchor is "no"; a blank one is "yes" only on a reported KCB no-hit.
+    # This synthetic package has no inventory, so no KCB state: the blank anchor reads "unknown".
     assert rows["BGC004"]["reference_dark"] == "no"
-    assert rows["BGC020"]["reference_dark"] == "yes"
+    assert rows["BGC020"]["reference_dark"] == "unknown"
 
 
 def test_ranking_standout_first(tmp_path):

@@ -48,7 +48,7 @@ Read these keys:
 - `warnings`: for example, that the fast path skipped the value checks.
 - `error`: present when the file cannot be opened, or when it has no coded master sheets.
 
-The error "No canonical master sheets found" means the file is not a master workbook. Do not add sheets to satisfy it. Save the JSON next to the workbook's SHA-256 and the switches you used.
+The error "No canonical master sheets found" means none of the expected sheet names was found. The file may be a per-strain workbook, or a master whose sheets were renamed or damaged; verify its provenance and sheet names before classifying it. Do not add sheets merely to satisfy the checker. Save the JSON next to the workbook's SHA-256 and the switches you used.
 
 ## What it checks
 

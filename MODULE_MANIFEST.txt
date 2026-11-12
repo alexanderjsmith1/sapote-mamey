@@ -351,6 +351,7 @@ mamey/residue_tiling.py	Residue-level tiling for RG-GMCI pairs, from DIAMOND ali
 mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-focused gene-by-gene writeups.
 mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
 mamey/rggmci_rescue_atlas.py	Portable, claim-safe RG-GMCI complementary-rescue atlas.
+mamey/ripp_like_detection.py	Which detection domain triggered each antiSMASH RiPP-like protocluster.
 mamey/roster_v2.py	roster_v2 — package-native per-BGC, multi-channel gene roster model.
 mamey/rrefinder_status.py	Report-only source availability. Never infer an upstream search or biology.
 mamey/rules.py	mamey.rules — load the standing-rules registry and lint verdict text against it.

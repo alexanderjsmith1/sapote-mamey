@@ -8,7 +8,7 @@ python mamey_run.py run --help
 
 Replace `run` with another command name below. For a complete first run, use [Your first run](reader/01_FIRST_RUN.md). For a result to create, use [Choose an output](DELIVERABLE_MENU.md).
 
-Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.464, engine 1.9.180. Descriptions below come from the parser; aliases share their command's row.
+Generated from `mamey.cli` by `tools/gen_command_catalog.py`; bundle v9.7.465, engine 1.9.181. Descriptions below come from the parser; aliases share their command's row.
 
 ## Run and seal a strain
 

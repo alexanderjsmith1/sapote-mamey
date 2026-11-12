@@ -110,6 +110,8 @@ ewpage` commands.
 
 ---
 
+> **Current evidence boundary:** The historical examples below permit production language for a compound class. A genome annotation alone does not establish production of a class or a named compound. Use capacity language unless the specific production claim is supported by appropriately bound experimental evidence.
+
 ### 1.7 — Overclaims in layperson guide plain-English descriptions
 **Severity:** Medium · **Discovered:** v9.7.148c PDF review · **Trigger:** STRAIN_ID compiled report
 

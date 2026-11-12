@@ -16,4 +16,5 @@ This wiki helps researchers run the software and interpret its outputs.
 - [Troubleshoot a run](Troubleshooting-Field-Notes.md).
 - [Review the retired Encyclopedia](Encyclopedia.md) for historical context.
 
-Code is MIT; documentation is CC-BY-4.0. See the bundle licenses.
+Code is MIT. For documentation, check [LICENSE-DOCS.txt](../LICENSE-DOCS.txt)
+and each page's own license notice.

@@ -124,7 +124,7 @@ The same resources feed the isolate neighborhood panel ([NEIGHBOUR_PANEL_16S_TYG
 - the BLAST+ version;
 - the tool and its settings: for the similarity check, megablast with an 85% raw-identity floor (rerun without the floor if nothing passes), preferring hits that cover at least 90% of the query and falling back to shorter hits when none do;
 - the `-max_target_seqs` cap used and the flag's point difference;
-- that identity was computed over unambiguous positions, across every record in the database when `blastdbcmd -info` supplied the record count (otherwise up to the 100,000-subject fallback).
+- that unambiguous identity was computed for returned alignments under the stated BLAST settings and coverage rule. The subject cap is the database record count when `blastdbcmd -info` supplies it, otherwise 100,000; a cap equal to the record count does not establish an alignment to every record or an exhaustive pairwise comparison.
 
 If any `blastn` search fails, the similarity check stops with an error. The error gives BLAST's exit code and the first 300 characters of its error output. That covers both the nearest-record search and the search against the deposited species' records. A failed run writes no table and no receipt. In a finished table, a blank `nearest_identity` means the search ran and found no hit. A blank `identity_to_deposited_species` means either no hit or no database record for that species; `deposited_species_in_db` tells the two apart.
 

@@ -1,76 +1,48 @@
 <!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.464 / engine Mamey 1.9.180
+**Version:** v9.7.465 / engine Mamey 1.9.181
 
-Use this page to find the next step for an antiSMASH ZIP or a saved Mamey package.
-For a first extraction, use [Your first run](../docs/reader/01_FIRST_RUN.md).
-[Your first analysis](../docs/MASTER_WALKTHROUGH.md) adds an assistant request and a results walkthrough.
+This page is a command map. Each row names the command for a task and the page that
+explains it. Flags and behavior live on those pages, not here.
+For the complete sequence, start with [Your first run](../docs/reader/01_FIRST_RUN.md).
+[Your first analysis](../docs/MASTER_WALKTHROUGH.md) has the request to give an assistant.
 
-## 0. Install
 
-You need Python 3.12 or newer to run Mamey. Follow [Install](../docs/INSTALL.md) once,
-then activate the same environment when you return. A browser and spreadsheet
-reader are enough to open saved results.
+## Commands by task
 
-## 1. Inspect and run one strain
+| Task | Command | Page |
+|---|---|---|
+| Install and check the setup <a id="0-install"></a> | `doctor` | [Install](../docs/INSTALL.md), then [Your first run](../docs/reader/01_FIRST_RUN.md#1-check-the-install) |
+| Look inside an antiSMASH ZIP | `inspect` | [Your first run](../docs/reader/01_FIRST_RUN.md#2-look-inside-the-zip) |
+| Run one strain, capped or full <a id="1-inspect-and-run-one-strain"></a> | `run` | [Your first run](../docs/reader/01_FIRST_RUN.md#3-run-the-command-that-inspect-printed) |
+| Check a package | `validate` | [Your first run](../docs/reader/01_FIRST_RUN.md#4-check-that-the-run-worked) |
+| Read a package <a id="2-review-the-package"></a> | `explain`, `list-bgcs` | [Read one saved package](../docs/reader/03_READ_RESULTS.md) |
+| Fix a failed or incomplete run | `run --outdir` | [Recovery](../docs/reader/04_RECOVERY_AND_LIMITS.md) |
+| Choose JSON evidence settings <a id="2-choose-the-evidence-and-runtime-budget"></a> <a id="optional-evidence-settings"></a> | `run --json-evidence` | [JSON evidence modes](../docs/reader/04_RECOVERY_AND_LIMITS.md#json-evidence-modes) |
+| Run a folder of ZIPs <a id="3-process-a-cohort"></a> | `tools/intake_harness.py` | [Batch guide](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md) |
+| Read or run protein searches <a id="protein-search-and-result-import"></a> | `ingest-blastp`, `blastp-online`, `auto-blastp` | [BLASTp evidence](../docs/ONLINE_BLASTP_PROTOCOL.md) |
+| Write a Mode B card | `emit-modeb-template`, `verify-modeb` | [Mode B walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md) |
+| Make figures and short findings <a id="4-select-a-deliverable"></a> | `render-figures` and others | [Figures](../docs/FIGURES_START_HERE.md), [Evidence to report](../docs/EVIDENCE_TO_REPORT.md) |
+| Any other task | | [Choose a task](../docs/USER_TASK_ROUTER.md) |
 
-[Your first run](../docs/reader/01_FIRST_RUN.md) gives the commands and how to tell
-success from failure. Use one antiSMASH result ZIP for the genome and one strain name
-throughout. The example uses `EXAMPLE` and writes to `runs/EXAMPLE/`.
+The single-strain first-run example writes to `runs/EXAMPLE/`. Other guides use
+illustrative names and paths. Follow each guide's declared inputs
+and output location, and choose a fresh authorized destination.
+<a id="5-keep-the-region-identifiable"></a>
 
-The command that `inspect` prints is a capped run. It finishes faster, and it skips
-the written brief, the JSON evidence and the automatic gene maps. For a full run,
-delete `--capped-session`, `--json-evidence off` and `--brief none` from that command.
-A full run then uses bounded JSON evidence, a standard brief and automatic gene maps.
-
-## 2. Review the package
-
-Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html`. Read the issue log, inventory and
-triage board, then the workbook. [Read one saved package](../docs/reader/03_READ_RESULTS.md)
-explains the values and gives a fresh validation command.
-
-## 3. Process a cohort
-
-The [batch guide](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md) covers a folder of
-input ZIPs and resuming a batch. Choose the included strains before comparing them.
-
-## 4. Select a deliverable
-
-Use [Choose a task](../docs/USER_TASK_ROUTER.md) for figures, cards, slides and comparisons.
-For figures and writing from existing evidence, see [Evidence to report](../docs/EVIDENCE_TO_REPORT.md).
-
-## 5. Keep the region identifiable
-
-When discussing an individual region, copy **strain / full node-or-contig / region / BGC alias**
-from its record. Keep missing inputs, failed checks and completed searches with
-no hits separate in your notes.
-
-<a id="2-choose-the-evidence-and-runtime-budget"></a>
-
-## Optional evidence settings
-
-`--capped-session` turns off the JSON evidence, the brief and the automatic gene maps,
-and it requires the workbook. It does not set a time limit.
-
-`--json-evidence full` reads the whole antiSMASH JSON instead of a bounded stream.
-It refuses any single JSON file larger than 80 MB uncompressed. The ZIP's compressed
-size is not that limit. See [input evidence](../docs/ANTISMASH_INPUTS_CONSUMED.md)
-if a channel is held or truncated.
-
-## Protein search and result import
-
-Use [BLASTp evidence](../docs/ONLINE_BLASTP_PROTOCOL.md) to read saved results or plan a search.
+When you discuss one region, copy **strain / full node-or-contig / region / BGC alias**
+from its record.
 
 ## Fragmented pathway review
 
-A poor assembly can split one pathway across several contigs. `run` includes an RG-GMCI pass
-for this. It compares fragments against the ClusterBlast and KnownClusterBlast references they
-share, checks where their hits fall, and tests whether they cover complementary parts of the
-reference pathway. A supported link is a candidate relationship between fragments. It is
-homology-guided linkage, not a joined sequence. Read the ranked pairs in the package's
-`_4A_RGGMCI_ranked_pairs.csv`; the [glossary](Glossary.md#7-rg-gmci-and-the-rescue-layer)
-explains the confidence labels. To look at the sequence around one region, use
+A poor assembly can split one pathway across several contigs. `run` includes an RG-GMCI
+pass for this. Its candidate links between fragments are homology-guided, not joined
+sequence. Read the ranked pairs in the package's `_4A_RGGMCI_ranked_pairs.csv`; the
+[glossary](Glossary.md#7-rg-gmci-and-the-rescue-layer) explains the confidence labels.
+Inspect pass and source-evidence states: missing, failed or empty input is not a
+validated negative. Keep both endpoints' full strain / contig / region / BGC identities.
+To look at the sequence around one region, use
 [expanded-locus evidence](../docs/MODEB_EXPANDED_LOCUS.md).
 
 ## Trees and heatmap overlays
@@ -79,7 +51,6 @@ Use [phylogeny](../docs/PHYLO_AUTOPILOT_WORKFLOW.md) for sequence inputs and [tr
 
 ## Help and reference
 
-- [Recovery](../docs/reader/04_RECOVERY_AND_LIMITS.md) for a failed or incomplete run.
-- [User Manual](User-Manual.md) for a broader reading guide.
+- [User Manual](User-Manual.md) for the manual's table of contents.
 - [Glossary](Glossary.md) for terms and [citation status](../docs/CITATION_COMPACT_MODE.md)
   for the labels used in compact reports.

@@ -14,13 +14,14 @@ Definitions are in the [glossary](../GLOSSARY.md); result fields are explained i
 the data · source package or archive, with its SHA-256 and provenance receipt when available · release label (PUBLIC/PRIVATE) · who may
 read this · affiliation.
 
-The release label records the data's source. It does not decide who may read this record; write
-that separately.
+The release label is the recorded release or privacy assignment: a default, an override or a
+profile. It is not the data's source, and it does not decide who may read this record. Record the
+source and the readers separately.
 
 **Locus identity.** For a single BGC, give **strain / full node-or-contig / region / BGC alias**,
 copied from the source record. If any part cannot be confirmed, write **IDENTITY_BINDING_HOLD** and
 do not attribute evidence to the locus. For a reconstruction, list each region's full identity. For
-a cohort or workflow observation, write **NOT_APPLICABLE — <reason>** and name the strain roster
+a cohort or workflow observation, write **NOT_APPLICABLE** — reason: [state why] and name the strain roster
 instead.
 
 ## Observation

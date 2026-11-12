@@ -1,6 +1,6 @@
 # Plan a Sapote–Mamey result
 
-**Version:** v9.7.464 | **Bundle:** sapote-mamey-v9.7.464
+**Version:** v9.7.465 | **Bundle:** sapote-mamey-v9.7.465
 
 Choose the result you need, then use its maintained guide. If you already have a package,
 read it before requesting another extraction. Keep the input path, question, permitted
@@ -48,7 +48,7 @@ Missing evidence stays explicit.
 ## Optional five-sheet interpretation plan
 
 If you select the old Tier 2 workbook format, these names can organize a manual deliverable.
-No command writes these sheets.
+Treat these as a manual plan; do not assume the first-analysis workbook contains these sheets.
 
 | Sheet | Content to prepare |
 |---|---|

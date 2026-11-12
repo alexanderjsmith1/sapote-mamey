@@ -98,6 +98,8 @@ This inserts `\tableofcontents` at the LaTeX level, computed correctly after two
 
 ---
 
+> **Current evidence boundary:** The historical example below permits production language for a compound class. A genome annotation alone does not establish production of a class or a named compound. Use capacity language unless the specific production claim is supported by appropriately bound experimental evidence.
+
 ### PDF-7: Overclaims in layperson guide plain-English descriptions
 **Severity:** Medium · **Fix in:** v9.7.148c
 

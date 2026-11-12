@@ -142,8 +142,10 @@ for py in sorted(Path('mamey').rglob('*.py')):
 ```bash
 # LP1: Candidate AS identifiers; classify under the selected privacy profile
 grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | \
-  grep -v "test_\|fixture\|example\|AS-9[0-1][0-9]\|AS-XXX"
+  grep -v "test_\|fixture\|example\|AS-XXX"
 ```
+
+This discovery query omits whole lines containing those exclusion strings and scans only the named directories, not every release artifact. It is not a privacy audit. Excluded examples and fixtures are not thereby cleared of private identifiers; apply the selected disclosure profile to the complete actual release scope. S1/S2 also exclude whole lines containing `with `, which can hide a separate unsafe open on that line.
 
 ---
 

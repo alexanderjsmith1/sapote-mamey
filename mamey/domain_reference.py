@@ -76,7 +76,12 @@ CURATED: dict[str, tuple[str, str]] = {
 # ordered (regex-on-name-or-desc -> (category, fallback context)); first match wins. Applied only when
 # the domain is not in CURATED. Context defaults to the antiSMASH description when present.
 RULES: list[tuple[str, str, str | None]] = [
-    (r"halogen",                         "tailoring-halogenation", "Halogenase: installs a halogen (Cl/Br) onto the scaffold."),
+    # 465: "dehalogenase" names an alpha/beta hydrolase that removes a halogen (antiSMASH SMCOG1262 "haloalkane
+    # dehalogenase", Pfam "Dehalogenase"); it is not a halogenating enzyme, so the lookbehind keeps it out of this rule.
+    (r"(?<![Dd]e)halogen",               "tailoring-halogenation", "Halogenase: installs a halogen (Cl/Br) onto the scaffold."),
+    # 466: a sugar transporter (smCOG "sugar transport protein", Pfam Sugar_tr) moves sugars across the membrane; it is
+    # not a sugar-tailoring enzyme, so it is caught here before the glycosylation rule's "sugar" can take it.
+    (r"[Ss]ugar[ _]transport|Sugar_tr",  "transport", "Transport / export (ABC or MFS-type membrane transporter)."),
     (r"p450|cytochrome|monooxygenase|Rieske|Oxidored|oxidoreduct|dehydrogenase|reductase|oxidase|FAD|flavin|Ferredoxin",
                                          "tailoring-oxidoreduction", "Oxidoreductase-type tailoring enzyme."),
     (r"methyltransf|Methyltransf|SAM-",  "tailoring-methylation", "Methyltransferase-type tailoring enzyme."),
@@ -84,21 +89,29 @@ RULES: list[tuple[str, str, str | None]] = [
                                          "tailoring-glycosylation", "Sugar biosynthesis / glycosyltransfer tailoring enzyme."),
     (r"YcaO|PqqD|RRE|Lant|LanC|Lanthi|thiopeptide|Nif11|TfuA|SagB|azol|Cytolysin|Bottromycin|microviridin|lasso|Lasso",
                                          "RiPP-maturation", "RiPP precursor-maturation enzyme (leader binding / heterocyclization / crosslink)."),
-    (r"Terpene|terpen|SQHop|SQS_PSY|polyprenyl|prenyl|Polyprenyl|Squalene|IPP|Lycopene|Phytoene",
+    # 466: IPP is matched only at the start of a name or word (IPPT, the tRNA dimethylallyltransferase, is a prenyl
+    # transferase and stays here); an unanchored "IPP" inside a longer token no longer counts.
+    (r"Terpene|terpen|SQHop|SQS_PSY|polyprenyl|prenyl|Polyprenyl|Squalene|(?<![A-Za-z0-9])IPP|Lycopene|Phytoene",
                                          "terpene/prenyl", "Terpene / prenyl biosynthesis enzyme."),
-    (r"Beta-lactam|beta-lactam|Aminoglyc|VanC|Van[A-Z]|efflux|resistance|Resistance|Streptomycin_3|Fom|Bcr",
-                                         "resistance", "Resistance-associated marker (self-protection / efflux)."),
-    (r"ABC_tran|ABC2|MFS|BPD_transp|Peripla|permease|OEP|transport|TonB|SBP_bac|FecCD|MacB",
+    # 466: "efflux" alone is not resistance evidence (LysE amino acid efflux, cation efflux, MATE); efflux proteins are
+    # transport unless the name also says resistance or names a resistance family, which this rule still catches first.
+    (r"Beta-lactam|beta-lactam|Aminoglyc|VanC|Van[A-Z]|resistance|Resistance|Streptomycin_3|Fom|Bcr",
+                                         "resistance", "Resistance-associated marker (self-protection)."),
+    (r"ABC_tran|ABC2|MFS|BPD_transp|Peripla|permease|OEP|transport|TonB|SBP_bac|FecCD|MacB|[Ee]fflux|LysE|MatE",
                                          "transport", "Transport / export (ABC or MFS-type membrane transporter)."),
     (r"HTH|TetR|LuxR|MerR|AraC|GerE|Sigma|sigma|Response_reg|HisKA|LacI|PadR|MarR|WhiB|ROK|Fis|Crp",
                                          "regulatory", "Transcriptional regulator / two-component signalling."),
-    (r"Condensation|Cy_",                "NRPS-core", "NRPS condensation-type domain."),
+    # 466: "Cy_" counts only as a token start, so Ad_Cy_reg (an adenylate cyclase regulatory domain) is not NRPS-core.
+    (r"Condensation|(?<![A-Za-z0-9_])Cy_", "NRPS-core", "NRPS condensation-type domain."),
     (r"Ketoacyl|ketoacyl|Acyl_transf|KAsynt|Chal_sti|PksD",
                                          "PKS-core", "PKS chain-extension domain (KS/AT-associated)."),
     (r"DUF\d",                           "uncharacterized", None),
     (r"Peptidase|Inhibitor_I9|Peptidase_S8|Reprolysin",
                                          "tailoring-other", "Peptidase / protease-type accessory enzyme."),
-    (r"Abhydrolase|hydrolase|Esterase|Lipase|Alpha-amylase|CBM",
+    # 466: a carbohydrate-binding module (CBM_2, CBM_48, NPCBM, ...) binds a polysaccharide; it is not a hydrolase. It
+    # is "other", so a catalytic domain on the same protein decides the gene's category.
+    (r"CBM",                             "other", "Carbohydrate-binding module: binds a polysaccharide; no catalytic step."),
+    (r"Abhydrolase|hydrolase|Esterase|Lipase|Alpha-amylase|[Dd]ehalogenase",
                                          "tailoring-other", "Hydrolase / esterase-type accessory enzyme."),
 ]
 

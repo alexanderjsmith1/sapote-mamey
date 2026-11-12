@@ -1,6 +1,6 @@
 # BLASTP follow-up reader
 
-`blastp-followup` reads the result files you download from NCBI web BLASTP and writes review tables. It suggests which proteins to search next. It reads local files only. It does not submit anything to NCBI, and it does not change your workbook or package.
+`blastp-followup` reads the result files you download from NCBI web BLASTP and writes review tables. It suggests which proteins to search next. It reads local files and writes review files to the chosen output directory. It does not submit anything to NCBI. It does not protect package or workbook paths from being chosen as output: use a fresh review directory outside your packages and source data.
 
 To submit searches and bring results into the workbook, use [the online BLASTP protocol](ONLINE_BLASTP_PROTOCOL.md). Search in small batches, not one query of every protein.
 

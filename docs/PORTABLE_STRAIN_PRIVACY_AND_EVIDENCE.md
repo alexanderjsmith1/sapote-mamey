@@ -23,6 +23,8 @@ cp -n examples/privacy/strain_evidence_registry.example.tsv evidence/strain_evid
 the copies then do not run. That protects a profile or registry you have already edited.
 `cp -n` also refuses to replace an existing file. If you see `File exists`, keep your
 files and skip this step; copy an example to a new name only if you want a fresh start.
+The first folder may have been created before `mkdir` encountered the existing second
+folder. Inspect both paths before retrying, and use fresh names when needed.
 
 Open `privacy/strain_privacy_profile.json` and replace the example strain names and
 tier names with yours. A tier with `"public_export": true` is `PUBLIC`. Every other

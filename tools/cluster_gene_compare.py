@@ -374,7 +374,31 @@ def interpret(labels, clusters, rows):
     return "\n\n".join(lines)
 
 
-def make_pdf(labels, clusters, rows, heatmap_png, outdir, title, min_id, engine):
+def methods_alignment_text(min_id, min_cov, engine):
+    """Methods paragraph for the PDF: which pairs were aligned, and both admission thresholds."""
+    nw = "a global Needleman-Wunsch alignment (BLOSUM62, gap open -11, extend -1)"
+    if engine == "pyswrd":
+        scope = ("Candidate CDS pairs were first selected with a pyswrd search of all CDS against all CDS "
+                 "(max_evalue=1.0, max_alignments=25). Only candidate pairs from different clusters were then "
+                 f"aligned with {nw}; a pair the search did not return was not aligned and has no measured "
+                 "identity (engine: pyswrd).")
+    else:
+        scope = (f"Every CDS was aligned to every CDS in every other cluster with {nw} "
+                 f"(engine: {engine}).")
+    if min_cov > 0:
+        cutoff = (f"A gene pair was scored a threshold-admitted homolog at global identity >= {min_id}% and "
+                  f"coverage >= {min_cov}%, where coverage is the alignment columns with a residue in both "
+                  "sequences divided by the longer protein length.")
+    else:
+        cutoff = (f"A gene pair was scored a threshold-admitted homolog at global identity >= {min_id}%; "
+                  "no coverage cutoff was applied.")
+    return (f"{scope} Percent identity was computed on the global alignment as matches / (alignment length "
+            "minus gap-gap columns), the same metric clinker uses, which avoids the overcounting that local "
+            f"% identity over a partial aligned region produces. {cutoff} Admitted pairs were joined into "
+            "homology groups by single-linkage clustering.")
+
+
+def make_pdf(labels, clusters, rows, heatmap_png, outdir, title, min_id, engine, min_cov=0.0):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import inch
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -408,13 +432,7 @@ def make_pdf(labels, clusters, rows, heatmap_png, outdir, title, min_id, engine)
         f"antiSMASH sec_met_domain / gene_functions / product qualifiers; unannotated CDS inherited a "
         f"label from an annotated homolog by homology propagation, and the inferred label was recorded separately "
         f"in /mamey_homology_label, with /mamey_homology_meta; original /gene remains intact.", body))
-    story.append(Paragraph(
-        f"Every CDS was aligned to every CDS in every other cluster with a global Needleman-Wunsch "
-        f"alignment (BLOSUM62, gap open -11, extend -1; engine: {engine}). Percent identity was computed "
-        f"on the global alignment as matches / (alignment length minus gap-gap columns) — the same "
-        f"metric clinker uses — which avoids the overcounting that local %%identity over a partial "
-        f"aligned region produces. A gene pair was scored a threshold-admitted homolog at global identity "
-        f">= {min_id}%%. Confident pairs were joined into homology groups by single-linkage clustering.", body))
+    story.append(Paragraph(methods_alignment_text(min_id, min_cov, engine), body))
     story.append(Paragraph(
         "Limitations: identity is homology, not product identity; ab-initio (pyrodigal) gene calls have "
         "approximate boundaries; truncated/edge clusters under-report shared genes. Capacity-level "
@@ -475,7 +493,7 @@ def main(argv=None):
         outs = ["gene_pairs.csv", "homology_matrix.csv", "homology_members.csv", "ortholog_matrix.csv", os.path.basename(heat),
                 f"annotated_gbks/ ({len(ann)} files)"]
         if a.pdf:
-            pdf = make_pdf(labels, clusters, rows, heat, stage, a.title, a.min_id, a.engine)
+            pdf = make_pdf(labels, clusters, rows, heat, stage, a.title, a.min_id, a.engine, a.min_cov)
             outs.append(os.path.basename(pdf))
     ncore = sum(1 for r in rows if r[0] == len(labels))
     emit(f'[cluster_gene_compare] {len(labels)} clusters, {len(pairs)} confident gene pairs, {len(rows)} homology groups ({ncore} core in all {len(labels)}).', f'[cluster_gene_compare] outputs -> {a.outdir}/: ' + ', '.join(outs), sep="\n")

@@ -1,8 +1,8 @@
 # Public antiSMASH datasets
 
-Ready-made antiSMASH result ZIPs for public genomes, mostly actinomycetes, are on Zenodo. Use them to try the program without running antiSMASH yourself, to compare your strains with public genomes of the same genus, or to repeat a published analysis from the exact same input.
+Ready-made antiSMASH result ZIPs for public genomes, mostly actinomycetes, are on Zenodo. Use them to try the program without running antiSMASH yourself, to compare your strains with public genomes of the same genus, or to attempt a published analysis with a source-bound input. Preserve the versioned record, file name and downloaded byte hash, plus the software versions, settings, other inputs and methods needed for reproduction.
 
-Use the ZIPs run with antiSMASH 8.0.4 at `loose` strictness: their file names end in `__antiSMASH8.0.4_loose.zip`. There are 1,258 of them (about 45 GB) across 14 records. Cite the record DOI when you use its files. Each record page states its license and lists its files.
+Use the ZIPs run with antiSMASH 8.0.4 at `loose` strictness. The recorded inventory lists 1,258 of them (about 45 GB) across 14 records; verify the current record inventory before downloading. Most file names end in `__antiSMASH8.0.4_loose.zip`; nine end in `__antiSMASH8.0.4_loose__2.zip`, so match on `_loose` rather than the exact ending. Cite the record DOI when you use its files. Each record page states its license and lists its files.
 
 | Genus or group | Record DOI | Loose ZIPs | Size |
 |---|---|---:|---:|
@@ -23,15 +23,17 @@ Use the ZIPs run with antiSMASH 8.0.4 at `loose` strictness: their file names en
 
 ## What each ZIP is
 
-Each ZIP is one antiSMASH run on one public genome assembly. Its name gives the organism and strain, the NCBI assembly accession, the antiSMASH version and the strictness, for example `Genus_sp._EXAMPLE__GCA_000000000.1__antiSMASH8.0.4_loose.zip`.
+Each ZIP is one antiSMASH run on one public genome assembly. Its name gives the organism and strain, an NCBI accession (an assembly `GCA_` accession or a sequence accession), the antiSMASH version and the strictness, for example `Genus_sp._EXAMPLE__GCA_000000000.1__antiSMASH8.0.4_loose.zip`.
 
 ## Use one
 
 1. Open the record and download a loose ZIP. Each record page lists its files with their sizes and md5 checksums.
 2. Check the download against the md5 shown on the record page: `md5 <file>` on macOS, `md5sum <file>` on Linux.
-3. Pick a short strain name that is not a database accession, such as `EXAMPLE`. Do not use the `GCA_` accession from the file name. `run` refuses an accession as the strain name when the archive names an organism, and exits 2. To keep the accession as the name anyway, add `--allow-accession-strain-id`. To let the program build a name from the archive, use `--strain auto`.
-4. Run the command that `inspect` prints, as in [Your first run](reader/01_FIRST_RUN.md). Pass `--strain EXAMPLE`. Pass `--taxonomy` and `--source` only from the deposited record, as that page describes.
+3. Run `inspect` on the ZIP under its original file name. It prints a `--strain` that `run` accepts, and a `Strain name:` line when it had to change the file name. Use that name, or a short name of your own that is not a database accession.
+4. Run the command that `inspect` prints, as in [Your first run](reader/01_FIRST_RUN.md). Pass `--taxonomy` and `--source` only from the deposited record, as that page describes.
+
+`run` refuses a database accession as the strain name, with exit 2, when it can read an organism name. It reads the organism from the GenBank header and, when that is blank, from the ZIP file name. So renaming the file can change whether an accession is refused. To keep an accession as the name anyway, add `--allow-accession-strain-id`. `--strain auto` asks the program to derive a name from the archive or filename. If the run refuses that name, choose an explicit safe name of at most 64 characters. Check the resolved organism, its provenance and potential name collisions.
 
 A good run ends with exit code 0 and a results block. How to read it is on the first-run page. A large ZIP takes longer than a small one.
 
-When you report a result, name the input by its record DOI and file name. The DOI and the file will not change, even when the program does.
+When reporting a result, keep the versioned record DOI, file name, checksum algorithm and observed SHA-256 together. Reuse an input only when its hash matches. Preserve the software versions, settings and other inputs; a DOI or file name alone does not prove byte identity or reproduction.

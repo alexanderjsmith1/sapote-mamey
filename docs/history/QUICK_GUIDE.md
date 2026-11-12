@@ -1,5 +1,7 @@
 > **Historical page.** Replaced by [the current Quick Guide](../GUIDE/02_Quick_Guide.md). Kept as a record; its commands and counts are not current instructions. For current instructions use the [Current Docs Index](../../CURRENT_DOCS_INDEX.md).
 
+> **Interpretation hold:** Historical references below to “all-novel” strains, definitive pathway engines, and rescued split pathways are not established by scores, annotation labels or shared reference geometry alone. Keep each full locus identity and source-channel state, and seek independent evidence before claiming novelty, pathway membership or physical linkage.
+
 <!-- SAPOTE_DOC_STATE: HISTORICAL_SUPERSEDED -->
 <!-- SAPOTE_SUPERSEDED_BY: ../CURRENT_DOCS_INDEX.md | GUIDE/02_Quick_Guide.md -->
 

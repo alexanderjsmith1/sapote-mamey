@@ -63,7 +63,7 @@ sha256sum Wheelhouse/hmm/scanner_pfam.hmm   # record as a new artifact; do not e
 ```
 
 A rebuild from `current_release` is a **new version**, not a copy. Its accessions can change version, `hmmfetch`
-may not find the pinned accessions, and its hash will differ from the manifest. Record the new source release,
+may not find the pinned accessions, and the output hash must be measured rather than assumed to match or differ from the manifest. Record the new source release,
 the accession list actually fetched and the new SHA-256 as a new receipt, then review compatibility. Do not
 compare it to the old hash as if it were the same artifact.
 
@@ -71,8 +71,7 @@ Historical: the old text here said that antiSMASH `--fullhmmer` output is an equ
 
 ## Provenance and rebuild rationale
 
-The HMM is static reference data (Pfam models plus curated gathering cutoffs), not source. It is NOT bundled; it belongs in
-operator-provisioned because it is large; it is not bundled here (see `docs/EXTERNAL_ASSETS_GUIDE.md`). The recipe above
+The HMM is static reference data (Pfam models plus curated gathering cutoffs), not source. It is NOT bundled; it is operator-provisioned because it is large (see `docs/EXTERNAL_ASSETS_GUIDE.md`). The recipe above
 supports a separately versioned build from a newer Pfam-A source, with a new receipt and output hash.
 The old manifest hash identifies the historical subset only; exact recovery remains held until the
 missing source receipt is recovered. The teicoplanin MIBiG fixtures that

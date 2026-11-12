@@ -35,11 +35,20 @@ def _read_json(_path, *, encoding="utf-8"):
 
 
 # Co-assembly pairs are cohort-specific data, not shipped in the code tier.
-try:
-    from mamey.exclusions import official_data_json as _official_data_json
-    CO_ASSEMBLY = set(_official_data_json("co_assembly.json", {}).get("strains", []))
-except Exception:  # pragma: no cover - standalone use without mamey
-    CO_ASSEMBLY = set()
+def __getattr__(name):
+    # Read on first use, not at import: importing this tool reads no workspace data.
+    if name == "CO_ASSEMBLY":
+        try:
+            from mamey.exclusions import official_data_json as _official_data_json
+            return set(_official_data_json("co_assembly.json", {}).get("strains", []))
+        except Exception:  # preserve the existing standalone/malformed-data empty fallback
+            return set()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 
 def _strain_dirs(root):
@@ -280,7 +289,7 @@ def build_tally(strain_dirs, out_csv, genus_map):
                     missing_loc += 1
                 row = dict(e)
                 row.update({"strain": strain, "genus": genus_map.get(strain, ""),
-                            "assembly_locator": loc, "co_assembly": strain in CO_ASSEMBLY})
+                            "assembly_locator": loc, "co_assembly": strain in _bound("CO_ASSEMBLY")})
                 w.writerow(row); n += 1
     if missing_loc:
         emit(f"  WARN: {missing_loc} tally BGCs have no assembly_locator (non-modular, pre-Part-B "

@@ -78,7 +78,7 @@ In that overlay's `Strain_Cohort_Context` sheet, `no_KCB_hit_recorded_regions` i
 
 Use each quantity for what it measures:
 
-- Label KCB values as cumulative scores.
+- Label `KCB_score` as a cumulative BLAST score and `KCB_similarity_pct` as the separate antiSMASH similarity percent; do not interchange them.
 - RG-GMCI HIGH-pair statistics measure the richness of reference-anchored homologous pairs, with BGC-content gates.
 - Report assembly fragmentation separately.
 - Leave the four common classes (saccharide, fatty_acid, other, terpene) out of shared and novel arguments.

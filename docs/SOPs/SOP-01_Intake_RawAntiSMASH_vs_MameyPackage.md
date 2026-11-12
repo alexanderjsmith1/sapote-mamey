@@ -27,18 +27,26 @@ fixture. A public accession alone does not choose the release setting.
 
 ## Saved Mamey package
 
-A Complete_Package ZIP contains `package/manifest.json`, checksums and
-`package/OPEN_ME_FIRST.html`. Extract it into an unused working folder; extraction can replace files there:
+A Complete_Package ZIP contains `package/manifest.json` and checksums;
+`package/OPEN_ME_FIRST.html` is an optional entry page. Run `inspect` on it first. It refuses a ZIP with a
+duplicate or unsafe manifest, and it checks every member with the extractor's own
+preflight before anything is written. When it passes, it names the strain. Then
+extract into a new, unused working folder, because extraction can replace files
+there, and validate the result:
 
 ```bash
-python -m zipfile -e ~/Downloads/EXAMPLE_Complete_Package.zip reviews/EXAMPLE-saved
-python mamey_run.py validate reviews/EXAMPLE-saved/package
+mkdir -p reviews && \
+  python mamey_run.py inspect ~/Downloads/EXAMPLE_Complete_Package.zip && \
+  mkdir reviews/EXAMPLE-saved && \
+  python -m zipfile -e ~/Downloads/EXAMPLE_Complete_Package.zip reviews/EXAMPLE-saved && \
+  python mamey_run.py validate reviews/EXAMPLE-saved/package
 ```
 
-Open `reviews/EXAMPLE-saved/package/OPEN_ME_FIRST.html` and read the workbook and
-issue log. Validation updates `package_status.json` in the working copy; keep
+If any command fails, stop and inspect the error. Preserve any partial working folder and choose a
+fresh name after review. Keep the source ZIP unchanged between inspection and extraction.
+Open `reviews/EXAMPLE-saved/package/OPEN_ME_FIRST.html` if present; otherwise read the issue log
+and available package tables. Validation updates `package_status.json` in the working copy; keep
 the original ZIP unchanged.
 
 The workbook result is advisory by default. For a required workbook, use the
 strict check in [Read one saved package](../reader/03_READ_RESULTS.md).
-You can also run `inspect` on a saved package ZIP. It names the strain and tells you to extract the ZIP. It refuses a ZIP with an unsafe or duplicate manifest.

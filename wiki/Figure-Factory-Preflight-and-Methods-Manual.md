@@ -19,7 +19,9 @@ interchangeable.
 | Package/cohort and domain figures | Read their command-specific package or table inputs; optional data or plotting dependencies can produce a documented skip. |
 | Repair specifications | Describe intended changes and unresolved bindings. A specification or registry entry is not evidence that a renderer or input exists. |
 
-Run commands from the extracted bundle root through `python mamey_run.py`.
+Run commands from the extracted bundle root through `python mamey_run.py`. The Figure Factory
+command is `python mamey_run.py figure-factory --config CONFIG`; aggregate, phylogeny, bioassay and
+bioassay-plan `figure_kind`s all route through it.
 The automatic aggregate-coverage hook requires a discoverable configuration; this
 condition does not apply to every run/cohort figure producer. See the aggregate guide for
 search order and the automatic output-directory replacement policy. Manual aggregate rendering
@@ -44,8 +46,11 @@ The v2 cohort manifest distinguishes STUDY, REFERENCE, EXTERNAL_BENCHMARK and OU
 External benchmarks and outgroups are default-off; explicitly selected default-off assembly rows
 are separate sensitivity rows. This is a current v2 capability, replacing the older v1 description.
 
-An empty eligible set is refused. An all-zero numerator set can be a valid observed result;
-this renderer does not implement a universal all-zero refusal. Assess missingness and the
+An empty eligible set is refused. At least one default-on STUDY identity must also remain after
+the genus preset; selected optional rows do not count toward that, and the renderer refuses with
+"No default-on STUDY identities remain". All-zero numerator inputs can render;
+verify the observation states before calling those values observed zeros. This
+renderer does not implement a universal all-zero refusal. Assess missingness and the
 scientific question before deciding whether such a figure is useful.
 
 Record the denominator key, channel, inclusion/exclusion rules and transformation in the methods.

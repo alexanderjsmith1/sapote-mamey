@@ -76,12 +76,14 @@ figures. Locus maps add one figure per region. To skip both, add
 
 `--capped-session` is a mode for tools with a time limit. It skips the brief and the
 main antiSMASH JSON walker, and turns automatic gene maps off unless you set `--locus-maps`.
-KnownClusterBlast text and a separate record pass are still read. It requires the workbook,
+Available KnownClusterBlast text and eligible JSON can still be read by separate paths;
+check their saved states for missing, held or unreadable input. It requires the workbook,
 writes an uncompressed ZIP unless `MAMEY_ZIP_COMPRESSION` is set, and prints a progress line
 every 20 seconds unless you set `--heartbeat-seconds`. It is not just a way to save space. The
 [input guide](ANTISMASH_INPUTS_CONSUMED.md) explains the evidence modes. The
 [first run](reader/01_FIRST_RUN.md) uses the capped command that `inspect` prints. The
-[Quick Guide](GUIDE/02_Quick_Guide.md#1-inspect-and-run-one-strain) says how to turn it into a full run.
+[first-run flags](reader/01_FIRST_RUN.md#3-run-the-command-that-inspect-printed)
+say how to turn it into a run without the cap.
 
 ## Archive to an external disk or iCloud
 
@@ -102,8 +104,10 @@ action. Keep any assistant transcript with that note. The policy is in
 ## Build a portable ZIP
 
 Use `handoff` when the receiver needs to run online BLASTp. That search needs the
-protein sequences of each region. A package does not carry them. The region
-GenBank files from the antiSMASH ZIP do. `handoff` packs the package and those
+protein sequences and their source identities. A package can contain a `*_proteins.faa`
+file with available BGC-member translations, but its presence does not establish complete
+coverage or replace the region GenBank records needed by this handoff route. The region
+GenBank files from the antiSMASH ZIP can carry those translations. `handoff` packs the package and those
 files into one ZIP, so you do not send the 20 to 120 MB antiSMASH ZIP. For any
 other transfer, copy `*_Complete_Package.zip`.
 
@@ -140,9 +144,14 @@ The output must sit outside the package folder and must not be an input file. A
 bad package path prints `ERROR:` and exits 1.
 
 A region-only ZIP can change the protein set. Compare query identifiers and
-sequence hashes before you reuse a search plan or results. With `--top-n N`, only
-the top N ranked regions are included. Check the selected region identities and
-filenames, because unmapped rows and filename collisions can change the result.
+sequence hashes before you reuse a search plan or results. With `--top-n N`, the writer selects BGC IDs using `Corrected_rank`; it uses raw
+`Rank` only when that column is absent. Blank corrected ranks do not enter selection.
+If the selected IDs yield no mapped source GBKs, the writer falls back to all region
+GBKs, including when no IDs were selected. With a partial crosswalk it includes only
+mapped selected regions and can omit the others. Read `HANDOFF_README.txt` and compare
+`selected_bgcs` with actual archive members. A selected-ID count is not an archive-region
+count. Check the full region identities and filenames; filename collisions can also
+change what the handoff contains.
 
 To move several packages with their catalog, use
 [private project export](PROJECT_CATALOG.md#export-and-test-the-archive). It refuses an

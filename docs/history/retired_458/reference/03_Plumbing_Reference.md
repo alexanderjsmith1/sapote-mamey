@@ -1,5 +1,7 @@
 > Current operations: read [the source-contract corrections](../../../reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-1-current-cli-contracts) before using Part 1. Also read [the master-writer corrections](../../../reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-2-master-writer-and-retained-values). This historical body retains older defaults, workbook descriptions and conflicting release descriptions. Its synchronized version stamp does not certify every section.
 
+> **Historical claims need independent review.** Later sections retain old blanket guarantees about figure sidecars, privacy prefixes, sealing and Mode B writes; use the linked current contracts and check the selected route. A circular topology or interior boundary alone does not establish a complete pathway. Do not use the retained release labels, counts or examples as current authorization or scientific evidence.
+
 # Sapote-Mamey: The Plumbing Reference
 
 Retired in v9.7.458 and kept as a record. Settings and commands may be out of date. Current guide: [Tools reference](../../../user_guides/tools_reference.md) and [Current source scope](../../../reference/06_CURRENT_SOURCE_SCOPE.md).
@@ -1641,6 +1643,8 @@ Returns one of three values: `"Interior"`, `"Edge"`, or `"Full-contig"`.
 **Full-contig** is assigned when the BGC span covers ≥95% of the contig. This is the most severe fragmentation category — the cluster likely extends beyond both ends of the contig and requires long-read assembly or linkage data before interpretation.
 
 **Edge** is assigned when the BGC start or end falls within 5000 bp of a contig terminus. The default 5000 bp flank was chosen to match antiSMASH's own edge-detection heuristic and captures clusters that are clearly truncated without over-flagging those that simply happen to be near a boundary.
+
+> **Current reading boundary:** An Interior boundary label on a circular replicon is a classification, not proof that a BGC or pathway is complete. Check the source sequence, topology and locus evidence before interpreting completeness. The current parser can also report Unknown or Full-contig; consult the actual output.
 
 **The `is_circular` fix (v9.7.87):** on closed/circular replicons, the origin is not a truncation point. A BGC adjacent to position 0 on a circularized chromosome wraps around — it is complete, not truncated. Before this fix, such BGCs were classified as Edge and contributed to a deflated corrected BGC count (since Edge BGCs are counted as ½ in the `Interior + ½·Edge + ¼·Full-contig` formula). The topology token is read from the GenBank LOCUS line (`annotations["topology"] == "circular"`) and, when present, forces `is_circular=True`, bypassing the edge check entirely and returning `"Interior"`. Without this: closed genomes (e.g., *N. nova* NZ_CP006850) produced corrected counts lower than raw, a counter-intuitive signal that had been attributed to fragmentation until the real cause was identified.
 

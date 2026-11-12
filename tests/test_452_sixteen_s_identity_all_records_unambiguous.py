@@ -158,4 +158,8 @@ def test_guide_states_the_identity_rule_and_the_methods_line():
     assert "## How identity is measured" in text
     assert "sixteen_s_similarity_check.py" in text and "comparator_select.py" in text
     assert "nearest_identity_unambiguous" in text and "query_ambiguous_bp" in text
-    assert "computed over unambiguous positions, across every record in the database" in text
+    # The subject cap is the record count, but megablast returns only aligned records; the guide
+    # must not claim an alignment to every record.
+    assert "unambiguous identity was computed for returned alignments" in text
+    assert "does not establish an alignment to every record" in text
+    assert "across every record in the database" not in text

@@ -63,9 +63,11 @@ optional add-ons are installed with `bundle_support/install_sapote_addons.sh`.
 
 Use `--capped-session` when timeout limits apply, regardless of assistant or model. Gold is the
 analysis mode. The capped flag forces `--brief none` and `--json-evidence off`, requires the workbook,
-and disables automatic locus maps unless explicitly enabled. For bounded JSON evidence, omit
-`--capped-session` and use `--json-evidence bounded` with sufficient runtime; the capped flag overrides
-that evidence choice. Do not replace a failed engine run with an informal raw-JSON interpretation.
+and disables automatic locus maps unless explicitly enabled. `off` stops only the main JSON walker;
+a separate record pass attempts to read JSON for the KCB percent and TIGRFAM hits. Inspect its
+recorded status: input may be absent, held or unreadable. The uncapped `run --json-evidence` default
+is `bounded`. For the main walker's evidence, omit `--capped-session` and use bounded with sufficient runtime;
+the capped flag overrides that evidence choice. `docs/reader/04_RECOVERY_AND_LIMITS.md` lists the modes. Do not replace a failed engine run with an informal raw-JSON interpretation.
 For batches, inventory all inputs and run `tools/intake_harness.py` with `--inputs`, `--outdir`,
 `--registry`, `--metrics` and `--resume` (see `docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md`);
 checkpoint and diagnose a stalled input instead of repeatedly running it.
@@ -119,7 +121,7 @@ authoring and verifier requirements below.
   `operator_supplied` records evidence provenance; `citation_needed` remains unresolved.
 
 Handback requirements are in `docs/DELIVERABLE_CONTRACT.md`. Mode B profiles, section titles and
-verification are in `docs/MODE_B_USER_WALKTHROUGH.md`. `docs/CHATGPT_EXECUTION_SLICE_v97147.md` is a
+verification are in `docs/MODE_B_USER_WALKTHROUGH.md`. `docs/history/CHATGPT_EXECUTION_SLICE_v97147.md` is a
 v9.7.147 record; its §1–§20 section counts and model-specific reply rituals are historical.
 
 ## Citation-Compact Provenance and Citation Status
@@ -235,14 +237,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.464 / 1.9.180 · build 20261108v97464a
+   bundle / engine  : v9.7.465 / 1.9.181 · build 20261110v97465a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → render-figures → review figures and evidence → captions/Methods facts; optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.464 / 1.9.180 · 20261108v97464a)
+## 3 · Known gotchas for THIS build (v9.7.465 / 1.9.181 · 20261110v97465a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 
@@ -251,7 +253,7 @@ Generated from `bootstrap_contract.yml`; update with `python tools/render_bootst
 - **bootstrap_contract_generation** (medium; assistant bootstrap and release checks): Edit shared operating guidance in AGENTS.md and generated blocks in bootstrap_contract.yml; render and check the CLAUDE.md mirror. Automatic discovery varies, so point other assistants to AGENTS.md or provide it through their supported instruction mechanism. README.md is the human landing page.
 - **mode_b_top_n_cumulative** (medium; mode-b CLI batching): mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches, run cumulative tiers on the same package and de-duplicate by BGC id within that package until rank slicing exists; across packages, match on the full strain / contig / region / BGC alias identity.
 - **timing_breakdown_partial_runs** (low; timing outputs): *_timing_breakdown.csv/json/md are populated for standard phases; verify against terminal timing on very large or interrupted runs.
-- **json_evidence_off_is_lightest** (medium; evidence mode selection): --capped-session forces --json-evidence off regardless of assistant; omit the capped flag and use --json-evidence bounded with sufficient runtime when JSON evidence is needed.
+- **json_evidence_off_is_lightest** (medium; evidence mode selection): --capped-session forces --json-evidence off regardless of assistant. Off turns off only the main JSON walker. A separate record pass can read JSON for the KCB percent and TIGRFAM hits; inspect its status because missing, held or unreadable input may leave that evidence unavailable. A capped run can therefore include JSON-derived evidence. The uncapped run default is bounded. For the main walker's RiQ and region-to-region evidence, omit the capped flag and use --json-evidence bounded with sufficient runtime.
 - **manifest_summary_nested** (low; package manifest readers): manifest.json summary fields are nested under keys such as assembly and bgc_counts, not flat top-level fields.
 - **mode_b_corrective_protocol_section_lock** (high; Mode B BGC card writing): Use the selected named Mode B profile and current machine-readable contract; emit the template, preserve its exact section titles, author evidence-backed content, then verify the authored file. A table or skeleton does not establish a finished card.
 - **mode_b_length_and_comparator_context** (medium; Mode B BGC workups): Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labeled proteins; repeated external-strain hits should trigger comparator next-step guidance rather than identity claims.

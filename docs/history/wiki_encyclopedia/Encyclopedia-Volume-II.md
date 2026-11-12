@@ -313,6 +313,8 @@ build does not pass. On top of that, a **gold-aware validator** applies stricter
 success set (`cli.py`, the gold-mode status gate) is **`success_statuses = {"MAMEY_COMPLETE", "MAMEY_COMPLETE_WITH_ISSUES", "PASS", "PASS_WITH_ISSUES"}`**, and the exit code is
 `0` when the selected run status is in that set (or its validator status starts with `PASS`), else `1`, as described for this historical gate. `MAMEY_COMPLETE` distinguishes deterministic extraction from pending judgment; it does not independently certify that all scientific statements are correct or every optional output was requested. Read the actual saved validation result under the current selected contract.
 
+> **Audit coverage boundary:** The historical guarantee below is not proof that every source item or exclusion is checked. Inspect the selected audit implementation, input binding, checked fields and saved result for the actual run; retain unexamined evidence and missing inputs as unresolved. A successful count or structural check is not universal evidence conservation or scientific validation.
+
 **The evidence-conservation auditor (`boundary_audit.py` + `tools/evidence_conservation_audit.py`).** Beyond
 presence, a fail-closed pair of audits guarantees that *nothing the engine found is silently lost* between the
 raw antiSMASH output and the sealed package, and that every recorded exclusion was actually honoured. The

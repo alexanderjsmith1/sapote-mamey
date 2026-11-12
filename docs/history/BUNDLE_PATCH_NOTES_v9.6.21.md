@@ -2,7 +2,7 @@
 
 # BUNDLE PATCH NOTES — Sapote–Mamey v9.6.21
 
-> **Do not apply these edits.** This is a record of one old patch. The steps, file replacements and tier checklist below do not describe the current tree and would overwrite current work. Changes to the current tree go through the cut process in [CUT_PROTOCOL](../../CUT_PROTOCOL.md), and the verified state is in [CHANGELOG](../../CHANGELOG.md). The test runs in the Verification section have no bundled receipts, so they are unverified here.
+> **Do not apply these edits.** This is a record of one old patch. The steps, file replacements and tier checklist below do not describe the current tree and would overwrite current work. Changes to the current tree go through the cut process in [CUT_PROTOCOL](../../CUT_PROTOCOL.md), and the release history is recorded in [CHANGELOG](../../CHANGELOG.md); check the applicable release receipt and artifacts to verify a particular build. The test runs in the Verification section have no bundled receipts, so they are unverified here.
 
 > **Status (this build):** ALL items below are applied to **all four tiers**
 > (MERGED-PRIVATE-scaffold, CODE, CODE-analysis-free, SID-public) and to the

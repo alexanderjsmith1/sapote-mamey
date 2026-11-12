@@ -1,8 +1,8 @@
-# Current Docs Index — v9.7.464 · engine 1.9.180 · build 20261108v97464a
+# Current Docs Index — v9.7.465 · engine 1.9.181 · build 20261110v97465a
 
 Each listed entry starts with its status. The status is `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate).
 
-To tell whether a page is current, apply these rules in order. A page listed here with `current` is current. A page under `docs/history/` is not current. A page not listed here is current only when its first lines say so or a listed page links to it. A page whose first lines say historical, retired, deprecated or superseded is not current, wherever it sits.
+Check historical status first: a page under `docs/history/`, or one whose first lines say historical, retired, deprecated or superseded, is not current even if another page links to it or an index entry has drifted. Otherwise, `current` entries designate the maintained routes. For an unlisted page, check its first lines and the declared scope of the maintained page that links to it; a link alone does not validate its contents.
 
 ## Start here
 
@@ -11,13 +11,13 @@ Terms such as BGC (biosynthetic gene cluster) and Mode B are defined in the [Glo
 - `current` [Start with your file](docs/READER_START_HERE.md): tells you whether you have the software, an antiSMASH ZIP or a saved result.
 - `current` [Installation](docs/INSTALL.md), [prerequisites](docs/PREREQUISITES.md) and [external assets](docs/EXTERNAL_DATA.md): set up the program and the separately supplied data.
 - `current` [Inputs and setup](docs/reader/02_INPUTS_AND_SETUP.md): the program, input and output folders for your task.
-- `current` [Your first run](docs/reader/01_FIRST_RUN.md): extract and check one antiSMASH ZIP. This is the one first-run recipe.
-- `current` [Read one saved package](docs/reader/03_READ_RESULTS.md): find the region list, workbook and issue log in a result. [Reading your results](docs/READING_YOUR_RESULTS.md) explains each field.
+- `current` [Your first run](docs/reader/01_FIRST_RUN.md): extract and check one antiSMASH ZIP. This is the recommended first-run route.
+- `current` [Read one saved package](docs/reader/03_READ_RESULTS.md): find the region list, workbook and issue log in a result. [Reading your results](docs/READING_YOUR_RESULTS.md) explains selected result fields and evidence states.
 - `current` [Recover a run](docs/reader/04_RECOVERY_AND_LIMITS.md): what to do when a command fails or a run is incomplete. [Troubleshooting](docs/COMMON_MISTAKES.md) lists common mistakes.
 - `current` [Choose a task](docs/USER_TASK_ROUTER.md): pick a task and see its inputs and guide. [Choose the next command](docs/user_guides/CHOOSE_NEXT_COMMAND.md) gives a working command line for the specialist commands.
 - `current` [Find the right document](docs/DOCUMENTATION_MAP.md): a short table from what you want to do to the page to open.
-- `current` [Quick Guide](docs/GUIDE/02_Quick_Guide.md) and [User manual](docs/GUIDE/01_User_Manual.md): a compact command reference and the full manual.
-- `current` [Master Walkthrough](docs/MASTER_WALKTHROUGH.md): a longer path from installation to checked outputs.
+- `current` [Quick Guide](docs/GUIDE/02_Quick_Guide.md) and [User manual](docs/GUIDE/01_User_Manual.md): a command map and the manual's table of contents. Both link to the pages above instead of restating them.
+- `current` [Ask an assistant to run it](docs/MASTER_WALKTHROUGH.md): the request to give a coding assistant for a first analysis, and what to check in its answer.
 - `current` [Data home](docs/DATA_HOME.md): where results live, the inbox route into the Strain Master, how to find data before making any, and the self-check.
 - `current` [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md): save a package or move it to another computer.
 - `current` [Command catalog](docs/COMMAND_CATALOG.generated.md) and [deliverable menu](docs/DELIVERABLE_MENU.md): generated lists of commands and of what the program can produce.
@@ -57,6 +57,7 @@ Terms such as BGC (biosynthetic gene cluster) and Mode B are defined in the [Glo
 - `current` [Master workbook validation](docs/WORKBOOK_VALIDATION.md): deployed schema, fast/full scope, roster/hash checks and retained freeze discrepancies.
 - `current` [Manuscript revision workflow](docs/MANUSCRIPT_REVISION_WORKFLOW.md): notes, reviewer findings and answers in one
   Word ledger; asks-only rounds; staged edits checked, applied and logged with `tools/manuscript_revision.py`.
+- `current` [Evidence freshness](docs/EVIDENCE_FRESHNESS.md): check retained SHA-256 pins and declared dependency edges with `tools/evidence_freshness.py`; it writes only the receipt you name.
 - `current` [Working with an assistant](docs/ASSISTANT_USER_GUIDE.md): choose inputs, task scope, evidence and completion criteria.
 - `current` [Offline paper reference audit](docs/PAPER_REFERENCE_AUDIT.md): DOCX citation/reference and figure/table callout keys; parsing holds remain visible; no network or document edits.
 - `experimental` [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md): report-only thresholds and calibration hold.
@@ -81,7 +82,7 @@ A Mode B card is a written evidence review of one region. Start with the hub.
 - `current` [Mode B guide index](docs/MODE_B_DOCUMENT_INDEX.md): find the Mode B guide you need.
 - `current` [Mode B authoring](wiki/Mode-B.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
-- `current` [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
+- `current` [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), reference-guided rescue evidence and candidate partner contigs (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
 - `current` [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
 - `current` [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
 - `current` [Mode B evidence availability and writing](docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md): pre-authoring inventory, typed binding/freshness states, planner limits and the independently reviewed finished-card evidence matrix.
@@ -137,7 +138,7 @@ Use these guides for specialized tools, commands and input and output contracts.
 - `current` [cluster_relate — relationship tree + distance matrix from homologous clusters](docs/CLUSTER_RELATE.md)
 - `current` [extract_cluster — find a marker-co-occurrence candidate region in a raw genome](docs/EXTRACT_CLUSTER.md)
 - `current` [fetch_reference_cluster — write a reference or cohort cluster as a GenBank file](docs/FETCH_REFERENCE_CLUSTER.md)
-- `current` [scope_cluster — scope an over-merged antiSMASH region to its true protocluster](docs/SCOPE_CLUSTER.md)
+- `current` [scope_cluster — scope an over-merged antiSMASH region to a selected source-bound protocluster](docs/SCOPE_CLUSTER.md)
 - `current` [Exact-bound reference-BGC structural validator](docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md)
 - `experimental` [Gene evidence disagreement review candidate](docs/EVIDENCE_DISAGREEMENTS_CANDIDATE.md)
 - `current` [Whole-genome chitin/GlcNAc reference-capacity evaluation](docs/CHITIN_REFERENCE_EVALUATION.md)

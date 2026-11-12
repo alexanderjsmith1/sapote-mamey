@@ -1341,6 +1341,17 @@ def emit_modeb_template_command(args) -> int:
         selection_error = "ERROR: either --bgc <BGC_ID> or --batch is required"
     elif bgc and batch:
         selection_error = "ERROR: --bgc and --batch are mutually exclusive"
+    elif bgc:
+        # A card's identity (strain / node / region / alias) comes from the BGC's triage-board row.
+        # An id that is not on the board would give a card headed "? / ?" with package facts that
+        # belong to no locus, so no template is written.
+        from .modeb_template_emitter import _read_triage
+        _board_ids = {(r.get("BGC_ID") or r.get("bgc_id") or "").strip() for r in _read_triage(pkg)}
+        if bgc.strip() not in _board_ids:
+            where = ("is not on the triage board" if _board_ids
+                     else "cannot be checked: the package has no triage-board rows")
+            selection_error = (f"ERROR: emit-modeb-template --bgc {bgc}: this BGC {where} ({pkg}). "
+                               "No template was written. Run list-bgcs on the package for the BGC ids it holds.")
     if selection_error:
         emit(selection_error, file=sys.stderr)
         return 2

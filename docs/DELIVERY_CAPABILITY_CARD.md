@@ -9,7 +9,7 @@ python3 tools/delivery_capability_card.py --config /path/to/config.json \
   --json-out /path/to/candidate_card.json --html-out /path/to/candidate_card.html
 ```
 
-Requires Python 3.9+ and the standard library only. Input paths are relative to the config location or absolute. Inputs are read in place; no artifact is copied. Outputs must be distinct from every selected input and cannot be symlinks. Changed existing derived outputs require `--replace-candidate`; byte-identical replay is allowed. Each output replacement is atomic, but JSON and HTML are not a transactional pair after interruption. Keep both current output hashes in a delivery manifest.
+Requires Python 3.9+ and the standard library only. Input paths are relative to the config location or absolute. Inputs are read in place; no artifact is copied. Outputs must be distinct from every selected input and cannot be symlinks. An existing destination with changed bytes requires `--replace-candidate`; byte-identical replay is allowed. The flag can replace an existing readable destination file that is not a selected input, even if it is unrelated to this tool. Verify and preserve both destination files before using it, or choose fresh paths. Each output replacement is atomic, but JSON and HTML are not a transactional pair after interruption. Keep both current output hashes in a delivery manifest.
 
 Exit 0 means the configured artifact's exact bytes were found and the card was produced; **it does not mean all checks passed**. Inspect the card's states and holds. Exit 1 means the artifact is missing or differs from the config. Invalid input raises an error rather than generating a passing card. No network or browser is used.
 

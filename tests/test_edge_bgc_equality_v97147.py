@@ -17,7 +17,7 @@ def test_edge_equality_replaces_partial_modeb_stub():
 
 def test_triage_sort_is_not_interior_first():
     slim = text("docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md")
-    execution = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    execution = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     assert "Sort all BGCs by `Corrected_rank`" in slim
     assert "Sort all BGCs by `Corrected_rank`" in execution
     assert "List Interior BGCs first (sorted by AB_auto desc), then Edge, then FC" not in slim
@@ -26,7 +26,7 @@ def test_triage_sort_is_not_interior_first():
 def test_poor_tier_edge_penalty_removed():
     full_run = text("prompts/FULL_RUN_PROFILE.md")
     monolith = text("docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md")
-    execution = text("docs/CHATGPT_EXECUTION_SLICE_v97147.md")
+    execution = text("docs/history/CHATGPT_EXECUTION_SLICE_v97147.md")
     for doc in (full_run, monolith, execution):
         assert "POOR/VERY_POOR" in doc
     assert "Edge or Full-contig BGC in POOR/VERY_POOR assembly | 0" in full_run

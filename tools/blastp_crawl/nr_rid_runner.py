@@ -313,6 +313,34 @@ def _curl(args: list[str], timeout: int) -> str:
         raise TransportUnverified(f"curl rc={p.returncode}: {p.stderr.strip()[:150]}", p.stdout)
     return p.stdout
 
+# Optional search settings: hit-list size, E-value cutoff, and an Entrez limit that can leave out the query genome's
+# own records. Unset, the request is unchanged: HITLIST_SIZE=10 and no EXPECT or ENTREZ_QUERY.
+#   RID_HITLIST           HITLIST_SIZE (positive integer; default 10)
+#   RID_EXPECT            EXPECT, sent only when set (for example 1e-5)
+#   RID_ENTREZ_QUERY      ENTREZ_QUERY sent as given (an organism or other Entrez limit)
+#   RID_ENTREZ_SELF=1     exclude the query's own genome: when the FASTA header's first token matches RID_ENTREZ_SELF_REGEX
+#                         (default ^>\s*(SID\d+)\b), send RID_ENTREZ_SELF_TEMPLATE with {id} filled
+#                         (default NOT "Streptomyces sp. {id}"[orgn]). Ignored when RID_ENTREZ_QUERY is set.
+def _hitlist_size() -> int:
+    v = os.environ.get("RID_HITLIST", "10").strip()
+    if not v.isdigit() or int(v) < 1:
+        raise SystemExit(f"RID_HITLIST must be a positive integer, got {v!r}")
+    return int(v)
+
+def search_switches(fasta_text: str) -> list:
+    extra = []
+    if os.environ.get("RID_EXPECT"):
+        float(os.environ["RID_EXPECT"])  # refuse a value NCBI would not parse
+        extra += ["--data-urlencode", f"EXPECT={os.environ['RID_EXPECT']}"]
+    if os.environ.get("RID_ENTREZ_QUERY"):
+        extra += ["--data-urlencode", f"ENTREZ_QUERY={os.environ['RID_ENTREZ_QUERY']}"]
+    elif os.environ.get("RID_ENTREZ_SELF") == "1":
+        m = re.match(os.environ.get("RID_ENTREZ_SELF_REGEX", r">\s*(SID\d+)\b"), fasta_text)
+        if m:
+            tpl = os.environ.get("RID_ENTREZ_SELF_TEMPLATE", 'NOT "Streptomyces sp. {id}"[orgn]')
+            extra += ["--data-urlencode", "ENTREZ_QUERY=" + tpl.format(id=m.group(1))]
+    return extra
+
 def submit(fasta_text: str) -> tuple[str, int]:
     with tempfile.NamedTemporaryFile("w", suffix=".faa", delete=False) as tf:
         tf.write(fasta_text); qf = tf.name
@@ -321,7 +349,8 @@ def submit(fasta_text: str) -> tuple[str, int]:
                      "--data-urlencode", "CMD=Put",
                      "--data-urlencode", "PROGRAM=blastp",
                      "--data-urlencode", f"DATABASE={DATABASE}",
-                     "--data-urlencode", "HITLIST_SIZE=10",
+                     "--data-urlencode", f"HITLIST_SIZE={_hitlist_size()}",
+                     *search_switches(fasta_text),
                      "--data-urlencode", f"QUERY@{qf}"], 90)
     finally:
         os.unlink(qf)

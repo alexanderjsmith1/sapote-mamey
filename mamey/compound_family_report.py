@@ -44,7 +44,16 @@ from typing import Any
 # whole-strain excludes (contaminated / chimeric) — never enter the AF/AB narrative.
 # SSOT: raw-data module -> raw_analysis_excluded() = {AS-XXX, AS-XXX}. See OFFICIAL_DATA/EXCLUSIONS.md.
 from .exclusions import raw_analysis_excluded
-EXCLUDE_STRAINS = raw_analysis_excluded()
+def __getattr__(name):
+    # Excluded strains come from the workspace exclusions file. Read on first use, not at import: importing this module reads no workspace data.
+    if name == "EXCLUDE_STRAINS":
+        return raw_analysis_excluded()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 CLAIM_HEADER = (
     "# Compound-family report (freeze-safe additive layer). A KCB/MIBiG anchor is a SIMILARITY "
@@ -166,7 +175,7 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     # Preserve the unsealed low-level assembly API used while constructing a run.
     root = output_directory(package_dir, "compound-families", out_dir) if sealed else Path(out_dir or package_dir)
     outd = str(output_directory(package_dir, "compound-families", root / "COMPOUND_FAMILIES") if sealed else root / "COMPOUND_FAMILIES")
-    excluded = strain.strip().upper() in {s.upper() for s in EXCLUDE_STRAINS}
+    excluded = strain.strip().upper() in {s.upper() for s in _bound("EXCLUDE_STRAINS")}
     names = (["EXCLUDED.txt"] if excluded else
              ["ANCHORED_BGC_COMPOUND_FAMILIES.tsv", "COMPOUND_FAMILY_ROLLUP.tsv"]
              + (["ANCHOR_STRUCTURES.tsv"] if with_structures else []))

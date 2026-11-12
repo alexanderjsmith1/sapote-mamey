@@ -6,7 +6,7 @@ Terms are defined in the [glossary](../GLOSSARY.md).
 To run the pipeline first, follow [the first-run recipe](../reader/01_FIRST_RUN.md).
 To read a results table, see [reading your results](../READING_YOUR_RESULTS.md).
 
-*Current to bundle v9.7.464 / engine Mamey 1.9.180.*
+*Current to bundle v9.7.465 / engine Mamey 1.9.181.*
 
 ## Contents
 
@@ -46,8 +46,9 @@ Use the same `--contract` value when you emit the template and when you verify t
 The [profile matrix](../MODEB_PROFILE_MATRIX.md) lists both, and the [authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md) shows the steps.
 
 A template or a top-leads table is not a finished card.
-`PASS_STRUCTURE` means the sections are present.
-It does not mean the science or the citations are checked.
+`PASS_STRUCTURE` is a structural label, and different checks use it for different things.
+Read the report of the check that printed it.
+The label does not mean every section is present, and it does not check the science or the citations.
 `operator_supplied` records where a value came from.
 `citation_needed` means a literature check is still open.
 
@@ -65,7 +66,7 @@ These words say how a claim was obtained.
 An observed annotation can still be an upstream prediction.
 The label does not turn it into measured chemistry.
 
-### Why is bioactivity tied to a strain and never to one BGC?
+### Why is bioactivity not automatically attributed to one BGC?
 
 An assay result belongs to its strain, material, target and conditions.
 A BGC in the same strain is not shown to cause it.
@@ -114,7 +115,7 @@ Mamey reads antiSMASH's own similarity percent for the top hit and bands it:
 | moderate | 40 to below 70 |
 | low | above 0 to below 40 |
 | none | exactly 0 |
-| unresolved | no percent available |
+| unresolved | missing, nonnumeric or outside 0–100 |
 
 The cumulative BLAST score (`KCB_score`) is a different number.
 It is not a percent and does not compare across clusters of different size.
@@ -127,19 +128,20 @@ Write "similar to a characterized cluster", never "produces that compound".
 
 ### What is "KCB-dark", and what is an empty KCB file?
 
-KCB-dark means no reference match was reported.
-It can motivate a novelty review when the architecture and markers are coherent.
-It does not show new chemistry, expression or activity.
-An incomplete or uninformative locus can also have no match.
+A region is KCB-dark when it has no KnownClusterBlast hit to MIBiG at any rank.
+Say which kind of "no hit" you mean: a readable no-hit report is not the same as a missing or unreadable file.
+Cohort reports offer two counting bases, `fully_dark` and `dark_or_unresolved`; name the one you used.
+A KCB-dark locus with a coherent architecture and markers is worth a novelty review.
+It does not show new chemistry, expression or activity, and an incomplete locus can also have no match.
 
 The `KCB_evidence_state` column tells the cases apart:
 
 | Value | Meaning |
 |---|---|
 | `KNOWNCLUSTERBLAST_OBSERVED` | The KnownClusterBlast file had hits. |
-| `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` | The file was present and empty. This is not a validated negative, and it is a different state from "KCB-dark". |
-| `CLUSTERBLAST_FALLBACK_OBSERVED` | No usable KnownClusterBlast file. ClusterBlast hits were read instead. Check them by hand. |
-| `UNKNOWN_KCB` | Nothing was read. This is missing evidence, not a low similarity. |
+| `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` | The region's KnownClusterBlast file was read as a no-hit report ("no hits" text, or empty hit and detail sections), and no hit rows were parsed. The text is not checked against the JSON, so this is not a validated negative. A missing or unreadable file never gives this state. |
+| `CLUSTERBLAST_FALLBACK_OBSERVED` | No KnownClusterBlast record of either kind exists for the region, so ClusterBlast hits were read instead. A recognized no-hit report does not trigger this fallback. Check the hits by hand. |
+| `UNKNOWN_KCB` | No KCB or fallback record was assigned to the region. The file may be missing, unreadable, unsupported or not matched to the region, so check the file and parse states. It does not mean low similarity, and it is not a negative. |
 
 ### How is a score such as AB or AF built?
 
@@ -223,7 +225,8 @@ Inspect both endpoints, competing partners and the availability states in [the c
 ### How does EFLS differ from RG-GMCI?
 
 EFLS makes preliminary pairs from shared product, reference, cassette and trigger labels.
-It keeps only pairs where at least one member is Edge or Full-contig.
+It excludes Interior/Interior pairs; an Unknown boundary can still enter.
+Check each input boundary and pairing-scope status.
 It does not compare contig ends or show that two pieces fit together.
 RG-GMCI uses its own reference and geometry rules.
 Both draw on shared annotations, so agreement between them is not independent evidence.
@@ -282,7 +285,8 @@ Agreement supports a coherent story and is not proof.
 ### Why is there an APH sugar-kinase veto?
 
 Some housekeeping sugar kinases are annotated like aminoglycoside phosphotransferases.
-The veto stops them from adding resistance or class evidence.
+In the resistance and self-protection scan, the APH_AAC group is dropped when the glycogen, trehalose or sugar-kinase context matches.
+The veto applies to that scan only; other evidence channels have their own guards.
 Read a motif match together with its functional context.
 
 ### What are the bldA tiers?
@@ -294,6 +298,9 @@ T1 is zero, T2 is one or two, T3 is three to five, and T4 is six or more.
 For a recognized non-actinomycete the tier reads `NOT_APPLICABLE`, and the counts are kept.
 An unlisted genus can stay unknown.
 Unknown applicability is not positive evidence.
+A T1 with no sequence, or with zero codons examined, is missing evidence, not a shown absence.
+Check sequence coverage and whether the organism fits.
+An unrecognized genus does not suppress the computed tier automatically.
 A count does not measure expression or timing in your strain.
 
 ### What does the TFBS scan do?
@@ -302,6 +309,7 @@ TFBS means transcription-factor binding site.
 The scan looks for motifs of regulator families such as DasR, BldD, DmdR1, FuR and SARP.
 DasR is linked to GlcNAc metabolism, which can motivate a chitin-related hypothesis.
 A predicted motif does not show binding, expression or induction.
+Inspect missing-contig and clipped-upstream-window states before interpreting a count.
 
 ### Does isolation source affect how I read the scans?
 
@@ -351,7 +359,8 @@ So expect a downgrade in `triage` output when the conditions above hold, even th
 
 The rule targets a weak call whose own products are saccharide only.
 It does not reject glycosylation in general.
-A locus with a committed backbone keeps its status when it also has a saccharide tailoring arm.
+The saccharide guard does not downgrade a committed backbone just because it also has a saccharide arm.
+Other rules and evidence can still change its status.
 Saccharide wording seen only in a KCB anchor is a different case.
 A downgrade or an exemption says nothing about production or activity.
 
@@ -391,7 +400,8 @@ PKS is polyketide synthase, which extends carbon backbones.
 NRPS is nonribosomal peptide synthetase, which links amino-acid-derived units without a ribosome.
 Hybrids combine both.
 Large modular enzymes are called megasynthases.
-Their size makes assembly splits likely, so check for fragmentation.
+Large modular genes can be hard to assemble.
+Check the actual boundaries and assembly evidence before you call a locus fragmented.
 Module order informs a capacity hypothesis but does not fix the product.
 
 ### What are the core PKS and NRPS domains?
@@ -462,4 +472,4 @@ For the parser and test internals behind these answers, see the [Encyclopedia](0
 
 ---
 
-*Sapote–Mamey Concepts Q&A · current to bundle v9.7.464 / engine Mamey 1.9.180.*
+*Sapote–Mamey Concepts Q&A · current to bundle v9.7.465 / engine Mamey 1.9.181.*

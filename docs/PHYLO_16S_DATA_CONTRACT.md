@@ -25,7 +25,7 @@ python tools/phylo_sequence_admission.py --roster admitted_roster.tsv \
   --fasta candidate_sequences.fasta --molecule 16S --json NEW_RECEIPT.json
 ```
 
-Success: exit 0 and the receipt printed to stdout. Every other outcome exits 2, with one of these lines on stderr:
+Success: exit 0 and the receipt printed to stdout. The handled refusal and error cases below exit 2. Treat an unexpected traceback or a missing receipt as unresolved, and investigate before retrying with a fresh receipt path.
 
 - `ADMISSION_FAIL:` the inputs were read and failed a check. The receipt carries `status` `ADMISSION_FAIL` and the reason;
 - `ADMISSION_ERROR: input could not be read:` the roster or FASTA was missing, unreadable or not UTF-8. The receipt carries `status` `ADMISSION_ERROR`, and `rows` is `null` when the roster was never read. Nothing was checked;
@@ -38,7 +38,7 @@ The default 16S length window is 900 to 2,000 after normalization. `--min-length
 
 The sequence hash uses uppercase, U changed to T, and `-` and `.` removed. It differs from a raw-file SHA-256. Keep both.
 
-One duplicate case is not caught. If a sample has an identical pair plus a third, different sequence, the pair is not refused. Check `exact_sequence_groups` in the receipt against the sample IDs by hand. A pass does not prove the samples are independent.
+Identical query sequences from the same biological sample are refused, including an identical pair alongside a third, different sequence. Exact matches across samples remain in `exact_sequence_groups` for review. A pass does not prove that samples are independent.
 
 ### Geography and isolation source
 

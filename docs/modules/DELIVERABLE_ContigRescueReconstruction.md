@@ -14,13 +14,13 @@
 - **knownclusterblast** compares against the run's selected MIBiG reference set. Retain its actual database version, hit scope and query/subject binding; characterized-reference metadata does not identify the focal compound.
 - **clusterblast** supplies saved genome-cluster comparisons. A selected reference can orient a reconstruction hypothesis only after its identity, completeness and membership are checked. Transferred annotations remain homology-supported candidates, not independent functional validation or a new authoritative query annotation. The helper does not certify the database as the entire current GenBank/RefSeq collection.
 
-## 2. When it is offered (Deliverable Offer Protocol)
+## 2. When to run it
 
-Auto-fire — per `DELIVERABLE_CONTRACT.md`, never make the user ask. Triggers:
+Run it when one of these conditions holds for a lead:
 
 | Trigger | Condition | Action |
 |---|---|---|
-| 1 — Functional-complementarity flag | a lead's compound class requires tailoring (GT / P450 / halogenase / deoxysugar) that is **absent** in its region (completeness check) | reconstruct: find the providing fragment + CB scaffold |
+| 1 — Functional-complementarity flag | a proposed class suggests a function not detected in the reviewed region | check source coverage and alternatives, then search for source-bound candidate roles without assuming absence or a partner |
 | 2 — Strong RG-GMCI group | a CLEAN_SPLIT or HUB component from `build_lead_detail.py` | reconstruct each group |
 | 3 — Shared KCB/CB anchor across regions | two regions point at the same indolocarbazole/polyene/glycopeptide reference family | reconstruct |
 | 4 — Edge/FC lead with deflated KCB | truncation suspected; CB may carry the missing arm | reconstruct |
@@ -42,36 +42,31 @@ Report no shared comparator only after confirming every requested fragment and i
 
 ## 4. What Sapote adds (judgment layer)
 
-- **Functional complementarity** — the load-bearing argument: confirm the fragments are
-  *mechanistically* complementary (core + GT needing a donor ↔ halogenase + the cassette that
-  builds the donor), not merely co-hitting indolocarbazole genes. This is stronger than
-  reference overlap and is what RG-GMCI scores miss.
+- **Functional-complementarity hypothesis** — compare proposed roles, shared-reference evidence, input coverage and alternative explanations. Predicted functions do not prove mechanistic complementarity, a unique pairing or physical linkage. Select an independent validation method suited to the particular question.
 - **Subclass hypothesis from comparator and architecture evidence** — retain both compatible and conflicting matches, distinguish direct pathway evidence from broad accessory context, and state alternatives. A comparator label or an accessory annotation does not identify the focal product or establish the reference's modification chemistry.
 - **Claim ceiling** — reconstruction *hypothesis* on CB homology, **not** nucleotide joining;
-  confirm by long-read or boundary PCR.
+  physical linkage remains unresolved until independently tested with a suitable method.
 
 ## Current input/output and identity boundary
 
 For each retained alias the helper chooses the region GenBank in this order: the exact `source_gbk` basename recorded for the BGC; else `<contig>.regionNNN.gbk` for the BGC's region number; else the only `<contig>.region*.gbk` file. When several region files share the contig and none matches, the census marks that fragment `AMBIGUOUS` and lists no CDS (a hold, not an empty region); a missing file is `NOT_FOUND`. The report names the chosen file and how it was chosen. The ClusterBlast text is still the first match of a `<contig>_*.txt` glob and is not bound to the region. Reconcile every selected path with the full source-bound strain / full node-or-contig / region / alias. Missing requested aliases are skipped. Keep the requested and retained rosters separately; no full-locus admission receipt is emitted.
 
-Use explicit fresh external `--out` paths for both reconstruction and lead-detail helpers when preserving a package. Defaults write `reconstruction.md` and `lead_detail.json` inside the supplied package, replacing existing files. Atomic replacement of one output is not package validation, checksum refresh or scientific acceptance. Preserve original package evidence and bind source/output hashes separately.
+Use explicit fresh external `--out` paths for both reconstruction and lead-detail helpers when preserving a package. Defaults target `reconstruction.md` and `lead_detail.json` inside the package. Reconstruction replaces its chosen destination; lead-detail refuses an occupied one. Choose separate fresh authorized external paths for both. Atomic replacement of one output is not package validation, checksum refresh or scientific acceptance. Preserve original package evidence and bind source/output hashes separately.
 
 ## 5. Wiring
 
-```
-mamey run … --master …                         # inventory + RGGMCI (unchanged)
-# retain raw clusterblast/ in the package (see patch notes: PACKAGE_RETAIN_CLUSTERBLAST)
-python tools/build_lead_detail.py …            # completeness check flags absent tailoring
+Start from the source-bound package produced by the authorized intake route. Cited KnownClusterBlast members are kept under `source_locator_evidence/` only when they were resolved and copied; inspect their status and receipts. Per-gene ClusterBlast tables do not replace the original raw ClusterBlast folder. Resolve any required source files from the hash-bound original ZIP without overwriting evidence.
+
+```bash
+python tools/build_lead_detail.py --package runs/EXAMPLE/package --gbk-dir source/region-gbks --leads BGC_ID_FROM_INVENTORY --out reviews/EXAMPLE-lead-detail.json
 python tools/build_reconstruction.py \
-   --package <pkg> --clusterblast-dir <raw/clusterblast> \
-   --gbk-dir <region_gbks> --fragments <core>,<tailoring>   # → reconstruction.md
-# Sapote: complementarity + subclass identity + claim ceiling → front-page reconstruction
+  --package runs/EXAMPLE/package --clusterblast-dir source/clusterblast \
+  --gbk-dir source/region-gbks --fragments BGC_ID_1,BGC_ID_2 --out reviews/EXAMPLE-reconstruction.md
 ```
 
-## 6. Validation cases (type strains preferred for publication)
+Substitute the actual package, source folders, bound aliases and fresh output paths; quote spaces. Bind each alias to its full strain / full contig / region / BGC alias before interpretation. The example IDs are schematic, not evidence for real fragments.
 
-- **AS-XXX indolocarbazole** (working case): core fragment + halogenase/sugar fragment, each written
-  `AS-XXX / <contig> / region<NNN> / BGCnnn` →
-  *Salinispora arenicola* scaffold (`NZ_KB913036`), 8 reference genes covered, 0 overlap,
-  4 hypothetical genes re-annotated. *Use a type strain for any published demonstration; keep
-  unpublished antimicrobial leads in their own paper.*
+## 6. Validation cases
+
+No worked public case is bundled. For a published demonstration, use a public type-strain genome and write
+each fragment as `<strain> / <contig> / region<NNN> / BGCnnn`, copied from the package.

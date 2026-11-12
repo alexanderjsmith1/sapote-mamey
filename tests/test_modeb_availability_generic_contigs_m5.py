@@ -405,7 +405,7 @@ def test_current_native_inventory_roles_keep_complete_physical_contig(tmp_path, 
     row = _native_row(contig, normalized)
     _, loci = _inventory(tmp_path, [row])
     observations = _index(tmp_path, loci, row)
-    expected = contig.upper() if contig.startswith("NODE_") else contig
+    expected = contig   # the physical contig in its own (SPAdes) spelling, never upper-cased (9.7.465)
     assert loci[0].full_node == observations[0].full_node == expected
     assert observations[0].binding_state == "EXACT_LOCUS"
     assert observations[0].identity_diagnostics == ""
@@ -583,7 +583,7 @@ def test_native_producer_roles_preserve_mixed_case_public_strain(tmp_path, role)
     observations = _index(tmp_path, loci, row)
     assert observations[0].binding_state == "EXACT_LOCUS"
     assert observations[0].strain == loci[0].strain == strain
-    assert observations[0].exact_locus == f"{strain}|{NODE.upper()}|region001"
+    assert observations[0].exact_locus == f"{strain}|{NODE}|region001"
     assert observations[0].identity_diagnostics == ""
 
 

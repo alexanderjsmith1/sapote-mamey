@@ -7,8 +7,10 @@ This page is for maintainers reviewing changes.
 block. This page covers what happens **before** it — how a lane packages a change so the composer
 can fold it safely. That step had no written rules, and the gap produced real defects.
 
-The retained .412 incidents explain why these composition rules were written. Their counts
-are dated observations; check the intended current baseline and the actual verification record.
+Past incidents explain why these composition rules were written. Check the intended current
+baseline and the actual verification record before relying on any count. The
+retained queue incidents below are historical reports; their original queue
+receipts were not independently re-established in this review.
 
 ---
 
@@ -80,7 +82,10 @@ YOURLANE_412_short_description/
 and what you checked. A card arrived in `.412` with a diff and a test but no card, and it was one
 half of a collision that could not be adjudicated without knowing its intent.
 
-A cut owner's local review cards use a different layout: `README.md` plus `card.diff`. That layout is for the cut owner's own stack. Lanes handed to the cut keep `PATCH_CARD.md`, which `tools/check_patch_lane.py` checks.
+The declared intake contract controls the format. Some owner review cards use
+`README.md` plus `card.diff`; the `tools/check_patch_lane.py` lane convention
+checks for `PATCH_CARD.md`. Follow the owner's explicit work order rather than
+assuming either layout applies to every queue.
 
 A card states, briefly:
 - the **base** it was authored against (the sealed bundle name and engine version),

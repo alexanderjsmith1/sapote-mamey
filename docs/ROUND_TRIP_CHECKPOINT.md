@@ -16,4 +16,4 @@ Table bindings describe the exact single byte capture parsed for each ledger or 
 
 Hexadecimal SHA-256 letter case is ignored for byte-binding comparisons. Original recorded spelling is retained; matching a digest still does not establish acceptance.
 
-Receipt publication rejects symlink paths and uses exclusive creation, including collisions after the early existence check. Existing evidence is preserved; crash-safe publication is not claimed.
+Receipt publication refuses an `--out` path that is itself a symlink. A symlinked parent folder is followed, and the resolved path must still lie outside the inspected source root. The receipt is created exclusively, so an existing file is never replaced, even one that appears after the early existence check. Crash-safe publication is not claimed.

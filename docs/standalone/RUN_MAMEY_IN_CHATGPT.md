@@ -1,6 +1,6 @@
 # Run Mamey through a hosted assistant
 
-Documented bundle: v9.7.464 / engine 1.9.180
+Documented bundle: v9.7.465 / engine 1.9.181
 
 
 This route requires an assistant session with a working Python runtime, access to the supplied files and sufficient storage. A chat window alone does not guarantee execution. The current environment must be checked; historical model names and batch quotas are not capability guarantees.
@@ -12,6 +12,8 @@ Use the actual code bundle you received, not the obsolete `Mamey_v1.9.98_Standal
 Provide the code location, one antiSMASH result ZIP, known metadata with its source, and the permitted output location. An existing master workbook is optional and requires a compatible ingestion route. Do not attach unrelated private inputs.
 
 > Inspect these files and confirm the runtime before execution. State the expected output groups, then run one identified strain with bounded JSON evidence, brief none, locus maps off and reference completion off. Omit --master; workbook ingestion is a later task. Do not submit sequences online. Preserve the original input, validate the resulting package and explain unresolved evidence. Save the portable package and available transcript before the session ends. Report missing capabilities plainly rather than assuming they are installed.
+
+This request asks for bounded JSON evidence, so the run must not use `--capped-session`: that flag forces `--json-evidence off`, which turns off the main JSON walker. Drop `--capped-session` and pass `--json-evidence bounded --brief none --locus-maps off --reference-completion off`. `run --json-evidence` defaults to `bounded`; `--capped-session` forces the main walker to `off`, even if another mode was supplied. Choosing that profile also forces brief none and a successful per-strain workbook, switches automatic locus maps off unless explicitly on, defaults ZIP compression to stored when not already set and supplies a heartbeat default when absent. No master workbook and no per-strain workbook are different cases; a required per-strain workbook failure can stop the run. The profile sets no wall-clock limit and does not ensure completion within a host timeout. Check dependencies, output settings and evidence gaps. The evidence parse records its own requested/effective modes after capped-session overrides, not necessarily the original CLI request. Keep the actual original command/profile separately. A separate record pass still reads eligible, readable JSON for KCB percent; inspect its status for missing, held or unreadable inputs.
 
 Follow [the Master Walkthrough](../MASTER_WALKTHROUGH.md) for the command sequence and expected review steps. Use [runtime profiles](../ASSISTANT_RUNTIME_PROFILES.md) to reason about environment limits. If execution is unavailable, a document review is still possible, but it must not be described as a completed extraction.
 

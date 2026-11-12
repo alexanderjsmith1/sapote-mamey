@@ -96,8 +96,7 @@ plans: if any of those files already exists, or an output path is one of the inp
 figure is a 150-dpi PNG with a matching `_data.csv`:
 
 - `<tag>_fig1_locus.png`: gene arrows, labeled by function
-- `<tag>_fig2_gcf_novelty.png`: the records with the smallest BiG-SCAPE distance to this region,
-  from `--db`. Distance 0 is the closest value in that run, not sequence or product identity.
+- `<tag>_fig2_gcf_novelty.png`: the smallest BiG-SCAPE distances returned for the selected database record. The first matching record may not bind uniquely to this region, run or cutoff; independently verify those bindings. Distance 0 does not establish sequence or product identity.
 - `<tag>_fig3_blastp.png`: per-gene BLASTp identity, from `--blastp`
 
 Limits to check:
@@ -108,6 +107,8 @@ Limits to check:
   of the region with `identity_state`: `MEASURED`, `NO_IDENTITY_RECORDED` (the gene has a row in
   `--blastp` but no readable identity; that can be a no-hit search or a missing value) or
   `NOT_IN_BLASTP_TABLE` (the gene has no row). Neither of the last two is 0 percent identity.
+  If no gene has a recorded identity, the tool skips the BLASTp figure and its CSV entirely;
+  retain and reconcile the source gene roster and BLASTp input separately in that case.
 - The tool writes no receipt with input hashes. Save the inputs and a hash of each output
   yourself.
 

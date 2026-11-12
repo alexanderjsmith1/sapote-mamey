@@ -8,13 +8,15 @@ From the extracted bundle root:
 python tools/render_locus_comparison.py --input examples/locus_comparison_synthetic.json --outdir comparison_demo
 ```
 
-Matplotlib is required for rendering. SVG text remains editable. Outputs are `comparison.svg`, `.png`, `.pdf`, `display_coordinates.json` and `receipt.json`. Existing outputs are refused. The five files are written to a staging folder beside the output directory and appear together only after all of them are written. A failed render or write leaves none of them, so you can retry into the same directory. A killed process can still leave a partial set; treat a directory without `receipt.json`, or whose files do not match the receipt hashes, as incomplete and render into a new directory. Give every research comparison its own descriptive directory; retain its input JSON beside the indexed output. Sources are read in place and streamed through SHA-256 verification. No packages or databases are copied.
+Matplotlib is required for rendering. SVG text remains editable. Outputs are `comparison.svg`, `.png`, `.pdf`, `display_coordinates.json` and `receipt.json`. Existing outputs are refused. The five files are staged beside the output directory before sequential exclusive publication. Ordinary render or write failures are rolled back when cleanup succeeds. Publication, rollback or staging-cleanup failures, and interruption, can leave partial or complete outputs and staging files. Preserve the primary error and cleanup diagnostics; inspect the full output roster and receipt hashes before deciding on a fresh destination. A receipt present after an exception does not by itself establish success. Give every research comparison its own descriptive directory; retain its input JSON beside the indexed output. Sources are read in place and streamed through SHA-256 verification. No packages or databases are copied.
 
 ## Input contract
 
 Use the shipped synthetic example as the executable schema example. The root fields are `schema: locus-comparison-v1`, `title`, explicit `synthetic` boolean, `sources`, `tracks` and `links`.
 
 Each source is a path and SHA-256; paths may be relative to the input JSON. A research manifest (`synthetic: false`) requires source records. Hash verification establishes file identity, not whether the supplied rows were correctly derived; the producer remains responsible for the gene-to-source join.
+
+The validator requires each required identity field to be a nonblank string; a BGC `region` may also be an integer. It refuses JSON `null`, booleans, lists and objects. This is a type check only: it still accepts placeholder text such as `None` and a region of `0`, and it does not authenticate the locus. Check that each identity is source-bound before rendering.
 
 Every track has an ID, label, kind, identity, orientation, anchor gene and gene list. For `kind: bgc`, identity contains `strain`, full `contig`, `region` and `bgc`. References contain accession and description. Keep one contig per track. A comparison with rescue contigs must not concatenate them into an apparent assembled chromosome.
 

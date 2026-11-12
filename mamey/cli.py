@@ -1554,7 +1554,9 @@ def run_one_strain(
     run_dir    = out_root / strain_id
     package_dir = run_dir / "package"
     package_dir.mkdir(parents=True, exist_ok=True)
-    # v9.7.409 (H13): taken here, AFTER every pre-write refusal above, so a refused run creates nothing.
+    # v9.7.409 (H13): taken here, after the pre-write refusals above. The input checks below run
+    # after this folder exists, so a run refused there leaves package/ holding only its receipts
+    # (_REFUSED_RUN_STUB_FILES); a later run into the same --outdir moves that folder aside.
     _pkg_lock = _acquire_package_lock(outdir, strain_id)
     if _pkg_lock is None:
         return {"status": "PACKAGE_LOCKED", "written": False}
@@ -4361,6 +4363,14 @@ def _auto_emit_cohort_leads_ledger(outdir, logger=None):
         return {"status": f"SKIPPED_{type(e).__name__}", "n_leads": 0}
 
 
+def _run_result_delivers(result: dict, success_statuses: set) -> bool:
+    """True when one strain's run succeeded and carries no blocking issue."""
+    from .issue_registry import issue_severity
+    ok = (str(result.get("status", "")) in success_statuses
+          or str(result.get("validator_status", "")) in success_statuses)
+    return ok and not any(issue_severity(i) == "BLOCKING" for i in (result.get("issues") or []))
+
+
 def _emit_shared_1() -> None:
     """Same line emitted at 2 call sites in this file; one emission site."""
     emit('=' * 60)
@@ -4844,24 +4854,35 @@ def _run_command_legacy(args) -> int:
     # DELIVERABLES block is printed LAST (after the results JSON), and a machine-readable HANDBACK.json
     # is written to the outdir so agent operators can surface the zip paths without reading any prose.
     # Emission is best-effort and never changes the exit code.
-    _deliverables = []
+    # A package is handed on as a result only when its own run succeeded with no blocking issue.
+    # A package that failed validation is still listed, as held, so it is not lost for diagnosis.
+    _deliverables, _held = [], []
     for _r in results:
         _z = _r.get("package_zip")
         if _z and Path(_z).exists():
-            _deliverables.append({
+            _entry = {
                 "strain_id": _r.get("strain_id", "?"),
                 "zip": str(_z),
                 "bytes": Path(_z).stat().st_size,
                 "status": _r.get("status", "?"),
-            })
+            }
+            (_deliverables if _run_result_delivers(_r, success_statuses) else _held).append(_entry)
 
     emit(json.dumps(results, indent=2))
 
-    if _deliverables:
-        emit(f"\n{'='*60}", "DELIVERABLES — hand these sealed package zip(s) to the user:", sep="\n")
-        for _d in _deliverables:
-            emit(f"  \u2192 {_d['zip']}  ({_d['bytes']//1024} KB, {_d['status']})")
-        emit("  Each is the sealed, portable Complete_Package (the unit of exchange).", "  Surface these files to the user AS the deliverable; do NOT substitute a", "  hand-rolled subset of package files.", sep="\n")
+    if _deliverables or _held:
+        _lines = [f"\n{'='*60}"]
+        if _deliverables:
+            _lines.append("DELIVERABLES — hand these sealed package zip(s) to the user:")
+            _lines += [f"  \u2192 {_d['zip']}  ({_d['bytes']//1024} KB, {_d['status']})" for _d in _deliverables]
+            _lines += ["  Each is the sealed, portable Complete_Package (the unit of exchange).",
+                       "  Surface these files to the user AS the deliverable; do NOT substitute a",
+                       "  hand-rolled subset of package files."]
+        if _held:
+            _lines += ["HELD — these packages did not pass validation. Do not hand them on as results;",
+                       "keep them to diagnose the run:"]
+            _lines += [f"  \u2192 {_d['zip']}  ({_d['bytes']//1024} KB, {_d['status']})" for _d in _held]
+        emit(*_lines, sep="\n")
         try:
             _hb = Path(args.outdir) / "HANDBACK.json"
             _hb.write_text(json.dumps({
@@ -4871,6 +4892,9 @@ def _run_command_legacy(args) -> int:
                 "directive": "Surface each 'zip' path to the user as THE run deliverable. "
                              "Do not substitute hand-rolled artifact subsets.",
                 "primary_deliverables": _deliverables,
+                "held_packages": _held,
+                "held_directive": "Packages in held_packages did not pass validation. Do not surface "
+                                  "them as results.",
             }, indent=2))
             emit(f"  handback pointer: {_hb}")
         except Exception as _hb_exc:  # pragma: no cover - never fatal
@@ -6642,6 +6666,29 @@ def _refuse_unsafe_strain_id(strain_id: str) -> bool:
         return _refuse(f"[strain] {_exc}")
 
 
+# Files a run refused at input leaves in <outdir>/<strain>/package/ (written before the input check).
+_REFUSED_RUN_STUB_FILES = frozenset({"project_registry_status.json", "run_phase_receipts.jsonl"})
+
+
+def _is_refused_run_stub(package_dir: Path) -> bool:
+    """True when package_dir holds only the receipts of a run that was refused at input."""
+    if package_dir.is_symlink() or not package_dir.is_dir():
+        return False
+    entries = list(package_dir.iterdir())
+    return bool(entries) and all(e.is_file() and not e.is_symlink() and e.name in _REFUSED_RUN_STUB_FILES
+                                 for e in entries)
+
+
+def _move_refused_run_stub(package_dir: Path) -> Path:
+    """Move a refused run's receipts out of package/ so a new run starts clean; nothing is deleted."""
+    n = 1
+    while (package_dir.parent / f"package_refused_{n}").exists():
+        n += 1
+    target = package_dir.parent / f"package_refused_{n}"
+    package_dir.rename(target)
+    return target
+
+
 def _refuse_occupied_package(outdir, strain_id: str) -> bool:
     """True (refused) when `<outdir>/<strain>` already holds a package or a sealed package ZIP.
 
@@ -6651,6 +6698,11 @@ def _refuse_occupied_package(outdir, strain_id: str) -> bool:
     """
     run_dir = Path(outdir) / strain_id
     package_dir = run_dir / "package"
+    if _is_refused_run_stub(package_dir) and not any(run_dir.glob("*_Complete_Package.zip")):
+        moved = _move_refused_run_stub(package_dir)
+        emit(f"  [outdir] {package_dir} held only the receipts of an earlier run that was refused at input; "
+             f"moved them to {moved} and starting a clean package.")
+        return False
     occupied = (package_dir.is_symlink() or (package_dir.exists() and (not package_dir.is_dir()
                 or any(package_dir.iterdir())))
                 or (run_dir.is_dir() and any(run_dir.glob("*_Complete_Package.zip"))))
@@ -9303,6 +9355,28 @@ def _install_package_positional_alias(parser) -> dict[str, bool]:
     return required
 
 
+# Commands that read an existing package, and the argument that names it. A command is added
+# here only when its package argument must already be a folder.
+_PACKAGE_PATH_COMMANDS = {
+    "resume": "package_dir",
+    "guide": "package",
+    "fingerprint": "package",
+    "seal-package": "package_dir",
+    "report-card": "package",
+}
+
+
+def _missing_package_path(args):
+    """The package path the command names when it is not a folder, else None."""
+    attr = _PACKAGE_PATH_COMMANDS.get(getattr(args, "command", None) or "")
+    if not attr:
+        return None
+    value = getattr(args, attr, None)
+    if value is None or Path(value).is_dir():
+        return None
+    return value
+
+
 def main(argv=None) -> int:
     import sys
     _argv = list(sys.argv[1:] if argv is None else argv)
@@ -9347,6 +9421,13 @@ def main(argv=None) -> int:
     # seal-package, blastp-status, …) are excluded so the package is never mutated on a pure read
     # (preserves the seal-package/validate read-only contract). refresh_post_seal_checksums is a
     # no-op unless the core is already sealed, so it never fires mid-run.
+    # One check, before dispatch, for commands that read an existing package: a path that is not a
+    # folder is refused here, so none of them creates folders under it, reports on nothing, or
+    # crashes with a traceback (guide made <path>/guide/; resume printed "All BGCs complete").
+    _missing = _missing_package_path(args)
+    if _missing is not None:
+        emit(f"ERROR: not a package directory: {_missing}. Nothing was read or written.", file=_sys.stderr)
+        return 2
     _POST_SEAL_AUTHORING_COMMANDS = frozenset({
         "render-figures", "render-all-figures", "mode-b", "guide", "domain-level",
         "ingest-blastp", "ingest-blastp-trove", "blastp-online", "blastp-ebi", "blastp-round",

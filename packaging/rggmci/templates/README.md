@@ -1,7 +1,8 @@
 # rggmci: Reference-Guided Genome Mining Candidate Inference (RG-GMCI)
 
 RG-GMCI surfaces antiSMASH regions in a fragmented genome assembly that may belong to one biosynthetic
-pathway: fragments that the assembly left on separate contigs. It reads biosynthetic logic through the
+pathway. The candidate regions lie on separate contigs; that alone does not establish that an assembly
+break separated one pathway. It reads biosynthetic logic through the
 ClusterBlast and KnownClusterBlast results that antiSMASH already wrote.
 
 It is a homology-guided candidate method, not a contig joiner. An assembly can break for several reasons, and
@@ -25,8 +26,9 @@ rggmci antismash_zips/ --out-dir rggmci_results/ --reference-completion off
 The first line scores one genome. The second scores every ZIP in a folder. These examples turn reference-guided
 completion off; without the flag it runs whenever its database and aligner are found (see below).
 
-`--out`, `--pairs` and `--out-dir` must be new files or a new or empty folder. Every input and output is checked
-before any work starts, and a clash stops the run before anything is written.
+`--out`, `--pairs` and `--out-dir` must be new files or a new or empty folder. Every input path and output path is
+checked before any work starts, and a clash stops the run before anything is written. Archive contents are
+read later, during the run, so a damaged ZIP fails then, with exit 1.
 
 With `--out-dir`, each genome gets eight files:
 - `<genome>.json`, the result;
@@ -35,22 +37,28 @@ With `--out-dir`, each genome gets eight files:
 - three completion tables: `_reference_completion.tsv`, `_split_genes.tsv` and `_partner_contigs.tsv`.
 
 The folder also gets `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv` across all genomes. A table with no rows has its
-header only. [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
+header only; a pair table with no scored pairs has only its first 15 columns. [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
 
 A genome can score thousands of pairs. The pair table and the JSON's `ranked_pairs` keep the top 1,000 by rank, plus
 every HIGH pair below them. `pairs_total` in the JSON and `scored_pairs` in `SUMMARY.tsv` count every scored pair;
-`pairs_exported` counts the rows kept.
+`pairs_exported` counts the rows kept. Truncation is `scored_pairs - pairs_exported`; those omitted
+pairs were scored, not absent or negative. The JSON's `rggmci_summary.ranked_pairs_not_exported` records the
+omitted count, and the console states scored, retained, omitted and truncation explicitly. For example, one
+previously checked public worked archive scored 1,360 pairs and retained 1,000: 360 were not exported. This
+is a historical count example, not a new run on that archive. The retained count can exceed 1,000 because
+later HIGH pairs are always kept. HIGH and MODERATE summary totals count all scored pairs, not just the export.
 
 Exit codes:
 
 | Exit code | Meaning |
 |---|---|
 | `0` | Every genome was scored. |
-| `1` | At least one genome failed. Its row in `SUMMARY.tsv` gives the error in the `error` column, and it has no JSON. The other genomes' files are complete. |
+| `1` | At least one genome failed; the console names the input and error type. With `--out-dir`, its row in `SUMMARY.tsv` gives the error in the `error` column, and it has no JSON. In single-file `--out` / `--pairs` mode no `SUMMARY.tsv` is written. |
 | `2` | The command was refused (a missing input, a clash between inputs or outputs, an occupied folder), or a file could not be written. |
 
 Zero pairs means none scored in this run. It does not mean the genome has no split pathway: read the JSON's
-`reference_map_status` and each table's `completion_tier`.
+`reference_map_status` and `reference_completion.completion_tier`, and with `--out-dir` each completion
+table's `completion_tier`.
 
 ## The input it needs
 
@@ -84,7 +92,10 @@ is needed.
     product class or a known compatible hybrid.
   - Only regions at a contig edge are paired, and never two regions on one contig. Two regions on one contig are
     listed apart as related loci (`related_locus_pairs` in the JSON), never as rescues. rggmci reads antiSMASH's own `/contig_edge` flag on each region feature. When the flag is missing, or the region's
-    features disagree, it uses its own edge status instead (`Edge` or `Full-contig`, defined in
+    features disagree, it uses its own edge status instead. An explicit region-feature `False` excludes the
+    region even when that fallback status is `Edge`. Flags on protocluster or candidate-cluster features do
+    not substitute for the region feature. Missing source members and an unreadable source ZIP also use
+    the fallback (`Edge` or `Full-contig`, defined in
     [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md)). This is a rule of the method. A region inside a contig can still lack
     pieces that the assembly or antiSMASH did not show; rggmci does not look for them.
   - Product classes are compared by antiSMASH family, so an arylpolyene or PKS-like fragment matches a type I
@@ -111,7 +122,8 @@ The strain label is the ZIP name or `--label`; rggmci does not check it against 
 (`BGC014`) is a reading order and can change between runs, so never use it alone.
 
 [docs/WORKED_EXAMPLES.md](docs/WORKED_EXAMPLES.md) walks through four pairs from public genomes: a complementary
-split, two copies of one cluster, a hub, and a pair with too little support.
+candidate split, overlapping-reference signal compatible with duplicate or related loci, a hub, and a pair
+with too little support. These software descriptions do not establish two biological copies or one pathway.
 
 ## Reference-guided completion
 

@@ -514,8 +514,10 @@ def _fit_key(fig, place, preferred: int, print_width: float):
         ncol -= 1
 
 
-def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colours, measure, db, print_width, grid):
-    """Draw one page of class panels (`shown`, in order) and save it as `png` and its PDF."""
+def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colours, measure, db, print_width, grid,
+                box_counts: bool = True):
+    """Draw one page of class panels (`shown`, in order) and save it as `png` and its PDF. box_counts False leaves out
+    the genes-with-a-hit count above each box (and the title's note about it); the counts stay in the numbers table."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -544,7 +546,8 @@ def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colou
                                boxprops=dict(color=col), whiskerprops=dict(color=col), capprops=dict(color=col))
                 ax.scatter([i + stable_jitter((s, k, j), 0.45) for j in range(len(v))], v, s=6, alpha=0.55,
                            color=col, edgecolor="none", zorder=3)
-            ax.text(i, 101.5, f"{len(v)}", ha="center", va="bottom", fontsize=8, color="#333")
+            if box_counts:
+                ax.text(i, 101.5, f"{len(v)}", ha="center", va="bottom", fontsize=8, color="#333")
         for y in (50, 70, 90):
             ax.axhline(y, color="#bbb", lw=0.6, ls="--", zorder=0)
         if len(groups) > 1:
@@ -568,7 +571,8 @@ def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colou
     blocks = len(groups) > 1
     what = ("Mean identity of the top 10 BLASTp hits of each core biosynthetic gene in the NCBI " if measure == "top10"
             else "Identity of each core biosynthetic gene to its highest-similarity protein in the NCBI ")
-    title = (f"{what}{DB_WORDS[db]} databases, by the gene's own antiSMASH rule class (numbers above: genes with a hit)")
+    title = (f"{what}{DB_WORDS[db]} databases, by the gene's own antiSMASH rule class"
+             + (" (numbers above: genes with a hit)" if box_counts else ""))
     # Wrap to the canvas: about 0.6 em per character at 10 pt, starting 7% in from the left edge.
     lines = textwrap.wrap(title, width=max(40, int((0.91 * width * 72) / (0.6 * 10))))
     fig.subplots_adjust(top=1 - (0.6 + 0.18 * len(lines)) / fig.get_figheight())
@@ -598,7 +602,7 @@ def _class_page(png: Path, shown, panel_data, groups, xs, order, x, genus, colou
 
 
 def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), print_width: float = 7.2, grid: str = "auto",
-             split_classes: int = 0) -> list[str]:
+             split_classes: int = 0, box_counts: bool = True) -> list[str]:
     """One panel per BGC class. Classes in `omit` are left off the figure; their rows stay in the numbers table.
     The canvas is fitted to `print_width` (inches; 7.2 = double column) so text drawn at 8 pt prints at 8 pt; the genus key
     takes as many columns as that width holds. split_classes N > 0 draws N class panels per page, one figure per page
@@ -639,7 +643,7 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
     for n, page in enumerate(pages, 1):
         stem = "BLASTP_IDENTITY_BY_CLASS" if len(pages) == 1 else f"BLASTP_IDENTITY_BY_CLASS_p{n}"
         made.append(_class_page(out / f"{stem}.png", page, panel_data, groups, xs, order, x, genus, colours, measure, db,
-                                print_width, grid))
+                                print_width, grid, box_counts=box_counts))
     (out / "BLASTP_IDENTITY_BY_CLASS_numbers.tsv").write_text("\n".join(rows) + "\n")
     return made
 
@@ -659,6 +663,8 @@ def main(argv=None) -> int:
                     help="bind results to genes by protein (default) or by locus tag alone (the earlier join)")
     ap.add_argument("--query-index", type=Path, help="tools/blastp_query_index.py output: protein_sha256 per result")
     ap.add_argument("--grid", choices=("auto", "column"), default="auto", help="by-class: use two columns for three or four panels; column restores the vertical stack")
+    ap.add_argument("--no-box-counts", dest="box_counts", action="store_false",
+                    help="by-class: leave out the genes-with-a-hit count above each box (the counts stay in the numbers table)")
     ap.add_argument("--bar-counts", action="store_true", help="by-genome: print genes-with-a-hit / region genes above panel B's bars (off by default; the counts are in the numbers table)")
     ap.add_argument("--genus-color", dest="genus_colour", action="append", default=[], metavar="GENUS=#RRGGBB", help="repeatable; color for one genus")
     ap.add_argument("--genus-colour", dest="genus_colour", action="append", default=[], help=argparse.SUPPRESS)  # earlier spelling, same option
@@ -716,7 +722,7 @@ def main(argv=None) -> int:
         made += by_genome(genomes, region, best, colours, a.measure, a.db, a.out, bar_counts=a.bar_counts, block_labels=a.block_labels)
     if a.figure in ("both", "by-class"):
         made += by_class(genomes, core, best, colours, a.measure, a.db, a.out, omit=a.omit_class, print_width=a.print_width, grid=a.grid,
-                         split_classes=a.split_classes)
+                         split_classes=a.split_classes, box_counts=a.box_counts)
     with open(a.out / "GENE_VALUES.tsv", "w", newline="") as fh:
         w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
         w.writerow(["strain", "gene", "channel", "top1_identity", "top10_mean_identity", "hits_used", "ranks_from_disk", "source_file"])
@@ -724,7 +730,7 @@ def main(argv=None) -> int:
             w.writerow([s, g, ch, f"{v[0]:.1f}", f"{v[1]:.2f}", v[2], "yes" if v[4] else "", v[3]])
     manifest_sha = write_csv_manifest(a.out / "EXTRA_CSV_FILES.tsv", extra_records)
     info = {"extra_csv_manifest_sha256": manifest_sha, "extra_csv_list_sha256": input_list_sha, "genomes": len(genomes), "measure": a.measure, "db": a.db, "palette_set": a.palette_set or "default", "store": str(a.store), "extra_csvs": len(extra),
-            "genes_with_value": len(best), "bar_counts": a.bar_counts, "grid": a.grid, "omitted_classes": a.omit_class, "print_width_in": a.print_width, "split_classes": a.split_classes, "figures": made, "binding": a.binding,
+            "genes_with_value": len(best), "bar_counts": a.bar_counts, "box_counts": a.box_counts, "grid": a.grid, "omitted_classes": a.omit_class, "print_width_in": a.print_width, "split_classes": a.split_classes, "figures": made, "binding": a.binding,
             "query_index": str(a.query_index or ""), "genomes_without_proteins": sorted(g["strain"] for g in genomes if not g["proteins"]),
             "results_binding": binding,
             "median_method": "statistics.median", "point_placement": "sha256-json-index-v1",

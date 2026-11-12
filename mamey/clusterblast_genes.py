@@ -204,7 +204,7 @@ def parse_clusterblast_gene_map(zip_path: str | Path, bgcs: list[Any], top_refs:
 
 
 def _gene_sort_key(gene: str):
-    """Sort ctg<contig>_<n> by the trailing gene number so the locus reads 5'->3' by CDS order."""
+    """Sort by a trailing label number, then lexically; coordinates and strand are not checked."""
     m = re.search(r"_(\d+)$", gene or "")
     return (0, int(m.group(1))) if m else (1, gene)
 

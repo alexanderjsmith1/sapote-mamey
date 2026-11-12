@@ -286,8 +286,9 @@ def render_block(ctx):
                          "run. This is not evidence that no characterized analog exists.")
     if ctx["nearest_mibig"]:
         a, n, d = ctx["nearest_mibig"]
-        lines.append(f"- Nearest MIBiG cluster in this run: {a} ({n}), BiG-SCAPE GCF distance {d} (0 most similar .. "
-                     "1 least similar, in this run's metric and cutoff). A distance is a similarity score; "
+        lines.append(f"- Nearest MIBiG distance record found: {a} ({n}), BiG-SCAPE GCF distance {d}. "
+                     "The distance lookup is not filtered by the selected run or cutoff; verify its source before use. "
+                     "A distance is a similarity score; "
                      "distance 0 does not show identical sequences or the same product.")
     # co-members: None => unavailable (portable); [] => strain-unique; [..] => list
     members = ctx.get("cross_strain_members")

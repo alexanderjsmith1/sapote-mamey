@@ -16,7 +16,7 @@ KnownClusterBlast (KCB) match does not establish novelty, compound identity, pro
 
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.180 · bundle v9.7.464
+**Version of record:** Mamey engine v1.9.181 · bundle v9.7.465
 **Status:** Source-cited methods reference. A module citation locates an explanation; current behavior still needs the selected source and input state.
 
 ---
@@ -37,7 +37,7 @@ Each section gives the formula, the constants as they appear in code, the ration
 
 ## 1. BGC boundary classification
 
-Everything counting-related rests on one upstream decision: is a detected region **Interior**, **Edge**, or **Full-contig**? This is the *edge status*, and it is computed from coordinates alone, before any scoring.
+Everything counting-related rests on one upstream decision: is a detected region **Interior**, **Edge**, **Full-contig**, or **Unknown**? This *edge status* uses supplied coordinates, contig length and topology before scoring; it does not measure pathway completeness.
 
 **Source:** `parsers.py:_edge_status`
 
@@ -59,8 +59,8 @@ else:                                edge_status = Interior
 
 Three points of nuance carried in the code.
 
-- **The 0.95 rule.** A region occupying ≥95% of its contig is "Full-contig" — the cluster *is* essentially the whole contig, so both ends are presumed truncated and linkage is unknown.
-- **Circular-replicon correction.** On a closed/circular chromosome the origin is not a truncation point — a BGC adjacent to the origin wraps around, it is not truncated. So Edge is only assigned near a contig boundary when topology is linear or unknown. Without this, a closed genome would get false Edge calls at the origin, and the corrected count would fall below the raw count.
+- **The 0.95 rule.** A region occupying ≥95% of its contig is "Full-contig" — this is a span label, not proof that both ends are truncated or that a pathway is complete.
+- **Circular-replicon correction.** On a closed/circular chromosome the origin is not a truncation point — origin proximity alone does not prove that a BGC wraps. After the Full-contig check, the circular branch returns Interior; verify source coordinates and topology. Edge is assigned by the remaining linear/unknown-topology branch. Without this, a closed genome would get false Edge calls at the origin, and the corrected count would fall below the raw count.
 - **Absolute coordinates.** antiSMASH region GBKs are clipped records whose feature coordinates restart at 1. Edge classification must use the absolute `Orig. start`/`Orig. end` from the record comment plus the true contig length, or a closed chromosome with many clipped region GBKs is falsely labelled Edge/Full-contig (`parsers.py:_region_orig_bounds_from_zip`).
 
 ---
@@ -124,7 +124,7 @@ itself establish a complete genome or a reconciled pathway census.
 **N50** (`assembly.py:n50`) — the length-weighted median contig size. Sort contig lengths descending; accumulate; return the length at which the running total first reaches half the assembly.
 
 ```
-N50 = the contig length L* such that Σ(lengths ≥ L*) ≥ total/2
+N50 = L* at the first observed sorted contig length where cumulative length reaches total/2
 ```
 
 **GC fraction** (`assembly.py:gc_pct_from_sequences`):
@@ -147,7 +147,7 @@ gc_sd = √var
 
 where `gᵢ` is contig *i*'s GC% and `wᵢ` its length. Flags fire as:
 
-- `gc_sd ≥ 5.0` → **CONTAMINATION_SUSPECT** (clean genomes run about 1–2%).
+- `gc_sd ≥ 5.0` → **CONTAMINATION_SUSPECT** (a review threshold, not a source-bound estimate of clean-genome variation).
 - `|overall_GC − expected_GC| ≥ 8.0` → **ASSEMBLY_SANITY** (only if a taxon GC prior is supplied).
 - genome size outside an expected `[lo, hi]` range → **ASSEMBLY_SANITY** (only if a size prior is supplied).
 
@@ -166,7 +166,7 @@ Each BGC receives three scores on a 0–100 scale: **AB** (antibacterial routing
 
 ### 4.1 The base + keyword model
 
-Each axis starts from a base and adds class-keyword weights:
+On the usual branch, the initial values are the following base-plus-keyword scores. An overmerge-suspect multi-product record uses the maximum per-protocluster keyword score instead. Compound-class credits, diagnostic subsumption, guards and other adjustments also apply; inspect the selected path and rationale for each score:
 
 ```
 base_AB      = 25 + score_keywords(class_text, AB_KEYWORDS)
@@ -174,7 +174,7 @@ base_AF      = 20 + score_keywords(class_text, AF_KEYWORDS)
 base_novelty = 30 + score_keywords(class_text, NOVELTY_KEYWORDS)
 ```
 
-The bases (25, 20, 30) are the floor any non-excluded BGC carries before class evidence. The **keyword tables** as they appear in code:
+The values 25/20/30 are initial bases on the stated branches, not a universal final-score floor. The **keyword tables** as they appear in code:
 
 **AB_KEYWORDS** — classes enriched for antibacterial leads:
 
@@ -264,7 +264,7 @@ if riq_score is not None and riq_score < 0.5:
 
 `kcb_similarity_pct` is antiSMASH's percent similarity to the closest known cluster (0–100). The package bands it at 70 and 40 (`precision.py:KCB_PCT_HIGH`, `KCB_PCT_MODERATE`). The cumulative KCB score is a summed BLAST score. It is not a percent and grows with cluster size, so no rule here reads it. `riq_score` is antiSMASH's region-to-region RiQ ratio (0–1).
 
-`UNKNOWN_KCB` means no KCB evidence was read. An empty KnownClusterBlast file is a separate state, `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`, and is not a negative result. See [Reading your results](../READING_YOUR_RESULTS.md) for the states and bands.
+A recognized KnownClusterBlast no-hit report can yield `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED`. Unsupported empty, missing, unreadable or unbound evidence can instead remain unavailable/UNKNOWN; no such label by itself proves a completed negative search. See [Reading your results](../READING_YOUR_RESULTS.md) for the states and bands.
 
 ### 4.5 The RG-GMCI rescue bonus
 
@@ -273,7 +273,7 @@ A BGC linked to other fragments by reconstruction evidence (§7) gets a routing-
 ```
 rescue_bonus = 8   if a HIGH_RG_GMCI_RESCUE link supports the BGC
              = 4   if a MODERATE_RG_GMCI_CANDIDATE link supports it
-             (a pair whose functional class is ACCESSORY_ONLY gives no bonus)
+             (ACCESSORY_ONLY gives no bonus; an absent functional profile can remain eligible and is not demonstrated complementarity)
              = 0   otherwise  (and 0 for a primary-metabolism, pigment or mobile-element-flagged region)
 ```
 
@@ -285,7 +285,7 @@ rescue_bonus = 8   if a HIGH_RG_GMCI_RESCUE link supports the BGC
 edge_penalty(edge_status) = 0.0    (for all statuses)
 ```
 
-The boundary penalty is **deliberately zero**. In the development data, Edge and Full-contig regions showed no lower base score than Interior regions, so a penalty had no measurement basis. Truncation uncertainty is carried as a confidence signal through the architecture grade (§5) and the edge-status field, not as a score deduction. The function is kept, returning 0, so the multipliers below stay wired for a future calibrated penalty.
+The boundary penalty is **deliberately zero**. An earlier development account reported comparable base scores across boundary states; its dataset is not bound here and does not establish a general absence of truncation effects. Truncation uncertainty is carried as a confidence signal through the architecture grade (§5) and the edge-status field, not as a score deduction. The function is kept, returning 0, so the multipliers below stay wired for a future calibrated penalty.
 
 ### 4.7 Final score assembly
 
@@ -328,20 +328,20 @@ The tier is then subject to floors and downgrades (§6).
 
 **Source:** `parsers.py:architecture_grade`
 
-A *structural reliability* grade — how completely the cluster is captured — derived from edge status, whether a core biosynthetic class is present, length, KCB support, and antiSMASH's chemical-hybrid flag. Let `has_core` be true if the product text contains any of {nrps, pks, ripp, lanthipeptide, terpene, saccharide, phosphonate, siderophore, metallophore, lassopeptide, thioamide, tomm, azole}; `distinct_core` the number of those terms present; `high_kcb = (kcb_similarity_pct ≥ 70)`; and `hybrid_coherent = has_chemical_hybrid ∧ distinct_core ≥ 2`, where `has_chemical_hybrid` means antiSMASH flagged the region's candidate cluster `kind = chemical_hybrid`. Rules are applied in this order; the first that matches wins:
+A structural routing heuristic, not a measured completeness or reliability estimate, derived from edge status, whether a core biosynthetic class is present, length, KCB support, and antiSMASH's chemical-hybrid flag. Let `has_core` be true if the product text contains any of {nrps, pks, ripp, lanthipeptide, terpene, saccharide, phosphonate, siderophore, metallophore, lassopeptide, thioamide, tomm, azole}; `distinct_core` the number of distinct normalized product families among the product labels that contain one of those terms (`product_family`; a label in the catch-all `other` family counts as its own class), not the number of matched terms; `high_kcb = (kcb_similarity_pct ≥ 70)`; and `hybrid_coherent = has_chemical_hybrid ∧ distinct_core ≥ 2`, where `has_chemical_hybrid` means antiSMASH flagged the region's candidate cluster `kind = chemical_hybrid`. Rules are applied in this order; the first that matches wins:
 
 ```
-Interior ∧ has_core ∧ length ≥ 10 kb         →  A   (coherent, complete)
+Interior ∧ has_core ∧ length ≥ 10 kb         →  A   (passes configured length/core conditions; completeness not established)
 Interior ∧ high_kcb ∧ ¬has_core              →  B   (KCB-supported, limited core annotation)
 Interior ∧ has_core ∧ hybrid_coherent        →  A   (compact but coherent: fused multi-class architecture)
 Interior ∧ has_core                          →  B   (limited/compact)
 Edge ∧ has_core                              →  C   (truncated but coherent; partial)
 Edge ∧ ¬has_core                             →  D   (truncated, limited annotation)
-Full-contig ∧ has_core                       →  D   (likely truncated both ends)
+Full-contig ∧ has_core                       →  D   (Full-contig/core label; physical truncation not established)
 otherwise                                    →  E   (weak/ambiguous; inventory-level)
 ```
 
-The hybrid promotion only lifts a compact Interior core region from B to A. It never promotes a truncation grade (C, D or E): the hybrid flag says nothing about edge or length truncation. Example: Interior, products `nrps; t1pks`, 5,000 bp, chemical-hybrid flag set → A (without the flag, B). The grade is structural reliability, not production, novelty or activity.
+The hybrid promotion only lifts a compact Interior core region from B to A. It never promotes a truncation grade (C, D or E): the hybrid flag says nothing about edge or length truncation. Example: Interior, products `nrps; t1pks`, 5,000 bp, chemical-hybrid flag set → A (without the flag, B). One label that contains two listed terms counts once: Interior, product `nrp-metallophore`, 5,000 bp, flag set → B. So do two labels in one family: `lanthipeptide-class-i; ripp-like` → B. The grade is a structural routing heuristic, not measured completeness, production, novelty or activity.
 
 The judgment-layer display maps A–E to words: A→High, B→Moderate-High, C→Moderate, D→Low-Moderate, E→Low (`scoring.py:triage_bgcs`).
 
@@ -363,16 +363,16 @@ RiQ <  0.50   →  "Potentially novel"
 
 Most of the engine's actual judgment is here: the logic that prevents a high keyword score from over-claiming, and prevents a real-but-dark lead from being buried. These apply *after* §4–§5 and modify the tier (and sometimes the scores). Source throughout: `scoring.py:triage_bgcs`.
 
-### 6.1 Trigger corroboration (the gate before every bonus)
+### 6.1 Trigger corroboration (selected CCTT bonus and floor paths)
 
-A CCTT class trigger only counts if it is **corroborated** — fired on a class-compatible locus. An uncorroborated trigger (e.g. `T43-PHO` on a T3PKS, or any gated trigger on a mobile-dominant region whose class-defining enzyme is absent and whose architecture-class confidence is LOW) is recorded for the judgment layer but grants **no** AB/AF bonus, **no** guard exemption, and **no** tier floor:
+A CCTT class trigger only counts if it is **corroborated** — fired on a class-compatible locus. An uncorroborated trigger (e.g. `T43-PHO` on a T3PKS, or any gated trigger on a mobile-dominant region whose class-defining enzyme is absent and whose architecture-class confidence is LOW) is recorded for the judgment layer but grants **no** AB/AF bonus, no indicated corroboration-based guard exemption, and **no** tier floor:
 
 ```
 corroborated_triggers = triggers − uncorroborated
-(only corroborated triggers feed §4.3, §6.2, and the guard exemptions)
+(corroborated triggers feed the indicated bonus/floor paths; individual guards can use different inputs, including the raw-trigger hglE fallback)
 ```
 
-This is the CCTT-veto discipline; it is what makes the diagnostic bonus trustworthy.
+This is an implemented CCTT-veto policy, not a measured reliability guarantee. The hglE fallback separately checks the raw trigger set.
 
 ### 6.2 The Tier-1 diagnostic floor
 
@@ -397,7 +397,7 @@ if architecture_capacity == "glycopeptide"
         tier ← High          (floored = true, glyco_machinery_floored = true)
 ```
 
-The glycopeptide architecture call (`class_architecture.py:171-177`) needs at least 6 NRPS condensation domains, a halogenase and a glycosyltransferase, so the crosslinking and tailoring machinery is present. An overmerged region can dilute the text and KCB scores, and this floor keeps a confirmed glycopeptide from sitting below High. It never raises a tier above High, and the downgrades in §6.6 and §6.7 are applied after it. It is a capacity statement, not a production claim.
+The configured glycopeptide capacity label tests at least six NRPS condensation domains, a halogenase and a glycosyltransferase (`class_architecture.py`). These signals do not independently establish crosslinking machinery or a confirmed glycopeptide. Verify source annotations and alternatives; the floor is a routing policy that can raise this label to High. It never raises a tier above High, and the downgrades in §6.6 and §6.7 are applied after it. It is a capacity statement, not a production claim.
 
 ### 6.3 Primary-metabolism / pigment suppression
 
@@ -410,7 +410,7 @@ base_AB ← min(base_AB, 25)        # strip keyword credit to the floor
 base_AF ← min(base_AF, 20)
 ```
 
-This de-ranks the topoisomerase-"NRPS-like" false antibacterial and the carotenoid-"terpene" false antifungal without touching real clusters — a committed class label or a CCTT diagnostic exempts the region.
+This policy caps keyword credit for the matching records. A committed class label or qualifying diagnostic can exempt a record; exemptions and caps are routing rules, not proof that a cluster is genuine or false.
 
 ### 6.4 Mobile-element / ICE demotion
 
@@ -424,7 +424,7 @@ if mobile_dominant AND no Tier-1 diagnostic:
         base_AF ← min(base_AF, 20)
 ```
 
-A corroborated class signal exempts it, so genuine clusters with incidental flanking mobile genes are untouched. The companion resistance-axis rule: a T1 self-protection tier on a mobile-dominant region is only genuine self-resistance if the resistance is *class-concordant* with the cluster's own product. A non-concordant resistance group on an ICE background is horizontally-acquired cargo, not self-protection, and does not establish a Tier-1 diagnostic.
+A qualifying diagnostic can exempt it; the exemption does not establish that a region is a genuine cluster. The companion resistance-axis rule: a T1 self-protection tier on a mobile-dominant region is only genuine self-resistance if the resistance is *class-concordant* with the cluster's own product. A non-concordant resistance group on an ICE background does not establish a Tier-1 self-resistance diagnostic under this rule; its biological role remains to be reviewed.
 
 ### 6.5 KCB mis-anchor guards
 
@@ -440,10 +440,10 @@ aminoglycoside anchor, no DOIS/2-deoxy-scyllo-inosose:   base_AB ← min(base_AB
 polyene anchor, < 4 PKS-KS domains:                      base_AF ← min(base_AF, 20)
 ```
 
-**Enediyne guard (§4.1 novelty table, independent of tier):** a PREV-001/hglE artifact loses its +18 enediyne novelty credit. A genuine named-enediyne KCB anchor carries a neutral `[E-signal]` note — similarity, structure not confirmed — and *no* BSL-2/lab-safety warning (the enediyne BSL-2 doctrine was retired; selective biosafety flags give false reassurance, and chemical handling is governed by lab SOPs).
+**Enediyne guard (§4.1 novelty table, independent of tier):** a flagged mis-anchor loses only the enediyne keyword contribution actually banked on the selected branch; it need not be 18. A genuine named-enediyne KCB anchor carries a neutral `[E-signal]` note — similarity, structure not confirmed — and *no* BSL-2/lab-safety warning (the enediyne BSL-2 doctrine was retired; selective biosafety flags give false reassurance, and chemical handling is governed by lab SOPs).
 
 ```
-if enediyne mis-anchor:   novelty −= 18
+if enediyne mis-anchor: remove the difference between selected keyword scores with/without enediyne
 ```
 
 A class-level KCB mismatch (compound family incompatible with own product class) is flagged for the judgment layer regardless of tier.
@@ -471,7 +471,7 @@ consumer boundary, use [current standing-rule scope](06_CURRENT_SOURCE_SCOPE.md#
 
 **Source:** `scoring.py:triage_bgcs`
 
-A RiPP-family cluster (`RIPP_FAMILY_CLASSES`) that is a truncated sub-8 kb fragment with no precursor captured cannot be evaluated as a product:
+This cap uses RiPP-family labels, Edge/Full-contig state and positive span below 8 kb as proxies. It does not directly test precursor absence:
 
 ```
 if RiPP-family AND edge_status ∈ {Edge, Full-contig}
@@ -479,7 +479,7 @@ if RiPP-family AND edge_status ∈ {Edge, Full-contig}
         tier ← bottom_tier(bgc)  (ripp_floored = true; specialized RiPP normally Low)
 ```
 
-`span_kb = (end − start)/1000`, falling back to contig length. Never touches Interior clusters. Size + edge are conservative precursor proxies; a lone LanM synthetase beside a gas-vesicle operon should not float above a complete cluster.
+Span uses the validated circular span when supplied; otherwise absolute coordinate difference when an end is present, otherwise contig length, divided by 1,000. This branch excludes Interior labels. Review source coverage independently; size/boundary proxies do not establish precursor absence or product completeness.
 
 ### 6.8 Corrected lead rank
 
@@ -516,7 +516,7 @@ score = 0
 
 # protein support
 + 3   if min(a.nprot, b.nprot) ≥ 3   else +1     (when both have protein counts)
-+ 2   if (a.nprot + b.nprot) ≥ 12
++ 2   if both counts are truthy and (a.nprot + b.nprot) ≥ 12
 
 # reference rank quality
 + 3   if a.rank ≤ 5  and b.rank ≤ 5
@@ -543,9 +543,9 @@ score ≥  9   →  MODERATE_RG_GMCI_CANDIDATE
 otherwise   →  LOW_SHARED_REFERENCE_SIGNAL
 ```
 
-(`RGGMCI_SCORE_HIGH = 14`, `RGGMCI_SCORE_MODERATE = 9`). These component weights are engineering judgment, not calibrated against a labelled set — precision is enforced by the downstream gate cascade below, not by the weights. The raw score is a coarse routing prior.
+(`RGGMCI_SCORE_HIGH = 14`, `RGGMCI_SCORE_MODERATE = 9`). These component weights are engineering judgment, not calibrated against a labelled set — the downstream cascade applies specified guards and demotions, not a measured precision estimate or proof of linkage. The raw score is a coarse routing prior.
 
-### 7.2 The gate cascade (precision enforcement)
+### 7.2 The gate cascade (specified demotions)
 
 A HIGH score is necessary but not sufficient. Several gates can **demote** HIGH → MODERATE (`rggmci.py`):
 
@@ -617,9 +617,9 @@ needs_multibatch  =  raw > 25
 | Corrected-count weights | 1 / 0.5 / 0.25 | `assembly.py:corrected_bgc_count` | Interior / Edge / FC |
 | Assembly tiers | 70 / 45 / 20 | `assembly.py:assembly_tier` | GOOD / MOD / POOR / V_POOR |
 | GC dispersion flag | ≥ 5.0 | `assembly.py:assembly_sanity_check` | contamination suspect |
-| Score bases | 25 / 20 / 30 | `scoring.py:triage_bgcs` | AB / AF / novelty floor |
+| Score bases | 25 / 20 / 30 | `scoring.py:triage_bgcs` | AB / AF / novelty initial bases on stated branches; not final-score floors |
 | Diagnostic bonus | 25 | `scoring.py` | corroborated CCTT trigger |
-| KCB-strong novelty | −15 | `scoring.py:triage_bgcs` | `kcb_similarity_pct` ≥ 70 (`precision.py:KCB_PCT_HIGH`) |
+| KCB-strong novelty | −15 | `scoring.py:triage_bgcs` | non-UNKNOWN KCB state and `kcb_similarity_pct` ≥ 70 (`precision.py:KCB_PCT_HIGH`) |
 | Missing/unknown KCB novelty | 0 | `scoring.py` | a missing percent or `UNKNOWN_KCB` adds no credit and no penalty |
 | KCB percent bands | 70 / 40 | `precision.py:similarity_band` | high / moderate / low |
 | Low-RiQ novelty | +10 | `scoring.py` | riq_score < 0.5 |
@@ -636,4 +636,4 @@ needs_multibatch  =  raw > 25
 
 ---
 
-*Every formula transcribed from engine source. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream.*
+*Source citations are navigation aids; verify each selected formula, code version and input scope. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream.*

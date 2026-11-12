@@ -58,13 +58,24 @@ except Exception:  # pragma: no cover - fallback for flat co-location
 # AS-XXX}).
 try:
     from mamey.exclusions import raw_analysis_excluded
-    SKIP_STRAINS = raw_analysis_excluded()
 except Exception:  # pragma: no cover - standalone fallback if mamey package unavailable
     raise RuntimeError(
         "cohort exclusions are governed data and are not shipped in the code tier: "
         "install the mamey package, or set MAMEY_OFFICIAL_DATA to a directory "
         "containing exclusions.json"
     )
+
+
+def __getattr__(name):
+    # Read on first use, not at import: importing this tool reads no workspace data.
+    if name == "SKIP_STRAINS":
+        return raw_analysis_excluded()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 
 
 def discover_as_strains(root: str) -> list[str]:
@@ -92,7 +103,7 @@ def canonical_slot(root: str, strain: str) -> str:
 def materialize(root: str, strains: list[str], apply: bool) -> None:
     staged = skipped_exist = skipped_hold = unresolved = 0
     for strain in strains:
-        if strain in SKIP_STRAINS:
+        if strain in _bound("SKIP_STRAINS"):
             emit(f"  SKIP (hard-hold)   {strain}")
             skipped_hold += 1
             continue

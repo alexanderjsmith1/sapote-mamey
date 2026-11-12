@@ -62,7 +62,7 @@ Make two views if the metadata allows it: a short publication view and a detaile
 
 ### 16S route
 
-1. Inventory your inputs: `python tools/phylo_autopilot.py plan INPUT_DIR`. It classifies each file as rRNA, genome, protein or empty.
+1. Inventory your inputs: `python tools/phylo_autopilot.py plan INPUT_DIR`. It classifies files it can read as rRNA, genome, protein or empty. Directory-enumeration errors reported through the walk callback refuse the plan. Some entry-inspection errors can still be omitted, and directory symlinks are not followed. Independently reconcile the plan against the expected input inventory; exit 0 does not establish scientific or source completeness.
 2. Route the queries to a genus group: `python tools/phylo_autopilot.py route --query QUERIES.fasta --db DB_PREFIX --out ROUTING.tsv`. Review any genus conflict by hand.
 3. Prepare one group without running inference:
 
@@ -71,11 +71,11 @@ python tools/phylo_autopilot.py run-16s --query QUERIES.fasta --db DB_PREFIX \
   --group streptomyces --outdir NEW_OUTDIR --dry-run
 ```
 
-`--group` is one of `nocardia`, `rare_genera` or `streptomyces`. `--db` defaults to the shared 16S database ([LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md)). The dry run writes into `NEW_OUTDIR`: `query_qc.tsv`, `routing_table.tsv`, `<group>_reference.fasta` and `<group>_query.fasta`. It prints `dry-run:` and exits 0. It exits 2 in two cases. If a query is refused, it says how many and tells you to read `query_qc.tsv`. If no query routes to your group, it names the groups that did get queries and tells you to read `routing_table.tsv`. It runs BLAST but no tree inference.
+`--group` is one of `nocardia`, `rare_genera` or `streptomyces`. `--db` defaults to the shared 16S database ([LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md)). The dry run writes into `NEW_OUTDIR`: `query_qc.tsv`, `routing_table.tsv`, `<group>_reference.fasta` and `<group>_query.fasta`. It prints `dry-run:` and exits 0. Two exit-2 cases are: If a query is refused, it says how many and tells you to read `query_qc.tsv`. If no query routes to your group, it names the groups that did get queries and tells you to read `routing_table.tsv`. It runs BLAST but no tree inference.
 
 4. A real run needs `--approved-by NAME` instead of `--dry-run`. Without either flag it refuses. Details are in the [autopilot guide](PHYLO_AUTOPILOT_WORKFLOW.md); sequence admission is in the [16S data guide](PHYLO_16S_DATA_CONTRACT.md).
 
-`phylo_place.py report` can write a grafted tree without the color-strip figure when the owner table or reference metadata is missing. It then writes `<group>_REPORT_ATTEMPT.json` in the report folder with state `HOLD` and a `metadata_strips` entry that gives the reason. It exits 2. Do not treat a missing strip figure as success.
+When color strips are requested, `phylo_place.py report` can write a grafted tree without the color-strip figure if the owner table or reference metadata is missing. It then writes `<group>_REPORT_ATTEMPT.json` in the report folder with state `HOLD` and a `metadata_strips` entry that gives the reason. It exits 2. When no strip metadata was requested, the strip state is `NOT_REQUESTED` rather than that hold. Do not treat a missing requested strip figure as success.
 
 If you have a genome but no 16S FASTA, extract candidates first:
 

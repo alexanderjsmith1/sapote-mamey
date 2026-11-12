@@ -1,5 +1,7 @@
 # User-Doc Citation Provenance Patch — v9.7.136
 
+**Historical patch note:** This describes the v9.7.136 documentation change, not the current contract. `PASS_STRUCTURE` has different limited meanings in different producers; it does not certify a complete report, citation verification, or literature truth. Check the current producer and its guide for the relevant scope.
+
 Adds a compact provenance/status block to current user-facing docs before four-tier release.
 
 The block records:

@@ -48,7 +48,7 @@ Status labels:
 
 A real run replaces the existing fenced GCF block in a card. If there is none, it inserts the block after the first heading that begins `## 8` or `## §8`. If there is no such heading, it appends the block at the end. Section numbers in current Mode B profiles can mean something else, so check where the block landed.
 
-The block's nearest-reference line gives the BiG-SCAPE GCF distance as a similarity score from that run (0 most similar, 1 least similar). It says that distance 0 does not show identical sequences or the same product.
+The block can display a nearest-reference distance, but the lookup does not filter by the selected run or cutoff. Hold the value until you verify its source against the selected run as described above. Distance 0 does not show identical sequences or the same product.
 
 - Each card is replaced atomically. The batch is not. A failure can leave some cards changed.
 - There is no check of the original file hash and no record of input or output hashes.

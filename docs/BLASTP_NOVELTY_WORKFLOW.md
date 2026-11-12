@@ -6,7 +6,7 @@ The page changes no files. Everything below produces class-level capacity hypoth
 
 ## Claim ceiling
 
-- Similarity is not identity. A BLASTp percent identity is homology, not the same molecule.
+- A BLASTp percent identity measures identical residues in an alignment; it can support a homology hypothesis but does not establish the same molecule.
 - A few genes that resemble a characterized cluster are a class-level anchor, not that compound.
 - A close hit in nr does not mean "known". nr is dominated by genomes never assayed for natural products. A close hit means a similar sequence exists.
 - A distant nr hit is a prior that says "worth a look". It is not activity, and it is not taxonomic or chemical novelty. It holds only inside the database, query and settings you searched.
@@ -50,7 +50,7 @@ The strongest lead is real machinery in a distant background: a clear MIBiG fami
 1. Take nr distance as 100 minus the median nr percent identity across the BGC's genes.
 2. Sort the BGCs with a strong family match by nr identity, lowest first.
 3. Carry the number of genes behind each median. A median over 2 genes is not comparable to one over 40. Treat a distance from fewer than about 5 genes as soft, and say so.
-4. Check for an over-merged region (`COMPOSITE_SEPARABLE`, an antiSMASH region that holds two biosynthetic units). It distorts both numbers. Verify the split first.
+4. Check for a possible over-merged region. The `COMPOSITE_SEPARABLE` label is an annotation-based signal, not proof of separate biosynthetic units. Review the source architecture before splitting the region or interpreting either number.
 
 ## Split loci
 
@@ -66,7 +66,7 @@ These fields come from the RG-GMCI rescue step. See [the rescue atlas](RGGMCI_RE
 Details and commands are in [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md). The rules that matter here:
 
 - nr and ClusteredNR share one NCBI search budget. Submit one batch at a time, never a burst, and keep few open RIDs (a RID is NCBI's job ID for one search). `auto-blastp` paces itself at about one query every 8 minutes.
-- If NCBI refuses new submissions while status checks still return results, you have too many searches open. Stop and wait.
+- If NCBI refuses new submissions while status checks still return results, stop and wait. Too many open searches is one possible cause; retain the response and check the service guidance before assigning a cause or retrying.
 - The daily submission ledger (`mamey/blast_ledger.py`) counts searches against NCBI's soft limit of about 100 per 24 hours.
 - NCBI submissions carry no e-mail address or personal identifier. The EMBL-EBI route (`blastp-ebi`) is different: EBI requires a contact `--email`.
 - Send only sequence you may make public.

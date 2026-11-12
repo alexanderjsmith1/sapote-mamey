@@ -299,6 +299,8 @@ form of the project's observed/computed/inferred/assumed discipline: the audit a
 channel backs this?* and rejects statements that answer "none." This is a Sapote prompt-layer construct, not
 engine Python, but it is checked against the engine's emitted facts.
 
+> **Current gate scope:** The paragraph below is a historical design assertion, not proof that a current gate reconciles every source BGC or independently verifies each KCB denominator. Select the actual profile and inspect its documented validator, source bindings and receipts; separately reconcile any missing source records or denominator evidence. A structural pass alone does not establish scientific completeness.
+
 The **completeness gate** is fail-closed and deterministic: it verifies that the denominator of the analysis —
 how many of the strain's BGCs were actually carried through — reconciles against the antiSMASH source, so the
 judgment layer cannot silently analyze a subset and present it as the whole. It works with the engine's recorded

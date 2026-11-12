@@ -72,3 +72,17 @@ def test_current_menu_is_not_called_retired():
         "docs/DELIVERABLE_MENU.md is CANONICAL_MENU_PATH and is current; the retired "
         "file is docs/DELIVERABLE_MENU_v97146.md. Offending text: " + " | ".join(bad)
     )
+
+
+def test_prevalence_output_examples_are_arguments_not_shell_redirection():
+    import shlex
+    text = (ROOT / "wiki/Domain-and-Scan-Prevalence.md").read_text(encoding="utf-8")
+    for block in re.findall(r"```[^\n]*\n(.*?)\n```", text, re.S):
+        lexer = shlex.shlex(block, posix=True, punctuation_chars="<>")
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+        for index, token in enumerate(tokens):
+            if token in {"--out", "--outdir"}:
+                assert index + 1 < len(tokens)
+                assert tokens[index + 1] not in {"<", ">", "<<", ">>"}, (
+                    "Output path is shell redirection rather than an option argument", block)

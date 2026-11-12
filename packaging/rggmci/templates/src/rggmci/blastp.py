@@ -263,7 +263,7 @@ def blastp_layer(manifest_path: str | Path, hit_tables: Iterable[str | Path] = (
     for pr in m["pairs"]:
         out = {"pair": pr["pair"], "rggmci_confidence": pr.get("rggmci_confidence"),
                "contig_a": pr.get("contig_a"), "contig_b": pr.get("contig_b")}
-        orgs = {}
+        orgs, covered = {}, {}
         for side, bid in (("a", pr["bgc_a"]), ("b", pr["bgc_b"])):
             rs = by_bgc.get(bid, [])
             ids = [r["top_identity"] for r in rs if isinstance(r.get("top_identity"), (int, float))]
@@ -273,10 +273,18 @@ def blastp_layer(manifest_path: str | Path, hit_tables: Iterable[str | Path] = (
             out[f"{side}_not_in_results"] = sum(r["blastp_status"] == "NOT_IN_RESULTS" for r in rs)
             out[f"{side}_median_top_identity"] = round(statistics.median(ids), 1) if ids else ""
             orgs[side] = set().union(*[r["_orgs"] for r in rs]) if rs else set()
-        have_xml = any(r["top_organisms"] for r in by_bgc.get(pr["bgc_a"], []) + by_bgc.get(pr["bgc_b"], []))
+            # A side's organisms are known only when the XML2 covered it: a hit with organisms, or a
+            # no-hit result (which only the XML2 gives). A side outside the XML2 has no organism data.
+            covered[side] = any(r["top_organisms"] or r["blastp_status"].startswith("NO_HITS") for r in rs)
         shared = sorted(orgs["a"] & orgs["b"])
-        out["organisms_with_homologs_of_both"] = len(shared) if have_xml else ""
-        out["shared_organisms"] = "; ".join(shared[:10]) if have_xml else "needs XML2"
+        if covered["a"] and covered["b"]:
+            out["organisms_with_homologs_of_both"] = len(shared)
+            out["shared_organisms"] = "; ".join(shared[:10])
+        else:
+            missing = [s for s in ("a", "b") if not covered[s]]
+            out["organisms_with_homologs_of_both"] = ""
+            out["shared_organisms"] = ("needs XML2" if len(missing) == 2
+                                       else f"needs XML2 for side {missing[0]}")
         pair_rows.append(out)
     for r in prot_rows:
         r.pop("_orgs")

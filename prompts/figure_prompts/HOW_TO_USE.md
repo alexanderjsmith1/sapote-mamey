@@ -36,9 +36,9 @@ PNGs go into the `figure_ready` folder. An existing PNG of the same name is refu
 positive, finite N50 for every strain (the axis is logarithmic). A missing correction
 value stays uncomputed. Do not fill it with zero.
 
-In the heatmap, `class_by_strain.csv` lists only nonzero counts. For an isolate with class rows,
-an absent class is a counted zero. An isolate with no class rows at all is drawn grey and named
-in the title count, not drawn as zeros.
+In the heatmap, each absent isolate/class row is unreported and drawn grey, even when other
+classes are recorded for that isolate. An explicit zero row is shown as zero. Sparse data alone
+does not establish that an unreported class was assessed.
 
 ## Categories
 

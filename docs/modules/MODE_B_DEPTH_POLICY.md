@@ -6,23 +6,24 @@ The JSON file named `modeb_full30_corrective_contract.json` holds the 48-section
 
 ## The older check
 
-The check counts text, not analysis. It cannot tell whether an analysis was run. Its limits are:
+The check counts text, not analysis. It cannot tell whether an analysis was run. Selected implemented text gates are:
 
-- A character floor by triage rank: 12,000 for ranks 1 to 10, 11,000 for ranks 11 to 25, 10,000 for the rest. A boundary fragment (edge or full-contig, 22 or fewer CDS) can use a 2,500 floor. Under 2,000 characters is a `STUB`.
+- A character floor by triage rank: 12,000 for ranks 1 to 10, 11,000 for ranks 11 to 25, 10,000 for the rest. Fragment relief requires a recognized boundary state and a supplied CDS count at most 22; missing boundary/count information does not qualify. A qualifying fragment can use a 2,500 floor. Under 2,000 characters is a `STUB`.
+- FULL also requires at least four matched section markers, explicit sections 9 and 10, and at least 2,000 characters from the first matched section 11–20 marker to the end. These are lexical gates, not verification that those sections contain valid evidence.
 - A term-density check. It counts locus tags and domain terms, repeats included, with a minimum of 12. The threshold is `int(character_count / 1000 * 1.0)`.
 
-Neither limit counts verified BLASTp alignments, distinct genes or finished analyses. Do not repeat tokens to clear a floor. If a card is thin, go back to the bound domain, gene and homology evidence and deepen the interpretation. If a required channel is unavailable, say so and state what that limits.
+None of these gates counts verified BLASTp alignments, distinct genes or finished analyses. Do not repeat tokens to clear a floor. If a card is thin, go back to the bound domain, gene and homology evidence and deepen the interpretation. If a required channel is unavailable, say so and state what that limits.
 
 ## Where the evidence lives
 
 | Evidence | Source | How |
 |---|---|---|
-| Domain rows | antiSMASH source ZIP or package gene context | `python mamey_run.py domain-level --package runs/EXAMPLE/package --source-antismash path/to/antismash_result.zip --top-n 10 --out reviews/EXAMPLE-domain`. It covers the top leads only. See [domain-level Mode B](DOMAIN_LEVEL_MODE_B.md). |
+| Domain rows | antiSMASH source ZIP or package gene context | `python mamey_run.py domain-level --package runs/EXAMPLE/package --source-antismash path/to/antismash_result.zip --top-n 10 --out reviews/EXAMPLE-domain-new`. Use a new `--out` folder each run; an occupied one is refused. It picks the top BGCs by AB + AF auto score, not by the displayed rank. The archive is used only when its SHA-256 matches the package manifest. Otherwise the run can fall back to the package's limited gene context, or write a skipped receipt, and some skips exit 0. Read `domain_level_receipt.json`. See [domain-level Mode B](DOMAIN_LEVEL_MODE_B.md). |
 | Per-gene BLASTp | Result files and their query receipts | Reuse existing results first. `blastp-round` writes a local plan by default: full proteins for the top 3 clusters (`--full-top`), representatives for the rest. A plan is not a search. See the [BLASTp protocol](../ONLINE_BLASTP_PROTOCOL.md). |
 | Domain roles, burden, claim ceiling | `domain-level` output | Role category, per-cluster burden and a safe/unsafe claim pair. |
 | Gene table | `<strain>_gene_by_gene_all_bgcs.csv` | The `sec_met_domains` column can split a domain name differently from antiSMASH (for example `micKC` and `Pkinase`). Treat a missing domain there as weakly supported, never as "lacks the domain". |
 | KCB and MIBiG similarity | `knownclusterblast` files and the triage `KCB_top` column | Similarity, not identity. |
-| Deep domain hits and active sites | `deep_data.json` in the package root | Written only in gold mode. Empty arrays do not show absence. |
+| Deep domain hits and active sites | `deep_data.json` in the package root | Gold-mode deep-data emission is attempted but may be skipped, held or fail. Inspect the actual file, full identity and issue records; empty arrays do not show absence. |
 
 Match every profile row to the full identity, **strain / full node-or-contig / region / BGC alias**. Domain-hit rows carry the contig in `region_key` and omit the alias and region, so they are not a complete regional identity. Missing scores stay `null`.
 

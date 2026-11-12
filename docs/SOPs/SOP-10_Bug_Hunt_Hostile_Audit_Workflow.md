@@ -43,6 +43,10 @@ For each SOP:
 | LOW | polish, wording, non-critical warning | can defer |
 | CHECK | skipped or unresolved evidence | explain before cut |
 
+The [Bug Hunt protocol](../../debugging_modules/BUG_HUNT_PROTOCOL.md#severity-scale) grades codebase-sweep
+findings on its own P0–P3 scale. The two scales are not defined as equivalent. A finding from that
+sweep keeps its P grade; give it a grade from this table too when it enters an SOP review.
+
 ## Standing bug-hunt targets
 
 1. BGC BLASTP FASTA export.
@@ -51,7 +55,7 @@ For each SOP:
 4. Comma-bearing query titles.
 5. Giant NRPS/PKS follow-up labels.
 6. Single-region accession inputs.
-7. Selected [deliverable outputs](../DELIVERABLE_CONTRACT.md) and [strain privacy handling](../PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) — the historical C5/C7 categories.
+7. Selected [deliverable outputs](../DELIVERABLE_CONTRACT.md) and [strain privacy handling](../PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md).
 8. Public/private redaction.
 9. Claim boundary language.
 10. Release packaging parity.

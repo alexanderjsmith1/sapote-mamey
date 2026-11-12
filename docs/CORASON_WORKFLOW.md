@@ -89,7 +89,7 @@ The URLs must be HTTPS on an NCBI or ENA host. Every locus's full contig must ap
 }
 ```
 
-Validate first, on a working copy you are allowed to change. `python mamey_run.py validate <package>` rewrites `package_status.json` inside the package, and the tree hash covers that file. Save the validate output to the log named in `evidence_path`. Then compute the hash.
+Validate first, on a working copy you are allowed to change. `python mamey_run.py validate <package>` rewrites `package_status.json` inside the package, and the tree hash covers that file. Save the validate output to the log named in `evidence_path`. Check the validation status and individual gates. If `package_status_receipt_write` has `state: FAILED`, fix the write problem and validate again, even if the main status or exit code looks successful. Only after validation and the receipt write succeed, compute the hash.
 
 The package tree hash is the SHA-256 of one line per package file, in sorted path order: `relative/path`, a tab, that file's SHA-256, a newline. No command prints it. From the bundle root, this does (the path is your package folder):
 

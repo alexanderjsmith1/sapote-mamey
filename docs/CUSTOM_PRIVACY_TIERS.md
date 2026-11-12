@@ -71,7 +71,7 @@ After the stage passes the audit, `tools/finalize_public_archive.py` builds the 
 | Share the tool so the recipient can re-run the pipeline | `code` |
 | Prepare an analysis-free tier | `clean` (disabled by default) |
 | Prepare a tier with cohort content for separate review | `cohort` (disabled by default) |
-| Keep a private working copy | `merged` (disabled by default) |
+| Prepare a private scaffold for separate review | `merged` (disabled by default); keep a separately verified working copy |
 
 ## Audit a tree yourself
 

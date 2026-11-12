@@ -35,14 +35,14 @@ A missing input, an unrun scan or a failed parse is "not available". It is not a
 
 ## The eleven steps
 
-1. **TFBS regulatory coupling table.** By working convention, a regulator seen in 2 or more BGCs is a coupled network and one seen in 6 or more is a genome-wide network. Read each in the host's context.
-2. **Polysaccharide substrate coupling.** BGCs with GH or LPMO domains plus a matching TFBS are polysaccharide-gated candidates. State a null network explicitly.
-3. **`bldA` tier to host development.** Map tiers T1 to T4 (the count of TTA codons in the scan: zero, 1-2, 3-5, 6 or more; see [Concepts Q&A](../GUIDE/06_Concepts_QandA.md#what-are-the-blda-tiers)) to the host's seasonal or developmental phases.
-4. **Host disease-defense matching.** Match the strain's class capacity to the host's known pathogens. Capacity is not protection.
+1. **Predicted regulator/motif table.** Summarize source-bound occurrences and the scanned scope. Count thresholds are descriptive conventions, not evidence of binding, target genes, co-regulation or a functional network. Assess those independently.
+2. **Polysaccharide-related hypothesis.** Co-occurring domain and motif predictions can motivate review; they do not establish substrate gating or a regulatory network. Report completed scoped null checks separately from unavailable evidence.
+3. **`bldA`/TTA tier and scope.** Report the applicable T1–T4 count tier and scanned records (see [Concepts Q&A](../GUIDE/06_Concepts_QandA.md#what-are-the-blda-tiers)); keep missing and NOT_APPLICABLE separate. A relationship to host season or development is an independently sourced hypothesis requiring its own evidence, not a tier output.
+4. **Host disease-defense matching.** Match the strain's class capacity to the host's known pathogens. Capacity is not protection. Deposited isolation source also does not by itself establish a demonstrated host association.
 5. **Novel regulatory signals.** Regulators or contexts outside your standing set.
 6. **Integrated model.** One falsifiable account that ties steps 1 to 5 to the host.
 7. **BGC-by-BGC matrix.** One row per BGC: evidence, ecological role hypothesis, confidence.
-8. **Ranking.** Rank hypotheses by how many evidence streams support them.
+8. **Ranking.** Order hypotheses by the quality and independence of their evidence, not by a raw count of streams. Two streams derived from the same input are not independent support. List conflicting evidence and unassessed channels beside each hypothesis. A stream count can appear as context only.
 9. **Hypothesis format.** `[claim] based on [BGC, locus, domain, bitscore or TFBS], confidence [H/M/L], test: [experiment]`.
 10. **Claim-safety pass.** Check every sentence against the ceilings above.
 11. **Reviewer-attack block.** Append an ecological-overreach block. See [DELIVERABLE_ReviewerAttack.md](DELIVERABLE_ReviewerAttack.md), category 4.
@@ -57,7 +57,7 @@ Historical hglE-KS prevalence is context. It is not a habitat claim, so do not t
 
 ## Output
 
-A document you write by hand. Name it for your strain and keep it with the package it came from. Include the BGC-by-BGC matrix. To put it in the compiled report, run `python mamey_run.py write-narrative <package> --section ecological_synthesis --file <your.md>`.
+A document you write by hand. Name it for your strain and keep it with the package it came from. Include the BGC-by-BGC matrix. To put it in the compiled report, run `python mamey_run.py write-narrative runs/EXAMPLE/package --section ecological_synthesis --file reviews/EXAMPLE-ecology.md`. It writes `judgment/<strain>_ecological_synthesis.md` in the package. If that file already exists, it is refused and left unchanged (exit 4); preserve the prior section before `--force` replaces it. Substitute bound paths and quote spaces; use an authorized working package because this writes inside it. A claim-safety linter finding is refused with or without `--force` (exit 3), and nothing is written. Revise the text instead.
 
 ## Checklist
 
@@ -70,4 +70,4 @@ A document you write by hand. Name it for your strain and keep it with the packa
 
 ## Template for one hypothesis
 
-> Iron-economy hypothesis: `<strain> / <full contig> / region<NNN> / <BGC alias>` carries a siderophore-type locus, which could support competition for iron. Confidence M. Test: CAS assay under iron limitation. Bioinformatic evidence only.
+> Iron-economy hypothesis: `<strain> / <full contig> / region<NNN> / <BGC alias>` carries a siderophore-type locus, which could support competition for iron. Confidence and test choice require review. A CAS screen alone would not attribute activity or a product to this particular BGC. Bioinformatic evidence only; the example is a hypothesis format, not a validated experimental recommendation.

@@ -20,7 +20,13 @@ PATTERNS = {
     # Underscores separate session tags; Unicode letters/digits still bound identifiers.
     "session id": re.compile(r"(?<![^\W_])(?:d4cc32a9|eb3df1ef|9a8398df|1955a8c0|88fdad06|fa3e5fb1|1947ad84|9c92d456|283f1f96|1246f6ce|"
                              r"afc034dc|ce787e3d|1c20b8bd|2d6758ab|195c219b|9c5f37d0|a5b97902|6275a90d|fd48f690|09af774e|"
-                             r"59196886|b4640264|33ea24d7|841e7b03|3ab51b5f|018c0f08|7288f3e5|8e930c18)(?![^\W_])", re.I),
+                             r"59196886|b4640264|33ea24d7|841e7b03|3ab51b5f|018c0f08|7288f3e5|8e930c18|f51fc51a|74e4ef0e)"
+                             r"(?![^\W_])", re.I),
+    # A card id is a session id, a cut number and a slug ("<8 hex>_465_slug"); it names the session that wrote it,
+    # whether or not that session is in the list above. Sealed hashes are never followed by "_4NN_".
+    "card id": re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{8}_4\d\d_"),
+    # A working lane's own card label ("C2 card 10"); the lane letter-number alone is too common to search for.
+    "lane card label": re.compile(r"\bC\d{1,2} card\b"),
 }
 # Files that must hold these words: the audits and guards that search for them, licences, citations, vendored code,
 # the two signed governance records, which only their signer changes, and hash-bound contracts.
@@ -52,7 +58,9 @@ def _hits():
             for what, rx in PATTERNS.items():
                 m = rx.search(line)
                 if m:
+                    # One finding per line: a card id that names a listed session matches two patterns.
                     out.append(f"{rel}:{i}: {what} {m.group(0)!r}")
+                    break
     return out
 
 
@@ -67,3 +75,9 @@ def test_the_patterns_catch_what_they_are_for():
     assert PATTERNS["lane name"].search(f"v9.7.417 ({_LANES[0]}):")
     assert PATTERNS["task label"].search("Codex Task 24 benchmark") and PATTERNS["task label"].search("Task_362 file")
     assert not PATTERNS["task label"].search("--start-batch 10")
+    assert PATTERNS["card id"].search("see card " + "f51fc51a" + "_465_enzyme_catalog_page")
+    assert PATTERNS["card id"].search("Card " + "3918f93e" + "_456_comparison_row_accession.")
+    assert not PATTERNS["card id"].search("stack fingerprint 7be19f4294ee3691a6689000a49b650f80b79b8ab794b830b69479d6e9073fea")
+    assert not PATTERNS["card id"].search("sha256 0d94e2fd_backup")
+    assert PATTERNS["lane card label"].search("465 " + "C2" + " card 10:")
+    assert not PATTERNS["lane card label"].search("a C2-symmetric dimer; C2H2 zinc finger; C2 domain")

@@ -4,6 +4,8 @@ This preserved legacy class-calibration sketch is not a current50_v2 finished-ca
 
 Reuse structure and bounded register only. Do not transfer these genes, homology results, comparators, numerical scores, inferred mechanisms, activity language or proposed experiments into another locus. Provenance statements in §28 are assertions to trace to the original source files and receipts; verify the underlying search outputs and biological interpretation independently before reuse. Similarity and boundary labels alone do not establish product identity, pathway completeness, production, activity, novelty or physical linkage. Report missing independent evidence as a typed, reasoned limitation rather than filling it with teaching text.
 
+**Interpretation warning:** The historical body treats the inventory as complete and the named enzyme as settled, whereas §§8, 10 and 14 retain the need to verify completeness and the exact query, subject and search provenance. A compound matching a reference standard in an extract does not by itself link that compound to this locus; independent locus-specific evidence is needed.
+
 [Collection reader guide](README.md) describes the profile and historical-status boundaries.
 
 ---

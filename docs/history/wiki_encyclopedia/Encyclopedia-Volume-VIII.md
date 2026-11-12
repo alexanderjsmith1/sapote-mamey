@@ -266,6 +266,8 @@ memory, the saccharide / NAPAA / hglE lessons encoded once so they are not relit
 trail is what lets a reader trust that the lessons were applied rather than assumed (the registry is read as the
 single source of truth, → §VIII.3).
 
+> **Fixture and privacy boundary:** The historical table below includes advice to split an identifier or add a scan exemption. Do not use those techniques to conceal a real identifier or bypass a privacy check. Use independently verified synthetic fixtures and the selected current privacy policy; any exemption needs its own documented authority and review.
+
 ## §VIII.5 · Version history and known traps
 
 The audit loop (§VII.6) leaves a trail of corrected mistakes; the most instructive become *known traps* — failure

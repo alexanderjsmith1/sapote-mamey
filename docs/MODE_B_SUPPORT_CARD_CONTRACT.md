@@ -191,7 +191,7 @@ Record:
 
 ## Checks before you finish
 
-Step 12 has five checks. The first two are commands. The rest are manual.
+Step 12 has six checks. The first three are commands. The rest are manual.
 
 | Check | How |
 |---|---|

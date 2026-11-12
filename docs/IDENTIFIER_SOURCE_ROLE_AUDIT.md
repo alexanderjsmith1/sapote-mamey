@@ -19,9 +19,12 @@ source-review provenance record. Comments/docstrings naming empirical or
 historical cases cannot be admitted as authored input strings.
 
 The role table declares 237 sites in 55 files: 57 public-reference sites (51 product,
-6 organism) and 180 authored-fixture sites. Seven listed files have changed since their
-hashes were pinned, and 23 sites fail token or context binding. Policy selection will
-refuse until an owner re-reviews and rebinds them. Do not refresh role records automatically.
+6 organism) and 180 authored-fixture sites. On the v9.7.465 candidate, 8 of the 55 listed
+files have changed since their hashes were pinned, and 26 sites fail token or context binding.
+The count moves whenever a listed test file is edited. `tools/identifier_source_roles.py` reports
+`state` `HOLD` with `SOURCE_ROLE_BINDING_OR_AUDIT_UNVERIFIED`; its `counts` then read zero, so
+they do not show how many sites changed.
+Policy selection will refuse until an owner re-reviews and rebinds them. Do not refresh role records automatically.
 
 Older proposal counts and projected ratchet reductions describe their original
 stages; they do not report the current table, runtime coverage or release clearance.

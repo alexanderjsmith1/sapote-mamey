@@ -1,5 +1,5 @@
-version=9.7.464
-build=20261108v97464a
-engine=1.9.180
-patch=KCB reads the percent.; Identity.; Missing values.; Habitat and leads.; Refusals instead of overwrites.; Exit codes and gates.; BiG-SCAPE, trees and figures.; Figures and BLASTp lanes.
+version=9.7.465
+build=20261110v97465a
+engine=1.9.181
+patch=Missing is not negative.; Holds and refusals.; Enzyme catalog.; Signature-enzyme classes.; thioamide-NRP is not a RiPP.; RiPP precursor tags.; RiPP-like protoclusters.; Gap rescue and locus figures.
 tier=code

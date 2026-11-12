@@ -9,16 +9,16 @@ Replace `EXAMPLE` with your run label. Run commands from the program folder.
 `validate` refreshes `package_status.json` in the folder it is given, so copy first and keep the original untouched. Some figure and report commands also write into the package ([which ones](POSTSEAL_READERS.md)).
 
 ```bash
-cp -R runs/EXAMPLE/package ../EXAMPLE-review
+mkdir ../EXAMPLE-review && cp -R runs/EXAMPLE/package/. ../EXAMPLE-review/
 shasum -a 256 runs/EXAMPLE/EXAMPLE_*_Complete_Package.zip
 python mamey_run.py validate ../EXAMPLE-review --workbook-strict
 ```
 
-Save the checksum with your notes. It identifies the exact input. A good validation exits 0, with status `MAMEY_COMPLETE` or a status that starts with `PASS` (see [first run](reader/01_FIRST_RUN.md#4-check-that-the-run-worked)). Then read `issue_log.md` in the package; [Read your results](READING_YOUR_RESULTS.md) explains both. Stop if validation fails.
+Use a fresh destination: `mkdir` refuses an existing folder. If copying fails, stop and inspect the partial folder before retrying elsewhere. Save the checksum with your notes; it identifies the ZIP, not the bytes of the separate working copy. A good validation exits 0, with status `MAMEY_COMPLETE` or a status that starts with `PASS` (see [first run](reader/01_FIRST_RUN.md#4-check-that-the-run-worked)). Check the individual results too: if `package_status_receipt_write` reports `FAILED`, fix the write and validate again even if the main status passes. Then read `issue_log.md` in the package; [Read your results](READING_YOUR_RESULTS.md) explains both. Stop if validation fails.
 
 ## 2. Write the question and pick the table
 
-Write one sentence saying what you want to learn. Name the table that answers it, such as `EXAMPLE_2_inventory.csv` (one row per region) or `EXAMPLE_4_triage_board.csv` (every region, ranked, including regions flagged as excluded from leads). Say what one row means.
+Write one sentence saying what you want to learn. Name the table that answers it, such as `EXAMPLE_2_inventory.csv` (one row per region) or `EXAMPLE_4_triage_board.csv` (ranked triage rows, including rows flagged as excluded from leads). Compare full locus identities against the inventory and investigate any missing or extra rows before claiming that the board covers every region. Check the scoring-coverage receipt and issue log; a warning is not proof of complete coverage. Say what one row means.
 
 Identify each locus as **strain / full node-or-contig / region / BGC alias**, copied from one source row. Keep a missing measurement separate from a zero.
 

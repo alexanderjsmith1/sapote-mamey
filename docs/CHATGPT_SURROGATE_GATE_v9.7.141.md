@@ -2,8 +2,7 @@
 
 ## Actual coverage, exit and write limits
 
-The gate skips declared paths that do not exist and marks missing-module failures ENV-SKIP. A summary
-of PASS plus ENV-SKIP still reports PASS, so read the per-step results. Doctor can be skipped by its flag.
+The gate skips declared paths that do not exist. A nonzero step is ENV-SKIP for a missing module only when its output is an isolated missing-module diagnostic and the import name was explicitly declared with `--optional-module IMPORT_NAME`. Repeat that option for each optional import; declarations appear in the JSON summary. Ambiguous output, an undeclared module, and mixed failures are FAIL. A summary of PASS plus ENV-SKIP still reports PASS, so inspect skipped steps and their logs before relying on the result.
 
 Logs, summary, CSV and report go to fixed paths and replace earlier files; py_compile can create
 caches. Within an authorized check, retain exact source/input/step scope, omitted/skipped

@@ -22,9 +22,13 @@ the guide that shows how to make it. New users can start with
 | Interactive reader widgets | Build an interactive reader from this package. | package or run folder, or Complete_Package ZIP with manifest; new output folder | [Interactive reader widgets](WIDGET_DELIVERABLES.md) |
 | Share a package | Package this result and its region files for another computer. | package with its validation and hashes; original antiSMASH ZIP for the region files; new ZIP path | [Share a package](FILES_STORAGE_AND_HANDOFF.md#build-a-portable-zip) |
 | Project catalog | Register or verify package locations in this project root. | project root; package paths; catalog and manifest hashes when verifying | [Project catalog](PROJECT_CATALOG.md) |
-| Share a private project | Prepare or open a private archive that holds several packages. | project root and its catalog; the package files; new archive path, or a source archive with its SHA-256; empty import folder when importing | [Share a private project](PROJECT_CATALOG.md) |
+| Share a private project | Prepare or open a private archive that holds several packages. | project root and its catalog; the package files; new archive path, or a source archive with its SHA-256; an absent or empty import folder when importing. A package straight from a first run is refused, because its manifest holds the input ZIP's full path; for transfer to an authorized recipient, the standard package ZIP is another route. It retains package contents, including absolute paths. Review those contents and recipient access before sharing. It does not make a multi-package private export or remove the path | [Share a private project](PROJECT_CATALOG.md#export-and-test-the-archive), [Save and move a result](FILES_STORAGE_AND_HANDOFF.md) |
 | Add a project registry to an archive | Check a project registry file and save its hashes before sharing, without running an analysis. | project root; the portfolio config file; the project registry JSON it names | [Add a project registry](PROJECT_CATALOG.md#include-a-portfolio-registry-optional) |
 | Check strain access and assay records | Check my access-tier file and assay record table. | privacy profile JSON; evidence registry TSV | [Set strain access and track assay records](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) |
+
+For the single-package handoff, verify the source ZIP hash against the manifest
+and use a fresh, independently checked destination. `handoff` replaces an existing
+destination and does not compare the input ZIP hash against the manifest.
 
 ## What each task returns
 

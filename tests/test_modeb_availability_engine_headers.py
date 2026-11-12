@@ -9,7 +9,7 @@ def test_engine_and_normalized_identity_headers(tmp_path,node_key,region_key):
     with path.open('w') as f:
         writer=csv.DictWriter(f,fieldnames=list(row));writer.writeheader();writer.writerow(row)
     item=load_inventory(path)[0]
-    assert item.full_node=='NODE_1_LENGTH_5000_COV_20.5'
+    assert item.full_node=='NODE_1_length_5000_cov_20.5'   # SPAdes spelling, as in the package (9.7.465)
     assert item.region=='region001'
 
 def test_missing_locator_remains_unresolved(tmp_path):

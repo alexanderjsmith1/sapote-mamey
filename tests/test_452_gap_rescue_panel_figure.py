@@ -53,6 +53,7 @@ def test_panel_redraw_writes_the_key_file(monkeypatch, tmp_path):
         {"core": "SYN-970 / core / region001 / BGC001", "reference": "BGC0000000.gbk", "reference_name": "synthetic"}))
     (folder / "gap_rescue.tsv").write_text("reference_gene\tstatus\n1\tPRESENT_IN_CORE\n")
     (folder / "gap_rescue_split_genes.tsv").write_text("reference_gene\tsplit_call\n")
+    (tmp_path / "BGC0000000.gbk").write_text("LOCUS synthetic\n")   # redraw resolves the run's reference first (9.7.465)
     seen = {}
 
     def fake_draw(*a, **kw):

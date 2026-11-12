@@ -19,7 +19,16 @@ import logging
 _LOG = logging.getLogger(__name__)
 import _phylo16s as _p16
 
-DB = _p16.refseq_16s_blastdb()
+def __getattr__(name):
+    # Located on first use, not at import; main() binds it from --blastdb.
+    if name == "DB":
+        return _p16.refseq_16s_blastdb()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value main() or a caller bound, else the located default."""
+    return globals()[name] if name in globals() else __getattr__(name)
 read_fasta = _p16.read_fasta
 
 
@@ -46,7 +55,7 @@ def extract(path, min_len, best, threads, evidence=None):
     wd = _p16.space_free_workdir("phylo16s_extract_")
     try:
         p = _p16.run_checked(
-            [_p16.blast_bin("blastn"), "-task", "blastn", "-db", _p16.stage_blastdb(DB, wd),
+            [_p16.blast_bin("blastn"), "-task", "blastn", "-db", _p16.stage_blastdb(_bound("DB"), wd),
              "-query", _p16.stage_file(path, wd, "query.fna"),
              "-outfmt", "6 qseqid qstart qend sstart send pident length sseqid",
              "-max_target_seqs", "5", "-evalue", "1e-50", "-num_threads", str(threads)],

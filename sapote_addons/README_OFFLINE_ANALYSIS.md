@@ -102,8 +102,7 @@ Keep an accepted earlier result and retry at a fresh destination after fixing th
 
 Invalid thread counts exit 2 before output creation. Missing input, no translated
 CDS or no backend exits 1; a completed comparison exits 0 even without ANI or with
-all no-hit rows. If DIAMOND fails, Biopython produces the rows; compare `backend`
-with `backend_selected`.
+all no-hit rows. A DIAMOND `RuntimeError` triggers a Biopython fallback; other exceptions can stop the command. If fallback returns rows, inspect their `backend` and compare it with `backend_selected`. An empty fallback does not establish an effective per-row backend.
 See [resource control](../docs/COMPARE_RESOURCE_CONTROL.md) for CPU/memory details.
 
 <a id="inputs"></a>

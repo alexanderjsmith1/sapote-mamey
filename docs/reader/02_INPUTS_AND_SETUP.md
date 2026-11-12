@@ -23,8 +23,14 @@ File names in that set often start with an accession, the database number for th
 genome.
 
 Choose your own short strain name for `--strain`, such as `ABC-12`. Do not use the
-accession. When the archive names an organism, `run` refuses an accession as the
-strain name and exits 2. To use the accession anyway, add `--allow-accession-strain-id`.
+accession.
+
+- If `run` can find an organism name, it refuses an accession as the strain name and exits
+  `2`. It looks in the GenBank header first, then in the ZIP file name, so renaming a ZIP can
+  change the result.
+- If it finds no organism name, it keeps the accession and prints a warning. Check the
+  label before you use it.
+- To keep an accession as the strain name on purpose, add `--allow-accession-strain-id`.
 
 ## Set up Python
 

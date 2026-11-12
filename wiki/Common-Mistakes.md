@@ -33,8 +33,8 @@ Replace it with the genus and species from the GenBank record, such as
 
 ## `ERROR: SOURCE_PLACEHOLDER: replace the <isolation source> template text...`
 
-You passed `--source '<isolation source>'` exactly as the template printed it.
-`run` stops before it writes anything and exits 1.
+You passed a nonempty `--source` value enclosed in angle brackets, such as the template's
+`'<isolation source>'`. `run` stops before it writes anything and exits 1.
 
 Pass the isolation source as the record deposits it, or leave `--source` out.
 `explain` then prints "not supplied". Do not paraphrase the text.
@@ -57,9 +57,13 @@ to `run` as described above. An organism name is not an isolation habitat.
 
 ## KCB, RiQ or JSON evidence is missing
 
-RiQ is the antiSMASH score for ribosomal peptide clusters. Read the channel
+RiQ is a region-comparison signal read from selected antiSMASH JSON. Retain its
+source and region binding; it is not an exclusive ribosomal-peptide score or
+measured novelty. Read the channel
 status and `issue_log.md`. `--json-evidence off` skips the main JSON walker, and
-`bounded` parsing can reach its size limits.
+`bounded` parsing can reach its size limits. A separate record pass attempts to read
+JSON for the KCB percent; check its status if evidence is missing or incomplete. [JSON evidence modes](../docs/reader/04_RECOVERY_AND_LIMITS.md#json-evidence-modes)
+gives the limits.
 
 KCB comparisons can come from the text files when there is no record JSON.
 RiQ scores come only from the record JSON. When the JSON is absent, `inspect`
@@ -102,7 +106,8 @@ python mamey_run.py run --help
 ## `REFUSED: [lock] another mamey run is writing ...`
 
 Another `run` holds the lock on `<outdir>/<strain>/.mamey.lock`. This run stops
-with status `PACKAGE_LOCKED`, writes nothing and exits 1. Wait for the other run
+with status `PACKAGE_LOCKED` and exits 1; an empty package directory may already
+have been created. Wait for the other run
 to finish, or use a different `--outdir`.
 
 The lock is advisory and covers `run` only. It is skipped on systems without
@@ -114,7 +119,9 @@ is still running on it.
 
 A terminal line that starts `  REFUSED:` is a check made before any work. A
 bracket names the reason: `[strain]` for an unsafe strain name, `[outdir]` for an
-output folder inside the bundle itself. Nothing was written, and the
+unsafe or unresolvable destination, or an existing package there. This includes the
+bundle root and engine-owned folders such as `mamey/` or `docs/`. Use a fresh
+authorized location and preserve earlier output; read the full reason. Nothing was written, and the
 exit code is `2`. Fix the value the line names and run again. The `[lock]` line
 above is different: it exits 1.
 
@@ -127,17 +134,18 @@ ps aux | grep mamey_run
 tail -n 5 runs/EXAMPLE/package/run_phase_receipts.jsonl
 ```
 
-A `START` line with nothing after it for that phase means the run stopped there
-or is still going. The other statuses mean different things. The
+A `START` with no later phase line can indicate active or interrupted work,
+an incomplete receipt or a failed later receipt write. Check other live evidence. The other statuses mean different things. The
 [recovery page](../docs/reader/04_RECOVERY_AND_LIMITS.md#find-what-failed) has the table.
 Keep the partial outputs.
 
 ## `validate` exits 0 but the workbook looks wrong
 
 `validate` reports the main result and the workbook check
-separately. Read the `WORKBOOK_CONTENT` line. Without `--workbook-strict`, a
-missing or invalid workbook still exits 0. Add `--workbook-strict` to make it
-fail.
+separately. Read the `WORKBOOK_CONTENT` line. Without `--workbook-strict`, the workbook-content result does not itself change
+the base validation exit; other failing package checks can still produce exit 1.
+Strict mode makes a failing, missing or ambiguous workbook block. A format-only
+BGC-ID authority warning still requires review.
 
 If the output shows `package_status_receipt_write: FAILED`, the saved status was
 not refreshed. Keep the terminal result.
@@ -165,7 +173,8 @@ failed run. Do not create one by hand.
 ## `validate` passes but `gold_completeness` says `JUDGMENT_PENDING`
 
 You see this value as `gold_completeness` in the `validate` output. It means
-extraction finished and the written interpretation does not exist yet. Choose a
+extraction finished and the gate has not counted qualifying cards for every region.
+Some cards may exist. Work saved outside the package is not checked. Choose a
 [Mode B profile](../docs/MODEB_PROFILE_MATRIX.md) and follow the
 [authoring guide](../docs/MODE_B_USER_WALKTHROUGH.md). [Reading your
 results](../docs/READING_YOUR_RESULTS.md) explains the other fields.

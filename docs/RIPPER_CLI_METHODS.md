@@ -5,7 +5,7 @@ For maintainers of the optional RiPPER adapter. Skip this page unless you run Ri
 RiPPER searches near selected enzymes for short ribosomal peptide (RiPP) precursor candidates. A candidate is a lead, not a product. This page shows the commands. The setup is in [RIPPER_NATIVE_DISCOVERY.md](RIPPER_NATIVE_DISCOVERY.md). The run lifecycle is in [RIPPER_OPERATIONAL_LIFECYCLE.md](RIPPER_OPERATIONAL_LIFECYCLE.md).
 
 Terms used here:
-- Terminal: the JSON file that records how a run ended. No terminal means the run did not complete.
+- Terminal: the JSON file that records how a run ended. If it is missing, the outcome is unverified; preserve the surviving files and investigate.
 - Raw discovery: `RAW_DISCOVERY.json`, the candidate rows the run kept. It has no annotation and no coordinates.
 - Control result: an extra receipt that older terminals need. New terminals do not.
 

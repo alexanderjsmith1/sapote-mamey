@@ -32,8 +32,9 @@ names one source CDS):
   magnitude stronger. The code compares -log10(E-value). The other E-value must
   be about 1e-20 times smaller than the weak hit's E-value.
 
-Missing, zero, non-finite and malformed E-values cannot be assessed, so they are
-skipped. Unrecognized or ambiguous TIGRFAM region locations are not used as
+The diagnostic assesses E-values greater than zero and at most 1. Missing,
+non-finite, malformed, zero, negative or greater-than-1 E-values are skipped by
+this screen; a skipped value is not a negative result. Unrecognized or ambiguous TIGRFAM region locations are not used as
 competing evidence.
 
 ## Fields

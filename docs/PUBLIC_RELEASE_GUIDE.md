@@ -2,7 +2,7 @@
 
 To install this CODE archive, follow [INSTALL](INSTALL.md). This page lists the assets you must supply yourself and how to prepare a workflow for offline use. To see which release you hold, see [RELEASE_MANIFEST](../RELEASE_MANIFEST.md).
 
-> **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
+> **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status. For a working tree changed since that archive, check its own identity and validation records; the inherited manifest does not validate the changed tree.
 
 ## 1. What this release is
 
@@ -32,7 +32,7 @@ Companion programs you run yourself, such as BiG-SCAPE or GToTree, may also fetc
 
 1. Before you go offline, install the Python packages and the programs your workflow needs, and download the reference data. Wheels must match your Python version, operating system and CPU type.
 2. Set the HMM location if you use the scanner. The scanner and `doctor` use the same search, in this order (`resolve_hmm_database`, `mamey/wheelhouse.py:55-128`):
-   1. the file named by `SM_HMM_DB`. It must be a regular file. If it names a folder, the search stops with no model (tier `none`); it does not fall through to another model;
+   1. the file named by `SM_HMM_DB`. It must be a regular file. If it names an existing folder or other non-file, the search stops with no model (tier `none`); if the path does not exist, the resolver continues to later locations. Check the reported path before attributing a model to the override;
    2. a folder named by `MAMEY_HMM_DIR`, but only if it holds `scanner_pfam_150.hmm` (preferred) or `scanner_pfam.hmm`. Otherwise the next place is tried;
    3. `$MAMEY_DATA_ROOT/hmm`, with the same two file names;
    4. folders inside the bundle or the add-on layout.

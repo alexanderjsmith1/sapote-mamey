@@ -46,7 +46,16 @@ from typing import Any
 
 # SSOT: raw-data module -> raw_analysis_excluded() = {AS-XXX, AS-XXX}. See OFFICIAL_DATA/EXCLUSIONS.md.
 from .exclusions import raw_analysis_excluded
-EXCLUDE_STRAINS = raw_analysis_excluded()
+def __getattr__(name):
+    # Excluded strains come from the workspace exclusions file. Read on first use, not at import: importing this module reads no workspace data.
+    if name == "EXCLUDE_STRAINS":
+        return raw_analysis_excluded()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value a caller bound, else the value read now."""
+    return globals()[name] if name in globals() else __getattr__(name)
 CLAIM_HEADER = (
     "# Assembly-line report (freeze-safe additive layer). Substrate/module calls are antiSMASH "
     "Stachelhaus/Minowa PREDICTIONS (similarity-level, lower bounds if edge-truncated); NOT a "
@@ -164,7 +173,7 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     # fallback, neither normalized. A differently-cased strain id silently bypassed this
     # whole-strain exclude gate and emitted assembly lines for a strain that
     # OFFICIAL_DATA/EXCLUSIONS.md policy says should produce none.
-    if strain.strip().upper() in {s.upper() for s in EXCLUDE_STRAINS}:
+    if strain.strip().upper() in {s.upper() for s in _bound("EXCLUDE_STRAINS")}:
         with open(os.path.join(outd, "EXCLUDED.txt"), "x", encoding="utf-8") as fh:
             fh.write(f"strain {strain} on the whole-strain exclude list — no assembly lines emitted\n")
         return {"status": "excluded_strain", "strain": strain, "bgcs": 0}

@@ -56,6 +56,7 @@ Install Biopython (it comes with `pip install '.[figures]'`). Create the parent 
 python tools/build_placement_ggtree_inputs.py \
   --graft "/absolute/source/placement.newick" \
   --host-table "/absolute/source/strain_metadata.tsv" \
+  --query-tips "/absolute/source/query_tips.txt" \
   --group "panel name" --neighbors 3 \
   --family-level --outgroup-substr "outgroup substring" \
   --out-prefix "/absolute/new_view/panel" \

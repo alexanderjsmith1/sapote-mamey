@@ -1,20 +1,28 @@
 # Your first run
 
-This is the one first-run recipe. Other pages link here rather than repeat it.
+This page takes one antiSMASH result ZIP through to a checked result. Other pages link here
+instead of repeating these steps.
 
-You need one antiSMASH result ZIP. antiSMASH is a separate program that finds
-biosynthetic gene clusters (BGCs) in a genome. Mamey reads its results and builds a
-package: a folder of tables, a workbook and an issue log for that strain.
+antiSMASH is a separate program that finds biosynthetic gene clusters (BGCs) in a genome.
+Mamey reads antiSMASH's result ZIP and builds a **package**: a folder of tables, a workbook
+and an issue log for one strain.
 
 - Setup not done yet? Start with [Inputs and setup](02_INPUTS_AND_SETUP.md).
-- No ZIP of your own? Download one from the [public antiSMASH datasets](../PUBLIC_DATASETS.md).
+- No ZIP of your own? Download one from the [public antiSMASH datasets](../PUBLIC_DATASETS.md),
+  or practice on the bundled example `examples/test_data/smoke_antismash_small.zip`.
 - Already have a `Complete_Package.zip`? Go to [Read one saved package](03_READ_RESULTS.md).
 
-Open a terminal in the program folder, the one that holds `mamey_run.py`, and activate the
-Python environment you installed into ([Install](../INSTALL.md#2-create-a-python-environment)).
-If `python` is not found, the environment is not active.
-In the commands below, replace `EXAMPLE` with your strain name and
-`~/Downloads/EXAMPLE.zip` with the path to your ZIP. Put a path with spaces in quotes.
+## Before you start
+
+1. Open a terminal in the program folder, the one that holds `mamey_run.py`.
+2. Activate the Python environment you installed into
+   ([Install, step 2](../INSTALL.md#2-create-a-python-environment)).
+   Check that `python --version` runs before you go on.
+3. In the commands below, replace `EXAMPLE` with your strain name and
+   `~/Downloads/EXAMPLE.zip` with the path to your ZIP. Put a path that has spaces in quotes.
+
+The commands break long lines with `\`. Windows PowerShell does not accept that. In
+PowerShell, put each command on one line, or end each line with a backtick (`` ` ``).
 
 ## 1. Check the install
 
@@ -22,14 +30,19 @@ In the commands below, replace `EXAMPLE` with your strain name and
 python mamey_run.py doctor
 ```
 
-The last line tells you whether to go on:
+Read the last line:
 
-| Last line starts with | Meaning |
+| Last line starts with | What to do |
 |---|---|
 | `DOCTOR: ALL CLEAR` | Go on. |
-| `DOCTOR: PASS with N warning(s) — optional items only` | Go on. The warnings name optional tools you can add later. |
+| `DOCTOR: PASS with N warning(s) — optional items only` | Go on. The warnings name optional tools and data you can add later. |
 | `DOCTOR: PASS with N warning(s) — missing core dependency` | Install the package it names, then run `doctor` again. |
 | `DOCTOR: N blocking issue(s)` | Stop. Fix the lines marked ❌. [Install](../INSTALL.md) covers each one. |
+
+`doctor` tests that it can write by creating `runs/_doctor_probe/` for a moment. If that
+folder already exists, it leaves it alone and reports a failed write check. Do not delete
+the folder to make the check pass. [Doctor scope](../INSTALL.md#doctor-scope-and-write-probe)
+explains what to do instead.
 
 ## 2. Look inside the ZIP
 
@@ -37,39 +50,61 @@ The last line tells you whether to go on:
 python mamey_run.py inspect ~/Downloads/EXAMPLE.zip
 ```
 
-`inspect` counts the region files Mamey will read, one BGC per file. It says whether
-the ZIP holds antiSMASH's JSON file and its KnownClusterBlast text files. Those are
-antiSMASH's comparisons with known clusters. It then prints a `run` command for this ZIP.
+`inspect` reads the ZIP without changing it. It reports:
 
-The printed `--strain` comes from the ZIP file name. `EXAMPLE.zip` gives `EXAMPLE`.
-Change it if you want another name, and use the same name in the paths below.
+- **GBK region files:** how many region files the ZIP holds. Mamey reads one BGC from each.
+- **JSON evidence:** whether antiSMASH's JSON file is in the ZIP.
+- **KCB TXT files:** how many KnownClusterBlast text files it holds. These are antiSMASH's
+  comparisons with known clusters. If the count is above zero, an `Other ClusterBlast TXT`
+  line counts the ClusterBlast and SubClusterBlast files.
+- **A `run` command** for this ZIP, then the `validate` command to use afterward.
 
-Some antiSMASH exports hold whole records instead of region files. Then `inspect`
-prints a `Whole records` line. A record is admitted only when it has exactly one region
-feature with its own region number, and it becomes one BGC with that number. Any other
-record is held, and the line lists the hold codes.
+The printed `--strain` is usually the ZIP file name: `EXAMPLE.zip` gives `EXAMPLE`. If
+`inspect` has to change it, for example because the name is longer than 64 characters,
+it prints a `Strain name:` line that says why. You can pick another name. Use the same
+name in every later command.
 
-If it says the ZIP does NOT look like an antiSMASH output, no region file or whole record
-could be admitted. With no hold codes, it is probably a genome download: run antiSMASH on
-it first. With hold codes, the records are antiSMASH output whose region identity is unclear:
-export the full antiSMASH results again, with the region files.
+Some antiSMASH exports hold whole records instead of region files. `inspect` then prints a
+`Whole records` line. A record is used only when it has exactly one region with its own
+number. Any other record is held, and the line gives the hold codes.
+
+If `inspect` says the ZIP does **not** look like antiSMASH output, it found no region files
+and no usable whole records. The ZIP may be a raw genome download or an incomplete archive.
+Check where it came from before you run antiSMASH again.
+
+`inspect` checks the file's shape. It does not show that the run will succeed, or that
+the ZIP covers the whole genome.
 
 ## 3. Run the command that `inspect` printed
 
-Copy the printed command, then edit two lines before you run it:
+The printed command has two lines for you to fill in:
 
-- `--taxonomy "<Genus species>"`: put the species from your record, for example
-  `--taxonomy "Streptomyces sp."`. If you have no record, delete the line. The run
-  then records "not verified".
-- `--source "<isolation source>"`: copy the isolation source exactly as it was
-  deposited, for example the GenBank `isolation_source`. If you have no record,
-  delete the line.
+```bash
+python mamey_run.py run \
+    --strain EXAMPLE \
+    --input-zip ~/Downloads/EXAMPLE.zip \
+    --taxonomy "<Genus species>" \
+    --source "<isolation source>" \
+    --mode gold \
+    --release PRIVATE \
+    --capped-session \
+    --json-evidence off \
+    --brief none
+```
 
-If you leave the text in angle brackets, `run` refuses with `TAXONOMY_PLACEHOLDER` or
-`SOURCE_PLACEHOLDER` and exits `1`. A bare `sp.` is refused the same way. Use a genus,
-for example `Streptomyces sp.`, or `not verified`.
+Edit those two lines:
 
-The printed command looks like this:
+- `--taxonomy`: the most specific name your records support, for example
+  `--taxonomy "Streptomyces sp."`. If you have no record, delete the line. The run then
+  records the taxonomy as not verified.
+- `--source`: the isolation source exactly as it was deposited, for example the GenBank
+  `isolation_source` field. If you have no record, delete the line.
+
+If you leave the angle-bracket text in place, `run` stops with `TAXONOMY_PLACEHOLDER` or
+`SOURCE_PLACEHOLDER`, writes nothing and exits with code 1. Any source written in angle
+brackets is refused. A bare `sp.` is refused as a taxonomy.
+
+With a taxonomy and no source record, the edited command is:
 
 ```bash
 python mamey_run.py run \
@@ -83,63 +118,99 @@ python mamey_run.py run \
     --brief none
 ```
 
-What the flags do:
-- `--mode gold`: the analysis mode. Use it; `standard` is deprecated.
-- `--release PRIVATE`: keeps the package private.
-- `--capped-session`: cuts the work so the run finishes in a short session. It
-  requires the workbook. It turns off the written brief (a PDF summary), the reading of
-  antiSMASH's JSON file, and the automatic gene maps. You can render maps and figures later from the finished package.
+What the other flags do:
 
-A run writes everything to `runs/EXAMPLE/`. A large genome can take a while.
+- `--mode gold`: the analysis mode. It is the only one; `standard` is deprecated.
+- `--release PRIVATE`: labels the run private. The label does not control who can read the
+  files; manage access to them yourself.
+- `--capped-session`: a lighter run for a session with a time limit. It cannot promise to
+  finish before the limit. It requires the workbook, turns off the brief and the main JSON
+  reader, and turns off automatic gene maps unless you set a map option yourself.
+  You can render maps and figures later from the finished package.
+
+Even with `--json-evidence off`, a separate step still tries to read the JSON for the
+KnownClusterBlast percent and TIGRFAM hits. If those values are missing, check that
+step's status in the package. [JSON evidence modes](04_RECOVERY_AND_LIMITS.md#json-evidence-modes)
+explains the settings.
+
+**Without the cap.** Delete the `--capped-session`, `--json-evidence off` and `--brief none`
+lines. The run then reads JSON evidence within a time budget, writes the standard brief and
+draws gene maps. It takes longer.
+
+A large genome can take a while. The run writes into `runs/EXAMPLE/`.
 
 ## 4. Check that the run worked
 
-When `run` finishes, it prints a results block and a `DELIVERABLES` list, then exits:
+When the run ends, it prints a `DELIVERABLES` block. The block names the sealed ZIP and
+its status.
+
+```text
+DELIVERABLES — hand these sealed package zip(s) to the user:
+  → runs/EXAMPLE/EXAMPLE_SapoteMamey_v<version>_engine<engine>_<setting>_Complete_Package.zip  (… KB, MAMEY_COMPLETE_WITH_ISSUES)
+```
+
+Check the exit code with `echo $?` straight after the command. In PowerShell, use
+`echo $LASTEXITCODE`.
 
 | Exit code | Meaning |
 |---|---|
-| `0` | Finished. The status is `MAMEY_COMPLETE`, or `MAMEY_COMPLETE_WITH_ISSUES` with warnings only. |
-| `1` | Not usable. Causes: a `[BLOCKING]` issue, a placeholder refusal (`TAXONOMY_PLACEHOLDER`, `SOURCE_PLACEHOLDER`), another run writing the same folder (`PACKAGE_LOCKED`), or a run that stopped with an error. The last `ERROR:` or `REFUSED:` line names it. Go to [Recovery](04_RECOVERY_AND_LIMITS.md). |
-| `2` | Refused before the run started, for a bad command line. Examples are an unsafe strain name, a strain name that is a database accession, or an output folder inside the program's code folders such as `mamey/` or `docs/`. A `REFUSED:` or `ERROR:` line says why. Fix the command and run it again. |
+| `0` | The run finished. Its status is `MAMEY_COMPLETE` or `MAMEY_COMPLETE_WITH_ISSUES`. Read the issue log either way. |
+| `1` | The run did not produce a usable result. The last `ERROR:` or `REFUSED:` line says why: a `[BLOCKING]` issue, a placeholder refusal, another run writing the same folder (`PACKAGE_LOCKED`), or a crash. Go to [Recovery](04_RECOVERY_AND_LIMITS.md). |
+| `2` | The command was refused before the run started. Examples: an unsafe strain name, a strain name that is a database accession, or an output folder inside the program's code folders such as `mamey/` or `docs/`. Fix the command and run it again. |
 
-To see the exit code, run `echo $?` straight after the command. On Windows
-PowerShell, use `echo $LASTEXITCODE`. The commands on this page break lines with `\`,
-which PowerShell does not accept. In PowerShell, put each command on one line, or end
-each line with a backtick (`` ` ``) instead.
+`MAMEY_COMPLETE_WITH_ISSUES` with exit code 0 does not mean every step worked. An optional
+step can record an error or skip an output and the run still exits 0. The issue log and
+`run_phase_receipts.jsonl` in the package show which steps had problems.
 
-Then validate the package:
+Then validate the package. `inspect` printed this command too:
 
 ```bash
 python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
 ```
 
-It prints a JSON result and then a `WORKBOOK_CONTENT` block. With exit code `0`, the
-package is complete. The `status` is then `MAMEY_COMPLETE` for a fresh run, or starts
-with `PASS`. `MAMEY_COMPLETE` means the extraction is done and no written cards exist yet.
-Exit code `1` with `FAIL` means a check failed. The result names the check.
-`--workbook-strict` also fails the check when the workbook is missing or invalid.
+It prints a JSON result, then a `WORKBOOK_CONTENT` block.
 
-A passing check means the package is complete. It does not mean any cluster makes a
-compound.
+- **Exit code 0:** the checks passed. The overall `status` is `MAMEY_COMPLETE` for a fresh
+  run, or `PASS` once written cards cover every region.
+- **Exit code 1 with `FAIL`:** a check failed, and the result names it. With
+  `--workbook-strict`, a missing or invalid workbook also fails.
+
+[Status values](04_RECOVERY_AND_LIMITS.md#status-values) lists every status.
+
+`validate` updates `package_status.json` inside the package. To keep the package exactly
+as the run wrote it, validate a copy.
+
+A pass means the software checks passed. It does not prove that every BGC was found or
+that any biological reading is right. Review the issue log, missing evidence and holds
+yourself.
 
 ## 5. Open the results
 
-Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html` in a browser. It shows the strain,
-taxonomy, source, run status and validation status. It also lists the issues and links:
-- the triage board (`EXAMPLE_4_triage_board.csv`), with every BGC ranked;
-- the workbook (`EXAMPLE_5_workbook.xlsx`);
-- the issue log (`issue_log.md`).
+Open `runs/EXAMPLE/package/OPEN_ME_FIRST.html` in a browser. It shows the strain, taxonomy,
+source, run status and validation status, lists the issues, and links to:
 
-[Read one saved package](03_READ_RESULTS.md) walks through them.
+- the triage board, `EXAMPLE_4_triage_board.csv`;
+- the workbook, `EXAMPLE_5_workbook.xlsx`;
+- the issue log, `issue_log.md`.
 
-The run also writes a sealed copy in `runs/EXAMPLE/`. Its name ends in
-`_Complete_Package.zip` and includes the program version and the antiSMASH detection
-setting, in the form `EXAMPLE_SapoteMamey_v<version>_engine<engine>_<setting>_Complete_Package.zip`.
-The `DELIVERABLES` list prints its full path. Keep and share this ZIP. Keep it with the original antiSMASH ZIP.
+If `OPEN_ME_FIRST.html` is missing, open `issue_log.md` first.
+[Read one saved package](03_READ_RESULTS.md) walks through every file.
+
+The triage board lists the BGCs the run scored. Before you rely on a count, compare it with
+the region count from `inspect` and with the holds in the issue log.
+
+## Keep the sealed ZIP
+
+The `*_Complete_Package.zip` in `runs/EXAMPLE/` is the result to keep and share. Keep it
+with the original antiSMASH ZIP, and keep both unchanged.
+
+The run also writes `runs/HANDBACK.json`, a pointer to the newest sealed ZIP. A later run
+with the same output folder replaces that pointer, so do not rely on it to find older
+results. Give each run its own output folder.
 
 ## If something fails
 
-Keep the output folder and the last error, and go to
+Keep the output folder and the last error message, and go to
 [Recovery and limits](04_RECOVERY_AND_LIMITS.md).
 
 ## What next

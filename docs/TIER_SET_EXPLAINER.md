@@ -1,6 +1,6 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.464 · build 20261108v97464a · engine Mamey 1.9.180**
+**Bundle v9.7.465 · build 20261110v97465a · engine Mamey 1.9.181**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.
@@ -23,7 +23,7 @@ The five tiers are a distribution framework: one source tree, cut five ways, eac
 | code | `...-CODE-...` | The full runnable pipeline: all engine code, tools, docs, examples, and the Wheelhouse (scanners, HMMs). Private cohort data and internal working notes removed. |
 | clean | `...-CODE-analysis-free-...` | The code tier with worked strain-by-strain outputs also removed — a tool-only distribution that ships the machinery but none of the analyses run through it. |
 | cohort | `...-COHORT-public-...` | The code tier plus the public reference cohort data banks. Private material still removed. This is the tier that keeps `cohort/` where `code` strips it. |
-| merged | `...-MERGED-PRIVATE-scaffold-...` | Everything, held back from nobody: the full internal working scaffold including any `private/` tree and real strain IDs. The Developer or User's copy. |
+| merged | `...-MERGED-PRIVATE-scaffold-...` | Private scaffold retaining internal content, including any `private/` tree and real strain IDs. Shared stage steps still alter the copy; it is not a complete backup. |
 | public | `...-PUBLIC-RELEASE-...` | The public GitHub artifact. Same content as the code tier, including the Pfam scanner HMM (CC0, freely redistributable). |
 
 **Renamed in v9.7.408 (owner ruling 2026-09-04):** the tier now called **cohort** was previously
@@ -76,7 +76,7 @@ The historical record attributes the small ZIP-size differences (6,345,805 to 6,
 - **Sharing the tool and being able to re-run the pipeline** → code.
 - **Handing over the public cohort data with the tool** → cohort.
 - **The public GitHub release** → public.
-- **Your own full working copy / archival** → merged.
+- **A private scaffold for separate review** → merged. Keep a separately verified working copy.
 
 Those intentions do not authorize current distribution or retired-tier re-enablement. Current
 release_cut defaults to CODE; all non-code tier branches and the old multi-tier driver are disabled

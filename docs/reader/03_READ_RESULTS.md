@@ -1,84 +1,127 @@
 # Read one saved package
 
-Use a `Complete_Package.zip` or its extracted folder to find the region list,
-read the workbook and check warnings. You need a browser and a spreadsheet reader.
-Python is only needed for the optional fresh check below.
+Use this page with a `Complete_Package.zip`, or the folder extracted from one. It shows how
+to see whether the run finished, find the region list and read the workbook. You need a
+browser and a spreadsheet reader. Python is needed only for the commands below.
 
 ## Open it
 
-Extract the ZIP into a review folder. Keep the original ZIP. Open `OPEN_ME_FIRST.html`
-in the folder that holds `manifest.json`. It links the triage board, the lead boards, the workbook, the issue log
-and the validation gate. The inventory CSV and `manifest.json` sit in the same folder. Keep the folder's
-files together so the links work.
+1. Extract the ZIP into a review folder. Keep the original ZIP unchanged.
+2. Keep the extracted files together, so the links between them work.
+3. Open `OPEN_ME_FIRST.html` in a browser. If it is not there, open `issue_log.md` instead.
 
-The examples use `EXAMPLE`. Use the label on your own files.
+[Reading your results](../READING_YOUR_RESULTS.md#open-these-in-order) lists the other
+files in reading order. The examples on this page use the strain name `EXAMPLE`; use the
+name on your own files.
 
 ## Check what finished
 
-Read `issue_log.md` before the rankings. A line containing `[BLOCKING]` means the run failed;
-see [Recovery and limits](04_RECOVERY_AND_LIMITS.md). Then open `package_status.json`:
+Read `issue_log.md` before you look at any ranking.
 
-- `terminal_status` is how the run ended. `MAMEY_COMPLETE_WITH_ISSUES` means extraction
-  finished with warnings to read in the issue log.
-- `validator_status` is the last validation result, for example `MAMEY_COMPLETE`.
+- A line starting `- [BLOCKING]` means the run hit a blocking problem. Go to
+  [Recovery and limits](04_RECOVERY_AND_LIMITS.md).
+- Other lines are warnings. Read them: an optional step can fail and the run still finish.
+  A failed optional phase is marked `ERROR` in `run_phase_receipts.jsonl` and may have written
+  no output. Check that each file you plan to use exists.
+- `- No blocking issues recorded.` is the summary line when there is nothing to report.
+
+Then open `package_status.json`. It holds three status fields:
+
+| Field | What it tells you |
+|---|---|
+| `terminal_status` | How the run ended. Read this one first. `MAMEY_COMPLETE_WITH_ISSUES` means it finished and recorded issues. |
+| `validator_status` | The result of the last `validate`, for example `MAMEY_COMPLETE`. |
+| `package_status` | The package's recovery state. A normal run shows `MAMEY_COMPLETE`, even when it recorded issues. A failed fresh validation shows `PARTIAL_FAILED`. |
+
+Recovery markers in the package can also change `package_status`.
+
+So a package can show `terminal_status: MAMEY_COMPLETE_WITH_ISSUES` and
+`package_status: MAMEY_COMPLETE` at the same time. That is normal.
+[Status values](04_RECOVERY_AND_LIMITS.md#status-values) lists every value.
 
 In `gate_validation.json`, `gold_completeness` reads `JUDGMENT_PENDING` until written
-cards exist. That is normal for a fresh run: interpretation still needs to be written.
+cards cover every region. That is normal for a fresh run.
 
-The entry page may have been written before a later check. If its counts or statuses
-differ from `issue_log.md` or the terminal result, trust those. For a fresh check, see
-below. [Reading your results](../READING_YOUR_RESULTS.md) explains the other statuses.
+The entry page is written during the run. If a later check changed a status, the issue
+log and the newest `validate` result are the ones to trust.
+
+## Ask the package what it holds
+
+From the program folder, with the bundle installed:
+
+```bash
+python mamey_run.py explain runs/EXAMPLE/package
+python mamey_run.py list-bgcs runs/EXAMPLE/package
+```
+
+- `explain` prints the package status, taxonomy, source, assembly tier, BGC counts, the top
+  leads and the first few issues. Its status line uses the terminal status in
+  `package_status.json`, then `manifest.json`. If neither has one, it uses the earlier
+  status in `manifest_short.json`. Read the issues it lists too.
+- `list-bgcs` prints each region's full identity, products, boundary, scores and lead tier,
+  in triage order. It hides rows for primary metabolism, mobile elements and standing-rule
+  exclusions. Add `--include-dropped` to show them.
 
 ## Follow a region
 
-1. Open `EXAMPLE_4_triage_board.csv`, the triage board. It ranks every region and
-   carries the node name, boundary and products.
+1. Open `EXAMPLE_4_triage_board.csv`, the triage board. It ranks the BGCs the run scored,
+   with node name, boundary and products.
 2. Match the row's `BGC_ID` to `BGC_ID` in `EXAMPLE_2_inventory.csv`, or to `BGC` on the
-   `BGC_Inventory` sheet of `EXAMPLE_5_workbook.xlsx`. That row gives the coordinates
-   and annotations. The workbook's own `Triage_Board` sheet is shorter than the CSV: it
-   has scores and lead tier but no node, boundary or products.
-3. Copy the region's four-part identity into your notes: strain, full node or contig
-   name, antiSMASH region, and BGC alias. The columns are listed in
-   [Row identity](../READING_YOUR_RESULTS.md#row-identity).
+   `BGC_Inventory` sheet of `EXAMPLE_5_workbook.xlsx`. That row gives coordinates and
+   annotations.
+3. Copy the region's four-part identity into your notes: strain, full node or contig name,
+   antiSMASH region and BGC alias. [Row identity](../READING_YOUR_RESULTS.md#row-identity)
+   names the columns.
 
-Scores help you decide what to inspect. They do not measure antimicrobial activity.
-A reference match shows similarity, not a compound. The reference columns also carry an
-evidence state, and "no hits" is not the same as "not read". Read
-[Reference-match columns](../READING_YOUR_RESULTS.md#reference-match-columns) before you
-trust a blank.
+Before you count BGCs from the board, compare its row count with the inventory and with the
+holds in the issue log. A region that could not be parsed or scored is not on the board.
+`--include-dropped` brings back filtered rows, not unparsed regions.
+
+The workbook's `Triage_Board` sheet is shorter than the CSV. It has the scores and lead
+tier, but not the node, boundary or products.
+
+Scores tell you what to look at first. They do not measure antimicrobial activity, and a
+reference match shows similarity, not a compound. A blank reference cell can mean "no hits"
+or "not read". [Reference-match columns](../READING_YOUR_RESULTS.md#reference-match-columns)
+shows how to tell them apart.
 
 ## Run a fresh check if needed
 
-Use an installed bundle and a writable review copy because validation can update
-`package_status.json`. From the program folder, replace the path with your review copy (an extracted package,
-wherever it is):
+`validate` writes to `package_status.json`, so run it on a review copy:
 
 ```bash
 python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
 ```
 
-`--workbook-strict` makes a missing workbook or a failed `WORKBOOK_CONTENT` check an
-error. That check needs at least one row with a real BGC ID (not blank, not `PENDING`)
-in the first 200 rows of each of four sheets: `BGC_Inventory`, `Triage_Board`,
-`WetLab_Decision_Matrix` and `Mode_B_Summary`. It does not check the evidence tables.
-Inspect the ones you plan to use.
+Replace the path with your review copy. It prints a JSON result, then a
+`WORKBOOK_CONTENT` block. Read both.
 
-Read both the main result and `WORKBOOK_CONTENT`. If
-`package_status_receipt_write` says `FAILED`, the saved status was not refreshed
-even when validation exits successfully; keep the terminal result. If either validation check fails, follow
+`--workbook-strict` fails the check if the workbook is missing or its content check fails.
+The content check reads four sheets: `BGC_Inventory`, `Triage_Board`,
+`WetLab_Decision_Matrix` and `Mode_B_Summary`. Each needs at least one real BGC ID. Every ID
+cell must be blank, `PENDING`, or an ID listed in `EXAMPLE_2_inventory.csv`.
+
+Two results need a closer look:
+
+- **`bgc_id_authority: FORMAT_ONLY`.** The check could not use the inventory, so it only
+  checked that IDs look like `BGC` plus three or more digits. It did not check that they
+  belong to this package.
+- **`package_status_receipt_write: FAILED`.** Validation ran, but the saved status was not
+  updated. Trust the printed result, not the file.
+
+An older workbook's `Triage_First_Board` sheet is accepted in place of `Triage_Board`; the
+result then shows `legacy_alias: true`. The check does not read the evidence tables, so
+open the ones you plan to use. If a check fails, go to
 [Recovery and limits](04_RECOVERY_AND_LIMITS.md).
 
 ## Save your notes
 
-Write down the package path, the selected row's full identity, what you found,
-and the question you want to investigate next. Keep the notes beside the result.
-
-A short note has five lines:
+Keep your notes beside the result, outside the package, so the package stays unchanged.
+Write down the package path, the selected row's full identity, what you found and the next
+question. A short note has five lines:
 
 - **Question:** what am I trying to decide?
 - **Identity and source:** which exact record and run am I reading?
 - **Observed:** what does the source show?
 - **Interpretation and alternative:** what else could explain it?
 - **Gap and next evidence:** what would tell the alternatives apart?
-
-Save the note outside the package, so the package stays unchanged.

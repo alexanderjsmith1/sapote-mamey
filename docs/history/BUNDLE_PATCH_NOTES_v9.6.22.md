@@ -2,7 +2,7 @@
 
 # BUNDLE PATCH NOTES — v9.6.22
 
-> **Do not follow the checklist below.** This is a record of one old patch. The tier propagation steps do not describe the current tree. Changes to the current tree go through [CUT_PROTOCOL](../../CUT_PROTOCOL.md); verified state is in [CHANGELOG](../../CHANGELOG.md).
+> **Do not follow the checklist below.** This is a record of one old patch. The tier propagation steps do not describe the current tree. Changes to the current tree go through [CUT_PROTOCOL](../../CUT_PROTOCOL.md); release history is recorded in [CHANGELOG](../../CHANGELOG.md); check the applicable release receipt and artifacts to verify a particular build.
 
 **Engine 1.9.13 · bundle v9.6.22.** Builds on v9.6.21 (validator realign, CAS-safe redaction,
 `--master` guard). This cut adds the contig-rescue reconstruction line and the reporting-fidelity

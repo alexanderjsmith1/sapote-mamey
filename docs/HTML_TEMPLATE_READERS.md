@@ -102,7 +102,7 @@ Builders refuse an existing folder unless the table says they can resume it.
 
 | Builder | Existing output |
 |---|---|
-| Deliverable menu | Directly overwrites `--out` and creates parent folders; no paired completion receipt is written. The default path is relative to the current folder; `--root` picks the bundle to read, not the output folder. |
+| Deliverable menu | Refuses an existing `--out` unless `--replace` is supplied; creates parent folders and writes no paired completion receipt. The default path is relative to the current folder; `--root` picks the bundle to read, not the output folder. |
 | Related view | Resumes only with an identical `RESUME_BINDING.json`. If `SELF_AUDIT.json` exists, use a new output folder. Cached partitions also need matching checksum files. |
 | Strain portfolio | Existing files must be byte-identical; otherwise use a new folder. Source files inside the output folder are refused. |
 | Domain explorer | A non-empty folder must have a matching `SOURCE_MANIFEST.json` and data/HTML hashes; then it returns the saved data without rebuilding. With `--template`, exactly one `__DATA__` placeholder is required; otherwise the build stops with a hold. |

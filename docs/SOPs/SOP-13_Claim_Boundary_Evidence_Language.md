@@ -4,7 +4,7 @@
 
 This SOP defines safe language for Sapote/Mamey reports.
 
-Sapote/Mamey prioritizes BGCs and supports hypotheses. It does not identify compounds from sequence alone unless there is orthogonal evidence.
+Sapote/Mamey prioritizes BGCs and supports hypotheses. Sequence alone does not establish a compound identity. Orthogonal analytical evidence must be assessed separately and bound to its sample; assigning that compound to a BGC requires appropriate linkage evidence.
 
 ## Evidence levels
 
@@ -13,7 +13,7 @@ Sapote/Mamey prioritizes BGCs and supports hypotheses. It does not identify comp
 | antiSMASH class | BGC class hypothesis | exact compound identity |
 | KnownClusterBlast | similarity to known BGC | purified product claim |
 | BLASTP hit | sequence homology / qualified function hypothesis | demonstrated function or product identity |
-| RG-GMCI | candidate split/linkage from shared reference geometry | physical contig linkage or chemical detection |
+| RG-GMCI (reference-guided candidate inference; see the [glossary](../GLOSSARY.md#7-rg-gmci-and-the-rescue-layer)) | candidate split/linkage from shared reference geometry | physical contig linkage or chemical detection |
 | resistance/transporters | ecological or self-protection context | activity claim |
 | literature | plausibility / precedent | activity in this strain |
 | LC-MS/MS | metabolite evidence | gene function unless linked |
@@ -28,7 +28,7 @@ Use:
 - "contains homologs of..."
 - "is a priority for follow-up"
 - "candidate antimicrobial lead"
-- "claim-safe evidence suggests..."
+- "the evidence suggests..."
 
 ## Prohibited language without orthogonal evidence
 
@@ -45,8 +45,8 @@ Avoid:
 
 BLASTP may support:
 
-- gene function,
-- protein family,
+- a qualified gene-function hypothesis,
+- a protein-family hypothesis supported by the alignment and reference coverage,
 - conserved pathway components,
 - related-genome selection,
 - BGC class confidence.
@@ -72,4 +72,4 @@ Cite every BGC as strain / full node-or-contig / region / alias, copied from one
 
 For RG-GMCI, the implementation's claim ceiling is candidate linkage, not proof of physical linkage or product identity. For BLASTp, missing rows in an observed-hit summary are not tested negatives. Qualify conclusions by admitted input/result scope; unsubmitted, unbound, skipped and completed no-hit states cannot be interchanged.
 
-A mechanical deliverable-suite pass checks reported manifest text and count fields. It checks that artifact files exist only when you pass `--artifact-root`, and it never checks citations or biological conclusions. A `PASS` validator result likewise has scoped gates and may retain unevaluated provenance. Final scientific/adoption authority remains with the project owner. See [the deliverable contract](../DELIVERABLE_CONTRACT.md) and [the shared claim guards](../../prompts/reuse/_SHARED_GUARD_BLOCK.md).
+A mechanical deliverable-suite pass checks reported manifest text and count fields. With `--artifact-root`, `tools/check_deliverable_suite.py` also checks that each COMPLETE artifact path is a regular file inside that root. It does not check file contents, hashes, citations or biological conclusions. A `PASS` validator result likewise has scoped gates and may retain unevaluated provenance. Final scientific/adoption authority remains with the project owner. See [the deliverable contract](../DELIVERABLE_CONTRACT.md) and [the shared claim guards](../../prompts/reuse/_SHARED_GUARD_BLOCK.md).

@@ -35,8 +35,7 @@ figure's generated methods and denominator record, not optional prose.
 Success looks like this: the second command prints a list of the files it wrote, each with a size
 and a SHA-256. The `figure` folder holds four images (single-column and double-column, each as SVG
 and PNG), the plotted data as TSV and CSV, the exclusions table, the caption and methods files, the
-owner-notes file and `figure_factory_next_receipt.json`. If the command stops with an error, no
-figure is drawn. The error names the input or check that failed.
+owner-notes file and `figure_factory_next_receipt.json`. If the command stops with an error, do not treat the attempt as a completed figure. The builder stages outputs and tries to clean up after an ordinary failure; an interruption or cleanup failure can leave partial staging files. Inspect the actual output and staging paths before retrying.
 
 In the demonstration, blue bars are the synthetic study groups. Other
 colors identify separately selected sensitivity examples. An open diamond marks
@@ -139,7 +138,7 @@ The receipt status is `PASS_PORTABLE_POLICY_RENDERER_CANDIDATE`. The figure is a
 
 Automatic discovery uses the first config that exists, in this order: `MAMEY_FIGURE_FACTORY_CONFIG`, the source folder, then the target folder. If the environment path does not exist, the search moves on to the next candidate.
 
-If the automatic build fails after the folder is deleted (see **Where this fits**), it returns `SKIPPED_<exception-type>`.
+If the automatic build fails before promotion, it returns `SKIPPED_<exception-type>` and leaves the previous set in place. Promotion and cleanup can also fail or be interrupted; inspect the target and sibling staging or previous folders before retrying.
 
 `SKIPPED_NO_CONFIG` means the feature did not run. A successful surrounding run or a figure count does not prove this channel finished.
 

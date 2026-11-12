@@ -706,7 +706,7 @@ Plus the wider audit lane wave-1 hygiene surface (atomic writes, case-sensitivit
 swallow fixes) — defect repairs whose intended outputs are unchanged; the three surfaces above are
 the bump drivers. See the v9.7.371 CHANGELOG entry and the `.371` queue's per-card receipts.
 
-Historical: "cosmetic, no re-generation required" in the next paragraph applies to the evidence saved in an old card, which does not need regenerating. It does not apply to the command text. The literal `--bgc BGC` in an old §4 command does not run: `_scope_feats` finds no crosswalk entry named `BGC`, and `blastp-online` prints `REFUSING` and exits 1 (`mamey/blastp_online.py:1043-1065,1176-1184`). Do not copy a §4 command from a card made before 1.9.124. Use the full strain / node / region / alias identity and the §4 command that the current template emits.
+Historical: "cosmetic, no re-generation required" in the next paragraph applies to the evidence saved in an old card, which does not need regenerating. It does not apply to the command text. The literal `--bgc BGC` in an old §4 command is a placeholder, not a verified locus identity. Scoping depends on the supplied crosswalk and region; an unresolved locator is refused (`mamey/blastp_online.py:1043-1065,1176-1184`). Do not copy a §4 command from a card made before 1.9.124. Use the full strain / node / region / alias identity and the §4 command that the current template emits.
 
 **Comparability:** extraction/triage outputs need no re-derivation. Mode-B cards generated before
 1.9.124 carry the literal `--bgc BGC` in §4 — cosmetic, no re-generation required; the identity of

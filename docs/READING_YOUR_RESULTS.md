@@ -7,18 +7,24 @@ steps, use [Read one saved package](reader/03_READ_RESULTS.md).
 
 ## Open these in order
 
-Every package has an entry page, `OPEN_ME_FIRST.html`. It links the triage board, the
-lead boards, the workbook, the issue log and the validation gate. The inventory CSV and
+If `OPEN_ME_FIRST.html` was written, use it as an entry point; otherwise inspect
+the issue log and available manifest and tables. The entry page links the triage
+board, lead boards, workbook, issue log and validation gate. The inventory CSV and
 `manifest.json` sit in the same folder. Replace
 `EXAMPLE` with your run label.
 
 1. `issue_log.md`. Read it before any ranking.
-2. `EXAMPLE_4_triage_board.csv`, the triage board: every region, ranked. It carries the
+2. `EXAMPLE_4_triage_board.csv`, the triage board: records produced for regions successfully admitted and scored.
+   Compare the source roster and recorded holds before claiming complete coverage. It carries the
    node name, boundary, products and reference columns.
 3. `EXAMPLE_2_inventory.csv`, the inventory: coordinates, annotations and reference
    columns for each region.
-4. `EXAMPLE_5_workbook.xlsx`, the workbook. Its `BGC_Inventory` sheet matches the
-   inventory CSV. Its `Triage_Board` sheet is shorter than the CSV. It has only
+4. `EXAMPLE_5_workbook.xlsx`, the workbook. Its `BGC_Inventory` sheet shows
+   core fields from the run and appends other CSV columns by BGC ID when the inventory
+   is available. Some core headers differ, such as `BGC` for `BGC_ID` and `Edge` for
+   `Boundary`. Its `release` is a conservative package-level policy field; compare it
+   with the CSV's row-level `Release` rather than assuming the values are identical.
+   Check the CSV directly for authoritative per-row details. Join on `BGC` = `BGC_ID`. Its `Triage_Board` sheet is shorter than the CSV. It has only
    `BGC_ID`, `Assembly_Locator`, the AB, AF and novelty scores, `Lead_tier`,
    `Standing_rule`, `Corrected_rank`, `Claim_confidence` and `Rationale`. Use the CSV
    for node, boundary and products.
@@ -37,7 +43,7 @@ Written cards and their review records show whether interpretation is complete.
 These states can differ in one package.
 
 `MAMEY_COMPLETE_WITH_ISSUES` directs you to the issue log. `JUDGMENT_PENDING` means
-the saved interpretation state is pending. Look for separately authored work
+the gate has not counted written cards for every region. Some cards may exist. Look for separately authored work
 before assuming that state describes everything done since the run.
 
 `MAIN_JSON_PARSE_HELD` means the main walker encountered errors or skipped
@@ -78,25 +84,27 @@ antiSMASH's comparison against characterized clusters in the MIBiG database.
 |---|---|
 | `KNOWNCLUSTERBLAST_OBSERVED` | A KnownClusterBlast file had hits. The reference columns are filled from it. |
 | `KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED` | The KnownClusterBlast file was present and had no hits. The reference columns stay empty. This is not a validated negative. It does not show that no similar cluster exists. |
-| `CLUSTERBLAST_FALLBACK_OBSERVED` | No KnownClusterBlast file was usable, so ClusterBlast results were read. These are hits against genomes, not curated MIBiG clusters. Check them by hand. |
-| `UNKNOWN_KCB` | Nothing was read. This is missing evidence, not a low similarity. |
+| `CLUSTERBLAST_FALLBACK_OBSERVED` | No qualifying KnownClusterBlast record was assigned; accepted ClusterBlast or SubClusterBlast records supplied fallback evidence. These are not curated MIBiG comparisons. Check the named source by hand. |
+| `UNKNOWN_KCB` | No qualifying region-level record was assigned. The source may be missing, unreadable, unsupported or unbound; inspect file and parse states. This is missing evidence, not a low similarity. |
 
 `KCB_similarity_pct` is a column of the triage board CSV. It is antiSMASH's own
 similarity percent for the top KnownClusterBlast hit. It is blank when no percent was
 read. A blank is not zero. The percent comes from the antiSMASH JSON in the ZIP, and
-`run` reads it in every evidence mode, including the capped first run. It is blank when the
-ZIP has no antiSMASH JSON, or when the JSON's top hit and the KnownClusterBlast TXT top hit
-name different MIBiG clusters. The package turns the percent into a band: high at 70 or
+a separate record pass may obtain it even when the main walker is off. Check the
+pass and `kcb_similarity_state` in `EXAMPLE_records.json`: a missing handler, absent result, invalid or
+conflicting source, missing TXT cross-check or different rank-1 comparators can
+leave it blank. The package turns the percent into a band: high at 70 or
 above, moderate at 40 or above, low above 0, and `none` for exactly 0. A blank, or a
-value outside 0 to 100, gives `unresolved`. The band appears in `verdicts.json` and in
+value outside 0 to 100, gives `unresolved`. The band appears in `EXAMPLE_verdicts.json` and in
 the analysis-forward worklist. The bands are coarse on purpose. A high band is similarity, not compound identity.
 `KCB_score` is a different number, the cumulative BLAST score, and it is not a percent.
 
 ### Why a region may be missing from the lead list
 
 Three triage-board columns can withhold a region from the lead list:
-- `Standing_rule`: a fixed rule always downgrades this kind of region. The rules are in
-  `mamey/data/rules_registry.json`.
+- `Standing_rule`: a populated flag is used by the lead exclusion filter. Inspect its
+  actual reason and source in `mamey/data/rules_registry.json`. A registry entry can
+  be nonblocking; the scorer also has a separate own-product fallback.
 - `Primary_metab_flag`: the region looks like primary (housekeeping) metabolism.
 - `Mobile_element_flag`: the region looks like a mobile genetic element.
 

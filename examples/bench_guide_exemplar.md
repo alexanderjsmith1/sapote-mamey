@@ -1,6 +1,6 @@
 # Compound detection and isolation bench guide — current format exemplar
 
-This is a structure template for a guide you write by hand. No command emits or checks this format. A `run --token-budget citation-compact` writes a different, shorter bench guide (`citation_compact/<strain>_bench_guide_citation_compact.md`); see [Read a citation-compact report](../docs/CITATION_COMPACT_READERS.md). This template contains no study result and no preselected culture, extraction,
+This is a structure template for a guide you write and review by hand; check any generated report against the requested format and its evidence. A `run --token-budget citation-compact` writes a different, shorter bench guide (`citation_compact/<strain>_bench_guide_citation_compact.md`); see [Read a citation-compact report](../docs/CITATION_COMPACT_READERS.md). This template contains no study result and no preselected culture, extraction,
 chromatography, or assay condition. Build a guide from a validated package plus admitted chemical,
 bioassay, literature, and phylogenetic evidence. Record missing evidence instead of completing a
 field from a class stereotype.

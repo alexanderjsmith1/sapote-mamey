@@ -3,212 +3,45 @@
 Find task-based recipes with inputs, outputs and failure states.  
 This page is for researchers running the bundle.
 
-*Current to bundle v9.7.464 · engine Mamey 1.9.180.*
+*Current to bundle v9.7.465 · engine Mamey 1.9.181.*
 
 Each recipe gives inputs, the command, outputs, the states you should see, and the usual failure. None of these results establishes compound identity, production, activity, novelty or publication readiness; that is stated once here and not repeated.
 
 
-Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document. `inspect` classifies ZIP member names: a region-GBK count or recognized shape is a preview, not parsed GenBank content, extraction success or scientific input admission. Retain actual run/validation outcomes separately.
+Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document.
 
 Before any `doctor` command in these recipes, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe). If the probe folder is occupied, leave it intact and use an authorized working installation or resolve it with its owner.
 
-## Recipe 1 — first successful run
+## Recipes 1–4 — first run, metadata, small batch and validation
 
-### Inputs
+These recipes now live on one page each, so the steps are written once:
 
-- A Python environment satisfying the bundle requirement, Python 3.12 or later.
-- One raw antiSMASH output ZIP: `inputs/reference-isolate-001_antismash.zip`.
-- A stable public-safe strain label and explicit taxonomy, source, and source-provenance values.
-- A writable output root such as `runs/`.
+<a id="recipe-1--first-successful-run"></a>
+<a id="recipe-2--one-strain-run-with-deliberate-metadata"></a>
+<a id="recipe-4--validate-a-package"></a>
+<a id="recipe-3--small-batch-of-up-to-about-three-strains"></a>
 
-### Command
-
-```bash
-python mamey_run.py doctor
-python mamey_run.py inspect inputs/reference-isolate-001_antismash.zip
-python mamey_run.py run \
-  --strain reference-isolate-001 \
-  --display-name "Reference isolate 001" \
-  --input-zip inputs/reference-isolate-001_antismash.zip \
-  --taxonomy "Genus species" \
-  --source "deposited sample metadata" \
-  --source-provenance table \
-  --mode gold \
-  --json-evidence bounded \
-  --outdir runs
-python mamey_run.py validate runs/reference-isolate-001/package
-python mamey_run.py explain runs/reference-isolate-001/package
-```
-
-Omit `--release` unless a governed privacy profile or a deliberately more restrictive setting requires it. Do not add `doctor --probe-transports` to an offline first run; that option is explicitly networked.
-
-### Outputs
-
-- `runs/reference-isolate-001/package/` with `manifest.json`, `checksums_sha256.txt`, `gate_validation.json`, numbered outputs, and package receipts.
-- A sealed `*_Complete_Package.zip` under the strain run directory.
-- `runs/HANDBACK.json`, which points to the sealed deliverable.
-- Plain-language output from `explain`; it does not rewrite the extraction.
-
-### Expected typed states
-
-- `doctor`: `DOCTOR: ALL CLEAR` or `DOCTOR: PASS with ... warning(s)`; any blocking issue must be fixed before the run.
-- `inspect`: exit 0, at least one antiSMASH region GBK, and a recognized raw antiSMASH input shape.
-- `run`: terminal `MAMEY_COMPLETE` or `MAMEY_COMPLETE_WITH_ISSUES`; `VALIDATION_FAIL` is a stop.
-- `validate`: `MAMEY_COMPLETE` when deterministic extraction is complete and judgment remains pending, or `PASS` after the applicable completeness conditions pass. Check `checksum_integrity` separately.
-- `package_status`: normally `MAMEY_COMPLETE`; recovery states remain distinct.
-
-### Common failure
-
-`inspect` reports that the ZIP contains no region GBKs. This usually means the input is a raw assembly or another ZIP type, not an antiSMASH result. Do not force the run; produce a valid antiSMASH output ZIP first.
-
-## Recipe 2 — one-strain run with deliberate metadata
-
-### Inputs
-
-- One ZIP whose filename-level shape was previewed with `inspect`; parseability and source identity still need their own evidence.
-- A stable strain label that is not merely a convenience filename.
-- Taxonomy, source, and provenance values whose evidence strength is known.
-- Optional typed bioactivity JSON or privacy profile only when those governed inputs actually exist.
-
-### Command
-
-```bash
-python mamey_run.py run \
-  --strain reference-isolate-002 \
-  --display-name "Genus species reference-isolate-002" \
-  --input-zip inputs/reference-isolate-002_antismash.zip \
-  --taxonomy "Genus species" \
-  --source "culture collection record" \
-  --source-provenance accession \
-  --mode gold \
-  --json-evidence bounded \
-  --outdir project_runs
-python mamey_run.py validate project_runs/reference-isolate-002/package
-```
-
-Use `--json-evidence off` when JSON processing must be deliberately disabled. Use `full` only after checking the size refusal documented by command help. The choice changes evidence availability, not biology.
-
-### Outputs
-
-- One per-strain package directory.
-- One sealed per-strain package ZIP.
-- A manifest recording the run mode, metadata, evidence mode, version, and package inventory.
-- Optional nonblocking enrichments and issue records when their dependencies are available.
-
-### Expected typed states
-
-- `MAMEY_COMPLETE`: extraction and package gates completed for the recorded input.
-- `MAMEY_COMPLETE_WITH_ISSUES`: the package completed, but `issue_count` and `issues` require review.
-- `VALIDATION_FAIL` or `MAMEY_FAILED`: do not begin post-seal interpretation.
-- `JUDGMENT_PENDING` inside the gold-completeness dimension is expected for a fresh extraction package.
-
-### Common failure
-
-Supplying a database accession as the strain identity without deliberately enabling the accession-label compatibility option can be refused or upgraded from archive metadata. Treat accession, organism name, and local strain identity as different fields; do not silently collapse them.
-
-**Limit:** Strain-level context cannot be localized to a locus without separate evidence.
-
-## Recipe 3 — small batch of up to about three strains
-
-### Inputs
-
-- Two or three antiSMASH ZIPs, each already checked with `inspect`.
-- Pipe-separated taxonomy and source lists aligned to the ZIP order.
-- One provenance value for the whole batch: `accession`, `table`, `filename` or `asserted`.
-- A shared output directory.
-- An optional master workbook path for cross-strain accumulation.
-
-### Command
-
-```bash
-python mamey_run.py run \
-  --strains \
-    inputs/reference-isolate-001_antismash.zip \
-    inputs/reference-isolate-002_antismash.zip \
-  --taxonomy "Genus species|Genus species" \
-  --source "collection record A|collection record B" \
-  --source-provenance table \
-  --mode gold \
-  --json-evidence bounded \
-  --outdir runs \
-  --master project_master.xlsx
-```
-
-The batch path resolves strain identifiers from archive content or filenames and suffixes collisions rather than overwriting an earlier result. Confirm the resolved identities printed by the command.
-
-### Outputs
-
-- One `runs/<resolved-strain>/package/` directory and sealed package ZIP per input.
-- `runs/HANDBACK.json` listing the primary sealed deliverables.
-- `project_master.xlsx` when workbook creation succeeds.
-- Best-effort cross-strain figure outputs for multi-strain runs; these never replace per-strain package validation.
-
-### Expected typed states
-
-- A result object per strain, each with its own terminal status.
-- Batch exit 0 only when every result is a recognized terminal success.
-- Optional cross-strain figure steps may report `SKIPPED` without invalidating already sealed per-strain packages.
-- Workbook failures become issues and may be blocking only when `--require-workbook` is used.
-
-### Common failure
-
-`--source-provenance "table|asserted"` is rejected. Use one truthful shared value, or split inputs with different provenance states into separate runs. A shorter taxonomy or source list falls back to `not verified` or `not supplied`; fix the alignment and use a new governed output root if the recorded metadata is unacceptable.
-
-## Recipe 4 — validate a package
-
-### Inputs
-
-- An unpacked package directory, not the sealed ZIP itself.
-- The bundle version intended to validate that package.
-- Permission to update mutable status receipts inside the package.
-
-### Command
-
-```bash
-python mamey_run.py validate runs/reference-isolate-001/package
-```
-
-For a workbook-content gate that changes the exit code on workbook failure:
-
-```bash
-python mamey_run.py validate \
-  --workbook-strict \
-  runs/reference-isolate-001/package
-```
-
-### Outputs
-
-- JSON on standard output containing file-presence, checksum, RG-GMCI, reporting, exclusion, depth, and package-status results.
-- A `WORKBOOK_CONTENT` result on standard output.
-- An updated mutable `package_status.json` receipt.
-
-### Expected typed states
-
-- Validator `MAMEY_COMPLETE` or `PASS`: command exits 0.
-- Validator `FAIL`: command exits nonzero.
-- Package recovery status: `MAMEY_COMPLETE`, `RECOVERY_VALIDATED`, `RECOVERY_NEEDED`, or `PARTIAL_FAILED`.
-- Workbook state: `PASS`, `SKIP`, or a non-pass state; it blocks only under `--workbook-strict`.
-
-Read validator status and recovery status together. `RECOVERY_VALIDATED` means the recovered object passed its applicable checks; it does not rewrite history as an uninterrupted run.
-
-### Common failure
-
-Pointing `validate` at the sealed ZIP or at the parent run directory instead of the unpacked `package/` directory produces missing-file failures. Resolve the exact package directory before diagnosing content.
-
-**Limit:** Validation covers only the implemented package gates for the exact files checked.
+- **First run, with deliberate taxonomy and source:** [Your first run](../docs/reader/01_FIRST_RUN.md) covers `doctor`, `inspect`, `run` and `validate`, and how to fill `--taxonomy` and `--source`. [Inputs and setup](../docs/reader/02_INPUTS_AND_SETUP.md) covers what the placeholders refuse.
+- **Validate or review a package:** [Read one saved package](../docs/reader/03_READ_RESULTS.md); [Recovery and limits](../docs/reader/04_RECOVERY_AND_LIMITS.md#status-values) lists the status values.
+- **A folder of ZIPs:** the [batch guide](../docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md). Run one ZIP with the first-run page first.
 
 ## Recipe 5 — post-seal Mode B start
 
 ### Inputs
 
 - A package that currently validates.
-- A normalized CSV or TSV inventory with `strain`, `bgc`, `full_node` or `node`, and `region` columns. Every row must form `strain / full node-or-contig / region / BGC alias`.
-- One or more configured evidence roots and, when available, a curated evidence-index TSV with explicit freshness states.
+- For the optional availability route: a normalized CSV or TSV inventory with
+  `strain`, `bgc`, `full_node` or `node`, and `region` columns forming the complete
+  four-part identity. Native `mode-b` does not require that separate inventory.
+- For that optional route, select evidence roots/indexes when available. Both
+  options default to empty lists; neither is a universal parser requirement.
 - An additive output directory outside score-bearing extraction files.
 
 The package's numbered inventory is not automatically a valid `modeb-availability` input because its shipped header shape lacks the required normalized strain and lowercase identity fields. Build or use an explicit normalized crosswalk; do not guess missing fields.
 
-### Command
+### Commands
+
+Optional evidence inventory (the normalized inventory belongs to this route):
 
 ```bash
 python mamey_run.py modeb-availability \
@@ -216,6 +49,11 @@ python mamey_run.py modeb-availability \
   --source-root package=runs/reference-isolate-001/package \
   --evidence-index project/curated_evidence.tsv \
   --out project/modeb_availability
+```
+
+Native top-lead material, independently of that optional inventory:
+
+```bash
 python mamey_run.py mode-b \
   --package runs/reference-isolate-001/package \
   --top-n 10 \
@@ -238,7 +76,8 @@ Omit `--evidence-index` when no curated index exists; absence then remains `UNVE
 - Section plan: `EVIDENCE_AVAILABLE_REQUIRES_INTERPRETATION`, `CONTEXT_ONLY_DO_NOT_LOCALIZE`, or `WRITE_EXPLICIT_GAP_OR_HOLD`.
 - Native coverage: `FULL_NATIVE_MODEB_COVERAGE`, `PARTIAL_NATIVE_MODEB_COVERAGE`, `PARTIAL_TOPN_MODEB_COVERAGE`, `TOPN_NATIVE_MODEB_COVERAGE`, or `INVENTORY_UNKNOWN_MODEB_COVERAGE`.
 
-Treat native `mode-b` output as generated top-lead material, not as an automatically finished current 48-section card. Current full Mode B still requires the current contract, exact identity, evidence-channel separation, authoring, and verification.
+Treat native `mode-b` output as generated top-lead material, not as an automatically finished current 48-section card. A finished card requires the selected current named profile, exact identity,
+evidence-channel separation, authoring and verification.
 
 ### Common failure
 
@@ -262,7 +101,7 @@ Using `modeb-availability --package ...` fails because that option does not exis
 
 ```bash
 python mamey_run.py doctor
-python tools/figure_factory_next.py --config project/figure_factory_next.json
+python mamey_run.py figure-factory --config project/figure_factory_next.json
 ```
 
 Check hashes, locator containment, metric schema, duplicate rows, finite integer counts and valid
@@ -282,8 +121,8 @@ owner-notes JSON, and `figure_factory_next_receipt.json` together. The current s
 
 A refused configuration exits nonzero. Read the exception, correct the bound schema/input/policy,
 and select a fresh output path before retrying. Do not assume a typed aggregate refusal receipt
-exists. The same tool routes supported `figure_kind` values to a separate phylogeny renderer;
-that path has different inputs and catches `PhylogenyFigureHold` with exit 2.
+exists. The same command routes phylogeny, bioassay and bioassay-plan `figure_kind` values to their own renderers;
+those renderers have different inputs, and the phylogeny path catches `PhylogenyFigureHold` with exit 2.
 
 Successful standalone rendering does not establish downstream PDF embedding QA, scientific
 correctness, biological absence, compound identity, production, activity, acceptance or release.

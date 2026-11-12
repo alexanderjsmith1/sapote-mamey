@@ -61,3 +61,31 @@ def display(value: Any, missing: str = "", fmt: str | None = None) -> str:
         number = optional_float(value)
         return missing if number is None else format(number, fmt)
     return str(value).strip()
+
+
+# KnownClusterBlast evidence states (mamey/antismash_evidence.py) that say the search ran and reported
+# no hit. A blank KCB top hit under any other state, UNKNOWN_KCB included, is missing evidence.
+KCB_NO_HIT_STATES = frozenset({"KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED"})
+
+
+def kcb_evidence_states(package_dir) -> dict[str, str] | None:
+    """BGC_ID -> KCB_evidence_state from the package's one *_2_inventory.csv.
+
+    None when there is no single inventory, it cannot be read, or it predates the
+    KCB_evidence_state column; callers then cannot tell a reported no-hit from a missing result.
+    """
+    import csv
+    from pathlib import Path
+
+    files = [p for p in Path(package_dir).glob("*_2_inventory.csv") if not p.is_symlink()]
+    if len(files) != 1:
+        return None
+    try:
+        with files[0].open(newline="", encoding="utf-8") as stream:
+            reader = csv.DictReader(stream)
+            if "KCB_evidence_state" not in (reader.fieldnames or []):
+                return None
+            return {(r.get("BGC_ID") or "").strip(): (r.get("KCB_evidence_state") or "").strip().upper()
+                    for r in reader}
+    except (OSError, UnicodeError, csv.Error):
+        return None

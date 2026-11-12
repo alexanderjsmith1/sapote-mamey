@@ -4,8 +4,8 @@ This page keeps the ratified mapping between the Mode B status words, from the r
 `RATIFIED_STATUS_VOCABULARY_2026-08-21.md`. It does not create a new approval. One term differs from
 that record: the record names the fifth rung of the document ladder after the project owner
 (`<OWNER>_ACCEPTED`), and this page and the [protocol](MODEB_DUAL_WRITER_AUDITOR_PROTOCOL.md#4-status-vocabulary)
-use the role name `MAINTAINER_ACCEPTED` for the same rung. This page does not cite a separate
-decision to rename it. For a new card, choose the current [profile](MODEB_PROFILE_MATRIX.md),
+use the role name `MAINTAINER_ACCEPTED` for the same rung. Shipped files name roles, not people,
+so the bundle uses the role name. The rung and its meaning are unchanged. For a new card, choose the current [profile](MODEB_PROFILE_MATRIX.md),
 then use the mapping below to keep document progress separate from evidence holds. The
 [current implementation boundary](#current-implementation-boundary-mapping-retained) explains what the verifier checks.
 
@@ -42,8 +42,8 @@ them on the evidence axis, so they never collide with the document ladder.
 
 ## Current implementation boundary (mapping retained)
 
-The ratified mapping above is preserved as the dated governance record; this note does not change
-its canonical terms or grant a new approval. The .373/.374 rollout notes are in
+The ratified mapping above is preserved as the dated governance record. Its only change is the
+role name for the fifth rung, explained at the top. This note grants no new approval. The .373/.374 rollout notes are in
 [history](history/MODEB_STATUS_VOCABULARY_373_ROLLOUT.md). Select the current
 named profile and its actual producer/verifier; current50 v2 has its own FINISHED_FULL50_CURRENT50_V2
 profile token and relocated evidence section.

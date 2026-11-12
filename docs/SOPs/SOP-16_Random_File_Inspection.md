@@ -7,7 +7,7 @@ access). It drives a rigorous, receipts-based quality audit of a random sample o
 
 ## Current task and platform scope
 
-This is an audit prompt, not execution permission. For a source/document review, trace implementations without importing or running the reviewed code unless the current user authorizes execution. The sample commands below are shell examples; GNU `shuf` is not present on every platform, including many default macOS setups. Use an available sampling tool or a small standard-library script and record the seed and exact sample. Do not install utilities merely to reproduce a sample. A sampled audit does not certify the entire bundle.
+This is an audit prompt, not execution permission. For a source/document review, trace implementations without importing or running the reviewed code unless the current user authorizes execution. GNU `shuf` is not present on every platform, including many default macOS setups, so the main sample command below is a small standard-library Python script. Record the seed and the exact sample. Do not install utilities merely to reproduce a sample. A sampled audit does not certify the entire bundle.
 
 Current user response-format requirements override the prompt's fixed summary conventions. Generated and historical files must be checked through their actual owner rather than edited directly.
 
@@ -35,25 +35,39 @@ the real ones and to confirm, with receipts, the parts that are fine.
 
 ## How to sample
 
-Pick one. Stratified is preferred — a pure random draw over-samples `tests/` (the biggest bucket).
+Stratified sampling is preferred, because a pure random draw over-samples `tests/` (the biggest
+bucket). This standard-library script builds a sorted candidate roster for each stratum and draws
+from it with a fixed seed, so the same tree, seed and Python version give the same list:
 
 ```bash
-# Stratified: 2 source, 2 tests, 2 docs, 1 data, 1 tool  (adjust N as you like)
-{ find mamey -name '*.py' -not -path '*/__pycache__/*' | shuf -n 2
-  find tests -name '*.py' -not -path '*/__pycache__/*' | shuf -n 2
-  find docs  -name '*.md'                              | shuf -n 2
-  find . -maxdepth 2 \( -name '*.json' -o -name '*.csv' \) -not -path '*/__pycache__/*' | shuf -n 1
-  find tools -name '*.py'                              | shuf -n 1 ; }
+python3 - <<'PY'
+import random
+from pathlib import Path
 
-# Pure random across all shipped files:
-find . -type f -not -path './.git/*' -not -path '*/__pycache__/*' -not -name '*.pyc' \
-  -not -path '*/.pytest_cache/*' -not -path './.venv/*' | shuf -n 8
+SEED = 42  # record this with the drawn list
+SKIP = {".git", "__pycache__", ".pytest_cache", ".venv"}
 
-# Reproducible run: prepend a fixed seed so a finding can be re-checked
-#   ... | shuf --random-source=<(yes 42) -n 8
+def roster(top, pattern):
+    return sorted(str(p) for p in Path(top).rglob(pattern)
+                  if p.is_file() and not SKIP.intersection(p.parts))
+
+strata = [("mamey", "*.py", 2), ("tests", "*.py", 2), ("docs", "*.md", 2), ("tools", "*.py", 1)]
+rng = random.Random(SEED)
+for top, pattern, n in strata:
+    files = roster(top, pattern)
+    print(f"# {top}/{pattern}: {len(files)} candidates")
+    for path in rng.sample(files, min(n, len(files))):
+        print(path)
+PY
 ```
 
-Default to ~6–8 files per session. Report the exact list you drew before inspecting, so the
+Record the seed, the Python version (`python3 --version`), the roster counts it prints and the
+drawn list. `random.sample` can change between Python versions, so the drawn list, not the seed,
+is the receipt. Adjust the strata and counts as you like. Where GNU `shuf` is available, sort the
+roster first (`find ... | LC_ALL=C sort | shuf --random-source=<file> -n 8`); unsorted `find` output
+can change order between runs.
+
+Default to about 6 to 8 files per session. Report the exact list you drew before inspecting, so the
 sample is auditable.
 
 ## For every file, first orient
@@ -67,8 +81,7 @@ sample is auditable.
 
 **Python source (`mamey/`, `tools/`)**
 - Imports cleanly: `python -c "import mamey.<mod>"` (or run the tool's `--help`).
-- Every public function is invoked somewhere end-to-end — grep for callers. Flag any defined,
-  tested-in-isolation, but never-actually-called path (this project's recurring failure class).
+- Trace intended public entry points and their callers, including exported library APIs, dynamic dispatch and documented external use. No literal in-tree caller is a lead to investigate, not proof that a function is unused or defective. Distinguish an intentionally exposed API from an unwired internal path.
 - Has test coverage: grep `tests/` for the module / key functions. Note gaps.
 - Error handling: no bare `except:`, no mutable default args (`def f(x=[])`), clear errors on bad
   input rather than a raw `KeyError`/`IndexError`.
@@ -89,7 +102,7 @@ sample is auditable.
   their selected source; spot-check a concrete claim against that source. Historical examples retain
   their original producing versions and receipts rather than being restamped to today's engine.
 - No dangling references: files/paths it points to exist.
-- Anti-AI prose style: no em-dashes, sentence-case headings, no puffery.
+- Prose style: sentence-case headings, no puffery.
 - Accuracy over polish — would it mislead a user? That's the bar.
 
 **Data / fixtures (`.json`, `.csv`, zipped exports)**
@@ -114,7 +127,7 @@ Verdict:  PASS | CONCERNS | FAIL
 
 **Severity**
 - **BLOCKER** — broken, incorrect, unsafe, or misleading: a crash, a wrong result, a claim-safety
-  violation, fabricated content, or an orphaned artifact that ships but shouldn't.
+  violation, fabricated content, or an artifact independently shown to be unnecessary and incorrectly shipped. An unlocated caller alone is an unresolved coverage question.
 - **CONCERN** — works but has a real weakness: thin/tautological test, stale doc, missing
   coverage, dead function, unclear provenance.
 - **NIT** — cosmetic only: style, phrasing, formatting.

@@ -823,7 +823,7 @@ def split_display(rows, splits, core_identity: str = "", known_tags=None) -> dic
     return out
 
 
-def count_summary(rows, splits=(), core_identity: str = "", known_tags=None) -> dict:
+def count_summary(rows, splits=(), core_identity: str = "", known_tags=None, edge=None) -> dict:
     """The counts every caption of a gap-rescue run prints, as one partition of the reference genes.
 
     Each reference gene is counted once, as the gene table shows it, so core + clear + ambiguous + not found (+ other) is
@@ -833,7 +833,10 @@ def count_summary(rows, splits=(), core_identity: str = "", known_tags=None) -> 
     a peer (the old footnote added it in and a reader got 31 + 20 + 16 = 67 of 60). The core count is of reference genes;
     core_proteins counts the distinct local proteins behind them (by locus tag), because one protein can be the best
     match for several reference genes. The owner's ruling (7 Oct): print both. The split count is the number of reference
-    genes shown as split rows."""
+    genes shown as split rows. core_crossing counts the core reference genes whose protein crosses the region edge
+    (edge: best_locus -> percent inside, from gap_rescue_gene_table.edge_shares); they stay in the core, as the table
+    rows do. The gene table passes edge, so its caption and counts name them; the map footnote does not, because the
+    map draws the region boundary and a redraw of an older run must still agree with that run's saved table."""
     disp = split_display(rows, splits, core_identity, known_tags)
     st, prot = collections.Counter(), set()
     for i, r in enumerate(rows):
@@ -851,7 +854,10 @@ def count_summary(rows, splits=(), core_identity: str = "", known_tags=None) -> 
             "clear": st["MISSING_FOUND_CLEAR"], "ambiguous": st["MISSING_FOUND_AMBIGUOUS"],
             "not_found": st["MISSING_NOT_FOUND"], "other": len(rows) - sum(st[k] for k in STATUS_ORDER),
             "set_aside": sum(1 for r in rows if r.get("partner_verdict") in EXCLUDED_VERDICTS),
-            "split": sum(1 for e in disp.values() if e["shown"])}
+            "split": sum(1 for e in disp.values() if e["shown"]),
+            "core_crossing": sum(1 for i, r in enumerate(rows) if r.get("status") == "PRESENT_IN_CORE"
+                                 and not (disp.get(i) or {}).get("shown")
+                                 and (edge or {}).get(r.get("best_locus")) is not None)}
 
 
 def count_sentence(c: dict, where: str = "the core") -> str:
@@ -872,6 +878,10 @@ def count_sentence(c: dict, where: str = "the core") -> str:
         # the gene table lists both pieces together in one row per reference gene (table_rows), so say exactly that
         s += (f". {c['split']} reference gene{' is' if c['split'] == 1 else 's are'} split across contigs, with both "
               "pieces listed together in one row per reference gene")
+    if c.get("core_crossing"):   # last, so no "Of these" before it can be read as referring to it
+        n = c["core_crossing"]
+        s += (f". {n} of the {c['core']} core gene{'' if c['core'] == 1 else 's'} "
+              f"{'crosses' if n == 1 else 'cross'} the region edge and {'lies' if n == 1 else 'lie'} partly outside it")
     return s
 
 

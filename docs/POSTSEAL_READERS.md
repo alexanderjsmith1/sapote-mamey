@@ -91,12 +91,16 @@ A refresh failure prints a warning and does not change the exit code.
 Copy into a folder that does not exist yet:
 
 ```bash
-cp -R runs/EXAMPLE/package runs/EXAMPLE/package_work
-python mamey_run.py render-figures runs/EXAMPLE/package_work --figure-set locus-maps
+mkdir runs/EXAMPLE/package_work && cp -R runs/EXAMPLE/package/. runs/EXAMPLE/package_work/
 ```
 
-If `package_work` already exists, `cp -R` puts the copy inside it, as
-`package_work/package`. Check that `package_work/manifest.json` is the package you mean.
+If either command fails, stop. Preserve an existing or partial folder and choose a new name
+after inspection. After a successful copy, check that `package_work/manifest.json` is the
+package you mean. Only then render:
+
+```bash
+python mamey_run.py render-figures runs/EXAMPLE/package_work --figure-set locus-maps
+```
 
 `locus-maps` is a figure set, not a command of its own. It always writes inside the
 package, to `locus_maps/` by default. `--outdir` must also resolve inside the package, so

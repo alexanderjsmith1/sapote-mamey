@@ -209,6 +209,10 @@ def classify(cctt, compound, products):
     if "enediyne" in s or "calicheamicin" in s or "dynemicin" in s or "c-1027" in s or "ene_ks" in s: return "enediyne"
     if "phosphonate" in s or "pepm" in s or "fosfomycin" in s or "rhizocticin" in s or "dehydrophos" in s: return "phosphonate"
     if "tomaymycin" in s or "anthramycin" in s or "sibiromycin" in s or "limazepine" in s or "pyrrolobenzodiazepine" in s: return "PBD_pyrrolobenzodiazepine"
+    # antiSMASH's "thioamide-NRP" is a nonribosomal call (carrier protein, AMP-binding, ATP-grasp rule genes), not the
+    # thioamitide RiPP class (TfuA/YcaO); it must not take the RiPP label.
+    if "thioamide-nrp" in s and not ("thioamitide" in s or "thioviridamide" in s or "tfua" in s):
+        return "thioamide_NRP"
     if "thioamide" in s or "thioamitide" in s or "thioviridamide" in s: return "thioamitide_thioamide"
     if "lanthipeptide" in s or "lanthi" in s: return "lanthipeptide"
     if "siderophore" in s or "desferrioxamine" in s or "coelichelin" in s or "mirubactin" in s or "iuca" in s: return "siderophore"

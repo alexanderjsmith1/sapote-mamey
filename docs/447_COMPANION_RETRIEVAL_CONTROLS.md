@@ -64,8 +64,7 @@ those yourself.
 <a id="scanner-build-publication-and-recovery"></a>
 **Failures.** Use a new output name, outside the bundle and away from source files. The builder
 refuses any existing target, including a broken symlink. It stages files in a temporary folder and
-publishes them one by one. If publishing fails normally it removes what it published, but a crash can
-leave a partial set, and a retry then refuses. Keep the partial attempt, fix the cause and rerun with
+publishes them one by one. If publishing fails, it attempts to remove the files it published; a removal error can interrupt cleanup, and a crash can also leave a partial set. A retry then refuses any remaining targets. Keep the partial attempt, fix the cause and rerun with
 a new name. `hmmfetch` and `hmmpress` have no timeout, and their error output is not saved. A failed
 build is a setup problem, not evidence that a Pfam family is absent.
 

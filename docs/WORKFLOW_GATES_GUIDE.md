@@ -32,7 +32,7 @@ Resource defaults: 4 threads, 3,800,000,000 bytes of memory, 2,000,000,000 bytes
 
 ## Preflight and postflight check codes
 
-Preflight checks the inputs before compute. Postflight checks the finished tree. Both are read-only and exit 1 on any FAIL. Warnings exit 0.
+Preflight checks the inputs before compute. Postflight checks the finished tree. Both read their inputs; supplying `--json` also writes a report to the specified fresh path. They refuse an existing or protected input destination. Both exit 1 on any FAIL. Warnings exit 0.
 
 ### What preflight needs
 

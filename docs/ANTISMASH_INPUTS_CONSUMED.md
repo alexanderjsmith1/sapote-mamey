@@ -30,8 +30,9 @@ Assembly statistics use FASTA first, then full-record GenBank. A region-only ZIP
 lacks whole-genome input: zero assembly counts mean missing input, and contig
 lengths may be unknown. FLBR KS counts and UMED hits cover the CDS records read,
 so from a region-only ZIP they are region-scoped, even under `genome_wide_*` key
-names. Each scan's `count_scope.state` names the record set. `run` does not yet
-pass that set to the scans, so it currently reads `NOT_BOUND`.
+names. Each scan's `count_scope.state` describes the record set supplied. `run` passes
+the detected GenBank record scope when the parser helper is available; `NOT_BOUND`
+is the fallback when scope was not supplied. Inspect the saved state for this run.
 Use **strain / full node-or-contig / region / BGC alias** to join records.
 
 ## Read saved RiPP motif evidence
@@ -41,9 +42,11 @@ In `runs/EXAMPLE/package/`, open `EXAMPLE_5_workbook.xlsx` and select
 and `EXAMPLE_3_antismash_structured.json`.
 
 Read the mapping status, source file, locus tag, core sequence and details.
-A gene can have several predictions; count rows and distinct gene tags separately.
-Missing or overlapping coordinates remain unmapped or ambiguous. A saved core is
-an antiSMASH prediction; inspect it before interpreting cleavage or mature product.
+A gene can have several predictions. Check each exported locus tag against the source
+record before treating it as a precursor tag or counting distinct genes: the export can
+prefer a source grouping tag when the motif has a different tag. Keep row counts separate
+from verified gene counts. Missing or overlapping coordinates remain unmapped or ambiguous.
+A saved core is an antiSMASH prediction; inspect it before interpreting cleavage or mature product.
 
 Structured `PASS` means at least one structured table has rows. Read the RiPP row
 count itself to see whether motif evidence was found.

@@ -134,6 +134,15 @@ def _summary(name: str, res: dict) -> dict:
     return result_summary(name, res)
 
 
+def pair_count_sentence(summary: dict) -> str:
+    """Distinguish the full scored population from the capped exported rows."""
+    scored, retained = summary["scored_pairs"], summary["pairs_exported"]
+    omitted = scored - retained
+    state = "truncated" if omitted else "not truncated"
+    noun = "pair" if scored == 1 else "pairs"
+    return f"{scored} scored {noun}, {retained} retained, {omitted} not exported ({state})"
+
+
 def fasta_main(argv) -> int:
     from .blastp import emit_fasta
     ap = argparse.ArgumentParser(prog="rggmci fasta", description="Write BLASTp query FASTA for the regions in "
@@ -288,8 +297,7 @@ def main(argv=None) -> int:
         except OSError as exc:
             print(f"output error: {exc}", file=sys.stderr)
             return 2
-        kept = "" if s["pairs_exported"] == s["scored_pairs"] else f" ({s['pairs_exported']} kept in the pair table)"
-        print(f"{z.name}: {s['regions']} regions, {s['scored_pairs']} pairs{kept}, {s['high']} HIGH "
+        print(f"{z.name}: {s['regions']} regions, {pair_count_sentence(s)}, {s['high']} HIGH "
               f"({s['high_cross_contig']} across contigs), {s['candidate_groups']} candidate groups; "
               f"reference completion {s['completion_tier']}")
     if a.out_dir:

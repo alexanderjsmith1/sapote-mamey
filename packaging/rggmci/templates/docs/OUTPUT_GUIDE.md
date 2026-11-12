@@ -11,7 +11,11 @@ When neither CB nor KCB supplies usable records, there are no reference-supporte
 ## Pairs (`<genome>_pairs.tsv`, or `--pairs`)
 
 One row per kept pair of regions: the top 1,000 by rank, plus every HIGH pair below them. `pairs_total` in the JSON
-counts every scored pair.
+counts every scored pair. `pairs_exported` in the summary counts retained rows; their difference is
+truncation, not evidence that omitted pairs were absent. The JSON also records that difference in
+`rggmci_summary.ranked_pairs_not_exported`. A historical worked archive scored 1,360 and retained 1,000,
+so 360 were not exported; no new run on that archive is claimed here. Every HIGH pair beyond the first
+1,000 is retained, so 1,000 is not an absolute export ceiling.
 
 | column | meaning |
 |---|---|
@@ -35,7 +39,7 @@ counts every scored pair.
 | `completion_tier` | whether reference-guided completion ran: `FULL`, `NO_ALIGNER`, `NO_MIBIG_PROTEINS`, `NO_WHOLE_GENOME_GENBANK` or `OFF` |
 | `ref_completion_partner` | `yes` when one region's contig is an accepted partner for the other region's reference; `no`; `no_reference` when neither region had a reference. Blank unless `FULL` |
 | `split_gene_links` | how many genes split across the two regions' contigs were called `CLEAR`; one broken gene counts once, however many references see it. Blank unless `FULL` |
-| `residue_tiling` | for pairs the paralog gate demoted, which stretch of each shared MIBiG protein each region covers: `COMPLEMENTARY_RESIDUES`, `OVERLAPPING_RESIDUES`, `MIXED_RESIDUES`, `THIN_RESIDUES`, `NO_SHARED_MIBIG_REFERENCE`, `REGION_SOURCE_UNAVAILABLE` (a region's own GenBank file or its proteins could not be read, so nothing was placed) or `NOT_TESTED`. Present only when the DIAMOND search ran (see below) |
+| `residue_tiling` | for pairs the paralog gate demoted, which stretch of each shared MIBiG protein each region covers: `COMPLEMENTARY_RESIDUES`, `OVERLAPPING_RESIDUES`, `MIXED_RESIDUES`, `THIN_RESIDUES`, `NO_SHARED_MIBIG_REFERENCE`, `REGION_SOURCE_UNAVAILABLE` (a region's own GenBank file or its proteins could not be read, so nothing was placed) or `NOT_TESTED`. These fields are initialized when the residue layer is invoked. `NOT_TESTED` can accompany `DIAMOND_NOT_FOUND`, `DIAMOND_DB_NOT_FOUND` or `NO_PAIRS_IN_SCOPE` without an alignment search; read `residue_tiling_status` and `pairs_tested` (see below) |
 
 ### `acceptance_gate` verdicts
 
@@ -54,13 +58,15 @@ A pair can carry several, joined by `+`.
 | `DEMOTED_HIGH_TO_MODERATE_R1_both_drop_class` | both regions carry only saccharide, NAPAA, hglE-KS, PKS-like or other |
 | `DEMOTED_HIGH_TO_MODERATE_R2_no_strong_references` | no reference with strong support |
 | `DEMOTED_HIGH_TO_MODERATE_R3_noise_class_both_sides` | neither region carries a specialist class (only fatty_acid, saccharide, NAPAA, hglE-KS or other) |
-| `ST-PARALOG_no_complementarity_proof` | the gene-level check finds both regions hit the same reference genes, which fits two copies better than two halves; the pair drops to LOW |
+| `ST-PARALOG_no_complementarity_proof` | the gene-level check finds both regions hit the same reference genes, which is a computational overlapping-reference signal compatible with duplicate or related loci, not proof of two copies; the pair drops to LOW |
 | `DEMOTED_HUB_PROMISCUITY_degree_N_gt_4` | one region has more than four HIGH partners; all its HIGH pairs step down |
 | `DEMOTED_TO_LOW_shared_reference_only_no_geometry_no_split_signal` | the regions share references but nothing places them side by side |
 
 **Only contig-edge regions are paired.** rggmci pairs a region when antiSMASH flags it as touching a contig edge
 (`/contig_edge="True"` on the region feature). When a file has no flag, or its region features disagree, the
-`Edge`/`Full-contig` status above is used instead. This is a rule of the method, not a finding: a region inside a
+`Edge`/`Full-contig` status above is used instead. An explicit region-feature `False` excludes the region,
+even if its fallback status is `Edge`; only the region feature's flags count. A missing region member also
+uses the fallback, and an unreadable ZIP returns the fallback set. This is a rule of the method, not a finding: a region inside a
 contig can still lack pieces the assembly or antiSMASH did not show, and rggmci does not look for them. Two regions
 that both reach a contig end may be fragments the assembly separated; rggmci does not claim a join.
 
@@ -88,7 +94,10 @@ One row per genome: regions, `scored_pairs` (every scored pair), `pairs_exported
 table), HIGH, MODERATE, how many HIGH pairs cross contigs and how many of those
 have both regions at contig ends, how many groups, and the size of the largest group. Three columns describe
 reference-guided completion: `completion_tier`, the number of accepted partner contigs, and the number of `CLEAR`
-split genes. An `error` column records a ZIP that could not be read; the
+split genes. Truncation is explicit in the console and is the difference between `scored_pairs` and
+`pairs_exported` in this table. `high` and `moderate` count all scored pairs; they need not sum to the
+retained count, which also includes LOW rows. Omitted rows cannot be recovered from this capped JSON or
+pair table alone. An `error` column records a ZIP that could not be read; the
 batch carries on past it.
 
 ## Reference-guided completion
@@ -112,7 +121,7 @@ One row per reference gene.
 | `best_identity_pct`, `best_coverage_pct`, `best_locus`, `best_contig`, `best_region_identity` | the best match and where it sits; a match outside every region is labeled `(no antiSMASH region)` |
 | `reciprocal_best` | whether this reference gene is that protein's own best match among the reference's genes |
 | `partner_verdict` | for a find outside the region: `SUPPORTED` (another find of this reference sits within 10 kb), `SINGLE_GENE`, `HOUSEKEEPING_CONTEXT` (a lone find beside primary-metabolism genes; needs the Pfam scan) or `PARALOG_FAMILY` (the reciprocal search fails, or five or more other genome proteins match the same reference gene) |
-| `reciprocal_best_mibig`, `reciprocal_best_identity`, `reciprocal_reference_identity`, `reciprocal_family_ratio` | the find's own best MIBiG cluster, and how its best score against the reference's compound family compares. Below 0.9 the find scores better against another family, and the verdict counts that as a paralog-family signal. It is a score comparison within the database, not a family assignment |
+| `reciprocal_best_mibig`, `reciprocal_best_identity`, `reciprocal_reference_identity`, `reciprocal_family_ratio` | the find's own best MIBiG cluster, and how its best score against the reference's compound family compares. Below 0.9 the best score against the selected reference's compound family is less than 90% of the best MIBiG score for that aligned stretch, and the verdict uses it as a paralog-family signal. Database coverage, shared domains and alignment scope limit that signal; it does not assign a compound family |
 | `paralogs_in_genome`, `adjacent_finds`, `housekeeping_neighbours`, `neighbour_pfams` | the counts behind the verdict; `neighbour_pfams` lists only the housekeeping-marker domains found |
 
 The reciprocal search uses the stretch of the genome protein that matched the reference and every MIBiG target, not
@@ -146,6 +155,9 @@ One row per contig, other than the region's own, that carries a find or a split 
 
 ### Residue tiling (pair fields beginning `residue_`)
 
+`--reference-completion` off disables reference-guided completion only. An explicit `--diamond-db` can still invoke residue tiling. Inspect each layer's status separately.
+
+
 For pairs the paralog gate demoted (`ST-PARALOG_no_complementarity_proof`), each region's proteins are aligned with
 DIAMOND against the MIBiG clusters both regions share in KnownClusterBlast. Each side is placed on a cluster with
 every residue used once. A cluster is complementary when each side places 300 residues or more and they share 10% or
@@ -153,6 +165,25 @@ less of the smaller side, and overlapping when they share more. It runs with `--
 completion database has its DIAMOND index. With `--diamond-db`, `--residue-scope all` tests every pair. The detail fields describe the
 cluster both sides match best. Against relatives near 50% identity, modular PKS often reads `MIXED_RESIDUES`: one
 module cannot be told from another.
+
+The JSON's `residue_tiling_status.state` is `RAN`, `DIAMOND_NOT_FOUND`, `DIAMOND_DB_NOT_FOUND` or
+`NO_PAIRS_IN_SCOPE`. `pairs_tested` counts only the pairs that had a shared MIBiG cluster to place. A pair with
+none reads `NO_SHARED_MIBIG_REFERENCE` and is not counted, so `RAN` with `pairs_tested` 0 can happen.
+`regions_source_unavailable` lists regions whose proteins could not be read; their pairs read
+`REGION_SOURCE_UNAVAILABLE` and are counted in `pairs_source_unavailable`. A pair outside `--residue-scope`
+keeps `NOT_TESTED`.
+
+| Field | Meaning |
+|---|---|
+| `residue_references_tested` | the shared MIBiG clusters tested for this pair |
+| `residue_complementary_references`, `residue_overlapping_references` | how many of those clusters were complementary, and how many overlapping |
+| `residue_top_reference`, `residue_top_class` | the cluster both sides match best, and its class |
+| `residues_a`, `residues_b` | the cluster residues each side was placed on |
+| `residue_identity_a`, `residue_identity_b` | each side's identity on that cluster |
+| `residue_overlap` | the residues both sides were placed on, as a fraction of the smaller side |
+| `residue_stretches_a`, `residue_stretches_b` | up to six of each side's longest placements, as `<reference protein>:<start>-<end>@<identity>` |
+
+The detail fields are blank when no cluster was placed.
 
 ## BLASTp queries (`rggmci fasta`)
 
@@ -173,7 +204,7 @@ module cannot be told from another.
 - `blastp_pairs.tsv`, one row per pair:
   - The pair's `rggmci_confidence`, copied unchanged.
   - Per side, proteins sent, with hits, with no hits, not in the results, and the median top identity.
-  - `organisms_with_homologs_of_both` and `shared_organisms` need the XML2 and read "needs XML2" without it.
+  - `organisms_with_homologs_of_both` and `shared_organisms` need the XML2 for both sides of the pair. Without it they read "needs XML2"; when the XML2 covers only one side they read "needs XML2 for side a" (or b) and give no count, because the other side's organisms are unknown, not absent.
 - `blastp_layer.json`: all of the above, plus query headers in the results that matched nothing in the
   manifest (renamed headers are reported, never guessed).
 
@@ -187,8 +218,8 @@ before reading anything into them. Without gene context for one side, `functiona
 | Field | Meaning |
 |---|---|
 | `a_functional_roles`, `b_functional_roles` | the gene roles present in each fragment |
-| `a_core_fraction`, `b_core_fraction` | core genes over core, tailoring, transport and regulatory genes. Genes with other roles are left out. 0 when a fragment has none of these four roles |
-| `functional_rescue_class` | `COMPLEMENTARY` (the core fractions differ by 0.20 or more and the lower is 0.30 or less), `BOTH_CORE` (both are 0.35 or more and within 0.20 of each other, which fits two copies better than two halves), `ACCESSORY_ONLY` (both are 0.30 or less) or `AMBIGUOUS` (none of these) |
+| `a_core_fraction`, `b_core_fraction` | `core / (core + tailoring + transport + regulatory)` from predicted role counts, excluding `other`. A zero denominator returns 0.0, a software fallback rather than evidence of accessory function; a missing profile returns `None` (blank in TSV), not zero |
+| `functional_rescue_class` | `COMPLEMENTARY` (the core fractions differ by 0.20 or more and the lower is 0.30 or less), `BOTH_CORE` (both are 0.35 or more and within 0.20 of each other, a core-rich computational descriptor that does not establish paralogy or exclude a modular split), `ACCESSORY_ONLY` (both are 0.30 or less; this includes zero-denominator profiles and does not require tailoring genes) or `AMBIGUOUS` (none of these) |
 | `modular_continuation` | `MODULAR_CONTINUATION` (both fragments carry assembly-line genes and there is at most one release gene between them), `MODULAR_TWO_RELEASES` (each side has its own release gene), `MODULAR_CONTINUATION_MULTI_RELEASE_ONE_SIDE`, or `NOT_MODULAR` (one side has no assembly-line gene) |
 | `a_assembly_line_cds`, `b_assembly_line_cds`, `a_release_cds`, `b_release_cds` | the gene counts behind `modular_continuation` |
 
@@ -197,7 +228,7 @@ before reading anything into them. Without gene context for one side, `functiona
 | Field | Meaning |
 |---|---|
 | `terminus_sequence_state_a`, `terminus_sequence_state_b` | the sequence at the contig end each region touches: `COMPLEX_TERMINUS`, `LOW_COMPLEXITY_TERMINUS`, `HOMOPOLYMER_TERMINUS`, `AMBIGUOUS_TERMINUS` (holds N or another non-ACGT base), `TERMINUS_SEQUENCE_UNAVAILABLE`, or `NOT_APPLICABLE` when the region touches no contig end |
-| `junction_evidence_state` | `SEQUENCE_COMPLEXITY_CLEAR` only when every truncated contig end was read and is complex; `SEQUENCE_COMPLEXITY_UNRESOLVED` when an end could not be read or is ambiguous; `NOT_APPLICABLE` when the pair has no truncated end |
+| `junction_evidence_state` | `SEQUENCE_COMPLEXITY_CLEAR` only when every truncated contig end was read and is complex; `SEQUENCE_COMPLEXITY_UNRESOLVED` when an end could not be read or is ambiguous; `LONG_READ_ONLY` when a truncated end is low-complexity or a homopolymer, so only long reads can settle the join; `NOT_APPLICABLE` when the pair has no truncated end |
 
 ## What a candidate is, and what it is not
 

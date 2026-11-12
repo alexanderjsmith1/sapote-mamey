@@ -1,0 +1,187 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column; a sticky search bar; each enzyme group is a row that opens into its member table. */
+:root{
+  --bg:#f6f7f5; --panel:#ffffff; --fg:#1c2421; --muted:#5d6a65; --line:#d9dfdc;
+  --accent:#1f6f62; --accent-soft:#e2efec; --far:#b5532f; --far-soft:#f6e6de;
+  --display:"Fraunces", Georgia, serif; --body:"IBM Plex Sans", system-ui, sans-serif; --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --panel:#19201d; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3632;
+  --accent:#6cc2b1; --accent-soft:#1e3330; --far:#e8916c; --far-soft:#3a2720; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --panel:#19201d; --fg:#e4ebe8; --muted:#97a6a0; --line:#2c3632;
+  --accent:#6cc2b1; --accent-soft:#1e3330; --far:#e8916c; --far-soft:#3a2720; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,5vw,40px);line-height:1.1;margin:0 0 8px;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:0 0 6px}
+.read{max-width:68ch;margin:10px 0 0;font-size:14px}
+.read b{font-weight:600}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;border-bottom:1px solid var(--line);margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input[type=search],select{font:inherit;font-size:15px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+input[type=search]{flex:1 1 260px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip{font:inherit;font-size:12.5px;letter-spacing:.02em;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+summary{list-style:none;cursor:pointer;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+.fam{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.cat{font-size:12px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
+.nums{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.med{display:inline-block;min-width:4.6em;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--fg)}
+.med.far{background:var(--far-soft)}
+.gid{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tbl{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;white-space:nowrap}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.id{font-family:var(--mono);font-size:12px;min-width:22ch;overflow-wrap:anywhere}
+td.id b{font-family:var(--body);font-weight:600;font-size:13px}
+.ctr{font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.04em}
+td.far{color:var(--far);font-weight:500}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
+.tab{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;padding:7px 12px;cursor:pointer}
+.tab[aria-selected=true]{border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);font-weight:500}
+.ctx{padding:10px 12px;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13.5px;max-width:90ch}
+.ctx dt{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ctx dd{margin:0 0 4px}
+.src{font-size:12px;color:var(--muted)}
+.what{font-size:13px;color:var(--muted);margin-top:2px}
+.morebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-top:16px}
+.morebar .more{margin:0}
+.more{margin:16px auto 0;display:block;font:inherit;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 16px;cursor:pointer}
+.foot{margin-top:28px;font-size:13px;color:var(--muted);max-width:72ch}
+code{font-family:var(--mono);font-size:12.5px}
+@media (max-width:560px){summary{grid-template-columns:1fr}.nums{text-align:left}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+<div class="wrap">
+  <h1>__TITLE__</h1>
+  <p class="lede">Each row is one specific enzyme: a set of cohort proteins that share at least about 50% identity over at least 80% of their length. Open a row to see every gene in it.</p>
+  <p class="read"><b>Context.</b> Each group and family shows what that kind of enzyme does in general (reference text, not a finding about these genes) and the evidence from our packages: the antiSMASH region classes the genes sit in, and the MIBiG clusters that hold the genes' best per-gene hits, counted gene by gene. A MIBiG match means a similar gene, not that the strain makes that compound. A blank means no saved hit in the available input, not a negative search.</p>
+  <p class="read"><b>How to read it.</b> <b>Strains</b> and <b>genes</b> count the members. <b>BLASTp</b> is the median, over the members, of each gene's mean identity to its top 10 hits in ClusteredNR or nr; lower means further from anything deposited, and values under 70% are marked. <b>To centroid</b> is each member's identity to the group's reference protein. A group is sequence similarity, not a shared product.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-groups" role="tab" aria-selected="true" type="button">Specific enzymes across strains</button>
+    <button class="tab" id="tab-fams" role="tab" aria-selected="false" type="button">All enzyme families</button>
+  </div>
+  <div class="bar">
+    <div class="row">
+      <label for="q" class="count" style="position:absolute;left:-9999px">Search</label>
+      <input id="q" type="search" placeholder="Search family, strain, locus tag, contig or hit organism (e.g. halogenase, a strain name, a genus)" autocomplete="off">
+      <label for="sort" class="count" style="position:absolute;left:-9999px">Sort</label>
+      <select id="sort">
+        <option value="strains">Most strains first</option>
+        <option value="far">Lowest BLASTp first</option>
+        <option value="family">Family A–Z</option>
+      </select>
+    </div>
+    <div class="row" id="cats"></div>
+    <div class="count" id="count"></div>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="morebar" id="morebar" hidden><span class="count" id="shown"></span><button class="more" id="more" type="button">Show 60 more</button><button class="more" id="all" type="button">Show all</button></div>
+  <p class="foot">__FOOTER__</p>
+</div>
+<script>
+const D = __DATA__;
+const F = __FAMS__;
+const CATS = ["PKS-core","PKS-reductive","NRPS-core","carrier","loading","release","tailoring-oxidoreduction","tailoring-methylation","tailoring-glycosylation","tailoring-halogenation","tailoring-other","RiPP-maturation","terpene/prenyl","transport","regulatory","resistance","structural","uncharacterized","other","no call"];
+const FAMLIST = Object.entries(F);
+let view = "groups", page = 1; const PER = 60; const sel = new Set();
+const $ = id => document.getElementById(id);
+const fmt = v => v == null || v === "" ? "" : Number(v).toFixed(1);
+function esc(s){return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+const hayG = D.map(g => (g[0]+" "+g[1]+" "+g[2]+" "+g[6].map(m => m.slice(0,5).join(" ")+" "+m[8]+" "+m[9]+" "+m[13]).join(" ")+" "+(F[g[1]]?F[g[1]][4]+" "+F[g[1]][9]:"")).toLowerCase());
+const hayF = FAMLIST.map(([k,f]) => (k+" "+f.join(" ")).toLowerCase());
+function chips(){
+  const box = $("cats"); box.innerHTML = "";
+  const src = view === "groups" ? D.map(g => g[2]) : FAMLIST.map(([,f]) => f[0]);
+  const cnt = {}; src.forEach(c => cnt[c] = (cnt[c]||0)+1);
+  CATS.filter(c => cnt[c]).forEach(c => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = `${c} ${cnt[c].toLocaleString()}`;
+    b.setAttribute("aria-pressed", sel.has(c)); b.onclick = () => { sel.has(c) ? sel.delete(c) : sel.add(c); b.setAttribute("aria-pressed", sel.has(c)); page = 1; draw(); };
+    box.appendChild(b);
+  });
+}
+function ctx(fam, groupMibig){
+  const f = F[fam]; if (!f) return "";
+  const [cat, genes, genomes, ec, what, role, src, doms, prods, mib, med, u70] = f;
+  return `<dl class="ctx">
+    <div><dt>What this enzyme family does</dt><dd>${what ? esc(what) : "No description in the smCOG reference, Pfam or antiSMASH."}${ec ? ` <span class="src">${esc(ec)}</span>` : ""}${role ? `<br>${esc(role)}` : ""}${src ? ` <span class="src">Source: ${esc(src)}</span>` : ""}</dd></div>
+    <div><dt>Main domains on these genes</dt><dd>${esc(doms) || "none"}</dd></div>
+    <div><dt>Region classes the family sits in (genes, whole cohort)</dt><dd>${esc(prods) || "none"}</dd></div>
+    ${groupMibig !== undefined ? `<div><dt>MIBiG clusters of the members' best per-gene hits</dt><dd>${esc(groupMibig) || "No saved MIBiG gene hit for these members in the available input."}</dd></div>` : ""}
+    <div><dt>MIBiG clusters of the family's best per-gene hits (${genes} genes)</dt><dd>${esc(mib) || "No saved MIBiG gene hit for this family in the available input."}</dd></div>
+  </dl>`;
+}
+function draw(){
+  const q = $("q").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const list = $("list"); list.innerHTML = "";
+  if (view === "groups") {
+    let rows = D.map((g,i) => [g,i]).filter(([g,i]) => (!sel.size || sel.has(g[2])) && q.every(t => hayG[i].includes(t)));
+    const s = $("sort").value;
+    if (s === "far") rows.sort((a,b) => (a[0][5] ?? 999) - (b[0][5] ?? 999));
+    else if (s === "family") rows.sort((a,b) => a[0][1].localeCompare(b[0][1]) || b[0][3]-a[0][3]);
+    $("count").textContent = `${rows.length.toLocaleString()} groups, ${rows.reduce((t,[g]) => t+g[6].length,0).toLocaleString()} gene rows`;
+    rows.slice(0, page*PER).forEach(([g]) => {
+      const d = document.createElement("details"); const far = g[5] != null && g[5] < 70;
+      d.innerHTML = `<summary><div><div class="fam">${esc(g[1])}</div><div class="cat">${esc(g[2])} · <span class="gid">${esc(g[0])}</span></div></div>
+        <div class="nums">${g[3]} strains · ${g[4]} genes · BLASTp <span class="med${far?" far":""}">${g[5]==null?"none yet":fmt(g[5])+"%"}</span></div></summary>`;
+      d.addEventListener("toggle", () => { if (d.open && !d.querySelector(".tbl")) d.insertAdjacentHTML("beforeend", ctx(g[1], g[7]) + table(g)); });
+      list.appendChild(d);
+    });
+    pager(rows.length);
+  } else {
+    let rows = FAMLIST.map((e,i) => [e,i]).filter(([[k,f],i]) => (!sel.size || sel.has(f[0])) && q.every(t => hayF[i].includes(t)));
+    const s = $("sort").value;
+    if (s === "far") rows.sort((a,b) => (a[0][1][10] === "" ? 999 : a[0][1][10]) - (b[0][1][10] === "" ? 999 : b[0][1][10]));
+    else if (s === "family") rows.sort((a,b) => a[0][0].localeCompare(b[0][0]));
+    else rows.sort((a,b) => b[0][1][2] - a[0][1][2] || b[0][1][1] - a[0][1][1]);
+    $("count").textContent = `${rows.length.toLocaleString()} families, ${rows.reduce((t,[[,f]]) => t+f[1],0).toLocaleString()} genes`;
+    rows.slice(0, page*PER).forEach(([[k,f]]) => {
+      const d = document.createElement("details"); const far = f[10] !== "" && f[10] < 70;
+      d.innerHTML = `<summary><div><div class="fam">${esc(k)}</div><div class="cat">${esc(f[0])}</div>${f[4] ? `<div class="what">${esc(f[4].length > 110 ? f[4].slice(0,108) + "…" : f[4])}</div>` : ""}</div>
+        <div class="nums">${f[2]} strains · ${f[1]} genes · BLASTp <span class="med${far?" far":""}">${f[10]===""?"none yet":fmt(f[10])+"%"}</span></div></summary>`;
+      d.addEventListener("toggle", () => { if (d.open && !d.querySelector(".ctx")) d.insertAdjacentHTML("beforeend", ctx(k)); });
+      list.appendChild(d);
+    });
+    pager(rows.length);
+  }
+}
+function pager(n){
+  const shown = Math.min(n, page*PER);
+  $("morebar").hidden = n <= PER;
+  $("shown").textContent = `Showing ${shown.toLocaleString()} of ${n.toLocaleString()}`;
+  $("more").hidden = $("all").hidden = shown >= n;
+}
+function table(g){
+  const ms = g[6].slice().sort((a,b) => (a[7] ?? 999) - (b[7] ?? 999));
+  return `<div class="tbl"><table><thead><tr><th>Gene (strain / contig / region / BGC / locus)</th><th>aa</th><th>To centroid</th><th>BLASTp top-10</th><th>Top hit</th><th>Best MIBiG gene hit</th><th>Region products</th></tr></thead><tbody>${
+    ms.map(m => `<tr><td class="id"><b>${esc(m[0])}</b> / ${esc(m[1])} / ${esc(m[2])} / ${esc(m[3])} / ${esc(m[4])}${m[11]?' <span class="ctr">CENTROID</span>':""}</td>
+      <td class="n">${m[5]||""}</td><td class="n">${m[11]?"":fmt(m[6])}</td>
+      <td class="n${m[7]!=null&&m[7]<70?" far":""}">${m[7]==null?"not yet":fmt(m[7])}</td>
+      <td>${m[8]?esc(m[8])+(m[10]!=null?` <span class="gid">${fmt(m[10])}% · ${esc(m[9])}</span>`:""):'<span class="gid">none yet</span>'}</td>
+      <td>${m[13]?esc(m[13])+` <span class="gid">${fmt(m[14])}% · ${esc(m[15])}</span>`:'<span class="gid">none</span>'}</td>
+      <td>${esc(m[12]||"")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function setView(v){
+  view = v; page = 1; sel.clear();
+  $("tab-groups").setAttribute("aria-selected", v === "groups"); $("tab-fams").setAttribute("aria-selected", v === "fams");
+  $("sort").options[0].text = v === "groups" ? "Most strains first" : "Most strains first";
+  chips(); draw();
+}
+let t; $("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { page = 1; draw(); }, 150); });
+$("sort").addEventListener("change", () => { page = 1; draw(); });
+$("more").addEventListener("click", () => { page++; draw(); });
+$("all").addEventListener("click", () => { page = Math.ceil(1e7 / PER); draw(); });
+$("tab-groups").onclick = () => setView("groups"); $("tab-fams").onclick = () => setView("fams");
+chips(); draw();
+</script>

@@ -56,6 +56,7 @@ from mamey.class_architecture import with_family_labels  # antiSMASH families fo
 
 from . import judgment_store as js
 from . import BUNDLE_VERSION as _ACTIVE_BUNDLE_VERSION
+from .missing_values import is_missing
 from .manifest_schema import (
     read_manifest_field, F_ASSEMBLY_TIER, F_INTERIOR_PCT, F_RAW_BGCS,
     F_CORRECTED_BGCS, F_N50, F_CONTIGS, F_MODE, F_ISSUES,
@@ -384,20 +385,24 @@ def _decision_for(row: dict) -> tuple[str, str]:
     novelty = (row.get("Novelty_auto") or row.get("novelty_auto") or "").strip().upper()
     tier = (row.get("Lead_tier_auto") or "").strip().upper()
     def _f(k):
+        """(value or None when missing, invalid flag). A blank or placeholder cell is missing, not 0."""
         raw = row.get(k)
-        if raw is None or (isinstance(raw, str) and not raw.strip()):
-            return 0.0, False
+        if is_missing(raw):
+            return None, False
         try:
             return float(raw), False
         except (TypeError, ValueError):
-            return 0.0, True
+            return None, True
     (ab, ab_invalid), (af, af_invalid) = _f("AB_auto"), _f("AF_auto")
     invalid_fields = [name for name, invalid in (
         ("AB_auto", ab_invalid), ("AF_auto", af_invalid),
     ) if invalid]
     if invalid_fields:
         return "UNRESOLVED", f"invalid numeric triage field(s): {', '.join(invalid_fields)}"
-    score = max(ab, af)
+    present = [v for v in (ab, af) if v is not None]
+    if not present:
+        return "UNRESOLVED", "no AB_auto or AF_auto score in the triage row; a missing score is not a low score"
+    score = max(present)
     # rank-aware top leads get isolation priority
     rank_raw = row.get("Corrected_rank") or row.get("Rank")
     try:
@@ -415,6 +420,28 @@ def _decision_for(row: dict) -> tuple[str, str]:
     return "LOW", f"low signal (score {score:.2f})"
 
 
+# Text and dereplication value for a BGC with no named KCB top hit, by the inventory's
+# KCB_evidence_state. Only a reported no-hit says "no hit".
+_KCB_ABSENT = {
+    "KNOWNCLUSTERBLAST_NO_HITS_UNVALIDATED": ("no KCB hit reported", "no"),
+    "CLUSTERBLAST_FALLBACK_OBSERVED": ("no KCB result (ClusterBlast only)", "unknown"),
+}
+_KCB_NOT_IN_PACKAGE = ("KCB comparison not in package", "unknown")
+_KCB_STATE_NOT_RECORDED = ("no KCB top hit recorded; comparison state not recorded", "unknown")
+
+
+def _kcb_states(pkg: Path) -> dict[str, str] | None:
+    from .missing_values import kcb_evidence_states
+    return kcb_evidence_states(pkg)
+
+
+def _kcb_absent(states: dict[str, str] | None, bgc_id) -> tuple[str, str]:
+    """(text, dereplicate value) for a BGC whose KCB top hit is blank."""
+    if states is None:
+        return _KCB_STATE_NOT_RECORDED
+    return _KCB_ABSENT.get(states.get(str(bgc_id or "").strip(), ""), _KCB_NOT_IN_PACKAGE)
+
+
 def _decision_matrix(pkg: Path) -> str:
     identity_context = _report_identity_context(pkg)
     fields, rows = _triage_rows(pkg)
@@ -424,11 +451,14 @@ def _decision_matrix(pkg: Path) -> str:
            "*Derived deterministically from the triage board (rank, score, novelty, standing rule).*\n",
            "| Locus identity or HOLD | Action | Dereplicate | Rationale |",
            "|---|---|---|---|"]
+    kcb_states = _kcb_states(pkg)
     for r in rows:
         action, why = _decision_for(r)
-        # dereplicate flag: a named KCB hit means a known scaffold to dereplicate against
+        # dereplicate flag: a named KCB hit means a known scaffold to dereplicate against; a blank
+        # one is "no" only when KnownClusterBlast reported no hit, otherwise it is not known.
         kcb = (r.get("KCB_top") or r.get("kcb_top") or "").strip()
-        derep = "yes" if kcb and kcb.lower() not in ("none", "") else "no"
+        derep = ("yes" if kcb and kcb.lower() != "none"
+                 else _kcb_absent(kcb_states, r.get("BGC_ID") or r.get("bgc_id"))[1])
         out.append(f"| {_node_label(r, identity_context)} | {action} | {derep} | {why} |")
     return "\n".join(out) + "\n"
 
@@ -851,12 +881,13 @@ def _key_findings(pkg: Path, m: dict) -> str:
         except (TypeError, ValueError):
             return None
     eligible = [r for r in rows if not _excluded(r)]
+    kcb_states = _kcb_states(pkg)
     out = ["# Key findings\n"]
     if not eligible:
         out.append("- No BGCs are eligible for the lead summary under the recorded exclusion rules; all records remain in the triage inventory.")
     for r in sorted(eligible, key=lambda row: (_score(row) is not None, _score(row) or 0.0),
                     reverse=True)[:5]:
-        kcb = (r.get("KCB_top") or "").strip() or "no KCB hit"
+        kcb = (r.get("KCB_top") or "").strip() or _kcb_absent(kcb_states, r.get("BGC_ID"))[0]
         prod = (r.get("Products") or "").strip()
         out.append(f"- **{_node_label(r, identity_context)}** — {prod}; nearest MIBiG "
                    f"neighbour by protein similarity (KCB): {kcb}. Capacity consistent with this "

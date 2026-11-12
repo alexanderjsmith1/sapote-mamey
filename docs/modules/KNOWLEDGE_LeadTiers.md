@@ -12,7 +12,7 @@ region / BGC alias** from the bound inventory before citing the row: this CSV us
 
 For stored `CONFIRM` verdicts, `tools/build_lead_tiers.py` computes:
 
-- **Current A:** per-locus `tfbs_coupling.json` contains the exact `SARP` entry; otherwise B.
+- **Current A:** the selected per-locus coupling entry contains exact `SARP`; otherwise the writer assigns B. Missing/unresolved coupling keys are not assessed negatives.
 - **Proposed A:** that SARP entry or the writer's self-protection condition is present; otherwise B.
 - **HOLD-QC:** the strain is in the available assembly-QC hold set; both tier columns remain held.
 
@@ -22,6 +22,8 @@ source annotation evidence used for a proposed review order, not proof of expres
 activity or independent physical linkage. The proposed column does not change the canonical
 `tools/build_priority_leads.py` A/B/C rule. Read
 [the composite-score guide](KNOWLEDGE_Evidence_Axes_and_Lead_Class_Logic.md) for that writer.
+
+Check that every verdict and coupling key resolves uniquely to the same admitted BGC inventory and full locus identity. Hold missing, conflicting or duplicate bindings even when a tier is emitted. The writer treats an absent strain/locus coupling key like an empty list; verify assessment coverage before interpreting `n` or B. A malformed present value can instead fail.
 
 ## What can be missing from the recall view
 
@@ -36,7 +38,7 @@ that QC passed.
 
 When a row is absent, check those input states and any `--bioactivity` filter before drawing a
 biological conclusion. Keep the source bank/version and exact command with the saved output.
-The output path is replaced atomically; preserve an earlier result before a selected rerun.
+The writer replaces the requested CSV and writes through a fixed `<out>.tmp` path. Use a fresh authorized directory and verify that both paths are unoccupied and not links; preserve earlier files before a rerun. Atomic replacement of one file is not full identity admission or a transaction over the inputs.
 
 ## Read the activity label as a lookup result
 
@@ -64,8 +66,8 @@ same complete locus identity, admitted evidence and unresolved gaps into the car
 
 ## Historical cohort context
 
-The earlier module reported **12 Class-A leads (6 SID + 6 AS)** under the CONFIRM-and-SARP rule
-and a **6 → 11** proposed change in its SID recall view. Those figures are historical reports;
+The earlier module reported **12 Class-A leads** under the CONFIRM-and-SARP rule
+and a **6 → 11** proposed change in its recall view for one reference cohort. Those figures are historical reports;
 they do not define a new cohort's counts or authorize adoption of the proposed rule. The older
 redacted locus examples, target claims and azoxy/strictness theme lack complete bindings in this
 page. Recover their same-run evidence before using those individual cases in a paper. The

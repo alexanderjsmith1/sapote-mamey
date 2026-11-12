@@ -18,7 +18,10 @@ Where to look instead:
 ## Scores and rules that changed
 
 - **NAPAA and hglE.** NAPAA (non-alpha poly-amino acids) and hglE-KS (a heterocyst-glycolipid-type ketosynthase) are defined in the [glossary](../GLOSSARY.md). `mamey/data/rules_registry.json` marks NAPAA neutral and hglE-KS noted. Both are
-  nonblocking. Saccharide is a lead-blocking exclusion.
+  nonblocking in the registry. Saccharide is a lead-blocking exclusion. `mamey/scoring.py` still has an
+  own-product fallback for hglE-KS: when no registry rule matched and no CCTT trigger fired on the BGC, an hglE
+  product label sets the `hglE-KS-PREV-001` standing rule. That caps the tier at the bottom tier and withholds
+  `corrected_rank`; raw scores are kept.
 - **Assembly quality.** `mamey/assembly.py` gives a weighted count and 70/45/20/UNKNOWN labels. These are
   engineering diagnostics. Keep raw counts and boundary state beside them.
 - **RG-GMCI score labels.** RG-GMCI is defined in the [glossary](../GLOSSARY.md). Reference-row scores use 14/9 thresholds. Pair rollups add support and
@@ -36,7 +39,7 @@ Where to look instead:
   as `PROFILE_MISMATCH` and the run continues with your value.
 - The main full-mode JSON walker refuses a member above 80,000,000 bytes. Other JSON and GBK readers
   have independent caps and switches. `--json-evidence off` stops the main walker; GBK Pfam extraction
-  still runs.
+  still runs. `run --json-evidence` defaults to `bounded`; `--capped-session` forces `off`. The separate record pass still reads eligible, readable JSON for KCB percent and other record evidence; inspect its status for missing, held or unreadable input.
 - Privacy defaults to PRIVATE unless you supply an exact public roster or override. A strain-ID prefix grants nothing.
   See [custom privacy tiers](../CUSTOM_PRIVACY_TIERS.md).
 - `validate` separates extraction completeness from judgment completeness. A `MAMEY_COMPLETE` result
@@ -58,7 +61,7 @@ Where to look instead:
 ## Rendering every figure
 
 Copy the package first and run on the copy; see [figures start here](../FIGURES_START_HERE.md).
-`python mamey_run.py render-all-figures --package <package-copy>` runs five sets by default: smoke, brief, locus-maps,
+`python mamey_run.py render-all-figures --package reviews/EXAMPLE-copy/package` runs five sets by default: smoke, brief, locus-maps,
 figure-suite and domain-level. `--all` adds cohort-class and mamey-native. `--include` wins over `--all`;
 `--exclude` removes sets.
 
@@ -71,7 +74,7 @@ figure-suite and domain-level. `--all` adds cohort-class and mamey-native. `--in
 <a id="refreshable-report-evidence-admission-profiles-channels-and-mode-b"></a>
 ## Report builders
 
-`tools/build_combined_bgc_report.py --job-spec <spec> --source-root ID=/abs/path --out-root <dir>` composes
+`python3 tools/build_combined_bgc_report.py --job-spec path/to/job-spec.json --source-root ID=/actual/source/root --out-root reviews/EXAMPLE-combined` composes
 an existing report packet with V7 report sections and Mode B sections (see the [glossary](../GLOSSARY.md) for Mode B). It does not rerun BLASTp or write missing sections.
 An excluded job returns `EXCLUDED_NO_OUTPUT` and exit 3. A built draft returns exit 0; check `status`
 in its JSON.
@@ -81,7 +84,7 @@ refreshable exact-identity report.
 <a id="input-manifests-and-zip-preflight-scopes"></a>
 ## Input manifests and ZIP checks
 
-`python3 tools/input_manifest.py --label <name> --out <dir> --inputs <paths…> --denominator <keys.txt>` hashes each input and writes
+`python3 tools/input_manifest.py --label EXAMPLE --out reviews/EXAMPLE-inputs --inputs path/to/input.zip --denominator path/to/keys.txt` hashes each input and writes
 `<label>_INPUT_MANIFEST.tsv` and `<label>_COVERAGE_REPORT.md`.
 
 - Exit 3 means an expected key was not consumed. Extra keys are listed but do not change the exit.
@@ -104,6 +107,7 @@ python3 tools/phylo_postflight.py '<treefile>' --outgroup '<token>' \
 ```
 
 - It reads a finished tree. It does not build, reroot or draw one.
+- `--json` must be a fresh path that is not an input. An existing file, the tree itself or a file inside `--genomes-dir` is refused with `OUTPUT_REFUSED` and exit 2 before any check runs.
 - `--outgroup` is a substring match on tip names. Keep an exact tip list elsewhere.
 - Each check prints one row: `ok` (pass), `~` (warning) or `FAIL`. A last line counts them, for example
   `--- 4 pass / 1 warn / 0 FAIL ---`. Fix every `FAIL` before you publish the tree.
@@ -116,13 +120,12 @@ python3 tools/phylo_postflight.py '<treefile>' --outgroup '<token>' \
 
 `tools/phylo_16s_validate_db.py --db <store>` runs two data-quality screens. Exit 0 means no selected
 defect; exit 1 means at least one; bad input gives 2. `REVIEW_NEEDED` rows do not set the defect flag, so
-read them separately. A missing `metadata_source` counts as a defect.
+read them separately. A missing `metadata_source` column is a defect. A blank value on a row carrying selected metadata counts as unknown provenance; a row with no selected metadata does not trigger that particular count.
 
 <a id="cross-strain-denominator-and-conservation-audit-coverage"></a>
 ## Cross-strain denominators
 
-`python3 tools/cross_strain_denominator_audit.py '<cohort-workbook.xlsx>'` scans `N/M` tokens on four
-cross-strain sheets and checks M against the strain-registry length.
+`python3 tools/cross_strain_denominator_audit.py path/to/cohort-workbook.xlsx` scans selected `N/M` tokens on four cross-strain sheets. It applies a bounded detector, accepts selected registry/BGC totals and reports some ambiguous tokens separately for review. Compare the relevant unit and roster yourself. Substitute real bound paths in these examples, quote spaces and select fresh authorized output folders.
 
 - It reads cached cell values. It does not recalculate formulas.
 - A workbook with none of the four sheets passes.
@@ -156,8 +159,7 @@ comparing them.
 
 - **Self-resistance confidence.** `HIGH_CLASS_CONCORDANT` can be set by a class-concordant group that is
   not the diagnostic group.
-- **CNBU** (class-normalized biosynthetic units: region length divided by the expected length for the class). A missing or non-numeric region length becomes 0 kb with no warning. That 0 means the
-  length is missing. It is not a measured length of zero.
+- **CNBU** (class-normalized biosynthetic units: region length divided by the expected length for the class). Missing, nonnumeric and explicit zero inputs can all appear as `0.0`. Inspect the bound input field and report unavailable or invalid length separately; the output zero alone identifies neither a measured biological span nor its missingness cause.
 - **Region span fallback.** When a record has no stored original bounds, the span comes from the last
   region, protocluster or candidate-cluster feature, not their union.
 - **External scan pack.** Several pack rows derive from stored counts or flags. Check the per-scan

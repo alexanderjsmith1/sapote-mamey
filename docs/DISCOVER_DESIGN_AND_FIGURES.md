@@ -98,7 +98,7 @@ the right verb. This is the catalogue so the process is legible in-code.
 |---|---|---|
 | *(gold run, automatic)* | per strain | the `_8*` panels its inputs support, into `gold_figures/` |
 | `render-figures` | one package | by default, the post-seal lead subset only: the top antibacterial and antifungal lead charts, `figure_manifest.csv` and `FIGURE_QA.md`; other `--figure-set` values give other sets. It does not recreate the in-run pack |
-| `render-all-figures` | one package | the full per-strain set incl. extended panels |
+| `render-all-figures` | one package | requested figure sets, each reported as run, skipped, errored or another status |
 | `cohort-figures` | many packages | cross-strain cohort panels (class heatmap, landscape, DAPR) |
 | `cohort` | many packages | the cohort deliverable (figures + synthesis) |
 | `figures` | package/cohort | candidate figures: `diagram \| atlas \| ani \| gcf-network \| clinker \| kcb-locusmap` |
@@ -112,13 +112,13 @@ A given run writes the panels its inputs support. Check `gold_figures/` and the 
 `8n` RG-GMCI rescue. The short names are defined in the [glossary](GLOSSARY.md): DAPR (the
 antibacterial and antifungal lead ranking), CCTT (the class-trigger framework), KCB
 (KnownClusterBlast) and RG-GMCI (the rescue layer). AB and AF are antibacterial and antifungal.
-Each panel is drawn from a saved data table. Not every panel writes its own raw `*_data.csv`; see
+Panels use saved inputs or derived data as their renderer specifies. Not every panel writes its own raw `*_data.csv`; see
 the limits at the end of this page.
 
 ### Module map (`mamey/*figure*`)
 | module | role |
 |---|---|
-| `figure_policy.py` | **style/appearance policy** — the single place that governs palette, sizing, claim-safe labelling. Start here to change house style. |
+| `figure_policy.py` | **style/appearance policy** — one source of palette, sizing and claim-safe labelling. Check the selected renderer and its own contract. |
 | `bgc_figures.py` | per-BGC / per-strain figure primitives |
 | `mamey_native_figures.py`, `figures_sapote.py`, `figures_extra.py`, `figures_split.py` | the per-strain pack renderers + variants |
 | `render_all_figures.py` | orchestrates the full per-strain set |
@@ -131,12 +131,9 @@ the limits at the end of this page.
 | `figures_smoke.py` | smoke-mode minimal figures |
 
 ### The process (how a figure is made, for contributors)
-1. A scan/scoring step writes a **data table** (`*_data.csv`) — the figure's saved display inputs; source admission is separate.
-2. A renderer in the module map reads that table and draws with **matplotlib**, applying
-   `figure_policy` for style + claim-safe labels (AF/AB shown as *routing priors*, KCB as
-   *similarity*, never as activity/identity).
-3. The figure + its `_data.csv` are written to `gold_figures/` (per-strain) or the cohort output
-   dir. Nothing is drawn from memory; reproducibility requires the exact input/code/config/runtime bindings; this catalog does not verify them.
+1. Identify the saved source tables or derived metrics consumed by the selected figure route; source admission is separate.
+2. Check the chosen renderer's own inputs, style policy and outputs. AF/AB are routing priors and KCB is similarity, not measured activity or identity.
+3. Record the actual figure and data outputs, including omissions. Reproducibility requires the exact input/code/config/runtime bindings; this catalog does not verify them.
 4. `discover` reports the figure as present (✓) once `gold_figures/`/`*_8a_fig_landscape.png`
    exists, and routes to `cohort-figures` when ≥2 packages lack a cohort deck.
 

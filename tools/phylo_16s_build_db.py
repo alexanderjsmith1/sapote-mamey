@@ -22,8 +22,18 @@ import _phylo16s as _p16
 
 
 R = str(_p16.root())
-DB = _p16.rrna16s_db(os.environ.get("SAPOTE_16S_SQLITE"), must_exist=False)
-BLASTDB = _p16.refseq_16s_blastdb()
+def __getattr__(name):
+    # Located on first use, not at import; main() binds both from its arguments.
+    if name == "DB":
+        return _p16.rrna16s_db(os.environ.get("SAPOTE_16S_SQLITE"), must_exist=False)
+    if name == "BLASTDB":
+        return _p16.refseq_16s_blastdb()
+    raise AttributeError(name)
+
+
+def _bound(name):
+    """The value main() or a caller bound, else the located default."""
+    return globals()[name] if name in globals() else __getattr__(name)
 AS_FA = os.environ.get(
     "PHYLO_AUTHORITATIVE_16S",
     f"{R}/inputs/authoritative_16s.fasta")
@@ -284,7 +294,7 @@ def ingest_refseq(con, type_material=False):
 
     wd = _p16.space_free_workdir("phylo16s_refseq_")
     try:
-        db = _p16.stage_blastdb(BLASTDB, wd)
+        db = _p16.stage_blastdb(_bound("BLASTDB"), wd)
         p = _p16.run_checked(
             [_p16.blast_bin("blastdbcmd"), "-db", db, "-entry", "all",
              "-outfmt", "%a\t%t\t%s"],
@@ -304,7 +314,7 @@ def ingest_refseq(con, type_material=False):
         source = 'refseq_type' if type_material else 'external'
         rows.append((base_acc(acc), acc, source, title, binom, genus, desig,
                      json.dumps(collection_ids(title)), 1 if type_material else None, seq, len(seq), md5(seq),
-                     os.path.basename(BLASTDB), uncultured(title)))
+                     os.path.basename(_bound("BLASTDB")), uncultured(title)))
         n += 1
     if len({r[0] for r in rows}) != len(rows):
         raise ValueError('duplicate accession identity in BLAST source')

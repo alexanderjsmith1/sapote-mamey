@@ -29,7 +29,7 @@ folder bypasses that record.
 | Home | What belongs there | Who writes |
 |---|---|---|
 | The bundle | Code, docs and shipped reference seeds. Never study data. Post-seal output never goes inside a sealed bundle. | Whoever cuts the release |
-| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after `verify` by a different id. `--chat` is the name you sign with (see [Data home](../DATA_HOME.md)) |
+| Strain Master | Copies of records and results a paper uses, with SHA-256 and original path. Large raw inputs and sealed packages may stay in configured raw stores; bind their paths and hashes. | Only `strain-master apply`, after `verify` by a different id. `--chat` is the name you sign with (see [Data home](../DATA_HOME.md)) |
 | Record homes | The tables where records are edited (strain metadata, hosts, exclusions, rulings). The master holds copies of them. | An accepted record edit through the inbox, with a backup and a CHANGELOG line |
 | Raw stores | Large raw inputs filed once and never edited: antiSMASH ZIPs of record, genome FASTA, sealed packages too large to copy. Named in the master's settings. | Intake, once |
 | Asset registry | Machine-level tool assets: HMM sets, BLAST and MIBiG databases, conda environments. Not study data. | Whoever installs the asset |

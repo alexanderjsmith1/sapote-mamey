@@ -36,12 +36,17 @@ tools refuse to write inside it (`OUTPUT_INSIDE_BUNDLE`). The
 you ingest here reach your Mode B cards. If you already made the copy there,
 skip this step.
 
+Choose a new run-specific folder. Creating it without `-p` refuses an existing
+folder instead of nesting a package copy or replacing an earlier workbook:
+
 ```bash
-mkdir -p $HOME/mamey-work/EXAMPLE
-cp -R runs/EXAMPLE/package $HOME/mamey-work/EXAMPLE/package
-cp runs/EXAMPLE/package/EXAMPLE_5_workbook.xlsx $HOME/mamey-work/EXAMPLE/EXAMPLE-master.xlsx
+mkdir -p "$HOME/mamey-work"
+mkdir "$HOME/mamey-work/EXAMPLE" && cp -R runs/EXAMPLE/package "$HOME/mamey-work/EXAMPLE/package" && cp runs/EXAMPLE/package/EXAMPLE_5_workbook.xlsx "$HOME/mamey-work/EXAMPLE/EXAMPLE-master.xlsx"
 ```
 
+If a command fails, stop and inspect the existing or partial folder; preserve it
+and choose a fresh name after review. If you deliberately reuse a working copy,
+first verify its package identity and the evidence already ingested.
 `EXAMPLE-master.xlsx` is the workbook that `--master` appends to. Use your own
 master workbook for the strain if you keep one. `ingest-blastp` exits 2 if the
 file is missing. Later sections use these two copies.

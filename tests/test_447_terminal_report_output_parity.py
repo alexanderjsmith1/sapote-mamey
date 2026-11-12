@@ -185,8 +185,16 @@ def test_inspect(case, tmp_path, monkeypatch):
                 for i in range(41 if case=='large' else 1):z.writestr(f'fixture.region{i+1:03}.gbk','opaque nonbiological fixture')
     shape={'summary':'synthetic fixture','accession_like':case=='accession',
            'shape':'single_region_antismash_accession' if case=='accession' else 'genome','accession':'FIXTURE'}
+    reviewed = ()
+    if case == 'accession':
+        # One region file cannot show genome scope; the note no longer rules on it.
+        reviewed = ((
+            '    This looks like a raw antiSMASH run on one public GenBank/INSDC sequence, not a full genome and not a sealed Mamey package.\n',
+            '    This ZIP holds one antiSMASH region file, the usual shape of a run on one public GenBank/INSDC sequence record.\n'
+            '    One region file does not show how much of the source genome was submitted; check the source record. It is a raw antiSMASH result, not a sealed Mamey package.\n',
+        ),)
     output = parity('inspect_command','mamey.package_inspector',SimpleNamespace(zip=str(archive)),
-                    {'classify_antismash_zip':lambda *a:shape})
+                    {'classify_antismash_zip':lambda *a:shape}, reviewed=reviewed)
     if case in {'ordinary', 'accession', 'large'}:
         assert output[0] == 0 and output[2] == ''
         assert output[1].count('        --release PRIVATE ' + chr(92) + '\n') == 1
